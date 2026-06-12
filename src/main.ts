@@ -1,114 +1,197 @@
+import { Notice, Plugin } from 'obsidian';
 import {
-	Editor,
-	MarkdownView,
-	MarkdownFileInfo,
-	Modal,
-	Notice,
-	Plugin,
-} from 'obsidian';
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
+    DEFAULT_SETTINGS,
+    VimMotionsSettings,
+    VimMotionsSettingTab,
 } from './settings';
 
-// Remember to rename these classes and interfaces!
+import { registerEasyMotion } from './easymotion/easymotion';
+import {
+    registerNavigationMotions,
+    registerTableMotions,
+    registerBufferNavigation,
+} from './motions/register';
+import { registerOperators } from './operators/register';
+import { registerTextObjects } from './text-objects/register';
+import { VimModeTracker } from './vim/mode-tracker';
+import { setupScrolloff } from './vim/scrolloff';
+import { loadVimrc } from './vimrc/loader';
+import { registerExCommands } from './workspace/commands';
+import { registerWorkspaceNavigation } from './workspace/navigation';
+import { getVimApi, isVimEnabled } from './vim/vim-api';
+import { ExCommandSuggest } from './ui/ex-suggest';
+import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
+import { InsertEscapeHandler } from './vim/insert-escape';
+import { registerVimOptions } from './vim/options';
+import { VimRegistration } from './vim/registration';
 
-export default class MyPlugin extends Plugin {
-	settings!: MyPluginSettings;
+export default class VimMotionsPlugin extends Plugin {
+    settings!: VimMotionsSettings;
+    registration: VimRegistration | null = null;
+    modeTracker: VimModeTracker | null = null;
+    insertEscapeHandler: InsertEscapeHandler | null = null;
+    whichKeyOverlay: WhichKeyOverlay | null = null;
+    exSuggest: ExCommandSuggest | null = null;
 
-	async onload() {
-		await this.loadSettings();
+    async onload() {
+        await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+        if (
+            !isVimEnabled(
+                this.app as unknown as {
+                    vault: { getConfig: (key: string) => unknown };
+                },
+            )
+        ) {
+            new Notice(
+                'Vim motions requires vim mode. Enable it in settings → editor → vim key bindings.',
+            );
+            return;
+        }
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+        const vim = getVimApi();
+        if (!vim) {
+            return;
+        }
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			},
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (
-				editor: Editor,
-				_ctx: MarkdownView | MarkdownFileInfo,
-			) => {
-				editor.replaceSelection('Sample editor command');
-			},
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+        registerVimOptions(vim);
+        this.registration = new VimRegistration(vim);
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			},
-		});
+        if (this.settings.enableTextObjects) {
+            registerTextObjects(this.registration);
+        }
+        if (this.settings.enableNavigation) {
+            registerNavigationMotions(this.registration);
+            registerBufferNavigation(this.registration, this.app);
+        }
+        if (this.settings.enableTableNav) {
+            registerTableMotions(this.registration);
+        }
+        if (this.settings.enableHardWrap) {
+            registerOperators(this.registration);
+        }
+        if (this.settings.enableWorkspaceNav) {
+            registerWorkspaceNavigation(this.registration, this.app);
+            registerExCommands(this.registration, this.app, vim);
+        }
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+        if (this.settings.enableEasyMotion) {
+            registerEasyMotion(
+                this.registration,
+                this.app,
+                this.settings.easyMotionLabels,
+            );
+        }
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(activeDocument, 'click', (_evt: MouseEvent) => {
-			new Notice('Click');
-		});
+        if (this.settings.enableStatusBar) {
+            this.modeTracker = new VimModeTracker(this);
+            this.modeTracker.attach(this.app);
+        }
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(
-			window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000),
-		);
-	}
+        if (this.settings.scrolloffLines > 0) {
+            setupScrolloff(this, this.app, this.settings.scrolloffLines);
+        }
 
-	onunload() {}
+        this.addSettingTab(new VimMotionsSettingTab(this.app, this));
 
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>,
-		);
-	}
+        const leaderRegistry = new LeaderRegistry();
+        if (this.settings.enableVimrc) {
+            await loadVimrc(this.app, vim, leaderRegistry);
+        }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+        for (const binding of this.settings.leaderBindings) {
+            if (binding.key && binding.commandId) {
+                const leaderKey = leaderRegistry.getLeaderKey();
+                const lhs = leaderKey + binding.key;
+                vim.map(lhs, ':ob ' + binding.commandId);
+                leaderRegistry.addBinding(lhs, ':ob ' + binding.commandId);
+            }
+        }
 
-class SampleModal extends Modal {
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
+        this.insertEscapeHandler = new InsertEscapeHandler(this.app, vim);
+        this.insertEscapeHandler.attach();
 
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
+        const editorContainerEl = (
+            this.app as unknown as { workspace: { containerEl: HTMLElement } }
+        ).workspace.containerEl;
+        if (editorContainerEl && this.registration) {
+            this.exSuggest = new ExCommandSuggest(
+                this.registration.getExCommandNames(),
+            );
+            this.exSuggest.attach(editorContainerEl);
+        }
+
+        if (leaderRegistry.getBindings().length > 0) {
+            this.whichKeyOverlay = new WhichKeyOverlay(
+                this.app,
+                leaderRegistry.getLeaderKey(),
+                leaderRegistry.getBindings(),
+            );
+            this.whichKeyOverlay.attach();
+        }
+    }
+
+    reloadFeatures(): void {
+        this.modeTracker?.destroy();
+        this.modeTracker = null;
+        this.registration?.unregisterAll();
+
+        const vim = getVimApi();
+        if (!vim) return;
+
+        this.registration = new VimRegistration(vim);
+        if (this.settings.enableTextObjects) {
+            registerTextObjects(this.registration);
+        }
+        if (this.settings.enableNavigation) {
+            registerNavigationMotions(this.registration);
+            registerBufferNavigation(this.registration, this.app);
+        }
+        if (this.settings.enableTableNav) {
+            registerTableMotions(this.registration);
+        }
+        if (this.settings.enableHardWrap) {
+            registerOperators(this.registration);
+        }
+        if (this.settings.enableWorkspaceNav) {
+            registerWorkspaceNavigation(this.registration, this.app);
+            registerExCommands(this.registration, this.app, vim);
+        }
+        if (this.settings.enableEasyMotion) {
+            registerEasyMotion(
+                this.registration,
+                this.app,
+                this.settings.easyMotionLabels,
+            );
+        }
+        if (this.settings.enableStatusBar) {
+            this.modeTracker = new VimModeTracker(this);
+            this.modeTracker.attach(this.app);
+        }
+    }
+
+    onunload() {
+        this.exSuggest?.destroy();
+        this.exSuggest = null;
+        this.whichKeyOverlay?.destroy();
+        this.whichKeyOverlay = null;
+        this.insertEscapeHandler?.destroy();
+        this.insertEscapeHandler = null;
+        this.modeTracker?.destroy();
+        this.modeTracker = null;
+        this.registration?.unregisterAll();
+        this.registration = null;
+    }
+
+    async loadSettings() {
+        this.settings = Object.assign(
+            {},
+            DEFAULT_SETTINGS,
+            (await this.loadData()) as Partial<VimMotionsSettings>,
+        );
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
 }

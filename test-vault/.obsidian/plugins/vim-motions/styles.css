@@ -1,0 +1,56 @@
+.vim-motions-mode {
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.vim-motions-easymotion {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.vim-motions-info-modal table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
+
+.vim-motions-info-modal th {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.vim-motions-info-modal td {
+    padding: 3px 8px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+}
+
+.vim-motions-info-modal tr:hover {
+    background: var(--background-modifier-hover);
+}
+
+.vim-motions-easymotion-label {
+    position: absolute;
+    left: var(--em-left);
+    top: var(--em-top);
+    background: var(--text-accent);
+    color: var(--text-on-accent);
+    font-family: var(--font-monospace);
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1;
+    padding: 1px 3px;
+    border-radius: 2px;
+    z-index: 1001;
+    pointer-events: none;
+}

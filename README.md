@@ -1,92 +1,234 @@
-# Obsidian Sample Plugin
+# Vim Motions
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim Motions adds what's missing from Obsidian's built-in Vim mode: Markdown-aware text objects, structural navigation, hard-wrap formatting, workspace keyboard control, EasyMotion, and a built-in `.obsidian.vimrc` loader.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+### Markdown text objects
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 
-## First time developing plugins?
+| Keybinding          | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`) |
+| `i_` / `a_`         | Inside/around _italic_ (`_..._`)                         |
+| `` i` `` / `` a` `` | Inside/around `inline code`                              |
+| `i$` / `a$`         | Inside/around $math$ (`$...$`)                           |
+| `i~` / `a~`         | Inside/around ~~strikethrough~~ (`~~...~~`)              |
+| `i=` / `a=`         | Inside/around ==highlight== (`==...==`)                  |
+| `il` / `al`         | Inside/around links (`[[wikilink]]` or `[text](url)`)    |
+| `iC` / `aC`         | Inside/around fenced code blocks                         |
+| `iB` / `aB`         | Inside/around blockquotes (`>`)                          |
+| `io` / `ao`         | Inside/around callouts (`> [!type]`)                     |
 
-Quick starting guide for new plugin devs:
+All delimiter-based text objects work across multiple lines.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### Structural navigation
 
-## Releasing new releases
+Jump between document structures. Works with counts (e.g., `3]h` jumps 3 headings) and operators (e.g., `d]h` deletes to the next heading).
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+| Keybinding            | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `]h` / `[h`           | Next/previous heading (any level)           |
+| `]1`–`]6` / `[1`–`[6` | Next/previous heading of specific level     |
+| `]l` / `[l`           | Next/previous list item (same indent level) |
+| `]n` / `[n`           | Next/previous link                          |
+| `]b` / `[b`           | Next/previous open buffer (tab)             |
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Hard-wrap operators (`gq` / `gw`)
 
-## Adding your plugin to the community plugin list
+Reformat paragraphs with Markdown-aware line wrapping — something Obsidian's built-in Vim mode does not support.
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+| Keybinding         | Description                                     |
+| ------------------ | ----------------------------------------------- |
+| `gqq` / `gwq`      | Reformat current line at textwidth (default 80) |
+| `gqj` / `gwj`      | Reformat current and next line                  |
+| `gqip` / `gwip`    | Reformat paragraph                              |
+| Visual `gq` / `gw` | Reformat selected lines                         |
 
-## How to use
+`gq` moves the cursor to the start of the formatted range. `gw` keeps the cursor at its original position. Both use the same wrapping engine.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+Configure the wrap width with `set textwidth=N` in your `.obsidian.vimrc` (default: 80).
 
-## Manually installing the plugin
+Behaviour:
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+- Splits lines exceeding the textwidth at word boundaries.
+- Preserves Markdown structural prefixes on continuation lines:
+    - **Blockquotes** (`>`) — wrapped lines keep the `> ` prefix.
+    - **Bullet lists** (`- `, `* `, `+ `) — wrapped lines are indented to align with the text.
+    - **Numbered lists** (`1. `) — same alignment behaviour.
+    - **Nested structures** (`> - text`) — both prefixes are preserved.
+- Merges short lines with matching prefixes back into the preceding line when they fit within the textwidth, producing a proper paragraph-reflow effect.
+- Blank lines act as paragraph separators — wrapping stops and resumes at each paragraph.
 
-## Improve code quality with eslint
+### Table navigation
 
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+Navigate Markdown table cells without leaving Vim mode.
 
-## Funding URL
+| Keybinding | Description                     |
+| ---------- | ------------------------------- |
+| `]\|`      | Move to the next table cell     |
+| `[\|`      | Move to the previous table cell |
 
-You can include funding URLs where people who use your plugin can financially support it.
+Wraps to the next/previous row when reaching the end/start of a row. Skips separator rows (`|---|---|`).
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+### Workspace keyboard control
 
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+Navigate Obsidian without a mouse, following Neovim window management conventions.
+
+| Keybinding          | Description                                         |
+| ------------------- | --------------------------------------------------- |
+| `<C-w>h/j/k/l`      | Focus pane left/down/up/right                       |
+| `<C-w>v`            | Split vertical                                      |
+| `<C-w>s`            | Split horizontal                                    |
+| `<C-w>c` / `<C-w>q` | Close current tab                                   |
+| `<C-w>o`            | Close all other tabs                                |
+| `gt` / `gT`         | Next/previous tab                                   |
+| `gd`                | Go to definition — open the link under the cursor   |
+| `gx`                | Open URL under cursor in browser                    |
+| `gf`                | Open file switcher (quick open)                     |
+| `grn`               | Rename current note                                 |
+| `grr`               | Show backlinks to current note                      |
+| `gra`               | Show context-aware actions for cursor position      |
+| `gO`                | Open document outline (searchable heading list)     |
+| `g<C-g>`            | Show document statistics (words, lines, characters) |
+| `za`                | Toggle fold at cursor                               |
+| `zc` / `zo`         | Fold / unfold at cursor                             |
+| `zM` / `zR`         | Fold all / unfold all                               |
+
+### Ex commands
+
+| Command                            | Description                                    |
+| ---------------------------------- | ---------------------------------------------- |
+| `:ob {command-id}`                 | Execute any Obsidian command by ID             |
+| `:ob`                              | List all available command IDs                 |
+| `:sidebar left` / `:sidebar right` | Toggle left/right sidebar                      |
+| `:explorer`                        | Reveal active file in file explorer            |
+| `:w` / `:write`                    | Save current file                              |
+| `:q` / `:quit`                     | Close current tab                              |
+| `:wq`                              | Save and close                                 |
+| `:bn` / `:bp`                      | Next / previous tab                            |
+| `:bd` / `:bc`                      | Close current tab                              |
+| `:only`                            | Close all other tabs                           |
+| `:qa`                              | Close all tabs                                 |
+| `:buffers` / `:ls`                 | Show all open buffers in a modal               |
+| `:backlinks`                       | Show backlinks to the current note in a modal  |
+| `:grep {pattern}`                  | Search vault for text, show results in a modal |
+| `:back` / `:forward`               | Navigate back / forward in history             |
+| `:reg` / `:registers`              | Show register contents in a modal              |
+| `:marks`                           | Show marks and their positions in a modal      |
+
+### EasyMotion / Hop
+
+Jump to any visible position with two keystrokes.
+
+| Keybinding                | Description                                  |
+| ------------------------- | -------------------------------------------- |
+| `<leader><leader>w`       | Label every word start in the viewport       |
+| `<leader><leader>j`       | Label every non-empty line                   |
+| `<leader><leader>f{char}` | Label every occurrence of `{char}`           |
+| `<leader><leader>h`       | Hint mode — label every clickable UI element |
+
+### Quality of life
+
+- **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar.
+- **Which-key hints** — when you press the leader key and pause, a floating overlay shows all available leader bindings.
+- **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
+- **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
+- **Scrolloff** — configurable number of lines to keep visible above/below the cursor.
+- **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc.
+- **Settings hot-reload** — toggle features on and off without restarting Obsidian.
+- **Built-in `.obsidian.vimrc`** — load key mappings and settings without needing obsidian-vimrc-support.
+
+## Vimrc support
+
+Vim Motions has built-in support for `.obsidian.vimrc` files, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. Place a `.obsidian.vimrc` file in your vault root:
+
+```vim
+" Example .obsidian.vimrc
+let mapleader = " "
+
+" Key mappings
+nnoremap j gj
+nnoremap k gk
+nmap Y y$
+
+" Leader key mappings
+exmap saveFile obcommand editor:save-file
+nmap <leader>w :saveFile
+
+" Execute Obsidian commands
+nmap <C-s> :saveFile
+
+" Settings
+set clipboard=unnamed
+set tabstop=4
+set textwidth=80
+set shiftwidth=2
+set expandtab
+set insertmodeescape=jk
 ```
 
-If you have multiple URLs, you can also do:
+Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inoremap`, `vnoremap`, `unmap`, `set`, `let mapleader`, `exmap`, `obcommand`, `source`.
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
+Supported `set` options: `clipboard`, `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`. Use `set noexpandtab` to disable boolean options.
+
+If obsidian-vimrc-support is also installed, Vim Motions skips its own `:ob` command registration to avoid conflicts.
+
+## Settings
+
+All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting.
+
+- Text objects (on/off)
+- Structural navigation (on/off)
+- Hard-wrap operators `gq`/`gw` (on/off)
+- Table navigation (on/off)
+- Workspace navigation (on/off)
+- Load `.obsidian.vimrc` (on/off)
+- Vim mode status bar (on/off)
+- EasyMotion (on/off)
+- Scrolloff lines (0–20, default: 5)
+- EasyMotion label characters (customizable)
+- Leader key bindings (add/remove key-to-command mappings without editing vimrc)
+
+## Installation
+
+### From community plugins (coming soon)
+
+Search for "Vim Motions" in **Settings → Community plugins → Browse**.
+
+### Manual installation
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/saberzero1/motions/releases).
+2. Create a folder `vim-motions` in `<your-vault>/.obsidian/plugins/`.
+3. Copy the downloaded files into that folder.
+4. Restart Obsidian and enable the plugin in **Settings → Community plugins**.
+
+## Requirements
+
+- Obsidian v1.13.0 or later
+- Vim mode must be enabled (**Settings → Editor → Vim key bindings**)
+- Desktop only (mobile support planned for a future release)
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Development build (watch mode)
+npm run dev
+
+# Production build
+npm run build
+
+# Lint
+npm run lint
+
+# E2E tests (requires nix develop on NixOS, or system libraries for Electron)
+npm run test:e2e
 ```
 
-## API Documentation
+## License
 
-See https://docs.obsidian.md
+[MIT](LICENSE) — Emile Bangma

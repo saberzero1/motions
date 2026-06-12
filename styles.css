@@ -1,8 +1,186 @@
-/*
+.vim-motions-mode {
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.vim-motions-easymotion {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
 
-If your plugin does not need CSS, delete this file.
+.vim-motions-info-modal table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
 
-*/
+.vim-motions-info-modal th {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.vim-motions-info-modal td {
+    padding: 3px 8px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+}
+
+.vim-motions-info-modal tr:hover {
+    background: var(--background-modifier-hover);
+}
+
+.vim-motions-which-key {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    max-width: 400px;
+}
+
+.vim-motions-which-key-title {
+    font-family: var(--font-monospace);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vim-motions-which-key-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vim-motions-which-key-row {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.vim-motions-which-key-key {
+    font-family: var(--font-monospace);
+    font-weight: bold;
+    color: var(--text-accent);
+    min-width: 20px;
+}
+
+.vim-motions-which-key-cmd {
+    color: var(--text-normal);
+}
+
+.vim-motions-leader-binding-row .setting-item-control {
+    gap: 6px;
+}
+
+.vim-motions-leader-binding-row .setting-item-control input:first-child {
+    max-width: 60px;
+    font-family: var(--font-monospace);
+    text-align: center;
+}
+
+.vim-motions-search-file {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.vim-motions-search-preview {
+    display: block;
+    color: var(--text-muted);
+    font-family: var(--font-monospace);
+    font-size: 12px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 500px;
+}
+
+.vim-motions-outline-item {
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
+
+.vim-motions-ex-suggest {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-bottom: none;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.vim-motions-ex-suggest-item {
+    padding: 3px 8px;
+    cursor: pointer;
+}
+
+.vim-motions-ex-suggest-item:hover,
+.vim-motions-ex-suggest-item.is-selected {
+    background: var(--background-modifier-hover);
+}
+
+.vim-motions-hint-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+.vim-motions-hint-label {
+    position: absolute;
+    left: var(--hint-left);
+    top: var(--hint-top);
+    opacity: var(--hint-opacity, 1);
+    background: var(--text-accent);
+    color: var(--text-on-accent);
+    font-family: var(--font-monospace);
+    font-weight: bold;
+    font-size: 11px;
+    line-height: 1;
+    padding: 1px 3px;
+    border-radius: 2px;
+    z-index: 10001;
+    pointer-events: none;
+    text-transform: lowercase;
+}
+
+.vim-motions-easymotion-label {
+    position: absolute;
+    left: var(--em-left);
+    top: var(--em-top);
+    background: var(--text-accent);
+    color: var(--text-on-accent);
+    font-family: var(--font-monospace);
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1;
+    padding: 1px 3px;
+    border-radius: 2px;
+    z-index: 1001;
+    pointer-events: none;
+}

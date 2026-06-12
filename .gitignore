@@ -17,6 +17,16 @@ main.js
 
 # obsidian
 data.json
+test-vault/.obsidian/*.json
+!test-vault/.obsidian/app.json
+!test-vault/.obsidian/community-plugins.json
+!test-vault/.obsidian/core-plugins.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# WDIO / E2E testing
+.obsidian-cache/
+
+# Sisyphus plans
+.sisyphus/

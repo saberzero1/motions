@@ -1,0 +1,195 @@
+import type { MotionFn, VimPos } from '../types/vim-api';
+
+const createPos = (line: number, ch: number): VimPos => ({ line, ch });
+
+const findDelimiterOccurrences = (
+    line: string,
+    delimiter: string,
+): number[] => {
+    const positions: number[] = [];
+    const length = delimiter.length;
+    if (length === 0) return positions;
+    let index = 0;
+    while (index <= line.length - length) {
+        const found = line.indexOf(delimiter, index);
+        if (found === -1) break;
+        positions.push(found);
+        index = found + length;
+    }
+    return positions;
+};
+
+const findContainingPair = (
+    positions: number[],
+    cursor: number,
+    delimiterLength: number,
+): { start: number; end: number } | null => {
+    let best: { start: number; end: number; span: number } | null = null;
+    for (let i = 0; i < positions.length - 1; i += 1) {
+        const start = positions[i];
+        if (start === undefined) continue;
+        if (cursor < start) continue;
+        for (let j = i + 1; j < positions.length; j += 1) {
+            const end = positions[j];
+            if (end === undefined) continue;
+            const endInclusive = end + delimiterLength - 1;
+            if (cursor > endInclusive) continue;
+            const span = end - start;
+            if (!best || span < best.span) {
+                best = { start, end, span };
+            }
+            break;
+        }
+    }
+    if (!best) return null;
+    return { start: best.start, end: best.end };
+};
+
+const buildRange = (
+    line: number,
+    pair: { start: number; end: number },
+    delimiterLength: number,
+    inner: boolean,
+): [VimPos, VimPos] | null => {
+    if (inner) {
+        const innerStart = pair.start + delimiterLength;
+        const innerEnd = pair.end;
+        if (innerStart >= innerEnd) return null;
+        return [createPos(line, innerStart), createPos(line, innerEnd)];
+    }
+    const aroundEnd = pair.end + delimiterLength;
+    return [createPos(line, pair.start), createPos(line, aroundEnd)];
+};
+
+/**
+ * Create a smart asterisk text object that disambiguates `**bold**` vs `*italic*`.
+ * Tries `**` first; falls back to `*` if no `**` pair contains the cursor.
+ */
+export function createSmartAsteriskTextObject(): MotionFn {
+    const doubleStar = createMultiLineDelimiterTextObject('**');
+    const singleStar = createMultiLineDelimiterTextObject('*');
+
+    return (cm, head, motionArgs, vim, inputState) => {
+        const doubleResult = doubleStar(cm, head, motionArgs, vim, inputState);
+        if (doubleResult) return doubleResult;
+        return singleStar(cm, head, motionArgs, vim, inputState);
+    };
+}
+
+/** Create a paired-delimiter text object motion. */
+export function createDelimiterTextObject(delimiter: string): MotionFn {
+    return (cm, head, motionArgs) => {
+        const lineText = cm.getLine(head.line);
+        const cursor = Math.max(0, Math.min(head.ch, lineText.length));
+        const positions = findDelimiterOccurrences(lineText, delimiter);
+        if (positions.length < 2) return null;
+        const pair = findContainingPair(positions, cursor, delimiter.length);
+        if (!pair) return null;
+        return buildRange(
+            head.line,
+            pair,
+            delimiter.length,
+            motionArgs.textObjectInner === true,
+        );
+    };
+}
+
+const MULTILINE_SCAN_LIMIT = 20;
+
+function findOpeningDelimiterBackward(
+    cm: { getLine(n: number): string; firstLine(): number },
+    delimiter: string,
+    startLine: number,
+    startCh: number,
+): { line: number; ch: number } | null {
+    const firstLine = cm.firstLine();
+    const minLine = Math.max(firstLine, startLine - MULTILINE_SCAN_LIMIT);
+
+    const currentLine = cm.getLine(startLine);
+    const beforeCursor = currentLine.substring(0, startCh + 1);
+    const idx = beforeCursor.lastIndexOf(delimiter);
+    if (idx !== -1) return { line: startLine, ch: idx };
+
+    for (let line = startLine - 1; line >= minLine; line--) {
+        const text = cm.getLine(line);
+        const found = text.lastIndexOf(delimiter);
+        if (found !== -1) return { line, ch: found };
+    }
+    return null;
+}
+
+function findClosingDelimiterForward(
+    cm: { getLine(n: number): string; lastLine(): number },
+    delimiter: string,
+    startLine: number,
+    startCh: number,
+): { line: number; ch: number } | null {
+    const lastLine = cm.lastLine();
+    const maxLine = Math.min(lastLine, startLine + MULTILINE_SCAN_LIMIT);
+
+    const currentLine = cm.getLine(startLine);
+    const afterOpen = startCh + delimiter.length;
+    if (afterOpen < currentLine.length) {
+        const idx = currentLine.indexOf(delimiter, afterOpen);
+        if (idx !== -1) return { line: startLine, ch: idx };
+    }
+
+    for (let line = startLine + 1; line <= maxLine; line++) {
+        const text = cm.getLine(line);
+        const found = text.indexOf(delimiter);
+        if (found !== -1) return { line, ch: found };
+    }
+    return null;
+}
+
+export function createMultiLineDelimiterTextObject(
+    delimiter: string,
+): MotionFn {
+    const singleLine = createDelimiterTextObject(delimiter);
+
+    return (cm, head, motionArgs, vim, inputState) => {
+        const singleResult = singleLine(cm, head, motionArgs, vim, inputState);
+        if (singleResult) return singleResult;
+
+        const open = findOpeningDelimiterBackward(
+            cm,
+            delimiter,
+            head.line,
+            head.ch,
+        );
+        if (!open) return null;
+
+        const close = findClosingDelimiterForward(
+            cm,
+            delimiter,
+            open.line,
+            open.ch,
+        );
+        if (!close) return null;
+
+        const cursorAfterOpen =
+            head.line > open.line ||
+            (head.line === open.line && head.ch >= open.ch);
+        const cursorBeforeClose =
+            head.line < close.line ||
+            (head.line === close.line &&
+                head.ch <= close.ch + delimiter.length - 1);
+        if (!cursorAfterOpen || !cursorBeforeClose) return null;
+
+        const inner = motionArgs.textObjectInner === true;
+        if (inner) {
+            const innerStartCh = open.ch + delimiter.length;
+            const innerStartLine = open.line;
+            if (innerStartLine === close.line && innerStartCh >= close.ch)
+                return null;
+            return [
+                createPos(innerStartLine, innerStartCh),
+                createPos(close.line, close.ch),
+            ];
+        }
+        return [
+            createPos(open.line, open.ch),
+            createPos(close.line, close.ch + delimiter.length),
+        ];
+    };
+}
