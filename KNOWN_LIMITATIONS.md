@@ -62,11 +62,33 @@ Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `rela
 
 Unknown `set` options are silently ignored (no error, no effect).
 
+## EasyMotion leader key conflict with `mapCommand`
+
+EasyMotion bindings are registered via `mapCommand(leader + leader + 'w', ...)`. This works correctly with the default leader key (`\`) because `\` has no existing binding in codemirror-vim's default keymap.
+
+However, leader keys that **do** have default Vim bindings — such as `,` (reverse repeat find), `;` (repeat find), or space (forward char) — will not work. When the first leader keypress is sent, codemirror-vim finds a `full` match for the single character in the default keymap and consumes it immediately, preventing the multi-key sequence (`,,w`) from accumulating in the key buffer.
+
+This is a fundamental limitation of `mapCommand`: it registers key sequences at the keymap level where single-character `full` matches always take priority over multi-character `partial` matches. The only workaround is to use a leader key that has no default Vim binding (like `\`).
+
+A future fix would switch EasyMotion from `mapCommand` to `vim.map()` with ex command wrappers, which handles leader resolution through a different code path. This is tracked as a known limitation rather than a bug because the default configuration works correctly.
+
+## Table navigation on non-US keyboards
+
+`]|` and `[|` use the pipe character (`|`), which on many non-US keyboard layouts (German, Dutch, Nordic, etc.) requires AltGr or a modifier combination. codemirror-vim's `vimKeyFromEvent` translates AltGr keypresses as `<C-A-|>` or `<A-|>`, which does not match the registered `]|` keybinding.
+
+The alternative keybindings `]c` and `[c` are provided for this reason and work on all keyboard layouts.
+
 ## Which-key overlay scope
 
-The which-key overlay only shows leader bindings defined in `.obsidian.vimrc` (via `nmap <leader>x :command` or similar). It does not show plugin-registered keybindings (`gd`, `gx`, `]h`, etc.) since those are not leader-prefixed and are always available regardless of vimrc configuration.
+The which-key overlay shows leader bindings from `.obsidian.vimrc` (via `nmap <leader>x :command` or similar), settings-configured leader bindings, and built-in leader-prefixed commands (EasyMotion, hint mode). It does not show non-leader plugin keybindings (`gd`, `gx`, `]h`, etc.) since those are always available regardless of leader configuration.
 
-If no leader key is configured in the vimrc (or no vimrc exists), the overlay does not activate.
+## `<C-w>` prefix conflict with Obsidian hotkeys
+
+The `<C-w>` prefix (used for `<C-w>h/j/k/l`, `<C-w>v`, `<C-w>s`, `<C-w>c`, `<C-w>q`, `<C-w>o`) conflicts with Obsidian's default "Close current tab" hotkey bound to Ctrl+W. When Ctrl+W is pressed, Obsidian intercepts it at the app level before the Vim keymap layer sees the second key.
+
+Users must unbind Ctrl+W in **Settings → Hotkeys** (search for "Close current tab") for the `<C-w>` prefix to work. This is documented in the README. The close-tab functionality remains available via `:q`, `:quit`, `<C-w>c`, or `<C-w>q` (the latter two work once the Obsidian hotkey is removed).
+
+This is an Obsidian platform limitation — Electron app-level hotkeys take priority over editor-level keymaps. There is no way to intercept Ctrl+W from within a plugin before Obsidian processes it.
 
 ## Cross-document jump history (`Ctrl-o` / `Ctrl-i`)
 

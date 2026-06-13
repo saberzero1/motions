@@ -71,8 +71,10 @@ export function registerNavigationMotions(reg: VimRegistration): void {
 export function registerTableMotions(reg: VimRegistration): void {
     reg.defineMotion('tableNextCell', tableNextCellMotion);
     reg.mapCommand(']|', 'motion', 'tableNextCell', {});
+    reg.mapCommand(']c', 'motion', 'tableNextCell', {});
     reg.defineMotion('tablePrevCell', tablePrevCellMotion);
     reg.mapCommand('[|', 'motion', 'tablePrevCell', {});
+    reg.mapCommand('[c', 'motion', 'tablePrevCell', {});
 }
 
 export function registerBufferNavigation(reg: VimRegistration, app: App): void {

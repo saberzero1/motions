@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-14
+
+### Fixed
+
+- `gd` on wiki links with display names (`[[file|display name]]`) now correctly navigates to the file instead of creating a new file with the display name in the path
+- `gd` on wiki links with heading fragments (`[[file#heading|display]]`) correctly preserves the heading target
+- EasyMotion keybindings (`<leader><leader>w/j/f`) now work — previously registered as literal `<leader>` strings in `mapCommand` which could never match typed input
+- Hint mode (`<leader><leader>h`) same fix as EasyMotion
+- Leader key bindings configured via settings UI or `.obsidian.vimrc` now work when workspace navigation is disabled — `:ob` ex command is registered unconditionally instead of only when workspace nav is on
+- Leader key bindings no longer silently fail when obsidian-vimrc-support is installed — removed unnecessary guard that skipped `:ob` registration
+- Leader key bindings survive settings hot-reload — `:ob` is re-registered in `reloadFeatures()` so it isn't left as a noop after toggling any setting
+- Which-key overlay now dismisses when a key is pressed after it appears — previously `show()` reset `pendingLeader` state, preventing dismissal
+- Which-key overlay no longer leaks `active-leaf-change` event listeners on destroy
+- `ExCommandSuggest` is rebuilt after settings hot-reload so the completion list stays current
+
+### Added
+
+- `]c` / `[c` as alternative keybindings for table cell navigation, for keyboards where `|` requires AltGr or modifier keys
+- EasyMotion and hint mode bindings now appear in the which-key overlay
+- Which-key overlay rebuilds after settings hot-reload
+
+### Changed
+
+- Plugin initialization order restructured: leader key resolution (vimrc loading) now happens before feature registration, so EasyMotion and hint mode receive the correct leader key
+- `registerObCommand` extracted as a standalone function, called unconditionally in both `onload()` and `reloadFeatures()`
+- `LeaderBinding` now tracks `source` (`'builtin'` or `'user'`) to support selective clearing during hot-reload
+- `LeaderRegistry` gains `clearBuiltinBindings()` for clean re-registration during `reloadFeatures()`
+- `registerEasyMotion()` and `registerWorkspaceNavigation()` accept `LeaderRegistry` parameter
+
 ## [0.2.0] - 2026-06-13
 
 ### Fixed

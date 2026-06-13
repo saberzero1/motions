@@ -65,12 +65,14 @@ Behaviour:
 
 Navigate Markdown table cells without leaving Vim mode.
 
-| Keybinding | Description                     |
-| ---------- | ------------------------------- |
-| `]\|`      | Move to the next table cell     |
-| `[\|`      | Move to the previous table cell |
+| Keybinding    | Description                     |
+| ------------- | ------------------------------- |
+| `]\|` or `]c` | Move to the next table cell     |
+| `[\|` or `[c` | Move to the previous table cell |
 
 Wraps to the next/previous row when reaching the end/start of a row. Skips separator rows (`|---|---|`).
+
+> **Note:** On keyboard layouts where `|` requires AltGr or a modifier key (e.g. German, Dutch, Nordic), the `]\|`/`[\|` bindings may not work. Use `]c`/`[c` instead — they do the same thing and work on all keyboard layouts.
 
 ### Workspace keyboard control
 
@@ -95,6 +97,8 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 | `za`                | Toggle fold at cursor                               |
 | `zc` / `zo`         | Fold / unfold at cursor                             |
 | `zM` / `zR`         | Fold all / unfold all                               |
+
+> **Note:** The `<C-w>` prefix may conflict with Obsidian's default "Close current tab" hotkey. To use `<C-w>` bindings, go to **Settings → Hotkeys**, search for "Close current tab", and remove or rebind the Ctrl+W hotkey. The close-tab functionality remains available via `:q` or `:quit`.
 
 ### Ex commands
 

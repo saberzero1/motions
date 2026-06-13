@@ -20,7 +20,7 @@ function findLinksOnLine(lineText: string): LinkMatch[] {
     let match: RegExpExecArray | null;
     const wikiRe = new RegExp(WIKILINK_RE.source, 'g');
     while ((match = wikiRe.exec(lineText)) !== null) {
-        const target = match[1];
+        const target = match[1]?.split('|')[0];
         if (target) {
             results.push({
                 start: match.index,

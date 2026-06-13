@@ -143,7 +143,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Workspace navigation')
             .setDesc(
-                'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.)',
+                'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
             )
             .addToggle((toggle) =>
                 toggle
@@ -202,7 +202,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Table navigation')
             .setDesc(
-                'Enable table cell navigation motions (]| and [| to move between cells).',
+                'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
             )
             .addToggle((toggle) =>
                 toggle

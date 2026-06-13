@@ -10,6 +10,7 @@ import { createContextActionsAction } from '../ui/context-actions';
 import { createHintModeAction } from '../ui/hint-mode';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
+import type { LeaderRegistry } from '../ui/which-key';
 
 function executeCommand(app: App, commandId: string): void {
     (
@@ -90,6 +91,7 @@ function createDocStatsAction(app: App): ActionFn {
 export function registerWorkspaceNavigation(
     reg: VimRegistration,
     app: App,
+    leaderRegistry: LeaderRegistry,
 ): void {
     reg.defineAction(
         'focusPaneLeft',
@@ -201,5 +203,8 @@ export function registerWorkspaceNavigation(
     reg.mapCommand('gra', 'action', 'contextActions', {});
 
     reg.defineAction('hintMode', createHintModeAction(app));
-    reg.mapCommand('<leader><leader>h', 'action', 'hintMode', {});
+    const leader = leaderRegistry.getLeaderKey();
+    const hintKeys = leader + leader + 'h';
+    reg.mapCommand(hintKeys, 'action', 'hintMode', {});
+    leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
 }

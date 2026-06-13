@@ -542,6 +542,90 @@ describe('Workspace navigation (Phase 2)', function () {
         await browser.pause(200);
     });
 
+    it('gd on a wikilink with display name should resolve the file path', async function () {
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'No Vim' };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'No view' };
+                view.editor.setValue('Go to [[Welcome|my display name]] now');
+                view.editor.setCursor(0, 12);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return { error: 'No adapter' };
+                Vim.handleKey(adapter, 'g');
+                Vim.handleKey(adapter, 'd');
+                return { success: true };
+            } catch (e) {
+                return { error: String(e) };
+            }
+        });
+        expect(result).toHaveProperty('success', true);
+        await browser.pause(500);
+        const openFile = (await browser.executeObsidian(({ app }) => {
+            return app.workspace.getActiveFile()?.path ?? '';
+        })) as string;
+        expect(openFile).toBe('Welcome.md');
+    });
+
+    it('gd on a wikilink with heading should resolve correctly', async function () {
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'No Vim' };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'No view' };
+                view.editor.setValue('See [[Welcome#section]] here');
+                view.editor.setCursor(0, 10);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return { error: 'No adapter' };
+                Vim.handleKey(adapter, 'g');
+                Vim.handleKey(adapter, 'd');
+                return { success: true };
+            } catch (e) {
+                return { error: String(e) };
+            }
+        });
+        expect(result).toHaveProperty('success', true);
+        await browser.pause(500);
+        const openFile = (await browser.executeObsidian(({ app }) => {
+            return app.workspace.getActiveFile()?.path ?? '';
+        })) as string;
+        expect(openFile).toBe('Welcome.md');
+    });
+
     it(':ob should execute a command by id', async function () {
         const result = await browser.executeObsidian(({ app, obsidian }) => {
             try {

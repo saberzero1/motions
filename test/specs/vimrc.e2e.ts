@@ -184,6 +184,48 @@ describe('Vimrc support (Phase 2)', function () {
         expect(result).toHaveProperty('pluginLoaded', true);
     });
 
+    it('EasyMotion should work with default leader key (backslash)', async function () {
+        await obsidianPage.resetVault();
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await browser.pause(1000);
+
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as Record<string, unknown> & {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim' };
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+            view.editor.setValue('Hello world foo bar baz');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+            Vim.handleKey(adapter, '\\');
+            Vim.handleKey(adapter, '\\');
+            Vim.handleKey(adapter, 'w');
+            const hasOverlay = !!activeDocument.querySelector(
+                '.vim-motions-easymotion',
+            );
+            return { success: true, hasOverlay };
+        })) as { success: boolean; hasOverlay: boolean };
+        expect(result).toHaveProperty('success', true);
+        expect(result).toHaveProperty('hasOverlay', true);
+        await browser.keys(['Escape']);
+        await browser.pause(200);
+    });
+
     it('should work without a .obsidian.vimrc file', async function () {
         await obsidianPage.resetVault();
         await browser.reloadObsidian({ vault: 'test-vault' });

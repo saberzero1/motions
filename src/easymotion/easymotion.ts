@@ -3,6 +3,7 @@ import { MarkdownView } from 'obsidian';
 import type { ActionFn, CmAdapter } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
 import { VimRegistration } from '../vim/registration';
+import type { LeaderRegistry } from '../ui/which-key';
 
 const DEFAULT_LABELS = 'asdghklqwertyuiopzxcvbnmfj';
 
@@ -207,22 +208,30 @@ function createFindCharAction(app: App, labels: string): ActionFn {
 export function registerEasyMotion(
     reg: VimRegistration,
     app: App,
-    labels?: string,
+    labels: string | undefined,
+    leaderRegistry: LeaderRegistry,
 ): void {
     const chars = labels ?? DEFAULT_LABELS;
+    const leader = leaderRegistry.getLeaderKey();
 
     reg.defineAction(
         'easyMotionWord',
         createEasyMotionAction(app, 'word', chars),
     );
-    reg.mapCommand('<leader><leader>w', 'action', 'easyMotionWord', {});
+    const wordKeys = leader + leader + 'w';
+    reg.mapCommand(wordKeys, 'action', 'easyMotionWord', {});
+    leaderRegistry.addBinding(wordKeys, 'EasyMotion: word', 'builtin');
 
     reg.defineAction(
         'easyMotionLine',
         createEasyMotionAction(app, 'line', chars),
     );
-    reg.mapCommand('<leader><leader>j', 'action', 'easyMotionLine', {});
+    const lineKeys = leader + leader + 'j';
+    reg.mapCommand(lineKeys, 'action', 'easyMotionLine', {});
+    leaderRegistry.addBinding(lineKeys, 'EasyMotion: line', 'builtin');
 
     reg.defineAction('easyMotionFindChar', createFindCharAction(app, chars));
-    reg.mapCommand('<leader><leader>f', 'action', 'easyMotionFindChar', {});
+    const findKeys = leader + leader + 'f';
+    reg.mapCommand(findKeys, 'action', 'easyMotionFindChar', {});
+    leaderRegistry.addBinding(findKeys, 'EasyMotion: find char', 'builtin');
 }

@@ -215,19 +215,15 @@ function createBacklinksCommand(app: App): ExCommandFn {
     };
 }
 
+export function registerObCommand(reg: VimRegistration, app: App): void {
+    reg.defineEx('ob', '', createObCommand(app));
+}
+
 export function registerExCommands(
     reg: VimRegistration,
     app: App,
     vim?: VimApi,
 ): void {
-    const hasVimrcSupport = !!(
-        app as unknown as { plugins: { plugins: Record<string, unknown> } }
-    ).plugins.plugins['obsidian-vimrc-support'];
-
-    if (!hasVimrcSupport) {
-        reg.defineEx('ob', '', createObCommand(app));
-    }
-
     reg.defineEx('sidebar', 'sid', createSidebarCommand(app));
     reg.defineEx('explorer', 'exp', createExplorerCommand(app));
 

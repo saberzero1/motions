@@ -6,6 +6,7 @@ import { getCmAdapter } from '../vim/vim-api';
 export interface LeaderBinding {
     key: string;
     command: string;
+    source: 'builtin' | 'user';
 }
 
 const SHOW_DELAY = 500;
@@ -17,6 +18,8 @@ export class WhichKeyOverlay {
     private overlay: HTMLElement | null = null;
     private showTimer: number | null = null;
     private keyHandler: ((key: string) => void) | null = null;
+    private leafChangeRef: ReturnType<typeof this.app.workspace.on> | null =
+        null;
     private lastAdapter: CmAdapter | null = null;
     private pendingLeader = false;
 
@@ -34,7 +37,7 @@ export class WhichKeyOverlay {
         };
         this.keyHandler = handler;
 
-        this.app.workspace.on('active-leaf-change', () => {
+        this.leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
             this.detachAdapter();
             const view = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return;
@@ -65,6 +68,10 @@ export class WhichKeyOverlay {
     }
 
     destroy(): void {
+        if (this.leafChangeRef) {
+            this.app.workspace.offref(this.leafChangeRef);
+            this.leafChangeRef = null;
+        }
         this.detachAdapter();
         this.dismiss();
     }
@@ -94,7 +101,14 @@ export class WhichKeyOverlay {
     }
 
     private show(): void {
-        this.dismiss();
+        if (this.showTimer) {
+            window.clearTimeout(this.showTimer);
+            this.showTimer = null;
+        }
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
+        }
 
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!view) return;
@@ -157,7 +171,11 @@ export class LeaderRegistry {
         return this.leaderKey;
     }
 
-    addBinding(lhs: string, rhs: string): void {
+    addBinding(
+        lhs: string,
+        rhs: string,
+        source: 'builtin' | 'user' = 'user',
+    ): void {
         const leader = this.leaderKey;
         if (!lhs.startsWith(leader)) return;
         const key = lhs.slice(leader.length);
@@ -166,9 +184,14 @@ export class LeaderRegistry {
         const existing = this.bindings.find((b) => b.key === key);
         if (existing) {
             existing.command = rhs;
+            existing.source = source;
         } else {
-            this.bindings.push({ key, command: rhs });
+            this.bindings.push({ key, command: rhs, source });
         }
+    }
+
+    clearBuiltinBindings(): void {
+        this.bindings = this.bindings.filter((b) => b.source !== 'builtin');
     }
 
     getBindings(): LeaderBinding[] {
