@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-13
+
+### Fixed
+
+- Vimrc path now uses `Vault.configDir` instead of hardcoded `.obsidian`, supporting custom config directories
+- Setting descriptions use dynamic config directory path
+- `:ob` with no arguments now opens a searchable modal listing all command IDs instead of logging to the developer console
+- Coexistence E2E test now opens a file before assertions, fixing CI race condition
+- Removed deprecated `setDynamicTooltip()` call on scrolloff slider
+
 ## [0.1.0] - 2026-06-13
 
 ### Added
