@@ -3,8 +3,9 @@ import type { VimApi, MapContext } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { parseVimrc, type VimrcCommand } from './parser';
 
-// eslint-disable-next-line obsidianmd/hardcoded-config-path -- .obsidian.vimrc is a convention from obsidian-vimrc-support, not a config dir path
-const VIMRC_FILENAME = '.obsidian.vimrc';
+function getVimrcPath(app: App): string {
+    return `${app.vault.configDir}.vimrc`;
+}
 
 async function readVimrcFile(app: App, path: string): Promise<string | null> {
     try {
@@ -107,7 +108,7 @@ export async function loadVimrc(
     vim: VimApi,
     leaderRegistry?: LeaderRegistry,
 ): Promise<void> {
-    await loadVimrcFile(app, vim, VIMRC_FILENAME, '\\', leaderRegistry);
+    await loadVimrcFile(app, vim, getVimrcPath(app), '\\', leaderRegistry);
 }
 
 async function loadVimrcFile(

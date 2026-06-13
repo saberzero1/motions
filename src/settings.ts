@@ -171,11 +171,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            /* eslint-disable-next-line obsidianmd/ui/sentence-case, obsidianmd/hardcoded-config-path -- .obsidian.vimrc is a user-facing file convention */
-            .setName('Load .obsidian.vimrc')
+            .setName(`Load ${this.app.vault.configDir}.vimrc`)
             .setDesc(
-                // eslint-disable-next-line obsidianmd/ui/sentence-case, obsidianmd/hardcoded-config-path -- .obsidian.vimrc is a user-facing file convention
-                'Load key mappings and settings from .obsidian.vimrc in your vault root.',
+                `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
             )
             .addToggle((toggle) =>
                 toggle
@@ -219,14 +217,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Scrolloff lines')
             .setDesc(
-                // eslint-disable-next-line obsidianmd/ui/sentence-case -- "cursor" is intentionally lowercase
-                'Minimum visible lines above and below the cursor when scrolling (0 to disable).',
+                'Number of lines to keep visible above and below when scrolling (0 to disable).',
             )
             .addSlider((slider) =>
                 slider
                     .setLimits(0, 20, 1)
                     .setValue(this.plugin.settings.scrolloffLines)
-                    .setDynamicTooltip()
                     .onChange(async (value) => {
                         this.plugin.settings.scrolloffLines = value;
                         await this.plugin.saveSettings();
@@ -235,8 +231,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(
-            // eslint-disable-next-line obsidianmd/ui/sentence-case, obsidianmd/hardcoded-config-path -- .obsidian.vimrc is a user-facing file convention
-            'Map leader key sequences to Obsidian commands. Applied in addition to .obsidian.vimrc bindings.',
+            `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
         );
 
         const bindingsContainer = containerEl.createDiv({

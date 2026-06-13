@@ -193,7 +193,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Installation
 
-### From community plugins (coming soon)
+### From community directory
 
 Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 

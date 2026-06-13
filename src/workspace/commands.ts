@@ -10,18 +10,21 @@ function createObCommand(app: App): ExCommandFn {
             app as unknown as {
                 commands: {
                     executeCommandById: (id: string) => void;
-                    commands: Record<string, unknown>;
+                    commands: Record<string, { id: string; name: string }>;
                 };
             }
         ).commands;
 
         if (!params.argString?.trim()) {
-            const ids = Object.keys(commands.commands).sort();
-            new Notice(
-                `${ids.length} commands available. Check developer console.`,
-            );
-            // eslint-disable-next-line obsidianmd/rule-custom-message -- user-requested listing via :ob
-            console.table(ids);
+            const rows = Object.values(commands.commands)
+                .sort((a, b) => a.id.localeCompare(b.id))
+                .map((cmd) => [cmd.id, cmd.name]);
+            new VimInfoModal(
+                app,
+                'Obsidian commands',
+                [{ header: 'ID' }, { header: 'Name' }],
+                rows,
+            ).open();
             return;
         }
         const commandId = params.argString?.trim() ?? '';
