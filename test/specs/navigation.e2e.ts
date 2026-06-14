@@ -185,4 +185,102 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             expect(await getCursorLine()).toBe(0);
         });
     });
+
+    describe('Heading by level extended (]3-]6/[3-[6)', function () {
+        it(']3 should jump to next H3', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('# H1\n\n## H2\n\n### H3\n\ntext');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys(']', '3');
+            expect(await getCursorLine()).toBe(4);
+        });
+
+        it(']4 should jump to next H4', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('# H1\n\n#### H4\n\ntext');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys(']', '4');
+            expect(await getCursorLine()).toBe(2);
+        });
+
+        it('[3 should jump to previous H3', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    '### H3\n\ntext\n\n### Another H3\n\nmore',
+                );
+                view.editor.setCursor(6, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('[', '3');
+            expect(await getCursorLine()).toBe(4);
+        });
+    });
+
+    describe('List navigation extended', function () {
+        it(']l with ordered list should jump to next item', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('1. item 1\n2. item 2\n3. item 3');
+                view.editor.setCursor(0, 3);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys(']', 'l');
+            expect(await getCursorLine()).toBe(1);
+        });
+    });
+
+    describe('Edge cases', function () {
+        it(']h at last heading should stay put', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('# Only heading');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys(']', 'h');
+            expect(await getCursorLine()).toBe(0);
+        });
+
+        it(']n across multiple lines should jump to link on next line', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('text\n[[link1]]\nmore\n[[link2]]');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys(']', 'n');
+            expect(await getCursorLine()).toBe(1);
+        });
+    });
 });

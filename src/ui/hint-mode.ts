@@ -57,10 +57,14 @@ function showHints(targets: HintTarget[], container: HTMLElement): void {
             cls: 'vim-motions-hint-label',
             text: target.label,
         });
-        el.setCssProps({
-            '--hint-left': `${rect.left + window.scrollX}px`,
-            '--hint-top': `${rect.top + window.scrollY}px`,
-        });
+        el.style.setProperty(
+            '--vim-motions-hint-left',
+            `${rect.left + window.scrollX}px`,
+        );
+        el.style.setProperty(
+            '--vim-motions-hint-top',
+            `${rect.top + window.scrollY}px`,
+        );
         target.labelEl = el;
     }
 }
@@ -83,7 +87,11 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintTarget | null> {
                 firstChar = e.key;
                 for (const t of targets) {
                     if (!t.label.startsWith(firstChar)) {
-                        t.labelEl.setCssProps({ '--hint-opacity': '0.2' });
+                        // eslint-disable-next-line obsidianmd/no-static-styles-assignment -- dynamic CSS custom property for hint filtering
+                        t.labelEl.style.setProperty(
+                            '--vim-motions-hint-opacity',
+                            '0.2',
+                        );
                     }
                 }
                 return;

@@ -213,4 +213,109 @@ describe('Phase 4 text objects', function () {
             expect(await getEditorValue()).toBe('Hello __ world');
         });
     });
+
+    describe('Empty delimiter edge cases', function () {
+        it('di* on empty bold should not change content', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello **** world');
+                view.editor.setCursor(0, 8);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', '*');
+            expect(await getEditorValue()).toBe('Hello **** world');
+        });
+
+        it('da* on empty bold should delete delimiters', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello **** world');
+                view.editor.setCursor(0, 8);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'a', '*');
+            expect(await getEditorValue()).toBe('Hello  world');
+        });
+
+        it('di~ on empty strikethrough should not change', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello ~~~~ world');
+                view.editor.setCursor(0, 9);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', '~');
+            expect(await getEditorValue()).toBe('Hello ~~~~ world');
+        });
+
+        it('da= on empty highlight should delete delimiters', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello ==== world');
+                view.editor.setCursor(0, 9);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'a', '=');
+            expect(await getEditorValue()).toBe('Hello  world');
+        });
+    });
+
+    describe('Visual and yank with text objects', function () {
+        it('vi* should select inside bold in visual mode', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello **bold** world');
+                view.editor.setCursor(0, 10);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('v', 'i', '*');
+            const selection = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view?.editor.getSelection() ?? '';
+                },
+            )) as string;
+            expect(selection.startsWith('bold')).toBe(true);
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('yi* should yank inside bold', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello **bold** world');
+                view.editor.setCursor(0, 10);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('y', 'i', '*');
+            await vimKeys('$', 'p');
+            expect(await getEditorValue()).toBe('Hello **bold** worldbold');
+        });
+    });
 });

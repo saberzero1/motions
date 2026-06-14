@@ -1,0 +1,339 @@
+import { browser, expect } from '@wdio/globals';
+import { obsidianPage } from 'wdio-obsidian-service';
+
+async function getEditorValue(): Promise<string> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        return view?.editor.getValue() ?? '';
+    })) as string;
+}
+
+async function vimKeys(...keys: string[]) {
+    await browser.keys(['Escape']);
+    await browser.pause(50);
+    for (const key of keys) {
+        await browser.keys([key]);
+        await browser.pause(30);
+    }
+    await browser.pause(200);
+}
+
+describe('Settings hot-reload', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+    });
+
+    it('disabling text objects should remove them', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return { error: 'no plugin' };
+            plugin.settings.enableTextObjects = false;
+            plugin.reloadFeatures();
+            return { success: true };
+        });
+        await browser.pause(500);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setValue('Hello **bold** world');
+            view.editor.setCursor(0, 10);
+            view.editor.focus();
+        });
+        await browser.pause(300);
+        await vimKeys('d', 'i', '*');
+
+        const content = await getEditorValue();
+        expect(content).toBe('Hello **bold** world');
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableTextObjects = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('re-enabling text objects should restore them', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableTextObjects = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableTextObjects = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setValue('Hello **bold** world');
+            view.editor.setCursor(0, 10);
+            view.editor.focus();
+        });
+        await browser.pause(300);
+        await vimKeys('d', 'i', '*');
+
+        expect(await getEditorValue()).toBe('Hello **** world');
+    });
+
+    it('disabling navigation should remove motions', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableNavigation = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setValue('# H1\n\ntext\n\n## H2');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+        });
+        await browser.pause(300);
+        await browser.keys(['Escape']);
+        await browser.pause(50);
+        await browser.keys([']', 'h']);
+        await browser.pause(200);
+
+        const cursorLine = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                return view?.editor.getCursor().line ?? -1;
+            },
+        )) as number;
+        expect(cursorLine).toBe(0);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableNavigation = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('disabling status bar should remove the element', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableStatusBar = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        const exists = (await browser.executeObsidian(() => {
+            return !!document.querySelector('.vim-motions-mode');
+        })) as boolean;
+        expect(exists).toBe(false);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableStatusBar = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('disabling EasyMotion should remove the action', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableEasyMotion = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'No Vim' };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'No view' };
+                view.editor.setValue('Hello world foo bar baz');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return { error: 'No adapter' };
+                Vim.handleKey(adapter, '\\');
+                Vim.handleKey(adapter, '\\');
+                Vim.handleKey(adapter, 'w');
+                const hasOverlay = !!activeDocument.querySelector(
+                    '.vim-motions-easymotion',
+                );
+                return { success: true, hasOverlay };
+            } catch (e) {
+                return { error: String(e) };
+            }
+        })) as { success?: boolean; hasOverlay?: boolean; error?: string };
+        expect(result).toHaveProperty('success', true);
+        expect(result).toHaveProperty('hasOverlay', false);
+
+        await browser.keys(['Escape']);
+        await browser.pause(200);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableEasyMotion = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+});

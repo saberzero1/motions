@@ -123,10 +123,14 @@ function showOverlays(
                 cls: 'vim-motions-easymotion-label',
                 text: target.label,
             });
-            el.setCssProps({
-                '--em-left': `${coords.left - scrollRect.left + scrollLeft}px`,
-                '--em-top': `${coords.top - scrollRect.top + scrollTop}px`,
-            });
+            el.style.setProperty(
+                '--vim-motions-em-left',
+                `${coords.left - scrollRect.left + scrollLeft}px`,
+            );
+            el.style.setProperty(
+                '--vim-motions-em-top',
+                `${coords.top - scrollRect.top + scrollTop}px`,
+            );
         },
     };
 }

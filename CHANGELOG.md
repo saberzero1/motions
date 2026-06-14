@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-14
+
+### Changed
+
+- **Lowered minimum Obsidian version from 1.13.0 to 1.1.1** — audited all Obsidian API usage and confirmed no API newer than 0.13.8 is required. Users on Obsidian 1.1.1 and later can now use the plugin.
+- Replaced Obsidian's `setCssProps` prototype augmentation with standard `el.style.setProperty()` calls in EasyMotion and hint mode. Removes dependency on an undocumented global API whose introduction version is unknown, improving backward compatibility.
+- Prefixed all plugin-owned CSS custom properties with `--vim-motions-` to avoid collisions with other plugins or themes:
+    - `--em-left` → `--vim-motions-em-left`
+    - `--em-top` → `--vim-motions-em-top`
+    - `--hint-left` → `--vim-motions-hint-left`
+    - `--hint-top` → `--vim-motions-hint-top`
+    - `--hint-opacity` → `--vim-motions-hint-opacity`
+
+### Added
+
+- E2E tests for blockquote text objects (`iB`/`aB`) and callout text objects (`io`/`ao`)
+- E2E tests for buffer navigation (`]b`/`[b`)
+- E2E tests for EasyMotion interaction (overlay appearance, dismissal, line/char label variants)
+- E2E tests for workspace operations: splits (`<C-w>v`/`<C-w>s`), folds (`zc`/`zo`/`zM`/`zR`), tab navigation (`gT`), file switcher (`gf`), rename (`grn`), backlinks (`grr`), document stats (`g<C-g>`)
+- E2E tests for ex commands with effect verification: `:q`, `:wq`, `:bp`, `:only`, `:back`, `:forward`, `:explorer`, `:ls`
+- E2E tests for quality-of-life features: status bar mode display (NORMAL/INSERT/VISUAL), which-key overlay, ex command suggest
+- E2E tests for settings hot-reload: toggling text objects, navigation, status bar, and EasyMotion on/off
+- E2E tests for operator edge cases: bullet/numbered/nested list prefix preservation in `gq`, `gqj` (two-line wrap), `gqip` (paragraph reflow)
+- E2E tests for text object edge cases: empty delimiters (`****`, `~~~~`, `====`), visual mode selection (`vi*`), yank (`yi*`)
+- E2E tests for navigation edge cases: heading levels `]3`/`]4`/`[3`, ordered list navigation, last-heading boundary, cross-line link jumps
+
 ## [0.3.0] - 2026-06-14
 
 ### Fixed
