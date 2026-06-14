@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--em-top` → `--vim-motions-em-top`
     - `--hint-left` → `--vim-motions-hint-left`
     - `--hint-top` → `--vim-motions-hint-top`
-    - `--hint-opacity` → `--vim-motions-hint-opacity`
+    - `--hint-opacity` → replaced with `.is-dimmed` CSS class (avoids inline style assignment)
 
 ### Added
 

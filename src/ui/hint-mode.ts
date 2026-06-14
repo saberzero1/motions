@@ -87,11 +87,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintTarget | null> {
                 firstChar = e.key;
                 for (const t of targets) {
                     if (!t.label.startsWith(firstChar)) {
-                        // eslint-disable-next-line obsidianmd/no-static-styles-assignment -- dynamic CSS custom property for hint filtering
-                        t.labelEl.style.setProperty(
-                            '--vim-motions-hint-opacity',
-                            '0.2',
-                        );
+                        t.labelEl.classList.add('is-dimmed');
                     }
                 }
                 return;

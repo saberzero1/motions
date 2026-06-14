@@ -210,7 +210,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 
 ## Requirements
 
-- Obsidian v1.13.0 or later
+- Obsidian v1.1.1 or later
 - Vim mode must be enabled (**Settings → Editor → Vim key bindings**)
 - Desktop only (mobile support planned for a future release)
 
