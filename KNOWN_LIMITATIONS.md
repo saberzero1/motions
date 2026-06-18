@@ -39,7 +39,7 @@ Delimiters inside fenced code blocks are not excluded from the scan. If a code b
 
 ## Vimrc hot-reload
 
-Changing `.obsidian.vimrc` requires reloading the plugin. The vimrc is loaded once during `onload()`. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
+Changing `.obsidian.vimrc` requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
 
 ## Scrolloff cleanup on disable
 
@@ -61,6 +61,45 @@ The following `set` options are registered and can be used in `.obsidian.vimrc`:
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `relativenumber`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
 Unknown `set` options are silently ignored (no error, no effect).
+
+## `nmap L $` does not work via vimrc
+
+`nmap L $` (mapping `L` to end-of-line) does not work when loaded from `.obsidian.vimrc`. The mapping is applied via `handleEx` during the `active-leaf-change` lifecycle, but the `$` motion as an rhs value is lost before the next keystroke.
+
+Diagnostic findings (spike17):
+
+- `handleEx(cm, 'nmap L $')` works at runtime (test context) but not during the `active-leaf-change` handler.
+- `vim.map('L', '$', 'normal')` also fails during the handler — identical behavior.
+- `nmap H ^` works via the same handler — the issue is specific to `$` as the rhs.
+- `nmap L 0` works via vimrc — other rhs values are not affected.
+- `findKey(cm, 'L', 'normal')` returns undefined after vimrc load — the mapping is consumed by the built-in `moveToBottomLine` motion.
+
+Root cause is likely a codemirror-vim lifecycle interaction where `$` in `toKeys` is handled differently during editor initialization than at runtime. obsidian-vimrc-support users report `noremap L $` works in their plugin (issue #264), suggesting the timing of the mapping application relative to the CM Vim extension initialization matters.
+
+Workaround: use `set insertmodeescape=jk` and other vimrc features that do work. For `L` specifically, no workaround exists within the vimrc — the motion works correctly when applied at runtime via Obsidian's developer console.
+
+## `set textwidth` via vimrc does not affect `gq`
+
+`set textwidth=20` in `.obsidian.vimrc` does not change the wrap width used by the `gq`/`gw` operators. The `gq` operator continues to use the default textwidth (80).
+
+Diagnostic findings (spike17):
+
+- `Vim.setOption('textwidth', 20)` at runtime correctly updates the wrap width — `gqq` wraps at 20 columns.
+- `handleEx(cm, 'set textwidth=20')` at runtime also works — `gqq` wraps at 20 columns.
+- `Vim.getOption('textwidth')` returns 20 after vimrc loading — CM Vim's option value IS updated.
+- Despite the option value being 20, `gqq` wraps at 80 — the plugin's internal `textwidthValue` is not updated by the vimrc pipeline.
+
+Root cause: codemirror-vim's `defineOption` for `textwidth` runs its own callback (which has per-instance scoping via a `cm === undefined` guard) rather than our plugin's callback during vimrc loading. Our callback registered via `registerVimOptions` during `onload()` is overwritten when the CM Vim extension initializes for the first editor.
+
+Workaround: set textwidth at runtime via Obsidian's developer console: `CodeMirrorAdapter.Vim.setOption('textwidth', 20)`.
+
+## `noremap` cannot swap built-in single-key motions
+
+`nnoremap j k` / `nnoremap k j` does not swap the `j` and `k` motions. This is a codemirror-vim architectural constraint: when a `noremap` mapping's rhs is dispatched, the key handler skips all user-defined keymap entries and only searches the default keymap. Since user-defined entries are inserted at the front of the keymap array via `unshift`, the `noremap` dispatch (which starts at `keyMap.length - defaultKeymapLength`) correctly finds the original motion. However, the lhs side of the swap still resolves to the original motion as well, because codemirror-vim's `noremap` flag is tracked globally during dispatch — meaning both sides of a swap end up resolving to the default keymap.
+
+This limitation is confirmed upstream in [obsidian-vimrc-support issue #16](https://github.com/esm7/obsidian-vimrc-support/issues/16), where the maintainer noted: "CodeMirror doesn't support `noremap` [...] recursive mappings are not possible in CodeMirror anyway so `map` or `nmap` should work."
+
+`noremap` does work for preventing recursion in multi-key mappings (e.g. `noremap G G$`) and for remapping keys to different key sequences. It only fails when trying to swap two built-in single-key motions with each other.
 
 ## EasyMotion leader key conflict with `mapCommand`
 

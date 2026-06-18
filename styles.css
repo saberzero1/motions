@@ -1,6 +1,7 @@
 .vim-motions-mode {
+    font-family: var(--font-monospace);
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
     text-transform: uppercase;
 }
 

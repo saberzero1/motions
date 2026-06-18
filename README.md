@@ -20,6 +20,7 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 | `iC` / `aC`         | Inside/around fenced code blocks                         |
 | `iB` / `aB`         | Inside/around blockquotes (`>`)                          |
 | `io` / `ao`         | Inside/around callouts (`> [!type]`)                     |
+| `it` / `at`         | Inside/around HTML/XML tags                              |
 
 All delimiter-based text objects work across multiple lines.
 
@@ -48,7 +49,7 @@ Reformat paragraphs with Markdown-aware line wrapping — something Obsidian's b
 
 `gq` moves the cursor to the start of the formatted range. `gw` keeps the cursor at its original position. Both use the same wrapping engine.
 
-Configure the wrap width with `set textwidth=N` in your `.obsidian.vimrc` (default: 80).
+The default wrap width is 80 columns. You can change it at runtime via Obsidian's developer console: `CodeMirrorAdapter.Vim.setOption('textwidth', 100)`. Note: `set textwidth=N` in `.obsidian.vimrc` is parsed but does not currently propagate to the `gq`/`gw` operators due to a [known limitation](KNOWN_LIMITATIONS.md#set-textwidth-via-vimrc-does-not-affect-gq).
 
 Behaviour:
 
@@ -86,6 +87,7 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 | `<C-w>c` / `<C-w>q` | Close current tab                                   |
 | `<C-w>o`            | Close all other tabs                                |
 | `gt` / `gT`         | Next/previous tab                                   |
+| `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3) |
 | `gd`                | Go to definition — open the link under the cursor   |
 | `gx`                | Open URL under cursor in browser                    |
 | `gf`                | Open file switcher (quick open)                     |
@@ -94,8 +96,12 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 | `gra`               | Show context-aware actions for cursor position      |
 | `gO`                | Open document outline (searchable heading list)     |
 | `g<C-g>`            | Show document statistics (words, lines, characters) |
+| `gp` / `gP`         | Paste and move cursor past pasted text              |
+| `ga`                | Show character info under cursor (codepoint, hex)   |
+| `g;` / `g,`         | Jump to older/newer change position                 |
 | `za`                | Toggle fold at cursor                               |
 | `zc` / `zo`         | Fold / unfold at cursor                             |
+| `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    |
 | `zM` / `zR`         | Fold all / unfold all                               |
 
 > **Note:** The `<C-w>` prefix may conflict with Obsidian's default "Close current tab" hotkey. To use `<C-w>` bindings, go to **Settings → Hotkeys**, search for "Close current tab", and remove or rebind the Ctrl+W hotkey. The close-tab functionality remains available via `:q` or `:quit`.
@@ -109,18 +115,44 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 | `:sidebar left` / `:sidebar right` | Toggle left/right sidebar                      |
 | `:explorer`                        | Reveal active file in file explorer            |
 | `:w` / `:write`                    | Save current file                              |
+| `:update` / `:up`                  | Save current file (alias for `:w`)             |
 | `:q` / `:quit`                     | Close current tab                              |
 | `:wq`                              | Save and close                                 |
+| `:x` / `:xit`                      | Write if modified and close                    |
+| `:xa` / `:xall`                    | Write if modified all and close all            |
+| `:e {file}` / `:edit {file}`       | Open file by name in vault                     |
+| `:e!` / `:edit!`                   | Revert current file to saved version           |
+| `:enew`                            | Create new untitled note                       |
+| `:saveas {file}`                   | Save current buffer as new file                |
+| `:find {file}` / `:fin`            | Find and open file by partial name match       |
+| `:read {file}` / `:r`              | Insert file contents at cursor position        |
 | `:bn` / `:bp`                      | Next / previous tab                            |
+| `:b {name}` / `:buffer {name}`     | Switch to tab matching name                    |
+| `:bf` / `:bfirst`                  | Go to first tab                                |
+| `:bl` / `:blast`                   | Go to last tab                                 |
 | `:bd` / `:bc`                      | Close current tab                              |
+| `:bw` / `:bwipeout`                | Close current tab                              |
 | `:only`                            | Close all other tabs                           |
 | `:qa`                              | Close all tabs                                 |
+| `:sp` / `:split`                   | Horizontal split                               |
+| `:vs` / `:vsplit`                  | Vertical split                                 |
+| `:new`                             | Horizontal split with new note                 |
+| `:vnew`                            | Vertical split with new note                   |
+| `:tabnew` / `:tabedit`             | Open new tab (optionally with file)            |
+| `:tabclose` / `:tabc`              | Close current tab                              |
+| `:tabonly` / `:tabo`               | Close all other tabs                           |
+| `:tabfirst` / `:tabrewind`         | Go to first tab                                |
+| `:tablast` / `:tabl`               | Go to last tab                                 |
 | `:buffers` / `:ls`                 | Show all open buffers in a modal               |
 | `:backlinks`                       | Show backlinks to the current note in a modal  |
 | `:grep {pattern}`                  | Search vault for text, show results in a modal |
+| `:wa` / `:wall`                    | Save all open files                            |
 | `:back` / `:forward`               | Navigate back / forward in history             |
 | `:reg` / `:registers`              | Show register contents in a modal              |
 | `:marks`                           | Show marks and their positions in a modal      |
+| `:delmarks {marks}`                | Delete specified marks                         |
+| `:changes`                         | Show change list in modal                      |
+| `:version` / `:ve`                 | Show plugin version                            |
 
 ### EasyMotion / Hop
 
@@ -135,6 +167,7 @@ Jump to any visible position with two keystrokes.
 
 ### Quality of life
 
+- **Neovim defaults** — `Y` yanks to end of line (`y$`) and `Q` replays last recorded macro (`@@`), matching Neovim's defaults instead of CM Vim's legacy behavior.
 - **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar.
 - **Which-key hints** — when you press the leader key and pause, a floating overlay shows all available leader bindings.
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
@@ -173,7 +206,7 @@ set expandtab
 set insertmodeescape=jk
 ```
 
-Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inoremap`, `vnoremap`, `unmap`, `set`, `let mapleader`, `exmap`, `obcommand`, `source`.
+Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inoremap`, `vnoremap`, `unmap`, `nunmap`, `iunmap`, `vunmap`, `set`, `let mapleader`, `exmap`, `obcommand`, `source`.
 
 Supported `set` options: `clipboard`, `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`. Use `set noexpandtab` to disable boolean options.
 

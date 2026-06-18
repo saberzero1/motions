@@ -1,7 +1,10 @@
+import { MarkdownView } from 'obsidian';
 import type { App } from 'obsidian';
-import type { VimApi, MapContext } from '../types/vim-api';
+import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
-import { parseVimrc, type VimrcCommand } from './parser';
+import { getCmAdapter } from '../vim/vim-api';
+import { setTextwidth } from '../vim/options';
+import { parseLine } from './parser';
 
 function getVimrcPath(app: App): string {
     return `${app.vault.configDir}.vimrc`;
@@ -19,94 +22,74 @@ async function readVimrcFile(app: App, path: string): Promise<string | null> {
     }
 }
 
-function toMapContext(context?: string): MapContext | undefined {
-    if (context === 'normal') return 'normal';
-    if (context === 'insert') return 'insert';
-    if (context === 'visual') return 'visual';
-    return undefined;
+function executeCommandById(app: App, commandId: string): void {
+    (
+        app as unknown as {
+            commands: { executeCommandById: (id: string) => void };
+        }
+    ).commands.executeCommandById(commandId);
 }
 
-function applyCommand(
-    vim: VimApi,
-    cmd: VimrcCommand,
-    lhs: string | undefined,
-    rhs: string | undefined,
-    args: string | undefined,
-    app: App,
-    exmaps: Map<string, string>,
-): void {
-    switch (cmd.type) {
-        case 'map': {
-            if (!lhs || !rhs) break;
-            if (cmd.noremap) {
-                vim.noremap(lhs, rhs, toMapContext(cmd.context));
-            } else {
-                vim.map(lhs, rhs, toMapContext(cmd.context));
-            }
-            break;
+export function registerVimrcExCommands(vim: VimApi, app: App): void {
+    vim.defineEx('noremap', '', (_cm, params) => {
+        if (params.args?.length >= 2) {
+            vim.noremap(params.args[0]!, params.args.slice(1).join(' '));
         }
-        case 'unmap': {
-            if (!lhs) break;
-            vim.unmap(lhs, toMapContext(cmd.context));
-            break;
+    });
+
+    vim.defineEx('iunmap', '', (_cm, params) => {
+        if (params.argString.trim()) {
+            vim.unmap(params.argString.trim(), 'insert');
         }
-        case 'set': {
-            if (!cmd.key) break;
-            let optName = cmd.key;
-            const rawVal = cmd.value ?? '';
-            if (rawVal === '' && optName.startsWith('no')) {
-                optName = optName.slice(2);
-                vim.setOption(optName, false);
-            } else {
-                const numVal = parseInt(rawVal, 10);
-                const resolved =
-                    rawVal === '' ? true : !isNaN(numVal) ? numVal : rawVal;
-                vim.setOption(optName, resolved);
-            }
-            break;
+    });
+
+    vim.defineEx('nunmap', '', (_cm, params) => {
+        if (params.argString.trim()) {
+            vim.unmap(params.argString.trim(), 'normal');
         }
-        case 'exmap': {
-            const exmapArgs = args;
-            if (cmd.name && exmapArgs) {
-                exmaps.set(cmd.name, exmapArgs);
-                vim.defineEx(cmd.name, '', (_cm, _params) => {
-                    const fullCmd = exmaps.get(cmd.name ?? '');
-                    if (!fullCmd) return;
-                    const parts = fullCmd.split(/\s+/);
-                    const exCmd = parts[0];
-                    const exArgs = parts.slice(1).join(' ');
-                    if (exCmd === 'obcommand' && exArgs) {
-                        (
-                            app as unknown as {
-                                commands: {
-                                    executeCommandById: (id: string) => void;
-                                };
-                            }
-                        ).commands.executeCommandById(exArgs);
-                    }
-                });
-            }
-            break;
+    });
+
+    vim.defineEx('vunmap', '', (_cm, params) => {
+        if (params.argString.trim()) {
+            vim.unmap(params.argString.trim(), 'visual');
         }
-        case 'obcommand': {
-            if (cmd.args) {
-                (
-                    app as unknown as {
-                        commands: { executeCommandById: (id: string) => void };
-                    }
-                ).commands.executeCommandById(cmd.args);
-            }
-            break;
+    });
+
+    vim.defineEx('exmap', '', (_cm, params) => {
+        if (!params.args?.length || params.args.length < 2) return;
+        const name = params.args[0]!;
+        const rest = params.args.slice(1).join(' ');
+        vim.defineEx(name, '', (cm2) => {
+            vim.handleEx(cm2, rest);
+        });
+    });
+
+    vim.defineEx('obcommand', '', (_cm, params) => {
+        if (params.args?.[0]) {
+            executeCommandById(app, params.args[0]);
         }
-        default:
-            break;
-    }
+    });
 }
 
 export interface VimrcLoadResult {
     found: boolean;
     commandCount: number;
     path: string;
+    maps: DeferredMap[];
+}
+
+export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
+    for (const m of maps) {
+        try {
+            if (m.noremap) {
+                vim.noremap(m.lhs, m.rhs, m.context);
+            } else {
+                vim.map(m.lhs, m.rhs, m.context);
+            }
+        } catch {
+            /* intentional: skip malformed mapping */
+        }
+    }
 }
 
 export async function loadVimrc(
@@ -115,61 +98,123 @@ export async function loadVimrc(
     leaderRegistry?: LeaderRegistry,
 ): Promise<VimrcLoadResult> {
     const path = getVimrcPath(app);
-    const result = await loadVimrcFile(app, vim, path, '\\', leaderRegistry);
-    return { found: result.found, commandCount: result.commandCount, path };
+
+    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    const cm = view ? getCmAdapter(view) : null;
+    if (!cm) {
+        return { found: true, commandCount: 0, path, maps: [] };
+    }
+
+    registerVimrcExCommands(vim, app);
+
+    const result = await loadVimrcFile(
+        app,
+        vim,
+        cm,
+        path,
+        '\\',
+        leaderRegistry,
+    );
+
+    return {
+        found: result.found,
+        commandCount: result.commandCount,
+        path,
+        maps: result.deferredMaps,
+    };
+}
+
+interface DeferredMap {
+    lhs: string;
+    rhs: string;
+    noremap: boolean;
+    context?: 'normal' | 'visual' | 'insert';
 }
 
 interface LoadFileResult {
     found: boolean;
     commandCount: number;
+    deferredMaps: DeferredMap[];
 }
 
 async function loadVimrcFile(
     app: App,
     vim: VimApi,
+    cm: CmAdapter,
     path: string,
     leaderKey = '\\',
     leaderRegistry?: LeaderRegistry,
 ): Promise<LoadFileResult> {
     const content = await readVimrcFile(app, path);
-    if (content === null) return { found: false, commandCount: 0 };
+    if (content === null) {
+        return { found: false, commandCount: 0, deferredMaps: [] };
+    }
 
-    const commands = parseVimrc(content);
-    const exmaps = new Map<string, string>();
     let currentLeader = leaderKey;
     let applied = 0;
+    const deferredMaps: DeferredMap[] = [];
 
-    for (const cmd of commands) {
-        if (cmd.type === 'source' && cmd.path) {
-            const sub = await loadVimrcFile(
-                app,
-                vim,
-                cmd.path,
-                currentLeader,
-                leaderRegistry,
-            );
-            applied += sub.commandCount;
-            continue;
-        }
-        if (cmd.type === 'let' && cmd.key === 'mapleader' && cmd.value) {
-            currentLeader = cmd.value;
+    for (const rawLine of content.split('\n')) {
+        const trimmed = rawLine.trim();
+        if (!trimmed || trimmed.startsWith('"')) continue;
+
+        const parsed = parseLine(trimmed);
+
+        if (
+            parsed?.type === 'let' &&
+            parsed.key === 'mapleader' &&
+            parsed.value
+        ) {
+            currentLeader = parsed.value;
             if (leaderRegistry) leaderRegistry.setLeaderKey(currentLeader);
             applied++;
             continue;
         }
-        const lhs = cmd.lhs?.replace(/<leader>/gi, currentLeader);
-        const rhs = cmd.rhs?.replace(/<leader>/gi, currentLeader);
-        const args = cmd.args?.replace(/<leader>/gi, currentLeader);
-        if (leaderRegistry && cmd.type === 'map' && lhs && rhs) {
-            leaderRegistry.addBinding(lhs, rhs);
+
+        if (parsed?.type === 'source' && parsed.path) {
+            const sub = await loadVimrcFile(
+                app,
+                vim,
+                cm,
+                parsed.path,
+                currentLeader,
+                leaderRegistry,
+            );
+            applied += sub.commandCount;
+            deferredMaps.push(...sub.deferredMaps);
+            continue;
         }
+
+        const processedLine = trimmed.replace(/<leader>/gi, currentLeader);
+
+        if (parsed?.type === 'map' && parsed.lhs && parsed.rhs) {
+            const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
+            const rhs = parsed.rhs.replace(/<leader>/gi, currentLeader);
+            if (leaderRegistry) leaderRegistry.addBinding(lhs, rhs);
+            deferredMaps.push({
+                lhs,
+                rhs,
+                noremap: parsed.noremap ?? false,
+                context: parsed.context,
+            });
+        }
+
+        if (
+            parsed?.type === 'set' &&
+            (parsed.key === 'textwidth' || parsed.key === 'tw') &&
+            parsed.value
+        ) {
+            const tw = Number(parsed.value);
+            if (!isNaN(tw) && tw > 0) setTextwidth(tw);
+        }
+
         try {
-            applyCommand(vim, cmd, lhs, rhs, args, app, exmaps);
+            vim.handleEx(cm, processedLine);
             applied++;
         } catch {
             /* intentional: skip malformed vimrc lines */
         }
     }
 
-    return { found: true, commandCount: applied };
+    return { found: true, commandCount: applied, deferredMaps };
 }

@@ -286,7 +286,6 @@ function createXitCommand(app: App): ExCommandFn {
 function createXallCommand(app: App): ExCommandFn {
     return () => {
         executeCommand(app, 'editor:save-file');
-        const active = app.workspace.getLeaf(false);
         app.workspace.iterateAllLeaves((leaf) => {
             if (leaf.view.getViewType() === 'markdown') {
                 leaf.detach();
@@ -401,7 +400,7 @@ function createSplitNewCommand(app: App, vertical: boolean): ExCommandFn {
 function createTabNewCommand(app: App): ExCommandFn {
     return (_cm, params) => {
         const filename = (params.argString ?? '').trim();
-        const newLeaf = app.workspace.getLeaf(true);
+        app.workspace.getLeaf(true);
         if (filename) {
             void app.workspace.openLinkText(filename, '');
         }

@@ -2,10 +2,9 @@ import type {
     CmAdapter,
     OperatorArgs,
     OperatorRange,
-    VimApi,
     VimPos,
 } from '../types/vim-api';
-import { getVimApi } from '../vim/vim-api';
+import { getTextwidth } from '../vim/options';
 
 /**
  * Result of parsing the Markdown structural prefix from a line.
@@ -177,9 +176,7 @@ function hardWrapCore(
     operatorArgs: OperatorArgs,
     ranges: OperatorRange[],
 ): { endRow: number; fromLine: number } | null {
-    const vim: VimApi | null = getVimApi();
-    const twOption = vim?.getOption('textwidth');
-    const tw = typeof twOption === 'number' && twOption > 0 ? twOption : 80;
+    const tw = getTextwidth();
 
     for (const range of ranges) {
         let from = range.anchor.line;

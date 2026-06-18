@@ -15,14 +15,16 @@ import { registerOperators } from './operators/register';
 import { registerTextObjects } from './text-objects/register';
 import { VimModeTracker } from './vim/mode-tracker';
 import { ScrolloffManager } from './vim/scrolloff';
-import { loadVimrc, type VimrcLoadResult } from './vimrc/loader';
+import { loadVimrc, applyVimrcMaps } from './vimrc/loader';
+import type { VimrcLoadResult } from './vimrc/loader';
+import type { VimApi } from './types/vim-api';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { getVimApi, isVimEnabled } from './vim/vim-api';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
-import { registerVimOptions } from './vim/options';
+import { registerVimOptions, syncTextwidthFromVim } from './vim/options';
 import { VimRegistration } from './vim/registration';
 import {
     ChangeList,
@@ -42,6 +44,9 @@ export default class VimMotionsPlugin extends Plugin {
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
     exSuggest: ExCommandSuggest | null = null;
+    private vimrcLoading = false;
+    private vimrcMaps: VimrcLoadResult['maps'] = [];
+    vimrcLoaded = false;
 
     async onload() {
         await this.loadSettings();
@@ -68,27 +73,42 @@ export default class VimMotionsPlugin extends Plugin {
         registerVimOptions(vim);
         this.registration = new VimRegistration(vim);
 
-        // --- Leader key resolution (before feature registration) ---
+        // --- Leader key resolution ---
         this.leaderRegistry = new LeaderRegistry();
         if (this.settings.enableVimrc) {
-            const vimrcResult: VimrcLoadResult = await loadVimrc(
-                this.app,
-                vim,
-                this.leaderRegistry,
+            this.registerEvent(
+                this.app.workspace.on('active-leaf-change', async () => {
+                    if (this.vimrcLoaded) {
+                        applyVimrcMaps(vim, this.vimrcMaps);
+                        return;
+                    }
+                    if (this.vimrcLoading) return;
+                    this.vimrcLoading = true;
+                    const vimrcResult = await loadVimrc(
+                        this.app,
+                        vim,
+                        this.leaderRegistry ?? undefined,
+                    );
+                    if (!vimrcResult.found) {
+                        new Notice(
+                            `Vim Motions: ${vimrcResult.path} not found. Create the file in your vault root to use custom key mappings.`,
+                        );
+                    } else if (vimrcResult.commandCount === 0) {
+                        new Notice(
+                            `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                        );
+                    } else {
+                        new Notice(
+                            `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
+                        );
+                    }
+                    this.vimrcMaps = vimrcResult.maps;
+                    syncTextwidthFromVim(vim);
+                    this.reapplySettingsLeaderBindings(vim);
+                    this.rebuildWhichKey();
+                    this.vimrcLoaded = true;
+                }),
             );
-            if (!vimrcResult.found) {
-                new Notice(
-                    `Vim Motions: ${vimrcResult.path} not found. Create the file in your vault root to use custom key mappings.`,
-                );
-            } else if (vimrcResult.commandCount === 0) {
-                new Notice(
-                    `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
-                );
-            } else {
-                new Notice(
-                    `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
-                );
-            }
         }
 
         // --- Core ex command (needed by leader bindings) ---
@@ -294,6 +314,23 @@ export default class VimMotionsPlugin extends Plugin {
                 );
                 this.whichKeyOverlay.attach();
             }
+        }
+    }
+
+    private reapplySettingsLeaderBindings(vim: VimApi): void {
+        if (!this.leaderRegistry) return;
+        const leaderKey = this.leaderRegistry.getLeaderKey();
+        for (const binding of this.settings.leaderBindings) {
+            if (!binding.key || !binding.commandId) continue;
+            const oldLhs = '\\' + binding.key;
+            try {
+                vim.unmap(oldLhs);
+            } catch {
+                /* old binding may not exist */
+            }
+            const lhs = leaderKey + binding.key;
+            vim.map(lhs, ':ob ' + binding.commandId);
+            this.leaderRegistry.addBinding(lhs, ':ob ' + binding.commandId);
         }
     }
 

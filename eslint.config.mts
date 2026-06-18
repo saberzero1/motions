@@ -16,6 +16,7 @@ export default tseslint.config(
         'tsconfig.json',
         'wdio.conf.mts',
         'test',
+        'test-vault',
     ]),
     {
         languageOptions: {
@@ -32,4 +33,31 @@ export default tseslint.config(
         },
     },
     ...obsidianmd.configs.recommended,
+    {
+        rules: {
+            'import/no-extraneous-dependencies': [
+                'error',
+                {
+                    peerDependencies: true,
+                    optionalDependencies: false,
+                    bundledDependencies: false,
+                },
+            ],
+        },
+        settings: {
+            'import/core-modules': [
+                '@codemirror/autocomplete',
+                '@codemirror/collab',
+                '@codemirror/commands',
+                '@codemirror/language',
+                '@codemirror/lint',
+                '@codemirror/search',
+                '@codemirror/state',
+                '@codemirror/view',
+                '@lezer/common',
+                '@lezer/highlight',
+                '@lezer/lr',
+            ],
+        },
+    },
 );

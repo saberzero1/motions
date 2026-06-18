@@ -12,7 +12,6 @@ interface TagPair {
 }
 
 function findOpenTag(cm: CmAdapter, pos: VimPos): TagMatch | null {
-    const totalLines = cm.lineCount();
     let line = pos.line;
     let ch = pos.ch;
 
@@ -105,8 +104,6 @@ function findEnclosingTagPair(cm: CmAdapter, pos: VimPos): TagPair | null {
         }
 
         const posIndex = cm.indexFromPos(pos);
-        const openEndIndex = cm.indexFromPos(open.to);
-        const closeStartIndex = cm.indexFromPos(close.from);
 
         if (
             posIndex >= cm.indexFromPos(open.from) &&
