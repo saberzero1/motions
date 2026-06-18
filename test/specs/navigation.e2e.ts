@@ -1,22 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-
-async function getCursorLine(): Promise<number> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
-        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getCursor().line ?? -1;
-    })) as number;
-}
-
-async function vimKeys(...keys: string[]) {
-    await browser.keys(['Escape']);
-    await browser.pause(50);
-    for (const key of keys) {
-        await browser.keys([key]);
-        await browser.pause(30);
-    }
-    await browser.pause(200);
-}
+import { getCursorLine, vimKeys } from '../helpers';
 
 describe('Structural navigation (Phase 1.3-1.4)', function () {
     before(async function () {

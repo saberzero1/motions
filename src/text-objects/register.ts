@@ -14,6 +14,7 @@ import {
     codeBlockInnerTextObject,
     codeBlockAroundTextObject,
 } from './code-block';
+import { createInnerTagMotion, createAroundTagMotion } from './tag';
 
 export function registerTextObjects(reg: VimRegistration): void {
     reg.defineMotion('markdownAsteriskInner', createSmartAsteriskTextObject());
@@ -115,4 +116,11 @@ export function registerTextObjects(reg: VimRegistration): void {
         createMultiLineDelimiterTextObject('=='),
     );
     reg.mapCommand('a=', 'motion', 'markdownHighlightAround', {});
+
+    reg.defineMotion('htmlTagInner', createInnerTagMotion());
+    reg.mapCommand('it', 'motion', 'htmlTagInner', {
+        textObjectInner: true,
+    });
+    reg.defineMotion('htmlTagAround', createAroundTagMotion());
+    reg.mapCommand('at', 'motion', 'htmlTagAround', {});
 }

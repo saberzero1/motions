@@ -24,11 +24,19 @@ import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import { registerVimOptions } from './vim/options';
 import { VimRegistration } from './vim/registration';
+import {
+    ChangeList,
+    createOlderChangeMotion,
+    createNewerChangeMotion,
+} from './vim/changelist';
+import { VimInfoModal } from './ui/vim-info-modal';
+import { EditorView } from '@codemirror/view';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
     registration: VimRegistration | null = null;
     leaderRegistry: LeaderRegistry | null = null;
+    changeList: ChangeList = new ChangeList();
     modeTracker: VimModeTracker | null = null;
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
@@ -98,6 +106,53 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
             );
         }
+
+        // --- Changelist (g; / g,) ---
+        this.registration.defineMotion(
+            'changeListOlder',
+            createOlderChangeMotion(this.changeList),
+        );
+        this.registration.mapCommand('g;', 'motion', 'changeListOlder', {});
+        this.registration.defineMotion(
+            'changeListNewer',
+            createNewerChangeMotion(this.changeList),
+        );
+        this.registration.mapCommand('g,', 'motion', 'changeListNewer', {});
+
+        const changeList = this.changeList;
+        this.registerEditorExtension(
+            EditorView.updateListener.of((update) => {
+                if (!update.docChanged) return;
+                const pos = update.state.selection.main.head;
+                const doc = update.state.doc;
+                const line = doc.lineAt(pos);
+                changeList.recordChange(line.number - 1, pos - line.from);
+            }),
+        );
+
+        // --- :changes command (needs ChangeList instance) ---
+        const cl = this.changeList;
+        this.registration.defineEx('changes', 'cha', () => {
+            const entries = cl.getEntries();
+            const idx = cl.getIndex();
+            const rows = entries.map((pos, i) => [
+                i === idx ? '>' : ' ',
+                String(i),
+                String(pos.line + 1),
+                String(pos.ch),
+            ]);
+            new VimInfoModal(
+                this.app,
+                'Changes',
+                [
+                    { header: '' },
+                    { header: '#' },
+                    { header: 'Line' },
+                    { header: 'Col' },
+                ],
+                rows,
+            ).open();
+        });
 
         // --- Status bar and scrolloff ---
         if (this.settings.enableStatusBar) {

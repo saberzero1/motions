@@ -88,6 +88,49 @@ function createDocStatsAction(app: App): ActionFn {
     };
 }
 
+function createPasteMoveAction(after: boolean): ActionFn {
+    return (cm) => {
+        const Vim = window.CodeMirrorAdapter?.Vim;
+        if (!Vim) return;
+        const reg = Vim.getRegisterController().registers['"'];
+        if (!reg) return;
+        const text = reg.toString();
+        const beforeLine = cm.getCursor().line;
+        Vim.handleKey(cm, after ? 'p' : 'P');
+        if (reg.linewise) {
+            const pastedLines = text.split('\n').length - 1;
+            const targetLine = after
+                ? beforeLine + pastedLines
+                : beforeLine + pastedLines;
+            cm.setCursor(targetLine, 0);
+        } else {
+            const afterPos = cm.getCursor();
+            const newCh = Math.min(
+                afterPos.ch + 1,
+                cm.getLine(afterPos.line).length,
+            );
+            cm.setCursor(afterPos.line, newCh);
+        }
+    };
+}
+
+function createCharInfoAction(app: App): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const adapter = getCmAdapter(view);
+        if (!adapter) return;
+        const cursor = adapter.getCursor();
+        const line = adapter.getLine(cursor.line);
+        const char = line.charAt(cursor.ch);
+        if (!char) return;
+        const code = char.codePointAt(0) ?? 0;
+        new Notice(
+            `<${char}>  ${code},  Hex ${code.toString(16)},  Oct ${code.toString(8)}`,
+        );
+    };
+}
+
 export function registerWorkspaceNavigation(
     reg: VimRegistration,
     app: App,
@@ -207,4 +250,22 @@ export function registerWorkspaceNavigation(
     const hintKeys = leader + leader + 'h';
     reg.mapCommand(hintKeys, 'action', 'hintMode', {});
     leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
+
+    // Neovim default remaps (use map so user vimrc noremap can override)
+    reg.map('Q', '@@', 'normal');
+    reg.map('Y', 'y$', 'normal');
+
+    reg.defineAction('pasteAfterMove', createPasteMoveAction(true));
+    reg.mapCommand('gp', 'action', 'pasteAfterMove', {});
+    reg.defineAction('pasteBeforeMove', createPasteMoveAction(false));
+    reg.mapCommand('gP', 'action', 'pasteBeforeMove', {});
+
+    // Recursive fold variants (reuse existing fold actions)
+    reg.mapCommand('zO', 'action', 'foldOpen', {});
+    reg.mapCommand('zC', 'action', 'foldClose', {});
+    reg.mapCommand('zA', 'action', 'foldToggle', {});
+
+    // Character info (ga)
+    reg.defineAction('charInfo', createCharInfoAction(app));
+    reg.mapCommand('ga', 'action', 'charInfo', {});
 }

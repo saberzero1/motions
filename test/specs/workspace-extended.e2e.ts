@@ -255,6 +255,134 @@ describe('Workspace extended', function () {
         });
     });
 
+    describe('Recursive fold operations', function () {
+        it('zO should unfold recursively without error', async function () {
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.setValue(
+                            '# Heading\n\nContent\n\n## Sub\n\nMore',
+                        );
+                        view.editor.setCursor(0, 0);
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, 'z');
+                        Vim.handleKey(adapter, 'O');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+
+        it('zC should fold recursively without error', async function () {
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.setValue(
+                            '# Heading\n\nContent\n\n## Sub\n\nMore',
+                        );
+                        view.editor.setCursor(0, 0);
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, 'z');
+                        Vim.handleKey(adapter, 'C');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+
+        it('zA should toggle fold recursively without error', async function () {
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.setValue(
+                            '# Heading\n\nContent\n\n## Sub\n\nMore',
+                        );
+                        view.editor.setCursor(0, 0);
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, 'z');
+                        Vim.handleKey(adapter, 'A');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+    });
+
     describe('Tab navigation', function () {
         it('gT should switch to previous tab without error', async function () {
             const result = await browser.executeObsidian(
@@ -409,6 +537,166 @@ describe('Workspace extended', function () {
                         Vim.handleKey(adapter, 'g');
                         Vim.handleKey(adapter, 'r');
                         Vim.handleKey(adapter, 'r');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+
+        it('<C-w>h should focus left pane without error', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(300);
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'h');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+
+        it('<C-w>l should focus right pane without error', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(300);
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'l');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+
+        it('<C-w>j should focus pane below without error', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(300);
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'j');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            );
+            expect(result).toHaveProperty('success', true);
+        });
+
+        it('<C-w>k should focus pane above without error', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(300);
+            const result = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'k');
                         return { success: true };
                     } catch (e) {
                         return { error: String(e) };

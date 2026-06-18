@@ -1,0 +1,1623 @@
+# Neovim Command Index — Test Coverage Manifest
+# Reference: Neovim 0.11 :help index (https://neovim.io/doc/user/vimindex/)
+#
+# Tier: 1 (built-in CM Vim), 2 (plugin-registered), 3 (n/a), 1-D (deviation)
+# Status: tested | pending | skip
+# test_file: path relative to test/specs/
+
+normal_mode:
+    h:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N chars to the left',
+        }
+    j:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N lines downward',
+        }
+    k:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N lines upward',
+        }
+    l:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N chars to the right',
+        }
+    w:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N words forward',
+        }
+    b:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N words backward',
+        }
+    e:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor forward to end of word N',
+        }
+    W:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N WORDS forward',
+        }
+    B:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor N WORDS backward',
+        }
+    E:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor forward to end of WORD N',
+        }
+    ge:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to end of previous word',
+        }
+    '0':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to first char of line',
+        }
+    $:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to end of line',
+        }
+    ^:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to first non-blank',
+        }
+    _:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to first non-blank of Nth line',
+        }
+    +:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to first non-blank of next line',
+        }
+    '-':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to first non-blank of previous line',
+        }
+    G:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to line N, default last line',
+        }
+    gg:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to line N, default first line',
+        }
+    '|':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to column N',
+        }
+    H:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to line N from top of screen',
+        }
+    M:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to middle line of screen',
+        }
+    L:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to line N from bottom of screen',
+        }
+    f:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'cursor to Nth occurrence of char to the right',
+        }
+    F:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'cursor to Nth occurrence of char to the left',
+        }
+    t:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'cursor till before Nth occurrence of char to the right',
+        }
+    T:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'cursor till after Nth occurrence of char to the left',
+        }
+    ';':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'repeat latest f/t/F/T N times',
+        }
+    ',':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'repeat latest f/t/F/T in opposite direction',
+        }
+    /:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'search forward',
+        }
+    '?':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'search backward',
+        }
+    n:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'repeat last search forward',
+        }
+    N:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'repeat last search backward',
+        }
+    '*':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'search word under cursor forward',
+        }
+    '#':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'search word under cursor backward',
+        }
+    '%':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'find matching bracket',
+        }
+    x:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'delete N chars under and after cursor',
+        }
+    X:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'delete N chars before cursor',
+        }
+    d:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'delete Nmove text',
+        }
+    dd:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'delete N lines',
+        }
+    D:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'delete to end of line',
+        }
+    c:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'change Nmove text',
+        }
+    cc:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'change N lines',
+        }
+    C:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'change to end of line',
+        }
+    s:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'substitute N chars',
+        }
+    S:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'substitute N lines',
+        }
+    r:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'replace N chars',
+        }
+    R:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'enter replace mode',
+        }
+    J:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'join N lines',
+        }
+    '~':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'toggle case',
+        }
+    u:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'undo last change',
+        }
+    '.':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'repeat last change',
+        }
+    y:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'yank Nmove text',
+        }
+    yy:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'yank N lines',
+        }
+    p:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'put text after cursor',
+        }
+    P:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'put text before cursor',
+        }
+    i:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-insert-entry.e2e.ts',
+            description: 'insert text before cursor',
+        }
+    I:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-insert-entry.e2e.ts',
+            description: 'insert at first non-blank',
+        }
+    a:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-insert-entry.e2e.ts',
+            description: 'append text after cursor',
+        }
+    A:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-insert-entry.e2e.ts',
+            description: 'append at end of line',
+        }
+    o:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-insert-entry.e2e.ts',
+            description: 'open line below',
+        }
+    O:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-insert-entry.e2e.ts',
+            description: 'open line above',
+        }
+    m:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'set mark at cursor position',
+        }
+    "'":
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'jump to mark line',
+        }
+    '`':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'jump to mark position',
+        }
+    "''":
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'jump to line before last jump',
+        }
+    '``':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'jump to position before last jump',
+        }
+    '{':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N paragraphs backward',
+        }
+    '}':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N paragraphs forward',
+        }
+    '(':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N sentences backward',
+        }
+    ')':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N sentences forward',
+        }
+    CTRL-O:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'go to older entry in jump list',
+        }
+    CTRL-D:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'scroll down N lines',
+        }
+    CTRL-U:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'scroll up N lines',
+        }
+    CTRL-F:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'scroll N screens forward',
+        }
+    CTRL-B:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'scroll N screens backward',
+        }
+    CTRL-E:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'scroll N lines upwards',
+        }
+    CTRL-A:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'add N to number at/after cursor',
+        }
+    CTRL-X:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'subtract N from number at/after cursor',
+        }
+    Q:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'replay last recorded macro (plugin remap Q -> @@)',
+        }
+    Y:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'yank to end of line (plugin remap Y -> y$)',
+        }
+    CTRL-Z:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'suspend program',
+            reason: 'No suspend concept in Obsidian',
+        }
+
+normal_mode_g_commands:
+    gj:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'cursor N display lines downward',
+        }
+    gk:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'cursor N display lines upward',
+        }
+    g0:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'cursor to start of display line',
+        }
+    g$:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'cursor to end of display line',
+        }
+    guu:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'lowercase entire line',
+        }
+    gUU:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'uppercase entire line',
+        }
+    guw:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'lowercase word',
+        }
+    gUw:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'uppercase word',
+        }
+    'g~~':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'toggle case of line',
+        }
+    gI:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'insert at column 0',
+        }
+    gJ:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'join lines without space',
+        }
+    gv:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'reselect last visual selection',
+        }
+    gd:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'go to definition (plugin)',
+        }
+    gf:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'open file switcher (plugin)',
+        }
+    gO:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'document outline (plugin)',
+        }
+    gx:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'open URL (plugin)',
+        }
+    gt:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'next tab (plugin)',
+        }
+    gT:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'previous tab (plugin)',
+        }
+    gq:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'operators.e2e.ts',
+            description: 'hard-wrap operator (plugin)',
+        }
+    gw:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'operators.e2e.ts',
+            description: 'hard-wrap operator keep cursor (plugin)',
+        }
+    gn:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'select next search match (CM Vim native)',
+        }
+    gN:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'select previous search match (CM Vim native)',
+        }
+    ga:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'show character info (plugin)',
+        }
+    gp:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'paste and move past (plugin)',
+        }
+    'g;':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'jump to older change position (plugin)',
+        }
+    'g,':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'jump to newer change position (plugin)',
+        }
+
+normal_mode_z_commands:
+    zz:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'center cursor on screen',
+        }
+    zt:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'cursor line to top of screen',
+        }
+    zb:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'cursor line to bottom of screen',
+        }
+    zh:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'scroll screen N chars left',
+        }
+    zl:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'scroll screen N chars right',
+        }
+    za:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'toggle fold (plugin)',
+        }
+    zc:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'fold at cursor (plugin)',
+        }
+    zo:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'unfold at cursor (plugin)',
+        }
+    zM:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'fold all (plugin)',
+        }
+    zR:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'unfold all (plugin)',
+        }
+    zO:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'unfold recursively (plugin)',
+        }
+    zC:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'fold recursively (plugin)',
+        }
+    zA:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'toggle fold recursively (plugin)',
+        }
+
+normal_mode_bracket_commands:
+    '[(':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/bracket-commands.e2e.ts',
+            description: 'go to previous unmatched (',
+        }
+    '])':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/bracket-commands.e2e.ts',
+            description: 'go to next unmatched )',
+        }
+    '[{':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/bracket-commands.e2e.ts',
+            description: 'go to previous unmatched {',
+        }
+    ']}':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/bracket-commands.e2e.ts',
+            description: 'go to next unmatched }',
+        }
+    ']h':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'navigation.e2e.ts',
+            description: 'next heading (plugin)',
+        }
+    '[h':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'navigation.e2e.ts',
+            description: 'previous heading (plugin)',
+        }
+    ']l':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'navigation.e2e.ts',
+            description: 'next list item (plugin)',
+        }
+    '[l':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'navigation.e2e.ts',
+            description: 'previous list item (plugin)',
+        }
+    ']n':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'navigation.e2e.ts',
+            description: 'next link (plugin)',
+        }
+    '[n':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'navigation.e2e.ts',
+            description: 'previous link (plugin)',
+        }
+    ']b':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'buffer-navigation.e2e.ts',
+            description: 'next buffer (plugin)',
+        }
+    '[b':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'buffer-navigation.e2e.ts',
+            description: 'previous buffer (plugin)',
+        }
+
+text_objects:
+    iw:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inner word',
+        }
+    aw:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'a word',
+        }
+    iW:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inner WORD',
+        }
+    aW:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'a WORD',
+        }
+    is:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inner sentence',
+        }
+    ip:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inner paragraph',
+        }
+    ap:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'a paragraph',
+        }
+    'i"':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside double quotes',
+        }
+    'a"':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around double quotes',
+        }
+    "i'":
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside single quotes',
+        }
+    'i(':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside parens',
+        }
+    'a(':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around parens',
+        }
+    'i[':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside brackets',
+        }
+    'i{':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside braces',
+        }
+    'a{':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around braces',
+        }
+    'i<':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside angle brackets',
+        }
+    it:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'inside HTML/XML tag (plugin implementation)',
+        }
+    at:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around HTML/XML tag (plugin implementation)',
+        }
+    'i*':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects.e2e.ts',
+            description: 'inside bold (plugin)',
+        }
+    'a*':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects.e2e.ts',
+            description: 'around bold (plugin)',
+        }
+    'i_':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects.e2e.ts',
+            description: 'inside italic (plugin)',
+        }
+    'i`':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects.e2e.ts',
+            description: 'inside code (plugin)',
+        }
+    'i$':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects.e2e.ts',
+            description: 'inside math (plugin)',
+        }
+    'i~':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects-phase4.e2e.ts',
+            description: 'inside strikethrough (plugin)',
+        }
+    'i=':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects-phase4.e2e.ts',
+            description: 'inside highlight (plugin)',
+        }
+    il:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects-advanced.e2e.ts',
+            description: 'inside link (plugin)',
+        }
+    iC:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'text-objects-advanced.e2e.ts',
+            description: 'inside code block (plugin)',
+        }
+    iB:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'blockquote-callout.e2e.ts',
+            description: 'inside blockquote (plugin)',
+        }
+    io:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'blockquote-callout.e2e.ts',
+            description: 'inside callout (plugin)',
+        }
+
+operators:
+    d:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'delete operator',
+        }
+    c:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'change operator',
+        }
+    y:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'yank operator',
+        }
+    '>':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'indent right',
+        }
+    '<':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'indent left',
+        }
+    '=':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'auto-indent',
+        }
+    gq:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'operators.e2e.ts',
+            description: 'hard-wrap (plugin)',
+        }
+    gw:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'operators.e2e.ts',
+            description: 'hard-wrap keep cursor (plugin)',
+        }
+
+visual_mode:
+    v:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-mode.e2e.ts',
+            description: 'start charwise Visual',
+        }
+    V:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-mode.e2e.ts',
+            description: 'start linewise Visual',
+        }
+    o:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-mode.e2e.ts',
+            description: 'swap visual anchor',
+        }
+    CTRL-V:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-mode.e2e.ts',
+            description: 'start blockwise Visual (CM Vim native)',
+        }
+
+insert_mode:
+    Escape:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'exit insert mode',
+        }
+    CTRL-W:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'delete word before cursor',
+        }
+    CTRL-U:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'delete to start of line',
+        }
+    CTRL-O:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'execute one normal command',
+        }
+
+ex_commands:
+    ':s':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-builtin.e2e.ts',
+            description: 'substitute',
+        }
+    ':sort':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-builtin.e2e.ts',
+            description: 'sort lines',
+        }
+    ':d':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-builtin.e2e.ts',
+            description: 'delete lines',
+        }
+    ':w':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'save file (plugin)',
+        }
+    ':q':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'ex-commands-extended.e2e.ts',
+            description: 'close tab (plugin)',
+        }
+    ':wq':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'ex-commands-extended.e2e.ts',
+            description: 'save and close (plugin)',
+        }
+    ':bn':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'next buffer (plugin)',
+        }
+    ':bp':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'ex-commands-extended.e2e.ts',
+            description: 'previous buffer (plugin)',
+        }
+    ':bd':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'ex-commands-extended.e2e.ts',
+            description: 'close buffer (plugin)',
+        }
+    ':only':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'ex-commands-extended.e2e.ts',
+            description: 'close all other tabs (plugin)',
+        }
+    ':ob':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'execute Obsidian command (plugin)',
+        }
+    ':buffers':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'list buffers (plugin)',
+        }
+    ':grep':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'search vault (plugin)',
+        }
+    ':reg':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'show registers (plugin)',
+        }
+    ':marks':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'show marks (plugin)',
+        }
+    ':edit':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'open file (plugin)',
+        }
+    ':edit!':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'revert file (plugin)',
+        }
+    ':enew':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'new untitled note (plugin)',
+        }
+    ':saveas':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'save as new file (plugin)',
+        }
+    ':update':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'save if modified (plugin)',
+        }
+    ':xit':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'write-if-modified + close (plugin)',
+        }
+    ':xall':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'write-all + close all (plugin)',
+        }
+    ':find':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'find file by name (plugin)',
+        }
+    ':read':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'insert file at cursor (plugin)',
+        }
+    ':buffer':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'switch to buffer by name (plugin)',
+        }
+    ':bfirst':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'go to first tab (plugin)',
+        }
+    ':blast':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'go to last tab (plugin)',
+        }
+    ':bwipeout':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'close tab (plugin)',
+        }
+    ':split':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'horizontal split (plugin)',
+        }
+    ':vsplit':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'vertical split (plugin)',
+        }
+    ':tabnew':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'new tab (plugin)',
+        }
+    ':tabclose':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'close tab (plugin)',
+        }
+    ':tabonly':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'close other tabs (plugin)',
+        }
+    ':tabfirst':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'go to first tab (plugin)',
+        }
+    ':tablast':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'go to last tab (plugin)',
+        }
+    ':version':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'show plugin version (plugin)',
+        }
+    ':delmarks':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'delete marks (plugin)',
+        }
+    ':changes':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'show change list (plugin)',
+        }
+    ':yank':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'yank lines (CM Vim native)',
+        }
+    ':join':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'join lines (CM Vim native)',
+        }
+    ':nohlsearch':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'clear search highlight (CM Vim native)',
+        }
+    ':undo':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'undo (CM Vim native)',
+        }
+    ':redo':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'redo (CM Vim native)',
+        }
+    ':global':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'execute on matching lines (CM Vim native)',
+        }
+
+window_commands:
+    CTRL-W_v:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'split vertical (plugin)',
+        }
+    CTRL-W_s:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'split horizontal (plugin)',
+        }
+    CTRL-W_h:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'focus left (plugin)',
+        }
+    CTRL-W_j:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'focus down (plugin)',
+        }
+    CTRL-W_k:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'focus up (plugin)',
+        }
+    CTRL-W_l:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'focus right (plugin)',
+        }

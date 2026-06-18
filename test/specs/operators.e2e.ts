@@ -1,29 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-
-async function getEditorValue(): Promise<string> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
-        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getValue() ?? '';
-    })) as string;
-}
-
-async function getCursorLine(): Promise<number> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
-        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getCursor().line ?? -1;
-    })) as number;
-}
-
-async function vimKeys(...keys: string[]) {
-    await browser.keys(['Escape']);
-    await browser.pause(50);
-    for (const key of keys) {
-        await browser.keys([key]);
-        await browser.pause(30);
-    }
-    await browser.pause(200);
-}
+import { getEditorValue, getCursorLine, vimKeys } from '../helpers';
 
 describe('Hard-wrap operators (gq/gw)', function () {
     before(async function () {

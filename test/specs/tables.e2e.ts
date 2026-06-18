@@ -1,22 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-
-async function getEditorValue(): Promise<string> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
-        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getValue() ?? '';
-    })) as string;
-}
-
-async function vimKeys(...keys: string[]) {
-    await browser.keys(['Escape']);
-    await browser.pause(50);
-    for (const key of keys) {
-        await browser.keys([key]);
-        await browser.pause(30);
-    }
-    await browser.pause(200);
-}
+import { getEditorValue, vimKeys } from '../helpers';
 
 describe('Table navigation (]|/[| and ]c/[c)', function () {
     before(async function () {

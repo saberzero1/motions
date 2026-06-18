@@ -109,6 +109,73 @@ Standard Vim's `gf` opens the file whose path is under the cursor. In Obsidian, 
 
 The plugin sets `isDesktopOnly: true` in `manifest.json`. Mobile Obsidian has known issues with Vim mode — the soft keyboard does not support `:` and `/` command entry, making ex commands and search unusable. Mobile support is deferred pending investigation.
 
+## Neovim Ex commands not applicable in Obsidian
+
+The following Neovim Ex commands have no meaningful equivalent in Obsidian and will not be implemented. Users expecting these commands will see "Not an editor command" from CM Vim's Ex parser.
+
+### Shell / system integration
+
+| Command                 | Neovim description            | Why N/A                                                          |
+| ----------------------- | ----------------------------- | ---------------------------------------------------------------- |
+| `:!{cmd}`               | Execute shell command         | Obsidian has no shell access (sandboxed Electron app)            |
+| `:read !{cmd}`          | Insert shell output           | No shell access                                                  |
+| `:terminal`             | Open terminal                 | No terminal emulator in Obsidian                                 |
+| `:cd` / `:lcd` / `:pwd` | Change/show working directory | Obsidian vault is the working directory; no directory navigation |
+| `:make`                 | Run build                     | No build system concept                                          |
+
+### Quickfix / location list
+
+| Command                                   | Neovim description  | Why N/A                                            |
+| ----------------------------------------- | ------------------- | -------------------------------------------------- |
+| `:cnext` / `:cprev` / `:copen` / `:clist` | Quickfix navigation | No quickfix or error list (Obsidian is not an IDE) |
+| `:lnext` / `:lprev` / `:lopen`            | Location list       | Same — no location list concept                    |
+
+### Tags / ctags
+
+| Command                        | Neovim description | Why N/A                                                                                 |
+| ------------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
+| `:tag` / `:tjump` / `:tselect` | Tag navigation     | Obsidian has no ctags integration. `gd` provides link-based "go to definition" instead. |
+
+### Scripting / autocommands
+
+| Command                                | Neovim description | Why N/A                                                                        |
+| -------------------------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `:autocmd` / `:augroup`                | Autocommands       | Obsidian plugins handle events via the Plugin API, not Vim autocommands        |
+| `:function` / `:call` / `:if` / `:for` | Vimscript          | The plugin is not a Vimscript interpreter. Use `.obsidian.vimrc` for mappings. |
+
+### Diff mode
+
+| Command                                              | Neovim description | Why N/A                           |
+| ---------------------------------------------------- | ------------------ | --------------------------------- |
+| `:diffthis` / `:diffsplit` / `:diffget` / `:diffput` | Diff operations    | No diff view in Obsidian's editor |
+
+### Other
+
+| Command                                | Neovim description        | Why N/A                                                   |
+| -------------------------------------- | ------------------------- | --------------------------------------------------------- |
+| `:earlier` / `:later`                  | Time-based undo           | CM Vim does not track undo history by timestamp           |
+| `:args` / `:argdo` / `:next` / `:prev` | Argument list             | No arglist concept — Obsidian manages open files via tabs |
+| `:resize`                              | Resize window             | Obsidian manages pane sizing automatically                |
+| `:tabmove`                             | Reorder tabs              | Obsidian does not expose a tab reorder API                |
+| `:view`                                | Open file read-only       | Obsidian has no read-only mode for notes                  |
+| `:bunload`                             | Unload buffer from memory | Obsidian manages editor memory internally                 |
+| `:sign`                                | Place signs in gutter     | No sign column in Obsidian                                |
+| `:menu`                                | Create GUI menus          | No Vim-style menu system                                  |
+| `:spell*`                              | Spelling commands         | Obsidian has its own built-in spell checker               |
+
+### Behavioral deviations
+
+These commands exist but behave differently from Neovim:
+
+| Command            | Neovim behavior                                    | Obsidian behavior                                          | Reason                                                                                                                   |
+| ------------------ | -------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `Y`                | Mapped to `y$` by default                          | Mapped to `y$` by plugin (overrides CM Vim's `yy` default) | Follows Neovim convention per design principle #2                                                                        |
+| `Q`                | Replay last recorded macro                         | Mapped to `@@` by plugin (overrides CM Vim's unmapped `Q`) | Follows Neovim convention                                                                                                |
+| `:wall` / `:wa`    | Save all modified buffers                          | Saves only the current file                                | Obsidian auto-saves; a true "save all" would need to iterate all leaves                                                  |
+| `gf`               | Open file path under cursor                        | Opens Obsidian quick switcher                              | Wikilinks (`gd`) are more natural for note navigation                                                                    |
+| `zO` / `zC` / `zA` | Recursive fold open/close/toggle                   | Maps to the same action as `zo`/`zc`/`za`                  | Obsidian's fold API doesn't distinguish recursive from non-recursive                                                     |
+| `it` / `at`        | HTML tag text objects (CM Vim native via XML mode) | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown |
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:

@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-18
+
+### Added
+
+#### New Vim commands
+
+- `Q` — replay last recorded macro (Neovim default, maps to `@@`)
+- `Y` — yank to end of line (Neovim default, maps to `y$`; overrides CM Vim's `yy` behavior)
+- `ga` — show character info under cursor (codepoint, hex, octal) via Notice
+- `gp` — paste and move cursor past pasted text
+- `gn` / `gN` — select next/previous search match (CM Vim native, now tested)
+- `g;` / `g,` — jump to older/newer change position (changelist navigation)
+- `zO` / `zC` / `zA` — recursive fold open/close/toggle (maps to Obsidian's fold commands)
+- `it` / `at` — HTML/XML tag text objects, implemented via raw text scanning since CM Vim's built-in `expandToTag` is inactive in Markdown mode. Supports single-line, multiline, and nested tags.
+- `<C-v>` — visual block mode (CM Vim native, now tested)
+
+#### New Ex commands
+
+- `:e {file}` / `:edit {file}` — open file by name in vault
+- `:e!` / `:edit!` — revert current file to saved version
+- `:enew` — create new untitled note
+- `:saveas {file}` — save current buffer as new file
+- `:update` / `:up` — save current file (alias for `:w`)
+- `:x` / `:xit` — write-if-modified and close
+- `:xa` / `:xall` — write-if-modified all and close all
+- `:find {file}` / `:fin` — find and open file by partial name match
+- `:read {file}` / `:r` — insert file contents at cursor position
+- `:b {name}` / `:buffer {name}` — switch to tab matching name
+- `:bf` / `:bfirst` — go to first tab
+- `:bl` / `:blast` — go to last tab
+- `:bw` / `:bwipeout` — close current tab
+- `:sp` / `:split` — horizontal split
+- `:vs` / `:vsplit` — vertical split
+- `:new` — horizontal split with new note
+- `:vnew` — vertical split with new note
+- `:tabnew` / `:tabedit` — open new tab (optionally with file)
+- `:tabclose` / `:tabc` — close current tab
+- `:tabonly` / `:tabo` — close all other tabs
+- `:tabfirst` / `:tabrewind` — go to first tab
+- `:tablast` / `:tabl` — go to last tab
+- `:version` / `:ve` — show plugin version
+- `:delmarks {marks}` — delete specified marks
+- `:changes` — show change list in modal
+
+#### Test infrastructure
+
+- Shared test helpers module (`test/helpers.ts`) with `setupEditor`, `getCursorPos`, `getEditorValue`, `getRegisterContent`, `getVimMode`, `vimKeys`, and timing constants
+- `unsupported()` and `deviation()` test helpers for documenting known limitations and behavioral differences in test reports
+- Neovim command index manifest (`test/neovim-command-index.yaml`) tracking 227 commands with tier classification, test status, and test file references
+- Coverage report script (`test/coverage-report.ts`) — run via `npm run test:coverage`
+- 16 new test files in `test/specs/vim-builtin/` covering normal mode motions, search, editing, yank/put, insert entry, scroll, marks/jumps, g-commands, z-commands, bracket commands, text objects, operators, visual mode, insert mode, and Ex commands
+- 6 new spike tests for register access, paste marks, editor extensions, tag text objects, CM Vim Ex command probing, and Ex command conflict checking
+- Comprehensive E2E test coverage for `<C-w>h/j/k/l` pane focus, `H`/`M`/`L` screen-relative motions, `?` backward search, `zO`/`zC`/`zA` recursive folds, and all new Ex commands
+
+### Changed
+
+- Refactored 8 existing test files to use shared helpers from `test/helpers.ts` instead of locally defined `getEditorValue`, `getCursorLine`, and `vimKeys` functions
+- Test-vault `hotkeys.json` now unbinds Obsidian shortcuts that conflict with Vim commands (`Ctrl+W`, `Ctrl+N`, `Ctrl+P`, `Ctrl+S`, `Ctrl+O`)
+- Tag text objects (`it`/`at`) changed from `unsupported` skip to working plugin-implemented text objects
+- `ChangeList` class gains `getEntries()` and `getIndex()` public accessors for the `:changes` Ex command
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md` expanded with comprehensive "Neovim Ex commands not applicable in Obsidian" section covering 30+ commands across 8 categories (shell, quickfix, tags, scripting, diff, etc.) with specific reasoning
+- `KNOWN_LIMITATIONS.md` expanded with "Behavioral deviations" section documenting 6 commands that work differently from Neovim (`Y`, `Q`, `:wall`, `gf`, `zO`/`zC`/`zA`, `it`/`at`)
+
 ## [0.4.0] - 2026-06-14
 
 ### Changed
