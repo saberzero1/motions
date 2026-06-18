@@ -12,11 +12,7 @@ function getVimrcPath(app: App): string {
 
 async function readVimrcFile(app: App, path: string): Promise<string | null> {
     try {
-        const file = app.vault.getAbstractFileByPath(path);
-        if (!file) return null;
-        return await app.vault.read(
-            file as Parameters<typeof app.vault.read>[0],
-        );
+        return await app.vault.adapter.read(path);
     } catch {
         return null;
     }

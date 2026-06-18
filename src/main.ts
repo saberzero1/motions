@@ -103,6 +103,7 @@ export default class VimMotionsPlugin extends Plugin {
                         );
                     }
                     this.vimrcMaps = vimrcResult.maps;
+                    applyVimrcMaps(vim, this.vimrcMaps);
                     syncTextwidthFromVim(vim);
                     this.reapplySettingsLeaderBindings(vim);
                     this.rebuildWhichKey();
