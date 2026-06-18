@@ -41,9 +41,9 @@ Delimiters inside fenced code blocks are not excluded from the scan. If a code b
 
 Changing `.obsidian.vimrc` requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
 
-## Scrolloff cleanup on disable
+## Scrolloff line height assumption
 
-Scrolloff is implemented via CSS `scroll-padding`. When the scrolloff setting is changed, the CSS is updated on the next plugin reload. Toggling scrolloff off via settings hot-reload does not remove the existing `scroll-padding` — a plugin reload is needed for full cleanup.
+Scrolloff is implemented via CodeMirror 6's `EditorView.scrollMargins` facet. The margin is calculated as `lines * 22px`, assuming a 22px line height. If the user's font size or line height differs significantly from the default, the scrolloff distance may not correspond exactly to the configured number of lines.
 
 ## `set` option scope
 

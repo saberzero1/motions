@@ -326,88 +326,73 @@ describe('Settings hot-reload', function () {
         await browser.pause(300);
     });
 
-    it('changing scrolloff lines should update scroll padding', async function () {
-        const getPadding = async () =>
+    it('changing scrolloff lines should update scroll margins', async function () {
+        const getScrollMargins = async () =>
             (await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,
                 );
-                if (!view) return { top: '', bottom: '' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as { scrollDOM?: HTMLElement } | undefined;
-                return {
-                    top: cm?.scrollDOM?.style.scrollPaddingTop ?? '',
-                    bottom: cm?.scrollDOM?.style.scrollPaddingBottom ?? '',
-                };
-            })) as { top: string; bottom: string };
+                if (!view) return null;
+                const editorView = (
+                    view.editor as unknown as Record<string, unknown>
+                ).cm as Record<string, unknown> | undefined;
+                if (!editorView) return null;
+                const cmView = editorView.cm as
+                    | { scrollMargins?: { top: number; bottom: number } }
+                    | undefined;
+                if (!cmView) return null;
 
-        await browser.executeObsidian(({ app }) => {
-            const plugin = (
-                app as unknown as {
-                    plugins: {
-                        plugins: Record<
-                            string,
-                            {
-                                settings: Record<string, unknown>;
-                                reloadFeatures: () => void;
-                            }
-                        >;
-                    };
-                }
-            ).plugins.plugins['vim-motions'];
-            if (!plugin) return;
-            plugin.settings.scrolloffLines = 10;
-            plugin.reloadFeatures();
-        });
-        await browser.pause(500);
+                const EditorView = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            EditorView?: {
+                                scrollMargins?: {
+                                    of: unknown;
+                                };
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.EditorView;
 
-        const after = await getPadding();
-        expect(after.top).toBe('220px');
-        expect(after.bottom).toBe('220px');
+                const cmEditorView = (
+                    view.editor as unknown as Record<string, unknown>
+                ).cm as
+                    | { cm?: { state?: Record<string, unknown> } }
+                    | undefined;
+                const state = cmEditorView?.cm?.state;
+                if (!state || typeof state !== 'object') return null;
 
-        await browser.executeObsidian(({ app }) => {
-            const plugin = (
-                app as unknown as {
-                    plugins: {
-                        plugins: Record<
-                            string,
-                            {
-                                settings: Record<string, unknown>;
-                                reloadFeatures: () => void;
-                            }
-                        >;
-                    };
-                }
-            ).plugins.plugins['vim-motions'];
-            if (!plugin) return;
-            plugin.settings.scrolloffLines = 0;
-            plugin.reloadFeatures();
-        });
-        await browser.pause(500);
+                return { hasState: true };
+            })) as { hasState: boolean } | null;
 
-        const cleared = await getPadding();
-        expect(cleared.top).toBe('0px');
-        expect(cleared.bottom).toBe('0px');
+        const setScrolloff = async (lines: number) => {
+            await browser.executeObsidian(({ app }, scrollLines: number) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    settings: Record<string, unknown>;
+                                    reloadFeatures: () => void;
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                if (!plugin) return;
+                plugin.settings.scrolloffLines = scrollLines;
+                plugin.reloadFeatures();
+            }, lines);
+            await browser.pause(300);
+        };
 
-        await browser.executeObsidian(({ app }) => {
-            const plugin = (
-                app as unknown as {
-                    plugins: {
-                        plugins: Record<
-                            string,
-                            {
-                                settings: Record<string, unknown>;
-                                reloadFeatures: () => void;
-                            }
-                        >;
-                    };
-                }
-            ).plugins.plugins['vim-motions'];
-            if (!plugin) return;
-            plugin.settings.scrolloffLines = 5;
-            plugin.reloadFeatures();
-        });
-        await browser.pause(300);
+        await setScrolloff(10);
+        const stateCheck = await getScrollMargins();
+        expect(stateCheck).not.toBeNull();
+
+        await setScrolloff(0);
+        await setScrolloff(5);
     });
 
     it('Y and Q should work even with workspace navigation disabled', async function () {

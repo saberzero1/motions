@@ -14,7 +14,7 @@ import {
 import { registerOperators } from './operators/register';
 import { registerTextObjects } from './text-objects/register';
 import { VimModeTracker } from './vim/mode-tracker';
-import { ScrolloffManager } from './vim/scrolloff';
+import { ScrolloffManager, createScrolloffExtension } from './vim/scrolloff';
 import { loadVimrc, applyVimrcMaps } from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
 import type { VimApi } from './types/vim-api';
@@ -201,8 +201,9 @@ export default class VimMotionsPlugin extends Plugin {
             this.modeTracker = new VimModeTracker(this);
             this.modeTracker.attach(this.app);
         }
-        this.scrolloffManager = new ScrolloffManager(this, this.app);
+        this.scrolloffManager = new ScrolloffManager(this);
         this.scrolloffManager.setup(this.settings.scrolloffLines);
+        this.registerEditorExtension(createScrolloffExtension());
 
         // --- Settings tab ---
         this.addSettingTab(new VimMotionsSettingTab(this.app, this));

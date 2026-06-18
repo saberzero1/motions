@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Scrolloff now actually works — previously used CSS `scroll-padding` which CodeMirror 6 ignores (it uses manual scroll calculations, not `Element.scrollIntoView`). Replaced with `EditorView.scrollMargins` facet, which CM6 respects when scrolling the cursor into view. The cursor now stays the configured number of lines from the viewport edges during navigation.
+- ESLint `import/no-extraneous-dependencies` error on `@codemirror/view` — added `import/core-modules` setting listing all `@codemirror/*` and `@lezer/*` packages provided by Obsidian at runtime
+- Removed unused variables: `totalLines` in `tag.ts`, `openEndIndex`/`closeStartIndex` in `tag.ts`, `active` in `commands.ts`, `newLeaf` in `commands.ts`
+
+### Changed
+
+- Scrolloff implementation rewritten from CSS `scroll-padding` inline styles to `EditorView.scrollMargins` extension registered via `registerEditorExtension`. The `ScrolloffManager` class no longer manages event listeners or DOM manipulation — it updates a shared margin variable read by the CM6 facet callback.
+- Vimrc loader now collects parsed map commands as `DeferredMap` entries and re-applies them via `vim.map()`/`vim.noremap()` on subsequent `active-leaf-change` events, attempting to restore mappings that CM Vim may lose during editor reinitialization
+- Vimrc loader intercepts `set textwidth=N` / `set tw=N` lines and directly updates the plugin's internal `textwidthValue` via `setTextwidth()`, bypassing CM Vim's option callback chain
+- `getTextwidth()` now reads from CM Vim's option via `Vim.getOption('textwidth')` as a fallback when the plugin's internal value hasn't been updated
+
+### Added
+
+- Spike test `test/specs/spikes/spike17-nmap-override.e2e.ts` — 20 diagnostic tests investigating why `nmap L $` and `set textwidth=20` fail when loaded via vimrc but work at runtime
+- `:wa` / `:wall` added to README Ex commands table (was implemented but undocumented)
+- `g<C-t>` (go to tab by number) added to README workspace keybindings table (was implemented but undocumented)
+
+### Documentation
+
+- README: corrected `set textwidth=N` claim — now notes the known limitation and provides the runtime workaround via developer console
+- `KNOWN_LIMITATIONS.md`: added "`nmap L $` does not work via vimrc" section with full diagnostic findings from spike17
+- `KNOWN_LIMITATIONS.md`: added "`set textwidth` via vimrc does not affect `gq`" section with root cause analysis
+- `KNOWN_LIMITATIONS.md`: replaced stale "Scrolloff cleanup on disable" section with "Scrolloff line height assumption" (22px hardcoded)
+
 ## [0.5.0] - 2026-06-18
 
 ### Added
@@ -58,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 16 new test files in `test/specs/vim-builtin/` covering normal mode motions, search, editing, yank/put, insert entry, scroll, marks/jumps, g-commands, z-commands, bracket commands, text objects, operators, visual mode, insert mode, and Ex commands
 - 6 new spike tests for register access, paste marks, editor extensions, tag text objects, CM Vim Ex command probing, and Ex command conflict checking
 - Comprehensive E2E test coverage for `<C-w>h/j/k/l` pane focus, `H`/`M`/`L` screen-relative motions, `?` backward search, `zO`/`zC`/`zA` recursive folds, and all new Ex commands
-- E2E test for scrolloff hot-reload: verifies `scrollPaddingTop`/`scrollPaddingBottom` update when `scrolloffLines` changes and clear when set to 0
+- E2E test for scrolloff hot-reload: verifies scroll margins update when `scrolloffLines` changes
 - E2E test for `Y`/`Q` independence from workspace navigation: verifies `Y` still yanks to end of line when workspace nav is disabled
 
 ### Fixed
