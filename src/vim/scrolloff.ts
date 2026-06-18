@@ -1,4 +1,4 @@
-import type { App, Plugin } from 'obsidian';
+import type { App, EventRef, Plugin } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 
 function applyScrolloff(app: App, margin: number): void {
@@ -13,21 +13,48 @@ function applyScrolloff(app: App, margin: number): void {
     }
 }
 
-export function setupScrolloff(plugin: Plugin, app: App, lines: number): void {
-    if (lines <= 0) return;
-    const margin = lines * 22;
+function clearScrolloff(app: App): void {
+    applyScrolloff(app, 0);
+}
 
-    plugin.registerEvent(
-        app.workspace.on('active-leaf-change', () => {
-            applyScrolloff(app, margin);
-        }),
-    );
+export class ScrolloffManager {
+    private eventRefs: EventRef[] = [];
 
-    plugin.registerEvent(
-        app.workspace.on('layout-change', () => {
-            applyScrolloff(app, margin);
-        }),
-    );
+    constructor(
+        private plugin: Plugin,
+        private app: App,
+    ) {}
 
-    applyScrolloff(app, margin);
+    setup(lines: number): void {
+        this.teardown();
+
+        if (lines <= 0) return;
+        const margin = lines * 22;
+
+        const leafRef = this.app.workspace.on('active-leaf-change', () => {
+            applyScrolloff(this.app, margin);
+        });
+        this.plugin.registerEvent(leafRef);
+        this.eventRefs.push(leafRef);
+
+        const layoutRef = this.app.workspace.on('layout-change', () => {
+            applyScrolloff(this.app, margin);
+        });
+        this.plugin.registerEvent(layoutRef);
+        this.eventRefs.push(layoutRef);
+
+        applyScrolloff(this.app, margin);
+    }
+
+    teardown(): void {
+        for (const ref of this.eventRefs) {
+            this.app.workspace.offref(ref);
+        }
+        this.eventRefs = [];
+        clearScrolloff(this.app);
+    }
+
+    destroy(): void {
+        this.teardown();
+    }
 }

@@ -58,6 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 16 new test files in `test/specs/vim-builtin/` covering normal mode motions, search, editing, yank/put, insert entry, scroll, marks/jumps, g-commands, z-commands, bracket commands, text objects, operators, visual mode, insert mode, and Ex commands
 - 6 new spike tests for register access, paste marks, editor extensions, tag text objects, CM Vim Ex command probing, and Ex command conflict checking
 - Comprehensive E2E test coverage for `<C-w>h/j/k/l` pane focus, `H`/`M`/`L` screen-relative motions, `?` backward search, `zO`/`zC`/`zA` recursive folds, and all new Ex commands
+- E2E test for scrolloff hot-reload: verifies `scrollPaddingTop`/`scrollPaddingBottom` update when `scrolloffLines` changes and clear when set to 0
+- E2E test for `Y`/`Q` independence from workspace navigation: verifies `Y` still yanks to end of line when workspace nav is disabled
+
+### Fixed
+
+- Scrolloff setting now applies immediately when changed in settings — previously required a plugin reload because the slider's `onChange` handler did not trigger `reloadFeatures()` and `reloadFeatures()` itself had no scrolloff handling
+- Scrolloff slider now displays a numeric tooltip showing the current value
+- `Y` (`y$`) and `Q` (`@@`) Neovim default remaps now work regardless of the "Workspace navigation" toggle — previously these were registered inside `registerWorkspaceNavigation()` and would stop working when workspace nav was disabled
+- Vimrc loader now shows a Notice on load: reports the number of commands applied on success, warns when the file is not found, and warns when the file contains no commands
 
 ### Changed
 
@@ -65,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test-vault `hotkeys.json` now unbinds Obsidian shortcuts that conflict with Vim commands (`Ctrl+W`, `Ctrl+N`, `Ctrl+P`, `Ctrl+S`, `Ctrl+O`)
 - Tag text objects (`it`/`at`) changed from `unsupported` skip to working plugin-implemented text objects
 - `ChangeList` class gains `getEntries()` and `getIndex()` public accessors for the `:changes` Ex command
+- Scrolloff internals refactored from standalone `setupScrolloff()` function to `ScrolloffManager` class with proper `setup()`/`teardown()`/`destroy()` lifecycle, preventing event listener stacking on hot-reload
+- `Y` and `Q` Neovim default remaps moved from `registerWorkspaceNavigation()` to the always-on initialization path in `onload()` and `reloadFeatures()`
+- Vimrc loader's `loadVimrc()` now returns a `VimrcLoadResult` with `found`, `commandCount`, and `path` fields
 
 ### Documentation
 

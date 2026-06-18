@@ -251,10 +251,6 @@ export function registerWorkspaceNavigation(
     reg.mapCommand(hintKeys, 'action', 'hintMode', {});
     leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
 
-    // Neovim default remaps (use map so user vimrc noremap can override)
-    reg.map('Q', '@@', 'normal');
-    reg.map('Y', 'y$', 'normal');
-
     reg.defineAction('pasteAfterMove', createPasteMoveAction(true));
     reg.mapCommand('gp', 'action', 'pasteAfterMove', {});
     reg.defineAction('pasteBeforeMove', createPasteMoveAction(false));

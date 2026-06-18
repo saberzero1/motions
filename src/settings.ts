@@ -223,9 +223,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 slider
                     .setLimits(0, 20, 1)
                     .setValue(this.plugin.settings.scrolloffLines)
+                    // eslint-disable-next-line @typescript-eslint/no-deprecated
+                    .setDynamicTooltip()
                     .onChange(async (value) => {
                         this.plugin.settings.scrolloffLines = value;
                         await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
                     }),
             );
 

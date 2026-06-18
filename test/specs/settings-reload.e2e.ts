@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { getEditorValue, vimKeys } from '../helpers';
+import {
+    getEditorValue,
+    getRegisterContent,
+    setupEditor,
+    vimKeys,
+} from '../helpers';
 
 describe('Settings hot-reload', function () {
     before(async function () {
@@ -316,6 +321,139 @@ describe('Settings hot-reload', function () {
             ).plugins.plugins['vim-motions'];
             if (!plugin) return;
             plugin.settings.enableEasyMotion = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('changing scrolloff lines should update scroll padding', async function () {
+        const getPadding = async () =>
+            (await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { top: '', bottom: '' };
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as { scrollDOM?: HTMLElement } | undefined;
+                return {
+                    top: cm?.scrollDOM?.style.scrollPaddingTop ?? '',
+                    bottom: cm?.scrollDOM?.style.scrollPaddingBottom ?? '',
+                };
+            })) as { top: string; bottom: string };
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.scrolloffLines = 10;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        const after = await getPadding();
+        expect(after.top).toBe('220px');
+        expect(after.bottom).toBe('220px');
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.scrolloffLines = 0;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        const cleared = await getPadding();
+        expect(cleared.top).toBe('0px');
+        expect(cleared.bottom).toBe('0px');
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.scrolloffLines = 5;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('Y and Q should work even with workspace navigation disabled', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await setupEditor('hello world', { line: 0, ch: 6 });
+        await vimKeys('Y');
+        const reg = await getRegisterContent('"');
+        expect(reg).not.toBeNull();
+        expect(reg!.text).toBe('world');
+        expect(reg!.linewise).toBe(false);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = true;
             plugin.reloadFeatures();
         });
         await browser.pause(300);

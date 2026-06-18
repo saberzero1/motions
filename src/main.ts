@@ -14,8 +14,8 @@ import {
 import { registerOperators } from './operators/register';
 import { registerTextObjects } from './text-objects/register';
 import { VimModeTracker } from './vim/mode-tracker';
-import { setupScrolloff } from './vim/scrolloff';
-import { loadVimrc } from './vimrc/loader';
+import { ScrolloffManager } from './vim/scrolloff';
+import { loadVimrc, type VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { getVimApi, isVimEnabled } from './vim/vim-api';
@@ -38,6 +38,7 @@ export default class VimMotionsPlugin extends Plugin {
     leaderRegistry: LeaderRegistry | null = null;
     changeList: ChangeList = new ChangeList();
     modeTracker: VimModeTracker | null = null;
+    scrolloffManager: ScrolloffManager | null = null;
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
     exSuggest: ExCommandSuggest | null = null;
@@ -70,7 +71,24 @@ export default class VimMotionsPlugin extends Plugin {
         // --- Leader key resolution (before feature registration) ---
         this.leaderRegistry = new LeaderRegistry();
         if (this.settings.enableVimrc) {
-            await loadVimrc(this.app, vim, this.leaderRegistry);
+            const vimrcResult: VimrcLoadResult = await loadVimrc(
+                this.app,
+                vim,
+                this.leaderRegistry,
+            );
+            if (!vimrcResult.found) {
+                new Notice(
+                    `Vim Motions: ${vimrcResult.path} not found. Create the file in your vault root to use custom key mappings.`,
+                );
+            } else if (vimrcResult.commandCount === 0) {
+                new Notice(
+                    `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                );
+            } else {
+                new Notice(
+                    `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
+                );
+            }
         }
 
         // --- Core ex command (needed by leader bindings) ---
@@ -106,6 +124,10 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
             );
         }
+
+        // --- Neovim default remaps (always on, use map so user vimrc noremap can override) ---
+        this.registration.map('Y', 'y$', 'normal');
+        this.registration.map('Q', '@@', 'normal');
 
         // --- Changelist (g; / g,) ---
         this.registration.defineMotion(
@@ -159,9 +181,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.modeTracker = new VimModeTracker(this);
             this.modeTracker.attach(this.app);
         }
-        if (this.settings.scrolloffLines > 0) {
-            setupScrolloff(this, this.app, this.settings.scrolloffLines);
-        }
+        this.scrolloffManager = new ScrolloffManager(this, this.app);
+        this.scrolloffManager.setup(this.settings.scrolloffLines);
 
         // --- Settings tab ---
         this.addSettingTab(new VimMotionsSettingTab(this.app, this));
@@ -230,10 +251,15 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
             );
         }
+        this.registration.map('Y', 'y$', 'normal');
+        this.registration.map('Q', '@@', 'normal');
+
         if (this.settings.enableStatusBar) {
             this.modeTracker = new VimModeTracker(this);
             this.modeTracker.attach(this.app);
         }
+
+        this.scrolloffManager?.setup(this.settings.scrolloffLines);
 
         this.rebuildExSuggest();
         this.rebuildWhichKey();
@@ -280,6 +306,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.insertEscapeHandler = null;
         this.modeTracker?.destroy();
         this.modeTracker = null;
+        this.scrolloffManager?.destroy();
+        this.scrolloffManager = null;
         this.registration?.unregisterAll();
         this.registration = null;
     }

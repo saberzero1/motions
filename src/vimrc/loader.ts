@@ -103,12 +103,25 @@ function applyCommand(
     }
 }
 
+export interface VimrcLoadResult {
+    found: boolean;
+    commandCount: number;
+    path: string;
+}
+
 export async function loadVimrc(
     app: App,
     vim: VimApi,
     leaderRegistry?: LeaderRegistry,
-): Promise<void> {
-    await loadVimrcFile(app, vim, getVimrcPath(app), '\\', leaderRegistry);
+): Promise<VimrcLoadResult> {
+    const path = getVimrcPath(app);
+    const result = await loadVimrcFile(app, vim, path, '\\', leaderRegistry);
+    return { found: result.found, commandCount: result.commandCount, path };
+}
+
+interface LoadFileResult {
+    found: boolean;
+    commandCount: number;
 }
 
 async function loadVimrcFile(
@@ -117,28 +130,31 @@ async function loadVimrcFile(
     path: string,
     leaderKey = '\\',
     leaderRegistry?: LeaderRegistry,
-): Promise<void> {
+): Promise<LoadFileResult> {
     const content = await readVimrcFile(app, path);
-    if (content === null) return;
+    if (content === null) return { found: false, commandCount: 0 };
 
     const commands = parseVimrc(content);
     const exmaps = new Map<string, string>();
     let currentLeader = leaderKey;
+    let applied = 0;
 
     for (const cmd of commands) {
         if (cmd.type === 'source' && cmd.path) {
-            await loadVimrcFile(
+            const sub = await loadVimrcFile(
                 app,
                 vim,
                 cmd.path,
                 currentLeader,
                 leaderRegistry,
             );
+            applied += sub.commandCount;
             continue;
         }
         if (cmd.type === 'let' && cmd.key === 'mapleader' && cmd.value) {
             currentLeader = cmd.value;
             if (leaderRegistry) leaderRegistry.setLeaderKey(currentLeader);
+            applied++;
             continue;
         }
         const lhs = cmd.lhs?.replace(/<leader>/gi, currentLeader);
@@ -149,8 +165,11 @@ async function loadVimrcFile(
         }
         try {
             applyCommand(vim, cmd, lhs, rhs, args, app, exmaps);
+            applied++;
         } catch {
             /* intentional: skip malformed vimrc lines */
         }
     }
+
+    return { found: true, commandCount: applied };
 }
