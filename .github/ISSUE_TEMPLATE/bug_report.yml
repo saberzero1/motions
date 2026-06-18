@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a bug or unexpected behavior
+labels: ['bug']
+body:
+    - type: checkboxes
+      id: preflight
+      attributes:
+          label: Pre-submission checklist
+          options:
+              - label: I have checked [KNOWN_LIMITATIONS.md](https://github.com/saberzero1/motions/blob/main/KNOWN_LIMITATIONS.md) and this issue is not listed there
+                required: true
+              - label: I have searched the [existing issues](https://github.com/saberzero1/motions/issues) and this has not been reported before
+                required: true
+              - label: I have Vim mode enabled (**Settings > Editor > Vim key bindings**)
+                required: true
+
+    - type: input
+      id: plugin-version
+      attributes:
+          label: Plugin version
+          description: 'Run `:version` in Vim command mode or check **Settings > Community plugins > Vim Motions**'
+          placeholder: '0.5.0'
+      validations:
+          required: true
+
+    - type: input
+      id: obsidian-version
+      attributes:
+          label: Obsidian version
+          description: 'Found in **Settings > General > Current version**'
+          placeholder: '1.8.0'
+      validations:
+          required: true
+
+    - type: dropdown
+      id: platform
+      attributes:
+          label: Platform
+          options:
+              - Windows
+              - macOS
+              - Linux
+      validations:
+          required: true
+
+    - type: textarea
+      id: description
+      attributes:
+          label: Bug description
+          description: What happened? What did you expect to happen?
+          placeholder: |
+              When I press `gqq` on a line with 100 characters, the line is not wrapped.
+              I expected it to wrap at 80 columns.
+      validations:
+          required: true
+
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          description: Minimal steps to reproduce the behavior.
+          placeholder: |
+              1. Open a note with a long line (100+ characters)
+              2. Place cursor on the line
+              3. Press `gqq`
+              4. Line is not wrapped
+      validations:
+          required: true
+
+    - type: textarea
+      id: vimrc
+      attributes:
+          label: Vimrc content (if relevant)
+          description: Paste your `.obsidian.vimrc` if the issue involves key mappings or vimrc settings.
+          render: vim
+
+    - type: textarea
+      id: other-plugins
+      attributes:
+          label: Other Vim-related plugins
+          description: List any other Vim-related plugins you have installed (e.g. obsidian-vimrc-support, vim-im-control).
+          placeholder: 'None / obsidian-vimrc-support v1.x.x'
