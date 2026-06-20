@@ -1,0 +1,235 @@
+{
+    "suite": "normal-search",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.014Z",
+    "cases": [
+        {
+            "name": "f should find char to the right",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "fw",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "F should find char to the left",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "Fo",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "t should move till before char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "tw",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "T should move till after char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "To",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2f should find second occurrence",
+            "initial": {
+                "content": "abacada",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2fa",
+            "result": {
+                "content": "abacada",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "f should not move when char not found",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "fz",
+            "result": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "f should not cross line boundary",
+            "initial": {
+                "content": "abc\ndef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "fe",
+            "result": {
+                "content": "abc\ndef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "t should stop one char before target",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "td",
+            "result": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "T should stop one char after target",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "Tc",
+            "result": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2t should find second and stop before",
+            "initial": {
+                "content": "axbxcxd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2tx",
+            "result": {
+                "content": "axbxcxd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "F should not move when char not found",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "Fz",
+            "result": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2F should find second backward",
+            "initial": {
+                "content": "axbxcxd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "2Fx",
+            "result": {
+                "content": "axbxcxd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

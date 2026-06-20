@@ -1,0 +1,83 @@
+{
+    "suite": "ex-commands-builtin",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.097Z",
+    "cases": [
+        {
+            "name": ":s/old/new/ should replace first on line",
+            "initial": {
+                "content": "old old old",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":s/old/new/\n",
+            "result": {
+                "content": "new old old",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":s/old/new/g should replace all on line",
+            "initial": {
+                "content": "old old old",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":s/old/new/g\n",
+            "result": {
+                "content": "new new new",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":sort should sort lines",
+            "initial": {
+                "content": "cherry\napple\nbanana",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort\n",
+            "result": {
+                "content": "apple\nbanana\ncherry",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":d should delete current line",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": ":d\n",
+            "result": {
+                "content": "one\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

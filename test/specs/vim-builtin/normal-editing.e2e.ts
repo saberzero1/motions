@@ -6,11 +6,18 @@ import {
     getEditorValue,
     getCursorPos,
 } from '../../helpers';
+import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
+import { SUITES } from '../../neovim/test-definitions';
 
 describe('Normal mode — editing commands (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await startNvim();
+    });
+
+    after(async function () {
+        await stopNvim();
     });
 
     afterEach(async function () {
@@ -163,6 +170,65 @@ describe('Normal mode — editing commands (Tier 1)', function () {
         });
     });
 
+    describe('. (repeat) edge cases', function () {
+        it('. should repeat dw', async function () {
+            await setupEditor('one two three four', { line: 0, ch: 0 });
+            await vimKeys('d', 'w');
+            expect(await getEditorValue()).toBe('two three four');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('three four');
+        });
+
+        it('. should repeat >> (indent)', async function () {
+            await setupEditor('one\ntwo', { line: 0, ch: 0 });
+            await vimKeys('>', '>');
+            await vimKeys('j');
+            await vimKeys('.');
+            const lines = (await getEditorValue()).split('\n');
+            expect(
+                lines[1]!.startsWith('\t') || lines[1]!.startsWith('  '),
+            ).toBe(true);
+        });
+
+        it('3. should repeat with count', async function () {
+            await setupEditor('abcde', { line: 0, ch: 0 });
+            await vimKeys('x');
+            expect(await getEditorValue()).toBe('bcde');
+            await vimKeys('3', '.');
+            expect(await getEditorValue()).toBe('e');
+        });
+
+        // BUG: dot-repeat of cw + typed text does not reliably replay the inserted text
+        it.skip('. should repeat cw with typed text', async function () {
+            await setupEditor('old old old', { line: 0, ch: 0 });
+            await vimKeys('c', 'w');
+            await browser.keys(['n', 'e', 'w', ' ']);
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+            await vimKeys('.');
+            const val = await getEditorValue();
+            expect(val.startsWith('new new ')).toBe(true);
+        });
+    });
+
+    describe('. after visual mode', function () {
+        it('. should repeat visual mode indent', async function () {
+            await setupEditor('one\ntwo\nthree', { line: 0, ch: 0 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['>']);
+            await browser.pause(300);
+            await vimKeys('j');
+            await vimKeys('.');
+            const lines = (await getEditorValue()).split('\n');
+            expect(
+                lines[1]!.startsWith('\t') || lines[1]!.startsWith('  '),
+            ).toBe(true);
+        });
+    });
+
     describe('Q (replay last macro)', function () {
         it('Q should replay last recorded macro', async function () {
             await setupEditor('line1\nline2\nline3\nline4', { line: 0, ch: 0 });
@@ -172,5 +238,26 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await vimKeys('Q');
             expect(await getEditorValue()).toBe('line3\nline4');
         });
+    });
+
+    describe('Neovim golden comparison', function () {
+        before(async function () {
+            await startNvim();
+        });
+
+        after(async function () {
+            await stopNvim();
+        });
+
+        const suite = SUITES.find((s) => s.name === 'normal-editing');
+        if (suite) {
+            for (const tc of suite.cases) {
+                testWithNeovim('normal-editing', tc.name, {
+                    content: tc.content,
+                    cursor: tc.cursor,
+                    keys: [tc.keys],
+                });
+            }
+        }
     });
 });

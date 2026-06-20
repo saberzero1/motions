@@ -88,6 +88,41 @@ describe('Markdown text objects (Phase 1.1)', function () {
         });
     });
 
+    describe('Bold edge cases (i*/a*)', function () {
+        // BUG: di* operates even when cursor is on the ** delimiter itself
+        it.skip('di* with cursor on delimiter should no-op', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello **bold** world');
+                view.editor.setCursor(0, 6);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', '*');
+            expect(await getEditorValue()).toBe('Hello **bold** world');
+        });
+    });
+
+    describe('Inline code edge cases (i`/a`)', function () {
+        it('di` with empty code span should no-op', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello `` world');
+                view.editor.setCursor(0, 7);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', '`');
+            expect(await getEditorValue()).toBe('Hello `` world');
+        });
+    });
+
     describe('Italic (i_/a_)', function () {
         it('di_ should delete inside italic delimiters', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {

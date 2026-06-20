@@ -1,0 +1,387 @@
+{
+    "suite": "text-objects-builtin",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.051Z",
+    "cases": [
+        {
+            "name": "diw should delete inner word",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "diw",
+            "result": {
+                "content": "hello  foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "daw should delete a word with space",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "daw",
+            "result": {
+                "content": "hello foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "diW should delete inner WORD",
+            "initial": {
+                "content": "hello foo-bar baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "diW",
+            "result": {
+                "content": "hello  baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "daW should delete a WORD with space",
+            "initial": {
+                "content": "hello foo-bar baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "daW",
+            "result": {
+                "content": "hello baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di( should delete inside parens",
+            "initial": {
+                "content": "call(arg1, arg2)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "di(",
+            "result": {
+                "content": "call()",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "da( should delete including parens",
+            "initial": {
+                "content": "call(arg1, arg2) end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "da(",
+            "result": {
+                "content": "call end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di\" should delete inside quotes",
+            "initial": {
+                "content": "say \"hello world\" end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "di\"",
+            "result": {
+                "content": "say \"\" end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "da\" should delete including quotes",
+            "initial": {
+                "content": "say \"hello world\" end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "da\"",
+            "result": {
+                "content": "say end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di' should delete inside single quotes",
+            "initial": {
+                "content": "say 'hello' end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "di'",
+            "result": {
+                "content": "say '' end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di{ should delete inside braces",
+            "initial": {
+                "content": "obj{ key: val }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "di{",
+            "result": {
+                "content": "obj{}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "da{ should delete including braces",
+            "initial": {
+                "content": "obj{ key: val } end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "da{",
+            "result": {
+                "content": "obj end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di[ should delete inside brackets",
+            "initial": {
+                "content": "arr[1, 2, 3]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "di[",
+            "result": {
+                "content": "arr[]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "diw on whitespace",
+            "initial": {
+                "content": "hello   world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "diw",
+            "result": {
+                "content": "helloworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "daw at end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "daw",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di( with nested parens",
+            "initial": {
+                "content": "(outer (inner) more)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "di(",
+            "result": {
+                "content": "(outer () more)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di( across lines",
+            "initial": {
+                "content": "(\nhello\n)",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "di(",
+            "result": {
+                "content": "(\n)",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di{ with nested braces",
+            "initial": {
+                "content": "{ outer { inner } more }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                }
+            },
+            "keys": "di{",
+            "result": {
+                "content": "{ outer {} more }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 9
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "di[ with nested brackets",
+            "initial": {
+                "content": "[outer [inner] more]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "di[",
+            "result": {
+                "content": "[outer [] more]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "diW with mixed punctuation",
+            "initial": {
+                "content": "hello foo.bar,baz end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "diW",
+            "result": {
+                "content": "hello  end",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d2aw should delete 2 words",
+            "initial": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "d2aw",
+            "result": {
+                "content": "one four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

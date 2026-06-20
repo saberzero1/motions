@@ -1,0 +1,520 @@
+{
+    "suite": "operator-combos",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.040Z",
+    "cases": [
+        {
+            "name": "dw should delete to next word",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dw",
+            "result": {
+                "content": "two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d$ should delete to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "d$",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d0 should delete to start of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "d0",
+            "result": {
+                "content": "world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dj should delete current and next line",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dj",
+            "result": {
+                "content": "three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dw on last word should not delete newline",
+            "initial": {
+                "content": "hello\nworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dw",
+            "result": {
+                "content": "\nworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dw should delete whitespace",
+            "initial": {
+                "content": "one   two",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "dw",
+            "result": {
+                "content": "onetwo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd on last line",
+            "initial": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "dd",
+            "result": {
+                "content": "one",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd on only line",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dd",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d2w should delete 2 words",
+            "initial": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "d2w",
+            "result": {
+                "content": "three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2dd should delete 2 lines",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2dd",
+            "result": {
+                "content": "three\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "D should delete to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "D",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dk should delete current and previous",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "dk",
+            "result": {
+                "content": "three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "de should delete to end of word",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "de",
+            "result": {
+                "content": " world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "db should delete backward",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "db",
+            "result": {
+                "content": "hello rld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d$ cursor in middle",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "d$",
+            "result": {
+                "content": "ab",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d0 at start should not delete",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "d0",
+            "result": {
+                "content": "ello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dgg should delete to start",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "dgg",
+            "result": {
+                "content": "four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dfx should delete through char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dfo",
+            "result": {
+                "content": " world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dtx should delete up to char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dto",
+            "result": {
+                "content": "o world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "x should delete char under cursor",
+            "initial": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "x",
+            "result": {
+                "content": "abde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "X should delete char before cursor",
+            "initial": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "X",
+            "result": {
+                "content": "acde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3x should delete 3 chars",
+            "initial": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3x",
+            "result": {
+                "content": "de",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd should delete current line",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "dd",
+            "result": {
+                "content": "line1\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "J should join lines with space",
+            "initial": {
+                "content": "hello\nworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "J",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "r should replace single char",
+            "initial": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "rX",
+            "result": {
+                "content": "abXde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ">> should indent line",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ">>",
+            "result": {
+                "content": "\thello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "<< should unindent line",
+            "initial": {
+                "content": "\thello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "<<",
+            "result": {
+                "content": "\thello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

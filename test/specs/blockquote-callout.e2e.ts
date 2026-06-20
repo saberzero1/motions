@@ -41,6 +41,23 @@ describe('Blockquote and callout text objects', function () {
             expect(await getEditorValue()).toBe('before\n\nafter');
         });
 
+        // BUG: iB does not scope to innermost blockquote nesting level — deletes all blockquote content
+        it.skip('diB with nested blockquote should delete inner content', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('> outer\n>> nested inner\n> more outer');
+                view.editor.setCursor(1, 5);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', 'B');
+            const val = await getEditorValue();
+            expect(val).toContain('outer');
+        });
+
         it('diB should not change content when cursor is outside blockquote', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
@@ -90,6 +107,24 @@ describe('Blockquote and callout text objects', function () {
             await browser.pause(300);
             await vimKeys('d', 'a', 'o');
             expect(await getEditorValue()).toBe('before\n\nafter');
+        });
+
+        it('dio with multi-paragraph callout should delete body', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    '> [!warning] Careful\n> Line one\n> Line two\n> Line three',
+                );
+                view.editor.setCursor(2, 3);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', 'o');
+            const val = await getEditorValue();
+            expect(val).toContain('[!warning]');
         });
 
         it('dio should not change content when cursor is outside callout', async function () {

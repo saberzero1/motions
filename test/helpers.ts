@@ -106,6 +106,54 @@ export async function vimKeys(...keys: string[]): Promise<void> {
     await browser.pause(PAUSE.EDITOR_SETTLE - PAUSE.KEY_GAP);
 }
 
+export async function vimRawKeys(keys: string): Promise<void> {
+    await browser.keys(['Escape']);
+    await browser.pause(PAUSE.MODE_SWITCH);
+    for (const ch of keys) {
+        const code = ch.charCodeAt(0);
+        if (code === 0x1b) {
+            await browser.keys(['Escape']);
+        } else if (code < 0x20) {
+            await browser.executeObsidian(
+                ({ app, obsidian }, keyStr: string) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return;
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm as
+                        | Record<string, unknown>
+                        | undefined;
+                    if (!adapter) return;
+                    const Vim = (
+                        window as unknown as {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleKey: (
+                                        cm: unknown,
+                                        key: string,
+                                    ) => boolean;
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    if (!Vim) return;
+                    Vim.handleKey(adapter, keyStr);
+                },
+                `<C-${String.fromCharCode(code + 0x60)}>`,
+            );
+        } else if (ch === '\n') {
+            await browser.keys(['Enter']);
+        } else {
+            await browser.keys([ch]);
+        }
+        await browser.pause(PAUSE.KEY_GAP);
+    }
+    await browser.pause(PAUSE.EDITOR_SETTLE - PAUSE.KEY_GAP);
+}
+
 export function unsupported(
     description: string,
     reason: string,

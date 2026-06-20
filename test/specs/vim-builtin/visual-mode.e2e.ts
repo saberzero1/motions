@@ -6,11 +6,18 @@ import {
     getEditorValue,
     getCursorPos,
 } from '../../helpers';
+import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
+import { SUITES } from '../../neovim/test-definitions';
 
 describe('Visual mode (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await startNvim();
+    });
+
+    after(async function () {
+        await stopNvim();
     });
 
     afterEach(async function () {
@@ -173,6 +180,99 @@ describe('Visual mode (Tier 1)', function () {
         });
     });
 
+    describe('V + y should yank linewise', function () {
+        it('V + y should produce linewise register', async function () {
+            await setupEditor('hello world\nsecond line', { line: 0, ch: 0 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['y']);
+            await browser.pause(300);
+            const { getRegisterContent } = await import('../../helpers');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.linewise).toBe(true);
+        });
+    });
+
+    describe('v + count + motion', function () {
+        it('v3l + d should delete 4 characters', async function () {
+            await setupEditor('abcdefgh', { line: 0, ch: 0 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['v']);
+            await browser.pause(30);
+            await browser.keys(['3', 'l']);
+            await browser.pause(30);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('efgh');
+        });
+    });
+
+    describe('gv (reselect last visual)', function () {
+        it('gv should reselect and allow delete', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['v']);
+            await browser.pause(30);
+            await browser.keys(['e']);
+            await browser.pause(30);
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await vimKeys('g', 'v');
+            await browser.pause(100);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe(' world');
+        });
+    });
+
+    describe('visual + text objects (extended)', function () {
+        it('viw should select word under cursor', async function () {
+            await setupEditor('hello world foo', { line: 0, ch: 7 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['v']);
+            await browser.pause(30);
+            await browser.keys(['i', 'w']);
+            await browser.pause(30);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('hello  foo');
+        });
+    });
+
+    describe('visual at document boundaries', function () {
+        it('v + G + d should delete from cursor to end of document', async function () {
+            await setupEditor('one\ntwo\nthree', { line: 0, ch: 0 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['v']);
+            await browser.pause(30);
+            await browser.keys(['G']);
+            await browser.pause(30);
+            await browser.keys(['$']);
+            await browser.pause(30);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('');
+        });
+
+        it('V at last line + d should delete last line', async function () {
+            await setupEditor('one\ntwo\nthree', { line: 2, ch: 0 });
+            await browser.keys(['Escape']);
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('one\ntwo');
+        });
+    });
+
     describe('o (swap visual anchor)', function () {
         it('o should swap cursor to other end of selection', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
@@ -187,5 +287,26 @@ describe('Visual mode (Tier 1)', function () {
             const pos = await getCursorPos();
             expect(pos.ch).toBe(0);
         });
+    });
+
+    describe('Neovim golden comparison', function () {
+        before(async function () {
+            await startNvim();
+        });
+
+        after(async function () {
+            await stopNvim();
+        });
+
+        const suite = SUITES.find((s) => s.name === 'visual-mode');
+        if (suite) {
+            for (const tc of suite.cases) {
+                testWithNeovim('visual-mode', tc.name, {
+                    content: tc.content,
+                    cursor: tc.cursor,
+                    keys: [tc.keys],
+                });
+            }
+        }
     });
 });

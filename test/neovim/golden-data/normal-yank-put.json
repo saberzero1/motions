@@ -1,0 +1,140 @@
+{
+    "suite": "normal-yank-put",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.069Z",
+    "cases": [
+        {
+            "name": "yy then p should paste line below",
+            "initial": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yyp",
+            "result": {
+                "content": "hello world\nhello world\nsecond line",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd then p should paste deleted line below",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ddp",
+            "result": {
+                "content": "second\nfirst\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yw then p should paste word",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yw$p",
+            "result": {
+                "content": "hello worldhello ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 16
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "P should paste before cursor",
+            "initial": {
+                "content": "world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yw0P",
+            "result": {
+                "content": "worldworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "\"ayy then \"ap should paste from register a",
+            "initial": {
+                "content": "alpha line\nbeta line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\"ayyG\"ap",
+            "result": {
+                "content": "alpha line\nbeta line\nalpha line",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "y$ should yank to end without newline",
+            "initial": {
+                "content": "hello world\nsecond",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "y$jp",
+            "result": {
+                "content": "hello world\nsecondworld",
+                "cursor": {
+                    "line": 1,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2yy then p should paste 2 lines",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2yyGp",
+            "result": {
+                "content": "one\ntwo\nthree\none\ntwo",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

@@ -1,0 +1,83 @@
+{
+    "suite": "insert-mode",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.092Z",
+    "cases": [
+        {
+            "name": "Escape from insert should allow x to delete",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "i\u001bx",
+            "result": {
+                "content": "ello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-W should delete word in insert",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ihello world\u0017\u001b",
+            "result": {
+                "content": "hello ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-U should delete to start in insert",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ihello\u0015\u001b",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-O should execute one normal command",
+            "initial": {
+                "content": "hello\nworld",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "i\u000fk\u001b",
+            "result": {
+                "content": "hello\nworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

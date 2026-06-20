@@ -6,17 +6,35 @@ import {
     getCursorPos,
     getEditorValue,
 } from '../../helpers';
+import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
+import { SUITES } from '../../neovim/test-definitions';
 
 describe('Normal mode — g-prefix commands (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await startNvim();
+    });
+
+    after(async function () {
+        await stopNvim();
     });
 
     afterEach(async function () {
         await browser.keys(['Escape']);
         await browser.pause(50);
     });
+
+    const suite = SUITES.find((s) => s.name === 'g-commands');
+    if (suite) {
+        for (const tc of suite.cases) {
+            testWithNeovim('g-commands', tc.name, {
+                content: tc.content,
+                cursor: tc.cursor,
+                keys: [tc.keys],
+            });
+        }
+    }
 
     describe('gj / gk (display lines)', function () {
         it('gj should move one display line down', async function () {

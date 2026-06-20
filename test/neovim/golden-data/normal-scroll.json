@@ -1,0 +1,45 @@
+{
+    "suite": "normal-scroll",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.094Z",
+    "cases": [
+        {
+            "name": "Ctrl-A should increment number",
+            "initial": {
+                "content": "count: 5",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                }
+            },
+            "keys": "\u0001",
+            "result": {
+                "content": "count: 6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-X should decrement number",
+            "initial": {
+                "content": "count: 5",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                }
+            },
+            "keys": "\u0018",
+            "result": {
+                "content": "count: 4",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

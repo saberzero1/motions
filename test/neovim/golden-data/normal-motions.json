@@ -1,0 +1,653 @@
+{
+    "suite": "normal-motions",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.005Z",
+    "cases": [
+        {
+            "name": "h should move cursor left",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "h",
+            "result": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "l should move cursor right",
+            "initial": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "l",
+            "result": {
+                "content": "abcdef",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "j should move cursor down",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "j",
+            "result": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "k should move cursor up",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "k",
+            "result": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3j should move 3 lines down",
+            "initial": {
+                "content": "a\nb\nc\nd\ne",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3j",
+            "result": {
+                "content": "a\nb\nc\nd\ne",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "w should move to next word start",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "w",
+            "result": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "b should move to previous word start",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "b",
+            "result": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "e should move to end of word",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "e",
+            "result": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "W should move to next WORD start",
+            "initial": {
+                "content": "hello-world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "W",
+            "result": {
+                "content": "hello-world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "B should move to previous WORD start",
+            "initial": {
+                "content": "foo hello-world bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 15
+                }
+            },
+            "keys": "B",
+            "result": {
+                "content": "foo hello-world bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "E should move to end of WORD",
+            "initial": {
+                "content": "hello-world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "E",
+            "result": {
+                "content": "hello-world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ge should move to end of previous word",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "ge",
+            "result": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2w should move 2 words forward",
+            "initial": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2w",
+            "result": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "w across empty lines",
+            "initial": {
+                "content": "one\n\n\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "w",
+            "result": {
+                "content": "one\n\n\nfour",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "w with punctuation boundary",
+            "initial": {
+                "content": "word.other",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "w",
+            "result": {
+                "content": "word.other",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "w should wrap to next line",
+            "initial": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "w",
+            "result": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "b at start of document should not move",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "b",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "w from punctuation to next word",
+            "initial": {
+                "content": "word.other",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "w",
+            "result": {
+                "content": "word.other",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "b should stop at punctuation boundary",
+            "initial": {
+                "content": "word.other",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "b",
+            "result": {
+                "content": "word.other",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ge across line boundary",
+            "initial": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "ge",
+            "result": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "e should cross line boundary",
+            "initial": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "e",
+            "result": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "0 should move to first column",
+            "initial": {
+                "content": "  hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "0",
+            "result": {
+                "content": "  hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "$ should move to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "$",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "^ should move to first non-blank",
+            "initial": {
+                "content": "   hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "^",
+            "result": {
+                "content": "   hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "_ should move to first non-blank",
+            "initial": {
+                "content": "  one\n  two\n  three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "_",
+            "result": {
+                "content": "  one\n  two\n  three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "$ with count",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2$",
+            "result": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "+ should move to next line non-blank",
+            "initial": {
+                "content": "  one\n  two\n  three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "+",
+            "result": {
+                "content": "  one\n  two\n  three",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "- should move to prev line non-blank",
+            "initial": {
+                "content": "  one\n  two\n  three",
+                "cursor": {
+                    "line": 2,
+                    "ch": 4
+                }
+            },
+            "keys": "-",
+            "result": {
+                "content": "  one\n  two\n  three",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "G should move to last line",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "G",
+            "result": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gg should move to first line",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                }
+            },
+            "keys": "gg",
+            "result": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3G should move to line 3",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3G",
+            "result": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "5gg should move to line 5",
+            "initial": {
+                "content": "a\nb\nc\nd\ne\nf\ng",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "5gg",
+            "result": {
+                "content": "a\nb\nc\nd\ne\nf\ng",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "| should move to column 1",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "|",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "5| should move to column 5",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "5|",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

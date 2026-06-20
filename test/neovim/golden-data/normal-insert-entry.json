@@ -1,0 +1,121 @@
+{
+    "suite": "normal-insert-entry",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.073Z",
+    "cases": [
+        {
+            "name": "i should insert text before cursor",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "iX\u001b",
+            "result": {
+                "content": "heXllo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "a should insert text after cursor",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "aX\u001b",
+            "result": {
+                "content": "helXlo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "I should insert at first non-blank",
+            "initial": {
+                "content": "  hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "IX\u001b",
+            "result": {
+                "content": "  Xhello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "A should append at end of line",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "A!\u001b",
+            "result": {
+                "content": "hello!",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "o should open line below",
+            "initial": {
+                "content": "line1\nline2",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "onew\u001b",
+            "result": {
+                "content": "line1\nnew\nline2",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "O should open line above",
+            "initial": {
+                "content": "line1\nline2",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Onew\u001b",
+            "result": {
+                "content": "line1\nnew\nline2",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

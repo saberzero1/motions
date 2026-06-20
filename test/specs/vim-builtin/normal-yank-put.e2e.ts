@@ -7,11 +7,18 @@ import {
     getRegisterContent,
     getCursorPos,
 } from '../../helpers';
+import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
+import { SUITES } from '../../neovim/test-definitions';
 
 describe('Normal mode — yank and put (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await startNvim();
+    });
+
+    after(async function () {
+        await stopNvim();
     });
 
     afterEach(async function () {
@@ -84,6 +91,32 @@ describe('Normal mode — yank and put (Tier 1)', function () {
         });
     });
 
+    describe('append to register ("A)', function () {
+        it('"Ayy should append to register a', async function () {
+            await setupEditor('first\nsecond\nthird', { line: 0, ch: 0 });
+            await vimKeys('"', 'a', 'y', 'y');
+            await vimKeys('j');
+            await vimKeys('"', 'A', 'y', 'y');
+            const reg = await getRegisterContent('a');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('first');
+            expect(reg!.text).toContain('second');
+        });
+    });
+
+    describe('". (last inserted text)', function () {
+        it('". should contain last inserted text', async function () {
+            await setupEditor('hello', { line: 0, ch: 5 });
+            await vimKeys('a');
+            await browser.keys([' ', 'w', 'o', 'r', 'l', 'd']);
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+            const reg = await getRegisterContent('.');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('world');
+        });
+    });
+
     describe('register 0', function () {
         it('yy should populate register 0', async function () {
             await setupEditor('yanked line\nother', { line: 0, ch: 0 });
@@ -107,6 +140,74 @@ describe('Normal mode — yank and put (Tier 1)', function () {
         });
     });
 
+    describe('yank edge cases', function () {
+        it('yy should set linewise flag', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'y');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.linewise).toBe(true);
+        });
+
+        it('yw should not set linewise flag', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'w');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.linewise).toBe(false);
+        });
+
+        it('y$ should yank to end without newline', async function () {
+            await setupEditor('hello world\nsecond', { line: 0, ch: 6 });
+            await vimKeys('y', '$');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toBe('world');
+            expect(reg!.linewise).toBe(false);
+        });
+
+        it('2yy should yank 2 lines', async function () {
+            await setupEditor('one\ntwo\nthree', { line: 0, ch: 0 });
+            await vimKeys('2', 'y', 'y');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('one');
+            expect(reg!.text).toContain('two');
+            expect(reg!.linewise).toBe(true);
+        });
+
+        it('dd then dd should update default register', async function () {
+            await setupEditor('first\nsecond\nthird', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await vimKeys('d', 'd');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('second');
+        });
+    });
+
+    describe('numbered register rotation', function () {
+        it('"1 should contain last delete after dd', async function () {
+            await setupEditor('first\nsecond\nthird', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            const reg = await getRegisterContent('1');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('first');
+        });
+
+        it('consecutive dd should rotate numbered registers', async function () {
+            await setupEditor('aaa\nbbb\nccc\nddd', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await vimKeys('d', 'd');
+            const reg1 = await getRegisterContent('1');
+            expect(reg1).not.toBeNull();
+            expect(reg1!.text).toContain('bbb');
+            const reg2 = await getRegisterContent('2');
+            expect(reg2).not.toBeNull();
+            expect(reg2!.text).toContain('aaa');
+        });
+    });
+
     describe('Y (Neovim: yank to end of line)', function () {
         it('Y should yank from cursor to end of line, not entire line', async function () {
             await setupEditor('hello world', { line: 0, ch: 6 });
@@ -116,5 +217,26 @@ describe('Normal mode — yank and put (Tier 1)', function () {
             expect(reg!.text).toBe('world');
             expect(reg!.linewise).toBe(false);
         });
+    });
+
+    describe('Neovim golden comparison', function () {
+        before(async function () {
+            await startNvim();
+        });
+
+        after(async function () {
+            await stopNvim();
+        });
+
+        const suite = SUITES.find((s) => s.name === 'normal-yank-put');
+        if (suite) {
+            for (const tc of suite.cases) {
+                testWithNeovim('normal-yank-put', tc.name, {
+                    content: tc.content,
+                    cursor: tc.cursor,
+                    keys: [tc.keys],
+                });
+            }
+        }
     });
 });

@@ -6,17 +6,35 @@ import {
     getEditorValue,
     getCursorPos,
 } from '../../helpers';
+import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
+import { SUITES } from '../../neovim/test-definitions';
 
 describe('Insert mode commands (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await startNvim();
+    });
+
+    after(async function () {
+        await stopNvim();
     });
 
     afterEach(async function () {
         await browser.keys(['Escape']);
         await browser.pause(50);
     });
+
+    const suite = SUITES.find((s) => s.name === 'insert-mode');
+    if (suite) {
+        for (const tc of suite.cases) {
+            testWithNeovim('insert-mode', tc.name, {
+                content: tc.content,
+                cursor: tc.cursor,
+                keys: [tc.keys],
+            });
+        }
+    }
 
     describe('Escape / CTRL-[ (exit insert)', function () {
         it('Escape should return to normal mode', async function () {

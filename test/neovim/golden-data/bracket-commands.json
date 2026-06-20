@@ -1,0 +1,83 @@
+{
+    "suite": "bracket-commands",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.089Z",
+    "cases": [
+        {
+            "name": "[( should jump to previous unmatched (",
+            "initial": {
+                "content": "(hello (world) end)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "[(",
+            "result": {
+                "content": "(hello (world) end)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "]) should jump to next unmatched )",
+            "initial": {
+                "content": "(hello (world) end)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "])",
+            "result": {
+                "content": "(hello (world) end)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 13
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "[{ should jump to previous unmatched {",
+            "initial": {
+                "content": "{ outer { inner } end }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                }
+            },
+            "keys": "[{",
+            "result": {
+                "content": "{ outer { inner } end }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "]} should jump to next unmatched }",
+            "initial": {
+                "content": "{ outer { inner } end }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                }
+            },
+            "keys": "]}",
+            "result": {
+                "content": "{ outer { inner } end }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 16
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

@@ -1,0 +1,140 @@
+{
+    "suite": "visual-mode",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.078Z",
+    "cases": [
+        {
+            "name": "v + e + d should delete selection",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ved",
+            "result": {
+                "content": " world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + d should delete entire line",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Vd",
+            "result": {
+                "content": "line1\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + j + d should delete multiple lines",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Vjd",
+            "result": {
+                "content": "one\nfour",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v + iw + d should delete word",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                }
+            },
+            "keys": "viwd",
+            "result": {
+                "content": "hello  foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v + 3l + d should delete 4 chars",
+            "initial": {
+                "content": "abcdefgh",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "v3ld",
+            "result": {
+                "content": "efgh",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + > should indent line",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "V>",
+            "result": {
+                "content": "\thello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + J should join selected lines",
+            "initial": {
+                "content": "line one\nline two\nline three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "VjJ",
+            "result": {
+                "content": "line one line two\nline three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

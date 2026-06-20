@@ -1,17 +1,35 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import { setupEditor, vimKeys, getCursorPos } from '../../helpers';
+import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
+import { SUITES } from '../../neovim/test-definitions';
 
 describe('Normal mode — marks and jumps (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await startNvim();
+    });
+
+    after(async function () {
+        await stopNvim();
     });
 
     afterEach(async function () {
         await browser.keys(['Escape']);
         await browser.pause(50);
     });
+
+    const suite = SUITES.find((s) => s.name === 'normal-marks-jumps');
+    if (suite) {
+        for (const tc of suite.cases) {
+            testWithNeovim('normal-marks-jumps', tc.name, {
+                content: tc.content,
+                cursor: tc.cursor,
+                keys: [tc.keys],
+            });
+        }
+    }
 
     describe("m / ' / `", function () {
         it("ma should set mark a, 'a should jump to marked line", async function () {
@@ -37,6 +55,32 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             const pos = await getCursorPos();
             expect(pos.line).toBe(3);
             expect(pos.ch).toBe(2);
+        });
+    });
+
+    describe('mark persistence after edit', function () {
+        it('mark should update after inserting lines above', async function () {
+            await setupEditor('line1\nline2\nline3', { line: 2, ch: 0 });
+            await vimKeys('m', 'a');
+            await vimKeys('g', 'g');
+            await vimKeys('O');
+            await browser.keys(['n', 'e', 'w']);
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+            await vimKeys("'", 'a');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(3);
+        });
+    });
+
+    describe("'. (jump to last change)", function () {
+        it("'. should jump to line of last edit", async function () {
+            await setupEditor('line1\nline2\nline3', { line: 2, ch: 0 });
+            await vimKeys('x');
+            await vimKeys('g', 'g');
+            expect((await getCursorPos()).line).toBe(0);
+            await vimKeys("'", '.');
+            expect((await getCursorPos()).line).toBe(2);
         });
     });
 
@@ -127,6 +171,30 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             await vimKeys('2', '}');
             expect((await getCursorPos()).line).toBe(3);
         });
+
+        it('} at end of document should not move', async function () {
+            await setupEditor('a\n\nb', { line: 2, ch: 0 });
+            await vimKeys('}');
+            expect((await getCursorPos()).line).toBe(2);
+        });
+
+        it('{ at start of document should not move', async function () {
+            await setupEditor('a\n\nb', { line: 0, ch: 0 });
+            await vimKeys('{');
+            expect((await getCursorPos()).line).toBe(0);
+        });
+
+        it('} with count exceeding paragraphs should stop at end', async function () {
+            await setupEditor('a\n\nb', { line: 0, ch: 0 });
+            await vimKeys('1', '0', '}');
+            expect((await getCursorPos()).line).toBe(2);
+        });
+
+        it('2{ should move 2 paragraphs backward', async function () {
+            await setupEditor('a\n\nb\n\nc', { line: 4, ch: 0 });
+            await vimKeys('2', '{');
+            expect((await getCursorPos()).line).toBe(1);
+        });
     });
 
     describe('( / ) (sentence motion)', function () {
@@ -149,6 +217,20 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             const pos = await getCursorPos();
             expect(pos.ch).toBeLessThan(35);
         });
+
+        // BUG: ) at end of sentence places cursor at ch=13 (on the period) instead of ch=14 (after it)
+        it.skip(') at end of text should not move', async function () {
+            await setupEditor('Only sentence.', { line: 0, ch: 14 });
+            await vimKeys(')');
+            expect((await getCursorPos()).ch).toBe(14);
+        });
+
+        it('2) should skip two sentences forward', async function () {
+            await setupEditor('One. Two. Three. Four.', { line: 0, ch: 0 });
+            await vimKeys('2', ')');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBeGreaterThan(5);
+        });
     });
 
     describe('% (match bracket)', function () {
@@ -168,6 +250,52 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             await setupEditor('{ code }', { line: 0, ch: 0 });
             await vimKeys('%');
             expect((await getCursorPos()).ch).toBe(7);
+        });
+
+        it('% should work with square brackets', async function () {
+            await setupEditor('[items]', { line: 0, ch: 0 });
+            await vimKeys('%');
+            expect((await getCursorPos()).ch).toBe(6);
+        });
+
+        it('% should work across lines', async function () {
+            await setupEditor('(\nhello\n)', { line: 0, ch: 0 });
+            await vimKeys('%');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(2);
+            expect(pos.ch).toBe(0);
+        });
+
+        it('% with nested brackets should find correct match', async function () {
+            await setupEditor('(a(b)c)', { line: 0, ch: 0 });
+            await vimKeys('%');
+            expect((await getCursorPos()).ch).toBe(6);
+        });
+
+        it('% on inner bracket should match inner pair', async function () {
+            await setupEditor('(a(b)c)', { line: 0, ch: 2 });
+            await vimKeys('%');
+            expect((await getCursorPos()).ch).toBe(4);
+        });
+    });
+
+    describe('gg with count', function () {
+        it('5gg should move to line 5', async function () {
+            await setupEditor('a\nb\nc\nd\ne\nf\ng', { line: 0, ch: 0 });
+            await vimKeys('5', 'g', 'g');
+            expect((await getCursorPos()).line).toBe(4);
+        });
+
+        it('gg with count beyond document should go to last line', async function () {
+            await setupEditor('a\nb\nc', { line: 0, ch: 0 });
+            await vimKeys('1', '0', '0', 'g', 'g');
+            expect((await getCursorPos()).line).toBe(2);
+        });
+
+        it('1gg should go to first line', async function () {
+            await setupEditor('a\nb\nc', { line: 2, ch: 0 });
+            await vimKeys('1', 'g', 'g');
+            expect((await getCursorPos()).line).toBe(0);
         });
     });
 });

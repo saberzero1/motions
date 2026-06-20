@@ -264,7 +264,42 @@ npm run lint
 
 # E2E tests (requires nix develop on NixOS, or system libraries for Electron)
 npm run test:e2e
+
+# Coverage report (command-level test status)
+npm run test:coverage
 ```
+
+### Testing strategy
+
+The plugin uses a Neovim-backed golden comparison system inspired by [Zed editor's Vim test architecture](https://github.com/zed-industries/zed/blob/main/crates/vim/src/test/neovim_backed_test_context.rs). Every Tier 1 Vim command (motions, operators, text objects, insert mode, visual mode) is tested against a real headless Neovim instance to verify behavioral parity.
+
+**How it works:**
+
+1. A headless Neovim is spawned via `nvim --embed --headless` and connected over msgpack-RPC.
+2. The same keystrokes are sent to both Obsidian (via WebDriverIO) and Neovim.
+3. The resulting editor state (content, cursor position, mode) is compared.
+4. Expected Neovim output is pre-recorded as golden JSON files — CI compares against these without needing Neovim installed.
+
+**Test types:**
+
+- **`[nvim]` tests** — Neovim-compared via golden files. No hand-written expected values; Neovim's output is the spec.
+- **`[obsidian]` tests** — viewport-dependent behavior (H/M/L, scroll, folds) that headless Neovim cannot verify.
+- **Tier 2 tests** — plugin-specific features (Markdown text objects, structural navigation, workspace commands) with hand-written assertions.
+
+**Available commands:**
+
+```bash
+# Run Neovim smoke test (verify client works)
+npm run test:neovim-smoke
+
+# Record golden files from Neovim (requires nvim binary)
+npm run test:neovim-record
+
+# Run tests with live Neovim comparison (requires nvim binary)
+npm run test:neovim-compare
+```
+
+Intentional behavioral deviations from Neovim are documented in `test/neovim/deviations.ts` and [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md). The deviation registry serves as the roadmap toward full Neovim parity — when it's empty (minus intentional overrides like `Y`→`y$`), the goal is achieved.
 
 ## License
 

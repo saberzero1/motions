@@ -79,11 +79,54 @@ npm run build
 
 ## Testing
 
-- Manual install for testing: copy `main.js`, `manifest.json`, `styles.css` (if any) to:
+### Manual testing
+
+- Copy `main.js`, `manifest.json`, `styles.css` (if any) to:
     ```
     <Vault>/.obsidian/plugins/<plugin-id>/
     ```
 - Reload Obsidian and enable the plugin in **Settings → Community plugins**.
+
+### Automated testing
+
+- **Framework**: WebDriverIO v9 + Mocha, running against a real Obsidian instance via `wdio-obsidian-service`.
+- **Run**: `npm run test:e2e` (requires Xvfb + herbstluftwm on Linux, or native display on macOS).
+- **Coverage**: `npm run test:coverage` — reports command-level coverage from `test/neovim-command-index.yaml`.
+
+### Neovim golden comparison
+
+Tier 1 Vim commands are tested against a headless Neovim instance. The system records Neovim's output as golden JSON files; CI compares Obsidian's behavior against these without needing Neovim installed.
+
+- **Golden files**: `test/neovim/golden-data/*.json` — committed to the repo, recorded against a pinned Neovim version.
+- **Test definitions**: `test/neovim/test-definitions.ts` — single source of truth for test cases used by both golden recording and `testWithNeovim()` calls.
+- **Deviation registry**: `test/neovim/deviations.ts` — known intentional differences between the plugin and Neovim. Each entry is a "feels different from Neovim" item; shrinking this list is the roadmap toward parity.
+- **Record golden files**: `npm run test:neovim-record` (requires `nvim` binary).
+- **Live comparison**: `NEOVIM_COMPARE=1 npm run test:e2e` (requires `nvim` binary).
+- **Smoke test**: `npm run test:neovim-smoke` (requires `nvim` binary).
+
+### Test file organization
+
+- `test/specs/vim-builtin/` — Tier 1 tests (built-in CM Vim behavior). Use `testWithNeovim()` as primary format.
+- `test/specs/` — Tier 2 tests (plugin features: text objects, navigation, workspace, operators, vimrc, settings).
+- `test/specs/spikes/` — exploratory/R&D tests.
+- `test/neovim/` — Neovim comparison infrastructure (client, compare, golden, deviations, wrapper, definitions, recording).
+- `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`).
+
+### Writing new Tier 1 tests
+
+Use `testWithNeovim()` — do not hand-write expected values for behavior Neovim can verify:
+
+```typescript
+testWithNeovim('suite-name', 'test description', {
+    content: 'initial buffer content',
+    cursor: { line: 0, ch: 0 },
+    keys: ['keystroke-sequence'],
+});
+```
+
+Add a matching entry in `test/neovim/test-definitions.ts` and re-record golden files with `npm run test:neovim-record`.
+
+For viewport-dependent behavior (H/M/L, scroll, folds), use regular `it()` blocks — headless Neovim has no viewport to compare against.
 
 ## Commands & settings
 

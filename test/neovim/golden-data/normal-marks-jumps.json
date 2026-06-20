@@ -1,0 +1,254 @@
+{
+    "suite": "normal-marks-jumps",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-06-20T19:41:47.023Z",
+    "cases": [
+        {
+            "name": "} should move to next empty line",
+            "initial": {
+                "content": "line1\nline2\n\nline4\nline5",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "}",
+            "result": {
+                "content": "line1\nline2\n\nline4\nline5",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "{ should move to previous empty line",
+            "initial": {
+                "content": "line1\nline2\n\nline4\nline5",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                }
+            },
+            "keys": "{",
+            "result": {
+                "content": "line1\nline2\n\nline4\nline5",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2} should move 2 paragraphs forward",
+            "initial": {
+                "content": "a\n\nb\n\nc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2}",
+            "result": {
+                "content": "a\n\nb\n\nc",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "} at end should not move",
+            "initial": {
+                "content": "a\n\nb",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "}",
+            "result": {
+                "content": "a\n\nb",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "{ at start should not move",
+            "initial": {
+                "content": "a\n\nb",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "{",
+            "result": {
+                "content": "a\n\nb",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2{ should move 2 paragraphs backward",
+            "initial": {
+                "content": "a\n\nb\n\nc",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                }
+            },
+            "keys": "2{",
+            "result": {
+                "content": "a\n\nb\n\nc",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% should jump to matching paren",
+            "initial": {
+                "content": "(hello world)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "(hello world)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% should jump back from closing paren",
+            "initial": {
+                "content": "(hello world)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "(hello world)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% should work with curly braces",
+            "initial": {
+                "content": "{ code }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "{ code }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% should work with square brackets",
+            "initial": {
+                "content": "[items]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "[items]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% across lines",
+            "initial": {
+                "content": "(\nhello\n)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "(\nhello\n)",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% with nested brackets",
+            "initial": {
+                "content": "(a(b)c)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "(a(b)c)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% on inner bracket",
+            "initial": {
+                "content": "(a(b)c)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "(a(b)c)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

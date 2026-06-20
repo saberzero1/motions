@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import yaml from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,38 +17,26 @@ interface CommandEntry {
 type ManifestSection = Record<string, CommandEntry>;
 
 function parseYaml(content: string): Record<string, ManifestSection> {
+    const raw = yaml.load(content) as Record<
+        string,
+        Record<string, unknown>
+    > | null;
+    if (!raw || typeof raw !== 'object') return {};
+
     const result: Record<string, ManifestSection> = {};
-    let currentSection = '';
-
-    for (const line of content.split('\n')) {
-        if (line.startsWith('#') || line.trim() === '') continue;
-
-        const sectionMatch = line.match(/^(\w[\w_]*):$/);
-        if (sectionMatch) {
-            currentSection = sectionMatch[1];
-            result[currentSection] = {};
-            continue;
-        }
-
-        const entryMatch = line.match(
-            /^\s+("[^"]*"|'[^']*'|[\w.;,|`~^$+\-*#%!@:{}()\[\]<>='"\\]+):\s*\{(.+)\}$/,
-        );
-        if (entryMatch && currentSection) {
-            const key = entryMatch[1].replace(/^["']|["']$/g, '');
-            const fields = entryMatch[2];
-
-            const tierMatch = fields.match(/tier:\s*(\S+)/);
-            const statusMatch = fields.match(/status:\s*(\w+)/);
-            const fileMatch = fields.match(/test_file:\s*"([^"]*)"/);
-            const descMatch = fields.match(/description:\s*"([^"]*)"/);
-            const reasonMatch = fields.match(/reason:\s*"([^"]*)"/);
-
-            result[currentSection][key] = {
-                tier: tierMatch?.[1] ?? '?',
-                status: statusMatch?.[1] ?? 'unknown',
-                test_file: fileMatch?.[1] ?? '',
-                description: descMatch?.[1] ?? '',
-                reason: reasonMatch?.[1],
+    for (const [section, commands] of Object.entries(raw)) {
+        if (!commands || typeof commands !== 'object') continue;
+        result[section] = {};
+        for (const [key, entry] of Object.entries(
+            commands as Record<string, Record<string, unknown>>,
+        )) {
+            if (!entry || typeof entry !== 'object') continue;
+            result[section][key] = {
+                tier: (entry.tier as number | string) ?? '?',
+                status: (entry.status as string) ?? 'unknown',
+                test_file: (entry.test_file as string) ?? '',
+                description: (entry.description as string) ?? '',
+                reason: entry.reason as string | undefined,
             };
         }
     }

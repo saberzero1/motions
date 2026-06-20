@@ -215,6 +215,52 @@ These commands exist but behave differently from Neovim:
 | `zO` / `zC` / `zA` | Recursive fold open/close/toggle                   | Maps to the same action as `zo`/`zc`/`za`                  | Obsidian's fold API doesn't distinguish recursive from non-recursive                                                     |
 | `it` / `at`        | HTML tag text objects (CM Vim native via XML mode) | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown |
 
+## Test-discovered behavioral discrepancies
+
+These were found by translating edge-case tests from Neovim's legacy test suite and replit/codemirror-vim. Each has a corresponding `it.skip()` test with a `// BUG:` comment.
+
+### `dG` leaves trailing newline
+
+**Status**: Skipped test, pending fix.
+**Test**: `test/specs/vim-builtin/operator-combos.e2e.ts` — "dG should delete from current line to end of file"
+
+`dG` from line 2 of a 4-line document produces `'one\n'` instead of `'one'`. codemirror-vim's linewise delete preserves a trailing newline when deleting to end of file. Neovim does not leave a trailing newline.
+
+### `iB` does not scope to innermost blockquote nesting level
+
+**Status**: Skipped test, pending fix.
+**Test**: `test/specs/blockquote-callout.e2e.ts` — "diB with nested blockquote should delete inner content"
+
+`diB` on `>> nested inner` inside `> outer\n>> nested inner\n> more outer` deletes all blockquote content instead of scoping to the `>>` level. The blockquote text object scanner does not distinguish nesting depth.
+
+### `di*` operates when cursor is on the delimiter
+
+**Status**: Skipped test, pending fix.
+**Test**: `test/specs/text-objects.e2e.ts` — "di\* with cursor on delimiter should no-op"
+
+`di*` with cursor on the `**` delimiter itself deletes the bold content. Neovim's text objects typically no-op when the cursor is on the delimiter rather than inside it. The plugin's delimiter scanner treats the delimiter position as "inside".
+
+### Dot-repeat of `cw` + typed text unreliable
+
+**Status**: Skipped test, pending fix.
+**Test**: `test/specs/vim-builtin/normal-editing.e2e.ts` — ". should repeat cw with typed text"
+
+`.` after `cw` followed by typing "new " does not reliably replay the inserted text. This may be a codemirror-vim timing issue with how insert-mode keystrokes are recorded for repeat, or a WDIO test timing issue where `browser.keys()` input is not captured by CM Vim's insert recording.
+
+### `)` sentence motion cursor position at end of text
+
+**Status**: Skipped test, pending fix.
+**Test**: `test/specs/vim-builtin/normal-marks-jumps.e2e.ts` — ") at end of text should not move"
+
+`)` at the end of `'Only sentence.'` (ch=14) moves the cursor to ch=13 (on the period) instead of staying at ch=14. codemirror-vim's sentence motion clamps to the last character of the line rather than past it.
+
+### `n`/`N` search wrap-around unreliable in tests
+
+**Status**: Skipped test, pending fix.
+**Test**: `test/specs/vim-builtin/normal-search.e2e.ts` — "n should wrap to start when reaching end"
+
+After `/foo` search and pressing `n` twice, the cursor lands at an unexpected position. This may be a codemirror-vim incsearch state issue where the initial `/` search already advances past the first match, or a test timing issue with the async search dialog.
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:
