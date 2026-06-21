@@ -1,21 +1,41 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
-const QUOTE_RE = /^(\s*>+)\s?/;
 const CALLOUT_RE = /^(\s*>)\s*\[!.+\]/;
 
 function isQuoteLine(lineText: string): boolean {
-    return QUOTE_RE.test(lineText);
+    return /^\s*>/.test(lineText);
 }
 
 function isCalloutStart(lineText: string): boolean {
     return CALLOUT_RE.test(lineText);
 }
 
+// Counts `>` in the leading prefix. Handles both `>>` and `> >` formats.
 function quoteDepth(lineText: string): number {
-    const match = QUOTE_RE.exec(lineText);
+    const match = /^([\s>]*)/.exec(lineText);
     if (!match || !match[1]) return 0;
     return (match[1].match(/>/g) ?? []).length;
+}
+
+// Returns character length of the blockquote prefix up to `depth` levels.
+// Walks `>` markers and interleaved spaces (handles `>> ` and `> > `).
+function quotePrefixLength(lineText: string, depth: number): number {
+    let count = 0;
+    let i = 0;
+    while (i < lineText.length && lineText[i] === ' ') i++;
+    while (i < lineText.length && count < depth) {
+        if (lineText[i] === '>') {
+            count++;
+            i++;
+        } else if (lineText[i] === ' ') {
+            i++;
+        } else {
+            break;
+        }
+    }
+    if (i < lineText.length && lineText[i] === ' ') i++;
+    return i;
 }
 
 function findBlockRange(
@@ -63,9 +83,9 @@ function findCalloutRange(
 }
 
 function stripQuotePrefix(lineText: string): string {
-    const match = QUOTE_RE.exec(lineText);
-    if (!match) return lineText;
-    return lineText.substring(match[0].length);
+    const depth = quoteDepth(lineText);
+    if (depth === 0) return lineText;
+    return lineText.substring(quotePrefixLength(lineText, depth));
 }
 
 export const blockquoteInnerTextObject: MotionFn = (cm, head) => {
@@ -78,20 +98,12 @@ export const blockquoteInnerTextObject: MotionFn = (cm, head) => {
     );
     if (!range) return null;
 
-    // Strip prefix at exactly cursorDepth level, not the full prefix.
-    // For a range with mixed depths (e.g., cursor at depth 2, range
-    // includes a `>>>` line at depth 3), the regex strips exactly
-    // cursorDepth `>` characters. For `>>> text` at cursorDepth=2,
-    // this strips `>> ` leaving `> text` — correct, because the inner
-    // content at depth 2 includes the remaining `>` nesting.
-    const depthPrefix = '>'.repeat(cursorDepth);
-    const prefixRe = new RegExp(`^\\s*${depthPrefix}\\s?`);
-    const firstMatch = prefixRe.exec(cm.getLine(range.startLine));
-    const prefixLen = firstMatch ? firstMatch[0].length : cursorDepth + 1;
-
+    const prefixLen = quotePrefixLength(
+        cm.getLine(range.startLine),
+        cursorDepth,
+    );
     const lastLineText = cm.getLine(range.endLine);
-    const lastMatch = prefixRe.exec(lastLineText);
-    const lastPrefixLen = lastMatch ? lastMatch[0].length : prefixLen;
+    const lastPrefixLen = quotePrefixLength(lastLineText, cursorDepth);
     const lastLineContent = lastLineText.substring(lastPrefixLen);
 
     return [
@@ -110,6 +122,24 @@ export const blockquoteAroundTextObject: MotionFn = (cm, head) => {
     );
     if (!range) return null;
 
+    const last = cm.lastLine();
+    const hasQuoteAfter =
+        range.endLine < last && quoteDepth(cm.getLine(range.endLine + 1)) > 0;
+    const hasQuoteBefore =
+        range.startLine > 0 && quoteDepth(cm.getLine(range.startLine - 1)) > 0;
+
+    // Consume adjacent newline only when within a larger blockquote structure,
+    // so deletion of nested levels doesn't leave an empty line.
+    if (hasQuoteAfter) {
+        return [createPos(range.startLine, 0), createPos(range.endLine + 1, 0)];
+    } else if (hasQuoteBefore) {
+        const prevLineText = cm.getLine(range.startLine - 1);
+        return [
+            createPos(range.startLine - 1, prevLineText.length),
+            createPos(range.endLine, cm.getLine(range.endLine).length),
+        ];
+    }
+
     const lastLineText = cm.getLine(range.endLine);
     return [
         createPos(range.startLine, 0),
@@ -124,8 +154,7 @@ export const calloutInnerTextObject: MotionFn = (cm, head) => {
     if (range.startLine === range.endLine) return null;
 
     const innerStart = range.startLine + 1;
-    const firstPrefix = QUOTE_RE.exec(cm.getLine(innerStart));
-    const prefixLen = firstPrefix ? firstPrefix[0].length : 2;
+    const prefixLen = quotePrefixLength(cm.getLine(innerStart), 1);
     const lastLineContent = stripQuotePrefix(cm.getLine(range.endLine));
 
     return [

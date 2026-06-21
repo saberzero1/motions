@@ -41,6 +41,24 @@ describe('Blockquote and callout text objects', function () {
             expect(await getEditorValue()).toBe('before\n\nafter');
         });
 
+        it('daB on nested blockquote should not leave empty line', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    '> h\n> h\n>> j\n>> j\n>>> k\n>>> k\n>> j\n>> j\n> h\n> h',
+                );
+                view.editor.setCursor(4, 4);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'a', 'B');
+            const val = await getEditorValue();
+            expect(val).toBe('> h\n> h\n>> j\n>> j\n>> j\n>> j\n> h\n> h');
+        });
+
         it('diB with nested blockquote should delete inner content', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
@@ -55,6 +73,23 @@ describe('Blockquote and callout text objects', function () {
             await vimKeys('d', 'i', 'B');
             const val = await getEditorValue();
             expect(val).toContain('outer');
+        });
+
+        it('diB with spaced nested blockquote should delete inner content', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('> outer\n> > nested inner\n> more outer');
+                view.editor.setCursor(1, 5);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', 'B');
+            const val = await getEditorValue();
+            expect(val).toContain('outer');
+            expect(val).toContain('more outer');
         });
 
         it('diB should not change content when cursor is outside blockquote', async function () {
