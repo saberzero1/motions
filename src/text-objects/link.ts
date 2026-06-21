@@ -1,4 +1,5 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
+import { adjustRangeForVisualMode } from './delimiter';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 
@@ -77,7 +78,7 @@ function findContainingLink(
     return best;
 }
 
-export const linkInnerTextObject: MotionFn = (cm, head, _motionArgs) => {
+export const linkInnerTextObject: MotionFn = (cm, head, _motionArgs, vim) => {
     const lineText = cm.getLine(head.line);
     const cursor = head.ch;
 
@@ -89,13 +90,16 @@ export const linkInnerTextObject: MotionFn = (cm, head, _motionArgs) => {
     if (!link) return null;
 
     if (link.textStart >= link.textEnd) return null;
-    return [
-        createPos(head.line, link.textStart),
-        createPos(head.line, link.textEnd),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(head.line, link.textStart),
+            createPos(head.line, link.textEnd),
+        ],
+        vim,
+    );
 };
 
-export const linkAroundTextObject: MotionFn = (cm, head, _motionArgs) => {
+export const linkAroundTextObject: MotionFn = (cm, head, _motionArgs, vim) => {
     const lineText = cm.getLine(head.line);
     const cursor = head.ch;
 
@@ -106,8 +110,11 @@ export const linkAroundTextObject: MotionFn = (cm, head, _motionArgs) => {
     const link = findContainingLink(allLinks, cursor);
     if (!link) return null;
 
-    return [
-        createPos(head.line, link.fullStart),
-        createPos(head.line, link.fullEnd),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(head.line, link.fullStart),
+            createPos(head.line, link.fullEnd),
+        ],
+        vim,
+    );
 };

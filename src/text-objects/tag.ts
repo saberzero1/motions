@@ -1,4 +1,5 @@
 import type { CmAdapter, VimPos, MotionFn } from '../types/vim-api';
+import { adjustRangeForVisualMode } from './delimiter';
 
 interface TagMatch {
     tag: string;
@@ -123,20 +124,23 @@ function findEnclosingTagPair(cm: CmAdapter, pos: VimPos): TagPair | null {
 }
 
 export function createInnerTagMotion(): MotionFn {
-    return (cm, head) => {
+    return (cm, head, _ma, vim) => {
         const pair = findEnclosingTagPair(cm, head);
         if (!pair) return null;
-        return [
-            pair.open.to,
-            { line: pair.close.from.line, ch: pair.close.from.ch },
-        ];
+        return adjustRangeForVisualMode(
+            [
+                pair.open.to,
+                { line: pair.close.from.line, ch: pair.close.from.ch },
+            ],
+            vim,
+        );
     };
 }
 
 export function createAroundTagMotion(): MotionFn {
-    return (cm, head) => {
+    return (cm, head, _ma, vim) => {
         const pair = findEnclosingTagPair(cm, head);
         if (!pair) return null;
-        return [pair.open.from, pair.close.to];
+        return adjustRangeForVisualMode([pair.open.from, pair.close.to], vim);
     };
 }

@@ -1,5 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
+import { loadSingleFileWorkspace } from '../helpers';
 
 describe('Buffer navigation (]b/[b)', function () {
     before(async function () {
@@ -117,7 +118,7 @@ describe('Buffer navigation (]b/[b)', function () {
 
     it(']b with single buffer should not error', async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
-        await obsidianPage.openFile('Welcome.md');
+        await loadSingleFileWorkspace('Welcome.md');
 
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(

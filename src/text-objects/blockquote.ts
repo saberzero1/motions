@@ -1,4 +1,5 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
+import { adjustRangeForVisualMode } from './delimiter';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 const CALLOUT_RE = /^(\s*>)\s*\[!.+\]/;
@@ -88,7 +89,7 @@ function stripQuotePrefix(lineText: string): string {
     return lineText.substring(quotePrefixLength(lineText, depth));
 }
 
-export const blockquoteInnerTextObject: MotionFn = (cm, head) => {
+export const blockquoteInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
     const cursorDepth = quoteDepth(cm.getLine(head.line));
     if (cursorDepth === 0) return null;
     const range = findBlockRange(
@@ -106,13 +107,16 @@ export const blockquoteInnerTextObject: MotionFn = (cm, head) => {
     const lastPrefixLen = quotePrefixLength(lastLineText, cursorDepth);
     const lastLineContent = lastLineText.substring(lastPrefixLen);
 
-    return [
-        createPos(range.startLine, prefixLen),
-        createPos(range.endLine, lastPrefixLen + lastLineContent.length),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(range.startLine, prefixLen),
+            createPos(range.endLine, lastPrefixLen + lastLineContent.length),
+        ],
+        vim,
+    );
 };
 
-export const blockquoteAroundTextObject: MotionFn = (cm, head) => {
+export const blockquoteAroundTextObject: MotionFn = (cm, head, _ma, vim) => {
     const cursorDepth = quoteDepth(cm.getLine(head.line));
     if (cursorDepth === 0) return null;
     const range = findBlockRange(
@@ -128,26 +132,33 @@ export const blockquoteAroundTextObject: MotionFn = (cm, head) => {
     const hasQuoteBefore =
         range.startLine > 0 && quoteDepth(cm.getLine(range.startLine - 1)) > 0;
 
-    // Consume adjacent newline only when within a larger blockquote structure,
-    // so deletion of nested levels doesn't leave an empty line.
     if (hasQuoteAfter) {
-        return [createPos(range.startLine, 0), createPos(range.endLine + 1, 0)];
+        return adjustRangeForVisualMode(
+            [createPos(range.startLine, 0), createPos(range.endLine + 1, 0)],
+            vim,
+        );
     } else if (hasQuoteBefore) {
         const prevLineText = cm.getLine(range.startLine - 1);
-        return [
-            createPos(range.startLine - 1, prevLineText.length),
-            createPos(range.endLine, cm.getLine(range.endLine).length),
-        ];
+        return adjustRangeForVisualMode(
+            [
+                createPos(range.startLine - 1, prevLineText.length),
+                createPos(range.endLine, cm.getLine(range.endLine).length),
+            ],
+            vim,
+        );
     }
 
     const lastLineText = cm.getLine(range.endLine);
-    return [
-        createPos(range.startLine, 0),
-        createPos(range.endLine, lastLineText.length),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(range.startLine, 0),
+            createPos(range.endLine, lastLineText.length),
+        ],
+        vim,
+    );
 };
 
-export const calloutInnerTextObject: MotionFn = (cm, head) => {
+export const calloutInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
     const range = findCalloutRange(cm, head.line);
     if (!range) return null;
 
@@ -157,19 +168,25 @@ export const calloutInnerTextObject: MotionFn = (cm, head) => {
     const prefixLen = quotePrefixLength(cm.getLine(innerStart), 1);
     const lastLineContent = stripQuotePrefix(cm.getLine(range.endLine));
 
-    return [
-        createPos(innerStart, prefixLen),
-        createPos(range.endLine, prefixLen + lastLineContent.length),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(innerStart, prefixLen),
+            createPos(range.endLine, prefixLen + lastLineContent.length),
+        ],
+        vim,
+    );
 };
 
-export const calloutAroundTextObject: MotionFn = (cm, head) => {
+export const calloutAroundTextObject: MotionFn = (cm, head, _ma, vim) => {
     const range = findCalloutRange(cm, head.line);
     if (!range) return null;
 
     const lastLineText = cm.getLine(range.endLine);
-    return [
-        createPos(range.startLine, 0),
-        createPos(range.endLine, lastLineText.length),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(range.startLine, 0),
+            createPos(range.endLine, lastLineText.length),
+        ],
+        vim,
+    );
 };

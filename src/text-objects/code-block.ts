@@ -1,4 +1,5 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
+import { adjustRangeForVisualMode } from './delimiter';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 
@@ -40,7 +41,7 @@ function findContainingBlock(
     return null;
 }
 
-export const codeBlockInnerTextObject: MotionFn = (cm, head) => {
+export const codeBlockInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
     const pairs = findFenceLines(cm);
     const block = findContainingBlock(pairs, head.line);
     if (!block) return null;
@@ -50,17 +51,23 @@ export const codeBlockInnerTextObject: MotionFn = (cm, head) => {
     if (innerStart > innerEnd) return null;
 
     const lastLineText = cm.getLine(innerEnd);
-    return [createPos(innerStart, 0), createPos(innerEnd, lastLineText.length)];
+    return adjustRangeForVisualMode(
+        [createPos(innerStart, 0), createPos(innerEnd, lastLineText.length)],
+        vim,
+    );
 };
 
-export const codeBlockAroundTextObject: MotionFn = (cm, head) => {
+export const codeBlockAroundTextObject: MotionFn = (cm, head, _ma, vim) => {
     const pairs = findFenceLines(cm);
     const block = findContainingBlock(pairs, head.line);
     if (!block) return null;
 
     const lastLineText = cm.getLine(block.closeLine);
-    return [
-        createPos(block.openLine, 0),
-        createPos(block.closeLine, lastLineText.length),
-    ];
+    return adjustRangeForVisualMode(
+        [
+            createPos(block.openLine, 0),
+            createPos(block.closeLine, lastLineText.length),
+        ],
+        vim,
+    );
 };

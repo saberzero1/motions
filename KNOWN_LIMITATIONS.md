@@ -220,6 +220,18 @@ These commands exist but behave differently from Neovim:
 | `d0`               | No-op at column 0 (zero-width motion)                   | May delete content at column 0                             | codemirror-vim and Neovim differ on `d0` behavior at column 0; `mapCommand` cannot intercept operator-pending sequences  |
 | `<<`               | Unindent by shiftwidth spaces                           | Unindent uses tabs regardless of shiftwidth setting        | codemirror-vim's indent/unindent uses tabs internally and does not fully respect `shiftwidth`/`expandtab` options        |
 
+## Visual mode on single-character text objects
+
+**Status**: Under investigation.
+
+`vi*` on `*x*` (single-character inner content) does not select `x` correctly. The visual selection lands on a `*` delimiter character instead.
+
+This appears to be a codemirror-vim edge case where a text object range that reduces to a zero-width anchor/head pair (`from.ch === to.ch`) interacts unexpectedly with visual mode's selection state. Multi-character inner content (`vi*` on `**bold**`, `vi$` on `$x + y$`, etc.) works correctly.
+
+The root cause is likely in how codemirror-vim's `makeCmSelection` handles the `headOffset` / `anchorOffset` calculation when anchor and head are at the same position, but further investigation into the CM Vim internals is needed.
+
+Text objects with 2+ characters of inner content are unaffected. The fix for the general visual mode off-by-one (see issue #4) does not cause this — the same behavior occurs without the adjustment.
+
 ## Test-discovered behavioral discrepancies
 
 These were found by translating edge-case tests from Neovim's legacy test suite and replit/codemirror-vim. Each has a corresponding `it.skip()` test with a `// BUG:` comment.

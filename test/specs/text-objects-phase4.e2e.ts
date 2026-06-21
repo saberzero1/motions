@@ -1,6 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { getEditorValue, vimKeys } from '../helpers';
+import { getEditorValue, getSelection, setupEditor, vimKeys } from '../helpers';
 
 describe('Phase 4 text objects', function () {
     before(async function () {
@@ -261,45 +261,127 @@ describe('Phase 4 text objects', function () {
     });
 
     describe('Visual and yank with text objects', function () {
-        it('vi* should select inside bold in visual mode', async function () {
-            await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return;
-                view.editor.setValue('Hello **bold** world');
-                view.editor.setCursor(0, 10);
-                view.editor.focus();
-            });
-            await browser.pause(300);
+        it('vi* should select exactly inside bold', async function () {
+            await setupEditor('Hello **bold** world', { line: 0, ch: 10 });
             await vimKeys('v', 'i', '*');
-            const selection = (await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    const view = app.workspace.getActiveViewOfType(
-                        obsidian.MarkdownView,
-                    );
-                    return view?.editor.getSelection() ?? '';
-                },
-            )) as string;
-            expect(selection.startsWith('bold')).toBe(true);
+            expect(await getSelection()).toBe('bold');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('va* should select exactly around bold', async function () {
+            await setupEditor('Hello **bold** world', { line: 0, ch: 10 });
+            await vimKeys('v', 'a', '*');
+            expect(await getSelection()).toBe('**bold**');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('vi$ should select exactly inside math', async function () {
+            await setupEditor('Hello $x + y$ world', { line: 0, ch: 9 });
+            await vimKeys('v', 'i', '$');
+            expect(await getSelection()).toBe('x + y');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('va$ should select exactly around math', async function () {
+            await setupEditor('Hello $x + y$ world', { line: 0, ch: 9 });
+            await vimKeys('v', 'a', '$');
+            expect(await getSelection()).toBe('$x + y$');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('vi~ should select exactly inside strikethrough', async function () {
+            await setupEditor('Hello ~~strike~~ world', { line: 0, ch: 10 });
+            await vimKeys('v', 'i', '~');
+            expect(await getSelection()).toBe('strike');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('va~ should select exactly around strikethrough', async function () {
+            await setupEditor('Hello ~~strike~~ world', { line: 0, ch: 10 });
+            await vimKeys('v', 'a', '~');
+            expect(await getSelection()).toBe('~~strike~~');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('vi= should select exactly inside highlight', async function () {
+            await setupEditor('Hello ==highlight== world', { line: 0, ch: 12 });
+            await vimKeys('v', 'i', '=');
+            expect(await getSelection()).toBe('highlight');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('va= should select exactly around highlight', async function () {
+            await setupEditor('Hello ==highlight== world', { line: 0, ch: 12 });
+            await vimKeys('v', 'a', '=');
+            expect(await getSelection()).toBe('==highlight==');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('vi_ should select exactly inside underscore italic', async function () {
+            await setupEditor('Hello _italic_ world', { line: 0, ch: 10 });
+            await vimKeys('v', 'i', '_');
+            expect(await getSelection()).toBe('italic');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('va_ should select exactly around underscore italic', async function () {
+            await setupEditor('Hello _italic_ world', { line: 0, ch: 10 });
+            await vimKeys('v', 'a', '_');
+            expect(await getSelection()).toBe('_italic_');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('vi` should select exactly inside inline code', async function () {
+            await setupEditor('Hello `code` world', { line: 0, ch: 9 });
+            await vimKeys('v', 'i', '`');
+            expect(await getSelection()).toBe('code');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('va` should select exactly around inline code', async function () {
+            await setupEditor('Hello `code` world', { line: 0, ch: 9 });
+            await vimKeys('v', 'a', '`');
+            expect(await getSelection()).toBe('`code`');
+            await browser.keys(['Escape']);
+            await browser.pause(200);
+        });
+
+        it('vi* on short italic should select exactly', async function () {
+            await setupEditor('Hello *ab* world', { line: 0, ch: 8 });
+            await vimKeys('v', 'i', '*');
+            expect(await getSelection()).toBe('ab');
             await browser.keys(['Escape']);
             await browser.pause(200);
         });
 
         it('yi* should yank inside bold', async function () {
-            await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return;
-                view.editor.setValue('Hello **bold** world');
-                view.editor.setCursor(0, 10);
-                view.editor.focus();
-            });
-            await browser.pause(300);
+            await setupEditor('Hello **bold** world', { line: 0, ch: 10 });
             await vimKeys('y', 'i', '*');
             await vimKeys('$', 'p');
             expect(await getEditorValue()).toBe('Hello **bold** worldbold');
+        });
+
+        it('visual mode should not break delete operator', async function () {
+            await setupEditor('Hello **bold** world', { line: 0, ch: 10 });
+            await vimKeys('d', 'i', '*');
+            expect(await getEditorValue()).toBe('Hello **** world');
+        });
+
+        it('visual mode should not break around delete', async function () {
+            await setupEditor('Hello $x + y$ world', { line: 0, ch: 9 });
+            await vimKeys('d', 'a', '$');
+            expect(await getEditorValue()).toBe('Hello  world');
         });
     });
 });

@@ -1,6 +1,29 @@
-import type { MotionFn, VimPos } from '../types/vim-api';
+import type { MotionFn, VimPos, VimState } from '../types/vim-api';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
+
+/**
+ * Adjust a text object range for visual mode.
+ *
+ * CodeMirror-Vim's `makeCmSelection` adds +1 to `sel.head` in visual mode
+ * (because visual selections are inclusive).  Built-in text objects
+ * compensate via an internal `expandSelection` helper that subtracts 1,
+ * but custom `defineMotion` text objects bypass that path.
+ *
+ * This helper applies the same −1 compensation so the visual highlight
+ * covers exactly the intended range.
+ */
+export function adjustRangeForVisualMode(
+    range: [VimPos, VimPos],
+    vim: VimState,
+): [VimPos, VimPos] {
+    if (!vim.visualMode) return range;
+    const [from, to] = range;
+    const forward =
+        to.line > from.line || (to.line === from.line && to.ch >= from.ch);
+    if (!forward) return range;
+    return [from, createPos(to.line, to.ch - 1)];
+}
 
 const findDelimiterOccurrences = (
     line: string,
@@ -85,7 +108,7 @@ export function createSmartAsteriskTextObject(): MotionFn {
 
 /** Create a paired-delimiter text object motion. */
 export function createDelimiterTextObject(delimiter: string): MotionFn {
-    return (cm, head, motionArgs) => {
+    return (cm, head, motionArgs, vim) => {
         const lineText = cm.getLine(head.line);
         const cursor = Math.max(0, Math.min(head.ch, lineText.length));
         const positions = findDelimiterOccurrences(lineText, delimiter);
@@ -98,7 +121,9 @@ export function createDelimiterTextObject(delimiter: string): MotionFn {
             inner,
         );
         if (!pair) return null;
-        return buildRange(head.line, pair, delimiter.length, inner);
+        const range = buildRange(head.line, pair, delimiter.length, inner);
+        if (!range) return null;
+        return adjustRangeForVisualMode(range, vim);
     };
 }
 
@@ -193,14 +218,20 @@ export function createMultiLineDelimiterTextObject(
             const innerStartLine = open.line;
             if (innerStartLine === close.line && innerStartCh >= close.ch)
                 return null;
-            return [
-                createPos(innerStartLine, innerStartCh),
-                createPos(close.line, close.ch),
-            ];
+            return adjustRangeForVisualMode(
+                [
+                    createPos(innerStartLine, innerStartCh),
+                    createPos(close.line, close.ch),
+                ],
+                vim,
+            );
         }
-        return [
-            createPos(open.line, open.ch),
-            createPos(close.line, close.ch + delimiter.length),
-        ];
+        return adjustRangeForVisualMode(
+            [
+                createPos(open.line, open.ch),
+                createPos(close.line, close.ch + delimiter.length),
+            ],
+            vim,
+        );
     };
 }

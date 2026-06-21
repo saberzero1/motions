@@ -1,4 +1,5 @@
 import { browser } from '@wdio/globals';
+import { obsidianPage } from 'wdio-obsidian-service';
 
 export const PAUSE = {
     KEY_GAP: 30,
@@ -11,6 +12,13 @@ export async function getEditorValue(): Promise<string> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         return view?.editor.getValue() ?? '';
+    })) as string;
+}
+
+export async function getSelection(): Promise<string> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        return view?.editor.getSelection() ?? '';
     })) as string;
 }
 
@@ -152,6 +160,37 @@ export async function vimRawKeys(keys: string): Promise<void> {
         await browser.pause(PAUSE.KEY_GAP);
     }
     await browser.pause(PAUSE.EDITOR_SETTLE - PAUSE.KEY_GAP);
+}
+
+export async function loadSingleFileWorkspace(
+    filePath = 'Welcome.md',
+): Promise<void> {
+    await obsidianPage.loadWorkspaceLayout({
+        main: {
+            id: 'test-main',
+            type: 'split',
+            children: [
+                {
+                    id: 'test-tabs',
+                    type: 'tabs',
+                    children: [
+                        {
+                            id: 'test-leaf',
+                            type: 'leaf',
+                            state: {
+                                type: 'markdown',
+                                state: { file: filePath, mode: 'source' },
+                            },
+                        },
+                    ],
+                },
+            ],
+            direction: 'vertical',
+        },
+        active: 'test-leaf',
+        lastOpenFiles: [],
+    });
+    await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
 export function unsupported(
