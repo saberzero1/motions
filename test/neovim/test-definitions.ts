@@ -1013,6 +1013,24 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'ga',
             },
+            {
+                name: 'gqq should reformat current line',
+                content: 'short line here',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gqq',
+            },
+            {
+                name: 'Vgq should reformat selected line',
+                content: 'short line here',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Vgq',
+            },
+            {
+                name: 'gqj should reformat current and next line',
+                content: 'short line one\nshort line two',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gqj',
+            },
         ],
     },
     {

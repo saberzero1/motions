@@ -120,6 +120,12 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'codemirror-vim handleEx cursor placement differs from Neovim after :g',
         fields: ['cursor'],
     },
+    {
+        testPattern: /\bgq/,
+        description: 'gq wrapping differs from Neovim',
+        reason: 'Plugin uses Markdown-aware wrapping at textwidth 80; Neovim uses plain-text formatting with textwidth 0',
+        fields: ['content', 'cursor'],
+    },
 ];
 
 export function isKnownDeviation(testName: string): boolean {

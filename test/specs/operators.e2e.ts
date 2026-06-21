@@ -71,6 +71,53 @@ describe('Hard-wrap operators (gq/gw)', function () {
         });
     });
 
+    describe('gq in visual mode', function () {
+        it('gq in visual line should wrap selected text', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    'word word word word word word word word word word word word word word word word word word word word',
+                );
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('V', 'g', 'q');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines.length).toBeGreaterThan(1);
+            for (const line of lines) {
+                expect(line.length).toBeLessThanOrEqual(80);
+            }
+        });
+
+        it('gq in visual mode should not trigger macro recording', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    'word word word word word word word word word word word word word word word word word word word word',
+                );
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('V', 'g', 'q');
+            const modeText = (await browser.executeObsidian(() => {
+                return (
+                    document.querySelector('.vim-motions-mode')?.textContent ??
+                    ''
+                );
+            })) as string;
+            expect(modeText.toUpperCase()).not.toContain('RECORDING');
+        });
+    });
+
     describe('gw operator', function () {
         it('gw in visual line should wrap and keep cursor at original line', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {
@@ -165,6 +212,78 @@ describe('Hard-wrap operators (gq/gw)', function () {
                     expect(line.startsWith('> ')).toBe(true);
                 }
             }
+        });
+    });
+
+    describe('gqq should not trigger macro recording', function () {
+        it('gqq in normal mode should not leave macro recording state', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    'word word word word word word word word word word word word word word word word word word word word',
+                );
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('g', 'q', 'q');
+            const modeText = (await browser.executeObsidian(() => {
+                return (
+                    document.querySelector('.vim-motions-mode')?.textContent ??
+                    ''
+                );
+            })) as string;
+            expect(modeText.toUpperCase()).not.toContain('RECORDING');
+        });
+    });
+
+    describe('standalone q macro recording', function () {
+        it('q should start macro recording in normal mode', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('hello');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('q', 'a');
+            const modeText = (await browser.executeObsidian(() => {
+                return (
+                    document.querySelector('.vim-motions-mode')?.textContent ??
+                    ''
+                );
+            })) as string;
+            expect(modeText.toUpperCase()).toContain('RECORDING');
+            await vimKeys('q');
+        });
+
+        it('q should stop macro recording when already recording', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('hello');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('q', 'a');
+            await browser.pause(100);
+            await vimKeys('q');
+            const modeText = (await browser.executeObsidian(() => {
+                return (
+                    document.querySelector('.vim-motions-mode')?.textContent ??
+                    ''
+                );
+            })) as string;
+            expect(modeText.toUpperCase()).not.toContain('RECORDING');
         });
     });
 

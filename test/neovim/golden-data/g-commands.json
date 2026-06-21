@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-21T01:20:08.076Z",
+    "recorded_at": "2026-06-21T22:40:11.132Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -224,6 +224,63 @@
             "keys": "ga",
             "result": {
                 "content": "Hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gqq should reformat current line",
+            "initial": {
+                "content": "short line here",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gqq",
+            "result": {
+                "content": "short line here",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Vgq should reformat selected line",
+            "initial": {
+                "content": "short line here",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vgq",
+            "result": {
+                "content": "short line here",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gqj should reformat current and next line",
+            "initial": {
+                "content": "short line one\nshort line two",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gqj",
+            "result": {
+                "content": "short line one short line two",
                 "cursor": {
                     "line": 0,
                     "ch": 0

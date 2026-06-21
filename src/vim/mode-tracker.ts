@@ -10,6 +10,13 @@ const MODE_LABELS: Record<string, string> = {
     replace: 'REPLACE',
 };
 
+/**
+ * Keys that serve as prefixes for multi-key commands ending with `q`.
+ * When `q` follows one of these keys, it is part of an operator (e.g. `gq`)
+ * and must not be interpreted as a macro-recording toggle.
+ */
+const OPERATOR_PREFIXES_BEFORE_Q = new Set<string>(['g']);
+
 export class VimModeTracker {
     private statusBarEl: HTMLElement;
     private currentMode = 'normal';
@@ -31,22 +38,34 @@ export class VimModeTracker {
             if (mode.subMode === 'linewise') {
                 this.currentMode = 'visual';
             }
+            this.pendingRecord = false;
             this.updateDisplay();
         };
         this.modeHandler = modeHandler;
 
+        let lastKey = '';
         const keyHandler = (key: string) => {
-            if (this.currentMode !== 'normal' && this.currentMode !== 'visual')
+            if (
+                this.currentMode !== 'normal' &&
+                this.currentMode !== 'visual'
+            ) {
+                lastKey = '';
                 return;
+            }
             if (this.pendingRecord) {
                 this.pendingRecord = false;
                 if (/^[a-zA-Z0-9]$/.test(key)) {
                     this.recording = key;
                 }
                 this.updateDisplay();
+                lastKey = key;
                 return;
             }
-            if (key === 'q') {
+            if (
+                key === 'q' &&
+                this.currentMode === 'normal' &&
+                !OPERATOR_PREFIXES_BEFORE_Q.has(lastKey)
+            ) {
                 if (this.recording) {
                     this.recording = null;
                     this.updateDisplay();
@@ -54,6 +73,7 @@ export class VimModeTracker {
                     this.pendingRecord = true;
                 }
             }
+            lastKey = key;
         };
         this.keyHandler = keyHandler;
 
