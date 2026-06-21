@@ -58,10 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `test/coverage-report.ts` — replaced broken regex YAML parser with `js-yaml`, fixing `npm run test:coverage` which previously reported 0/0 on the multi-line manifest format.
+- `test/coverage-report.ts` — replaced broken regex YAML parser with proper YAML parsing via the `yaml` package, fixing `npm run test:coverage` which previously reported 0/0 on the multi-line manifest format.
 
 ### Changed
 
+- Replaced `js-yaml` dependency with [`yaml`](https://github.com/eemeli/yaml) — better maintained, YAML 1.2 spec-compliant, ships its own types.
 - All 16 Tier 1 test files (`test/specs/vim-builtin/*.e2e.ts`) now use `testWithNeovim()` as the primary test format alongside existing `it()` blocks. Neovim lifecycle hooks (`startNvim`/`stopNvim`) added to top-level `before`/`after`.
 - `test/helpers.ts` — added `vimRawKeys()` for raw byte key sequences (supports `\x1b` for Escape, `\x01`-`\x1a` for Ctrl keys, `\n` for Enter).
 
