@@ -12,6 +12,12 @@ function isCalloutStart(lineText: string): boolean {
     return CALLOUT_RE.test(lineText);
 }
 
+function quoteDepth(lineText: string): number {
+    const match = QUOTE_RE.exec(lineText);
+    if (!match || !match[1]) return 0;
+    return (match[1].match(/>/g) ?? []).length;
+}
+
 function findBlockRange(
     cm: { getLine: (n: number) => string; lastLine: () => number },
     cursorLine: number,
@@ -63,21 +69,45 @@ function stripQuotePrefix(lineText: string): string {
 }
 
 export const blockquoteInnerTextObject: MotionFn = (cm, head) => {
-    const range = findBlockRange(cm, head.line, isQuoteLine);
+    const cursorDepth = quoteDepth(cm.getLine(head.line));
+    if (cursorDepth === 0) return null;
+    const range = findBlockRange(
+        cm,
+        head.line,
+        (line) => quoteDepth(line) >= cursorDepth,
+    );
     if (!range) return null;
 
-    const firstPrefix = QUOTE_RE.exec(cm.getLine(range.startLine));
-    const prefixLen = firstPrefix ? firstPrefix[0].length : 2;
+    // Strip prefix at exactly cursorDepth level, not the full prefix.
+    // For a range with mixed depths (e.g., cursor at depth 2, range
+    // includes a `>>>` line at depth 3), the regex strips exactly
+    // cursorDepth `>` characters. For `>>> text` at cursorDepth=2,
+    // this strips `>> ` leaving `> text` — correct, because the inner
+    // content at depth 2 includes the remaining `>` nesting.
+    const depthPrefix = '>'.repeat(cursorDepth);
+    const prefixRe = new RegExp(`^\\s*${depthPrefix}\\s?`);
+    const firstMatch = prefixRe.exec(cm.getLine(range.startLine));
+    const prefixLen = firstMatch ? firstMatch[0].length : cursorDepth + 1;
 
-    const lastLineContent = stripQuotePrefix(cm.getLine(range.endLine));
+    const lastLineText = cm.getLine(range.endLine);
+    const lastMatch = prefixRe.exec(lastLineText);
+    const lastPrefixLen = lastMatch ? lastMatch[0].length : prefixLen;
+    const lastLineContent = lastLineText.substring(lastPrefixLen);
+
     return [
         createPos(range.startLine, prefixLen),
-        createPos(range.endLine, prefixLen + lastLineContent.length),
+        createPos(range.endLine, lastPrefixLen + lastLineContent.length),
     ];
 };
 
 export const blockquoteAroundTextObject: MotionFn = (cm, head) => {
-    const range = findBlockRange(cm, head.line, isQuoteLine);
+    const cursorDepth = quoteDepth(cm.getLine(head.line));
+    if (cursorDepth === 0) return null;
+    const range = findBlockRange(
+        cm,
+        head.line,
+        (line) => quoteDepth(line) >= cursorDepth,
+    );
     if (!range) return null;
 
     const lastLineText = cm.getLine(range.endLine);

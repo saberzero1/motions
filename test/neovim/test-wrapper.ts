@@ -1,8 +1,59 @@
+import { browser } from '@wdio/globals';
 import { NeovimClient } from './client';
-import { setupEditor, vimRawKeys } from '../helpers';
+import { setupEditor, vimRawKeys, PAUSE } from '../helpers';
 import { compareStates, getObsidianState, getNeovimState } from './compare';
 import { findGoldenCase } from './golden';
 import { isKnownDeviation } from './deviations';
+
+function findExColonIndex(keys: string): number {
+    if (keys.startsWith(':')) return 0;
+    const afterNewline = keys.indexOf('\n:');
+    return afterNewline !== -1 ? afterNewline + 1 : -1;
+}
+
+async function dispatchVimKeys(keys: string): Promise<void> {
+    const exIdx = findExColonIndex(keys);
+    const exMatch =
+        exIdx !== -1
+            ? keys.substring(exIdx + 1).match(/^([^\n]+)\n(.*)$/s)
+            : null;
+    if (exMatch && exIdx !== -1) {
+        const preKeys = keys.substring(0, exIdx);
+        const exCmd = exMatch[1] ?? '';
+        const postKeys = exMatch[2] ?? '';
+        if (preKeys) {
+            await vimRawKeys(preKeys);
+        }
+        await browser.executeObsidian(({ app, obsidian }, cmdStr: string) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleEx: (cm: unknown, input: string) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            view.editor.focus();
+            Vim.handleEx(adapter, cmdStr);
+        }, exCmd);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        if (postKeys) {
+            await dispatchVimKeys(postKeys);
+        }
+    } else {
+        await vimRawKeys(keys);
+    }
+}
 
 let nvimClient: NeovimClient | null = null;
 
@@ -30,7 +81,9 @@ export function testWithNeovim(
 ): void {
     it(`[nvim] ${name}`, async function () {
         await setupEditor(config.content, config.cursor);
-        await vimRawKeys(config.keys.join(''));
+        for (const segment of config.keys) {
+            await dispatchVimKeys(segment);
+        }
 
         if (process.env.NEOVIM_COMPARE === '1' && nvimClient) {
             await nvimClient.setContent(config.content);

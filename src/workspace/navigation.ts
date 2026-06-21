@@ -1,6 +1,6 @@
 import { MarkdownView, Notice } from 'obsidian';
 import type { App } from 'obsidian';
-import type { ActionFn } from '../types/vim-api';
+import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import {
     createGotoDefinitionAction,
@@ -88,30 +88,66 @@ function createDocStatsAction(app: App): ActionFn {
     };
 }
 
-function createPasteMoveAction(after: boolean): ActionFn {
-    return (cm) => {
-        const Vim = window.CodeMirrorAdapter?.Vim;
-        if (!Vim) return;
-        const reg = Vim.getRegisterController().registers['"'];
-        if (!reg) return;
-        const text = reg.toString();
-        const beforeLine = cm.getCursor().line;
-        Vim.handleKey(cm, after ? 'p' : 'P');
-        if (reg.linewise) {
-            const pastedLines = text.split('\n').length - 1;
-            const targetLine = after
-                ? beforeLine + pastedLines
-                : beforeLine + pastedLines;
+function pasteFromRegister(
+    cm: CmAdapter,
+    actionArgs: ActionArgs,
+    before: boolean,
+    movePast: boolean,
+): void {
+    const Vim = window.CodeMirrorAdapter?.Vim;
+    if (!Vim) return;
+    const regName =
+        (actionArgs as unknown as Record<string, unknown>).registerName || '"';
+    const repeat = actionArgs.repeat || 1;
+    const rc = Vim.getRegisterController();
+    const reg = rc.registers[regName as string];
+    if (!reg) return;
+    if (reg.blockwise) return;
+    const rawText = reg.toString();
+    if (!rawText) return;
+    const text = rawText.repeat(repeat);
+    const cursor = cm.getCursor();
+
+    if (reg.linewise) {
+        const insertLine = before ? cursor.line : cursor.line + 1;
+        const insertText = text.endsWith('\n') ? text : text + '\n';
+        cm.replaceRange(insertText, { line: insertLine, ch: 0 });
+        if (movePast) {
+            const pastedLines = insertText.split('\n').length - 1;
+            const targetLine = Math.min(
+                insertLine + pastedLines,
+                cm.lastLine(),
+            );
             cm.setCursor(targetLine, 0);
         } else {
-            const afterPos = cm.getCursor();
-            const newCh = Math.min(
-                afterPos.ch + 1,
-                cm.getLine(afterPos.line).length,
-            );
-            cm.setCursor(afterPos.line, newCh);
+            const lineText = cm.getLine(insertLine);
+            const firstNonWs = lineText.search(/\S/);
+            cm.setCursor(insertLine, firstNonWs >= 0 ? firstNonWs : 0);
         }
-    };
+    } else {
+        const insertPos = before
+            ? cursor
+            : { line: cursor.line, ch: cursor.ch + 1 };
+        cm.replaceRange(text, insertPos);
+        const lines = text.split('\n');
+        if (movePast) {
+            if (lines.length === 1) {
+                cm.setCursor(insertPos.line, insertPos.ch + text.length);
+            } else {
+                const endLine = insertPos.line + lines.length - 1;
+                const lastLine = lines[lines.length - 1] ?? '';
+                cm.setCursor(endLine, lastLine.length);
+            }
+        } else {
+            if (lines.length === 1) {
+                cm.setCursor(insertPos.line, insertPos.ch + text.length - 1);
+            } else {
+                const endLine = insertPos.line + lines.length - 1;
+                const lastLine = lines[lines.length - 1] ?? '';
+                cm.setCursor(endLine, lastLine.length - 1);
+            }
+        }
+    }
 }
 
 function createCharInfoAction(app: App): ActionFn {
@@ -251,9 +287,17 @@ export function registerWorkspaceNavigation(
     reg.mapCommand(hintKeys, 'action', 'hintMode', {});
     leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
 
-    reg.defineAction('pasteAfterMove', createPasteMoveAction(true));
+    reg.defineAction('pasteBefore', (cm, actionArgs) =>
+        pasteFromRegister(cm, actionArgs, true, false),
+    );
+    reg.mapCommand('P', 'action', 'pasteBefore', {});
+    reg.defineAction('pasteAfterMove', (cm, actionArgs) =>
+        pasteFromRegister(cm, actionArgs, false, true),
+    );
     reg.mapCommand('gp', 'action', 'pasteAfterMove', {});
-    reg.defineAction('pasteBeforeMove', createPasteMoveAction(false));
+    reg.defineAction('pasteBeforeMove', (cm, actionArgs) =>
+        pasteFromRegister(cm, actionArgs, true, true),
+    );
     reg.mapCommand('gP', 'action', 'pasteBeforeMove', {});
 
     // Recursive fold variants (reuse existing fold actions)

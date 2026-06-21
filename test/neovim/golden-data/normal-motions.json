@@ -1,7 +1,7 @@
 {
     "suite": "normal-motions",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-20T19:41:47.005Z",
+    "recorded_at": "2026-06-21T01:20:08.001Z",
     "cases": [
         {
             "name": "h should move cursor left",

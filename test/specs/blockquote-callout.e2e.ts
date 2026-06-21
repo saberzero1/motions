@@ -41,8 +41,7 @@ describe('Blockquote and callout text objects', function () {
             expect(await getEditorValue()).toBe('before\n\nafter');
         });
 
-        // BUG: iB does not scope to innermost blockquote nesting level — deletes all blockquote content
-        it.skip('diB with nested blockquote should delete inner content', async function () {
+        it('diB with nested blockquote should delete inner content', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,

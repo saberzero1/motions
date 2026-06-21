@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Neovim deviation closure
+
+- `di*`/`da*` with cursor on delimiter now correctly no-ops — previously the delimiter scanner treated the delimiter position as "inside", operating on the text. Matches Neovim behavior.
+- `diB`/`daB` on nested blockquotes (`>>`) now correctly scopes to the innermost nesting level — previously deleted all blockquote content regardless of depth.
+- `P` (paste before cursor) now places cursor on the last pasted character, matching Neovim — previously CM Vim placed cursor one position further.
+- Rewrote `gP`/`gp` to use direct register-reading implementation instead of delegating through `Vim.handleKey`, avoiding re-entrancy issues with the new `P` override.
+
+#### Neovim test infrastructure
+
+- Ex commands (`:s`, `:sort`, `:d`, `:yank`, `:join`, `:noh`, `:undo`, `:redo`, `:global`) now work correctly in Neovim golden comparison tests — added `dispatchVimKeys` routing that detects Ex command sequences and dispatches them via `Vim.handleEx()` instead of character-by-character key input.
+
+### Changed
+
+- `test/neovim/deviations.ts` reduced from 28 to 19 entries (9 removed, 3 new cursor-position deviations added for Ex commands where content is correct but cursor placement differs from Neovim).
+- `KNOWN_LIMITATIONS.md` behavioral deviations table expanded with 5 entries for confirmed upstream constraints (`dG`, `>>`, `V+>`, `d0`, `<<`) that cannot be intercepted via `mapCommand` due to codemirror-vim's operator-pending dispatch architecture.
+
 ### Added
 
 #### Neovim golden comparison testing
@@ -15,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test/neovim/client.ts` — Neovim RPC client wrapping the official `neovim` npm package. Spawns `nvim --embed --headless`, provides `setContent()`, `setCursor()`, `input()`, `getContent()`, `getCursor()`, `getMode()`, `getRegister()`.
 - `test/neovim/compare.ts` — state comparison helpers: `getObsidianState()`, `getNeovimState()`, `compareStates()`.
 - `test/neovim/golden.ts` — golden file read/write infrastructure with `loadGoldenFile()`, `saveGoldenFile()`, `findGoldenCase()`.
-- `test/neovim/deviations.ts` — known deviation registry seeded with 31 entries from `KNOWN_LIMITATIONS.md`. `isKnownDeviation()` silently allows expected behavioral differences.
+- `test/neovim/deviations.ts` — known deviation registry tracking behavioral differences from Neovim. `isKnownDeviation()` silently allows expected behavioral differences during golden comparison.
 - `test/neovim/test-wrapper.ts` — `testWithNeovim()` function: the primary test format for Tier 1 tests. Operates in playback mode (golden files, no Neovim needed) or compare mode (`NEOVIM_COMPARE=1`, live Neovim).
 - `test/neovim/test-definitions.ts` — 199 test case definitions across 16 suites covering motions, operators, text objects, editing, yank/put, insert entry, visual mode, g-commands, bracket commands, insert mode, scroll (Ctrl-A/X), and Ex commands.
 - `test/neovim/record-golden.ts` — standalone script to record golden files from Neovim without running Obsidian. Usage: `npm run test:neovim-record`.

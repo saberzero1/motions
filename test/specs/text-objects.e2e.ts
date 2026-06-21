@@ -89,8 +89,7 @@ describe('Markdown text objects (Phase 1.1)', function () {
     });
 
     describe('Bold edge cases (i*/a*)', function () {
-        // BUG: di* operates even when cursor is on the ** delimiter itself
-        it.skip('di* with cursor on delimiter should no-op', async function () {
+        it('di* with cursor on delimiter should no-op', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,
@@ -103,6 +102,21 @@ describe('Markdown text objects (Phase 1.1)', function () {
             await browser.pause(300);
             await vimKeys('d', 'i', '*');
             expect(await getEditorValue()).toBe('Hello **bold** world');
+        });
+
+        it('da* with cursor on delimiter should delete around', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('Hello **bold** world');
+                view.editor.setCursor(0, 6);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'a', '*');
+            expect(await getEditorValue()).toBe('Hello  world');
         });
     });
 

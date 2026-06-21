@@ -23,6 +23,7 @@ const findContainingPair = (
     positions: number[],
     cursor: number,
     delimiterLength: number,
+    inner: boolean,
 ): { start: number; end: number } | null => {
     let best: { start: number; end: number; span: number } | null = null;
     for (let i = 0; i < positions.length - 1; i += 1) {
@@ -34,6 +35,12 @@ const findContainingPair = (
             if (end === undefined) continue;
             const endInclusive = end + delimiterLength - 1;
             if (cursor > endInclusive) continue;
+            if (inner) {
+                const cursorOnOpen =
+                    cursor >= start && cursor < start + delimiterLength;
+                const cursorOnClose = cursor >= end && cursor <= endInclusive;
+                if (cursorOnOpen || cursorOnClose) continue;
+            }
             const span = end - start;
             if (!best || span < best.span) {
                 best = { start, end, span };
@@ -83,14 +90,15 @@ export function createDelimiterTextObject(delimiter: string): MotionFn {
         const cursor = Math.max(0, Math.min(head.ch, lineText.length));
         const positions = findDelimiterOccurrences(lineText, delimiter);
         if (positions.length < 2) return null;
-        const pair = findContainingPair(positions, cursor, delimiter.length);
-        if (!pair) return null;
-        return buildRange(
-            head.line,
-            pair,
+        const inner = motionArgs.textObjectInner === true;
+        const pair = findContainingPair(
+            positions,
+            cursor,
             delimiter.length,
-            motionArgs.textObjectInner === true,
+            inner,
         );
+        if (!pair) return null;
+        return buildRange(head.line, pair, delimiter.length, inner);
     };
 }
 
@@ -167,16 +175,19 @@ export function createMultiLineDelimiterTextObject(
         );
         if (!close) return null;
 
-        const cursorAfterOpen =
-            head.line > open.line ||
-            (head.line === open.line && head.ch >= open.ch);
-        const cursorBeforeClose =
-            head.line < close.line ||
-            (head.line === close.line &&
-                head.ch <= close.ch + delimiter.length - 1);
-        if (!cursorAfterOpen || !cursorBeforeClose) return null;
-
         const inner = motionArgs.textObjectInner === true;
+        const cursorAfterOpen = inner
+            ? head.line > open.line ||
+              (head.line === open.line && head.ch >= open.ch + delimiter.length)
+            : head.line > open.line ||
+              (head.line === open.line && head.ch >= open.ch);
+        const cursorBeforeClose = inner
+            ? head.line < close.line ||
+              (head.line === close.line && head.ch < close.ch)
+            : head.line < close.line ||
+              (head.line === close.line &&
+                  head.ch <= close.ch + delimiter.length - 1);
+        if (!cursorAfterOpen || !cursorBeforeClose) return null;
         if (inner) {
             const innerStartCh = open.ch + delimiter.length;
             const innerStartLine = open.line;

@@ -1,7 +1,7 @@
 {
     "suite": "operator-combos",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-20T19:41:47.040Z",
+    "recorded_at": "2026-06-21T01:20:08.034Z",
     "cases": [
         {
             "name": "dw should delete to next word",
@@ -299,7 +299,7 @@
             },
             "keys": "d0",
             "result": {
-                "content": "ello",
+                "content": "hello",
                 "cursor": {
                     "line": 0,
                     "ch": 0

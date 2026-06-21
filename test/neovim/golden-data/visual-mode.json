@@ -1,7 +1,7 @@
 {
     "suite": "visual-mode",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-20T19:41:47.078Z",
+    "recorded_at": "2026-06-21T01:20:08.070Z",
     "cases": [
         {
             "name": "v + e + d should delete selection",

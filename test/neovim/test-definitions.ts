@@ -1144,13 +1144,13 @@ export const SUITES: SuiteDefinition[] = [
                 name: ':undo should undo',
                 content: 'original',
                 cursor: { line: 0, ch: 0 },
-                keys: 'dd:undo\n',
+                keys: 'dd\n:undo\n',
             },
             {
                 name: ':redo should redo',
                 content: 'original',
                 cursor: { line: 0, ch: 0 },
-                keys: 'ddu:redo\n',
+                keys: 'ddu\n:redo\n',
             },
             {
                 name: ':global should execute on matching lines',

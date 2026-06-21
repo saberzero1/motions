@@ -206,14 +206,19 @@ The following Neovim Ex commands have no meaningful equivalent in Obsidian and w
 
 These commands exist but behave differently from Neovim:
 
-| Command            | Neovim behavior                                    | Obsidian behavior                                          | Reason                                                                                                                   |
-| ------------------ | -------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `Y`                | Mapped to `y$` by default                          | Mapped to `y$` by plugin (overrides CM Vim's `yy` default) | Follows Neovim convention per design principle #2                                                                        |
-| `Q`                | Replay last recorded macro                         | Mapped to `@@` by plugin (overrides CM Vim's unmapped `Q`) | Follows Neovim convention                                                                                                |
-| `:wall` / `:wa`    | Save all modified buffers                          | Saves only the current file                                | Obsidian auto-saves; a true "save all" would need to iterate all leaves                                                  |
-| `gf`               | Open file path under cursor                        | Opens Obsidian quick switcher                              | Wikilinks (`gd`) are more natural for note navigation                                                                    |
-| `zO` / `zC` / `zA` | Recursive fold open/close/toggle                   | Maps to the same action as `zo`/`zc`/`za`                  | Obsidian's fold API doesn't distinguish recursive from non-recursive                                                     |
-| `it` / `at`        | HTML tag text objects (CM Vim native via XML mode) | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown |
+| Command            | Neovim behavior                                         | Obsidian behavior                                          | Reason                                                                                                                   |
+| ------------------ | ------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `Y`                | Mapped to `y$` by default                               | Mapped to `y$` by plugin (overrides CM Vim's `yy` default) | Follows Neovim convention per design principle #2                                                                        |
+| `Q`                | Replay last recorded macro                              | Mapped to `@@` by plugin (overrides CM Vim's unmapped `Q`) | Follows Neovim convention                                                                                                |
+| `:wall` / `:wa`    | Save all modified buffers                               | Saves only the current file                                | Obsidian auto-saves; a true "save all" would need to iterate all leaves                                                  |
+| `gf`               | Open file path under cursor                             | Opens Obsidian quick switcher                              | Wikilinks (`gd`) are more natural for note navigation                                                                    |
+| `zO` / `zC` / `zA` | Recursive fold open/close/toggle                        | Maps to the same action as `zo`/`zc`/`za`                  | Obsidian's fold API doesn't distinguish recursive from non-recursive                                                     |
+| `it` / `at`        | HTML tag text objects (CM Vim native via XML mode)      | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown |
+| `dG`               | Deletes from cursor to end of file, no trailing newline | Leaves a trailing newline after deletion                   | codemirror-vim's linewise delete preserves trailing newline; `mapCommand` cannot intercept operator-pending sequences    |
+| `>>`               | Cursor at first non-blank after indent                  | Cursor at ch:1 after indent                                | codemirror-vim's indent operator cursor placement; `mapCommand` cannot intercept doubled-operator `>>`                   |
+| `V` + `>`          | Cursor at first non-blank after visual indent           | Cursor at ch:1 after visual indent                         | Same as `>>` — codemirror-vim cursor placement after indent                                                              |
+| `d0`               | No-op at column 0 (zero-width motion)                   | May delete content at column 0                             | codemirror-vim and Neovim differ on `d0` behavior at column 0; `mapCommand` cannot intercept operator-pending sequences  |
+| `<<`               | Unindent by shiftwidth spaces                           | Unindent uses tabs regardless of shiftwidth setting        | codemirror-vim's indent/unindent uses tabs internally and does not fully respect `shiftwidth`/`expandtab` options        |
 
 ## Test-discovered behavioral discrepancies
 
@@ -226,19 +231,13 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 `dG` from line 2 of a 4-line document produces `'one\n'` instead of `'one'`. codemirror-vim's linewise delete preserves a trailing newline when deleting to end of file. Neovim does not leave a trailing newline.
 
-### `iB` does not scope to innermost blockquote nesting level
+### ~~`iB` does not scope to innermost blockquote nesting level~~
 
-**Status**: Skipped test, pending fix.
-**Test**: `test/specs/blockquote-callout.e2e.ts` — "diB with nested blockquote should delete inner content"
+**Status**: Fixed. The blockquote text object now uses depth-aware scanning.
 
-`diB` on `>> nested inner` inside `> outer\n>> nested inner\n> more outer` deletes all blockquote content instead of scoping to the `>>` level. The blockquote text object scanner does not distinguish nesting depth.
+### ~~`di*` operates when cursor is on the delimiter~~
 
-### `di*` operates when cursor is on the delimiter
-
-**Status**: Skipped test, pending fix.
-**Test**: `test/specs/text-objects.e2e.ts` — "di\* with cursor on delimiter should no-op"
-
-`di*` with cursor on the `**` delimiter itself deletes the bold content. Neovim's text objects typically no-op when the cursor is on the delimiter rather than inside it. The plugin's delimiter scanner treats the delimiter position as "inside".
+**Status**: Fixed. The delimiter scanner now excludes cursor positions on the delimiter characters.
 
 ### Dot-repeat of `cw` + typed text unreliable
 
