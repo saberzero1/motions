@@ -232,7 +232,9 @@ export default class VimMotionsPlugin extends Plugin {
 
         // --- Status bar and scrolloff ---
         if (this.settings.enableStatusBar) {
-            this.modeTracker = new VimModeTracker(this);
+            this.modeTracker = new VimModeTracker(this, {
+                chordDisplay: this.settings.enableChordDisplay,
+            });
             this.modeTracker.attach(this.app);
         }
         this.scrolloffManager = new ScrolloffManager(this);
@@ -313,7 +315,9 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.map('Q', '@@', 'normal');
 
         if (this.settings.enableStatusBar) {
-            this.modeTracker = new VimModeTracker(this);
+            this.modeTracker = new VimModeTracker(this, {
+                chordDisplay: this.settings.enableChordDisplay,
+            });
             this.modeTracker.attach(this.app);
         }
 

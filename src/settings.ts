@@ -33,6 +33,7 @@ export interface VimMotionsSettings {
     enableWorkspaceNav: boolean;
     enableVimrc: boolean;
     enableStatusBar: boolean;
+    enableChordDisplay: boolean;
     enableEasyMotion: boolean;
     enableHardWrap: boolean;
     enableTableNav: boolean;
@@ -50,6 +51,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableWorkspaceNav: true,
     enableVimrc: true,
     enableStatusBar: true,
+    enableChordDisplay: true,
     enableEasyMotion: true,
     enableHardWrap: true,
     enableTableNav: true,
@@ -186,6 +188,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.enableStatusBar)
                     .onChange(async (value) => {
                         this.plugin.settings.enableStatusBar = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Vim chord display')
+            .setDesc(
+                'Show pending keystrokes in the status bar as you type a command (e.g. "2d", "gq").',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableChordDisplay)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableChordDisplay = value;
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),

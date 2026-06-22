@@ -17,8 +17,13 @@ const MODE_LABELS: Record<string, string> = {
  */
 const OPERATOR_PREFIXES_BEFORE_Q = new Set<string>(['g']);
 
+export interface VimModeTrackerOptions {
+    chordDisplay: boolean;
+}
+
 export class VimModeTracker {
     private statusBarEl: HTMLElement;
+    private chordBarEl: HTMLElement | null = null;
     private currentMode = 'normal';
     private recording: string | null = null;
     private pendingRecord = false;
@@ -26,9 +31,13 @@ export class VimModeTracker {
     private keyHandler: ((key: string) => void) | null = null;
     private lastAdapter: CmAdapter | null = null;
 
-    constructor(plugin: Plugin) {
+    constructor(plugin: Plugin, options?: VimModeTrackerOptions) {
         this.statusBarEl = plugin.addStatusBarItem();
         this.statusBarEl.addClass('vim-motions-mode');
+        if (options?.chordDisplay) {
+            this.chordBarEl = plugin.addStatusBarItem();
+            this.chordBarEl.addClass('vim-motions-chord');
+        }
         this.updateDisplay();
     }
 
@@ -40,6 +49,7 @@ export class VimModeTracker {
             }
             this.pendingRecord = false;
             this.updateDisplay();
+            this.syncChord();
         };
         this.modeHandler = modeHandler;
 
@@ -73,6 +83,7 @@ export class VimModeTracker {
                     this.pendingRecord = true;
                 }
             }
+            this.syncChord();
             lastKey = key;
         };
         this.keyHandler = keyHandler;
@@ -119,6 +130,20 @@ export class VimModeTracker {
         }
     }
 
+    /**
+     * Sync chord display from codemirror-vim's `vim.status` — the
+     * authoritative pending-keystroke string.  We read it rather than
+     * accumulating keystrokes ourselves because `vim-keypress` fires
+     * *after* command processing in the CM6 adapter, so `vim.status`
+     * is already cleared for completed commands.
+     */
+    private syncChord(): void {
+        if (!this.chordBarEl || !this.lastAdapter) return;
+        const vim = this.lastAdapter.state.vim;
+        const chord = (vim as unknown as { status?: string })?.status ?? '';
+        this.chordBarEl.setText(chord);
+    }
+
     private updateDisplay(): void {
         const modeLabel =
             MODE_LABELS[this.currentMode] ?? this.currentMode.toUpperCase();
@@ -132,5 +157,6 @@ export class VimModeTracker {
     destroy(): void {
         this.detachFromAdapter();
         this.statusBarEl.remove();
+        this.chordBarEl?.remove();
     }
 }
