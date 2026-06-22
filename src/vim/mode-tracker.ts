@@ -1,9 +1,10 @@
 import type { App, Plugin } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
+import type { ModePrompts } from '../settings';
 import { getCmAdapter } from './vim-api';
 
-const MODE_LABELS: Record<string, string> = {
+const DEFAULT_MODE_LABELS: Record<string, string> = {
     normal: 'NORMAL',
     insert: 'INSERT',
     visual: 'VISUAL',
@@ -19,11 +20,14 @@ const OPERATOR_PREFIXES_BEFORE_Q = new Set<string>(['g']);
 
 export interface VimModeTrackerOptions {
     chordDisplay: boolean;
+    powerline: boolean;
+    modePrompts: ModePrompts;
 }
 
 export class VimModeTracker {
     private statusBarEl: HTMLElement;
     private chordBarEl: HTMLElement | null = null;
+    private modeLabels: Record<string, string>;
     private currentMode = 'normal';
     private recording: string | null = null;
     private pendingRecord = false;
@@ -32,11 +36,29 @@ export class VimModeTracker {
     private lastAdapter: CmAdapter | null = null;
 
     constructor(plugin: Plugin, options?: VimModeTrackerOptions) {
+        this.modeLabels = options?.modePrompts
+            ? { ...options.modePrompts }
+            : { ...DEFAULT_MODE_LABELS };
         this.statusBarEl = plugin.addStatusBarItem();
         this.statusBarEl.addClass('vim-motions-mode');
+        if (options?.powerline) {
+            this.statusBarEl.addClass('vim-motions-powerline');
+        }
         if (options?.chordDisplay) {
             this.chordBarEl = plugin.addStatusBarItem();
             this.chordBarEl.addClass('vim-motions-chord');
+        }
+        const lastEl = this.chordBarEl ?? this.statusBarEl;
+        lastEl.addClass('vim-motions-statusbar-end');
+        const statusBar = this.statusBarEl.parentElement;
+        if (statusBar) {
+            statusBar.insertBefore(this.statusBarEl, statusBar.firstChild);
+            if (this.chordBarEl) {
+                statusBar.insertBefore(
+                    this.chordBarEl,
+                    this.statusBarEl.nextSibling,
+                );
+            }
         }
         this.updateDisplay();
     }
@@ -146,7 +168,9 @@ export class VimModeTracker {
 
     private updateDisplay(): void {
         const modeLabel =
-            MODE_LABELS[this.currentMode] ?? this.currentMode.toUpperCase();
+            this.modeLabels[this.currentMode] ??
+            DEFAULT_MODE_LABELS[this.currentMode] ??
+            this.currentMode.toUpperCase();
         const recordLabel = this.recording
             ? ` RECORDING @${this.recording}`
             : '';

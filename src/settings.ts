@@ -27,6 +27,20 @@ export interface LeaderBinding {
     commandId: string;
 }
 
+export interface ModePrompts {
+    normal: string;
+    insert: string;
+    visual: string;
+    replace: string;
+}
+
+export const DEFAULT_MODE_PROMPTS: ModePrompts = {
+    normal: 'NORMAL',
+    insert: 'INSERT',
+    visual: 'VISUAL',
+    replace: 'REPLACE',
+};
+
 export interface VimMotionsSettings {
     enableTextObjects: boolean;
     enableNavigation: boolean;
@@ -34,6 +48,8 @@ export interface VimMotionsSettings {
     enableVimrc: boolean;
     enableStatusBar: boolean;
     enableChordDisplay: boolean;
+    enablePowerline: boolean;
+    modePrompts: ModePrompts;
     enableEasyMotion: boolean;
     enableHardWrap: boolean;
     enableTableNav: boolean;
@@ -52,6 +68,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableVimrc: true,
     enableStatusBar: true,
     enableChordDisplay: true,
+    enablePowerline: false,
+    modePrompts: { ...DEFAULT_MODE_PROMPTS },
     enableEasyMotion: true,
     enableHardWrap: true,
     enableTableNav: true,
@@ -206,6 +224,71 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
+            );
+
+        new Setting(containerEl)
+            .setName('Powerline-style status bar')
+            .setDesc(
+                'Color the vim mode indicator with per-mode background colors and a triangular separator.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enablePowerline)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enablePowerline = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Vim mode display prompt')
+            .setHeading();
+
+        const prompts = this.plugin.settings.modePrompts;
+        new Setting(containerEl)
+            .setName('Normal mode prompt')
+            .setDesc('Status bar text for normal mode.')
+            .addText((text) =>
+                text.setValue(prompts.normal).onChange(async (value) => {
+                    this.plugin.settings.modePrompts.normal =
+                        value || DEFAULT_MODE_PROMPTS.normal;
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                }),
+            );
+        new Setting(containerEl)
+            .setName('Insert mode prompt')
+            .setDesc('Status bar text for insert mode.')
+            .addText((text) =>
+                text.setValue(prompts.insert).onChange(async (value) => {
+                    this.plugin.settings.modePrompts.insert =
+                        value || DEFAULT_MODE_PROMPTS.insert;
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                }),
+            );
+        new Setting(containerEl)
+            .setName('Visual mode prompt')
+            .setDesc('Status bar text for visual mode.')
+            .addText((text) =>
+                text.setValue(prompts.visual).onChange(async (value) => {
+                    this.plugin.settings.modePrompts.visual =
+                        value || DEFAULT_MODE_PROMPTS.visual;
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                }),
+            );
+        new Setting(containerEl)
+            .setName('Replace mode prompt')
+            .setDesc('Status bar text for replace mode.')
+            .addText((text) =>
+                text.setValue(prompts.replace).onChange(async (value) => {
+                    this.plugin.settings.modePrompts.replace =
+                        value || DEFAULT_MODE_PROMPTS.replace;
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                }),
             );
 
         new Setting(containerEl)

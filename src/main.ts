@@ -234,6 +234,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableStatusBar) {
             this.modeTracker = new VimModeTracker(this, {
                 chordDisplay: this.settings.enableChordDisplay,
+                powerline: this.settings.enablePowerline,
+                modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
         }
@@ -317,6 +319,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableStatusBar) {
             this.modeTracker = new VimModeTracker(this, {
                 chordDisplay: this.settings.enableChordDisplay,
+                powerline: this.settings.enablePowerline,
+                modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
         }

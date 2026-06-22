@@ -5,6 +5,76 @@
     text-transform: uppercase;
 }
 
+.vim-motions-chord {
+    font-family: var(--font-monospace);
+    font-size: 12px;
+}
+
+.vim-motions-statusbar-end {
+    margin-right: auto;
+}
+
+/* --- Powerline-style status bar --- */
+
+.vim-motions-powerline {
+    --vim-pl-normal-bg: var(--color-blue, #7daea3);
+    --vim-pl-normal-fg: var(--text-on-accent, #1d2021);
+    --vim-pl-insert-bg: var(--color-green, #a9b665);
+    --vim-pl-insert-fg: var(--text-on-accent, #1d2021);
+    --vim-pl-visual-bg: var(--color-orange, #d8a657);
+    --vim-pl-visual-fg: var(--text-on-accent, #1d2021);
+    --vim-pl-replace-bg: var(--color-red, #ea6962);
+    --vim-pl-replace-fg: var(--text-on-accent, #1d2021);
+
+    padding: 0 8px;
+    margin-top: -4px;
+    margin-bottom: -4px;
+    margin-left: -5px;
+    line-height: var(--status-bar-font-size, 22px);
+}
+
+.vim-motions-powerline::after {
+    content: '';
+    display: inline-block;
+    position: relative;
+    left: 8px;
+    border-style: solid;
+    border-width: 13px 0 13px 8px;
+    background-color: var(--status-bar-background);
+}
+
+.vim-motions-powerline[data-vim-mode='normal'] {
+    color: var(--vim-pl-normal-fg);
+    background-color: var(--vim-pl-normal-bg);
+}
+.vim-motions-powerline[data-vim-mode='normal']::after {
+    border-color: transparent transparent transparent var(--vim-pl-normal-bg);
+}
+
+.vim-motions-powerline[data-vim-mode='insert'] {
+    color: var(--vim-pl-insert-fg);
+    background-color: var(--vim-pl-insert-bg);
+}
+.vim-motions-powerline[data-vim-mode='insert']::after {
+    border-color: transparent transparent transparent var(--vim-pl-insert-bg);
+}
+
+.vim-motions-powerline[data-vim-mode='visual'] {
+    color: var(--vim-pl-visual-fg);
+    background-color: var(--vim-pl-visual-bg);
+}
+.vim-motions-powerline[data-vim-mode='visual']::after {
+    border-color: transparent transparent transparent var(--vim-pl-visual-bg);
+}
+
+.vim-motions-powerline[data-vim-mode='replace'] {
+    color: var(--vim-pl-replace-fg);
+    background-color: var(--vim-pl-replace-bg);
+}
+.vim-motions-powerline[data-vim-mode='replace']::after {
+    border-color: transparent transparent transparent var(--vim-pl-replace-bg);
+}
+
 .vim-motions-easymotion {
     position: absolute;
     top: 0;

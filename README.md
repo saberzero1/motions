@@ -182,7 +182,9 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 ### Quality of life
 
 - **Neovim defaults** — `Y` yanks to end of line (`y$`) and `Q` replays last recorded macro (`@@`), matching Neovim's defaults instead of CM Vim's legacy behavior.
-- **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar.
+- **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar. Customizable per-mode text (including emoji) via settings.
+- **Vim chord display** — shows pending keystrokes (e.g. `2d`, `gq`) in the status bar as you type a multi-key command.
+- **Powerline-style status bar** — optional colored mode indicator with per-mode background colors and a triangular separator. No special fonts required. Override colors via CSS custom properties (`--vim-pl-normal-bg`, etc.).
 - **Which-key hints** — when you press the leader key and pause, a floating overlay shows all available leader bindings.
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
@@ -237,6 +239,9 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Workspace navigation (on/off)
 - Load `.obsidian.vimrc` (on/off)
 - Vim mode status bar (on/off)
+- Vim chord display (on/off, default: on)
+- Powerline-style status bar (on/off, default: off)
+- Vim mode display prompt — customizable text per mode (normal, insert, visual, replace)
 - EasyMotion (on/off)
 - Hint mode (on/off)
 - Hint mode label characters (customizable)

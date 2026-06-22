@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Vim chord display** — pending keystrokes (e.g. `2d`, `gq`, `<C-w>h`) are shown in the status bar as you type a multi-key command, clearing when the command completes or is cancelled. Reads codemirror-vim's internal `vim.status` string directly, avoiding event-ordering issues with manual keystroke accumulation in the CM6 adapter. Togglable via **Settings → Vim Motions → Vim chord display** (on by default). ([#2](https://github.com/saberzero1/motions/issues/2))
+- **Customizable mode prompts** — per-mode status bar text is configurable via four text fields in **Settings → Vim Motions → Vim mode display prompt** (normal, insert, visual, replace). Defaults to `NORMAL`/`INSERT`/`VISUAL`/`REPLACE`. Supports emoji (e.g. `🟢` for normal). ([#3](https://github.com/saberzero1/motions/issues/3))
+- **Powerline-style status bar** — optional colored mode indicator with per-mode background colors (gruvbox-inspired: green/normal, teal/insert, amber/visual, red/replace) and a CSS border-triangle separator. No special font required — uses pure CSS. Togglable via **Settings → Vim Motions → Powerline-style status bar** (off by default). Colors are overridable via CSS custom properties (`--vim-pl-normal-bg`, `--vim-pl-normal-fg`, etc.).
+- **Left-aligned status bar** — the vim mode indicator and chord display are always positioned at the leftmost edge of the status bar via DOM reordering and `margin-right: auto`, matching the convention established by obsidian-vimrc-support.
+- `ModePrompts` interface and `DEFAULT_MODE_PROMPTS` constant exported from `settings.ts`.
+- `VimModeTrackerOptions` extended with `powerline` and `modePrompts` fields.
+- CSS classes: `vim-motions-chord`, `vim-motions-powerline`, `vim-motions-statusbar-end`.
 - Hint mode expanded into a full vimium-style UI navigation system ([#7](https://github.com/saberzero1/motions/issues/7)):
     - **Smart label length**: single-character labels (from home row) when 9 or fewer targets, two-character labels for more.
     - **Configurable hint characters**: new `hintModeLabels` setting controls the character pool for hint labels (default: `asdfghjkl`).
