@@ -395,9 +395,7 @@ export default class VimMotionsPlugin extends Plugin {
         leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
     }
 
-    private parseHotkey(
-        serialized: string,
-    ): {
+    private parseHotkey(serialized: string): {
         key: string;
         ctrl: boolean;
         shift: boolean;
