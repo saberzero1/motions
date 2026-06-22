@@ -266,6 +266,22 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 After `/foo` search and pressing `n` twice, the cursor lands at an unexpected position. This may be a codemirror-vim incsearch state issue where the initial `/` search already advances past the first match, or a test timing issue with the async search dialog.
 
+## Hint mode in the separate settings window (Obsidian 1.13+)
+
+**Status**: Platform limitation.
+
+In Obsidian 1.13+, the settings window opens as a separate OS-level Electron BrowserWindow by default. This window runs in its own renderer process, which plugin JavaScript in the main window cannot access. The plugin's global hotkey listener and hint mode overlay cannot be injected into this window.
+
+**Workaround**: Disable the separate settings window by unchecking **Settings → Interface → Open settings in new window**. When settings opens as an in-app modal instead, the plugin's global hotkey and hint mode work normally — the capture-phase keyboard listener fires before the modal's scope intercepts events.
+
+Hint mode works in all other contexts: the main window, workspace popout windows (popped-out notes), and any in-app modal (command palette, file switcher, etc.).
+
+## Hint mode element selector fragility
+
+Hint mode targets clickable elements using CSS class selectors like `.nav-file-title`, `.workspace-tab-header`, `.vertical-tab-nav-item`, etc. These are Obsidian's internal CSS classes, not part of the public plugin API. They may change between Obsidian versions. Standard HTML selectors (`a[href]`, `button`, `[role="button"]`, etc.) are stable.
+
+If hint mode stops labeling certain UI elements after an Obsidian update, the selector list in `src/ui/hint-mode.ts` may need updating.
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:
@@ -279,4 +295,3 @@ These features are excluded by design and will not be implemented:
 | Reading view navigation         | Use the [vim-keynav](https://github.com/kometenstaub/obsidian-vim-keynav) plugin                 |
 | Vim toggle command              | Use the [vim-toggle](https://github.com/conneroisu/vim-toggle) plugin                            |
 | Canvas keyboard navigation      | Canvas is a different rendering surface without CodeMirror                                       |
-| Settings UI keyboard navigation | Out of scope for a Vim motion plugin                                                             |

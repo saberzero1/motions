@@ -173,6 +173,11 @@
     opacity: 0.2;
 }
 
+.vim-motions-hotkey-display {
+    font-family: var(--font-monospace);
+    margin-right: 8px;
+}
+
 .vim-motions-easymotion-label {
     position: absolute;
     left: var(--vim-motions-em-left);

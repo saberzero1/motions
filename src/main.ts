@@ -22,6 +22,7 @@ import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { getVimApi, isVimEnabled } from './vim/vim-api';
 import { ExCommandSuggest } from './ui/ex-suggest';
+import { createHintModeAction } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import { registerVimOptions, syncTextwidthFromVim } from './vim/options';
@@ -44,6 +45,8 @@ export default class VimMotionsPlugin extends Plugin {
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
     exSuggest: ExCommandSuggest | null = null;
+    private hintWindowCleanups: Array<() => void> = [];
+    private hintWindowDocs = new Set<Document>();
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
     vimrcLoaded = false;
@@ -165,6 +168,15 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
             );
+        }
+        if (this.settings.enableHintMode) {
+            this.registerHintMode(this.registration, this.leaderRegistry);
+            this.addCommand({
+                id: 'show-hint-labels',
+                name: 'Show hint labels',
+                callback: () => this.hintModeAction?.(),
+            });
+            this.setupHintModeWindows();
         }
 
         // --- Neovim default remaps (always on, use map so user vimrc noremap can override) ---
@@ -294,6 +306,9 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
             );
         }
+        if (this.settings.enableHintMode && this.leaderRegistry) {
+            this.registerHintMode(this.registration, this.leaderRegistry);
+        }
         this.registration.map('Y', 'y$', 'normal');
         this.registration.map('Q', '@@', 'normal');
 
@@ -358,6 +373,97 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
             );
         }
+        if (this.settings.enableHintMode) {
+            this.registerHintMode(this.registration, this.leaderRegistry);
+        }
+    }
+
+    private hintModeAction: (() => void) | null = null;
+
+    private registerHintMode(
+        reg: VimRegistration,
+        leaderRegistry: LeaderRegistry,
+    ): void {
+        this.hintModeAction = createHintModeAction(
+            this.app,
+            this.settings.hintModeLabels,
+        );
+        reg.defineAction('hintMode', this.hintModeAction);
+        const leader = leaderRegistry.getLeaderKey();
+        const hintKeys = leader + leader + 'h';
+        reg.mapCommand(hintKeys, 'action', 'hintMode', {});
+        leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
+    }
+
+    private parseHotkey(
+        serialized: string,
+    ): {
+        key: string;
+        ctrl: boolean;
+        shift: boolean;
+        alt: boolean;
+        meta: boolean;
+    } | null {
+        if (!serialized) return null;
+        const colonIdx = serialized.indexOf(':');
+        if (colonIdx === -1) return null;
+        const modPart = serialized.slice(0, colonIdx);
+        const key = serialized.slice(colonIdx + 1);
+        if (!key) return null;
+        const mods = new Set(modPart.split(',').filter(Boolean));
+        return {
+            key,
+            ctrl: mods.has('ctrl'),
+            shift: mods.has('shift'),
+            alt: mods.has('alt'),
+            meta: mods.has('meta'),
+        };
+    }
+
+    private setupHintModeOnWindow(doc: Document): void {
+        if (!this.hintModeAction) return;
+        if (this.hintWindowDocs.has(doc)) return;
+        this.hintWindowDocs.add(doc);
+        const action = this.hintModeAction;
+
+        const handler = (e: KeyboardEvent) => {
+            const parsed = this.parseHotkey(this.settings.hintModeHotkey);
+            if (!parsed) return;
+
+            const eventKey = e.key === 'Unidentified' ? e.code : e.key;
+            if (
+                eventKey === parsed.key &&
+                e.ctrlKey === parsed.ctrl &&
+                e.shiftKey === parsed.shift &&
+                e.altKey === parsed.alt &&
+                e.metaKey === parsed.meta
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                action();
+            }
+        };
+        doc.addEventListener('keydown', handler, true);
+        this.hintWindowCleanups.push(() => {
+            doc.removeEventListener('keydown', handler, true);
+        });
+    }
+
+    private setupHintModeWindows(): void {
+        this.cleanupHintModeWindows();
+        const mainDoc = this.app.workspace.containerEl.ownerDocument;
+        this.setupHintModeOnWindow(mainDoc);
+        this.registerEvent(
+            this.app.workspace.on('window-open', (_workspaceWindow, win) => {
+                this.setupHintModeOnWindow(win.document);
+            }),
+        );
+    }
+
+    private cleanupHintModeWindows(): void {
+        for (const cleanup of this.hintWindowCleanups) cleanup();
+        this.hintWindowCleanups = [];
+        this.hintWindowDocs.clear();
     }
 
     private reapplySettingsLeaderBindings(vim: VimApi): void {
@@ -378,6 +484,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        this.cleanupHintModeWindows();
         this.exSuggest?.destroy();
         this.exSuggest = null;
         this.whichKeyOverlay?.destroy();

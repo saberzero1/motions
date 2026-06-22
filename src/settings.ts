@@ -7,6 +7,21 @@ import {
 } from 'obsidian';
 import VimMotionsPlugin from './main';
 
+export function formatHotkey(serialized: string): string {
+    if (!serialized) return '';
+    const colonIdx = serialized.indexOf(':');
+    if (colonIdx === -1) return serialized;
+    const modPart = serialized.slice(0, colonIdx);
+    const key = serialized.slice(colonIdx + 1);
+    const mods = modPart
+        .split(',')
+        .filter(Boolean)
+        .map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+    const keyDisplay =
+        key === ' ' ? 'Space' : key.length === 1 ? key.toUpperCase() : key;
+    return [...mods, keyDisplay].join('+');
+}
+
 export interface LeaderBinding {
     key: string;
     commandId: string;
@@ -21,6 +36,9 @@ export interface VimMotionsSettings {
     enableEasyMotion: boolean;
     enableHardWrap: boolean;
     enableTableNav: boolean;
+    enableHintMode: boolean;
+    hintModeLabels: string;
+    hintModeHotkey: string;
     scrolloffLines: number;
     easyMotionLabels: string;
     leaderBindings: LeaderBinding[];
@@ -35,6 +53,9 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableEasyMotion: true,
     enableHardWrap: true,
     enableTableNav: true,
+    enableHintMode: true,
+    hintModeLabels: 'asdfghjkl',
+    hintModeHotkey: '',
     scrolloffLines: 5,
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
     leaderBindings: [],
@@ -213,6 +234,95 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        new Setting(containerEl)
+            .setName('Hint mode')
+            .setDesc(
+                'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableHintMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableHintMode = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Hint mode label characters')
+            .setDesc(
+                'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
+            )
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.settings.hintModeLabels)
+                    .onChange(async (value) => {
+                        this.plugin.settings.hintModeLabels =
+                            value || 'asdfghjkl';
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        const hotkeySettingItem = new Setting(containerEl)
+            .setName('Hint mode global hotkey')
+            .setDesc(
+                'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
+            );
+
+        const hotkeyDisplay = hotkeySettingItem.controlEl.createSpan({
+            cls: 'setting-hotkey vim-motions-hotkey-display',
+        });
+        hotkeyDisplay.textContent = formatHotkey(
+            this.plugin.settings.hintModeHotkey,
+        );
+
+        hotkeySettingItem.addButton((button) =>
+            button.setButtonText('Record').onClick(() => {
+                button.setButtonText('Press keys\u2026');
+                const onKey = (e: KeyboardEvent) => {
+                    if (
+                        e.key === 'Shift' ||
+                        e.key === 'Control' ||
+                        e.key === 'Alt' ||
+                        e.key === 'Meta'
+                    )
+                        return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    activeDocument.removeEventListener('keydown', onKey, true);
+
+                    const mods: string[] = [];
+                    if (e.ctrlKey) mods.push('ctrl');
+                    if (e.shiftKey) mods.push('shift');
+                    if (e.altKey) mods.push('alt');
+                    if (e.metaKey) mods.push('meta');
+
+                    const key = e.key === 'Unidentified' ? e.code : e.key;
+                    const serialized = mods.join(',') + ':' + key;
+
+                    this.plugin.settings.hintModeHotkey = serialized;
+                    void this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+
+                    hotkeyDisplay.textContent = formatHotkey(serialized);
+                    button.setButtonText('Record');
+                };
+                activeDocument.addEventListener('keydown', onKey, true);
+            }),
+        );
+
+        if (this.plugin.settings.hintModeHotkey) {
+            hotkeySettingItem.addButton((button) =>
+                button.setButtonText('Clear').onClick(() => {
+                    this.plugin.settings.hintModeHotkey = '';
+                    void this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                    hotkeyDisplay.textContent = '';
+                }),
+            );
+        }
 
         new Setting(containerEl)
             .setName('Scrolloff lines')

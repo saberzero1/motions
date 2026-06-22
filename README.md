@@ -165,6 +165,20 @@ Jump to any visible position with two keystrokes.
 | `<leader><leader>f{char}` | Label every occurrence of `{char}`           |
 | `<leader><leader>h`       | Hint mode — label every clickable UI element |
 
+### Hint mode (Vimium-style navigation)
+
+Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h` (or a configurable global hotkey) to label every clickable element on screen — buttons, tabs, sidebar items, settings controls, editor panes, links — then type the label to activate it.
+
+- **Works everywhere**: editor, sidebar, tab bar, settings modal, modals, popout windows
+- **Smart labels**: single-character labels when few targets, two-character (home-row first) when many
+- **Keyboard recovery**: Backspace resets after a wrong first character, Escape cancels
+- **Pane navigation**: select an editor pane label to focus it (uses `setActiveLeaf` for proper Obsidian focus)
+- **Modifier support**: hold Ctrl/Cmd while selecting a link to open in a new pane
+- **Internal links**: `[[wikilinks]]` and `[markdown](links)` are opened via Obsidian's link resolver, not raw click
+- **Scroll-aware**: only visible elements are labeled — items scrolled out of view in containers are excluded
+- **Global hotkey**: configure a key combination in **Settings → Vim Motions → Hint mode global hotkey** that works even when modals (settings, command palette) have focus
+- **Registered as Obsidian command**: `vim-motions:show-hint-labels` — assign a hotkey in **Settings → Hotkeys** or trigger from the command palette
+
 ### Quality of life
 
 - **Neovim defaults** — `Y` yanks to end of line (`y$`) and `Q` replays last recorded macro (`@@`), matching Neovim's defaults instead of CM Vim's legacy behavior.
@@ -224,6 +238,9 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Load `.obsidian.vimrc` (on/off)
 - Vim mode status bar (on/off)
 - EasyMotion (on/off)
+- Hint mode (on/off)
+- Hint mode label characters (customizable)
+- Hint mode global hotkey (press-to-record, works in modals)
 - Scrolloff lines (0–20, default: 5)
 - EasyMotion label characters (customizable)
 - Leader key bindings (add/remove key-to-command mappings without editing vimrc)

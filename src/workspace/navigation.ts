@@ -7,7 +7,6 @@ import {
     findLinkAtCursor,
 } from '../motions/goto-definition';
 import { createContextActionsAction } from '../ui/context-actions';
-import { createHintModeAction } from '../ui/hint-mode';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
@@ -280,12 +279,6 @@ export function registerWorkspaceNavigation(
 
     reg.defineAction('contextActions', createContextActionsAction(app));
     reg.mapCommand('gra', 'action', 'contextActions', {});
-
-    reg.defineAction('hintMode', createHintModeAction(app));
-    const leader = leaderRegistry.getLeaderKey();
-    const hintKeys = leader + leader + 'h';
-    reg.mapCommand(hintKeys, 'action', 'hintMode', {});
-    leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
 
     reg.defineAction('pasteBefore', (cm, actionArgs) =>
         pasteFromRegister(cm, actionArgs, true, false),
