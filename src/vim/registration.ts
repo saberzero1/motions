@@ -19,6 +19,16 @@ const noopAction: ActionFn = () => {};
 const noopOperator: OperatorFn = () => {};
 const noopEx: ExCommandFn = () => {};
 
+const SPECIAL_KEYS: Record<string, string> = {
+    ' ': '<Space>',
+    '\t': '<Tab>',
+};
+
+function keyToCmNotation(key: string): string | null {
+    if (key.length === 0) return null;
+    return SPECIAL_KEYS[key] ?? null;
+}
+
 export class VimRegistration {
     private registrations: Registration[] = [];
     private vim: VimApi;
@@ -66,6 +76,21 @@ export class VimRegistration {
     ): void {
         this.vim.mapCommand(keys, type, name, args, extra);
         this.registrations.push({ type: 'mapCommand', name, keys });
+    }
+
+    unmapDefaultBinding(key: string): void {
+        const cmKey = keyToCmNotation(key);
+        if (!cmKey) return;
+        try {
+            this.vim.unmap(cmKey);
+        } catch {
+            /* no default binding for this key — expected for backslash */
+        }
+        try {
+            this.vim.unmap(key);
+        } catch {
+            /* no default binding for literal key */
+        }
     }
 
     getExCommandNames(): string[] {

@@ -47,6 +47,8 @@ export default class VimMotionsPlugin extends Plugin {
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
     vimrcLoaded = false;
+    vimrcRetried = false;
+    vimrcCommandCount = 0;
 
     async onload() {
         await this.loadSettings();
@@ -84,11 +86,29 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
-                    const vimrcResult = await loadVimrc(
+                    let vimrcResult = await loadVimrc(
                         this.app,
                         vim,
                         this.leaderRegistry ?? undefined,
                     );
+                    for (
+                        let attempt = 0;
+                        !vimrcResult.ready && attempt < 10;
+                        attempt++
+                    ) {
+                        await new Promise((r) => window.setTimeout(r, 100));
+                        vimrcResult = await loadVimrc(
+                            this.app,
+                            vim,
+                            this.leaderRegistry ?? undefined,
+                        );
+                        this.vimrcRetried = true;
+                    }
+                    this.vimrcCommandCount = vimrcResult.commandCount;
+                    if (!vimrcResult.ready) {
+                        this.vimrcLoading = false;
+                        return;
+                    }
                     if (!vimrcResult.found) {
                         new Notice(
                             `Vim Motions: ${vimrcResult.path} not found. Create the file in your vault root to use custom key mappings.`,
@@ -106,6 +126,7 @@ export default class VimMotionsPlugin extends Plugin {
                     applyVimrcMaps(vim, this.vimrcMaps);
                     syncTextwidthFromVim(vim);
                     this.reapplySettingsLeaderBindings(vim);
+                    this.reregisterLeaderFeatures();
                     this.rebuildWhichKey();
                     this.vimrcLoaded = true;
                 }),
@@ -316,6 +337,26 @@ export default class VimMotionsPlugin extends Plugin {
                 );
                 this.whichKeyOverlay.attach();
             }
+        }
+    }
+
+    private reregisterLeaderFeatures(): void {
+        if (!this.registration || !this.leaderRegistry) return;
+        this.leaderRegistry.clearBuiltinBindings();
+        if (this.settings.enableWorkspaceNav) {
+            registerWorkspaceNavigation(
+                this.registration,
+                this.app,
+                this.leaderRegistry,
+            );
+        }
+        if (this.settings.enableEasyMotion) {
+            registerEasyMotion(
+                this.registration,
+                this.app,
+                this.settings.easyMotionLabels,
+                this.leaderRegistry,
+            );
         }
     }
 

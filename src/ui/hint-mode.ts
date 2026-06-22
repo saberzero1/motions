@@ -1,5 +1,4 @@
 import type { App } from 'obsidian';
-import type { ActionFn } from '../types/vim-api';
 
 const HOME_ROW = 'asdfghjkl';
 const ALL_KEYS = 'abcdefghijklmnopqrstuvwxyz';
@@ -103,7 +102,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintTarget | null> {
     });
 }
 
-export function createHintModeAction(app: App): ActionFn {
+export function createHintModeAction(app: App): () => void {
     return () => {
         const allElements = activeDocument.querySelectorAll(TARGET_SELECTOR);
         const visible = Array.from(allElements).filter(isVisible);

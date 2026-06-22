@@ -140,6 +140,116 @@ describe('Vimrc support (Phase 2)', function () {
         await browser.pause(200);
     });
 
+    it('EasyMotion word should work with space as leader key (issue #6)', async function () {
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as Record<string, unknown> & {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                            defineAction: (
+                                name: string,
+                                fn: () => void,
+                            ) => void;
+                            mapCommand: (
+                                keys: string,
+                                type: string,
+                                name: string,
+                                args: Record<string, unknown>,
+                            ) => void;
+                            unmap: (keys: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim' };
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+
+            try {
+                Vim.unmap('<Space>');
+            } catch {
+                /* may not exist */
+            }
+            let triggered = false;
+            Vim.defineAction('testSpaceWord', () => {
+                triggered = true;
+            });
+            Vim.mapCommand('  w', 'action', 'testSpaceWord', {});
+
+            view.editor.setValue('hello world foo bar baz');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+            Vim.handleKey(adapter, ' ');
+            Vim.handleKey(adapter, ' ');
+            Vim.handleKey(adapter, 'w');
+            return { success: true, triggered };
+        })) as { success: boolean; triggered: boolean };
+        expect(result).toHaveProperty('success', true);
+        expect(result).toHaveProperty('triggered', true);
+    });
+
+    it('EasyMotion should work with comma as leader key', async function () {
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as Record<string, unknown> & {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                            defineAction: (
+                                name: string,
+                                fn: () => void,
+                            ) => void;
+                            mapCommand: (
+                                keys: string,
+                                type: string,
+                                name: string,
+                                args: Record<string, unknown>,
+                            ) => void;
+                            unmap: (keys: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim' };
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+
+            try {
+                Vim.unmap(',');
+            } catch {
+                /* may not exist */
+            }
+            let triggered = false;
+            Vim.defineAction('testCommaWord', () => {
+                triggered = true;
+            });
+            Vim.mapCommand(',,w', 'action', 'testCommaWord', {});
+
+            view.editor.setValue('hello world foo bar baz');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+            Vim.handleKey(adapter, ',');
+            Vim.handleKey(adapter, ',');
+            Vim.handleKey(adapter, 'w');
+            return { success: true, triggered };
+        })) as { success: boolean; triggered: boolean };
+        expect(result).toHaveProperty('success', true);
+        expect(result).toHaveProperty('triggered', true);
+    });
+
     it('should work without a .obsidian.vimrc file', async function () {
         await obsidianPage.resetVault();
         await browser.reloadObsidian({ vault: 'test-vault' });

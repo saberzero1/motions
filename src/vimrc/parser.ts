@@ -97,6 +97,15 @@ export function parseLine(line: string): VimrcCommand | null {
     }
 
     if (cmd === 'let') {
+        const letMatch = trimmed.match(/^let\s+(\S+)\s*=\s*["'](.*)["']\s*$/);
+        if (letMatch && letMatch[1] && letMatch[2] !== undefined) {
+            return {
+                type: 'let',
+                raw: trimmed,
+                key: letMatch[1],
+                value: letMatch[2],
+            };
+        }
         const varName = parts[1];
         const eq = parts[2];
         const val = parts.slice(3).join(' ');

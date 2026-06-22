@@ -101,15 +101,9 @@ This limitation is confirmed upstream in [obsidian-vimrc-support issue #16](http
 
 `noremap` does work for preventing recursion in multi-key mappings (e.g. `noremap G G$`) and for remapping keys to different key sequences. It only fails when trying to swap two built-in single-key motions with each other.
 
-## EasyMotion leader key conflict with `mapCommand`
+## ~~EasyMotion leader key conflict with `mapCommand`~~ (Fixed)
 
-EasyMotion bindings are registered via `mapCommand(leader + leader + 'w', ...)`. This works correctly with the default leader key (`\`) because `\` has no existing binding in codemirror-vim's default keymap.
-
-However, leader keys that **do** have default Vim bindings — such as `,` (reverse repeat find), `;` (repeat find), or space (forward char) — will not work. When the first leader keypress is sent, codemirror-vim finds a `full` match for the single character in the default keymap and consumes it immediately, preventing the multi-key sequence (`,,w`) from accumulating in the key buffer.
-
-This is a fundamental limitation of `mapCommand`: it registers key sequences at the keymap level where single-character `full` matches always take priority over multi-character `partial` matches. The only workaround is to use a leader key that has no default Vim binding (like `\`).
-
-A future fix would switch EasyMotion from `mapCommand` to `vim.map()` with ex command wrappers, which handles leader resolution through a different code path. This is tracked as a known limitation rather than a bug because the default configuration works correctly.
+EasyMotion and hint mode bindings now call `unmapDefaultBinding(leader)` before `mapCommand` registration. This removes the leader key's default Vim binding (e.g. `<Space>` → `l`) from codemirror-vim's keymap so that `mapCommand` multi-key sequences starting with the leader can accumulate in the input buffer. The vimrc parser also correctly handles `let mapleader = " "` (space inside quotes). EasyMotion works with any leader key, including space and comma.
 
 ## Table navigation on non-US keyboards
 

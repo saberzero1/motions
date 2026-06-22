@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
-import type { ActionFn, CmAdapter } from '../types/vim-api';
+import type { CmAdapter } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
 import { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
@@ -151,11 +151,11 @@ function waitForKey(): Promise<string | null> {
     });
 }
 
-function createEasyMotionAction(
+function createEasyMotionTrigger(
     app: App,
     mode: 'word' | 'line',
     labels: string,
-): ActionFn {
+): () => void {
     return () => {
         const markdownView = app.workspace.getActiveViewOfType(MarkdownView);
         if (!markdownView) return;
@@ -182,7 +182,7 @@ function createEasyMotionAction(
     };
 }
 
-function createFindCharAction(app: App, labels: string): ActionFn {
+function createFindCharTrigger(app: App, labels: string): () => void {
     return () => {
         const markdownView = app.workspace.getActiveViewOfType(MarkdownView);
         if (!markdownView) return;
@@ -218,23 +218,25 @@ export function registerEasyMotion(
     const chars = labels ?? DEFAULT_LABELS;
     const leader = leaderRegistry.getLeaderKey();
 
-    reg.defineAction(
-        'easyMotionWord',
-        createEasyMotionAction(app, 'word', chars),
-    );
+    // Unmap the leader key's default binding (e.g. <Space> → l) so that
+    // mapCommand multi-key sequences starting with the leader can accumulate
+    // in codemirror-vim's key buffer instead of being consumed immediately.
+    reg.unmapDefaultBinding(leader);
+
+    const wordTrigger = createEasyMotionTrigger(app, 'word', chars);
+    reg.defineAction('easyMotionWord', wordTrigger);
     const wordKeys = leader + leader + 'w';
     reg.mapCommand(wordKeys, 'action', 'easyMotionWord', {});
     leaderRegistry.addBinding(wordKeys, 'EasyMotion: word', 'builtin');
 
-    reg.defineAction(
-        'easyMotionLine',
-        createEasyMotionAction(app, 'line', chars),
-    );
+    const lineTrigger = createEasyMotionTrigger(app, 'line', chars);
+    reg.defineAction('easyMotionLine', lineTrigger);
     const lineKeys = leader + leader + 'j';
     reg.mapCommand(lineKeys, 'action', 'easyMotionLine', {});
     leaderRegistry.addBinding(lineKeys, 'EasyMotion: line', 'builtin');
 
-    reg.defineAction('easyMotionFindChar', createFindCharAction(app, chars));
+    const findTrigger = createFindCharTrigger(app, chars);
+    reg.defineAction('easyMotionFindChar', findTrigger);
     const findKeys = leader + leader + 'f';
     reg.mapCommand(findKeys, 'action', 'easyMotionFindChar', {});
     leaderRegistry.addBinding(findKeys, 'EasyMotion: find char', 'builtin');

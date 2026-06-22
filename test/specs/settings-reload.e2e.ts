@@ -326,6 +326,88 @@ describe('Settings hot-reload', function () {
         await browser.pause(300);
     });
 
+    it('re-enabling EasyMotion should restore bindings', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableEasyMotion = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableEasyMotion = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as Record<string, unknown> & {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim' };
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+            view.editor.setValue('hello world foo bar baz');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+            Vim.handleKey(adapter, '\\');
+            Vim.handleKey(adapter, '\\');
+            Vim.handleKey(adapter, 'w');
+            const overlay = activeDocument.querySelector(
+                '.vim-motions-easymotion',
+            );
+            return {
+                success: true,
+                hasOverlay: !!overlay,
+                hasLabels: (overlay?.children.length ?? 0) > 0,
+            };
+        })) as { success: boolean; hasOverlay: boolean; hasLabels: boolean };
+        expect(result).toHaveProperty('success', true);
+        expect(result).toHaveProperty('hasOverlay', true);
+        expect(result).toHaveProperty('hasLabels', true);
+        await browser.keys(['Escape']);
+        await browser.pause(200);
+    });
+
     it('changing scrolloff lines should update scroll margins', async function () {
         const getScrollMargins = async () =>
             (await browser.executeObsidian(({ app, obsidian }) => {

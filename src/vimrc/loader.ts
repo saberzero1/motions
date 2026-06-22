@@ -67,8 +67,46 @@ export function registerVimrcExCommands(vim: VimApi, app: App): void {
     });
 }
 
+export async function resolveLeaderKey(
+    app: App,
+    leaderRegistry: LeaderRegistry,
+): Promise<void> {
+    const path = getVimrcPath(app);
+    await resolveLeaderFromFile(app, path, leaderRegistry);
+}
+
+async function resolveLeaderFromFile(
+    app: App,
+    path: string,
+    leaderRegistry: LeaderRegistry,
+): Promise<void> {
+    const content = await readVimrcFile(app, path);
+    if (content === null) return;
+
+    for (const rawLine of content.split('\n')) {
+        const trimmed = rawLine.trim();
+        if (!trimmed || trimmed.startsWith('"')) continue;
+
+        const parsed = parseLine(trimmed);
+
+        if (
+            parsed?.type === 'let' &&
+            parsed.key === 'mapleader' &&
+            parsed.value
+        ) {
+            leaderRegistry.setLeaderKey(parsed.value);
+            continue;
+        }
+
+        if (parsed?.type === 'source' && parsed.path) {
+            await resolveLeaderFromFile(app, parsed.path, leaderRegistry);
+        }
+    }
+}
+
 export interface VimrcLoadResult {
     found: boolean;
+    ready: boolean;
     commandCount: number;
     path: string;
     maps: DeferredMap[];
@@ -98,7 +136,7 @@ export async function loadVimrc(
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     const cm = view ? getCmAdapter(view) : null;
     if (!cm) {
-        return { found: true, commandCount: 0, path, maps: [] };
+        return { found: true, ready: false, commandCount: 0, path, maps: [] };
     }
 
     registerVimrcExCommands(vim, app);
@@ -114,6 +152,7 @@ export async function loadVimrc(
 
     return {
         found: result.found,
+        ready: true,
         commandCount: result.commandCount,
         path,
         maps: result.deferredMaps,
