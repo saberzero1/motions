@@ -43,6 +43,18 @@ export default tseslint.config(
                     bundledDependencies: false,
                 },
             ],
+            'obsidianmd/ui/sentence-case': [
+                'error',
+                {
+                    brands: [
+                        'EasyMotion',
+                        'Markdown',
+                        'Powerline',
+                        'Vim',
+                        'Vim Motions',
+                    ],
+                },
+            ],
         },
         settings: {
             'import/core-modules': [

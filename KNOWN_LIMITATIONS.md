@@ -8,7 +8,7 @@ This document tracks known limitations, architectural constraints, and intention
 
 `d<leader><leader>w{label}` (delete to an EasyMotion target) does not work. EasyMotion is registered as an **action** (`defineAction`), not a **motion** (`defineMotion`). When `d` is pressed first, Vim enters operator-pending mode and expects a synchronous motion return. Actions are not dispatched in this context — the action callback never fires.
 
-Spike test `test/specs/spikes/spike6-operator-pending.e2e.ts` confirmed this: pressing `d` then triggering the action results in `hasCapturedState: false`. The operator-pending state prevents action execution entirely.
+Spike tests `test/specs/spikes/spike6-operator-pending.e2e.ts` and `test/specs/spikes/spike19-easymotion-visual.e2e.ts` (Q5) both confirmed this: pressing `d` then triggering the action results in `actionFired: false`. The operator-pending state prevents action execution entirely.
 
 A `defineMotion` approach is not viable either, because motions must return synchronously and EasyMotion requires async user input (waiting for a label keypress).
 

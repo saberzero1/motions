@@ -158,12 +158,42 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 
 Jump to any visible position with two keystrokes.
 
-| Keybinding                | Description                                  |
-| ------------------------- | -------------------------------------------- |
-| `<leader><leader>w`       | Label every word start in the viewport       |
-| `<leader><leader>j`       | Label every non-empty line                   |
-| `<leader><leader>f{char}` | Label every occurrence of `{char}`           |
-| `<leader><leader>h`       | Hint mode — label every clickable UI element |
+**Find motions:**
+| Keybinding | Description |
+| --- | --- |
+| `<leader><leader>f{char}` | Find `{char}` forward |
+| `<leader><leader>F{char}` | Find `{char}` backward |
+| `<leader><leader>s{char}` | Find `{char}` in both directions |
+| `<leader><leader>t{char}` | Till before `{char}` forward |
+| `<leader><leader>T{char}` | Till after `{char}` backward |
+
+**Word motions:**
+| Keybinding | Description |
+| --- | --- |
+| `<leader><leader>w` | Word start forward |
+| `<leader><leader>b` | Word start backward |
+| `<leader><leader>e` | End of word forward |
+| `<leader><leader>ge` | End of word backward |
+| `<leader><leader>W` | WORD start forward |
+| `<leader><leader>B` | WORD start backward |
+| `<leader><leader>E` | End of WORD forward |
+| `<leader><leader>gE` | End of WORD backward |
+
+**Line motions:**
+| Keybinding | Description |
+| --- | --- |
+| `<leader><leader>j` | Line down |
+| `<leader><leader>k` | Line up |
+
+**Search motions:**
+| Keybinding | Description |
+| --- | --- |
+| `<leader><leader>n` | Next search match forward |
+| `<leader><leader>N` | Next search match backward |
+
+All easymotion motions work in visual mode — `v` + easymotion extends the character selection, `V` + easymotion extends the line selection. Operator-pending mode (`d` + easymotion) is not supported due to a CM Vim limitation (see [known limitations](KNOWN_LIMITATIONS.md#easymotion-operator-pending-mode)).
+
+All easymotion actions can be remapped in `.obsidian.vimrc`. Bidirectional variants (`easyMotionBdWord`, `easyMotionBdFind`, etc.) and repeat (`easyMotionRepeat`) are also available as named actions.
 
 ### Hint mode (Vimium-style navigation)
 
@@ -243,6 +273,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Powerline-style status bar (on/off, default: off)
 - Vim mode display prompt — customizable text per mode (normal, insert, visual, replace)
 - EasyMotion (on/off)
+- EasyMotion dimming (on/off, default: on)
 - Hint mode (on/off)
 - Hint mode label characters (customizable)
 - Hint mode global hotkey (press-to-record, works in modals)

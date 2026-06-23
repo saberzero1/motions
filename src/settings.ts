@@ -51,6 +51,7 @@ export interface VimMotionsSettings {
     enablePowerline: boolean;
     modePrompts: ModePrompts;
     enableEasyMotion: boolean;
+    easyMotionDimming: boolean;
     enableHardWrap: boolean;
     enableTableNav: boolean;
     enableHintMode: boolean;
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enablePowerline: false,
     modePrompts: { ...DEFAULT_MODE_PROMPTS },
     enableEasyMotion: true,
+    easyMotionDimming: true,
     enableHardWrap: true,
     enableTableNav: true,
     enableHintMode: true,
@@ -201,7 +203,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Vim mode status bar')
             .setDesc(
-                'Show current vim mode (normal, insert, visual) in the status bar.',
+                'Show current Vim mode (normal, insert, visual) in the status bar.',
             )
             .addToggle((toggle) =>
                 toggle
@@ -231,7 +233,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Powerline-style status bar')
             .setDesc(
-                'Color the vim mode indicator with per-mode background colors and a triangular separator.',
+                'Color the Vim mode indicator with per-mode background colors and a triangular separator.',
             )
             .addToggle((toggle) =>
                 toggle
@@ -308,7 +310,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Easymotion')
+            .setName('EasyMotion')
             .setDesc(
                 'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
             )
@@ -319,6 +321,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.enableEasyMotion = value;
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('EasyMotion dimming')
+            .setDesc('Dim non-target text when EasyMotion is active.')
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.easyMotionDimming)
+                    .onChange(async (value) => {
+                        this.plugin.settings.easyMotionDimming = value;
+                        await this.plugin.saveSettings();
                     }),
             );
 

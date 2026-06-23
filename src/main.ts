@@ -5,7 +5,7 @@ import {
     VimMotionsSettingTab,
 } from './settings';
 
-import { registerEasyMotion } from './easymotion/easymotion';
+import { registerEasyMotion } from './easymotion/register';
 import {
     registerNavigationMotions,
     registerTableMotions,
@@ -64,7 +64,7 @@ export default class VimMotionsPlugin extends Plugin {
             )
         ) {
             new Notice(
-                'Vim motions requires vim mode. Enable it in settings → editor → vim key bindings.',
+                'Vim Motions requires Vim mode. Enable it in settings → editor → Vim key bindings.',
             );
             return;
         }
@@ -169,6 +169,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
+                this.settings.easyMotionDimming,
             );
         }
         if (this.settings.enableHintMode) {
@@ -313,6 +314,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
+                this.settings.easyMotionDimming,
             );
         }
         if (this.settings.enableHintMode && this.leaderRegistry) {
@@ -384,6 +386,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
+                this.settings.easyMotionDimming,
             );
         }
         if (this.settings.enableHintMode) {

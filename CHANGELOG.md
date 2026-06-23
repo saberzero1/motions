@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Full vim-easymotion default motion set** — all 17 default-mapped motions: find (`f`, `F`, `s`, `t`, `T`), word (`w`, `b`, `e`, `ge`, `W`, `B`, `E`, `gE`), line (`j`, `k`), search (`n`, `N`)
+- **Bidirectional easymotion variants** — `easyMotionBdWord`, `easyMotionBdEndWord`, `easyMotionBdWORD`, `easyMotionBdEndWORD`, `easyMotionBdLine`, `easyMotionBdTill` available as named actions for vimrc remapping
+- **Repeat last easymotion motion** — `easyMotionRepeat` action replays the most recent easymotion jump
+- **2-character combo labels** — SCTree algorithm assigns single-char labels to nearby targets and 2-char labels to distant targets when there are more targets than label characters (>26). Backspace resets after typing the first char of a 2-char label.
+- **Text dimming** — non-target text is dimmed when easymotion is active, making labels more visible. Controlled by **Settings → Vim Motions → EasyMotion dimming** (on by default).
+- **Visual mode support** — all easymotion motions work in visual mode. `v` + easymotion extends the character selection to the target, `V` + easymotion extends the line selection. Uses CM6 `dispatch({ selection })` to manipulate the selection range directly.
+- **EasyMotion dimming setting** — `easyMotionDimming` toggle in settings UI
+- Spike test `test/specs/spikes/spike19-easymotion-visual.e2e.ts` investigating CM Vim visual mode and operator-pending feasibility (6 questions answered)
+- E2E test file `test/specs/easymotion-comprehensive.e2e.ts` with 22 tests covering cursor landing (word, char, line, ge/gE), 2-char labels, dimming, repeat, visual mode, and edge cases (empty document, single word, empty lines, non-existent char)
+- E2E test file `test/specs/easymotion-visual.e2e.ts` with 4 tests covering visual mode overlay, charwise selection, linewise selection, and escape preservation
+- CSS classes: `.vim-motions-easymotion-shade` (dimming overlay), `.vim-motions-easymotion-label-first` and `.vim-motions-easymotion-label-second` (2-char label styling)
+
+### Changed
+
+- **EasyMotion module refactored** from single `easymotion.ts` (243 lines) into 6 focused files: `register.ts` (data-driven registration), `targets.ts` (direction-aware target finding), `labels.ts` (SCTree algorithm), `overlay.ts` (DOM rendering with dimming and re-render support), `keypress.ts` (key capture with 2-char narrowing), `types.ts` (interfaces)
+- `<leader><leader>w`, `<leader><leader>j`, `<leader><leader>f` are now forward-only, matching vim-easymotion parity. Previously these scanned the entire visible viewport regardless of cursor position.
+- `registerEasyMotion()` now accepts a `dimming` parameter and uses a data-driven `EASYMOTION_DEFS` array for registration instead of per-motion imperative code
+- `showOverlay()` returns an `OverlayHandle` with `updateLabels()` for dynamic re-rendering during 2-char label narrowing
+- `waitForLabel()` replaces `waitForKey()` as the primary label capture function, supporting multi-char labels, backspace reset, and narrowing callbacks
+- Removed `test/specs/easymotion-motions.e2e.ts` — superseded by `easymotion-comprehensive.e2e.ts` with correct async test patterns for char-input motions
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: EasyMotion operator-pending section updated with spike19 confirmation (`test/specs/spikes/spike19-easymotion-visual.e2e.ts` Q5: `actionFired: false`)
+
 ## [0.9.0] - 2026-06-23
 
 ### Added

@@ -248,6 +248,18 @@
     margin-right: 8px;
 }
 
+.vim-motions-easymotion-shade {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--background-primary);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 999;
+}
+
 .vim-motions-easymotion-label {
     position: absolute;
     left: var(--vim-motions-em-left);
@@ -262,4 +274,12 @@
     border-radius: 2px;
     z-index: 1001;
     pointer-events: none;
+}
+
+.vim-motions-easymotion-label-first {
+    font-weight: bold;
+}
+
+.vim-motions-easymotion-label-second {
+    opacity: 0.7;
 }
