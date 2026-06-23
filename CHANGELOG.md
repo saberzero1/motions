@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0]
+
 ### Added
 
 - **Configurable multi-line scan limit** — multi-line text objects (`i*`, `a*`, `i$`, etc.) now have a configurable scan range via **Settings → Vim Motions → Multi-line text object scan range** (5–200 lines, default: 20). Users working with long-form documents can increase the limit to match delimiters spanning more than 40 lines.
@@ -37,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `KNOWN_LIMITATIONS.md`: "`dG` leaves trailing newline" updated from "Skipped test, pending fix" to "Unfixable from plugin code" with investigation findings.
 - `KNOWN_LIMITATIONS.md`: "Dot-repeat of `cw`" and "`n`/`N` search wrap-around" updated from "pending fix" to "Confirmed codemirror-vim bug, not a test timing issue."
 
-## 0.8.0 - 2026-06-23
+## [0.8.0] - 2026-06-23
 
 ### Added
 
@@ -89,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tab close buttons (`.workspace-tab-header-inner-close-button`) are now targetable via hint mode.
 - Elements inside scrollable containers (e.g., settings content area) that are scrolled out of view no longer receive hint labels.
 
-## 0.7.0 - 2026-06-22
+## [0.7.0] - 2026-06-22
 
 ### Fixed
 
@@ -123,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `KNOWN_LIMITATIONS.md`: "EasyMotion leader key conflict with `mapCommand`" marked as fixed; added vimrc parser space-handling context.
 - `KNOWN_LIMITATIONS.md`: added "Visual mode on single-character text objects" section documenting a codemirror-vim edge case where `vi*` on `*x*` (1-char inner content) does not select correctly.
 
-## 0.6.0 - 2026-06-21
+## [0.6.0] - 2026-06-21
 
 ### Fixed
 
@@ -187,7 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README: added "Testing strategy" section describing the Neovim golden comparison system, test types (`[nvim]`/`[obsidian]`/Tier 2), and available test commands.
 - `KNOWN_LIMITATIONS.md`: added "Test-discovered behavioral discrepancies" section documenting 6 bugs found during edge-case test translation (`dG` trailing newline, `iB` nesting, `di*` on delimiter, dot-repeat of `cw`, `)` cursor off-by-one, `n`/`N` wrap-around).
 
-## 0.5.1 - 2026-06-19
+## [0.5.1] - 2026-06-19
 
 ### Fixed
 
