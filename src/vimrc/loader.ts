@@ -234,13 +234,19 @@ async function loadVimrcFile(
             });
         }
 
-        if (
+        const isTextwidthSet =
             parsed?.type === 'set' &&
             (parsed.key === 'textwidth' || parsed.key === 'tw') &&
-            parsed.value
-        ) {
+            parsed.value;
+
+        if (isTextwidthSet) {
             const tw = Number(parsed.value);
-            if (!isNaN(tw) && tw > 0) setTextwidth(tw);
+            if (!isNaN(tw) && tw > 0) {
+                setTextwidth(tw);
+                vim.setOption('textwidth', tw);
+            }
+            applied++;
+            continue;
         }
 
         try {

@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Configurable multi-line scan limit** — multi-line text objects (`i*`, `a*`, `i$`, etc.) now have a configurable scan range via **Settings → Vim Motions → Multi-line text object scan range** (5–200 lines, default: 20). Users working with long-form documents can increase the limit to match delimiters spanning more than 40 lines.
+- **Code block exclusion in delimiter scanning** — the multi-line delimiter scanner now skips lines inside fenced code blocks (` ``` ` fences). Delimiters like `**` inside code blocks are no longer matched as text object boundaries.
+- E2E test for delimiter scanning across code block boundaries (`di*` should not match delimiters inside fenced code blocks).
+- E2E test for `vi*` on single-character content (`*x*`), documenting the codemirror-vim visual mode limitation.
+
+### Fixed
+
+- **Scrolloff dynamic line height** — scrolloff margins now use `EditorView.defaultLineHeight` to measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height via CSS/themes.
+- `adjustRangeForVisualMode` no longer produces zero-width selections for single-character text object ranges — the −1 head compensation is skipped when the range is exactly 1 character wide. (The underlying codemirror-vim `makeCmSelection` bug still prevents `vi*` on `*x*` from selecting correctly, but `di*` on `*x*` now works as expected.)
+
+### Changed
+
+- `getTextwidth()` now reads directly from the plugin's internal `textwidthValue` instead of querying `vimApiRef.getOption('textwidth')`, avoiding a dual-source ambiguity where CM Vim's internal option state could return a stale default (80).
+- Vimrc loader skips `vim.handleEx()` for `set textwidth=N` lines and handles them entirely via `setTextwidth()` + `vim.setOption()`, preventing CM Vim's Ex handler from interfering with the plugin's textwidth state.
+- `syncTextwidthFromVim()` removed — the function read CM Vim's `getOption('textwidth')` which returned the stale default (80) during the `active-leaf-change` lifecycle, overwriting the correct vimrc-set value.
+- `findFenceLines()` and `findContainingBlock()` exported from `src/text-objects/code-block.ts` for reuse in delimiter scanning.
+- `MULTILINE_SCAN_LIMIT` constant removed from `delimiter.ts` — scan limit is now passed as a parameter through the text object factory chain (`createMultiLineDelimiterTextObject`, `createSmartAsteriskTextObject`, `registerTextObjects`).
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: "Scrolloff line height assumption" marked as fixed.
+- `KNOWN_LIMITATIONS.md`: "Multi-line delimiter scan limit" updated to note the limit is now configurable via settings.
+- `KNOWN_LIMITATIONS.md`: "Multi-line delimiter nesting" updated to note fenced code blocks are now excluded from the scan.
+- `KNOWN_LIMITATIONS.md`: "Visual mode on single-character text objects" updated from "Under investigation" to "Confirmed codemirror-vim limitation" with detailed root cause.
+- `KNOWN_LIMITATIONS.md`: "`set textwidth` via vimrc" root cause refined — identified CM Vim's `defineOption` callback resetting the value during editor initialization.
+- `KNOWN_LIMITATIONS.md`: "`dG` leaves trailing newline" updated from "Skipped test, pending fix" to "Unfixable from plugin code" with investigation findings.
+- `KNOWN_LIMITATIONS.md`: "Dot-repeat of `cw`" and "`n`/`N` search wrap-around" updated from "pending fix" to "Confirmed codemirror-vim bug, not a test timing issue."
+
 ## 0.8.0 - 2026-06-23
 
 ### Added

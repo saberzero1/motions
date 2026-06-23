@@ -57,6 +57,7 @@ export interface VimMotionsSettings {
     hintModeLabels: string;
     hintModeHotkey: string;
     scrolloffLines: number;
+    multilineScanLimit: number;
     easyMotionLabels: string;
     leaderBindings: LeaderBinding[];
 }
@@ -77,6 +78,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',
     scrolloffLines: 5,
+    multilineScanLimit: 20,
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
     leaderBindings: [],
 };
@@ -435,6 +437,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.scrolloffLines)
                     .onChange(async (value) => {
                         this.plugin.settings.scrolloffLines = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Multi-line text object scan range')
+            .setDesc(
+                'Maximum lines to scan in each direction for multi-line text objects (bold, italic, etc.). Higher values find longer spans.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(5, 200, 5)
+                    .setValue(this.plugin.settings.multilineScanLimit)
+                    .onChange(async (value) => {
+                        this.plugin.settings.multilineScanLimit = value;
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),

@@ -1,6 +1,13 @@
 import type { MotionFn, VimPos, VimState } from '../types/vim-api';
+import { findFenceLines } from './code-block';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
+
+const isLineInCodeBlock = (
+    line: number,
+    fences: { openLine: number; closeLine: number }[],
+): boolean =>
+    fences.some((pair) => line >= pair.openLine && line <= pair.closeLine);
 
 /**
  * Adjust a text object range for visual mode.
@@ -22,6 +29,8 @@ export function adjustRangeForVisualMode(
     const forward =
         to.line > from.line || (to.line === from.line && to.ch >= from.ch);
     if (!forward) return range;
+    // Skip adjustment for single-character ranges to avoid zero-width selection
+    if (from.line === to.line && to.ch - from.ch <= 1) return range;
     return [from, createPos(to.line, to.ch - 1)];
 }
 
@@ -95,9 +104,9 @@ const buildRange = (
  * Create a smart asterisk text object that disambiguates `**bold**` vs `*italic*`.
  * Tries `**` first; falls back to `*` if no `**` pair contains the cursor.
  */
-export function createSmartAsteriskTextObject(): MotionFn {
-    const doubleStar = createMultiLineDelimiterTextObject('**');
-    const singleStar = createMultiLineDelimiterTextObject('*');
+export function createSmartAsteriskTextObject(scanLimit = 20): MotionFn {
+    const doubleStar = createMultiLineDelimiterTextObject('**', scanLimit);
+    const singleStar = createMultiLineDelimiterTextObject('*', scanLimit);
 
     return (cm, head, motionArgs, vim, inputState) => {
         const doubleResult = doubleStar(cm, head, motionArgs, vim, inputState);
@@ -127,23 +136,26 @@ export function createDelimiterTextObject(delimiter: string): MotionFn {
     };
 }
 
-const MULTILINE_SCAN_LIMIT = 20;
-
 function findOpeningDelimiterBackward(
     cm: { getLine(n: number): string; firstLine(): number },
     delimiter: string,
     startLine: number,
     startCh: number,
+    scanLimit: number,
+    fences: { openLine: number; closeLine: number }[],
 ): { line: number; ch: number } | null {
     const firstLine = cm.firstLine();
-    const minLine = Math.max(firstLine, startLine - MULTILINE_SCAN_LIMIT);
+    const minLine = Math.max(firstLine, startLine - scanLimit);
 
-    const currentLine = cm.getLine(startLine);
-    const beforeCursor = currentLine.substring(0, startCh + 1);
-    const idx = beforeCursor.lastIndexOf(delimiter);
-    if (idx !== -1) return { line: startLine, ch: idx };
+    if (!isLineInCodeBlock(startLine, fences)) {
+        const currentLine = cm.getLine(startLine);
+        const beforeCursor = currentLine.substring(0, startCh + 1);
+        const idx = beforeCursor.lastIndexOf(delimiter);
+        if (idx !== -1) return { line: startLine, ch: idx };
+    }
 
     for (let line = startLine - 1; line >= minLine; line--) {
+        if (isLineInCodeBlock(line, fences)) continue;
         const text = cm.getLine(line);
         const found = text.lastIndexOf(delimiter);
         if (found !== -1) return { line, ch: found };
@@ -156,18 +168,23 @@ function findClosingDelimiterForward(
     delimiter: string,
     startLine: number,
     startCh: number,
+    scanLimit: number,
+    fences: { openLine: number; closeLine: number }[],
 ): { line: number; ch: number } | null {
     const lastLine = cm.lastLine();
-    const maxLine = Math.min(lastLine, startLine + MULTILINE_SCAN_LIMIT);
+    const maxLine = Math.min(lastLine, startLine + scanLimit);
 
-    const currentLine = cm.getLine(startLine);
-    const afterOpen = startCh + delimiter.length;
-    if (afterOpen < currentLine.length) {
-        const idx = currentLine.indexOf(delimiter, afterOpen);
-        if (idx !== -1) return { line: startLine, ch: idx };
+    if (!isLineInCodeBlock(startLine, fences)) {
+        const currentLine = cm.getLine(startLine);
+        const afterOpen = startCh + delimiter.length;
+        if (afterOpen < currentLine.length) {
+            const idx = currentLine.indexOf(delimiter, afterOpen);
+            if (idx !== -1) return { line: startLine, ch: idx };
+        }
     }
 
     for (let line = startLine + 1; line <= maxLine; line++) {
+        if (isLineInCodeBlock(line, fences)) continue;
         const text = cm.getLine(line);
         const found = text.indexOf(delimiter);
         if (found !== -1) return { line, ch: found };
@@ -177,6 +194,7 @@ function findClosingDelimiterForward(
 
 export function createMultiLineDelimiterTextObject(
     delimiter: string,
+    scanLimit = 20,
 ): MotionFn {
     const singleLine = createDelimiterTextObject(delimiter);
 
@@ -184,11 +202,15 @@ export function createMultiLineDelimiterTextObject(
         const singleResult = singleLine(cm, head, motionArgs, vim, inputState);
         if (singleResult) return singleResult;
 
+        const fences = findFenceLines(cm);
+
         const open = findOpeningDelimiterBackward(
             cm,
             delimiter,
             head.line,
             head.ch,
+            scanLimit,
+            fences,
         );
         if (!open) return null;
 
@@ -197,6 +219,8 @@ export function createMultiLineDelimiterTextObject(
             delimiter,
             open.line,
             open.ch,
+            scanLimit,
+            fences,
         );
         if (!close) return null;
 

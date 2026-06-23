@@ -20,7 +20,7 @@ The only potential path would be intercepting `d`/`c`/`y` keystrokes via `vim-ke
 
 ## Multi-line delimiter scan limit
 
-Multi-line text objects (`createMultiLineDelimiterTextObject`) scan at most 20 lines in each direction from the cursor (`MULTILINE_SCAN_LIMIT = 20` in `src/text-objects/delimiter.ts`). Bold, italic, or other delimited content spanning more than 40 lines total will not be found if the cursor is far from the opening delimiter.
+Multi-line text objects (`createMultiLineDelimiterTextObject`) scan a configurable number of lines in each direction from the cursor (default: 20). The limit can be changed in **Settings → Vim Motions → Multi-line text object scan range** (5–200 lines). Bold, italic, or other delimited content spanning more than twice the configured limit will not be found if the cursor is far from the opening delimiter.
 
 This limit exists for performance — scanning the entire document on every keystroke would cause latency.
 
@@ -28,7 +28,7 @@ This limit exists for performance — scanning the entire document on every keys
 
 The multi-line text object scanner uses a simple forward/backward search for the nearest delimiter. It has no nesting awareness. Overlapping or nested delimiters across lines (e.g., bold inside italic spanning multiple lines) may produce incorrect selections.
 
-Delimiters inside fenced code blocks are not excluded from the scan. If a code block contains the same delimiter characters, the text object may match across a code block boundary.
+Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded.
 
 ## Table navigation scope
 
@@ -41,9 +41,9 @@ Delimiters inside fenced code blocks are not excluded from the scan. If a code b
 
 Changing `.obsidian.vimrc` requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
 
-## Scrolloff line height assumption
+## ~~Scrolloff line height assumption~~ (Fixed)
 
-Scrolloff is implemented via CodeMirror 6's `EditorView.scrollMargins` facet. The margin is calculated as `lines * 22px`, assuming a 22px line height. If the user's font size or line height differs significantly from the default, the scrolloff distance may not correspond exactly to the configured number of lines.
+Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height. Note: `defaultLineHeight` returns an average line height — documents with mixed-height lines (e.g., headings with larger fonts) may not have pixel-perfect scrolloff distances.
 
 ## `set` option scope
 
@@ -82,14 +82,9 @@ Workaround: use `set insertmodeescape=jk` and other vimrc features that do work.
 
 `set textwidth=20` in `.obsidian.vimrc` does not change the wrap width used by the `gq`/`gw` operators. The `gq` operator continues to use the default textwidth (80).
 
-Diagnostic findings (spike17):
+Root cause: codemirror-vim's `defineOption` callback for `textwidth` fires during editor initialization with the default value (80), overwriting the plugin's `textwidthValue` that was set during vimrc loading. The plugin's vimrc loader calls `setTextwidth(20)` and `vim.setOption('textwidth', 20)`, but the CM Vim extension initializes for the first editor after vimrc loading completes, resetting the value. A guard (`textwidthSetExplicitly`) prevents the callback from overwriting explicit values, but CM Vim's internal option state still returns 80 for `getOption('textwidth')`.
 
-- `Vim.setOption('textwidth', 20)` at runtime correctly updates the wrap width — `gqq` wraps at 20 columns.
-- `handleEx(cm, 'set textwidth=20')` at runtime also works — `gqq` wraps at 20 columns.
-- `Vim.getOption('textwidth')` returns 20 after vimrc loading — CM Vim's option value IS updated.
-- Despite the option value being 20, `gqq` wraps at 80 — the plugin's internal `textwidthValue` is not updated by the vimrc pipeline.
-
-Root cause: codemirror-vim's `defineOption` for `textwidth` runs its own callback (which has per-instance scoping via a `cm === undefined` guard) rather than our plugin's callback during vimrc loading. Our callback registered via `registerVimOptions` during `onload()` is overwritten when the CM Vim extension initializes for the first editor.
+This is the same class of CM Vim lifecycle issue as `nmap L $` — values set during the `active-leaf-change` handler are overwritten when CM Vim finalizes its initialization.
 
 Workaround: set textwidth at runtime via Obsidian's developer console: `CodeMirrorAdapter.Vim.setOption('textwidth', 20)`.
 
@@ -216,15 +211,11 @@ These commands exist but behave differently from Neovim:
 
 ## Visual mode on single-character text objects
 
-**Status**: Under investigation.
+**Status**: Confirmed codemirror-vim limitation.
 
 `vi*` on `*x*` (single-character inner content) does not select `x` correctly. The visual selection lands on a `*` delimiter character instead.
 
-This appears to be a codemirror-vim edge case where a text object range that reduces to a zero-width anchor/head pair (`from.ch === to.ch`) interacts unexpectedly with visual mode's selection state. Multi-character inner content (`vi*` on `**bold**`, `vi$` on `$x + y$`, etc.) works correctly.
-
-The root cause is likely in how codemirror-vim's `makeCmSelection` handles the `headOffset` / `anchorOffset` calculation when anchor and head are at the same position, but further investigation into the CM Vim internals is needed.
-
-Text objects with 2+ characters of inner content are unaffected. The fix for the general visual mode off-by-one (see issue #4) does not cause this — the same behavior occurs without the adjustment.
+The plugin's `adjustRangeForVisualMode` correctly computes the range `(ch:7, ch:8)` for the inner content and skips the −1 head compensation for 1-char ranges. However, codemirror-vim's `makeCmSelection` still mishandles the selection — the bug is in CM Vim's internal visual mode selection logic, not in the range computation. Multi-character inner content (`vi*` on `**bold**`, `vi$` on `$x + y$`, etc.) works correctly.
 
 ## Test-discovered behavioral discrepancies
 
@@ -232,10 +223,12 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 ### `dG` leaves trailing newline
 
-**Status**: Skipped test, pending fix.
+**Status**: Unfixable from plugin code — codemirror-vim limitation.
 **Test**: `test/specs/vim-builtin/operator-combos.e2e.ts` — "dG should delete from current line to end of file"
 
 `dG` from line 2 of a 4-line document produces `'one\n'` instead of `'one'`. codemirror-vim's linewise delete preserves a trailing newline when deleting to end of file. Neovim does not leave a trailing newline.
+
+Investigation confirmed this cannot be fixed from plugin code: the built-in `d` operator is not overridable via `defineOperator`, `mapCommand` cannot intercept operator-pending sequences (`d` + motion), and `vim-keypress` fires after the deletion is already complete.
 
 ### ~~`iB` does not scope to innermost blockquote nesting level~~
 
@@ -247,10 +240,10 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 ### Dot-repeat of `cw` + typed text unreliable
 
-**Status**: Skipped test, pending fix.
+**Status**: Confirmed codemirror-vim bug, not a test timing issue.
 **Test**: `test/specs/vim-builtin/normal-editing.e2e.ts` — ". should repeat cw with typed text"
 
-`.` after `cw` followed by typing "new " does not reliably replay the inserted text. This may be a codemirror-vim timing issue with how insert-mode keystrokes are recorded for repeat, or a WDIO test timing issue where `browser.keys()` input is not captured by CM Vim's insert recording.
+`.` after `cw` followed by typing "new " does not reliably replay the inserted text. Investigation confirmed the test infrastructure is correct (adequate pauses, correct keystroke APIs, matches passing dot-repeat tests for `dd`, `dw`, `>>`). The issue is in codemirror-vim's insert recording mechanism — it does not reliably capture the inserted text when `cw` enters insert mode.
 
 ### `)` sentence motion cursor position at end of text
 
@@ -259,12 +252,12 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 `)` at the end of `'Only sentence.'` (ch=14) moves the cursor to ch=13 (on the period) instead of staying at ch=14. codemirror-vim's sentence motion clamps to the last character of the line rather than past it.
 
-### `n`/`N` search wrap-around unreliable in tests
+### `n`/`N` search wrap-around unreliable
 
-**Status**: Skipped test, pending fix.
+**Status**: Confirmed codemirror-vim bug, not a test timing issue.
 **Test**: `test/specs/vim-builtin/normal-search.e2e.ts` — "n should wrap to start when reaching end"
 
-After `/foo` search and pressing `n` twice, the cursor lands at an unexpected position. This may be a codemirror-vim incsearch state issue where the initial `/` search already advances past the first match, or a test timing issue with the async search dialog.
+After `/foo` search and pressing `n` twice, the cursor lands at an unexpected position. Investigation confirmed the test infrastructure is correct (adequate pauses, correct keystroke APIs, and `*`/`#` wrap-around tests pass with identical patterns). The issue is in codemirror-vim's incsearch state management — the cursor position after wrap-around is inconsistent when using `/` search followed by `n`/`N` repeats.
 
 ## Hint mode in the separate settings window (Obsidian 1.13+)
 

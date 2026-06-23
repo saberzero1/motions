@@ -16,50 +16,59 @@ import {
 } from './code-block';
 import { createInnerTagMotion, createAroundTagMotion } from './tag';
 
-export function registerTextObjects(reg: VimRegistration): void {
-    reg.defineMotion('markdownAsteriskInner', createSmartAsteriskTextObject());
+export function registerTextObjects(
+    reg: VimRegistration,
+    scanLimit = 20,
+): void {
+    reg.defineMotion(
+        'markdownAsteriskInner',
+        createSmartAsteriskTextObject(scanLimit),
+    );
     reg.mapCommand('i*', 'motion', 'markdownAsteriskInner', {
         textObjectInner: true,
     });
-    reg.defineMotion('markdownAsteriskAround', createSmartAsteriskTextObject());
+    reg.defineMotion(
+        'markdownAsteriskAround',
+        createSmartAsteriskTextObject(scanLimit),
+    );
     reg.mapCommand('a*', 'motion', 'markdownAsteriskAround', {});
 
     reg.defineMotion(
         'markdownItalicInner',
-        createMultiLineDelimiterTextObject('_'),
+        createMultiLineDelimiterTextObject('_', scanLimit),
     );
     reg.mapCommand('i_', 'motion', 'markdownItalicInner', {
         textObjectInner: true,
     });
     reg.defineMotion(
         'markdownItalicAround',
-        createMultiLineDelimiterTextObject('_'),
+        createMultiLineDelimiterTextObject('_', scanLimit),
     );
     reg.mapCommand('a_', 'motion', 'markdownItalicAround', {});
 
     reg.defineMotion(
         'markdownCodeInner',
-        createMultiLineDelimiterTextObject('`'),
+        createMultiLineDelimiterTextObject('`', scanLimit),
     );
     reg.mapCommand('i`', 'motion', 'markdownCodeInner', {
         textObjectInner: true,
     });
     reg.defineMotion(
         'markdownCodeAround',
-        createMultiLineDelimiterTextObject('`'),
+        createMultiLineDelimiterTextObject('`', scanLimit),
     );
     reg.mapCommand('a`', 'motion', 'markdownCodeAround', {});
 
     reg.defineMotion(
         'markdownMathInner',
-        createMultiLineDelimiterTextObject('$'),
+        createMultiLineDelimiterTextObject('$', scanLimit),
     );
     reg.mapCommand('i$', 'motion', 'markdownMathInner', {
         textObjectInner: true,
     });
     reg.defineMotion(
         'markdownMathAround',
-        createMultiLineDelimiterTextObject('$'),
+        createMultiLineDelimiterTextObject('$', scanLimit),
     );
     reg.mapCommand('a$', 'motion', 'markdownMathAround', {});
 
@@ -93,27 +102,27 @@ export function registerTextObjects(reg: VimRegistration): void {
 
     reg.defineMotion(
         'markdownStrikethroughInner',
-        createMultiLineDelimiterTextObject('~~'),
+        createMultiLineDelimiterTextObject('~~', scanLimit),
     );
     reg.mapCommand('i~', 'motion', 'markdownStrikethroughInner', {
         textObjectInner: true,
     });
     reg.defineMotion(
         'markdownStrikethroughAround',
-        createMultiLineDelimiterTextObject('~~'),
+        createMultiLineDelimiterTextObject('~~', scanLimit),
     );
     reg.mapCommand('a~', 'motion', 'markdownStrikethroughAround', {});
 
     reg.defineMotion(
         'markdownHighlightInner',
-        createMultiLineDelimiterTextObject('=='),
+        createMultiLineDelimiterTextObject('==', scanLimit),
     );
     reg.mapCommand('i=', 'motion', 'markdownHighlightInner', {
         textObjectInner: true,
     });
     reg.defineMotion(
         'markdownHighlightAround',
-        createMultiLineDelimiterTextObject('=='),
+        createMultiLineDelimiterTextObject('==', scanLimit),
     );
     reg.mapCommand('a=', 'motion', 'markdownHighlightAround', {});
 

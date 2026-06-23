@@ -542,7 +542,7 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
 
         unsupported(
             'gqq should wrap at 20 columns',
-            'CM Vim lifecycle: textwidth set via vimrc does not propagate to gq operator — getOption returns 20 but the operator reads 80 (spike17 Diag 4/5 confirmed)',
+            'CM Vim lifecycle: defineOption callback resets textwidthValue to 80 during editor initialization, overwriting the vimrc-set value',
             async function () {
                 await setupEditor(
                     'This is a line that exceeds twenty characters by a lot',

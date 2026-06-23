@@ -22,7 +22,7 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 | `io` / `ao`         | Inside/around callouts (`> [!type]`)                     |
 | `it` / `at`         | Inside/around HTML/XML tags                              |
 
-All delimiter-based text objects work across multiple lines.
+All delimiter-based text objects work across multiple lines (configurable scan range, default: 20 lines in each direction). Delimiters inside fenced code blocks are excluded from the scan.
 
 ### Structural navigation
 
@@ -51,13 +51,13 @@ Reformat paragraphs with Markdown-aware line wrapping — something Obsidian's b
 
 The default wrap width is 80 columns. You can change it at runtime via Obsidian's developer console: `CodeMirrorAdapter.Vim.setOption('textwidth', 100)`. Note: `set textwidth=N` in `.obsidian.vimrc` is parsed but does not currently propagate to the `gq`/`gw` operators due to a [known limitation](KNOWN_LIMITATIONS.md#set-textwidth-via-vimrc-does-not-affect-gq).
 
-Behaviour:
+Behavior:
 
 - Splits lines exceeding the textwidth at word boundaries.
 - Preserves Markdown structural prefixes on continuation lines:
     - **Blockquotes** (`>`) — wrapped lines keep the `> ` prefix.
     - **Bullet lists** (`- `, `* `, `+ `) — wrapped lines are indented to align with the text.
-    - **Numbered lists** (`1. `) — same alignment behaviour.
+    - **Numbered lists** (`1. `) — same alignment behavior.
     - **Nested structures** (`> - text`) — both prefixes are preserved.
 - Merges short lines with matching prefixes back into the preceding line when they fit within the textwidth, producing a proper paragraph-reflow effect.
 - Blank lines act as paragraph separators — wrapping stops and resumes at each paragraph.
@@ -188,7 +188,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Which-key hints** — when you press the leader key and pause, a floating overlay shows all available leader bindings.
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
-- **Scrolloff** — configurable number of lines to keep visible above/below the cursor.
+- **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
 - **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc.
 - **Settings hot-reload** — toggle features on and off without restarting Obsidian.
 - **Built-in `.obsidian.vimrc`** — load key mappings and settings without needing obsidian-vimrc-support.
@@ -247,6 +247,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Hint mode label characters (customizable)
 - Hint mode global hotkey (press-to-record, works in modals)
 - Scrolloff lines (0–20, default: 5)
+- Multi-line text object scan range (5–200, default: 20)
 - EasyMotion label characters (customizable)
 - Leader key bindings (add/remove key-to-command mappings without editing vimrc)
 

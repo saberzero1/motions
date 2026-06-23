@@ -25,7 +25,7 @@ import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintModeAction } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
-import { registerVimOptions, syncTextwidthFromVim } from './vim/options';
+import { registerVimOptions } from './vim/options';
 import { VimRegistration } from './vim/registration';
 import {
     ChangeList,
@@ -127,7 +127,6 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     this.vimrcMaps = vimrcResult.maps;
                     applyVimrcMaps(vim, this.vimrcMaps);
-                    syncTextwidthFromVim(vim);
                     this.reapplySettingsLeaderBindings(vim);
                     this.reregisterLeaderFeatures();
                     this.rebuildWhichKey();
@@ -141,7 +140,10 @@ export default class VimMotionsPlugin extends Plugin {
 
         // --- Feature registrations ---
         if (this.settings.enableTextObjects) {
-            registerTextObjects(this.registration);
+            registerTextObjects(
+                this.registration,
+                this.settings.multilineScanLimit,
+            );
         }
         if (this.settings.enableNavigation) {
             registerNavigationMotions(this.registration);
@@ -282,7 +284,10 @@ export default class VimMotionsPlugin extends Plugin {
         registerObCommand(this.registration, this.app);
 
         if (this.settings.enableTextObjects) {
-            registerTextObjects(this.registration);
+            registerTextObjects(
+                this.registration,
+                this.settings.multilineScanLimit,
+            );
         }
         if (this.settings.enableNavigation) {
             registerNavigationMotions(this.registration);

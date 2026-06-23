@@ -159,5 +159,22 @@ describe('Advanced text objects (Phase 1.2)', function () {
                 'before\n```js\ncode\n```\nafter',
             );
         });
+
+        it('di* should not match delimiters inside fenced code block', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue(
+                    '**bold\n```\n**not a match**\n```\nbold**',
+                );
+                view.editor.setCursor(0, 3);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            await vimKeys('d', 'i', '*');
+            expect(await getEditorValue()).toBe('****');
+        });
     });
 });

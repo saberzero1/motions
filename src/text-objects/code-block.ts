@@ -3,7 +3,7 @@ import { adjustRangeForVisualMode } from './delimiter';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 
-function findFenceLines(cm: {
+export function findFenceLines(cm: {
     getLine: (n: number) => string;
     lastLine: () => number;
 }): { openLine: number; closeLine: number }[] {
@@ -29,7 +29,7 @@ function findFenceLines(cm: {
     return pairs;
 }
 
-function findContainingBlock(
+export function findContainingBlock(
     pairs: { openLine: number; closeLine: number }[],
     cursorLine: number,
 ): { openLine: number; closeLine: number } | null {
