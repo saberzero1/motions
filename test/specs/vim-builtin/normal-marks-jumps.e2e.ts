@@ -282,6 +282,19 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             await vimKeys('%');
             expect((await getCursorPos()).ch).toBe(4);
         });
+
+        it('% should not match bracket inside string', async function () {
+            await setupEditor('x = ")" + foo()', { line: 0, ch: 0 });
+            await vimKeys('%');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(0);
+        });
+
+        it('% should still work on bracket not in string', async function () {
+            await setupEditor('foo(bar)', { line: 0, ch: 3 });
+            await vimKeys('%');
+            expect((await getCursorPos()).ch).toBe(7);
+        });
     });
 
     describe('gg with count', function () {

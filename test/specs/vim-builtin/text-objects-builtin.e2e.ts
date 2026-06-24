@@ -254,6 +254,38 @@ describe('Built-in text objects (Tier 1)', function () {
         });
     });
 
+    describe('multiline inner bracket (Neovim parity)', function () {
+        it('di{ across lines should preserve bracket lines', async function () {
+            await setupEditor('a{\n\tbar\n}b', { line: 1, ch: 1 });
+            await vimKeys('d', 'i', '{');
+            expect(await getEditorValue()).toBe('a{\n}b');
+        });
+
+        it('di[ across lines should preserve bracket lines', async function () {
+            await setupEditor('a[\n\tcontent\n]b', { line: 1, ch: 1 });
+            await vimKeys('d', 'i', '[');
+            expect(await getEditorValue()).toBe('a[\n]b');
+        });
+
+        it('di< across lines should preserve bracket lines', async function () {
+            await setupEditor('a<\n\tcontent\n>b', { line: 1, ch: 1 });
+            await vimKeys('d', 'i', '<');
+            expect(await getEditorValue()).toBe('a<\n>b');
+        });
+
+        it('di{ on same line should still collapse', async function () {
+            await setupEditor('a{ hello }b', { line: 0, ch: 5 });
+            await vimKeys('d', 'i', '{');
+            expect(await getEditorValue()).toBe('a{}b');
+        });
+
+        it('di[ on same line should still collapse', async function () {
+            await setupEditor('a[ hello ]b', { line: 0, ch: 5 });
+            await vimKeys('d', 'i', '[');
+            expect(await getEditorValue()).toBe('a[]b');
+        });
+    });
+
     describe('i[ / a[ edge cases', function () {
         it('di[ with nested brackets should delete innermost', async function () {
             await setupEditor('[outer [inner] more]', { line: 0, ch: 10 });

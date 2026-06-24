@@ -116,6 +116,18 @@ describe('Operator-pending combinations (Tier 1)', function () {
             expect(await getEditorValue()).toBe('hello rld');
         });
 
+        it('db across lines should include leading whitespace', async function () {
+            await setupEditor(' word1\nword2', { line: 1, ch: 0 });
+            await vimKeys('d', 'b');
+            expect(await getEditorValue()).toBe('word2');
+        });
+
+        it('d2w across lines should include leading whitespace', async function () {
+            await setupEditor(' word1\nword2', { line: 0, ch: 1 });
+            await vimKeys('d', '2', 'w');
+            expect(await getEditorValue()).toBe('');
+        });
+
         it('d$ with cursor in middle should delete rest of line', async function () {
             await setupEditor('abcdef', { line: 0, ch: 2 });
             await vimKeys('d', '$');

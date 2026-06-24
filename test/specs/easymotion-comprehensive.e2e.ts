@@ -644,7 +644,6 @@ describe('EasyMotion comprehensive', function () {
 
         it('f with non-existent char should produce no overlay', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
-            // f starts async waitForKey, send the char via browser.keys
             await triggerEasyMotion('hello world', { line: 0, ch: 0 }, [
                 '\\',
                 '\\',
@@ -659,6 +658,101 @@ describe('EasyMotion comprehensive', function () {
                 return !overlay || overlay.children.length === 0;
             })) as boolean;
             expect(overlayGone).toBe(true);
+        });
+    });
+
+    describe('operator-pending easymotion', function () {
+        it('d + easymotion w should delete to target', async function () {
+            const result = await triggerEasyMotion(
+                'alpha beta gamma delta',
+                { line: 0, ch: 0 },
+                ['d', '\\', '\\', 'w'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+            await browser.keys([result.labels[1]!]);
+            await browser.pause(500);
+            const text = (await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                return view?.editor.getValue() ?? '';
+            })) as string;
+            expect(text).not.toBe('alpha beta gamma delta');
+            expect(text.length).toBeLessThan('alpha beta gamma delta'.length);
+        });
+
+        it('y + easymotion w should yank to target without deleting', async function () {
+            const result = await triggerEasyMotion(
+                'alpha beta gamma delta',
+                { line: 0, ch: 0 },
+                ['y', '\\', '\\', 'w'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(500);
+            const state = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    const Vim = (
+                        window as unknown as {
+                            CodeMirrorAdapter?: {
+                                Vim?: Record<
+                                    string,
+                                    (...args: unknown[]) => unknown
+                                >;
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    const controller = Vim?.getRegisterController() as
+                        | Record<string, (...args: unknown[]) => unknown>
+                        | undefined;
+                    const reg = controller?.getRegister('"') as {
+                        toString: () => string;
+                    } | null;
+                    return {
+                        text: view?.editor.getValue() ?? '',
+                        register: reg?.toString() ?? '',
+                    };
+                },
+            )) as { text: string; register: string };
+            expect(state.text).toBe('alpha beta gamma delta');
+            expect(state.register.length).toBeGreaterThan(0);
+        });
+
+        it('c + easymotion w should change to target and enter insert mode', async function () {
+            const result = await triggerEasyMotion(
+                'alpha beta gamma delta',
+                { line: 0, ch: 0 },
+                ['c', '\\', '\\', 'w'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(500);
+            const state = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'no view' };
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm as Record<string, unknown> | undefined;
+                    const vim = (adapter?.state as Record<string, unknown>)
+                        ?.vim as Record<string, boolean> | undefined;
+                    return {
+                        text: view.editor.getValue(),
+                        insertMode: vim?.insertMode ?? false,
+                    };
+                },
+            )) as { text: string; insertMode: boolean };
+            expect(state.text.length).toBeLessThan(
+                'alpha beta gamma delta'.length,
+            );
+            expect(state.insertMode).toBe(true);
+            await sendVimEscape();
         });
     });
 });
