@@ -43,7 +43,7 @@ export function installVimBridge(): void {
     // the bridge to point at OUR fork's Vim so that register
     // introspection, handleKey, and all API access hits the same
     // state machine that the ViewPlugin uses.
-    win.CodeMirrorAdapter.Vim = Vim as unknown as VimApi;
+    win.CodeMirrorAdapter.Vim = Vim;
 }
 
 /**
@@ -64,9 +64,7 @@ export function getBundledVimApi(): VimApi {
  */
 export function getBundledCmAdapter(editorView: EditorView): CmAdapter | null {
     try {
-        // Cast through unknown to bridge duplicate @codemirror/view types
-        // (fork's copy vs Obsidian's copy)
-        const cm = getCM(editorView as unknown as Parameters<typeof getCM>[0]);
+        const cm = getCM(editorView);
         return (cm as unknown as CmAdapter) ?? null;
     } catch {
         return null;

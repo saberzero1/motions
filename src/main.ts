@@ -70,7 +70,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         const vim = getVimApi();
         if (!vim) {
-            new Notice('Vim Motions: could not initialise vim layer.');
+            new Notice('Vim Motions: could not initialise Vim layer.');
             return;
         }
 

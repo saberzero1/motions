@@ -169,7 +169,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     'These improvements are only active when Obsidian\u2019s built-in Vim mode is off.',
             });
             notice.createEl('p', {
-                text: 'Go to Settings \u2192 Editor \u2192 Vim key bindings and turn it off, then reload Obsidian.',
+                text: 'Go to settings \u2192 editor \u2192 Vim key bindings and turn it off, then reload Obsidian.',
             });
         }
 

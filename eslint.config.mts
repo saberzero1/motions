@@ -49,6 +49,7 @@ export default tseslint.config(
                     brands: [
                         'EasyMotion',
                         'Markdown',
+                        'Obsidian',
                         'Powerline',
                         'Vim',
                         'Vim Motions',

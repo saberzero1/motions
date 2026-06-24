@@ -31,9 +31,7 @@ export function getCmAdapter(view: MarkdownView): CmAdapter | null {
         if (!editorView) return null;
 
         // Built-in vim path: editorView.cm is the CM5-compat adapter
-        const builtinAdapter = (editorView as Record<string, unknown>).cm as
-            | CmAdapter
-            | undefined;
+        const builtinAdapter = editorView.cm as CmAdapter | undefined;
         if (builtinAdapter) return builtinAdapter;
 
         // Bundled vim path: the vim ViewPlugin sets view.cm on the EditorView
