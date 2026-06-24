@@ -298,8 +298,17 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 ## Requirements
 
 - Obsidian v1.1.1 or later
-- Vim mode enabled (**Settings → Editor → Vim key bindings**) for built-in mode, or disabled to use the plugin's bundled vim fork with additional Neovim-parity fixes
 - Desktop only (mobile support planned for a future release)
+
+### Recommended setup
+
+**Disable** Obsidian's built-in Vim mode (**Settings → Editor → Vim key bindings → off**). When built-in vim is off, Vim Motions provides its own enhanced vim engine (a [fork of codemirror-vim](https://github.com/saberzero1/codemirror-vim)) with:
+
+- **Neovim-correct behavior** for `dd` cursor positioning, `J` join whitespace, `di{` multiline brackets, `dj`/`dk` at document boundaries, `:s` cursor, `%` string-awareness, `db`/`d2w` cross-line whitespace, and more
+- **Async motion support** enabling native operator-pending easymotion (`d` + easymotion, `c` + easymotion, `y` + easymotion)
+- **Theme-aligned cursor styling** using Obsidian's CSS variables (`--interactive-accent`)
+
+The plugin also works with built-in vim mode enabled — it extends whatever vim engine is active. But the fork provides a more accurate Vim experience.
 
 ## Development
 
