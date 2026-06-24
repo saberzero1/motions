@@ -85,14 +85,20 @@ interface EasyMotionDef {
     createTrigger: MotionTriggerFactory;
 }
 
-function wordTrigger(direction: Direction, bigWord: boolean): MotionTriggerFactory {
+function wordTrigger(
+    direction: Direction,
+    bigWord: boolean,
+): MotionTriggerFactory {
     return (_app, labels, shade) =>
         createMotionTrigger(labels, shade, (cm) =>
             findWordStartTargets(cm, direction, bigWord),
         );
 }
 
-function wordEndTrigger(direction: Direction, bigWord: boolean): MotionTriggerFactory {
+function wordEndTrigger(
+    direction: Direction,
+    bigWord: boolean,
+): MotionTriggerFactory {
     return (_app, labels, shade) =>
         createMotionTrigger(labels, shade, (cm) =>
             findWordEndTargets(cm, direction, bigWord),

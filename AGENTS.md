@@ -17,6 +17,7 @@
 ### Dual-vim architecture
 
 The plugin operates in two modes:
+
 - **Built-in vim mode**: When Obsidian's vim mode is enabled (`Settings → Editor → Vim key bindings`), the plugin uses Obsidian's bundled codemirror-vim via `window.CodeMirrorAdapter.Vim`.
 - **Bundled fork mode**: When built-in vim is disabled, the plugin registers the fork as a CM6 extension via `registerEditorExtension()` and installs a bridge at `window.CodeMirrorAdapter.Vim` so ecosystem plugins (obsidian-vimrc-support, vim-im-control, etc.) can still discover the Vim API at the canonical location.
 
@@ -108,10 +109,10 @@ The full e2e suite (`npm run test:e2e`) runs 57 spec files and takes approximate
 
 - Use a timeout of at least **900000 ms** (15 minutes) to avoid premature termination.
 - To run a subset, use `--spec` to target specific files:
-  ```bash
-  npx wdio run ./wdio.conf.mts --spec test/specs/vim-builtin/operator-combos.e2e.ts
-  npx wdio run ./wdio.conf.mts --spec 'test/specs/vim-builtin/*.e2e.ts'
-  ```
+    ```bash
+    npx wdio run ./wdio.conf.mts --spec test/specs/vim-builtin/operator-combos.e2e.ts
+    npx wdio run ./wdio.conf.mts --spec 'test/specs/vim-builtin/*.e2e.ts'
+    ```
 - The `test/specs/vim-builtin/` directory (~7 min) covers core Vim behavior and is the most relevant subset after fork changes.
 - Individual spec files typically complete in 30–90 seconds.
 

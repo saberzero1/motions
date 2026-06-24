@@ -11,8 +11,6 @@ const DEFAULT_MODE_LABELS: Record<string, string> = {
     replace: 'REPLACE',
 };
 
-
-
 export interface VimModeTrackerOptions {
     chordDisplay: boolean;
     powerline: boolean;
@@ -130,7 +128,7 @@ export class VimModeTracker {
         const macro = vim.getMacroState();
         const prev = this.recording;
         this.recording = macro.isRecording
-            ? macro.latestRegister ?? '?'
+            ? (macro.latestRegister ?? '?')
             : null;
         if (this.recording !== prev) {
             this.updateDisplay();

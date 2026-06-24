@@ -80,7 +80,6 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content'],
     },
 
-
     {
         testPattern: ':join should join lines',
         description: ':join cursor position differs after join',
@@ -100,7 +99,8 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content', 'cursor'],
     },
     {
-        testPattern: 'dw on empty line before whitespace should place cursor correctly',
+        testPattern:
+            'dw on empty line before whitespace should place cursor correctly',
         description:
             'dw on empty line: cursor goes to ch:0 instead of ch:1. Neovim places cursor at second char of whitespace-only line.',
         reason: 'codemirror-vim cursor positioning after dw on empty line',
@@ -121,7 +121,8 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content'],
     },
     {
-        testPattern: 'db should delete across line boundary including whitespace',
+        testPattern:
+            'db should delete across line boundary including whitespace',
         description:
             'db from line start keeps leading space. Neovim deletes from previous word start through newline, removing leading whitespace.',
         reason: 'codemirror-vim b motion cross-line does not include leading whitespace',

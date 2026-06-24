@@ -380,7 +380,8 @@ export const SUITES: SuiteDefinition[] = [
             },
             {
                 name: 'N after / search should go to previous match',
-                content: 'word\n(word)\n{word\nword.\n\nword search\n}word\nword\nword',
+                content:
+                    'word\n(word)\n{word\nword.\n\nword search\n}word\nword\nword',
                 cursor: { line: 5, ch: 5 },
                 keys: '/word\nN',
             },

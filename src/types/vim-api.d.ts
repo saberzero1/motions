@@ -214,12 +214,14 @@ export interface VimApi {
         actionCommand: unknown;
     };
 
-    getSearchState(cm: CmAdapter): {
-        setReversed(reversed: boolean): void;
-        isReversed(): boolean | undefined;
-        getQuery(): RegExp;
-        setQuery(query: string | RegExp): void;
-    } | undefined;
+    getSearchState(cm: CmAdapter):
+        | {
+              setReversed(reversed: boolean): void;
+              isReversed(): boolean | undefined;
+              getQuery(): RegExp;
+              setQuery(query: string | RegExp): void;
+          }
+        | undefined;
 
     getJumpList(): {
         cachedCursor?: VimPos;
