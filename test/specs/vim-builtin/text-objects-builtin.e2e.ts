@@ -208,10 +208,10 @@ describe('Built-in text objects (Tier 1)', function () {
             expect(await getEditorValue()).toBe('(outer () more)');
         });
 
-        it('di( across lines should delete contents', async function () {
+        it('di( across lines should delete contents (preserves bracket lines)', async function () {
             await setupEditor('(\nhello\n)', { line: 1, ch: 0 });
             await vimKeys('d', 'i', '(');
-            expect(await getEditorValue()).toBe('()');
+            expect(await getEditorValue()).toBe('(\n)');
         });
 
         it('di( with empty parens should not change', async function () {

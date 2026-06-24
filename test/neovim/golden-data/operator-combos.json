@@ -1,7 +1,7 @@
 {
     "suite": "operator-combos",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-21T01:20:08.034Z",
+    "recorded_at": "2026-06-24T13:14:13.726Z",
     "cases": [
         {
             "name": "dw should delete to next word",
@@ -441,6 +441,101 @@
             }
         },
         {
+            "name": "dd should preserve cursor column",
+            "initial": {
+                "content": "  hello\n  world\n  third",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "dd",
+            "result": {
+                "content": "  world\n  third",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2dd should preserve cursor column",
+            "initial": {
+                "content": "  hello\n  world\n  third\n  fourth",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "2dd",
+            "result": {
+                "content": "  third\n  fourth",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dj should preserve cursor column",
+            "initial": {
+                "content": "  aaa\n  bbb\n  ccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "dj",
+            "result": {
+                "content": "  ccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dk should preserve cursor column",
+            "initial": {
+                "content": "  aaa\n  bbb\n  ccc",
+                "cursor": {
+                    "line": 1,
+                    "ch": 4
+                }
+            },
+            "keys": "dk",
+            "result": {
+                "content": "  ccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd should clamp column to shorter line",
+            "initial": {
+                "content": "long line here\nhi\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "dd",
+            "result": {
+                "content": "hi\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
             "name": "J should join lines with space",
             "initial": {
                 "content": "hello\nworld",
@@ -455,6 +550,63 @@
                 "cursor": {
                     "line": 0,
                     "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "J should strip trailing whitespace before join",
+            "initial": {
+                "content": "hello \n    world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "J",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "J should strip leading whitespace from next line",
+            "initial": {
+                "content": "hello\n    world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "J",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3J should join 3 lines stripping whitespace",
+            "initial": {
+                "content": "aaa \n  bbb\nccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3J",
+            "result": {
+                "content": "aaa bbb ccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
                 },
                 "mode": "normal"
             }
@@ -512,6 +664,101 @@
                 "cursor": {
                     "line": 0,
                     "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dw on empty line before whitespace should place cursor correctly",
+            "initial": {
+                "content": "\n  \nword",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dw",
+            "result": {
+                "content": "  \nword",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d2w should delete across line boundary",
+            "initial": {
+                "content": " word1\nword2",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "d2w",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dge on empty lines should delete all",
+            "initial": {
+                "content": "\n\n",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "dge",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "db should delete across line boundary including whitespace",
+            "initial": {
+                "content": " word1\nword2 ",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "db",
+            "result": {
+                "content": "word2 ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "% should skip quoted brackets",
+            "initial": {
+                "content": "(a\")\"b)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "%",
+            "result": {
+                "content": "(a\")\"b)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
                 },
                 "mode": "normal"
             }

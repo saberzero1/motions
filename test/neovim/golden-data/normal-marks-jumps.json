@@ -1,7 +1,7 @@
 {
     "suite": "normal-marks-jumps",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-21T01:20:08.018Z",
+    "recorded_at": "2026-06-24T13:14:21.822Z",
     "cases": [
         {
             "name": "} should move to next empty line",
@@ -246,6 +246,25 @@
                 "cursor": {
                     "line": 0,
                     "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "N after / search should go to previous match",
+            "initial": {
+                "content": "word\n(word)\n{word\nword.\n\nword search\n}word\nword\nword",
+                "cursor": {
+                    "line": 5,
+                    "ch": 5
+                }
+            },
+            "keys": "/word\nN",
+            "result": {
+                "content": "word\n(word)\n{word\nword.\n\nword search\n}word\nword\nword",
+                "cursor": {
+                    "line": 5,
+                    "ch": 0
                 },
                 "mode": "normal"
             }

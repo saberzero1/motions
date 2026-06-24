@@ -80,12 +80,7 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content'],
     },
 
-    {
-        testPattern: ':s/old/new/g should replace all',
-        description: ':s/g cursor position differs after global substitute',
-        reason: 'codemirror-vim handleEx places cursor at last replacement, Neovim at column 0',
-        fields: ['cursor'],
-    },
+
     {
         testPattern: ':join should join lines',
         description: ':join cursor position differs after join',
@@ -103,6 +98,48 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         description: 'gq wrapping differs from Neovim',
         reason: 'Plugin uses Markdown-aware wrapping at textwidth 80; Neovim uses plain-text formatting with textwidth 0',
         fields: ['content', 'cursor'],
+    },
+    {
+        testPattern: 'dw on empty line before whitespace should place cursor correctly',
+        description:
+            'dw on empty line: cursor goes to ch:0 instead of ch:1. Neovim places cursor at second char of whitespace-only line.',
+        reason: 'codemirror-vim cursor positioning after dw on empty line',
+        fields: ['cursor'],
+    },
+    {
+        testPattern: 'd2w should delete across line boundary',
+        description:
+            'd2w leaves leading space instead of deleting entire content. Neovim deletes from cursor through second word across newline.',
+        reason: 'codemirror-vim dw cross-line word count boundary',
+        fields: ['content'],
+    },
+    {
+        testPattern: 'dge on empty lines should delete all',
+        description:
+            'dge on double-empty-lines leaves one newline. Neovim deletes both empty lines entirely.',
+        reason: 'codemirror-vim ge motion on empty lines deletes one fewer newline',
+        fields: ['content'],
+    },
+    {
+        testPattern: 'db should delete across line boundary including whitespace',
+        description:
+            'db from line start keeps leading space. Neovim deletes from previous word start through newline, removing leading whitespace.',
+        reason: 'codemirror-vim b motion cross-line does not include leading whitespace',
+        fields: ['content', 'cursor'],
+    },
+    {
+        testPattern: '% should skip quoted brackets',
+        description:
+            '% goes to ch:9 instead of ch:6. Neovim skips brackets inside double-quoted strings when seeking match.',
+        reason: 'codemirror-vim % does not skip brackets inside string literals',
+        fields: ['cursor'],
+    },
+    {
+        testPattern: 'N after / search should go to previous match',
+        description:
+            'N cursor at (1,1) instead of (2,3). Neovim N goes to previous search match from search start position.',
+        reason: 'codemirror-vim jumplist/search state differs for N after / search',
+        fields: ['cursor'],
     },
 ];
 

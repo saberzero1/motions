@@ -98,10 +98,10 @@ describe('Operator-pending combinations (Tier 1)', function () {
             expect(await getEditorValue()).toBe('three');
         });
 
-        it('dj on last line should delete just that line', async function () {
+        it('dj on last line should be no-op (matches Neovim)', async function () {
             await setupEditor('one\ntwo', { line: 1, ch: 0 });
             await vimKeys('d', 'j');
-            expect(await getEditorValue()).toBe('one');
+            expect(await getEditorValue()).toBe('one\ntwo');
         });
 
         it('de should delete to end of word inclusive', async function () {
