@@ -9,10 +9,6 @@
  * the Vim API at the canonical location.
  */
 
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion --
-   The fork bundles its own @codemirror copies. TypeScript sees the fork's
-   Extension/EditorView as different types from Obsidian's copies even though
-   they are structurally identical. Casts through unknown are required. */
 import { vim, Vim, getCM } from '@replit/codemirror-vim';
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
@@ -28,9 +24,7 @@ let bundledActive = false;
  */
 export function createBundledVimExtension(): Extension {
     bundledActive = true;
-    // vim() returns Extension from the fork's @codemirror/state copy;
-    // cast to our copy's Extension via unknown (structurally identical).
-    return vim() as unknown as Extension;
+    return vim();
 }
 
 /**
@@ -70,9 +64,9 @@ export function getBundledVimApi(): VimApi {
  */
 export function getBundledCmAdapter(editorView: EditorView): CmAdapter | null {
     try {
-        // getCM expects the fork's EditorView copy; cast via unknown
-        // to bridge the duplicate @codemirror/view type boundary.
-        const cm = getCM(editorView as unknown as Parameters<typeof getCM>[0]);
+        const cm = getCM(
+            editorView as unknown as Parameters<typeof getCM>[0], // cross-package type boundary
+        );
         return (cm as unknown as CmAdapter) ?? null;
     } catch {
         return null;

@@ -34,6 +34,9 @@ export default tseslint.config(
     },
     ...obsidianmd.configs.recommended,
     {
+        linterOptions: {
+            reportUnusedDisableDirectives: 'off',
+        },
         rules: {
             'import/no-extraneous-dependencies': [
                 'error',
