@@ -1,6 +1,7 @@
 import {
     App,
     PluginSettingTab,
+    setIcon,
     Setting,
     SuggestModal,
     TextComponent,
@@ -141,6 +142,36 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
+
+        const builtinVimOn =
+            (
+                this.app.vault as unknown as {
+                    getConfig: (key: string) => unknown;
+                }
+            ).getConfig('vimMode') === true;
+
+        if (builtinVimOn) {
+            const notice = containerEl.createDiv({
+                cls: 'vim-motions-settings-notice',
+            });
+            const title = notice.createDiv({
+                cls: 'vim-motions-notice-title',
+            });
+            const iconEl = title.createSpan();
+            setIcon(iconEl, 'alert-triangle');
+            title.createSpan({
+                text: 'Recommended: disable built-in Vim mode',
+            });
+            notice.createEl('p', {
+                text:
+                    'Vim Motions includes an enhanced vim engine with Neovim-correct behavior, ' +
+                    'operator-pending EasyMotion, and theme-aligned cursor styling. ' +
+                    'These improvements are only active when Obsidian\u2019s built-in Vim mode is off.',
+            });
+            notice.createEl('p', {
+                text: 'Go to Settings \u2192 Editor \u2192 Vim key bindings and turn it off, then reload Obsidian.',
+            });
+        }
 
         new Setting(containerEl)
             .setName('Text objects')

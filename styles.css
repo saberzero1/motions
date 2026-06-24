@@ -29,6 +29,34 @@
 
 /* --- Status bar --- */
 
+.vim-motions-settings-notice {
+    background-color: color-mix(in oklch, var(--color-orange) 10%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-orange) 25%, transparent);
+    border-radius: var(--callout-radius, var(--radius-s));
+    padding: var(--callout-padding, 12px 16px);
+    margin-bottom: 16px;
+}
+
+.vim-motions-settings-notice .vim-motions-notice-title {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-1, 4px);
+    color: var(--color-orange);
+    font-weight: var(--font-semibold, 600);
+}
+
+.vim-motions-settings-notice .vim-motions-notice-title .svg-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--color-orange);
+}
+
+.vim-motions-settings-notice p {
+    margin: 6px 0 0;
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+}
+
 .vim-motions-mode {
     font-family: var(--font-monospace);
     font-weight: bold;
