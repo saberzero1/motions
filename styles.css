@@ -1,3 +1,34 @@
+/* --- Vim cursor & selection (align fork with Obsidian theme) --- */
+
+.cm-fat-cursor {
+    background: var(--interactive-accent) !important;
+    color: var(--text-on-accent) !important;
+}
+
+.cm-editor:not(.cm-focused) .cm-fat-cursor {
+    background: none !important;
+    outline: solid 1px var(--interactive-accent) !important;
+    color: transparent !important;
+}
+
+.cm-editor.cm-focused .cm-fat-cursor {
+    background: var(--interactive-accent) !important;
+    color: var(--text-on-accent) !important;
+}
+
+.cm-vim-panel {
+    font-family: var(--font-monospace);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.cm-vim-panel input {
+    font-family: var(--font-monospace);
+    color: var(--text-normal);
+}
+
+/* --- Status bar --- */
+
 .vim-motions-mode {
     font-family: var(--font-monospace);
     font-weight: bold;
