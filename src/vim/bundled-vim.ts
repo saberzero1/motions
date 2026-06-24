@@ -64,9 +64,7 @@ export function getBundledVimApi(): VimApi {
  */
 export function getBundledCmAdapter(editorView: EditorView): CmAdapter | null {
     try {
-        const cm = getCM(
-            editorView as unknown as Parameters<typeof getCM>[0], // cross-package type boundary
-        );
+        const cm = getCM(editorView);
         return (cm as unknown as CmAdapter) ?? null;
     } catch {
         return null;
