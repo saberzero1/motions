@@ -7,7 +7,7 @@ body:
       attributes:
           label: Pre-submission checklist
           options:
-              - label: I have checked [KNOWN_LIMITATIONS.md](https://github.com/saberzero1/motions/blob/main/KNOWN_LIMITATIONS.md) and this is not listed as intentionally unsupported
+              - label: I have checked [KNOWN_LIMITATIONS.md](https://github.com/saberzero1/motions/blob/master/KNOWN_LIMITATIONS.md) and this is not listed as intentionally unsupported
                 required: true
               - label: I have searched the [existing issues](https://github.com/saberzero1/motions/issues) and this has not been requested before
                 required: true

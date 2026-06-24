@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
     - name: Known limitations
-      url: https://github.com/saberzero1/motions/blob/main/KNOWN_LIMITATIONS.md
+      url: https://github.com/saberzero1/motions/blob/master/KNOWN_LIMITATIONS.md
       about: Check if your issue is a known limitation before submitting
     - name: Obsidian forum
       url: https://forum.obsidian.md/
