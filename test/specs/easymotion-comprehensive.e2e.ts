@@ -547,14 +547,12 @@ describe('EasyMotion comprehensive', function () {
             expect(result.error).toBeUndefined();
             expect(result.labels.length).toBeGreaterThanOrEqual(2);
 
-            // Press second label to select to 'gamma' (ch=11)
             const label = result.labels[1]!;
             await browser.keys([label]);
-            await browser.pause(300);
+            await browser.pause(500);
 
             const selection = await getSelection();
             expect(selection.length).toBeGreaterThan(0);
-            // Selection should span from cursor (0) to target word start
             expect(selection).toContain('alpha');
         });
 

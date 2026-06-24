@@ -84,8 +84,8 @@ describe('EasyMotion interaction', function () {
         expect(trigger).toHaveProperty('success', true);
         expect(trigger).toHaveProperty('hasOverlay', true);
         await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+        await browser.keys(['Escape']);
+        await browser.pause(300);
         const afterEscape = (await browser.executeObsidian(() => {
             const overlay = activeDocument.querySelector(
                 '.vim-motions-easymotion',

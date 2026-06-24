@@ -276,6 +276,7 @@ describe('Workspace navigation (Phase 2)', function () {
     });
 
     it('gd outside a link should no-op', async function () {
+        await obsidianPage.openFile('Welcome.md');
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
@@ -338,6 +339,7 @@ describe('Workspace navigation (Phase 2)', function () {
     });
 
     it('gx outside a URL should no-op', async function () {
+        await obsidianPage.openFile('Welcome.md');
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,

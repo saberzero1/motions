@@ -107,8 +107,8 @@ describe('Hint mode', function () {
             expect(result).toHaveProperty('hasOverlay', true);
 
             await browser.pause(100);
-            await sendVimEscape();
-            await browser.pause(200);
+            await browser.keys(['Escape']);
+            await browser.pause(300);
 
             const afterEscape = (await browser.executeObsidian(() => {
                 const overlay = activeDocument.querySelector(
