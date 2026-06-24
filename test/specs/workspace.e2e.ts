@@ -1,11 +1,15 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { sendVimEscape } from '../helpers';
+import { sendVimEscape, loadSingleFileWorkspace } from '../helpers';
 describe('Workspace navigation (Phase 2)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+    });
+
+    beforeEach(async function () {
+        await loadSingleFileWorkspace('Welcome.md');
     });
 
     it('gt should switch to next tab', async function () {
@@ -276,7 +280,6 @@ describe('Workspace navigation (Phase 2)', function () {
     });
 
     it('gd outside a link should no-op', async function () {
-        await obsidianPage.openFile('Welcome.md');
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
@@ -339,7 +342,6 @@ describe('Workspace navigation (Phase 2)', function () {
     });
 
     it('gx outside a URL should no-op', async function () {
-        await obsidianPage.openFile('Welcome.md');
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
