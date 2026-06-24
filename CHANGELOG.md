@@ -45,7 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hint mode escape dismissal** — same fix as EasyMotion
 - **Workspace test isolation** — workspace tests now use `beforeEach` with `loadSingleFileWorkspace()` to prevent cascading failures from `gd` navigation
 - **Settings reload Y/Q test** — uses `Vim.handleKey` instead of `browser.keys` to avoid DOM event routing issues after `reloadFeatures()`
-- **Vim cursor styling** — fork's hardcoded `#ff9696` cursor color replaced with Obsidian theme variables (`--interactive-accent`, `--text-on-accent`) via CSS overrides in `styles.css`
+- **Vim cursor styling** — fork's hardcoded `#ff9696` cursor color replaced with Obsidian CSS variables (`--interactive-accent`, `--text-on-accent`) directly in the fork's `block-cursor.ts` with fallbacks for non-Obsidian environments
+- **Settings notice** — when Obsidian's built-in Vim mode is enabled, the plugin settings tab shows a callout-style warning recommending to disable it, with an explanation of the fork's benefits
+- **`dw` on empty line cursor** — cursor after `dw` on an empty line before a whitespace-only line now positions at `ch:1` instead of `ch:0`
+- **Ambient type declarations** — `src/types/codemirror-vim.d.ts` provides fallback types for `vim()`, `getCM()`, and `Vim` when the fork's build artifacts are unavailable (e.g. in the community scanner's sandboxed environment)
 
 ### Changed
 
@@ -57,10 +60,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `showOverlay()` returns an `OverlayHandle` with `updateLabels()` for dynamic re-rendering during 2-char label narrowing
 - `waitForLabel()` replaces `waitForKey()` as the primary label capture function, supporting multi-char labels, backspace reset, and narrowing callbacks
 - Removed `test/specs/easymotion-motions.e2e.ts` — superseded by `easymotion-comprehensive.e2e.ts` with correct async test patterns for char-input motions
+- **Fork dependency** — `@replit/codemirror-vim` now references `https://github.com/saberzero1/codemirror-vim.git` instead of a local file path, enabling CI/scanner environments to install without local checkouts
+- `reportUnusedDisableDirectives` set to `off` in eslint config to avoid conflicts between local and scanner lint rule sets
+- Added `Obsidian` to sentence-case brands list in eslint config
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: EasyMotion operator-pending section updated with spike19 confirmation (`test/specs/spikes/spike19-easymotion-visual.e2e.ts` Q5: `actionFired: false`)
+- `KNOWN_LIMITATIONS.md`: EasyMotion operator-pending rewritten — now uses async motions natively instead of capture-phase interceptor
+- `KNOWN_LIMITATIONS.md`: added 8 behavioral deviation entries for fork fixes (`dd` cursor, `J` whitespace, `di{}` multiline, `dj`/`dk` boundary, `:s` cursor, `%` strings, `db` cross-line, `dw` cursor)
+- `KNOWN_LIMITATIONS.md`: added "DOM keyboard events not routed after settings reload" and "EasyMotion visual mode label selection via DOM events" sections
+- `AGENTS.md`: added codemirror-vim fork section with dual-vim architecture documentation
+- `README.md`: added "Recommended setup" section explaining benefits of disabling built-in vim
+- `DIFFERENCES.md` (fork): comprehensive rewrite documenting all behavioral fixes and infrastructure changes
 
 ## [0.9.0] - 2026-06-23
 
