@@ -499,12 +499,43 @@ describe('Settings hot-reload', function () {
         });
         await browser.pause(500);
 
-        await setupEditor('hello world', { line: 0, ch: 6 });
-        await vimKeys('Y');
-        const reg = await getRegisterContent('"');
-        expect(reg).not.toBeNull();
-        expect(reg!.text).toBe('world');
-        expect(reg!.linewise).toBe(false);
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: Record<string, (...args: unknown[]) => unknown>;
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!Vim || !view) return { error: 'no vim/view' };
+            view.editor.setValue('hello world');
+            view.editor.setCursor(0, 6);
+            view.editor.focus();
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'no adapter' };
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, 'Y');
+            const controller = Vim.getRegisterController() as Record<
+                string,
+                (...args: unknown[]) => unknown
+            >;
+            const reg = controller.getRegister('"') as {
+                toString: () => string;
+                linewise: boolean;
+            } | null;
+            return {
+                text: reg?.toString() ?? '',
+                linewise: reg?.linewise ?? false,
+            };
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.text).toBe('world');
+        expect(result.linewise).toBe(false);
 
         await browser.executeObsidian(({ app }) => {
             const plugin = (
