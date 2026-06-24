@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Bundled codemirror-vim fork** — when Obsidian's built-in vim mode is disabled, the plugin provides a forked `@replit/codemirror-vim` as a CM6 extension with Neovim-parity behavioral fixes. A `window.CodeMirrorAdapter.Vim` bridge ensures ecosystem plugins (obsidian-vimrc-support, vim-im-control, etc.) work transparently.
+- **Async motion support** — the fork's `defineMotion` now accepts async functions returning `Promise<Pos>`, enabling EasyMotion to work natively as a motion instead of an action. Operator-pending (`d`/`c`/`y` + easymotion) and visual mode (`v` + easymotion) work through the standard vim dispatch.
+- **Neovim golden comparison infrastructure in fork** — 496/688 tests passing against headless Neovim, with per-step extraction, golden recording, and automated comparison (`npx tsx test/neovim/compare.ts`).
+- E2E tests for operator-pending easymotion (`d`/`c`/`y` + easymotion w)
+- E2E tests for multiline bracket text objects (`di{`/`di[`/`di<` across lines, same-line verification)
+- E2E tests for `%` string-awareness, `db`/`d2w` cross-line whitespace, `dd` cursor column preservation, `J` trailing whitespace
+- Expected-failure test cases for 6 remaining fixable deviations (dw cursor, d2w scope, dge empty, db cross-line, % quoted brackets, N after search)
 - **Full vim-easymotion default motion set** — all 17 default-mapped motions: find (`f`, `F`, `s`, `t`, `T`), word (`w`, `b`, `e`, `ge`, `W`, `B`, `E`, `gE`), line (`j`, `k`), search (`n`, `N`)
 - **Bidirectional easymotion variants** — `easyMotionBdWord`, `easyMotionBdEndWord`, `easyMotionBdWORD`, `easyMotionBdEndWORD`, `easyMotionBdLine`, `easyMotionBdTill` available as named actions for vimrc remapping
 - **Repeat last easymotion motion** — `easyMotionRepeat` action replays the most recent easymotion jump
@@ -21,8 +28,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - E2E test file `test/specs/easymotion-visual.e2e.ts` with 4 tests covering visual mode overlay, charwise selection, linewise selection, and escape preservation
 - CSS classes: `.vim-motions-easymotion-shade` (dimming overlay), `.vim-motions-easymotion-label-first` and `.vim-motions-easymotion-label-second` (2-char label styling)
 
+### Fixed
+
+- **`dd` cursor column preservation** — cursor now stays at its original column after linewise delete (matching Neovim), instead of moving to first non-blank character
+- **`J` trailing whitespace** — join now strips trailing whitespace from the current line before adding the join space, preventing double spaces
+- **`di{`/`di[`/`di<` multiline** — inner bracket text objects on multiline brackets now preserve the bracket lines (producing `a{\n}b` instead of `a{}b`), matching Neovim
+- **`dj`/`dk` at document boundary** — `dj` on the last line and `dk` on the first line are now no-ops (matching Neovim), instead of deleting the content
+- **`:s` cursor positioning** — cursor after substitute now goes to first non-blank of the last affected line instead of column 0
+- **`%` string-awareness** — `%` now aborts (no movement) when the first bracket candidate found via forward-seeking is inside a string token, matching Neovim
+- **`db`/`d2w` cross-line whitespace** — when a delete crosses a line boundary, the whitespace-only prefix before the cursor is now included in the deletion, matching Neovim
+- **`dge` at document start** — `ge` at the start of the document is now a no-op instead of deleting the character under cursor
+- **`dge` on empty lines** — `dge` on double-empty-lines now deletes both lines (matching Neovim) instead of leaving one
+- **`]p` tab remainder** — `]p` with `indentWithTabs` now preserves remainder spaces when indent doesn't divide evenly by tabSize
+- **EasyMotion visual mode** — async motions now properly update visual selection head/anchor instead of just moving cursor
+- **EasyMotion escape dismissal** — Escape overlay dismissal in e2e tests now uses real DOM events (`browser.keys`) instead of `Vim.handleKey` which bypasses the DOM listener
+- **Hint mode escape dismissal** — same fix as EasyMotion
+- **Workspace test isolation** — workspace tests now use `beforeEach` with `loadSingleFileWorkspace()` to prevent cascading failures from `gd` navigation
+- **Settings reload Y/Q test** — uses `Vim.handleKey` instead of `browser.keys` to avoid DOM event routing issues after `reloadFeatures()`
+- **Vim cursor styling** — fork's hardcoded `#ff9696` cursor color replaced with Obsidian theme variables (`--interactive-accent`, `--text-on-accent`) via CSS overrides in `styles.css`
+
 ### Changed
 
+- **EasyMotion architecture** — EasyMotion motions are now registered via `defineMotion` (async, returning `Promise<Pos>`) instead of `defineAction`. The capture-phase operator-pending interceptor (`src/easymotion/operator-pending.ts`) has been removed — operator-pending and visual mode work natively through the fork's async motion dispatch.
 - **EasyMotion module refactored** from single `easymotion.ts` (243 lines) into 6 focused files: `register.ts` (data-driven registration), `targets.ts` (direction-aware target finding), `labels.ts` (SCTree algorithm), `overlay.ts` (DOM rendering with dimming and re-render support), `keypress.ts` (key capture with 2-char narrowing), `types.ts` (interfaces)
 - `<leader><leader>w`, `<leader><leader>j`, `<leader><leader>f` are now forward-only, matching vim-easymotion parity. Previously these scanned the entire visible viewport regardless of cursor position.
 - `registerEasyMotion()` now accepts a `dimming` parameter and uses a data-driven `EASYMOTION_DEFS` array for registration instead of per-motion imperative code

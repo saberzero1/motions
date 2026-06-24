@@ -191,7 +191,7 @@ Jump to any visible position with two keystrokes.
 | `<leader><leader>n` | Next search match forward |
 | `<leader><leader>N` | Next search match backward |
 
-All easymotion motions work in visual mode — `v` + easymotion extends the character selection, `V` + easymotion extends the line selection. Operator-pending mode (`d` + easymotion) now works via a capture-phase interceptor (word/line/search motions; char-based pending). See [known limitations](KNOWN_LIMITATIONS.md#easymotion-operator-pending-mode) for details.
+All easymotion motions work in visual mode — `v` + easymotion extends the character selection, `V` + easymotion extends the line selection. Operator-pending mode (`d` + easymotion, `c` + easymotion, `y` + easymotion) works natively via the fork's async motion support.
 
 All easymotion actions can be remapped in `.obsidian.vimrc`. Bidirectional variants (`easyMotionBdWord`, `easyMotionBdFind`, etc.) and repeat (`easyMotionRepeat`) are also available as named actions.
 
@@ -298,7 +298,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 ## Requirements
 
 - Obsidian v1.1.1 or later
-- Vim mode must be enabled (**Settings → Editor → Vim key bindings**)
+- Vim mode enabled (**Settings → Editor → Vim key bindings**) for built-in mode, or disabled to use the plugin's bundled vim fork with additional Neovim-parity fixes
 - Desktop only (mobile support planned for a future release)
 
 ## Development

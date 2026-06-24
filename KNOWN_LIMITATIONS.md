@@ -4,28 +4,18 @@ This document tracks known limitations, architectural constraints, and intention
 
 ## EasyMotion operator-pending mode
 
-**Status**: Prototype implemented (spike21). Limited to word/line/search motions — char-based (f/F/s/t/T) deferred.
+**Status**: Working via fork's async motion support.
 
-`d<leader><leader>w{label}` (delete to an EasyMotion target) does not work via the standard codemirror-vim dispatch because Easymotion is registered as an **action** (`defineAction`). codemirror-vim's `commandMatches` filters out `type: 'action'` when `inputState.operator` is set (vim.js line 3630), so the action callback never fires in operator-pending mode.
+`d<leader><leader>w{label}` (delete to an EasyMotion target) works natively through the codemirror-vim fork's async motion system. EasyMotion motions are registered via `defineMotion` and return a `Promise<Pos>`. The fork's `evalInput` resolves the promise and applies the pending operator (`d`, `c`, `y`) to the resulting position.
 
-A `defineMotion` approach requires synchronous return values, but EasyMotion needs async user input (waiting for a label keypress). A `type: 'operatorMotion'` approach would conflict with the already-set operator from `d`/`c`/`y`.
+Visual mode (`v` + easymotion) also works — the fork updates the visual selection head/anchor when an async motion resolves during visual mode.
 
-**Solution**: A capture-phase keydown listener (`src/easymotion/operator-pending.ts`) intercepts keystrokes **before** codemirror-vim's CM6 event handler sees them. When an operator-pending easymotion sequence is detected (`d<leader><leader>w...`):
+**Remaining limitations**:
 
-1. All keystrokes are swallowed (prevented from reaching vim)
-2. Easymotion targets are computed synchronously and the overlay is shown
-3. The label keypress is captured at the DOM level
-4. The operation (d/c/y + motion-to-target) is executed via CM6 dispatch, bypassing vim's operator internals entirely
+- Dot-repeat (`.`) does not replay operator-pending easymotion operations
+- Char-based easymotions (`f`, `F`, `s`, `t`, `T`) in operator-pending mode require an intermediate search-character keypress which adds complexity to the async flow
 
-**Known limitations of the current prototype**:
-
-- Char-based easymotions (`f`, `F`, `s`, `t`, `T`) are not yet supported because they require an intermediate search-character keypress before the overlay can be shown
-- Dot-repeat (`.`) does not replay the operation
-- Vim registers are populated from the deleted/yanked text but only as a best-effort read (no integration with vim's internal operator system)
-- Change operator enters insert mode by dispatching a synthetic `i` keydown event — this may not work reliably in all configurations
-- The capture-phase listener intercepts on the document level, not scoped to the active editor
-
-**Test coverage**: `test/specs/spikes/spike21-operator-pending-easymotion.e2e.ts` validates delete, yank, and Escape-cancel flows.
+**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows.
 
 ## Smart asterisk disambiguation
 
@@ -221,6 +211,13 @@ These commands exist but behave differently from Neovim:
 | `V` + `>`          | Cursor at first non-blank after visual indent           | Fixed in fork                                              | Same fix as `>>` — cursor at column 0 after indent.                                                                     |
 | `d0`               | No-op at column 0 (zero-width motion)                   | Fixed in fork                                              | Zero-width exclusive range produces no-op as expected.                                                                   |
 | `<<`               | Unindent by shiftwidth spaces                           | Unindent uses tabs regardless of shiftwidth setting        | codemirror-vim's indent/unindent uses tabs internally and does not fully respect `shiftwidth`/`expandtab` options        |
+| `dd`               | Cursor stays at same column                             | Fixed in fork                                              | Fork preserves cursor column after linewise delete instead of moving to first non-blank.                                 |
+| `J`                | Strips trailing whitespace before join                  | Fixed in fork                                              | Fork strips trailing whitespace from current line before adding join space, preventing double spaces.                    |
+| `di{` multiline    | Preserves bracket lines (`a{\n}b`)                      | Fixed in fork                                              | Fork deletes inner content lines only, keeping opening/closing bracket on their own lines.                               |
+| `dj`/`dk` boundary | No-op at document start/end                             | Fixed in fork                                              | Fork returns null from `moveByLines` when `j`/`k` can't move to a different line.                                        |
+| `:s` cursor        | First non-blank of last affected line                   | Fixed in fork                                              | Fork's `doReplace` positions cursor at first non-blank instead of column 0.                                              |
+| `%` + strings      | Aborts if first bracket is in string                    | Fixed in fork                                              | Fork's `moveToMatchedSymbol` returns cursor unchanged when first bracket candidate is inside a string token.             |
+| `db` cross-line    | Includes leading whitespace when crossing lines         | Fixed in fork                                              | Fork expands delete range to include whitespace-only prefix before cursor when delete crosses a line boundary.           |
 
 ## Visual mode on single-character text objects
 
