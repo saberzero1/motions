@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../helpers';
 describe('Quality of life features', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -16,7 +17,7 @@ describe('Quality of life features', function () {
                 if (view) view.editor.focus();
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
 
             const modeText = (await browser.executeObsidian(() => {
@@ -36,7 +37,7 @@ describe('Quality of life features', function () {
                 if (view) view.editor.focus();
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['i']);
             await browser.pause(200);
@@ -49,7 +50,7 @@ describe('Quality of life features', function () {
             })) as string;
             expect(modeText.toLowerCase()).toContain('insert');
 
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -61,7 +62,7 @@ describe('Quality of life features', function () {
                 if (view) view.editor.focus();
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(200);
@@ -74,7 +75,7 @@ describe('Quality of life features', function () {
             })) as string;
             expect(modeText.toLowerCase()).toContain('visual');
 
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -86,11 +87,11 @@ describe('Quality of life features', function () {
                 if (view) view.editor.focus();
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['i']);
             await browser.pause(200);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
 
             const modeText = (await browser.executeObsidian(() => {
@@ -147,7 +148,7 @@ describe('Quality of life features', function () {
             })) as boolean;
             expect(typeof overlay).toBe('boolean');
 
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
     });
@@ -161,7 +162,7 @@ describe('Quality of life features', function () {
                 if (view) view.editor.focus();
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys([':']);
             await browser.pause(200);
@@ -174,7 +175,7 @@ describe('Quality of life features', function () {
             })) as boolean;
             expect(hasSuggest).toBe(true);
 
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
     });

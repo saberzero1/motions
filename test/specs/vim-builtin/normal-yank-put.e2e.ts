@@ -6,6 +6,7 @@ import {
     getEditorValue,
     getRegisterContent,
     getCursorPos,
+    sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -22,7 +23,7 @@ describe('Normal mode — yank and put (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -109,7 +110,7 @@ describe('Normal mode — yank and put (Tier 1)', function () {
             await setupEditor('hello', { line: 0, ch: 5 });
             await vimKeys('a');
             await browser.keys([' ', 'w', 'o', 'r', 'l', 'd']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             const reg = await getRegisterContent('.');
             expect(reg).not.toBeNull();

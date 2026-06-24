@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../helpers';
 describe('Ex commands extended', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -455,7 +456,7 @@ describe('Ex commands extended', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 });

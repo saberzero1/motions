@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getEditorValue, getCursorPos } from '../../helpers';
+import {
+    setupEditor,
+    getEditorValue,
+    getCursorPos,
+    sendVimEscape,
+} from '../../helpers';
 
 describe('Spike 18: Deviation closure investigations (Phase 0)', function () {
     before(async function () {
@@ -9,7 +14,7 @@ describe('Spike 18: Deviation closure investigations (Phase 0)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -413,7 +418,7 @@ describe('Spike 18: Deviation closure investigations (Phase 0)', function () {
             expect(insertResult).not.toHaveProperty('error');
 
             // Now test undo
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
 
             const undoResult = await browser.executeObsidian(

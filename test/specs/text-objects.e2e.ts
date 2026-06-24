@@ -1,6 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { getEditorValue, vimKeys } from '../helpers';
+import { getEditorValue, vimKeys, sendVimEscape } from '../helpers';
 
 describe('Markdown text objects (Phase 1.1)', function () {
     before(async function () {
@@ -52,7 +52,7 @@ describe('Markdown text objects (Phase 1.1)', function () {
             await browser.pause(300);
             await vimKeys('c', 'i', '*');
             await browser.keys('new'.split(''));
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('Hello **new** world');
         });

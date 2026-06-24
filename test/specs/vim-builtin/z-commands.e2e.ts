@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, vimKeys, getCursorPos } from '../../helpers';
+import {
+    setupEditor,
+    vimKeys,
+    getCursorPos,
+    sendVimEscape,
+} from '../../helpers';
 
 describe('Normal mode — z-prefix commands (Tier 1)', function () {
     before(async function () {
@@ -9,7 +14,7 @@ describe('Normal mode — z-prefix commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 

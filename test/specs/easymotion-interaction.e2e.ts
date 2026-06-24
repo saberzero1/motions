@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../helpers';
 describe('EasyMotion interaction', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -45,7 +46,7 @@ describe('EasyMotion interaction', function () {
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
         expect(result).toHaveProperty('hasLabels', true);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -83,7 +84,7 @@ describe('EasyMotion interaction', function () {
         expect(trigger).toHaveProperty('success', true);
         expect(trigger).toHaveProperty('hasOverlay', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
         const afterEscape = (await browser.executeObsidian(() => {
             const overlay = activeDocument.querySelector(
@@ -129,7 +130,7 @@ describe('EasyMotion interaction', function () {
         })) as { success: boolean; hasOverlay: boolean };
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -166,7 +167,7 @@ describe('EasyMotion interaction', function () {
             return { success: true, hasOverlay };
         })) as { success: boolean; hasOverlay: boolean };
         expect(result).toHaveProperty('success', true);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 });

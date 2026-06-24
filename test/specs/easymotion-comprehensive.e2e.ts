@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getCursorPos, getSelection } from '../helpers';
+import {
+    setupEditor,
+    getCursorPos,
+    getSelection,
+    sendVimEscape,
+} from '../helpers';
 
 type VimHandle = {
     handleKey: (cm: unknown, key: string) => boolean;
@@ -66,7 +71,7 @@ async function triggerEasyMotion(
 }
 
 async function dismissOverlay(): Promise<void> {
-    await browser.keys(['Escape']);
+    await sendVimEscape();
     await browser.pause(200);
 }
 
@@ -77,7 +82,7 @@ describe('EasyMotion comprehensive', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
     });
 

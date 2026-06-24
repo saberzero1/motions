@@ -95,7 +95,7 @@ export type MotionFn = (
     motionArgs: MotionArgs,
     vim: VimState,
     inputState: unknown,
-) => VimPos | [VimPos, VimPos] | null | undefined;
+) => VimPos | [VimPos, VimPos] | Promise<VimPos | null> | null | undefined;
 
 /** Operator function signature. */
 export type OperatorFn = (
@@ -193,6 +193,49 @@ export interface VimApi {
     getOption(name: string): unknown;
 
     getVimGlobalState_(): Record<string, unknown>;
+
+    getInputState(cm: CmAdapter): {
+        prefixRepeat: string[];
+        motionRepeat: string[];
+        operator: string | undefined | null;
+        operatorArgs: OperatorArgs | undefined | null;
+        motion: string | undefined | null;
+        motionArgs: MotionArgs | undefined | null;
+        keyBuffer: string[];
+        registerName?: string;
+        operatorShortcut?: string;
+        selectedCharacter?: string;
+        pushRepeatDigit(n: string): void;
+        getRepeat(): number;
+    };
+
+    getLastEditInfo(cm: CmAdapter): {
+        inputState: unknown;
+        actionCommand: unknown;
+    };
+
+    getSearchState(cm: CmAdapter): {
+        setReversed(reversed: boolean): void;
+        isReversed(): boolean | undefined;
+        getQuery(): RegExp;
+        setQuery(query: string | RegExp): void;
+    } | undefined;
+
+    getJumpList(): {
+        cachedCursor?: VimPos;
+        head: number;
+        tail: number;
+        length: number;
+    };
+
+    getMacroState(): {
+        latestRegister?: string;
+        isPlaying: boolean;
+        isRecording: boolean;
+        replaySearchQueries: unknown[];
+        onRecordingDone?: unknown;
+        lastInsertModeChanges: unknown;
+    };
 
     getRegisterController(): {
         registers: Record<

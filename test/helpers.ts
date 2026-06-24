@@ -41,12 +41,29 @@ export async function getVimMode(): Promise<string> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return 'unknown';
-        const cm = (view.editor as unknown as Record<string, unknown>)
+        const editorView = (view.editor as unknown as Record<string, unknown>)
             .cm as Record<string, unknown>;
-        const state = cm?.state as Record<string, unknown> | undefined;
-        const vim = state?.vim as Record<string, unknown> | undefined;
-        if (vim?.insertMode) return 'insert';
-        if (vim?.visualMode) return 'visual';
+        if (!editorView) return 'unknown';
+        // Built-in vim: editorView.cm.state.vim
+        const adapter = editorView.cm as Record<string, unknown> | undefined;
+        const vim = (adapter?.state as Record<string, unknown> | undefined)
+            ?.vim as Record<string, unknown> | undefined;
+        if (vim) {
+            if (vim.insertMode) return 'insert';
+            if (vim.visualMode) return 'visual';
+            return 'normal';
+        }
+        // Bundled vim: editorView is the CM6 EditorView, .cm is the adapter
+        const bundledAdapter = (editorView as Record<string, unknown>).cm as
+            | Record<string, unknown>
+            | undefined;
+        if (!bundledAdapter) return 'unknown';
+        const bVim = (
+            bundledAdapter.state as Record<string, unknown> | undefined
+        )?.vim as Record<string, unknown> | undefined;
+        if (!bVim) return 'unknown';
+        if (bVim.insertMode) return 'insert';
+        if (bVim.visualMode) return 'visual';
         return 'normal';
     })) as string;
 }
@@ -66,6 +83,7 @@ export async function getRegisterContent(
                                     {
                                         toString: () => string;
                                         linewise: boolean;
+                                        keyBuffer: string[];
                                     }
                                 >;
                             };
@@ -77,7 +95,13 @@ export async function getRegisterContent(
             const rc = Vim.getRegisterController();
             const reg = rc.registers[registerName];
             if (!reg) return null;
-            return { text: reg.toString(), linewise: reg.linewise };
+            const text = reg.toString();
+            if (text) return { text, linewise: reg.linewise };
+            if (reg.keyBuffer && reg.keyBuffer.length > 0) {
+                const joined = reg.keyBuffer.join('\n');
+                if (joined) return { text: joined, linewise: reg.linewise };
+            }
+            return { text: '', linewise: reg.linewise };
         },
         register,
     )) as { text: string; linewise: boolean } | null;
@@ -104,8 +128,30 @@ export async function setupEditor(
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
+export async function sendVimEscape(): Promise<void> {
+    await browser.executeObsidian(({ app, obsidian }) => {
+        const Vim = (
+            window as unknown as {
+                CodeMirrorAdapter?: {
+                    Vim?: {
+                        handleKey: (cm: unknown, key: string) => boolean;
+                    };
+                };
+            }
+        ).CodeMirrorAdapter?.Vim;
+        if (!Vim) return;
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return;
+        const cm = (view.editor as unknown as Record<string, unknown>)
+            .cm as Record<string, unknown>;
+        const adapter = cm?.cm;
+        if (!adapter) return;
+        Vim.handleKey(adapter, '<Esc>');
+    });
+}
+
 export async function vimKeys(...keys: string[]): Promise<void> {
-    await browser.keys(['Escape']);
+    await sendVimEscape();
     await browser.pause(PAUSE.MODE_SWITCH);
     for (const key of keys) {
         await browser.keys([key]);
@@ -115,12 +161,12 @@ export async function vimKeys(...keys: string[]): Promise<void> {
 }
 
 export async function vimRawKeys(keys: string): Promise<void> {
-    await browser.keys(['Escape']);
+    await sendVimEscape();
     await browser.pause(PAUSE.MODE_SWITCH);
     for (const ch of keys) {
         const code = ch.charCodeAt(0);
         if (code === 0x1b) {
-            await browser.keys(['Escape']);
+            await sendVimEscape();
         } else if (code < 0x20) {
             await browser.executeObsidian(
                 ({ app, obsidian }, keyStr: string) => {

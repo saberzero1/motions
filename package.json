@@ -36,7 +36,6 @@
         "eslint-plugin-obsidianmd": "^0.3.0",
         "globals": "^17.6.0",
         "jiti": "^2.6.1",
-        "yaml": "^2.7.1",
         "mocha": "^11.7.6",
         "neovim": "^5.4.0",
         "obsidian": "latest",
@@ -44,6 +43,10 @@
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.59.1",
         "wdio-obsidian-reporter": "^3.1.1",
-        "wdio-obsidian-service": "^3.1.1"
+        "wdio-obsidian-service": "^3.1.1",
+        "yaml": "^2.7.1"
+    },
+    "dependencies": {
+        "@replit/codemirror-vim": "file:../codemirror-vim"
     }
 }

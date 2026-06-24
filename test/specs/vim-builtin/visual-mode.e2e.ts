@@ -5,6 +5,7 @@ import {
     vimKeys,
     getEditorValue,
     getCursorPos,
+    sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -21,14 +22,14 @@ describe('Visual mode (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
     describe('v (charwise)', function () {
         it('v + motion + d should delete selection', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -41,7 +42,7 @@ describe('Visual mode (Tier 1)', function () {
 
         it('v + motion + y should yank selection', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -58,7 +59,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('V (linewise)', function () {
         it('V + d should delete entire line', async function () {
             await setupEditor('line1\nline2\nline3', { line: 1, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -69,7 +70,7 @@ describe('Visual mode (Tier 1)', function () {
 
         it('V + j + d should delete multiple lines', async function () {
             await setupEditor('one\ntwo\nthree\nfour', { line: 1, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -85,7 +86,7 @@ describe('Visual mode (Tier 1)', function () {
                 line: 0,
                 ch: 0,
             });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -102,7 +103,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('visual + indent', function () {
         it('v + > should indent selection', async function () {
             await setupEditor('hello\nworld', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -116,7 +117,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('visual + text objects', function () {
         it('vi" should select inside quotes', async function () {
             await setupEditor('say "hello world" end', { line: 0, ch: 8 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -131,7 +132,7 @@ describe('Visual mode (Tier 1)', function () {
 
         it('vaw should select a word', async function () {
             await setupEditor('hello world foo', { line: 0, ch: 7 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -183,7 +184,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('V + y should yank linewise', function () {
         it('V + y should produce linewise register', async function () {
             await setupEditor('hello world\nsecond line', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -199,7 +200,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('v + count + motion', function () {
         it('v3l + d should delete 4 characters', async function () {
             await setupEditor('abcdefgh', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -214,13 +215,13 @@ describe('Visual mode (Tier 1)', function () {
     describe('gv (reselect last visual)', function () {
         it('gv should reselect and allow delete', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
             await browser.keys(['e']);
             await browser.pause(30);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await vimKeys('g', 'v');
             await browser.pause(100);
@@ -233,7 +234,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('visual + text objects (extended)', function () {
         it('viw should select word under cursor', async function () {
             await setupEditor('hello world foo', { line: 0, ch: 7 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -248,7 +249,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('visual at document boundaries', function () {
         it('v + G + d should delete from cursor to end of document', async function () {
             await setupEditor('one\ntwo\nthree', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
@@ -263,7 +264,7 @@ describe('Visual mode (Tier 1)', function () {
 
         it('V at last line + d should delete last line', async function () {
             await setupEditor('one\ntwo\nthree', { line: 2, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -276,7 +277,7 @@ describe('Visual mode (Tier 1)', function () {
     describe('o (swap visual anchor)', function () {
         it('o should swap cursor to other end of selection', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);

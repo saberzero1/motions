@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, vimKeys, getCursorPos } from '../../helpers';
+import {
+    setupEditor,
+    vimKeys,
+    getCursorPos,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -65,7 +70,7 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             await vimKeys('g', 'g');
             await vimKeys('O');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             await vimKeys("'", 'a');
             const pos = await getCursorPos();

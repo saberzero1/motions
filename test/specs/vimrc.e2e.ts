@@ -7,6 +7,7 @@ import {
     getEditorValue,
     getRegisterContent,
     unsupported,
+    sendVimEscape,
 } from '../helpers';
 
 async function loadVimrc(content: string): Promise<void> {
@@ -136,7 +137,7 @@ describe('Vimrc support (Phase 2)', function () {
         })) as { success: boolean; hasOverlay: boolean };
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -261,7 +262,7 @@ describe('Vimrc support (Phase 2)', function () {
 
 describe('Vimrc compatibility (obsidian-vimrc-support README examples)', function () {
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 

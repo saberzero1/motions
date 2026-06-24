@@ -5,6 +5,7 @@ import {
     vimKeys,
     getCursorPos,
     getEditorValue,
+    sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -21,7 +22,7 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -101,7 +102,7 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             await setupEditor('  hello', { line: 0, ch: 4 });
             await vimKeys('g', 'I');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('X  hello');
         });
@@ -116,13 +117,13 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
     describe('gv', function () {
         it('gv should reselect last visual selection', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['v']);
             await browser.pause(30);
             await browser.keys(['e']);
             await browser.pause(30);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(100);
             await browser.keys(['g']);
             await browser.pause(30);
@@ -137,7 +138,7 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
     describe('gn / gN (search and select)', function () {
         it('gn should select next search match', async function () {
             await setupEditor('foo bar foo baz foo', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['/']);
             await browser.pause(100);
@@ -152,7 +153,7 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
 
         it('cgn should change next search match', async function () {
             await setupEditor('old bar old baz old', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['/']);
             await browser.pause(100);
@@ -161,7 +162,7 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             await browser.pause(300);
             await vimKeys('c', 'g', 'n');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(300);
             const val = await getEditorValue();
             expect(val).toContain('new');
@@ -173,12 +174,12 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             await setupEditor('aaa\nbbb\nccc\nddd\neee', { line: 0, ch: 0 });
             await vimKeys('i');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             await vimKeys('3', 'j');
             await vimKeys('i');
             await browser.keys(['Y']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             const posAfterEdits = await getCursorPos();
             expect(posAfterEdits.line).toBe(3);
@@ -191,12 +192,12 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
             await vimKeys('i');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             await vimKeys('j');
             await vimKeys('i');
             await browser.keys(['Y']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             await vimKeys('g', ';');
             await vimKeys('g', ',');

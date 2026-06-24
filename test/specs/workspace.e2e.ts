@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../helpers';
 describe('Workspace navigation (Phase 2)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -16,7 +17,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['g', 't']);
         await browser.pause(300);
@@ -116,7 +117,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -149,7 +150,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -226,7 +227,7 @@ describe('Workspace navigation (Phase 2)', function () {
             view.editor.focus();
         });
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['z', 'a']);
         await browser.pause(200);
@@ -285,7 +286,7 @@ describe('Workspace navigation (Phase 2)', function () {
             view.editor.focus();
         });
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['g', 'd']);
         await browser.pause(200);
@@ -347,7 +348,7 @@ describe('Workspace navigation (Phase 2)', function () {
             view.editor.focus();
         });
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['g', 'x']);
         await browser.pause(200);
@@ -389,7 +390,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -422,7 +423,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -463,7 +464,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -496,7 +497,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(500);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -538,7 +539,7 @@ describe('Workspace navigation (Phase 2)', function () {
         });
         expect(result).toHaveProperty('success', true);
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 

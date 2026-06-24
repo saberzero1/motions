@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../../helpers';
 describe('Spike 2: wdio Vim keystroke reliability', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -25,13 +26,13 @@ describe('Spike 2: wdio Vim keystroke reliability', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
         await browser.keys(['i']);
         await browser.pause(100);
         await browser.keys('Hello Vim'.split(''));
         await browser.pause(100);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
 
         const content = await browser.executeObsidian(({ app, obsidian }) => {
@@ -56,7 +57,7 @@ describe('Spike 2: wdio Vim keystroke reliability', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
         await browser.keys(['d', 'd']);
         await browser.pause(300);
@@ -83,7 +84,7 @@ describe('Spike 2: wdio Vim keystroke reliability', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
         await browser.keys(['y', 'y']);
         await browser.pause(100);
@@ -112,7 +113,7 @@ describe('Spike 2: wdio Vim keystroke reliability', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
         await browser.keys(['d', 'a', 'w']);
         await browser.pause(300);

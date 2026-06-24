@@ -2,7 +2,7 @@ import type { App, Plugin } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import type { ModePrompts } from '../settings';
-import { getCmAdapter } from './vim-api';
+import { getCmAdapter, getVimApi } from './vim-api';
 
 const DEFAULT_MODE_LABELS: Record<string, string> = {
     normal: 'NORMAL',
@@ -11,12 +11,7 @@ const DEFAULT_MODE_LABELS: Record<string, string> = {
     replace: 'REPLACE',
 };
 
-/**
- * Keys that serve as prefixes for multi-key commands ending with `q`.
- * When `q` follows one of these keys, it is part of an operator (e.g. `gq`)
- * and must not be interpreted as a macro-recording toggle.
- */
-const OPERATOR_PREFIXES_BEFORE_Q = new Set<string>(['g']);
+
 
 export interface VimModeTrackerOptions {
     chordDisplay: boolean;
@@ -30,7 +25,6 @@ export class VimModeTracker {
     private modeLabels: Record<string, string>;
     private currentMode = 'normal';
     private recording: string | null = null;
-    private pendingRecord = false;
     private modeHandler: ((mode: VimModeChange) => void) | null = null;
     private keyHandler: ((key: string) => void) | null = null;
     private lastAdapter: CmAdapter | null = null;
@@ -69,44 +63,15 @@ export class VimModeTracker {
             if (mode.subMode === 'linewise') {
                 this.currentMode = 'visual';
             }
-            this.pendingRecord = false;
+            this.syncRecordingState();
             this.updateDisplay();
             this.syncChord();
         };
         this.modeHandler = modeHandler;
 
-        let lastKey = '';
-        const keyHandler = (key: string) => {
-            if (
-                this.currentMode !== 'normal' &&
-                this.currentMode !== 'visual'
-            ) {
-                lastKey = '';
-                return;
-            }
-            if (this.pendingRecord) {
-                this.pendingRecord = false;
-                if (/^[a-zA-Z0-9]$/.test(key)) {
-                    this.recording = key;
-                }
-                this.updateDisplay();
-                lastKey = key;
-                return;
-            }
-            if (
-                key === 'q' &&
-                this.currentMode === 'normal' &&
-                !OPERATOR_PREFIXES_BEFORE_Q.has(lastKey)
-            ) {
-                if (this.recording) {
-                    this.recording = null;
-                    this.updateDisplay();
-                } else {
-                    this.pendingRecord = true;
-                }
-            }
+        const keyHandler = () => {
+            this.syncRecordingState();
             this.syncChord();
-            lastKey = key;
         };
         this.keyHandler = keyHandler;
 
@@ -159,6 +124,19 @@ export class VimModeTracker {
      * *after* command processing in the CM6 adapter, so `vim.status`
      * is already cleared for completed commands.
      */
+    private syncRecordingState(): void {
+        const vim = getVimApi();
+        if (!vim?.getMacroState) return;
+        const macro = vim.getMacroState();
+        const prev = this.recording;
+        this.recording = macro.isRecording
+            ? macro.latestRegister ?? '?'
+            : null;
+        if (this.recording !== prev) {
+            this.updateDisplay();
+        }
+    }
+
     private syncChord(): void {
         if (!this.chordBarEl || !this.lastAdapter) return;
         const vim = this.lastAdapter.state.vim;

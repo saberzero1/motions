@@ -7,12 +7,6 @@ export interface Deviation {
 
 export const KNOWN_DEVIATIONS: Deviation[] = [
     {
-        testPattern: 'dG should delete from current line to end of file',
-        description: 'dG leaves trailing newline',
-        reason: 'codemirror-vim linewise delete preserves trailing newline',
-        fields: ['content'],
-    },
-    {
         testPattern: ') at end of text should not move',
         description: 'Sentence motion cursor off-by-one at EOL',
         reason: 'codemirror-vim clamps to last char, not past it',
@@ -60,12 +54,7 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'Follows Neovim convention (intentional override)',
         fields: ['content'],
     },
-    {
-        testPattern: '>> should indent line',
-        description: 'Cursor position after >> differs',
-        reason: 'codemirror-vim places cursor at ch:1 after indent, Neovim at ch:0',
-        fields: ['cursor'],
-    },
+
     {
         testPattern: '<< should unindent line',
         description: '<< unindent behavior differs',
@@ -90,18 +79,7 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'codemirror-vim collapses newlines inside parens, Neovim preserves them',
         fields: ['content'],
     },
-    {
-        testPattern: /V \+ > should indent/,
-        description: 'V + > cursor position after visual indent differs',
-        reason: 'codemirror-vim places cursor at ch:1 after visual indent, Neovim at ch:0',
-        fields: ['cursor'],
-    },
-    {
-        testPattern: 'd0 at start should not delete',
-        description: 'd0 at column 0 content difference',
-        reason: 'codemirror-vim and Neovim differ on d0 behavior when already at column 0',
-        fields: ['content'],
-    },
+
     {
         testPattern: ':s/old/new/g should replace all',
         description: ':s/g cursor position differs after global substitute',

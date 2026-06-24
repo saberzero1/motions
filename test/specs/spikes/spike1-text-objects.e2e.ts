@@ -1,6 +1,7 @@
 import { $, browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../../helpers';
 describe('Spike 1: Text object API feasibility', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -92,7 +93,7 @@ describe('Spike 1: Text object API feasibility', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
 
         await browser.keys(['d', 'i', '*']);
@@ -120,7 +121,7 @@ describe('Spike 1: Text object API feasibility', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
 
         await browser.keys(['v', 'i', '*']);
@@ -148,7 +149,7 @@ describe('Spike 1: Text object API feasibility', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
 
         await browser.keys(['d', 'a', '*']);

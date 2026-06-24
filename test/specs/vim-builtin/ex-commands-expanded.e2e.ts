@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getEditorValue, getCursorPos } from '../../helpers';
+import {
+    setupEditor,
+    getEditorValue,
+    getCursorPos,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Expanded Ex commands', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -211,7 +216,7 @@ describe('Expanded Ex commands', function () {
             await browser.pause(300);
             const result = await handleEx('changes');
             expect(result).toHaveProperty('success', true);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
     });

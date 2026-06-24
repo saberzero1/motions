@@ -1,6 +1,12 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { getEditorValue, getSelection, setupEditor, vimKeys } from '../helpers';
+import {
+    getEditorValue,
+    getSelection,
+    setupEditor,
+    vimKeys,
+    sendVimEscape,
+} from '../helpers';
 
 describe('Phase 4 text objects', function () {
     before(async function () {
@@ -265,7 +271,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello **bold** world', { line: 0, ch: 10 });
             await vimKeys('v', 'i', '*');
             expect(await getSelection()).toBe('bold');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -273,7 +279,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello **bold** world', { line: 0, ch: 10 });
             await vimKeys('v', 'a', '*');
             expect(await getSelection()).toBe('**bold**');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -281,7 +287,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello $x + y$ world', { line: 0, ch: 9 });
             await vimKeys('v', 'i', '$');
             expect(await getSelection()).toBe('x + y');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -289,7 +295,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello $x + y$ world', { line: 0, ch: 9 });
             await vimKeys('v', 'a', '$');
             expect(await getSelection()).toBe('$x + y$');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -297,7 +303,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello ~~strike~~ world', { line: 0, ch: 10 });
             await vimKeys('v', 'i', '~');
             expect(await getSelection()).toBe('strike');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -305,7 +311,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello ~~strike~~ world', { line: 0, ch: 10 });
             await vimKeys('v', 'a', '~');
             expect(await getSelection()).toBe('~~strike~~');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -313,7 +319,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello ==highlight== world', { line: 0, ch: 12 });
             await vimKeys('v', 'i', '=');
             expect(await getSelection()).toBe('highlight');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -321,7 +327,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello ==highlight== world', { line: 0, ch: 12 });
             await vimKeys('v', 'a', '=');
             expect(await getSelection()).toBe('==highlight==');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -329,7 +335,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello _italic_ world', { line: 0, ch: 10 });
             await vimKeys('v', 'i', '_');
             expect(await getSelection()).toBe('italic');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -337,7 +343,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello _italic_ world', { line: 0, ch: 10 });
             await vimKeys('v', 'a', '_');
             expect(await getSelection()).toBe('_italic_');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -345,7 +351,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello `code` world', { line: 0, ch: 9 });
             await vimKeys('v', 'i', '`');
             expect(await getSelection()).toBe('code');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -353,7 +359,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello `code` world', { line: 0, ch: 9 });
             await vimKeys('v', 'a', '`');
             expect(await getSelection()).toBe('`code`');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -361,7 +367,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello *ab* world', { line: 0, ch: 8 });
             await vimKeys('v', 'i', '*');
             expect(await getSelection()).toBe('ab');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 
@@ -373,7 +379,7 @@ describe('Phase 4 text objects', function () {
             await setupEditor('Hello *x* world', { line: 0, ch: 7 });
             await vimKeys('v', 'i', '*');
             expect(await getSelection()).toBe('x');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
         });
 

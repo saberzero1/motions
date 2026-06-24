@@ -4,15 +4,28 @@ This document tracks known limitations, architectural constraints, and intention
 
 ## EasyMotion operator-pending mode
 
-**Status**: Deferred indefinitely.
+**Status**: Prototype implemented (spike21). Limited to word/line/search motions — char-based (f/F/s/t/T) deferred.
 
-`d<leader><leader>w{label}` (delete to an EasyMotion target) does not work. EasyMotion is registered as an **action** (`defineAction`), not a **motion** (`defineMotion`). When `d` is pressed first, Vim enters operator-pending mode and expects a synchronous motion return. Actions are not dispatched in this context — the action callback never fires.
+`d<leader><leader>w{label}` (delete to an EasyMotion target) does not work via the standard codemirror-vim dispatch because Easymotion is registered as an **action** (`defineAction`). codemirror-vim's `commandMatches` filters out `type: 'action'` when `inputState.operator` is set (vim.js line 3630), so the action callback never fires in operator-pending mode.
 
-Spike tests `test/specs/spikes/spike6-operator-pending.e2e.ts` and `test/specs/spikes/spike19-easymotion-visual.e2e.ts` (Q5) both confirmed this: pressing `d` then triggering the action results in `actionFired: false`. The operator-pending state prevents action execution entirely.
+A `defineMotion` approach requires synchronous return values, but EasyMotion needs async user input (waiting for a label keypress). A `type: 'operatorMotion'` approach would conflict with the already-set operator from `d`/`c`/`y`.
 
-A `defineMotion` approach is not viable either, because motions must return synchronously and EasyMotion requires async user input (waiting for a label keypress).
+**Solution**: A capture-phase keydown listener (`src/easymotion/operator-pending.ts`) intercepts keystrokes **before** codemirror-vim's CM6 event handler sees them. When an operator-pending easymotion sequence is detected (`d<leader><leader>w...`):
 
-The only potential path would be intercepting `d`/`c`/`y` keystrokes via `vim-keypress` before EasyMotion fires, storing the pending operator externally, cancelling Vim's operator-pending state, then replaying after the jump. This is fragile and requires deep integration with Vim's internal state machine.
+1. All keystrokes are swallowed (prevented from reaching vim)
+2. Easymotion targets are computed synchronously and the overlay is shown
+3. The label keypress is captured at the DOM level
+4. The operation (d/c/y + motion-to-target) is executed via CM6 dispatch, bypassing vim's operator internals entirely
+
+**Known limitations of the current prototype**:
+
+- Char-based easymotions (`f`, `F`, `s`, `t`, `T`) are not yet supported because they require an intermediate search-character keypress before the overlay can be shown
+- Dot-repeat (`.`) does not replay the operation
+- Vim registers are populated from the deleted/yanked text but only as a best-effort read (no integration with vim's internal operator system)
+- Change operator enters insert mode by dispatching a synthetic `i` keydown event — this may not work reliably in all configurations
+- The capture-phase listener intercepts on the document level, not scoped to the active editor
+
+**Test coverage**: `test/specs/spikes/spike21-operator-pending-easymotion.e2e.ts` validates delete, yank, and Escape-cancel flows.
 
 ## Smart asterisk disambiguation
 
@@ -203,19 +216,17 @@ These commands exist but behave differently from Neovim:
 | `gf`               | Open file path under cursor                             | Opens Obsidian quick switcher                              | Wikilinks (`gd`) are more natural for note navigation                                                                    |
 | `zO` / `zC` / `zA` | Recursive fold open/close/toggle                        | Maps to the same action as `zo`/`zc`/`za`                  | Obsidian's fold API doesn't distinguish recursive from non-recursive                                                     |
 | `it` / `at`        | HTML tag text objects (CM Vim native via XML mode)      | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown |
-| `dG`               | Deletes from cursor to end of file, no trailing newline | Leaves a trailing newline after deletion                   | codemirror-vim's linewise delete preserves trailing newline; `mapCommand` cannot intercept operator-pending sequences    |
-| `>>`               | Cursor at first non-blank after indent                  | Cursor at ch:1 after indent                                | codemirror-vim's indent operator cursor placement; `mapCommand` cannot intercept doubled-operator `>>`                   |
-| `V` + `>`          | Cursor at first non-blank after visual indent           | Cursor at ch:1 after visual indent                         | Same as `>>` — codemirror-vim cursor placement after indent                                                              |
-| `d0`               | No-op at column 0 (zero-width motion)                   | May delete content at column 0                             | codemirror-vim and Neovim differ on `d0` behavior at column 0; `mapCommand` cannot intercept operator-pending sequences  |
+| `dG`               | Deletes from cursor to end of file, no trailing newline | Fixed in fork                                             | The fork's `operators.delete` now expands the anchor to include the preceding newline when deleting linewise to end of file. |
+| `>>`               | Cursor at first non-blank after indent                  | Fixed in fork                                              | The fork's `operators.indent` now returns cursor at column 0, matching Neovim behavior.                                  |
+| `V` + `>`          | Cursor at first non-blank after visual indent           | Fixed in fork                                              | Same fix as `>>` — cursor at column 0 after indent.                                                                     |
+| `d0`               | No-op at column 0 (zero-width motion)                   | Fixed in fork                                              | Zero-width exclusive range produces no-op as expected.                                                                   |
 | `<<`               | Unindent by shiftwidth spaces                           | Unindent uses tabs regardless of shiftwidth setting        | codemirror-vim's indent/unindent uses tabs internally and does not fully respect `shiftwidth`/`expandtab` options        |
 
 ## Visual mode on single-character text objects
 
-**Status**: Confirmed codemirror-vim limitation.
+**Status**: Fixed.
 
-`vi*` on `*x*` (single-character inner content) does not select `x` correctly. The visual selection lands on a `*` delimiter character instead.
-
-The plugin's `adjustRangeForVisualMode` correctly computes the range `(ch:7, ch:8)` for the inner content and skips the −1 head compensation for 1-char ranges. However, codemirror-vim's `makeCmSelection` still mishandles the selection — the bug is in CM Vim's internal visual mode selection logic, not in the range computation. Multi-character inner content (`vi*` on `**bold**`, `vi$` on `$x + y$`, etc.) works correctly.
+`vi*` on `*x*` (single-character inner content) now correctly selects `x`. The fix removed the single-character skip in `adjustRangeForVisualMode` — the −1 head compensation is now applied uniformly, producing a vim-style inclusive head that `makeCmSelection` converts correctly to a CodeMirror exclusive range.
 
 ## Test-discovered behavioral discrepancies
 
@@ -223,12 +234,10 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 ### `dG` leaves trailing newline
 
-**Status**: Unfixable from plugin code — codemirror-vim limitation.
+**Status**: Fixed in fork.
 **Test**: `test/specs/vim-builtin/operator-combos.e2e.ts` — "dG should delete from current line to end of file"
 
-`dG` from line 2 of a 4-line document produces `'one\n'` instead of `'one'`. codemirror-vim's linewise delete preserves a trailing newline when deleting to end of file. Neovim does not leave a trailing newline.
-
-Investigation confirmed this cannot be fixed from plugin code: the built-in `d` operator is not overridable via `defineOperator`, `mapCommand` cannot intercept operator-pending sequences (`d` + motion), and `vim-keypress` fires after the deletion is already complete.
+`dG` from line 2 of a 4-line document produces `'one'` instead of `'one\n'`. The fork's `operators.delete` now expands the anchor to include the preceding newline when deleting linewise to end of file.
 
 ### ~~`iB` does not scope to innermost blockquote nesting level~~
 

@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getSelection, getVimMode } from '../helpers';
+import {
+    setupEditor,
+    getSelection,
+    getVimMode,
+    sendVimEscape,
+} from '../helpers';
 
 describe('EasyMotion visual mode', function () {
     before(async function () {
@@ -9,7 +14,7 @@ describe('EasyMotion visual mode', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -54,7 +59,7 @@ describe('EasyMotion visual mode', function () {
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
         expect(result).toHaveProperty('hasLabels', true);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 
@@ -120,10 +125,10 @@ describe('EasyMotion visual mode', function () {
                 const selection = await getSelection();
                 expect(selection.length).toBeGreaterThan(0);
             } else {
-                await browser.keys(['Escape']);
+                await sendVimEscape();
             }
         } else {
-            await browser.keys(['Escape']);
+            await sendVimEscape();
         }
     });
 
@@ -192,10 +197,10 @@ describe('EasyMotion visual mode', function () {
                 const selection = await getSelection();
                 expect(selection).toContain('line');
             } else {
-                await browser.keys(['Escape']);
+                await sendVimEscape();
             }
         } else {
-            await browser.keys(['Escape']);
+            await sendVimEscape();
         }
     });
 
@@ -232,7 +237,7 @@ describe('EasyMotion visual mode', function () {
         });
         await browser.pause(200);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
 
         const mode = await getVimMode();

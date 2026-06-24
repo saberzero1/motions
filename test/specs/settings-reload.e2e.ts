@@ -5,6 +5,7 @@ import {
     getRegisterContent,
     setupEditor,
     vimKeys,
+    sendVimEscape,
 } from '../helpers';
 
 describe('Settings hot-reload', function () {
@@ -158,7 +159,7 @@ describe('Settings hot-reload', function () {
             view.editor.focus();
         });
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys([']', 'h']);
         await browser.pause(200);
@@ -302,7 +303,7 @@ describe('Settings hot-reload', function () {
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', false);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
 
         await browser.executeObsidian(({ app }) => {
@@ -404,7 +405,7 @@ describe('Settings hot-reload', function () {
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
         expect(result).toHaveProperty('hasLabels', true);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
     });
 

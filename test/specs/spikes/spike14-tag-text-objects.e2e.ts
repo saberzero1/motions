@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../../helpers';
 describe('Spike 14: Tag text objects (it/at) in Markdown', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -59,7 +60,7 @@ describe('Spike 14: Tag text objects (it/at) in Markdown', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['d']);
         await browser.pause(30);

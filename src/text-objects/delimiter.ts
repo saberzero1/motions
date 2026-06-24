@@ -29,8 +29,6 @@ export function adjustRangeForVisualMode(
     const forward =
         to.line > from.line || (to.line === from.line && to.ch >= from.ch);
     if (!forward) return range;
-    // Skip adjustment for single-character ranges to avoid zero-width selection
-    if (from.line === to.line && to.ch - from.ch <= 1) return range;
     return [from, createPos(to.line, to.ch - 1)];
 }
 

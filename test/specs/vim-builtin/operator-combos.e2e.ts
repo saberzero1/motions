@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, vimKeys, getEditorValue } from '../../helpers';
+import {
+    setupEditor,
+    vimKeys,
+    getEditorValue,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -123,8 +128,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             expect(await getEditorValue()).toBe('hello');
         });
 
-        // BUG: dG leaves a trailing newline — CM Vim produces 'one\n' instead of 'one'
-        it.skip('dG should delete from current line to end of file', async function () {
+        it('dG should delete from current line to end of file', async function () {
             await setupEditor('one\ntwo\nthree\nfour', { line: 1, ch: 0 });
             await vimKeys('d', 'G');
             expect(await getEditorValue()).toBe('one');
@@ -154,7 +158,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('old text here', { line: 0, ch: 0 });
             await vimKeys('c', 'w');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('new text here');
         });
@@ -163,7 +167,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('keep this remove', { line: 0, ch: 10 });
             await vimKeys('c', '$');
             await browser.keys(['!']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('keep this !');
         });
@@ -172,7 +176,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('old line\nsecond', { line: 0, ch: 3 });
             await vimKeys('c', 'c');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('new\nsecond');
         });
@@ -181,7 +185,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('hello world', { line: 0, ch: 5 });
             await vimKeys('C');
             await browser.keys(['!']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('hello!');
         });
@@ -190,7 +194,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('one two three', { line: 0, ch: 0 });
             await vimKeys('c', 'e');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('X two three');
         });
@@ -199,7 +203,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('one\ntwo\nthree', { line: 0, ch: 0 });
             await vimKeys('2', 'c', 'c');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('X\nthree');
         });
@@ -208,7 +212,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('c', 'w');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('X world');
         });
@@ -217,7 +221,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('c', 'e');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('X world');
         });
@@ -237,7 +241,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('y', '$');
             await vimKeys('o');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(100);
             await vimKeys('p');
             const val = await getEditorValue();
@@ -304,7 +308,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
 
         it('V + > should indent selected line in visual mode', async function () {
             await setupEditor('one\ntwo\nthree', { line: 1, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
@@ -320,7 +324,7 @@ describe('Operator-pending combinations (Tier 1)', function () {
 
         it('V + < should unindent selected line in visual mode', async function () {
             await setupEditor('one\n\ttwo\nthree', { line: 1, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);

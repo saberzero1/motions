@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
+import { sendVimEscape } from '../../helpers';
 describe('Normal mode — insert entry commands (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -15,7 +16,7 @@ describe('Normal mode — insert entry commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 

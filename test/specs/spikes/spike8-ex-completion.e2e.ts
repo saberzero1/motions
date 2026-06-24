@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../../helpers';
 describe('Spike 8: Ex command line DOM structure', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -19,7 +20,7 @@ describe('Spike 8: Ex command line DOM structure', function () {
         expect(result).toHaveProperty('focused', true);
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(100);
         await browser.keys([':']);
         await browser.pause(500);
@@ -54,7 +55,7 @@ describe('Spike 8: Ex command line DOM structure', function () {
         // eslint-disable-next-line obsidianmd/rule-custom-message -- spike discovery output
         console.log('Ex command line DOM:', JSON.stringify(domInfo, null, 2));
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
 
         expect(typeof domInfo.hasPanel).toBe('boolean');

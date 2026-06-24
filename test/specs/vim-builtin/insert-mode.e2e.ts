@@ -5,6 +5,7 @@ import {
     vimKeys,
     getEditorValue,
     getCursorPos,
+    sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -21,7 +22,7 @@ describe('Insert mode commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -40,7 +41,7 @@ describe('Insert mode commands (Tier 1)', function () {
         it('Escape should return to normal mode', async function () {
             await setupEditor('hello', { line: 0, ch: 0 });
             await vimKeys('i');
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(100);
             await browser.keys(['x']);
             await browser.pause(200);
@@ -92,7 +93,7 @@ describe('Insert mode commands (Tier 1)', function () {
                 Vim.handleKey(adapter, '<C-w>');
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             const val = await getEditorValue();
             expect(val).toBe('hello ');
@@ -131,7 +132,7 @@ describe('Insert mode commands (Tier 1)', function () {
                 Vim.handleKey(adapter, '<C-u>');
             });
             await browser.pause(300);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('');
         });

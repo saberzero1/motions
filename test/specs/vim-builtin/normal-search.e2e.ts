@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, vimKeys, getCursorPos } from '../../helpers';
+import {
+    setupEditor,
+    vimKeys,
+    getCursorPos,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Normal mode — search and find (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -71,7 +76,7 @@ describe('Normal mode — search and find (Tier 1)', function () {
     describe('/ and ? search', function () {
         it('/ should search forward', async function () {
             await setupEditor('aaa bbb ccc bbb ddd', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['/']);
             await browser.pause(100);
@@ -115,7 +120,7 @@ describe('Normal mode — search and find (Tier 1)', function () {
         // BUG: n/N wrap-around assertion unreliable — search lands on unexpected occurrence depending on CM Vim's incsearch state
         it.skip('n should wrap to start when reaching end', async function () {
             await setupEditor('foo bar foo baz', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['/']);
             await browser.pause(100);
@@ -147,7 +152,7 @@ describe('Normal mode — search and find (Tier 1)', function () {
     describe('? (backward search)', function () {
         it('? should search backward', async function () {
             await setupEditor('aaa bbb ccc bbb ddd', { line: 0, ch: 18 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['?']);
             await browser.pause(100);

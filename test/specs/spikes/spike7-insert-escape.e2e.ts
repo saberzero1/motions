@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../../helpers';
 async function getEditorValue(): Promise<string> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
@@ -31,7 +32,7 @@ describe('Spike 7: Insert mode escape via imap jk', function () {
         });
         await browser.pause(300);
 
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['i']);
         await browser.pause(50);
@@ -45,7 +46,7 @@ describe('Spike 7: Insert mode escape via imap jk', function () {
         await browser.keys(['A']);
         await browser.pause(50);
         await browser.keys('world'.split(''));
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
 
         const value = await getEditorValue();

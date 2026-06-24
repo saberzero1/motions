@@ -21,6 +21,7 @@ import type { VimApi } from './types/vim-api';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { getVimApi, isVimEnabled } from './vim/vim-api';
+import { createBundledVimExtension, installVimBridge } from './vim/bundled-vim';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintModeAction } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
@@ -56,21 +57,20 @@ export default class VimMotionsPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        if (
-            !isVimEnabled(
-                this.app as unknown as {
-                    vault: { getConfig: (key: string) => unknown };
-                },
-            )
-        ) {
-            new Notice(
-                'Vim Motions requires Vim mode. Enable it in settings → editor → Vim key bindings.',
-            );
-            return;
+        const builtinVimOn = isVimEnabled(
+            this.app as unknown as {
+                vault: { getConfig: (key: string) => unknown };
+            },
+        );
+
+        if (!builtinVimOn) {
+            this.registerEditorExtension(createBundledVimExtension());
+            installVimBridge();
         }
 
         const vim = getVimApi();
         if (!vim) {
+            new Notice('Vim Motions: could not initialise vim layer.');
             return;
         }
 

@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getCursorPos, getEditorValue } from '../../helpers';
+import {
+    setupEditor,
+    getCursorPos,
+    getEditorValue,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Normal mode — scroll commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 

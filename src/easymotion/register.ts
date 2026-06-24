@@ -21,155 +21,116 @@ import { waitForKey, waitForLabel } from './keypress';
 
 const DEFAULT_LABELS = 'asdghklqwertyuiopzxcvbnmfj';
 
-type TargetFinder = (app: App, labels: string, shade: boolean) => () => void;
-
-function jumpToTarget(cm: CmAdapter, target: Target): void {
-    const vim = cm.state.vim;
-    if (vim?.visualMode && cm.cm6) {
-        const anchorPos = cm.getCursor('anchor');
-        const anchorOffset = cm.indexFromPos(anchorPos);
-        const headOffset = cm.indexFromPos({
-            line: target.line,
-            ch: target.ch,
-        });
-        cm.cm6.dispatch({
-            selection: { anchor: anchorOffset, head: headOffset },
-        });
-    } else {
-        cm.setCursor(target.line, target.ch);
-    }
-}
-
-function createJumpTrigger(
+type MotionTriggerFactory = (
     app: App,
     labels: string,
     shade: boolean,
-    findTargets: () => Target[],
-): () => void {
-    return () => {
-        const markdownView = app.workspace.getActiveViewOfType(MarkdownView);
-        if (!markdownView) return;
-        const cm = getCmAdapter(markdownView);
-        if (!cm) return;
+) => (cm: CmAdapter) => Promise<{ line: number; ch: number } | null>;
 
-        const targets = findTargets();
-        if (targets.length === 0) return;
+function createMotionTrigger(
+    labels: string,
+    shade: boolean,
+    findTargets: (cm: CmAdapter) => Target[],
+): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
+    return async (cm) => {
+        const targets = findTargets(cm);
+        if (targets.length === 0) return null;
 
         const labeled = assignLabels(targets, labels);
         const overlay = showOverlay(cm, labeled, { shade });
-        if (!overlay) return;
+        if (!overlay) return null;
 
-        void waitForLabel(labeled, (remaining) => {
-            overlay.updateLabels(remaining);
-        }).then((match) => {
+        try {
+            const match = await waitForLabel(labeled, (remaining) => {
+                overlay.updateLabels(remaining);
+            });
+            return match ? { line: match.line, ch: match.ch } : null;
+        } finally {
             overlay.cleanup();
-            if (match) jumpToTarget(cm, match);
-        });
+        }
     };
 }
 
-function createCharInputTrigger(
-    app: App,
+function createCharMotionTrigger(
     labels: string,
     shade: boolean,
-    findTargets: (char: string) => Target[],
-): () => void {
-    return () => {
-        const markdownView = app.workspace.getActiveViewOfType(MarkdownView);
-        if (!markdownView) return;
-        const cm = getCmAdapter(markdownView);
-        if (!cm) return;
+    findTargets: (cm: CmAdapter, char: string) => Target[],
+): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
+    return async (cm) => {
+        const charKey = await waitForKey();
+        if (!charKey || charKey.length !== 1) return null;
 
-        void waitForKey().then((charKey) => {
-            if (!charKey || charKey.length !== 1) return;
+        const targets = findTargets(cm, charKey);
+        if (targets.length === 0) return null;
 
-            const targets = findTargets(charKey);
-            if (targets.length === 0) return;
+        const labeled = assignLabels(targets, labels);
+        const overlay = showOverlay(cm, labeled, { shade });
+        if (!overlay) return null;
 
-            const labeled = assignLabels(targets, labels);
-            const overlay = showOverlay(cm, labeled, { shade });
-            if (!overlay) return;
-
-            void waitForLabel(labeled, (remaining) => {
+        try {
+            const match = await waitForLabel(labeled, (remaining) => {
                 overlay.updateLabels(remaining);
-            }).then((match) => {
-                overlay.cleanup();
-                if (match) jumpToTarget(cm, match);
             });
-        });
+            return match ? { line: match.line, ch: match.ch } : null;
+        } finally {
+            overlay.cleanup();
+        }
     };
-}
-
-function getCm(app: App) {
-    const markdownView = app.workspace.getActiveViewOfType(MarkdownView);
-    if (!markdownView) return null;
-    return getCmAdapter(markdownView);
 }
 
 interface EasyMotionDef {
     name: string;
     keySuffix: string;
     description: string;
-    createTrigger: TargetFinder;
+    createTrigger: MotionTriggerFactory;
 }
 
-function wordTrigger(direction: Direction, bigWord: boolean): TargetFinder {
-    return (app, labels, shade) =>
-        createJumpTrigger(app, labels, shade, () => {
-            const cm = getCm(app);
-            return cm ? findWordStartTargets(cm, direction, bigWord) : [];
-        });
+function wordTrigger(direction: Direction, bigWord: boolean): MotionTriggerFactory {
+    return (_app, labels, shade) =>
+        createMotionTrigger(labels, shade, (cm) =>
+            findWordStartTargets(cm, direction, bigWord),
+        );
 }
 
-function wordEndTrigger(direction: Direction, bigWord: boolean): TargetFinder {
-    return (app, labels, shade) =>
-        createJumpTrigger(app, labels, shade, () => {
-            const cm = getCm(app);
-            return cm ? findWordEndTargets(cm, direction, bigWord) : [];
-        });
+function wordEndTrigger(direction: Direction, bigWord: boolean): MotionTriggerFactory {
+    return (_app, labels, shade) =>
+        createMotionTrigger(labels, shade, (cm) =>
+            findWordEndTargets(cm, direction, bigWord),
+        );
 }
 
-function charTrigger(direction: Direction): TargetFinder {
-    return (app, labels, shade) =>
-        createCharInputTrigger(app, labels, shade, (char) => {
-            const cm = getCm(app);
-            return cm ? findCharTargets(cm, char, direction) : [];
-        });
+function charTrigger(direction: Direction): MotionTriggerFactory {
+    return (_app, labels, shade) =>
+        createCharMotionTrigger(labels, shade, (cm, char) =>
+            findCharTargets(cm, char, direction),
+        );
 }
 
-function tillTrigger(direction: Direction): TargetFinder {
-    return (app, labels, shade) =>
-        createCharInputTrigger(app, labels, shade, (char) => {
-            const cm = getCm(app);
-            return cm ? findTillTargets(cm, char, direction) : [];
-        });
+function tillTrigger(direction: Direction): MotionTriggerFactory {
+    return (_app, labels, shade) =>
+        createCharMotionTrigger(labels, shade, (cm, char) =>
+            findTillTargets(cm, char, direction),
+        );
 }
 
-function lineTrigger(direction: Direction): TargetFinder {
-    return (app, labels, shade) =>
-        createJumpTrigger(app, labels, shade, () => {
-            const cm = getCm(app);
-            return cm ? findLineTargets(cm, direction) : [];
-        });
+function lineTrigger(direction: Direction): MotionTriggerFactory {
+    return (_app, labels, shade) =>
+        createMotionTrigger(labels, shade, (cm) =>
+            findLineTargets(cm, direction),
+        );
 }
 
-function searchTrigger(direction: Direction): TargetFinder {
-    return (app, labels, shade) =>
-        createJumpTrigger(app, labels, shade, () => {
-            const cm = getCm(app);
+function searchTrigger(direction: Direction): MotionTriggerFactory {
+    return (_app, labels, shade) =>
+        createMotionTrigger(labels, shade, (cm) => {
             const vim = getVimApi();
-            return cm && vim ? findSearchTargets(cm, direction, vim) : [];
+            return vim ? findSearchTargets(cm, direction, vim) : [];
         });
 }
 
-let lastTrigger: (() => void) | null = null;
-
-function trackAndRun(trigger: () => void): () => void {
-    return () => {
-        lastTrigger = trigger;
-        trigger();
-    };
-}
+let lastMotionFactory:
+    | ((cm: CmAdapter) => Promise<{ line: number; ch: number } | null>)
+    | null = null;
 
 const EASYMOTION_DEFS: EasyMotionDef[] = [
     {
@@ -278,7 +239,7 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
 
 interface ExtraEasyMotionDef {
     name: string;
-    createTrigger: TargetFinder;
+    createTrigger: MotionTriggerFactory;
 }
 
 const EXTRA_DEFS: ExtraEasyMotionDef[] = [
@@ -308,6 +269,9 @@ const EXTRA_DEFS: ExtraEasyMotionDef[] = [
     },
 ];
 
+/**
+ * Register easymotion motions and actions.
+ */
 export function registerEasyMotion(
     reg: VimRegistration,
     app: App,
@@ -325,19 +289,32 @@ export function registerEasyMotion(
     reg.unmapDefaultBinding(leader);
 
     for (const def of EASYMOTION_DEFS) {
-        const trigger = trackAndRun(def.createTrigger(app, chars, shade));
-        reg.defineAction(def.name, trigger);
+        const motionFactory = def.createTrigger(app, chars, shade);
+        reg.defineMotion(def.name, (cm) => {
+            lastMotionFactory = motionFactory;
+            return motionFactory(cm);
+        });
         const keys = leader + leader + def.keySuffix;
-        reg.mapCommand(keys, 'action', def.name, {});
+        reg.mapCommand(keys, 'motion', def.name, {});
         leaderRegistry.addBinding(keys, def.description, 'builtin');
     }
 
     for (const def of EXTRA_DEFS) {
-        const trigger = trackAndRun(def.createTrigger(app, chars, shade));
-        reg.defineAction(def.name, trigger);
+        const motionFactory = def.createTrigger(app, chars, shade);
+        reg.defineMotion(def.name, (cm) => {
+            lastMotionFactory = motionFactory;
+            return motionFactory(cm);
+        });
     }
 
     reg.defineAction('easyMotionRepeat', () => {
-        if (lastTrigger) lastTrigger();
+        if (!lastMotionFactory) return;
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const cm = getCmAdapter(view);
+        if (!cm) return;
+        void lastMotionFactory(cm).then((pos) => {
+            if (pos) cm.setCursor(pos.line, pos.ch);
+        });
     });
 }

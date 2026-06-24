@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getSelection, getVimMode } from '../../helpers';
+import {
+    setupEditor,
+    getSelection,
+    getVimMode,
+    sendVimEscape,
+} from '../../helpers';
 
 describe('Spike 19: EasyMotion visual + operator-pending feasibility', function () {
     before(async function () {
@@ -9,7 +14,7 @@ describe('Spike 19: EasyMotion visual + operator-pending feasibility', function 
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 

@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, vimKeys, getEditorValue } from '../../helpers';
+import {
+    setupEditor,
+    vimKeys,
+    getEditorValue,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Built-in text objects (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -51,7 +56,7 @@ describe('Built-in text objects (Tier 1)', function () {
             await setupEditor('old text here', { line: 0, ch: 0 });
             await vimKeys('c', 'i', 'w');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('new text here');
         });

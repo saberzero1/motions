@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../helpers';
 function getVimHandle() {
     return browser.executeObsidian(({ app, obsidian }) => {
         const Vim = (
@@ -71,7 +72,7 @@ describe('Hint mode', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(200);
         await browser.executeObsidian(() => {
             activeDocument
@@ -106,7 +107,7 @@ describe('Hint mode', function () {
             expect(result).toHaveProperty('hasOverlay', true);
 
             await browser.pause(100);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
 
             const afterEscape = (await browser.executeObsidian(() => {

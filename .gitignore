@@ -30,3 +30,4 @@ test-vault/.obsidian/*.json
 
 # Sisyphus plans
 .sisyphus/
+.omc/

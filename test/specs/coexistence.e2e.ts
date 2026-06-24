@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
+import { sendVimEscape } from '../helpers';
 describe('Plugin coexistence', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -21,7 +22,7 @@ describe('Plugin coexistence', function () {
         expect(result).toHaveProperty('ready', true);
 
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['d', 'i', '(']);
         await browser.pause(200);
@@ -46,7 +47,7 @@ describe('Plugin coexistence', function () {
             view.editor.focus();
         });
         await browser.pause(300);
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
         await browser.keys(['w']);
         await browser.pause(200);

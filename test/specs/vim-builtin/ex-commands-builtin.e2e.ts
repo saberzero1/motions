@@ -1,6 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, vimKeys, getEditorValue } from '../../helpers';
+import {
+    setupEditor,
+    vimKeys,
+    getEditorValue,
+    sendVimEscape,
+} from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
 
@@ -16,7 +21,7 @@ describe('Built-in ex commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -34,7 +39,7 @@ describe('Built-in ex commands (Tier 1)', function () {
     describe(':s (substitute)', function () {
         it(':s/old/new/ should replace first occurrence on line', async function () {
             await setupEditor('old old old', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys([':']);
             await browser.pause(100);
@@ -57,7 +62,7 @@ describe('Built-in ex commands (Tier 1)', function () {
 
         it(':s/old/new/g should replace all on line', async function () {
             await setupEditor('old old old', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys([':']);
             await browser.pause(100);
@@ -83,7 +88,7 @@ describe('Built-in ex commands (Tier 1)', function () {
     describe(':sort', function () {
         it(':sort should sort lines', async function () {
             await setupEditor('cherry\napple\nbanana', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys([':']);
             await browser.pause(100);
@@ -97,7 +102,7 @@ describe('Built-in ex commands (Tier 1)', function () {
     describe(':d (delete lines)', function () {
         it(':d should delete current line', async function () {
             await setupEditor('one\ntwo\nthree', { line: 1, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys([':']);
             await browser.pause(100);

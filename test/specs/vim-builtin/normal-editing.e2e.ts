@@ -5,6 +5,7 @@ import {
     vimKeys,
     getEditorValue,
     getCursorPos,
+    sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -21,7 +22,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
     });
 
     afterEach(async function () {
-        await browser.keys(['Escape']);
+        await sendVimEscape();
         await browser.pause(50);
     });
 
@@ -76,7 +77,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('old text\nkeep this', { line: 0, ch: 0 });
             await vimKeys('c', 'c');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('new\nkeep this');
         });
@@ -85,7 +86,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('hello world', { line: 0, ch: 5 });
             await vimKeys('C');
             await browser.keys(['!']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('hello!');
         });
@@ -94,7 +95,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('old new end', { line: 0, ch: 0 });
             await vimKeys('c', 'w');
             await browser.keys(['r', 'e', 'p']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('rep new end');
         });
@@ -105,7 +106,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('abcde', { line: 0, ch: 2 });
             await vimKeys('s');
             await browser.keys(['X']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('abXde');
         });
@@ -114,7 +115,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('old line\nkeep', { line: 0, ch: 3 });
             await vimKeys('S');
             await browser.keys(['n', 'e', 'w']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('new\nkeep');
         });
@@ -131,7 +132,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('abcde', { line: 0, ch: 0 });
             await vimKeys('R');
             await browser.keys(['X', 'Y']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             expect(await getEditorValue()).toBe('XYcde');
         });
@@ -203,7 +204,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             await setupEditor('old old old', { line: 0, ch: 0 });
             await vimKeys('c', 'w');
             await browser.keys(['n', 'e', 'w', ' ']);
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(200);
             await vimKeys('.');
             const val = await getEditorValue();
@@ -214,7 +215,7 @@ describe('Normal mode — editing commands (Tier 1)', function () {
     describe('. after visual mode', function () {
         it('. should repeat visual mode indent', async function () {
             await setupEditor('one\ntwo\nthree', { line: 0, ch: 0 });
-            await browser.keys(['Escape']);
+            await sendVimEscape();
             await browser.pause(50);
             await browser.keys(['V']);
             await browser.pause(30);
