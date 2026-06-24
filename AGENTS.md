@@ -93,6 +93,19 @@ npm run build
 - **Run**: `npm run test:e2e` (requires Xvfb + herbstluftwm on Linux, or native display on macOS).
 - **Coverage**: `npm run test:coverage` — reports command-level coverage from `test/neovim-command-index.yaml`.
 
+**Important: e2e test runtime**
+
+The full e2e suite (`npm run test:e2e`) runs 57 spec files and takes approximately **12 minutes**. Each spec launches a fresh Obsidian instance. When running from an agent or script:
+
+- Use a timeout of at least **900000 ms** (15 minutes) to avoid premature termination.
+- To run a subset, use `--spec` to target specific files:
+  ```bash
+  npx wdio run ./wdio.conf.mts --spec test/specs/vim-builtin/operator-combos.e2e.ts
+  npx wdio run ./wdio.conf.mts --spec 'test/specs/vim-builtin/*.e2e.ts'
+  ```
+- The `test/specs/vim-builtin/` directory (~7 min) covers core Vim behavior and is the most relevant subset after fork changes.
+- Individual spec files typically complete in 30–90 seconds.
+
 ### Neovim golden comparison
 
 Tier 1 Vim commands are tested against a headless Neovim instance. The system records Neovim's output as golden JSON files; CI compares Obsidian's behavior against these without needing Neovim installed.
