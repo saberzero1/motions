@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Chord display not clearing on Escape** — pending keystrokes (e.g. `d`) in the status bar now clear when Escape is pressed. The mode tracker now listens to `vim-command-done` in addition to `vim-keypress` and `vim-mode-change`, catching the case where Escape cancels a partial command without changing mode or firing a keypress event. ([#2](https://github.com/saberzero1/motions/issues/2))
 - **Cursor text invisible in light mode** — the character under the block cursor now uses `--text-on-accent` (Obsidian's contrast color) instead of the syntax-highlighted color. Previously, colored text (headings, links) under the cursor was the same hue as the cursor background, making it unreadable in light themes. ([#12](https://github.com/saberzero1/motions/issues/12))
 
+### Added
+
+- **Per-mode cursor shapes** — configurable cursor shape per Vim mode: block, bar, underline, or hollow. Defaults match Neovim (`guicursor`): block for normal/visual, bar for insert, underline for replace/operator-pending. Configurable via **Settings → Vim Motions → Cursor shapes** or vimrc `set guicursor=n:block,i:bar,v:hollow,r:underline,o:underline`. Requires bundled fork mode. ([#13](https://github.com/saberzero1/motions/issues/13))
+
 ## [0.11.0] - 2026-06-25
 
 ### Fixed

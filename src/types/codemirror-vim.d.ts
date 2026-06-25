@@ -2,6 +2,16 @@ declare module '@replit/codemirror-vim' {
     import type { Extension } from '@codemirror/state';
     import type { EditorView } from '@codemirror/view';
 
+    export type CursorShape = 'block' | 'bar' | 'underline' | 'hollow';
+
+    export interface CursorShapeConfig {
+        normal?: CursorShape;
+        insert?: CursorShape;
+        visual?: CursorShape;
+        replace?: CursorShape;
+        operatorPending?: CursorShape;
+    }
+
     interface CodeMirror {
         state: { vim: Record<string, unknown> };
         getCursor(type?: string): { line: number; ch: number };
@@ -10,7 +20,10 @@ declare module '@replit/codemirror-vim' {
         [key: string]: unknown;
     }
 
-    export function vim(options?: { status?: boolean }): Extension;
+    export function vim(options?: {
+        status?: boolean;
+        cursorShapes?: CursorShapeConfig;
+    }): Extension;
     export function getCM(view: EditorView): CodeMirror | null;
     export const Vim: Record<string, unknown>;
 }

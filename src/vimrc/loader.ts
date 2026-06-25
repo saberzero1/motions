@@ -3,8 +3,9 @@ import type { App } from 'obsidian';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
-import { setTextwidth } from '../vim/options';
+import { setTextwidth, parseGuicursor } from '../vim/options';
 import { parseLine } from './parser';
+import type { CursorShapes } from '../settings';
 
 function getVimrcPath(app: App): string {
     return `${app.vault.configDir}.vimrc`;
@@ -130,6 +131,7 @@ export async function loadVimrc(
     app: App,
     vim: VimApi,
     leaderRegistry?: LeaderRegistry,
+    onCursorShapeChange?: (shapes: Partial<CursorShapes>) => void,
 ): Promise<VimrcLoadResult> {
     const path = getVimrcPath(app);
 
@@ -148,6 +150,7 @@ export async function loadVimrc(
         path,
         '\\',
         leaderRegistry,
+        onCursorShapeChange,
     );
 
     return {
@@ -179,6 +182,7 @@ async function loadVimrcFile(
     path: string,
     leaderKey = '\\',
     leaderRegistry?: LeaderRegistry,
+    onCursorShapeChange?: (shapes: Partial<CursorShapes>) => void,
 ): Promise<LoadFileResult> {
     const content = await readVimrcFile(app, path);
     if (content === null) {
@@ -245,6 +249,17 @@ async function loadVimrcFile(
                 setTextwidth(tw);
                 vim.setOption('textwidth', tw);
             }
+            applied++;
+            continue;
+        }
+
+        const isGuicursorSet =
+            parsed?.type === 'set' &&
+            parsed.key === 'guicursor' &&
+            parsed.value;
+        if (isGuicursorSet && onCursorShapeChange) {
+            const partial = parseGuicursor(parsed.value as string);
+            onCursorShapeChange(partial);
             applied++;
             continue;
         }

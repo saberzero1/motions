@@ -1,4 +1,5 @@
 import type { VimApi } from '../types/vim-api';
+import type { CursorShape, CursorShapes } from '../settings';
 
 let textwidthValue = 80;
 
@@ -28,4 +29,45 @@ export function registerVimOptions(vim: VimApi): void {
     vim.defineOption('shiftwidth', 4, 'number', ['sw']);
     vim.defineOption('expandtab', true, 'boolean', ['et']);
     vim.defineOption('insertmodeescape', '', 'string', ['ime']);
+    vim.defineOption('guicursor', '', 'string', []);
+}
+
+const VALID_SHAPES: ReadonlySet<string> = new Set([
+    'block',
+    'bar',
+    'underline',
+    'hollow',
+]);
+
+const MODE_ALIASES: Record<string, keyof CursorShapes> = {
+    n: 'normal',
+    i: 'insert',
+    v: 'visual',
+    r: 'replace',
+    o: 'operatorPending',
+};
+
+export function parseGuicursor(value: string): Partial<CursorShapes> {
+    const result: Partial<CursorShapes> = {};
+    for (const segment of value.split(',')) {
+        const parts = segment.trim().split(':');
+        if (parts.length !== 2) continue;
+        const modeStr = parts[0];
+        const shapeStr = parts[1];
+        if (!modeStr || !shapeStr || !VALID_SHAPES.has(shapeStr)) continue;
+        const shape = shapeStr as CursorShape;
+        if (modeStr === 'a') {
+            result.normal = shape;
+            result.insert = shape;
+            result.visual = shape;
+            result.replace = shape;
+            result.operatorPending = shape;
+        } else {
+            for (const m of modeStr.split('-')) {
+                const key = MODE_ALIASES[m.trim()];
+                if (key) result[key] = shape;
+            }
+        }
+    }
+    return result;
 }

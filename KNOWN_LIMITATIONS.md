@@ -311,6 +311,10 @@ Properties navigation now works in bundled fork mode. The fork's `findPosV` adap
 
 The bundled vim extension is now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. Latex Suite's auto-snippets, tabstop navigation, and math-mode features work normally in vim insert mode.
 
+## Per-mode cursor shapes require bundled fork mode
+
+The per-mode cursor shape settings (block, bar, underline, hollow) only take effect when Obsidian's built-in Vim mode is disabled. With built-in Vim enabled, Obsidian renders its own block cursor and the plugin has no control over its shape. The `set guicursor=...` vimrc command is also only effective in bundled fork mode.
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:

@@ -1,4 +1,4 @@
-import { Notice, Plugin } from 'obsidian';
+import { MarkdownView, Notice, Plugin } from 'obsidian';
 import {
     DEFAULT_SETTINGS,
     VimMotionsSettings,
@@ -20,8 +20,12 @@ import type { VimrcLoadResult } from './vimrc/loader';
 import type { VimApi } from './types/vim-api';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
-import { getVimApi, isVimEnabled } from './vim/vim-api';
-import { createBundledVimExtension, installVimBridge } from './vim/bundled-vim';
+import { getVimApi, isVimEnabled, getCmAdapter } from './vim/vim-api';
+import {
+    createBundledVimExtension,
+    installVimBridge,
+    isBundledVimActive,
+} from './vim/bundled-vim';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintModeAction } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
@@ -64,7 +68,9 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         if (!builtinVimOn) {
-            this.registerEditorExtension(createBundledVimExtension());
+            this.registerEditorExtension(
+                createBundledVimExtension(this.settings.cursorShapes),
+            );
             installVimBridge();
         }
 
@@ -89,10 +95,18 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
+                    const cursorShapeCb = (
+                        partial: Partial<
+                            typeof this.settings.cursorShapes
+                        >,
+                    ) => {
+                        Object.assign(this.settings.cursorShapes, partial);
+                    };
                     let vimrcResult = await loadVimrc(
                         this.app,
                         vim,
                         this.leaderRegistry ?? undefined,
+                        cursorShapeCb,
                     );
                     for (
                         let attempt = 0;
@@ -104,6 +118,7 @@ export default class VimMotionsPlugin extends Plugin {
                             this.app,
                             vim,
                             this.leaderRegistry ?? undefined,
+                            cursorShapeCb,
                         );
                         this.vimrcRetried = true;
                     }
@@ -333,6 +348,23 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.scrolloffManager?.setup(this.settings.scrolloffLines);
+
+        if (isBundledVimActive()) {
+            const mdView = this.app.workspace.getActiveViewOfType(
+                MarkdownView,
+            );
+            if (mdView) {
+                const adapter = getCmAdapter(mdView);
+                if (adapter) {
+                    const vimState = adapter.state.vim as
+                        | Record<string, unknown>
+                        | undefined;
+                    if (vimState) {
+                        vimState.cursorShapes = { ...this.settings.cursorShapes };
+                    }
+                }
+            }
+        }
 
         this.rebuildExSuggest();
         this.rebuildWhichKey();

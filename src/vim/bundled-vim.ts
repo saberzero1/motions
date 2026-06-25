@@ -10,9 +10,11 @@
  */
 
 import { vim, Vim, getCM } from '@replit/codemirror-vim';
+import type { CursorShapeConfig } from '@replit/codemirror-vim';
 import { Prec, type Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { VimApi, CmAdapter } from '../types/vim-api';
+import type { CursorShapes } from '../settings';
 
 /** Whether the bundled vim extension is active in this session. */
 let bundledActive = false;
@@ -22,9 +24,14 @@ let bundledActive = false;
  *
  * The caller should pass this to `plugin.registerEditorExtension()`.
  */
-export function createBundledVimExtension(): Extension {
+export function createBundledVimExtension(
+    cursorShapes?: CursorShapes,
+): Extension {
     bundledActive = true;
-    return Prec.highest(vim());
+    const config: CursorShapeConfig | undefined = cursorShapes
+        ? { ...cursorShapes }
+        : undefined;
+    return Prec.highest(vim({ cursorShapes: config }));
 }
 
 /**

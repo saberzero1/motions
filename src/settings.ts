@@ -42,6 +42,24 @@ export const DEFAULT_MODE_PROMPTS: ModePrompts = {
     replace: 'REPLACE',
 };
 
+export type CursorShape = 'block' | 'bar' | 'underline' | 'hollow';
+
+export interface CursorShapes {
+    normal: CursorShape;
+    insert: CursorShape;
+    visual: CursorShape;
+    replace: CursorShape;
+    operatorPending: CursorShape;
+}
+
+export const DEFAULT_CURSOR_SHAPES: CursorShapes = {
+    normal: 'block',
+    insert: 'bar',
+    visual: 'block',
+    replace: 'underline',
+    operatorPending: 'underline',
+};
+
 export interface VimMotionsSettings {
     enableTextObjects: boolean;
     enableNavigation: boolean;
@@ -61,6 +79,7 @@ export interface VimMotionsSettings {
     scrolloffLines: number;
     multilineScanLimit: number;
     easyMotionLabels: string;
+    cursorShapes: CursorShapes;
     leaderBindings: LeaderBinding[];
 }
 
@@ -83,6 +102,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     scrolloffLines: 5,
     multilineScanLimit: 20,
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
+    cursorShapes: { ...DEFAULT_CURSOR_SHAPES },
     leaderBindings: [],
 };
 
@@ -502,6 +522,40 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        new Setting(containerEl).setName('Cursor shapes').setHeading();
+        new Setting(containerEl).setDesc(
+            'Cursor shape per Vim mode. Requires bundled fork mode (built-in Vim disabled). Configurable via vimrc: set guicursor=n:block,i:bar,v:block,r:underline,o:underline',
+        );
+
+        const cursorShapeOptions: Record<CursorShape, string> = {
+            block: 'Block',
+            bar: 'Bar',
+            underline: 'Underline',
+            hollow: 'Hollow',
+        };
+
+        const cursorModes: { key: keyof CursorShapes; label: string }[] = [
+            { key: 'normal', label: 'Normal mode' },
+            { key: 'insert', label: 'Insert mode' },
+            { key: 'visual', label: 'Visual mode' },
+            { key: 'replace', label: 'Replace mode' },
+            { key: 'operatorPending', label: 'Operator-pending' },
+        ];
+
+        for (const { key, label } of cursorModes) {
+            new Setting(containerEl).setName(label).addDropdown((dropdown) =>
+                dropdown
+                    .addOptions(cursorShapeOptions)
+                    .setValue(this.plugin.settings.cursorShapes[key])
+                    .onChange(async (value) => {
+                        this.plugin.settings.cursorShapes[key] =
+                            value as CursorShape;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        }
 
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(
