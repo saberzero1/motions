@@ -320,11 +320,9 @@ When Obsidian's built-in Vim mode is disabled and the plugin provides its own vi
 
 ## Latex Suite interaction in bundled fork mode
 
-**Status**: Under investigation.
+**Status**: Mitigated. The bundled vim extension is registered at `Prec.highest` so its keydown handler fires before Latex Suite's, preventing duplicate key consumption. Latex Suite's auto-snippets, tabstop navigation, and math-mode features should work normally in vim insert mode.
 
-When using the plugin's bundled fork mode alongside [obsidian-latex-suite](https://github.com/artisticat1/obsidian-latex-suite), the vim key handler may interfere with Latex Suite's input processing in large math blocks. The fork processes keystrokes through its own CM6 ViewPlugin before Latex Suite can handle them.
-
-**Workaround**: Enable Obsidian's built-in Vim mode if Latex Suite compatibility is required.
+If issues persist in large math blocks, enable Obsidian's built-in Vim mode as a fallback — the plugin works with both modes.
 
 ## Intentionally not supported
 

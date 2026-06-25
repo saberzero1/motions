@@ -10,7 +10,7 @@
  */
 
 import { vim, Vim, getCM } from '@replit/codemirror-vim';
-import type { Extension } from '@codemirror/state';
+import { Prec, type Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 
@@ -24,7 +24,7 @@ let bundledActive = false;
  */
 export function createBundledVimExtension(): Extension {
     bundledActive = true;
-    return vim();
+    return Prec.highest(vim());
 }
 
 /**

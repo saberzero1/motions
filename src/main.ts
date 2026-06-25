@@ -22,6 +22,7 @@ import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { getVimApi, isVimEnabled } from './vim/vim-api';
 import { createBundledVimExtension, installVimBridge } from './vim/bundled-vim';
+import { createPropertiesNavExtension } from './vim/properties-nav';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintModeAction } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
@@ -65,6 +66,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         if (!builtinVimOn) {
             this.registerEditorExtension(createBundledVimExtension());
+            this.registerEditorExtension(createPropertiesNavExtension());
             installVimBridge();
         }
 
