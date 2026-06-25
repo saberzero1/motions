@@ -96,9 +96,7 @@ export default class VimMotionsPlugin extends Plugin {
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
                     const cursorShapeCb = (
-                        partial: Partial<
-                            typeof this.settings.cursorShapes
-                        >,
+                        partial: Partial<typeof this.settings.cursorShapes>,
                     ) => {
                         Object.assign(this.settings.cursorShapes, partial);
                     };
@@ -350,9 +348,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.scrolloffManager?.setup(this.settings.scrolloffLines);
 
         if (isBundledVimActive()) {
-            const mdView = this.app.workspace.getActiveViewOfType(
-                MarkdownView,
-            );
+            const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (mdView) {
                 const adapter = getCmAdapter(mdView);
                 if (adapter) {
@@ -360,7 +356,9 @@ export default class VimMotionsPlugin extends Plugin {
                         | Record<string, unknown>
                         | undefined;
                     if (vimState) {
-                        vimState.cursorShapes = { ...this.settings.cursorShapes };
+                        vimState.cursorShapes = {
+                            ...this.settings.cursorShapes,
+                        };
                     }
                 }
             }

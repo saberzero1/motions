@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Visual line navigation skips block MathJax in live preview** — `gj`/`gk` and `j`/`k` now navigate into rendered MathJax `$$` blocks line by line instead of skipping over them. The fork's `findPosV` detects when `moveVertically` jumps over multiple document lines (indicating a replaced widget decoration) and steps one document line instead, allowing the cursor to enter the widget's source range. Folded ranges are excluded from correction. ([#14](https://github.com/saberzero1/motions/issues/14))
+- **`da$` on block math `$$...$$` deletes partially** — `da$` on `$$ a + b = c $$` now correctly deletes the entire expression (producing empty string) instead of leaving `$$`. The `$` text object now uses smart disambiguation (same pattern as `i*`/`a*`): tries `$$` as delimiter first, falls back to `$` for inline math. `di$` on block math correctly produces `$$$$`.
 - **`)` sentence motion at end of text** — `)` at the end of the last sentence no longer moves the cursor backward to the period; it stays in place, matching Neovim
 - **Dot-repeat of `cw` + typed text** — `.` after `cw` correctly replays the inserted text (was a test infrastructure issue, not a vim engine bug)
 - **Search `n`/`N` wrap-around** — `n` after `/` search correctly wraps to the first match when reaching the end of the document (was a test infrastructure issue)
@@ -18,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Per-mode cursor shapes** — configurable cursor shape per Vim mode: block, bar, underline, or hollow. Defaults match Neovim (`guicursor`): block for normal/visual, bar for insert, underline for replace/operator-pending. Configurable via **Settings → Vim Motions → Cursor shapes** or vimrc `set guicursor=n:block,i:bar,v:hollow,r:underline,o:underline`. Requires bundled fork mode. ([#13](https://github.com/saberzero1/motions/issues/13))
+- E2E test suite `test/specs/widget-navigation.e2e.ts` with 6 regression tests for gj/gk/j/k navigation through rendered MathJax `$$` blocks in live preview
+
+### Changed
+
+- `i$`/`a$` text objects now use `createSmartDollarTextObject` (tries `$$` first, falls back to `$`), matching the same disambiguation pattern as `i*`/`a*` with `createSmartAsteriskTextObject`
 
 ## [0.11.0] - 2026-06-25
 
@@ -103,6 +110,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AGENTS.md`: added codemirror-vim fork section with dual-vim architecture documentation
 - `README.md`: added "Recommended setup" section explaining benefits of disabling built-in vim
 - `DIFFERENCES.md` (fork): comprehensive rewrite documenting all behavioral fixes and infrastructure changes
+- `DIFFERENCES.md` (fork): added widget-aware vertical navigation and per-mode cursor shapes sections
+- `KNOWN_LIMITATIONS.md`: added "Visual line navigation and replaced widget decorations" section
+- `KNOWN_LIMITATIONS.md`: added "Smart dollar disambiguation" section for `$$` vs `$` text object matching
 
 ## [0.9.0] - 2026-06-23
 

@@ -2,6 +2,7 @@ import { VimRegistration } from '../vim/registration';
 import {
     createMultiLineDelimiterTextObject,
     createSmartAsteriskTextObject,
+    createSmartDollarTextObject,
 } from './delimiter';
 import { linkInnerTextObject, linkAroundTextObject } from './link';
 import {
@@ -61,14 +62,14 @@ export function registerTextObjects(
 
     reg.defineMotion(
         'markdownMathInner',
-        createMultiLineDelimiterTextObject('$', scanLimit),
+        createSmartDollarTextObject(scanLimit),
     );
     reg.mapCommand('i$', 'motion', 'markdownMathInner', {
         textObjectInner: true,
     });
     reg.defineMotion(
         'markdownMathAround',
-        createMultiLineDelimiterTextObject('$', scanLimit),
+        createSmartDollarTextObject(scanLimit),
     );
     reg.mapCommand('a$', 'motion', 'markdownMathAround', {});
 

@@ -8,19 +8,19 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 
-| Keybinding          | Description                                              |
-| ------------------- | -------------------------------------------------------- |
-| `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`) |
-| `i_` / `a_`         | Inside/around _italic_ (`_..._`)                         |
-| `` i` `` / `` a` `` | Inside/around `inline code`                              |
-| `i$` / `a$`         | Inside/around $math$ (`$...$`)                           |
-| `i~` / `a~`         | Inside/around ~~strikethrough~~ (`~~...~~`)              |
-| `i=` / `a=`         | Inside/around ==highlight== (`==...==`)                  |
-| `il` / `al`         | Inside/around links (`[[wikilink]]` or `[text](url)`)    |
-| `iC` / `aC`         | Inside/around fenced code blocks                         |
-| `iB` / `aB`         | Inside/around blockquotes (`>`)                          |
-| `io` / `ao`         | Inside/around callouts (`> [!type]`)                     |
-| `it` / `at`         | Inside/around HTML/XML tags                              |
+| Keybinding          | Description                                                          |
+| ------------------- | -------------------------------------------------------------------- |
+| `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`)             |
+| `i_` / `a_`         | Inside/around _italic_ (`_..._`)                                     |
+| `` i` `` / `` a` `` | Inside/around `inline code`                                          |
+| `i$` / `a$`         | Inside/around math (`$...$` or `$$...$$`), with smart disambiguation |
+| `i~` / `a~`         | Inside/around ~~strikethrough~~ (`~~...~~`)                          |
+| `i=` / `a=`         | Inside/around ==highlight== (`==...==`)                              |
+| `il` / `al`         | Inside/around links (`[[wikilink]]` or `[text](url)`)                |
+| `iC` / `aC`         | Inside/around fenced code blocks                                     |
+| `iB` / `aB`         | Inside/around blockquotes (`>`)                                      |
+| `io` / `ao`         | Inside/around callouts (`> [!type]`)                                 |
+| `it` / `at`         | Inside/around HTML/XML tags                                          |
 
 All delimiter-based text objects work across multiple lines (configurable scan range, default: 20 lines in each direction). Delimiters inside fenced code blocks are excluded from the scan.
 

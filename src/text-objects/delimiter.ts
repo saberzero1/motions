@@ -113,6 +113,23 @@ export function createSmartAsteriskTextObject(scanLimit = 20): MotionFn {
     };
 }
 
+export function createSmartDollarTextObject(scanLimit = 20): MotionFn {
+    const doubleDollar = createMultiLineDelimiterTextObject('$$', scanLimit);
+    const singleDollar = createMultiLineDelimiterTextObject('$', scanLimit);
+
+    return (cm, head, motionArgs, vim, inputState) => {
+        const doubleResult = doubleDollar(
+            cm,
+            head,
+            motionArgs,
+            vim,
+            inputState,
+        );
+        if (doubleResult) return doubleResult;
+        return singleDollar(cm, head, motionArgs, vim, inputState);
+    };
+}
+
 /** Create a paired-delimiter text object motion. */
 export function createDelimiterTextObject(delimiter: string): MotionFn {
     return (cm, head, motionArgs, vim) => {
