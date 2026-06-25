@@ -11,7 +11,7 @@ body:
                 required: true
               - label: I have searched the [existing issues](https://github.com/saberzero1/motions/issues) and this has not been reported before
                 required: true
-              - label: I have Vim mode enabled (**Settings > Editor > Vim key bindings**)
+              - label: I have the built-in Vim mode **DISABLED** (**Settings > Editor > Vim key bindings**)
                 required: true
 
     - type: input

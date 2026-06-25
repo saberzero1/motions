@@ -7,10 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [0.13.0] - 2026-06-26
+
 ### Fixed
 
 - **Visual mode cursor displaced at end-of-line** — in visual mode, selecting the last character on a line no longer renders the block cursor one character past the visible line content. The fork's `measureCursor()` in `block-cursor.ts` now checks `head > line.from` instead of `letter != "\n"` when adjusting the cursor position backward, correctly handling EOL on non-empty lines while still preserving empty-line behavior. ([#15](https://github.com/saberzero1/motions/issues/15))
 - **`set clipboard=unnamed` not syncing to system clipboard** — `set clipboard=unnamed` (or `unnamedplus`) in `.obsidian.vimrc` now actually syncs yank, delete, and change operations with the system clipboard. Previously, the option was parsed and stored but never acted upon — only explicit `"+y` register yanks reached the clipboard. Paste (`p`/`P`) also reads from the system clipboard when the option is set. ([#16](https://github.com/saberzero1/motions/issues/16))
+
+### Added
+
+- **Surround operator (vim-surround)** — complete vim-surround implementation with all standard features. Requires bundled fork mode. ([#9](https://github.com/saberzero1/motions/issues/9))
+    - Core: `ds{target}` (delete), `cs{target}{replacement}` (change), `ys{motion}{replacement}` (add), `yss{replacement}` (entire line), visual `S{replacement}` (selection)
+    - Tag surround: `dst` (delete surrounding tag), `cst{replacement}` (change tag), `ysiw<tag>` (surround with tag), `cs"<tag>` (delimiter to tag), visual `S<tag>` (selection with tag). Regex tag fallback for Markdown mode.
+    - Function wrapping: `ysiwf` + name + Enter → `name(text)`, `ysiwF` for spaced variant → `name( text )`
+    - Newline variants: `cS`, `yS`, `ySS`, `gS` — delimiters on separate lines with content indented one level deeper
+    - Count support: `2ds)` deletes 2nd-level surrounding bracket, `2ysiw*` repeats delimiter for Markdown bold (`**word**`), `2ds*` unbolds, `2cs*~` changes bold to strikethrough. Works with any quote-type delimiter (`*`, `~`, `=`, `$`).
+    - Insert mode: `<C-G>s{char}` inserts open delimiter, type content, close delimiter appended on Esc. `<C-G>S{char}` for newline variant.
+    - Dot-repeat (`.`) works for all surround commands including tags, functions, and multi-char delimiters
+    - All bracket/quote targets with space rules, aliases (`b`→`)`, `B`→`}`, `r`→`]`, `a`→`>`), and `t` (tag) target
+    - 1585 fork tests passing
+- E2E test suite `test/specs/surround.e2e.ts` with 66 tests covering ds/cs/ys/yss/visual S, tags (dst/cst/ysiw<tag>), function wrapping (f/F), newline variants (cS/yS/ySS/gS), count support (2ds/2cs), Markdown pairs (2ysiw*/2ds*/2cs\*~), insert mode surround (<C-G>s), dot-repeat, and edge cases
+
+### Documentation
+
+- `DIFFERENCES.md` (fork): added surround operators section with architecture (pendingInput buffer, tag finding, newline variants, count support, dot-repeat, insert mode surround, char-repeat for Markdown pairs)
+- `KNOWN_LIMITATIONS.md`: "Surround operator scope" section — complete feature set documented with breaking changes
+- `README.md`: surround keybinding table with all features (tags, functions, newlines, counts, Markdown pairs, insert mode)
+- `test/neovim-command-index.yaml`: added 46-entry surround section (100% tested)
 
 ## [0.12.0] - 2026-06-25
 
@@ -27,18 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Per-mode cursor shapes** — configurable cursor shape per Vim mode: block, bar, underline, or hollow. Defaults match Neovim (`guicursor`): block for normal/visual, bar for insert, underline for replace/operator-pending. Configurable via **Settings → Vim Motions → Cursor shapes** or vimrc `set guicursor=n:block,i:bar,v:hollow,r:underline,o:underline`. Requires bundled fork mode. ([#13](https://github.com/saberzero1/motions/issues/13))
-- **Surround operator (vim-surround)** — complete vim-surround implementation with all standard features. Requires bundled fork mode. ([#9](https://github.com/saberzero1/motions/issues/9))
-    - Core: `ds{target}` (delete), `cs{target}{replacement}` (change), `ys{motion}{replacement}` (add), `yss{replacement}` (entire line), visual `S{replacement}` (selection)
-    - Tag surround: `dst` (delete surrounding tag), `cst{replacement}` (change tag), `ysiw<tag>` (surround with tag), `cs"<tag>` (delimiter to tag), visual `S<tag>` (selection with tag). Regex tag fallback for Markdown mode.
-    - Function wrapping: `ysiwf` + name + Enter → `name(text)`, `ysiwF` for spaced variant → `name( text )`
-    - Newline variants: `cS`, `yS`, `ySS`, `gS` — delimiters on separate lines with content indented one level deeper
-    - Count support: `2ds)` deletes 2nd-level surrounding bracket, `2ysiw*` repeats delimiter for Markdown bold (`**word**`), `2ds*` unbolts, `2cs*~` changes bold to strikethrough. Works with any quote-type delimiter (`*`, `~`, `=`, `$`).
-    - Insert mode: `<C-G>s{char}` inserts open delimiter, type content, close delimiter appended on Esc. `<C-G>S{char}` for newline variant.
-    - Dot-repeat (`.`) works for all surround commands including tags, functions, and multi-char delimiters
-    - All bracket/quote targets with space rules, aliases (`b`→`)`, `B`→`}`, `r`→`]`, `a`→`>`), and `t` (tag) target
-    - 1585 fork tests passing
 - E2E test suite `test/specs/widget-navigation.e2e.ts` with 6 regression tests for gj/gk/j/k navigation through rendered MathJax `$$` blocks in live preview
-- E2E test suite `test/specs/surround.e2e.ts` with 66 tests covering ds/cs/ys/yss/visual S, tags (dst/cst/ysiw<tag>), function wrapping (f/F), newline variants (cS/yS/ySS/gS), count support (2ds/2cs), Markdown pairs (2ysiw*/2ds*/2cs\*~), insert mode surround (<C-G>s), dot-repeat, and edge cases
 
 ### Changed
 
@@ -131,10 +143,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DIFFERENCES.md` (fork): added widget-aware vertical navigation and per-mode cursor shapes sections
 - `KNOWN_LIMITATIONS.md`: added "Visual line navigation and replaced widget decorations" section
 - `KNOWN_LIMITATIONS.md`: added "Smart dollar disambiguation" section for `$$` vs `$` text object matching
-- `DIFFERENCES.md` (fork): added surround operators section with architecture (pendingInput buffer, tag finding, newline variants, count support, dot-repeat, insert mode surround, char-repeat for Markdown pairs)
-- `KNOWN_LIMITATIONS.md`: "Surround operator scope" section — complete feature set documented with breaking changes
-- `README.md`: surround keybinding table with all features (tags, functions, newlines, counts, Markdown pairs, insert mode)
-- `test/neovim-command-index.yaml`: added 46-entry surround section (100% tested)
 
 ## [0.9.0] - 2026-06-23
 
