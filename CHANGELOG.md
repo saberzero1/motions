@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-25
+
 ### Fixed
 
 - **Visual selection highlight** — visual mode selection is now visible when using the bundled fork. The fork toggles a `.cm-vimVisual` class and scopes its `::selection { transparent }` rule to non-visual modes only. ([#10](https://github.com/saberzero1/motions/issues/10))
