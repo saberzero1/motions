@@ -223,11 +223,10 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             expect(pos.ch).toBeLessThan(35);
         });
 
-        // BUG: ) at end of sentence places cursor at ch=13 (on the period) instead of ch=14 (after it)
-        it.skip(') at end of text should not move', async function () {
-            await setupEditor('Only sentence.', { line: 0, ch: 14 });
+        it(') at end of text should not move', async function () {
+            await setupEditor('Only sentence.', { line: 0, ch: 13 });
             await vimKeys(')');
-            expect((await getCursorPos()).ch).toBe(14);
+            expect((await getCursorPos()).ch).toBe(13);
         });
 
         it('2) should skip two sentences forward', async function () {

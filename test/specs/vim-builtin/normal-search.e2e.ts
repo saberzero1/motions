@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     vimKeys,
+    vimRawKeys,
     getCursorPos,
     sendVimEscape,
 } from '../../helpers';
@@ -117,19 +118,11 @@ describe('Normal mode — search and find (Tier 1)', function () {
     });
 
     describe('n/N wrap around', function () {
-        // BUG: n/N wrap-around assertion unreliable — search lands on unexpected occurrence depending on CM Vim's incsearch state
-        it.skip('n should wrap to start when reaching end', async function () {
+        it('n should wrap to start when reaching end', async function () {
             await setupEditor('foo bar foo baz', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(50);
-            await browser.keys(['/']);
-            await browser.pause(100);
-            await browser.keys(['f', 'o', 'o']);
-            await browser.keys(['Enter']);
-            await browser.pause(300);
-            await vimKeys('n');
+            await vimRawKeys('/foo\nn');
             const pos1 = await getCursorPos();
-            await vimKeys('n');
+            await vimRawKeys('n');
             const pos2 = await getCursorPos();
             expect(pos2.ch).toBeLessThanOrEqual(pos1.ch);
         });

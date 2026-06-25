@@ -31,18 +31,6 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content', 'cursor'],
     },
     {
-        testPattern: '. should repeat cw with typed text',
-        description: 'Dot-repeat of cw + typed text unreliable',
-        reason: 'codemirror-vim insert recording timing issue',
-        fields: ['content'],
-    },
-    {
-        testPattern: 'n should wrap to start when reaching end',
-        description: 'n/N search wrap-around position unreliable',
-        reason: 'codemirror-vim incsearch state affects cursor after wrap',
-        fields: ['cursor'],
-    },
-    {
         testPattern: /\bY\b.*yank/i,
         description: 'Y mapped to y$ instead of yy',
         reason: 'Follows Neovim convention (intentional override)',

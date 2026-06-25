@@ -244,26 +244,17 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 **Status**: Fixed. The delimiter scanner now excludes cursor positions on the delimiter characters.
 
-### Dot-repeat of `cw` + typed text unreliable
+### ~~Dot-repeat of `cw` + typed text unreliable~~ (Fixed)
 
-**Status**: Confirmed codemirror-vim bug, not a test timing issue.
-**Test**: `test/specs/vim-builtin/normal-editing.e2e.ts` — ". should repeat cw with typed text"
+The vim engine correctly records and replays insert mode changes after `cw`. The original test failure was caused by using `browser.keys` (DOM events) for insert mode typing instead of `vimRawKeys`, which dispatches keys through the Vim key handler.
 
-`.` after `cw` followed by typing "new " does not reliably replay the inserted text. Investigation confirmed the test infrastructure is correct (adequate pauses, correct keystroke APIs, matches passing dot-repeat tests for `dd`, `dw`, `>>`). The issue is in codemirror-vim's insert recording mechanism — it does not reliably capture the inserted text when `cw` enters insert mode.
+### ~~`)` sentence motion cursor position at end of text~~ (Fixed)
 
-### `)` sentence motion cursor position at end of text
+Fixed in fork. The `findSentence()` forward scan now checks whether the computed fallback position is at or before the starting cursor on the same line, and returns the original position unchanged if so.
 
-**Status**: Skipped test, pending fix.
-**Test**: `test/specs/vim-builtin/normal-marks-jumps.e2e.ts` — ") at end of text should not move"
+### ~~`n`/`N` search wrap-around unreliable~~ (Fixed)
 
-`)` at the end of `'Only sentence.'` (ch=14) moves the cursor to ch=13 (on the period) instead of staying at ch=14. codemirror-vim's sentence motion clamps to the last character of the line rather than past it.
-
-### `n`/`N` search wrap-around unreliable
-
-**Status**: Confirmed codemirror-vim bug, not a test timing issue.
-**Test**: `test/specs/vim-builtin/normal-search.e2e.ts` — "n should wrap to start when reaching end"
-
-After `/foo` search and pressing `n` twice, the cursor lands at an unexpected position. Investigation confirmed the test infrastructure is correct (adequate pauses, correct keystroke APIs, and `*`/`#` wrap-around tests pass with identical patterns). The issue is in codemirror-vim's incsearch state management — the cursor position after wrap-around is inconsistent when using `/` search followed by `n`/`N` repeats.
+The vim engine correctly wraps search results. The original test failure was caused by using individual `browser.keys` calls with pauses for the `/foo` + Enter + `n` sequence instead of `vimRawKeys`, which dispatches the full key sequence through the Vim key handler without timing gaps.
 
 ## Hint mode in the separate settings window (Obsidian 1.13+)
 

@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     vimKeys,
+    vimRawKeys,
     getEditorValue,
     getCursorPos,
     sendVimEscape,
@@ -199,16 +200,11 @@ describe('Normal mode — editing commands (Tier 1)', function () {
             expect(await getEditorValue()).toBe('e');
         });
 
-        // BUG: dot-repeat of cw + typed text does not reliably replay the inserted text
-        it.skip('. should repeat cw with typed text', async function () {
+        it('. should repeat cw with typed text', async function () {
             await setupEditor('old old old', { line: 0, ch: 0 });
-            await vimKeys('c', 'w');
-            await browser.keys(['n', 'e', 'w', ' ']);
-            await sendVimEscape();
-            await browser.pause(200);
-            await vimKeys('.');
+            await vimRawKeys('cwnew \x1bw.');
             const val = await getEditorValue();
-            expect(val.startsWith('new new ')).toBe(true);
+            expect(val).toBe('new  new  old');
         });
     });
 
