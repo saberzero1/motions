@@ -310,6 +310,22 @@ This does not affect real user interaction — physical keypresses reach the Eas
 
 The async visual mode selection itself works correctly — the `v + f + label` test passes because the char-search flow has different timing, and the `easymotion-visual.e2e.ts` suite (4 tests) passes entirely.
 
+## Properties navigation in bundled fork mode
+
+**Status**: Known limitation of bundled fork mode.
+
+When Obsidian's built-in Vim mode is disabled and the plugin provides its own vim engine (bundled fork mode), pressing `k` from the first line of the editor does not navigate into the properties (YAML frontmatter) panel above. This is because properties navigation is an Obsidian-internal feature that integrates with the built-in vim key handler — the fork's CM6 extension has no awareness of Obsidian's property editor widget.
+
+**Workaround**: Enable Obsidian's built-in Vim mode (**Settings → Editor → Vim key bindings**). The plugin works with both modes, and built-in vim preserves properties navigation.
+
+## Latex Suite interaction in bundled fork mode
+
+**Status**: Under investigation.
+
+When using the plugin's bundled fork mode alongside [obsidian-latex-suite](https://github.com/artisticat1/obsidian-latex-suite), the vim key handler may interfere with Latex Suite's input processing in large math blocks. The fork processes keystrokes through its own CM6 ViewPlugin before Latex Suite can handle them.
+
+**Workaround**: Enable Obsidian's built-in Vim mode if Latex Suite compatibility is required.
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:
