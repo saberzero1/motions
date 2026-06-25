@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-06-25
+
 ### Fixed
 
 - **Visual line navigation skips block MathJax in live preview** — `gj`/`gk` and `j`/`k` now navigate into rendered MathJax `$$` blocks line by line instead of skipping over them. The fork's `findPosV` detects when `moveVertically` jumps over multiple document lines (indicating a replaced widget decoration) and steps one document line instead, allowing the cursor to enter the widget's source range. Folded ranges are excluded from correction. ([#14](https://github.com/saberzero1/motions/issues/14))
