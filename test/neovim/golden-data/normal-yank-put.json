@@ -1,7 +1,7 @@
 {
     "suite": "normal-yank-put",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-21T01:20:08.062Z",
+    "recorded_at": "2026-06-25T00:00:40.614Z",
     "cases": [
         {
             "name": "yy then p should paste line below",
