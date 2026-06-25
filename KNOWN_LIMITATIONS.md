@@ -58,14 +58,14 @@ Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the act
 
 The following `set` options are registered and can be used in `.obsidian.vimrc`:
 
-| Option             | Aliases | Description                                                             |
-| ------------------ | ------- | ----------------------------------------------------------------------- |
-| `clipboard`        | `clip`  | `unnamed` or `unnamedplus` for yank-to-clipboard                        |
-| `tabstop`          | `ts`    | Tab size (stored as Vim option; Obsidian controls actual tab rendering) |
-| `textwidth`        | `tw`    | Wrap width for `gq`/`gw` (default: 80, registered by codemirror-vim)    |
-| `shiftwidth`       | `sw`    | Indent unit size (stored as Vim option)                                 |
-| `expandtab`        | `et`    | Tabs vs spaces (stored as Vim option)                                   |
-| `insertmodeescape` | `ime`   | Two-key sequence to exit insert mode (e.g., `jk`)                       |
+| Option             | Aliases | Description                                                                 |
+| ------------------ | ------- | --------------------------------------------------------------------------- |
+| `clipboard`        | `clip`  | `unnamed` or `unnamedplus` — syncs yank/delete/change with system clipboard |
+| `tabstop`          | `ts`    | Tab size (stored as Vim option; Obsidian controls actual tab rendering)     |
+| `textwidth`        | `tw`    | Wrap width for `gq`/`gw` (default: 80, registered by codemirror-vim)        |
+| `shiftwidth`       | `sw`    | Indent unit size (stored as Vim option)                                     |
+| `expandtab`        | `et`    | Tabs vs spaces (stored as Vim option)                                       |
+| `insertmodeescape` | `ime`   | Two-key sequence to exit insert mode (e.g., `jk`)                           |
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `relativenumber`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
@@ -231,6 +231,12 @@ These commands exist but behave differently from Neovim:
 **Status**: Fixed.
 
 `vi*` on `*x*` (single-character inner content) now correctly selects `x`. The fix removed the single-character skip in `adjustRangeForVisualMode` — the −1 head compensation is now applied uniformly, producing a vim-style inclusive head that `makeCmSelection` converts correctly to a CodeMirror exclusive range.
+
+## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
+
+**Status**: Fixed in fork.
+
+In visual mode, selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. The fork's `measureCursor()` in `block-cursor.ts` adjusts the cursor position backward by 1 in forward visual selections (`anchor < head`) to display the cursor on the last selected character. The previous guard (`if (letter != "\n")`) prevented the adjustment when the cursor was at a newline, but this incorrectly left the cursor past EOL on non-empty lines. The fix checks `head > line.from` instead — the cursor is only left unadjusted on truly empty lines where decrementing would cross to a previous line.
 
 ## Test-discovered behavioral discrepancies
 

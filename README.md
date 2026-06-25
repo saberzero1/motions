@@ -282,7 +282,7 @@ set insertmodeescape=jk
 
 Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inoremap`, `vnoremap`, `unmap`, `nunmap`, `iunmap`, `vunmap`, `set`, `let mapleader`, `exmap`, `obcommand`, `source`.
 
-Supported `set` options: `clipboard`, `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`. Use `set noexpandtab` to disable boolean options.
+Supported `set` options: `clipboard` (`unnamed`/`unnamedplus` — syncs yank/delete/paste with system clipboard), `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`. Use `set noexpandtab` to disable boolean options.
 
 If obsidian-vimrc-support is also installed, Vim Motions skips its own `:ob` command registration to avoid conflicts.
 

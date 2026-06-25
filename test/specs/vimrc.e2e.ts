@@ -334,6 +334,80 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             expect(reg).not.toBeNull();
             expect(reg!.text).toContain('clipboard test');
         });
+
+        it('clipboard option should be set to unnamed', async function () {
+            const clipOpt = (await browser.executeObsidian(() => {
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                getOption: (name: string) => unknown;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                return Vim?.getOption('clipboard') ?? null;
+            })) as string | null;
+            expect(clipOpt).toBe('unnamed');
+        });
+
+        it('yy should sync yanked text to system clipboard', async function () {
+            await setupEditor('sync to clipboard', { line: 0, ch: 0 });
+            await vimKeys('y', 'y');
+            const clipText = (await browser.executeObsidian(async () => {
+                try {
+                    return await navigator.clipboard.readText();
+                } catch {
+                    return null;
+                }
+            })) as string | null;
+            expect(clipText).not.toBeNull();
+            expect(clipText!).toContain('sync to clipboard');
+        });
+
+        it('yw should sync yanked word to system clipboard', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'w');
+            const clipText = (await browser.executeObsidian(async () => {
+                try {
+                    return await navigator.clipboard.readText();
+                } catch {
+                    return null;
+                }
+            })) as string | null;
+            expect(clipText).not.toBeNull();
+            expect(clipText!).toContain('hello');
+        });
+
+        it('dd should sync deleted line to system clipboard', async function () {
+            await setupEditor('delete me\nkeep me', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            const clipText = (await browser.executeObsidian(async () => {
+                try {
+                    return await navigator.clipboard.readText();
+                } catch {
+                    return null;
+                }
+            })) as string | null;
+            expect(clipText).not.toBeNull();
+            expect(clipText!).toContain('delete me');
+            expect(await getEditorValue()).toBe('keep me');
+        });
+
+        it('p should paste from system clipboard', async function () {
+            await browser.executeObsidian(async () => {
+                try {
+                    await navigator.clipboard.writeText('from clipboard');
+                } catch {
+                    /* intentional: clipboard may be unavailable */
+                }
+            });
+            await setupEditor('before  after', { line: 0, ch: 6 });
+            await vimKeys('p');
+            await browser.pause(300);
+            const val = await getEditorValue();
+            expect(val).toContain('from clipboard');
+        });
     });
 
     describe('exmap + obcommand pattern (app:go-back / app:go-forward)', function () {

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Visual mode cursor displaced at end-of-line** — in visual mode, selecting the last character on a line no longer renders the block cursor one character past the visible line content. The fork's `measureCursor()` in `block-cursor.ts` now checks `head > line.from` instead of `letter != "\n"` when adjusting the cursor position backward, correctly handling EOL on non-empty lines while still preserving empty-line behavior. ([#15](https://github.com/saberzero1/motions/issues/15))
+- **`set clipboard=unnamed` not syncing to system clipboard** — `set clipboard=unnamed` (or `unnamedplus`) in `.obsidian.vimrc` now actually syncs yank, delete, and change operations with the system clipboard. Previously, the option was parsed and stored but never acted upon — only explicit `"+y` register yanks reached the clipboard. Paste (`p`/`P`) also reads from the system clipboard when the option is set. ([#16](https://github.com/saberzero1/motions/issues/16))
+
 ## [0.12.0] - 2026-06-25
 
 ### Fixed
