@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Visual selection highlight** — visual mode selection is now visible when using the bundled fork. The fork toggles a `.cm-vimVisual` class and scopes its `::selection { transparent }` rule to non-visual modes only. ([#10](https://github.com/saberzero1/motions/issues/10))
+- **Properties navigation** — pressing `k` at the top of the document now navigates into the properties (YAML frontmatter) panel, matching built-in vim behavior. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region and provides a `focusBefore` callback that focuses the "Add property" button. ([#11](https://github.com/saberzero1/motions/issues/11))
+- **Latex Suite compatibility** — bundled vim extension now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. ([#11](https://github.com/saberzero1/motions/issues/11))
+- **Empty `:s` repeats with `/g` flag** — `:s` with no arguments now preserves the global flag from the previous substitution, matching Neovim
+- **Octal increment disabled** — numbers with leading zeros (e.g. `007`) now increment as decimal (`008`) instead of octal (`010`), matching Neovim's default `nrformats`
+- **Per-step golden comparison infrastructure** — fork's Neovim comparison now captures state after each key step (1504 steps at 100% coverage), revealing 23 previously hidden behavioral differences
+- **Golden recorder reliability** — `redraw` after `setCursor` prevents stale Neovim state; 80×24 viewport simulation via `set columns=80 lines=24` enables accurate display-line motion recording
+- **`zc`/`zo` fold commands** — fold/unfold now use CM6's `foldCode`/`unfoldCode` directly instead of Obsidian's incremental `editor:fold-more`/`editor:fold-less` commands, which operated globally by heading level rather than at the cursor position. `za` uses `toggleFold` for robust cursor-based toggling. ([#8](https://github.com/saberzero1/motions/issues/8))
+
+### Changed
+
+- Bundled vim extension registered at `Prec.highest` for correct key handler ordering with third-party plugins
+
 ## [0.10.0] - 2026-06-25
 
 ### Added

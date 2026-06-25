@@ -204,7 +204,7 @@ These commands exist but behave differently from Neovim:
 | `Q`                | Replay last recorded macro                              | Mapped to `@@` by plugin (overrides CM Vim's unmapped `Q`) | Follows Neovim convention                                                                                                    |
 | `:wall` / `:wa`    | Save all modified buffers                               | Saves only the current file                                | Obsidian auto-saves; a true "save all" would need to iterate all leaves                                                      |
 | `gf`               | Open file path under cursor                             | Opens Obsidian quick switcher                              | Wikilinks (`gd`) are more natural for note navigation                                                                        |
-| `zO` / `zC` / `zA` | Recursive fold open/close/toggle                        | Maps to the same action as `zo`/`zc`/`za`                  | Obsidian's fold API doesn't distinguish recursive from non-recursive                                                         |
+| `zO` / `zC` / `zA` | Recursive fold open/close/toggle                        | Maps to the same action as `zo`/`zc`/`za`                  | CM6 has no recursive fold API. Obsidian markdown uses flat heading-level folds (not nested), so the non-recursive versions are functionally equivalent in practice. |
 | `it` / `at`        | HTML tag text objects (CM Vim native via XML mode)      | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown     |
 | `dG`               | Deletes from cursor to end of file, no trailing newline | Fixed in fork                                              | The fork's `operators.delete` now expands the anchor to include the preceding newline when deleting linewise to end of file. |
 | `>>`               | Cursor at first non-blank after indent                  | Fixed in fork                                              | The fork's `operators.indent` now returns cursor at column 0, matching Neovim behavior.                                      |
@@ -310,19 +310,13 @@ This does not affect real user interaction — physical keypresses reach the Eas
 
 The async visual mode selection itself works correctly — the `v + f + label` test passes because the char-search flow has different timing, and the `easymotion-visual.e2e.ts` suite (4 tests) passes entirely.
 
-## Properties navigation in bundled fork mode
+## ~~Properties navigation in bundled fork mode~~ (Fixed)
 
-**Status**: Known limitation of bundled fork mode.
+Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. This matches the built-in vim behavior — pressing `k` from the first line of the editor navigates into the properties panel.
 
-When Obsidian's built-in Vim mode is disabled and the plugin provides its own vim engine (bundled fork mode), pressing `k` from the first line of the editor does not navigate into the properties (YAML frontmatter) panel above. This is because properties navigation is an Obsidian-internal feature that integrates with the built-in vim key handler — the fork's CM6 extension has no awareness of Obsidian's property editor widget.
+## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)
 
-**Workaround**: Enable Obsidian's built-in Vim mode (**Settings → Editor → Vim key bindings**). The plugin works with both modes, and built-in vim preserves properties navigation.
-
-## Latex Suite interaction in bundled fork mode
-
-**Status**: Mitigated. The bundled vim extension is registered at `Prec.highest` so its keydown handler fires before Latex Suite's, preventing duplicate key consumption. Latex Suite's auto-snippets, tabstop navigation, and math-mode features should work normally in vim insert mode.
-
-If issues persist in large math blocks, enable Obsidian's built-in Vim mode as a fallback — the plugin works with both modes.
+The bundled vim extension is now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. Latex Suite's auto-snippets, tabstop navigation, and math-mode features work normally in vim insert mode.
 
 ## Intentionally not supported
 

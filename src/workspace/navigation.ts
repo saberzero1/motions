@@ -1,5 +1,6 @@
 import { MarkdownView, Notice } from 'obsidian';
 import type { App } from 'obsidian';
+import { foldCode, unfoldCode, toggleFold } from '@codemirror/language';
 import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import {
@@ -229,17 +230,27 @@ export function registerWorkspaceNavigation(
     reg.defineAction('gotoDefinition', createGotoDefinitionAction(app));
     reg.mapCommand('gd', 'action', 'gotoDefinition', {});
 
-    reg.defineAction(
-        'foldToggle',
-        createCommandAction(app, 'editor:toggle-fold'),
-    );
-    reg.mapCommand('za', 'action', 'foldToggle', {});
-
-    reg.defineAction('foldClose', createCommandAction(app, 'editor:fold-more'));
+    // Fold commands use CM6's fold API directly instead of Obsidian's
+    // editor:fold-more/fold-less commands, which are incremental (fold one
+    // heading level at a time across the whole document) rather than
+    // cursor-based like Vim's zc/zo.
+    reg.defineAction('foldClose', (cm: CmAdapter) => {
+        const view = cm.cm6;
+        if (view) foldCode(view);
+    });
     reg.mapCommand('zc', 'action', 'foldClose', {});
 
-    reg.defineAction('foldOpen', createCommandAction(app, 'editor:fold-less'));
+    reg.defineAction('foldOpen', (cm: CmAdapter) => {
+        const view = cm.cm6;
+        if (view) unfoldCode(view);
+    });
     reg.mapCommand('zo', 'action', 'foldOpen', {});
+
+    reg.defineAction('foldToggle', (cm: CmAdapter) => {
+        const view = cm.cm6;
+        if (view) toggleFold(view);
+    });
+    reg.mapCommand('za', 'action', 'foldToggle', {});
 
     reg.defineAction('foldAll', createCommandAction(app, 'editor:fold-all'));
     reg.mapCommand('zM', 'action', 'foldAll', {});
