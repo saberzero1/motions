@@ -77,6 +77,7 @@ export class VimModeTracker {
             this.lastAdapter = adapter;
             adapter.on('vim-mode-change', modeHandler);
             adapter.on('vim-keypress', keyHandler);
+            adapter.on('vim-command-done', keyHandler);
         };
 
         app.workspace.on('active-leaf-change', () => {
@@ -108,6 +109,10 @@ export class VimModeTracker {
             if (this.keyHandler) {
                 this.lastAdapter.off(
                     'vim-keypress',
+                    this.keyHandler as (...args: unknown[]) => void,
+                );
+                this.lastAdapter.off(
+                    'vim-command-done',
                     this.keyHandler as (...args: unknown[]) => void,
                 );
             }
