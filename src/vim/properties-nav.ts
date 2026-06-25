@@ -1,6 +1,15 @@
 import { EditorView } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
 
+function findFirstEditableLine(view: EditorView): number {
+    const doc = view.state.doc;
+    if (doc.line(1).text !== '---') return 1;
+    for (let i = 2; i <= doc.lines; i++) {
+        if (doc.line(i).text === '---') return Math.min(i + 1, doc.lines);
+    }
+    return 1;
+}
+
 export function createPropertiesNavExtension(): Extension {
     return EditorView.domEventHandlers({
         keydown(event, view) {
@@ -17,7 +26,8 @@ export function createPropertiesNavExtension(): Extension {
 
             const cursor = view.state.selection.main.head;
             const line = view.state.doc.lineAt(cursor);
-            if (line.number !== 1) return false;
+            const firstEditable = findFirstEditableLine(view);
+            if (line.number > firstEditable) return false;
 
             const container = view.dom.closest('.markdown-source-view');
             if (!container) return false;
