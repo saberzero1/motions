@@ -106,6 +106,34 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 
 > **Note:** The `<C-w>` prefix may conflict with Obsidian's default "Close current tab" hotkey. To use `<C-w>` bindings, go to **Settings → Hotkeys**, search for "Close current tab", and remove or rebind the Ctrl+W hotkey. The close-tab functionality remains available via `:q` or `:quit`.
 
+### Surround (vim-surround)
+
+Add, change, or delete surrounding delimiters — brackets, quotes, tags, and more.
+
+| Keybinding                | Description                                              |
+| ------------------------- | -------------------------------------------------------- |
+| `ds{target}`              | Delete surrounding (`ds"` on `"hello"` → `hello`)        |
+| `dst`                     | Delete surrounding tag                                   |
+| `cs{target}{replacement}` | Change surrounding (`cs"'` → `'hello'`)                  |
+| `cst{replacement}`        | Change surrounding tag                                   |
+| `ys{motion}{replacement}` | Add surround (`ysiw)` on `hello` → `(hello)`)            |
+| `ys{motion}<tag>`         | Surround with HTML tag (`ysiw<em>` → `<em>hello</em>`)   |
+| `ysiwf` + name + Enter    | Surround with function call (`print(hello)`)             |
+| `ysiwF` + name + Enter    | Surround with spaced function call (`print( hello )`)    |
+| `yss{replacement}`        | Surround entire line (`yss"` → `"line content"`)         |
+| `cS` / `yS` / `ySS`       | Newline surround variants (delimiters on separate lines) |
+| `S{replacement}`          | Surround visual selection (visual mode)                  |
+| `S<tag>`                  | Surround selection with tag (visual mode)                |
+| `gS`                      | Newline surround selection (visual mode)                 |
+| `2ds)`, `2cs)`            | Count: delete/change 2nd-level surrounding bracket       |
+| `2ysiw*`                  | Count: repeat delimiter (`**hello**` for Markdown bold)  |
+| `2ds*`                    | Count: delete repeated delimiter (unbold `**hello**`)    |
+| `<C-G>s{char}`            | Insert mode: type inside delimiters, close on Esc        |
+
+**Targets**: `"`, `'`, `` ` ``, `(`, `)`, `[`, `]`, `{`, `}`, `<`, `>`, `t` (tag), `b`→`)`, `B`→`}`, `r`→`]`, `a`→`>`
+
+Opening brackets `(`, `[`, `{` add inner spaces. Closing brackets `)`, `]`, `}`, `>` don't. `<` in replacement position triggers tag prompting (use `>` for angle brackets). `f`/`F` in replacement position triggers function wrapping. Count-prefix repeats the delimiter character for quotes (`2ysiw*` → `**word**`, `2ysiw~` → `~~word~~`, `2ysiw=` → `==word==`). All surround commands support dot-repeat (`.`). Requires bundled fork mode.
+
 ### Ex commands
 
 | Command                            | Description                                    |

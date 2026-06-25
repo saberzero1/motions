@@ -1621,3 +1621,330 @@ window_commands:
             test_file: 'workspace-extended.e2e.ts',
             description: 'focus right (plugin)',
         }
+
+# Surround operator (vim-surround) — requires bundled fork mode
+# Not in vanilla Neovim; requires vim-surround plugin.
+# All entries are tier 2 (plugin-registered via fork).
+surround:
+    ds_quotes:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ds" — delete surrounding quotes',
+        }
+    ds_brackets:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ds)/ds]/ds}/dsb — delete surrounding brackets',
+        }
+    ds_spaces:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ds) on ( text ) — remove inner spaces',
+        }
+    ds_nested:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ds on nested brackets — delete inner pair',
+        }
+    ds_noop:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ds with no match — no-op',
+        }
+    ds_multiline:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ds on multiline brackets',
+        }
+    cs_quotes:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cs"'' — change surrounding quotes',
+        }
+    cs_brackets:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cs)] — change brackets to different type',
+        }
+    cs_spaces:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cs"( — change with space-adding bracket',
+        }
+    yss:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'yss" — surround entire line',
+        }
+    yss_indent:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'yss preserves leading indentation',
+        }
+    ysiw:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiw"/ysiw)/ysiw( — surround inner word',
+        }
+    ys_dollar:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ys$ — surround to end of line',
+        }
+    ys_count_motion:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ys2w — surround with counted motion',
+        }
+    S_visual:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'S"/S)/S( — visual surround',
+        }
+    dst:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'dst — delete surrounding tag',
+        }
+    dst_nested:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'dst on nested tags — delete inner',
+        }
+    cst_tag:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cst<tag> — change tag to another tag',
+        }
+    cst_char:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cst" — change tag to quotes',
+        }
+    ysiw_tag:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiw<tag> — surround word with HTML tag',
+        }
+    ysiw_tag_attrs:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiw<div id="x"> — tag with attributes',
+        }
+    cs_to_tag:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cs"<tag> — change delimiter to tag',
+        }
+    S_visual_tag:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'visual S<tag> — surround selection with tag',
+        }
+    ysiwf:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiwf — surround with function call',
+        }
+    ysiwF:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiwF — surround with spaced function call',
+        }
+    S_visual_func:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'visual Sf — surround selection with function',
+        }
+    cS:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cS — change surround with newlines',
+        }
+    ySS:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ySS — surround line with newlines',
+        }
+    ySS_indented:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ySS with indented content',
+        }
+    gS:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'gS — visual newline surround',
+        }
+    yS_dollar:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'yS$ — surround to eol with newlines',
+        }
+    yS_iw:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'yS iw — surround word with newlines + indent',
+        }
+    count_ds:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: '2ds) — delete Nth-level surrounding',
+        }
+    count_cs:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: '2cs)] — change Nth-level surrounding',
+        }
+    dot_dst:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'dst then . — dot-repeat tag delete',
+        }
+    dot_cst_tag:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'cst<tag> then . — dot-repeat tag change',
+        }
+    dot_ysiw_tag:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiw<tag> then . — dot-repeat tag surround',
+        }
+    dot_ysiwf:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'ysiwf then . — dot-repeat function wrap',
+        }
+    pendingInput_escape:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'Escape during tag input cancels',
+        }
+    pendingInput_backspace:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'Backspace during tag input deletes char',
+        }
+    pendingInput_cr:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'CR accepts tag input',
+        }
+    cancel_ds:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'Escape cancels ds',
+        }
+    cancel_cs:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'Escape cancels cs after target',
+        }
+    undo:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'surround then u restores original',
+        }
+    ctrl_g_s:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: '<C-G>s — insert mode surround',
+        }
+    markdown_pairs:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'Markdown-specific pairs via count-prefix (2ysiw* → **word**)',
+        }

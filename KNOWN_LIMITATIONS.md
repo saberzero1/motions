@@ -330,6 +330,18 @@ The fork's `findPosV` detects when `moveVertically` jumps more than one document
 
 The per-mode cursor shape settings (block, bar, underline, hollow) only take effect when Obsidian's built-in Vim mode is disabled. With built-in Vim enabled, Obsidian renders its own block cursor and the plugin has no control over its shape. The `set guicursor=...` vimrc command is also only effective in bundled fork mode.
 
+## Surround operator scope
+
+**Status**: Complete. All vim-surround features implemented.
+
+The surround operator implements the full vim-surround command set: `ds`/`cs`/`ys`/`yss`/visual `S` with all bracket/quote/tag targets, function wrapping (`f`/`F`), newline variants (`cS`/`yS`/`ySS`/`gS`), count support (bracket depth and quote char repeat), insert mode (`<C-G>s`/`<C-G>S`), and dot-repeat. Markdown-specific pairs use count-prefix: `2ysiw*` → `**word**`.
+
+**Breaking changes from CM Vim defaults**:
+
+- `<` in replacement position triggers tag prompting (was angle brackets with spaces). Use `>` for no-space angle brackets.
+- `f`/`F` in replacement position triggers function wrapping (was literal `f`/`F` as delimiters).
+- `S` in visual mode now surrounds instead of substituting (was `S` → `VdO` keyToKey).
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:

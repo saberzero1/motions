@@ -21,6 +21,7 @@ test-vault/.obsidian/*.json
 !test-vault/.obsidian/app.json
 !test-vault/.obsidian/community-plugins.json
 !test-vault/.obsidian/core-plugins.json
+!test-vault/.obsidian/hotkeys.json
 !test-vault/.obsidian/workspaces.json
 
 # Exclude macOS Finder (System Explorer) View States
