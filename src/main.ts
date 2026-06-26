@@ -9,6 +9,7 @@ import { registerEasyMotion } from './easymotion/register';
 import {
     registerNavigationMotions,
     registerTableMotions,
+    registerTableActions,
     registerBufferNavigation,
 } from './motions/register';
 import { registerOperators } from './operators/register';
@@ -39,6 +40,7 @@ import {
     createNewerChangeMotion,
 } from './vim/changelist';
 import { VimInfoModal } from './ui/vim-info-modal';
+import { TableCellBridge } from './vim/table-cell-bridge';
 import { EditorView } from '@codemirror/view';
 
 export default class VimMotionsPlugin extends Plugin {
@@ -50,6 +52,7 @@ export default class VimMotionsPlugin extends Plugin {
     scrolloffManager: ScrolloffManager | null = null;
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
+    tableCellBridge: TableCellBridge | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
@@ -165,6 +168,11 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableTableNav) {
             registerTableMotions(this.registration);
+            registerTableActions(
+                this.registration,
+                this.app,
+                this.leaderRegistry ?? undefined,
+            );
         }
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
@@ -282,6 +290,17 @@ export default class VimMotionsPlugin extends Plugin {
 
         // --- Which-key overlay ---
         this.rebuildWhichKey();
+
+        // --- Table cell focus bridge ---
+        this.tableCellBridge = new TableCellBridge(this.app, vim);
+        this.tableCellBridge.onCellFocus((adapter) => {
+            this.modeTracker?.attachToTableCell(adapter);
+            this.whichKeyOverlay?.attachToTableCell(adapter);
+        });
+        this.tableCellBridge.onCellBlur(() => {
+            this.modeTracker?.detachFromTableCell();
+            this.whichKeyOverlay?.detachFromTableCell();
+        });
     }
 
     reloadFeatures(): void {
@@ -310,6 +329,11 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableTableNav) {
             registerTableMotions(this.registration);
+            registerTableActions(
+                this.registration,
+                this.app,
+                this.leaderRegistry ?? undefined,
+            );
         }
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
@@ -536,6 +560,8 @@ export default class VimMotionsPlugin extends Plugin {
 
     onunload() {
         this.cleanupHintModeWindows();
+        this.tableCellBridge?.destroy();
+        this.tableCellBridge = null;
         this.exSuggest?.destroy();
         this.exSuggest = null;
         this.whichKeyOverlay?.destroy();

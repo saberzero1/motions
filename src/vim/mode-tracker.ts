@@ -26,6 +26,7 @@ export class VimModeTracker {
     private modeHandler: ((mode: VimModeChange) => void) | null = null;
     private keyHandler: ((key: string) => void) | null = null;
     private lastAdapter: CmAdapter | null = null;
+    private cellAdapter: CmAdapter | null = null;
 
     constructor(plugin: Plugin, options?: VimModeTrackerOptions) {
         this.modeLabels = options?.modePrompts
@@ -120,6 +121,47 @@ export class VimModeTracker {
         }
     }
 
+    attachToTableCell(adapter: CmAdapter): void {
+        this.detachFromTableCell();
+        this.cellAdapter = adapter;
+        if (this.modeHandler) {
+            adapter.on('vim-mode-change', this.modeHandler);
+        }
+        if (this.keyHandler) {
+            adapter.on('vim-keypress', this.keyHandler);
+            adapter.on(
+                'vim-command-done',
+                this.keyHandler as unknown as () => void,
+            );
+        }
+        const vimState = adapter.state.vim as { mode?: string } | undefined;
+        if (vimState?.mode) {
+            this.currentMode = vimState.mode;
+            this.updateDisplay();
+        }
+    }
+
+    detachFromTableCell(): void {
+        if (!this.cellAdapter) return;
+        if (this.modeHandler) {
+            this.cellAdapter.off(
+                'vim-mode-change',
+                this.modeHandler as (...args: unknown[]) => void,
+            );
+        }
+        if (this.keyHandler) {
+            this.cellAdapter.off(
+                'vim-keypress',
+                this.keyHandler as (...args: unknown[]) => void,
+            );
+            this.cellAdapter.off(
+                'vim-command-done',
+                this.keyHandler as (...args: unknown[]) => void,
+            );
+        }
+        this.cellAdapter = null;
+    }
+
     /**
      * Sync chord display from codemirror-vim's `vim.status` — the
      * authoritative pending-keystroke string.  We read it rather than
@@ -141,8 +183,10 @@ export class VimModeTracker {
     }
 
     private syncChord(): void {
-        if (!this.chordBarEl || !this.lastAdapter) return;
-        const vim = this.lastAdapter.state.vim;
+        if (!this.chordBarEl) return;
+        const adapter = this.cellAdapter ?? this.lastAdapter;
+        if (!adapter) return;
+        const vim = adapter.state.vim;
         const chord = (vim as unknown as { status?: string })?.status ?? '';
         this.chordBarEl.setText(chord);
     }
@@ -160,6 +204,7 @@ export class VimModeTracker {
     }
 
     destroy(): void {
+        this.detachFromTableCell();
         this.detachFromAdapter();
         this.statusBarEl.remove();
         this.chordBarEl?.remove();

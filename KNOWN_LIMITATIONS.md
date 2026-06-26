@@ -46,6 +46,39 @@ Delimiters inside fenced code blocks are excluded from the scan — the scanner 
 - **`j`/`k` column tracking**: Vim's `defineMotion` has no fall-through mechanism. Overriding `j`/`k` to detect tables on every keypress is fragile and would break normal line navigation if the detection is wrong. Users can add `nmap <Tab> ]|` to their vimrc if they want Tab-based cell navigation.
 - **`Tab`/`Shift-Tab`**: These conflict with Obsidian's built-in table Tab handling and insert-mode tab completion.
 
+## Vim in Live Preview table cells
+
+In Live Preview mode, Obsidian replaces Markdown tables with an interactive table widget. Each cell gets its own isolated CM6 editor with a single-line document containing only that cell's text. Vim keybindings are inherited from the main editor via `registerEditorExtension`, so basic motions work.
+
+**Works inside table cells:**
+
+- Mode switching (`Escape`, `i`, `v`, `a`, `o`, etc.)
+- Character/word motions (`h`, `l`, `w`, `b`, `e`, `0`, `$`, `f`, `t`)
+- Operators within the cell (`d`, `c`, `y`, `x`, `r`, `s`, `.`)
+- Visual mode within the cell
+- Surround (`ysiw"`, `ds"`, `cs"'`, etc.)
+- Table cell navigation (`]|`/`]c` and `[|`/`[c`) — mapped to Tab/Shift-Tab in the table widget
+- Vertical cell navigation (`]r`/`[r`) — move to same column in next/previous row
+- Table manipulation via `<Leader>t` commands — add/delete/move rows and columns, align columns
+- Table manipulation via ex commands (`:tablerowafter`, `:tablecoldelete`, etc.)
+- Status bar mode indicator and chord display
+- Which-key hints
+
+**Does not work inside table cells:**
+
+- **`u` (undo)**: each cell has its own isolated undo history. `u` only undoes edits within the current cell session, not document-level changes. Use `Ctrl+Z` (Obsidian's undo) for document-level undo.
+- **Structural navigation** (`]h`, `[h`, `]l`, `[l`, `]n`, `[n`): operates on the main document, not the cell's isolated content.
+- **EasyMotion**: overlays are positioned relative to the main editor viewport.
+- **Multi-line text objects** (`iB`, `aC`, `io`, etc.): the cell doc has no surrounding context.
+- **Ex mode (`:`)**: opens the command line below the table cell editor instead of the main editor. Commands still execute but the panel position is cosmetically wrong.
+
+**Table cell navigation details:**
+
+- `]r`/`[r` navigates vertically by synthesizing Tab/Shift-Tab × (number of columns). This is the only reliable mechanism — Obsidian's table widget does not respond to synthesized mouse events or focus calls for cell activation. At the first/last row, `]r`/`[r` is a no-op.
+- `Escape` in normal mode exits the table cell and returns focus to the main editor.
+
+**Workaround**: For full vim support in tables, switch to **Source mode** (**Settings → Editor → Default editing mode → Source mode**, or the source/preview toggle in the editor toolbar). In Source mode, tables are plain Markdown text and all vim features work normally.
+
 ## Vimrc hot-reload
 
 Changing `.obsidian.vimrc` requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.

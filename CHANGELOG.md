@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Vim support in Live Preview table cells** — Obsidian's Live Preview table widget now has full vim integration. Each table cell's CM6 editor inherits vim keybindings, and the plugin bridges status bar, chord display, and which-key to the active cell. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Status bar shows correct vim mode (NORMAL/INSERT/VISUAL) when editing inside a table cell
+    - Chord display and which-key hints work inside table cells
+    - `Escape` in normal mode exits the table cell and returns focus to the main editor
+    - Surround (`ysiw"`, `ds"`, `cs"'`) works inside table cells
+- **Vertical table cell navigation** — `]r`/`[r` moves to the same column in the next/previous row. No-op at the first/last row. Uses Tab synthesis internally (the only reliable cell-switching mechanism in Obsidian's table widget).
+- **Table manipulation keybindings** — `<Leader>t` prefix commands mapped to Obsidian's built-in table commands, inspired by [vim-table-mode](https://github.com/dhruvasagar/vim-table-mode):
+    - `<Leader>tm` — insert table
+    - `<Leader>to`/`tO` — add row below/above
+    - `<Leader>tJ`/`tK` — move row down/up
+    - `<Leader>tdd` — delete row
+    - `<Leader>tiL`/`tiH` — add column right/left
+    - `<Leader>tL`/`tH` — move column right/left
+    - `<Leader>tdc` — delete column
+- **Table ex commands** — 14 new ex commands for table manipulation: `:tableinsert`, `:tablerowafter`, `:tablerowbefore`, `:tablerowup`, `:tablerowdown`, `:tablerowdelete`, `:tablecolafter`, `:tablecolbefore`, `:tablecolleft`, `:tablecolright`, `:tablecoldelete`, `:tablealignleft`, `:tablealigncenter`, `:tablealignright`
+- **`]\|`/`[\|` in Live Preview table cells** — horizontal cell navigation now works inside the table widget by synthesizing Tab/Shift-Tab
+- E2E test suite `test/specs/table-cell-bridge.e2e.ts` with 6 tests covering status bar updates, vim mode detection, cell document isolation, and focus restoration
+
+### Fixed
+
+- **Table cell status bar silent** — status bar, chord display, and which-key went silent when focus entered a Live Preview table cell because the plugin's UI components only listened to the main editor's vim adapter. A new `TableCellBridge` detects cell focus transitions and forwards the cell adapter's vim events to the UI. ([#19](https://github.com/saberzero1/motions/issues/19))
+- **`]\|`/`[\|` crash in table cells** — `clipCursorToContent` threw "Cannot read properties of null (reading 'insertMode')" because the Tab synthesis destroyed the cell editor synchronously mid-motion. Fixed by deferring Tab dispatch with `setTimeout(0)`.
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: added "Vim in Live Preview table cells" section documenting works/doesn't-work lists, `]r`/`[r` implementation details, `u` undo limitation, and ex mode panel positioning
+- `README.md`: expanded table navigation section with vertical navigation (`]r`/`[r`), escape, table manipulation commands, and ex commands
+
 ## [0.15.0] - 2026-06-26
 
 ### Fixed

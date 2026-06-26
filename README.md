@@ -64,16 +64,37 @@ Behavior:
 
 ### Table navigation
 
-Navigate Markdown table cells without leaving Vim mode.
+Navigate Markdown table cells without leaving Vim mode. Works in both Source mode (raw markdown) and Live Preview mode (interactive table widget).
 
-| Keybinding    | Description                     |
-| ------------- | ------------------------------- |
-| `]\|` or `]c` | Move to the next table cell     |
-| `[\|` or `[c` | Move to the previous table cell |
+| Keybinding        | Description                                       |
+| ----------------- | ------------------------------------------------- |
+| `]\|` or `]c`     | Move to the next table cell                       |
+| `[\|` or `[c`     | Move to the previous table cell                   |
+| `]r`              | Move to the same column in the next row           |
+| `[r`              | Move to the same column in the previous row       |
+| `Escape` (normal) | Exit the table cell and return to the main editor |
 
-Wraps to the next/previous row when reaching the end/start of a row. Skips separator rows (`|---|---|`).
+Wraps to the next/previous row when reaching the end/start of a row. Skips separator rows (`|---|---|`). In Live Preview, `]r`/`[r` navigate vertically while preserving column position.
 
 > **Note:** On keyboard layouts where `|` requires AltGr or a modifier key (e.g. German, Dutch, Nordic), the `]\|`/`[\|` bindings may not work. Use `]c`/`[c` instead — they do the same thing and work on all keyboard layouts.
+
+**Table manipulation** (via `<Leader>t` prefix):
+
+| Keybinding    | Description             |
+| ------------- | ----------------------- |
+| `<Leader>tm`  | Insert table            |
+| `<Leader>to`  | Add row below           |
+| `<Leader>tO`  | Add row above           |
+| `<Leader>tJ`  | Move row down           |
+| `<Leader>tK`  | Move row up             |
+| `<Leader>tdd` | Delete row              |
+| `<Leader>tiL` | Add column to the right |
+| `<Leader>tiH` | Add column to the left  |
+| `<Leader>tL`  | Move column right       |
+| `<Leader>tH`  | Move column left        |
+| `<Leader>tdc` | Delete column           |
+
+Table manipulation commands are also available as ex commands (e.g. `:tablerowafter`, `:tablecoldelete`, `:tablealignleft`). See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#vim-in-live-preview-table-cells) for details on Live Preview table cell behavior.
 
 ### Workspace keyboard control
 
@@ -136,51 +157,59 @@ Opening brackets `(`, `[`, `{` add inner spaces. Closing brackets `)`, `]`, `}`,
 
 ### Ex commands
 
-| Command                            | Description                                    |
-| ---------------------------------- | ---------------------------------------------- |
-| `:ob {command-id}`                 | Execute any Obsidian command by ID             |
-| `:ob`                              | List all available command IDs                 |
-| `:sidebar left` / `:sidebar right` | Toggle left/right sidebar                      |
-| `:explorer`                        | Reveal active file in file explorer            |
-| `:w` / `:write`                    | Save current file                              |
-| `:update` / `:up`                  | Save current file (alias for `:w`)             |
-| `:q` / `:quit`                     | Close current tab                              |
-| `:wq`                              | Save and close                                 |
-| `:x` / `:xit`                      | Write if modified and close                    |
-| `:xa` / `:xall`                    | Write if modified all and close all            |
-| `:e {file}` / `:edit {file}`       | Open file by name in vault                     |
-| `:e!` / `:edit!`                   | Revert current file to saved version           |
-| `:enew`                            | Create new untitled note                       |
-| `:saveas {file}`                   | Save current buffer as new file                |
-| `:find {file}` / `:fin`            | Find and open file by partial name match       |
-| `:read {file}` / `:r`              | Insert file contents at cursor position        |
-| `:bn` / `:bp`                      | Next / previous tab                            |
-| `:b {name}` / `:buffer {name}`     | Switch to tab matching name                    |
-| `:bf` / `:bfirst`                  | Go to first tab                                |
-| `:bl` / `:blast`                   | Go to last tab                                 |
-| `:bd` / `:bc`                      | Close current tab                              |
-| `:bw` / `:bwipeout`                | Close current tab                              |
-| `:only`                            | Close all other tabs                           |
-| `:qa`                              | Close all tabs                                 |
-| `:sp` / `:split`                   | Horizontal split                               |
-| `:vs` / `:vsplit`                  | Vertical split                                 |
-| `:new`                             | Horizontal split with new note                 |
-| `:vnew`                            | Vertical split with new note                   |
-| `:tabnew` / `:tabedit`             | Open new tab (optionally with file)            |
-| `:tabclose` / `:tabc`              | Close current tab                              |
-| `:tabonly` / `:tabo`               | Close all other tabs                           |
-| `:tabfirst` / `:tabrewind`         | Go to first tab                                |
-| `:tablast` / `:tabl`               | Go to last tab                                 |
-| `:buffers` / `:ls`                 | Show all open buffers in a modal               |
-| `:backlinks`                       | Show backlinks to the current note in a modal  |
-| `:grep {pattern}`                  | Search vault for text, show results in a modal |
-| `:wa` / `:wall`                    | Save all open files                            |
-| `:back` / `:forward`               | Navigate back / forward in history             |
-| `:reg` / `:registers`              | Show register contents in a modal              |
-| `:marks`                           | Show marks and their positions in a modal      |
-| `:delmarks {marks}`                | Delete specified marks                         |
-| `:changes`                         | Show change list in modal                      |
-| `:version` / `:ve`                 | Show plugin version                            |
+| Command                                                      | Description                                    |
+| ------------------------------------------------------------ | ---------------------------------------------- |
+| `:ob {command-id}`                                           | Execute any Obsidian command by ID             |
+| `:ob`                                                        | List all available command IDs                 |
+| `:sidebar left` / `:sidebar right`                           | Toggle left/right sidebar                      |
+| `:explorer`                                                  | Reveal active file in file explorer            |
+| `:w` / `:write`                                              | Save current file                              |
+| `:update` / `:up`                                            | Save current file (alias for `:w`)             |
+| `:q` / `:quit`                                               | Close current tab                              |
+| `:wq`                                                        | Save and close                                 |
+| `:x` / `:xit`                                                | Write if modified and close                    |
+| `:xa` / `:xall`                                              | Write if modified all and close all            |
+| `:e {file}` / `:edit {file}`                                 | Open file by name in vault                     |
+| `:e!` / `:edit!`                                             | Revert current file to saved version           |
+| `:enew`                                                      | Create new untitled note                       |
+| `:saveas {file}`                                             | Save current buffer as new file                |
+| `:find {file}` / `:fin`                                      | Find and open file by partial name match       |
+| `:read {file}` / `:r`                                        | Insert file contents at cursor position        |
+| `:bn` / `:bp`                                                | Next / previous tab                            |
+| `:b {name}` / `:buffer {name}`                               | Switch to tab matching name                    |
+| `:bf` / `:bfirst`                                            | Go to first tab                                |
+| `:bl` / `:blast`                                             | Go to last tab                                 |
+| `:bd` / `:bc`                                                | Close current tab                              |
+| `:bw` / `:bwipeout`                                          | Close current tab                              |
+| `:only`                                                      | Close all other tabs                           |
+| `:qa`                                                        | Close all tabs                                 |
+| `:sp` / `:split`                                             | Horizontal split                               |
+| `:vs` / `:vsplit`                                            | Vertical split                                 |
+| `:new`                                                       | Horizontal split with new note                 |
+| `:vnew`                                                      | Vertical split with new note                   |
+| `:tabnew` / `:tabedit`                                       | Open new tab (optionally with file)            |
+| `:tabclose` / `:tabc`                                        | Close current tab                              |
+| `:tabonly` / `:tabo`                                         | Close all other tabs                           |
+| `:tabfirst` / `:tabrewind`                                   | Go to first tab                                |
+| `:tablast` / `:tabl`                                         | Go to last tab                                 |
+| `:buffers` / `:ls`                                           | Show all open buffers in a modal               |
+| `:backlinks`                                                 | Show backlinks to the current note in a modal  |
+| `:grep {pattern}`                                            | Search vault for text, show results in a modal |
+| `:wa` / `:wall`                                              | Save all open files                            |
+| `:back` / `:forward`                                         | Navigate back / forward in history             |
+| `:reg` / `:registers`                                        | Show register contents in a modal              |
+| `:marks`                                                     | Show marks and their positions in a modal      |
+| `:delmarks {marks}`                                          | Delete specified marks                         |
+| `:changes`                                                   | Show change list in modal                      |
+| `:version` / `:ve`                                           | Show plugin version                            |
+| `:tableinsert`                                               | Insert table                                   |
+| `:tablerowafter` / `:tablerowbefore`                         | Add row below / above                          |
+| `:tablerowup` / `:tablerowdown`                              | Move row up / down                             |
+| `:tablerowdelete`                                            | Delete row                                     |
+| `:tablecolafter` / `:tablecolbefore`                         | Add column right / left                        |
+| `:tablecolleft` / `:tablecolright`                           | Move column left / right                       |
+| `:tablecoldelete`                                            | Delete column                                  |
+| `:tablealignleft` / `:tablealigncenter` / `:tablealignright` | Set column alignment                           |
 
 ### EasyMotion / Hop
 

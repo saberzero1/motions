@@ -19,7 +19,11 @@ import {
 } from './headings';
 import { nextListItem, prevListItem } from './lists';
 import { nextLink, prevLink } from './links';
-import { tableNextCellMotion, tablePrevCellMotion } from './tables';
+import {
+    tableNextCellMotion,
+    tablePrevCellMotion,
+    registerTableActions,
+} from './tables';
 
 export function registerNavigationMotions(reg: VimRegistration): void {
     reg.defineMotion('nextHeading', nextHeading);
@@ -76,6 +80,8 @@ export function registerTableMotions(reg: VimRegistration): void {
     reg.mapCommand('[|', 'motion', 'tablePrevCell', {});
     reg.mapCommand('[c', 'motion', 'tablePrevCell', {});
 }
+
+export { registerTableActions };
 
 export function registerBufferNavigation(reg: VimRegistration, app: App): void {
     reg.defineAction('nextBuffer', nextBuffer(app));

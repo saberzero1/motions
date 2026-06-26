@@ -167,6 +167,7 @@ export class WhichKeyOverlay {
     private leafChangeRef: ReturnType<typeof this.app.workspace.on> | null =
         null;
     private lastAdapter: CmAdapter | null = null;
+    private cellAdapter: CmAdapter | null = null;
     private pendingLeader = false;
     private lastStatus = '';
 
@@ -233,11 +234,40 @@ export class WhichKeyOverlay {
         }
     }
 
+    attachToTableCell(adapter: CmAdapter): void {
+        this.detachFromTableCell();
+        this.cellAdapter = adapter;
+        if (this.keyHandler) {
+            adapter.on('vim-keypress', this.keyHandler);
+        }
+        if (this.commandDoneHandler) {
+            adapter.on('vim-command-done', this.commandDoneHandler);
+        }
+    }
+
+    detachFromTableCell(): void {
+        if (!this.cellAdapter) return;
+        if (this.keyHandler) {
+            this.cellAdapter.off(
+                'vim-keypress',
+                this.keyHandler as (...args: unknown[]) => void,
+            );
+        }
+        if (this.commandDoneHandler) {
+            this.cellAdapter.off(
+                'vim-command-done',
+                this.commandDoneHandler as (...args: unknown[]) => void,
+            );
+        }
+        this.cellAdapter = null;
+    }
+
     destroy(): void {
         if (this.leafChangeRef) {
             this.app.workspace.offref(this.leafChangeRef);
             this.leafChangeRef = null;
         }
+        this.detachFromTableCell();
         this.detachAdapter();
         this.dismiss();
     }
