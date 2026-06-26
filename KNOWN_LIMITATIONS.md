@@ -234,9 +234,9 @@ These commands exist but behave differently from Neovim:
 
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 
-**Status**: Fixed in fork.
+**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison.
 
-In visual mode, selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. The fork's `measureCursor()` in `block-cursor.ts` adjusts the cursor position backward by 1 in forward visual selections (`anchor < head`) to display the cursor on the last selected character. The previous guard (`if (letter != "\n")`) prevented the adjustment when the cursor was at a newline, but this incorrectly left the cursor past EOL on non-empty lines. The fix checks `head > line.from` instead — the cursor is only left unadjusted on truly empty lines where decrementing would cross to a previous line.
+In charwise visual mode (`v`), selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. The fork's `measureCursor()` in `block-cursor.ts` adjusts the cursor position backward by 1 in forward visual selections (`anchor < head`) to display the cursor on the last selected character. The original `letter != "\n"` guard (added in commit `8e8ea52` for empty lines) prevented this adjustment at EOL on non-empty lines. The fix uses the vim state (`vim.visualLine`, `vim.visualBlock`) to only apply the EOL decrement in charwise visual mode — linewise (`V`) and blockwise (`<C-v>`) skip the adjustment, preserving their existing rendering behavior.
 
 ## Test-discovered behavioral discrepancies
 
