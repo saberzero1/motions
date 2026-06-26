@@ -3,7 +3,11 @@ import type { App } from 'obsidian';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
-import { setTextwidth, parseGuicursor } from '../vim/options';
+import {
+    setTextwidth,
+    setClipboardOption,
+    parseGuicursor,
+} from '../vim/options';
 import { parseLine } from './parser';
 import type { CursorShapes } from '../settings';
 
@@ -249,6 +253,17 @@ async function loadVimrcFile(
                 setTextwidth(tw);
                 vim.setOption('textwidth', tw);
             }
+            applied++;
+            continue;
+        }
+
+        const isClipboardSet =
+            parsed?.type === 'set' &&
+            (parsed.key === 'clipboard' || parsed.key === 'clip') &&
+            parsed.value;
+        if (isClipboardSet) {
+            setClipboardOption(parsed.value as string);
+            vim.setOption('clipboard', parsed.value as string);
             applied++;
             continue;
         }

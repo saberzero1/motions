@@ -16,8 +16,20 @@ export function setTextwidth(value: number): void {
 
 let textwidthSetExplicitly = false;
 
+let clipboardValue = '';
+
+export function setClipboardOption(value: string): void {
+    clipboardValue = value;
+}
+
 export function registerVimOptions(vim: VimApi): void {
-    vim.defineOption('clipboard', '', 'string', ['clip']);
+    vim.defineOption('clipboard', '', 'string', ['clip'], (value: unknown) => {
+        if (value === undefined) return clipboardValue;
+        const str = typeof value === 'string' ? value : String(value ?? '');
+        if (clipboardValue && !str) return undefined;
+        clipboardValue = str;
+        return undefined;
+    });
     vim.defineOption('tabstop', 4, 'number', ['ts']);
     vim.defineOption('textwidth', 80, 'number', ['tw'], (value) => {
         if (value === undefined) return textwidthValue;
