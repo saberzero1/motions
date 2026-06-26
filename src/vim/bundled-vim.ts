@@ -34,23 +34,54 @@ export function createBundledVimExtension(
     return Prec.highest(vim({ cursorShapes: config }));
 }
 
+/** Whether the bridge is currently installed (for cleanup). */
+let bridgeInstalled = false;
+
 /**
  * Install the `window.CodeMirrorAdapter.Vim` bridge so ecosystem plugins
  * find the Vim API at its expected location.
  *
+ * Uses a property descriptor (getter) so that our fork's Vim singleton
+ * always wins, regardless of plugin load order.  Even if Obsidian or
+ * another plugin overwrites `CodeMirrorAdapter.Vim` after we set it,
+ * the getter intercepts every read and returns the fork's instance.
+ *
  * Safe to call multiple times — subsequent calls are no-ops.
  */
 export function installVimBridge(): void {
+    if (bridgeInstalled) return;
+    bridgeInstalled = true;
+
     const win = window as unknown as Record<string, Record<string, unknown>>;
     if (!win.CodeMirrorAdapter) {
         win.CodeMirrorAdapter = {};
     }
-    // Always overwrite: Obsidian loads its own vim.js and sets
-    // CodeMirrorAdapter.Vim even when vimMode is false.  We need
-    // the bridge to point at OUR fork's Vim so that register
-    // introspection, handleKey, and all API access hits the same
-    // state machine that the ViewPlugin uses.
-    win.CodeMirrorAdapter.Vim = Vim;
+
+    // Getter without setter: plain assignments by Obsidian or other
+    // plugins are silently discarded, so reads always return our fork.
+    Object.defineProperty(win.CodeMirrorAdapter, 'Vim', {
+        get() {
+            return Vim;
+        },
+        configurable: true, // allow uninstallVimBridge() to remove it
+        enumerable: true,
+    });
+}
+
+/**
+ * Remove the `window.CodeMirrorAdapter.Vim` bridge.
+ *
+ * Called during plugin unload so other plugins (or Obsidian itself)
+ * can reclaim the property.
+ */
+export function uninstallVimBridge(): void {
+    if (!bridgeInstalled) return;
+    bridgeInstalled = false;
+
+    const win = window as unknown as Record<string, Record<string, unknown>>;
+    if (win.CodeMirrorAdapter) {
+        delete win.CodeMirrorAdapter.Vim;
+    }
 }
 
 /**

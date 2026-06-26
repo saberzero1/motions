@@ -24,6 +24,7 @@ import { getVimApi, isVimEnabled, getCmAdapter } from './vim/vim-api';
 import {
     createBundledVimExtension,
     installVimBridge,
+    uninstallVimBridge,
     isBundledVimActive,
 } from './vim/bundled-vim';
 import { ExCommandSuggest } from './ui/ex-suggest';
@@ -68,10 +69,10 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         if (!builtinVimOn) {
+            installVimBridge();
             this.registerEditorExtension(
                 createBundledVimExtension(this.settings.cursorShapes),
             );
-            installVimBridge();
         }
 
         const vim = getVimApi();
@@ -547,6 +548,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.scrolloffManager = null;
         this.registration?.unregisterAll();
         this.registration = null;
+        uninstallVimBridge();
     }
 
     async loadSettings() {
