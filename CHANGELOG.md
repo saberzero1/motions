@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-06-26
+
+### Fixed
+
+- **Bundled fork not recognized by other plugins** — ecosystem plugins that check `window.CodeMirrorAdapter.Vim` (e.g. Outliner, obsidian-vimrc-support) could miss the bundled fork due to plugin load order or Obsidian overwriting the property after the bridge was installed. The bridge now uses a property descriptor (getter) instead of a plain assignment, so reads always return the fork's Vim singleton regardless of timing. The bridge is also installed before `registerEditorExtension()` for earlier availability, and properly cleaned up on plugin unload. ([#17](https://github.com/saberzero1/motions/issues/17))
+- **`Vim.enterInsertMode(cm)` missing from fork API** — ecosystem plugins (Outliner, obsidian-lineage) call `Vim.enterInsertMode(cm)` to transition the editor into insert mode after custom actions. Obsidian's built-in `vim.js` exposes this method but upstream `@replit/codemirror-vim` does not. The fork now exports `enterInsertMode(cm)` on the `Vim` singleton, matching Obsidian's API surface. Without this, plugins using the bundled fork would get `TypeError: vim.enterInsertMode is not a function`. ([#17](https://github.com/saberzero1/motions/issues/17))
+
+### Changed
+
+- **Fork test count** — 1630 fork tests passing (up from 1628). Added `api_enterInsertMode` test verifying the new public API method.
+
+### Documentation
+
+- `DIFFERENCES.md` (fork): added "`enterInsertMode` API exposure" section documenting the Obsidian-specific API addition
+
 ## [0.14.0] - 2026-06-26
 
 ### Added
