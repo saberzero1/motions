@@ -387,17 +387,23 @@ export default class VimMotionsPlugin extends Plugin {
         this.whichKeyOverlay?.destroy();
         this.whichKeyOverlay = null;
 
-        if (this.leaderRegistry) {
-            const bindings = this.leaderRegistry.getBindings();
-            if (bindings.length > 0) {
-                this.whichKeyOverlay = new WhichKeyOverlay(
-                    this.app,
-                    this.leaderRegistry.getLeaderKey(),
-                    bindings,
-                );
-                this.whichKeyOverlay.attach();
-            }
-        }
+        if (!this.leaderRegistry) return;
+
+        const leaderKey = this.leaderRegistry.getLeaderKey();
+        const bindings = this.leaderRegistry.getBindings();
+        const mode = this.settings.whichKeyMode;
+        const generalMode = mode === 'all';
+
+        if (mode === 'off') return;
+        if (!generalMode && bindings.length === 0) return;
+
+        this.whichKeyOverlay = new WhichKeyOverlay(
+            this.app,
+            leaderKey,
+            bindings,
+            generalMode,
+        );
+        this.whichKeyOverlay.attach();
     }
 
     private reregisterLeaderFeatures(): void {

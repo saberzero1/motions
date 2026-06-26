@@ -115,9 +115,23 @@ EasyMotion and hint mode bindings now call `unmapDefaultBinding(leader)` before 
 
 The alternative keybindings `]c` and `[c` are provided for this reason and work on all keyboard layouts.
 
-## Which-key overlay scope
+## Which-key overlay
 
-The which-key overlay shows leader bindings from `.obsidian.vimrc` (via `nmap <leader>x :command` or similar), settings-configured leader bindings, and built-in leader-prefixed commands (EasyMotion, hint mode). It does not show non-leader plugin keybindings (`gd`, `gx`, `]h`, etc.) since those are always available regardless of leader configuration.
+The which-key overlay has three modes (configurable via **Settings → Vim Motions → Which-key hints**):
+
+- **Off** — no which-key overlay
+- **Leader key only** — shows leader bindings when the leader key is pressed and held for 500ms
+- **All partial keys** — shows available continuations after any partial key sequence (operators, prefix keys, leader)
+
+In "all" mode, the overlay reads the fork's `getInputState()` to detect operator-pending state and `vim.status` for partial key chords. Operator-pending mode shows grouped next-key options filtered to motions, text objects, and operatorPending actions. Prefix keys (like `g`, `z`) show `getCompletions()` results. Special keys (`<Left>`, `<C-n>`, etc.) and insert-only entries are filtered out.
+
+The overlay attaches to the active editor pane's `contentEl` with `position: absolute`, so it stays within the editor bounds and doesn't cover other panes. Maximum height is 40% of the pane. The multi-column grid layout uses `auto-fill` with `minmax(200px, 1fr)` columns.
+
+Limitations:
+
+- The 500ms delay is hardcoded (not configurable via settings)
+- User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions (shown as the raw rhs key sequence)
+- The overlay does not show during macro playback or when a register prefix (`"a`) is pending
 
 ## `<C-w>` prefix conflict with Obsidian hotkeys
 

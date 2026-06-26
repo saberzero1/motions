@@ -65,7 +65,8 @@ export interface ExCommandArgs {
 
 /** Internal Vim state attached to a CM adapter. */
 export interface VimState {
-    mode: 'normal' | 'insert' | 'visual' | 'replace';
+    mode?: string;
+    insertMode?: boolean;
     visualMode?: boolean;
     visualLine?: boolean;
     visualBlock?: boolean;
@@ -250,6 +251,38 @@ export interface VimApi {
             }
         >;
     };
+
+    getKeymap(context?: string): Array<{
+        keys: string;
+        type: string;
+        context?: string;
+        operator?: string;
+        operatorArgs?: Record<string, unknown>;
+        motion?: string;
+        motionArgs?: Record<string, unknown>;
+        action?: string;
+        actionArgs?: Record<string, unknown>;
+        toKeys?: string;
+        isEdit?: boolean;
+        searchArgs?: Record<string, unknown>;
+        operatorPending?: boolean;
+    }>;
+
+    getCompletions(
+        prefix: string,
+        context?: string,
+    ): Array<{
+        keys: string;
+        suffix: string;
+        type: string;
+        context?: string;
+        operator?: string;
+        motion?: string;
+        action?: string;
+        toKeys?: string;
+        searchArgs?: Record<string, unknown>;
+        operatorPending?: boolean;
+    }>;
 }
 
 /**

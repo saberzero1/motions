@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Which-key for all partial keys** — the which-key overlay now triggers on any partial key sequence (operators like `d`, `c`, `y` and prefix keys like `g`, `z`, `[`, `]`), not just the leader key. After a 500ms delay, a multi-column panel at the bottom of the editor shows available continuations. Configurable via **Settings → Vim Motions → Which-key hints** with three modes: off, leader key only, all partial keys (default: off).
+    - Operator-pending mode (`d …`) shows grouped next-key options: single-key motions directly (`w`, `j`, `$`), multi-key prefixes collapsed (`i` → +N text objects, `a` → +N text objects)
+    - Partial prefix keys (`g …`, `z …`) show `getCompletions()` results from the fork's keymap introspection API
+    - Special keys (`<Left>`, `<C-n>`, etc.) and insert-only entries are filtered out
+    - Leader bindings from settings and vimrc are shown with friendly command names
+    - Overlay positioned at bottom of editor pane (not viewport), max 40% height, multi-column grid layout
+- E2E test suite `test/specs/which-key.e2e.ts` with 31 tests covering all three modes (off/leader/all), settings hot-reload, leader registry integration, and fork API integration (`getKeymap`/`getCompletions`)
+
+### Changed
+
+- **Which-key setting** — `enableWhichKey` boolean replaced with `whichKeyMode` dropdown (`'off'` | `'leader'` | `'all'`). Default changed from implicit leader-only to explicit `'off'`.
+- **Which-key overlay rewritten** — `WhichKeyOverlay` class generalized from leader-only to support any partial key sequence. Uses `getInputState()` for operator-pending detection and `vim.status` for partial key chord display. DOM attachment changed from `editorEl.parentElement` to `view.contentEl` for reliable positioning.
+- **`VimState` type fix** — `mode` field changed from required `'normal' | 'insert' | 'visual' | 'replace'` to optional `string` to match runtime behavior (the field is only set by the CM6 ViewPlugin's mode-change handler, not by the initial vim state).
+
+### Documentation
+
+- `DIFFERENCES.md` (fork): added "Keymap introspection API" section documenting `getKeymap()` and `getCompletions()`
+- `KNOWN_LIMITATIONS.md`: "Which-key overlay scope" section rewritten to reflect the new all-keys mode
+- `README.md`: which-key description updated and settings list updated with new dropdown
+
 ## [0.13.0] - 2026-06-26
 
 ### Fixed

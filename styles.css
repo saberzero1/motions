@@ -154,51 +154,56 @@
 }
 
 .vim-motions-which-key {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    padding: 8px 12px;
+    border-top: 1px solid var(--background-modifier-border);
+    padding: 6px 12px;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 200px;
-    max-width: 400px;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    max-height: 40%;
+    overflow-y: auto;
 }
 
 .vim-motions-which-key-title {
     font-family: var(--font-monospace);
     font-size: 12px;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     padding-bottom: 4px;
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .vim-motions-which-key-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1px 16px;
 }
 
 .vim-motions-which-key-row {
     display: flex;
-    gap: 12px;
-    font-size: 13px;
-    line-height: 1.6;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .vim-motions-which-key-key {
     font-family: var(--font-monospace);
     font-weight: bold;
     color: var(--text-accent);
-    min-width: 20px;
+    min-width: 24px;
+    flex-shrink: 0;
 }
 
 .vim-motions-which-key-cmd {
-    color: var(--text-normal);
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .vim-motions-leader-binding-row .setting-item-control {

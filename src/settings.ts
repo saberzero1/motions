@@ -80,6 +80,7 @@ export interface VimMotionsSettings {
     multilineScanLimit: number;
     easyMotionLabels: string;
     cursorShapes: CursorShapes;
+    whichKeyMode: 'off' | 'leader' | 'all';
     leaderBindings: LeaderBinding[];
 }
 
@@ -103,6 +104,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     multilineScanLimit: 20,
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
     cursorShapes: { ...DEFAULT_CURSOR_SHAPES },
+    whichKeyMode: 'off',
     leaderBindings: [],
 };
 
@@ -556,6 +558,29 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
         }
+
+        new Setting(containerEl)
+            .setName('Which-key hints')
+            .setDesc(
+                'Show available key continuations in a popup after a short delay.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        off: 'Off',
+                        leader: 'Leader key only',
+                        all: 'All partial keys',
+                    })
+                    .setValue(this.plugin.settings.whichKeyMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.whichKeyMode = value as
+                            | 'off'
+                            | 'leader'
+                            | 'all';
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
 
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(
