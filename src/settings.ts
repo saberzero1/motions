@@ -7,6 +7,7 @@ import {
     TextComponent,
 } from 'obsidian';
 import VimMotionsPlugin from './main';
+import { isBundledVimActive } from './vim/bundled-vim';
 
 export function formatHotkey(serialized: string): string {
     if (!serialized) return '';
@@ -526,9 +527,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl).setName('Cursor shapes').setHeading();
-        new Setting(containerEl).setDesc(
-            'Cursor shape per Vim mode. Requires bundled fork mode (built-in Vim disabled). Configurable via vimrc: set guicursor=n:block,i:bar,v:block,r:underline,o:underline',
-        );
+
+        const forkActive = isBundledVimActive();
+
+        if (!forkActive) {
+            new Setting(containerEl).setDesc(
+                'Cursor shapes require bundled fork mode. Disable Obsidian\u2019s built-in Vim key bindings (settings \u2192 editor) and restart the plugin to enable these options.',
+            );
+        } else {
+            new Setting(containerEl).setDesc(
+                'Cursor shape per Vim mode. Configurable via vimrc: set guicursor=n:block,i:bar,v:block,r:underline,o:underline',
+            );
+        }
 
         const cursorShapeOptions: Record<CursorShape, string> = {
             block: 'Block',
@@ -546,7 +556,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         ];
 
         for (const { key, label } of cursorModes) {
-            new Setting(containerEl).setName(label).addDropdown((dropdown) =>
+            new Setting(containerEl).setName(label).addDropdown((dropdown) => {
                 dropdown
                     .addOptions(cursorShapeOptions)
                     .setValue(this.plugin.settings.cursorShapes[key])
@@ -555,8 +565,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             value as CursorShape;
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
-                    }),
-            );
+                    });
+                if (!forkActive) {
+                    dropdown.selectEl.disabled = true;
+                }
+            });
         }
 
         new Setting(containerEl)

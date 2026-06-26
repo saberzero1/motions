@@ -372,10 +372,10 @@ describe('Phase 4 text objects', function () {
         });
 
         it.skip('vi* on single-char italic should select the character', async function () {
-            // BUG: codemirror-vim's makeCmSelection mishandles 1-char text object
-            // ranges in visual mode. Our adjustRangeForVisualMode correctly returns
-            // the range (ch:7, ch:8) but CM Vim's internal selection logic selects
-            // the delimiter instead. Multi-char content works correctly.
+            // BUG: CM Vim visual mode selects the delimiter '*' instead of the
+            // single-char content 'x' for *x*. The text object itself returns the
+            // correct range but makeCmSelection shifts the head by -1 for inclusive
+            // motions, landing on the delimiter. Multi-char content works correctly.
             await setupEditor('Hello *x* world', { line: 0, ch: 7 });
             await vimKeys('v', 'i', '*');
             expect(await getSelection()).toBe('x');

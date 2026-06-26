@@ -137,14 +137,14 @@ function getVimContext(adapter: CmAdapter): string {
 
 function isOperatorPending(adapter: CmAdapter): boolean {
     const vim = getVimApi();
-    if (!vim) return false;
+    if (!vim || typeof vim.getInputState !== 'function') return false;
     const inputState = vim.getInputState(adapter);
     return !!inputState.operator;
 }
 
 function getKeyBuffer(adapter: CmAdapter): string {
     const vim = getVimApi();
-    if (!vim) return '';
+    if (!vim || typeof vim.getInputState !== 'function') return '';
     const inputState = vim.getInputState(adapter);
     return inputState.keyBuffer.join('');
 }
@@ -326,11 +326,13 @@ export class WhichKeyOverlay {
         const entries: WhichKeyEntry[] = [];
 
         if (opPending && !keyBuffer) {
+            if (typeof vim.getKeymap !== 'function') return;
             const keymap = vim.getKeymap(context);
             const filtered = keymap.filter((e) => isValidInOperatorPending(e));
             const grouped = buildNextKeyEntries(filtered);
             entries.push(...grouped);
         } else if (keyBuffer) {
+            if (typeof vim.getCompletions !== 'function') return;
             const effectiveContext = opPending ? 'operatorPending' : context;
             const completions = vim.getCompletions(keyBuffer, effectiveContext);
 

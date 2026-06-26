@@ -23,10 +23,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Which-key overlay rewritten** — `WhichKeyOverlay` class generalized from leader-only to support any partial key sequence. Uses `getInputState()` for operator-pending detection and `vim.status` for partial key chord display. DOM attachment changed from `editorEl.parentElement` to `view.contentEl` for reliable positioning.
 - **`VimState` type fix** — `mode` field changed from required `'normal' | 'insert' | 'visual' | 'replace'` to optional `string` to match runtime behavior (the field is only set by the CM6 ViewPlugin's mode-change handler, not by the initial vim state).
 
+### Fixed
+
+- **`da"` trailing space** — `da"` on `say "hello world" end` now produces `say end` (single space) instead of `say  end` (double space). The fork's `findBeginningAndEnd` now consumes adjacent whitespace after inclusive quote expansion, matching Neovim.
+- **`:join` cursor position** — `:join` ex command now positions cursor at column 0 of the joined line, matching Neovim. Previously placed cursor at the join point.
+- **`:global` cursor position** — `:g/pattern/d` now positions cursor at the last matched line after execution, matching Neovim. Non-destructive `:g` commands leave cursor where the last sub-command placed it.
+- **Empty `:s` flag behavior** — `:s` with no arguments no longer preserves the `/g` flag from the previous substitution. Only the first match on the line is replaced, matching Neovim.
+- **`%` string-awareness** — updated `KNOWN_LIMITATIONS.md` to reflect that `%` is only partially fixed: the forward-seek check works, but `findMatchingBracket` still does positional counting without string awareness.
+- **Which-key graceful degradation** — `getInputState()`, `getKeymap()`, and `getCompletions()` calls in the which-key overlay now check `typeof` before invocation, preventing errors when built-in vim mode is active (these APIs are fork-only).
+- **Cursor shape settings in built-in mode** — cursor shape dropdowns are now disabled with an explanatory message when Obsidian's built-in vim mode is active (cursor shapes require bundled fork mode).
+- **g-commands golden data** — corrected incorrect Neovim recordings for `g$` (cursor ch:11→10, mode visual→normal) and `guu` (content unchanged→lowercased). Full vim-builtin e2e suite now passes 16/16.
+
+### Changed
+
+- **Plugin deviations reduced** — `test/neovim/deviations.ts` reduced from 20 to 10 entries. 10 deviations removed after verifying the fork now matches Neovim: `)` sentence motion, `di(` multiline, `db` cross-line, `dw` empty line, `d2w` cross-line, `dge` empty lines, `diw` word boundary, `da"` trailing space, `:join` cursor, `:global` cursor.
+- **Fork test count** — 17 new fork-level tests for async motion dispatch (6), `getKeymap()` API (5), and `getCompletions()` API (6). Total: 1628 fork tests passing.
+- **Fork golden comparison** — re-recorded 756 golden cases from Neovim 0.12.2 with per-step state capture. 476 pass, 0 unexpected diffs, 280 known deviations (down from 284). Fixed 3 duplicate test name collisions and empty `:s` flag behavior.
+
 ### Documentation
 
 - `DIFFERENCES.md` (fork): added "Keymap introspection API" section documenting `getKeymap()` and `getCompletions()`
+- `DIFFERENCES.md` (fork): updated "Empty :s flag preservation" → "Empty :s uses default flags", added `da"` whitespace, `:join` cursor, `:global` cursor sections, updated golden comparison stats
 - `KNOWN_LIMITATIONS.md`: "Which-key overlay scope" section rewritten to reflect the new all-keys mode
+- `KNOWN_LIMITATIONS.md`: updated `%` + strings entry to "Partially fixed" with explanation of remaining `findMatchingBracket` limitation
+- `KNOWN_LIMITATIONS.md`: added `da"`, `:join`, `:global`, `:s` empty entries to behavioral deviations table
+- `KNOWN_LIMITATIONS.md`: corrected `vi*` single-char status from "Fixed" to "Not fixed"
+- `AGENTS.md`: updated fork test count (1421→1628) and golden comparison stats
 - `README.md`: which-key description updated and settings list updated with new dropdown
 
 ## [0.13.0] - 2026-06-26
@@ -85,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visual selection highlight** — visual mode selection is now visible when using the bundled fork. The fork toggles a `.cm-vimVisual` class and scopes its `::selection { transparent }` rule to non-visual modes only. ([#10](https://github.com/saberzero1/motions/issues/10))
 - **Properties navigation** — pressing `k` at the top of the document now navigates into the properties (YAML frontmatter) panel, matching built-in vim behavior. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region and provides a `focusBefore` callback that focuses the "Add property" button. ([#11](https://github.com/saberzero1/motions/issues/11))
 - **Latex Suite compatibility** — bundled vim extension now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. ([#11](https://github.com/saberzero1/motions/issues/11))
-- **Empty `:s` repeats with `/g` flag** — `:s` with no arguments now preserves the global flag from the previous substitution, matching Neovim
+- **Empty `:s` flag handling** — `:s` with no arguments now uses default flags (no `/g`), replacing only the first match on the line, matching Neovim
 - **Octal increment disabled** — numbers with leading zeros (e.g. `007`) now increment as decimal (`008`) instead of octal (`010`), matching Neovim's default `nrformats`
 - **Per-step golden comparison infrastructure** — fork's Neovim comparison now captures state after each key step (1504 steps at 100% coverage), revealing 23 previously hidden behavioral differences
 - **Golden recorder reliability** — `redraw` after `setCursor` prevents stale Neovim state; 80×24 viewport simulation via `set columns=80 lines=24` enables accurate display-line motion recording

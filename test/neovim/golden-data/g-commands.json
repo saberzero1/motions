@@ -74,9 +74,9 @@
                 "content": "hello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 11
+                    "ch": 10
                 },
-                "mode": "visual"
+                "mode": "normal"
             }
         },
         {
@@ -90,7 +90,7 @@
             },
             "keys": "guu",
             "result": {
-                "content": "HELLO WORLD",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
                     "ch": 0

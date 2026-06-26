@@ -155,7 +155,7 @@ describe('Built-in text objects (Tier 1)', function () {
         it('da" should delete including quotes', async function () {
             await setupEditor('say "hello world" end', { line: 0, ch: 8 });
             await vimKeys('d', 'a', '"');
-            expect(await getEditorValue()).toBe('say  end');
+            expect(await getEditorValue()).toBe('say end');
         });
     });
 
