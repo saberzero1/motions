@@ -25,7 +25,7 @@ export function setClipboardOption(value: string): void {
 export function registerVimOptions(vim: VimApi): void {
     vim.defineOption('clipboard', '', 'string', ['clip'], (value: unknown) => {
         if (value === undefined) return clipboardValue;
-        const str = typeof value === 'string' ? value : String(value ?? '');
+        const str = typeof value === 'string' ? value : '';
         if (clipboardValue && !str) return undefined;
         clipboardValue = str;
         return undefined;

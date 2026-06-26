@@ -262,8 +262,8 @@ async function loadVimrcFile(
             (parsed.key === 'clipboard' || parsed.key === 'clip') &&
             parsed.value;
         if (isClipboardSet) {
-            setClipboardOption(parsed.value as string);
-            vim.setOption('clipboard', parsed.value as string);
+            setClipboardOption(parsed.value);
+            vim.setOption('clipboard', parsed.value);
             applied++;
             continue;
         }
