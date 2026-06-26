@@ -274,44 +274,6 @@ describe('Visual mode (Tier 1)', function () {
         });
     });
 
-    describe('visual mode cursor at end-of-line', function () {
-        it('v + $ should keep cursor on last character, not past EOL', async function () {
-            await setupEditor('hello world', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(50);
-            await browser.keys(['v']);
-            await browser.pause(30);
-            await browser.keys(['$']);
-            await browser.pause(300);
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(0);
-            expect(pos.ch).toBeLessThanOrEqual(11);
-        });
-
-        it('v + l to end of line should not displace cursor past content', async function () {
-            await setupEditor('abc', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(50);
-            await browser.keys(['v']);
-            await browser.pause(30);
-            await browser.keys(['l', 'l']);
-            await browser.pause(300);
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(0);
-            expect(pos.ch).toBeLessThanOrEqual(3);
-        });
-
-        it('V on a short line should render cursor within line bounds', async function () {
-            await setupEditor('hi\nlonger line\nend', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(50);
-            await browser.keys(['V']);
-            await browser.pause(300);
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(0);
-        });
-    });
-
     describe('o (swap visual anchor)', function () {
         it('o should swap cursor to other end of selection', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });

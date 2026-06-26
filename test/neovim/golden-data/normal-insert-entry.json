@@ -1,7 +1,7 @@
 {
     "suite": "normal-insert-entry",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-25T00:00:40.617Z",
+    "recorded_at": "2026-06-26T08:49:56.598Z",
     "cases": [
         {
             "name": "i should insert text before cursor",

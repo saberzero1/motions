@@ -1,7 +1,7 @@
 {
     "suite": "visual-mode",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-25T00:00:40.622Z",
+    "recorded_at": "2026-06-26T08:49:56.609Z",
     "cases": [
         {
             "name": "v + e + d should delete selection",
@@ -134,6 +134,196 @@
                     "ch": 8
                 },
                 "mode": "normal"
+            }
+        },
+        {
+            "name": "v$ cursor position at end of line",
+            "initial": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "v$",
+            "result": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "v$ then Escape should leave cursor at EOL",
+            "initial": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "v$\u001b",
+            "result": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "vl to end of short line",
+            "initial": {
+                "content": "abc\ndefgh",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "vlll",
+            "result": {
+                "content": "abc\ndefgh",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "V cursor position on single line",
+            "initial": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "V",
+            "result": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "V on empty line",
+            "initial": {
+                "content": "first\n\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "V",
+            "result": {
+                "content": "first\n\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v$ on middle of line",
+            "initial": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "v$",
+            "result": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "v$ then y should yank to end of line",
+            "initial": {
+                "content": "hello world\nsecond",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "v$y",
+            "result": {
+                "content": "hello world\nsecond",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "no"
+            }
+        },
+        {
+            "name": "V then Escape cursor position",
+            "initial": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "V\u001b",
+            "result": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Vj cursor position",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vj",
+            "result": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "v$ on last line without trailing newline",
+            "initial": {
+                "content": "only line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "v$",
+            "result": {
+                "content": "only line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 9
+                },
+                "mode": "visual"
             }
         }
     ]

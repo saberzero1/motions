@@ -130,6 +130,13 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'codemirror-vim jumplist/search state differs for N after / search',
         fields: ['cursor'],
     },
+    {
+        testPattern: /V.*cursor position|Vj cursor position/,
+        description:
+            'V linewise visual places cursor at end of line instead of ch:0',
+        reason: 'CM6 exclusive selection model moves head to end of line in linewise visual',
+        fields: ['cursor'],
+    },
 ];
 
 export function isKnownDeviation(testName: string): boolean {

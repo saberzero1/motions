@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-25T00:00:40.632Z",
+    "recorded_at": "2026-06-26T08:49:56.618Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -19,7 +19,7 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "visual"
             }
         },
         {
@@ -38,7 +38,7 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "visual"
             }
         },
         {
@@ -57,7 +57,7 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "visual"
             }
         },
         {
@@ -74,9 +74,9 @@
                 "content": "hello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 10
+                    "ch": 11
                 },
-                "mode": "normal"
+                "mode": "visual"
             }
         },
         {
@@ -90,7 +90,7 @@
             },
             "keys": "guu",
             "result": {
-                "content": "hello world",
+                "content": "HELLO WORLD",
                 "cursor": {
                     "line": 0,
                     "ch": 0
