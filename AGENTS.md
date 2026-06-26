@@ -106,9 +106,9 @@ npm run build
 
 **Important: e2e test runtime**
 
-The full e2e suite (`npm run test:e2e`) runs 57 spec files and takes approximately **12 minutes**. Each spec launches a fresh Obsidian instance. When running from an agent or script:
+The full e2e suite (`npm run test:e2e`) runs 57 spec files and takes approximately **16 minutes**. Each spec launches a fresh Obsidian instance. When running from an agent or script:
 
-- Use a timeout of at least **900000 ms** (15 minutes) to avoid premature termination.
+- Use a timeout of at least **1200000 ms** (20 minutes) to avoid premature termination.
 - To run a subset, use `--spec` to target specific files:
     ```bash
     npx wdio run ./wdio.conf.mts --spec test/specs/vim-builtin/operator-combos.e2e.ts
