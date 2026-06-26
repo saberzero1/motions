@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Which-key setting** — `enableWhichKey` boolean replaced with `whichKeyMode` dropdown (`'off'` | `'leader'` | `'all'`). Default changed from implicit leader-only to explicit `'off'`.
 - **Which-key overlay rewritten** — `WhichKeyOverlay` class generalized from leader-only to support any partial key sequence. Uses `getInputState()` for operator-pending detection and `vim.status` for partial key chord display. DOM attachment changed from `editorEl.parentElement` to `view.contentEl` for reliable positioning.
 - **`VimState` type fix** — `mode` field changed from required `'normal' | 'insert' | 'visual' | 'replace'` to optional `string` to match runtime behavior (the field is only set by the CM6 ViewPlugin's mode-change handler, not by the initial vim state).
+- **Plugin deviations reduced** — `test/neovim/deviations.ts` reduced from 20 to 10 entries. 10 deviations removed after verifying the fork now matches Neovim: `)` sentence motion, `di(` multiline, `db` cross-line, `dw` empty line, `d2w` cross-line, `dge` empty lines, `diw` word boundary, `da"` trailing space, `:join` cursor, `:global` cursor.
+- **Fork test count** — 17 new fork-level tests for async motion dispatch (6), `getKeymap()` API (5), and `getCompletions()` API (6). Total: 1628 fork tests passing.
+- **Fork golden comparison** — re-recorded 756 golden cases from Neovim 0.12.2 with per-step state capture. 476 pass, 0 unexpected diffs, 280 known deviations (down from 284). Fixed 3 duplicate test name collisions and empty `:s` flag behavior.
 
 ### Fixed
 
@@ -35,12 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Which-key graceful degradation** — `getInputState()`, `getKeymap()`, and `getCompletions()` calls in the which-key overlay now check `typeof` before invocation, preventing errors when built-in vim mode is active (these APIs are fork-only).
 - **Cursor shape settings in built-in mode** — cursor shape dropdowns are now disabled with an explanatory message when Obsidian's built-in vim mode is active (cursor shapes require bundled fork mode).
 - **g-commands golden data** — corrected incorrect Neovim recordings for `g$` (cursor ch:11→10, mode visual→normal) and `guu` (content unchanged→lowercased). Full vim-builtin e2e suite now passes 16/16.
-
-### Changed
-
-- **Plugin deviations reduced** — `test/neovim/deviations.ts` reduced from 20 to 10 entries. 10 deviations removed after verifying the fork now matches Neovim: `)` sentence motion, `di(` multiline, `db` cross-line, `dw` empty line, `d2w` cross-line, `dge` empty lines, `diw` word boundary, `da"` trailing space, `:join` cursor, `:global` cursor.
-- **Fork test count** — 17 new fork-level tests for async motion dispatch (6), `getKeymap()` API (5), and `getCompletions()` API (6). Total: 1628 fork tests passing.
-- **Fork golden comparison** — re-recorded 756 golden cases from Neovim 0.12.2 with per-step state capture. 476 pass, 0 unexpected diffs, 280 known deviations (down from 284). Fixed 3 duplicate test name collisions and empty `:s` flag behavior.
 
 ### Documentation
 
