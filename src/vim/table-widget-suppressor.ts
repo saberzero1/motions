@@ -2,7 +2,8 @@ import type { App } from 'obsidian';
 import { RangeSetBuilder } from '@codemirror/state';
 import { around } from '../util/around';
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-explicit-any -- CM6 decoration internals are untyped (value.widget.containerEl) */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument -- same: RangeSetBuilder prototype patching */
 
 export type TableWidgetMode = 'off' | 'cursor' | 'always';
 
@@ -47,3 +48,5 @@ export function installTableWidgetSuppressor(
         uninstall();
     };
 }
+
+/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
