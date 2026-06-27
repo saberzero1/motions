@@ -468,6 +468,85 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
         });
     });
 
+    describe('cursor position after surround — #22', function () {
+        it('S] should place cursor on inner text, not bracket', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', 'r');
+            expect(await getEditorValue()).toBe('[hello] world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+        });
+
+        it('S" should place cursor on inner text', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', '"');
+            expect(await getEditorValue()).toBe('"hello" world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+        });
+
+        it('S( should place cursor on inner text after spaced open', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', '(');
+            expect(await getEditorValue()).toBe('( hello ) world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 2 });
+        });
+
+        it('ysiw] should place cursor on inner text', async function () {
+            await setupEditor('hello world', { line: 0, ch: 3 });
+            await vimKeys('y', 's', 'i', 'w', ']');
+            expect(await getEditorValue()).toBe('[hello] world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+        });
+
+        it('yss" should place cursor on inner text', async function () {
+            await setupEditor('hello world', { line: 0, ch: 3 });
+            await vimKeys('y', 's', 's', '"');
+            expect(await getEditorValue()).toBe('"hello world"');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+        });
+    });
+
+    describe('dot-repeat visual surround on same word — #22', function () {
+        it('S] then . should produce [[hello]]', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', 'r');
+            expect(await getEditorValue()).toBe('[hello] world');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('[[hello]] world');
+        });
+
+        it('S" then . should produce ""hello""', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', '"');
+            expect(await getEditorValue()).toBe('"hello" world');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('""hello"" world');
+        });
+
+        it('S) then . should produce ((hello))', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', ')');
+            expect(await getEditorValue()).toBe('(hello) world');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('((hello)) world');
+        });
+
+        it('S( then . should produce ( ( hello ) )', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('v', 'e', 'S', '(');
+            expect(await getEditorValue()).toBe('( hello ) world');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('( ( hello ) ) world');
+        });
+
+        it('S] then . with cursor mid-word should still work', async function () {
+            await setupEditor('hello world', { line: 0, ch: 2 });
+            await vimKeys('v', 'i', 'w', 'S', 'r');
+            expect(await getEditorValue()).toBe('[hello] world');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('[[hello]] world');
+        });
+    });
+
     describe('Markdown pairs (count-prefix)', function () {
         it('2ysiw* should bold a word', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
