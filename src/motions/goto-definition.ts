@@ -96,3 +96,59 @@ export function createGotoDefinitionAction(app: App): ActionFn {
         }
     };
 }
+
+export function createGotoDefinitionNewTabAction(app: App): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const cm = getCmAdapter(view);
+        if (!cm) return;
+
+        const cursor = cm.getCursor();
+        const lineText = cm.getLine(cursor.line);
+        const link = findLinkAtCursor(lineText, cursor.ch);
+        if (!link) return;
+
+        const sourcePath = view.file?.path ?? '';
+
+        if (link.isExternal) {
+            window.open(link.target);
+        } else {
+            void app.workspace.openLinkText(link.target, sourcePath, true);
+        }
+    };
+}
+
+export function createGotoDefinitionSplitAction(
+    app: App,
+    direction: 'horizontal' | 'vertical',
+): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const cm = getCmAdapter(view);
+        if (!cm) return;
+
+        const cursor = cm.getCursor();
+        const lineText = cm.getLine(cursor.line);
+        const link = findLinkAtCursor(lineText, cursor.ch);
+        if (!link) return;
+
+        if (link.isExternal) {
+            window.open(link.target);
+            return;
+        }
+
+        const sourcePath = view.file?.path ?? '';
+        const commandId =
+            direction === 'vertical'
+                ? 'workspace:split-vertical'
+                : 'workspace:split-horizontal';
+        (
+            app as unknown as {
+                commands: { executeCommandById: (id: string) => void };
+            }
+        ).commands.executeCommandById(commandId);
+        void app.workspace.openLinkText(link.target, sourcePath, false);
+    };
+}

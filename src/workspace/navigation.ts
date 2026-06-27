@@ -5,6 +5,8 @@ import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import {
     createGotoDefinitionAction,
+    createGotoDefinitionNewTabAction,
+    createGotoDefinitionSplitAction,
     findLinkAtCursor,
 } from '../motions/goto-definition';
 import { createContextActionsAction } from '../ui/context-actions';
@@ -229,6 +231,24 @@ export function registerWorkspaceNavigation(
 
     reg.defineAction('gotoDefinition', createGotoDefinitionAction(app));
     reg.mapCommand('gd', 'action', 'gotoDefinition', {});
+
+    reg.defineAction(
+        'gotoDefinitionNewTab',
+        createGotoDefinitionNewTabAction(app),
+    );
+    reg.mapCommand('gD', 'action', 'gotoDefinitionNewTab', {});
+
+    reg.defineAction(
+        'gotoDefinitionSplitH',
+        createGotoDefinitionSplitAction(app, 'horizontal'),
+    );
+    reg.mapCommand('<C-w>gd', 'action', 'gotoDefinitionSplitH', {});
+
+    reg.defineAction(
+        'gotoDefinitionSplitV',
+        createGotoDefinitionSplitAction(app, 'vertical'),
+    );
+    reg.mapCommand('<C-w>gD', 'action', 'gotoDefinitionSplitV', {});
 
     // Fold commands use CM6's fold API directly instead of Obsidian's
     // editor:fold-more/fold-less commands, which are incremental (fold one

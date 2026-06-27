@@ -631,6 +631,249 @@ describe('Workspace navigation (Phase 2)', function () {
         expect(openFile).toBe('Welcome.md');
     });
 
+    it('gD on a wikilink should open in a new tab', async function () {
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'No Vim' };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'No view' };
+                view.editor.setValue('Go to [[Target]] now');
+                view.editor.setCursor(0, 10);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return { error: 'No adapter' };
+                Vim.handleKey(adapter, 'g');
+                Vim.handleKey(adapter, 'D');
+                return { success: true };
+            } catch (e) {
+                return { error: String(e) };
+            }
+        });
+        expect(result).toHaveProperty('success', true);
+        await browser.pause(500);
+        const after = await browser.executeObsidian(({ app }) => {
+            let leafCount = 0;
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.view.getViewType() === 'markdown') leafCount++;
+            });
+            return {
+                leafCount,
+                activeFile: app.workspace.getActiveFile()?.path ?? '',
+            };
+        });
+        expect(
+            (after as { leafCount: number }).leafCount,
+        ).toBeGreaterThanOrEqual(2);
+        expect(after).toHaveProperty('activeFile', 'Target.md');
+    });
+
+    it('gD outside a link should no-op', async function () {
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setValue('No links here');
+            view.editor.setCursor(0, 5);
+            view.editor.focus();
+        });
+        await browser.pause(300);
+        await sendVimEscape();
+        await browser.pause(50);
+        await browser.keys(['g', 'D']);
+        await browser.pause(200);
+
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            return { value: view?.editor.getValue() ?? '' };
+        });
+        expect(result).toHaveProperty('value', 'No links here');
+    });
+
+    it('<C-w>gd on a wikilink should open in a horizontal split', async function () {
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'No Vim' };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'No view' };
+                view.editor.setValue('Go to [[Target]] now');
+                view.editor.setCursor(0, 10);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return { error: 'No adapter' };
+                Vim.handleKey(adapter, '<C-w>');
+                Vim.handleKey(adapter, 'g');
+                Vim.handleKey(adapter, 'd');
+                return { success: true };
+            } catch (e) {
+                return { error: String(e) };
+            }
+        });
+        expect(result).toHaveProperty('success', true);
+        await browser.pause(500);
+        const after = await browser.executeObsidian(({ app }) => {
+            const openFiles: string[] = [];
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.view.getViewType() === 'markdown') {
+                    const file = (
+                        leaf.view as unknown as { file?: { path: string } }
+                    ).file?.path;
+                    if (file) openFiles.push(file);
+                }
+            });
+            return { openFiles };
+        });
+        const openFiles = (after as { openFiles: string[] }).openFiles;
+        expect(openFiles.length).toBeGreaterThanOrEqual(2);
+        expect(openFiles).toContain('Target.md');
+    });
+
+    it('<C-w>gD on a wikilink should open in a vertical split', async function () {
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'No Vim' };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'No view' };
+                view.editor.setValue('Go to [[Target]] now');
+                view.editor.setCursor(0, 10);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return { error: 'No adapter' };
+                Vim.handleKey(adapter, '<C-w>');
+                Vim.handleKey(adapter, 'g');
+                Vim.handleKey(adapter, 'D');
+                return { success: true };
+            } catch (e) {
+                return { error: String(e) };
+            }
+        });
+        expect(result).toHaveProperty('success', true);
+        await browser.pause(500);
+        const after = await browser.executeObsidian(({ app }) => {
+            const openFiles: string[] = [];
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.view.getViewType() === 'markdown') {
+                    const file = (
+                        leaf.view as unknown as { file?: { path: string } }
+                    ).file?.path;
+                    if (file) openFiles.push(file);
+                }
+            });
+            return { openFiles };
+        });
+        const openFiles = (after as { openFiles: string[] }).openFiles;
+        expect(openFiles.length).toBeGreaterThanOrEqual(2);
+        expect(openFiles).toContain('Target.md');
+    });
+
+    it('<C-w>gd outside a link should no-op', async function () {
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setValue('No links here');
+            view.editor.setCursor(0, 5);
+            view.editor.focus();
+        });
+        await browser.pause(300);
+        await sendVimEscape();
+        await browser.pause(50);
+
+        const leavesBefore = await browser.executeObsidian(({ app }) => {
+            const leaves: number[] = [];
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.view.getViewType() === 'markdown') leaves.push(1);
+            });
+            return leaves.length;
+        });
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as Record<string, unknown> & {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            Vim.handleKey(adapter, '<C-w>');
+            Vim.handleKey(adapter, 'g');
+            Vim.handleKey(adapter, 'd');
+        });
+        await browser.pause(300);
+
+        const leavesAfter = await browser.executeObsidian(({ app }) => {
+            const leaves: number[] = [];
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.view.getViewType() === 'markdown') leaves.push(1);
+            });
+            return leaves.length;
+        });
+
+        expect(leavesAfter).toBe(leavesBefore);
+    });
+
     it(':ob should execute a command by id', async function () {
         const result = await browser.executeObsidian(({ app, obsidian }) => {
             try {

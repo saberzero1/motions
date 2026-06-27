@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`gk` does not enter frontmatter navigation** — `gk` (visual line up) now enters the properties panel when the cursor is at the top of a note, matching `k` behavior. The fork's `moveByDisplayLines` was missing the `focusBefore` check that `moveByLines` already had. Users who remap `k` to `gk` in their vimrc can now navigate into frontmatter. ([#25](https://github.com/saberzero1/motions/issues/25))
+
+### Added
+
+- **`gD` — open link in new tab** — `gD` opens the link under the cursor in a new tab, using the same bracket-aware link detection as `gd`. External URLs open in the browser. ([#23](https://github.com/saberzero1/motions/issues/23))
+- **`<C-w>gd` / `<C-w>gD` — open link in split** — `<C-w>gd` opens the link under the cursor in a horizontal split, `<C-w>gD` in a vertical split. Follows the Neovim `<C-w>s`/`<C-w>v` convention (lowercase = horizontal, uppercase = vertical). ([#23](https://github.com/saberzero1/motions/issues/23))
+- E2E tests for `gD`, `<C-w>gd`, `<C-w>gD`: link-on-wikilink navigation (new tab, horizontal split, vertical split), no-op outside links, leaf count verification
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section to include `gk` frontmatter fix
+- `KNOWN_LIMITATIONS.md`: added `gk` frontmatter entry to behavioral deviations table
+- `README.md`: added `gD`, `<C-w>gd`, `<C-w>gD` to workspace keyboard control table
+
 ## [0.18.0] - 2026-06-27
 
 ### Fixed

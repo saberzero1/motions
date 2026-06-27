@@ -125,6 +125,9 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 | `gt` / `gT`         | Next/previous tab                                   |
 | `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3) |
 | `gd`                | Go to definition — open the link under the cursor   |
+| `gD`                | Open link under cursor in a new tab                 |
+| `<C-w>gd`           | Open link under cursor in a horizontal split        |
+| `<C-w>gD`           | Open link under cursor in a vertical split          |
 | `gx`                | Open URL under cursor in browser                    |
 | `gf`                | Open file switcher (quick open)                     |
 | `grn`               | Rename current note                                 |
