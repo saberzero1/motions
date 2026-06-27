@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-06-27
+
 ### Fixed
 
 - **`gk` does not enter frontmatter navigation** — `gk` (visual line up) now enters the properties panel when the cursor is at the top of a note, matching `k` behavior. The fork's `moveByDisplayLines` was missing the `focusBefore` check that `moveByLines` already had. Users who remap `k` to `gk` in their vimrc can now navigate into frontmatter. ([#25](https://github.com/saberzero1/motions/issues/25))
