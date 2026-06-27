@@ -22,8 +22,11 @@ import { nextLink, prevLink } from './links';
 import {
     tableNextCellMotion,
     tablePrevCellMotion,
+    tableNextRowMotion,
+    tablePrevRowMotion,
     registerTableActions,
 } from './tables';
+import { tableAwareMoveUp } from '../vim/table-cursor-fix';
 
 export function registerNavigationMotions(reg: VimRegistration): void {
     reg.defineMotion('nextHeading', nextHeading);
@@ -79,6 +82,21 @@ export function registerTableMotions(reg: VimRegistration): void {
     reg.defineMotion('tablePrevCell', tablePrevCellMotion);
     reg.mapCommand('[|', 'motion', 'tablePrevCell', {});
     reg.mapCommand('[c', 'motion', 'tablePrevCell', {});
+    reg.defineMotion('tableNextRow', tableNextRowMotion);
+    reg.mapCommand(']r', 'motion', 'tableNextRow', {});
+    reg.defineMotion('tablePrevRow', tablePrevRowMotion);
+    reg.mapCommand('[r', 'motion', 'tablePrevRow', {});
+    reg.defineMotion('tableAwareMoveUp', tableAwareMoveUp);
+    reg.mapCommand(
+        'k',
+        'motion',
+        'tableAwareMoveUp',
+        {
+            forward: false,
+            linewise: true,
+        },
+        { context: 'normal' },
+    );
 }
 
 export { registerTableActions };

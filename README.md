@@ -21,6 +21,7 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 | `iB` / `aB`         | Inside/around blockquotes (`>`)                                      |
 | `io` / `ao`         | Inside/around callouts (`> [!type]`)                                 |
 | `it` / `at`         | Inside/around HTML/XML tags                                          |
+| `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                        |
 
 All delimiter-based text objects work across multiple lines (configurable scan range, default: 20 lines in each direction). Delimiters inside fenced code blocks are excluded from the scan.
 
@@ -64,19 +65,27 @@ Behavior:
 
 ### Table navigation
 
-Navigate Markdown table cells without leaving Vim mode. Works in both Source mode (raw markdown) and Live Preview mode (interactive table widget).
+Navigate Markdown table cells without leaving Vim mode. In Live Preview, the plugin suppresses Obsidian's interactive table widget so tables display as raw Markdown — all vim motions work naturally.
 
-| Keybinding        | Description                                       |
-| ----------------- | ------------------------------------------------- |
-| `]\|` or `]c`     | Move to the next table cell                       |
-| `[\|` or `[c`     | Move to the previous table cell                   |
-| `]r`              | Move to the same column in the next row           |
-| `[r`              | Move to the same column in the previous row       |
-| `Escape` (normal) | Exit the table cell and return to the main editor |
+| Keybinding    | Description                         |
+| ------------- | ----------------------------------- |
+| `]\|` or `]c` | Move to the next table cell         |
+| `[\|` or `[c` | Move to the previous table cell     |
+| `]r`          | Move to same column in next row     |
+| `[r`          | Move to same column in previous row |
 
-Wraps to the next/previous row when reaching the end/start of a row. Skips separator rows (`|---|---|`). In Live Preview, `]r`/`[r` navigate vertically while preserving column position.
+Wraps to the next/previous row when reaching the end/start of a row. Skips separator rows (`|---|---|`).
 
 > **Note:** On keyboard layouts where `|` requires AltGr or a modifier key (e.g. German, Dutch, Nordic), the `]\|`/`[\|` bindings may not work. Use `]c`/`[c` instead — they do the same thing and work on all keyboard layouts.
+
+**Table text objects:**
+
+| Keybinding | Description                                    |
+| ---------- | ---------------------------------------------- |
+| `i\|`      | Inside table cell (content between pipes)      |
+| `a\|`      | Around table cell (content plus trailing pipe) |
+
+Works with all operators: `di|` deletes cell content, `ci|` changes it, `yi|` yanks it, `vi|` selects it.
 
 **Table manipulation** (via `<Leader>t` prefix):
 
@@ -93,8 +102,14 @@ Wraps to the next/previous row when reaching the end/start of a row. Skips separ
 | `<Leader>tL`  | Move column right       |
 | `<Leader>tH`  | Move column left        |
 | `<Leader>tdc` | Delete column           |
+| `<Leader>tr`  | Realign table columns   |
 
-Table manipulation commands are also available as ex commands (e.g. `:tablerowafter`, `:tablecoldelete`, `:tablealignleft`). See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#vim-in-live-preview-table-cells) for details on Live Preview table cell behavior.
+**Table auto-formatting:**
+
+- Typing `|` in insert mode on a table line automatically realigns all columns.
+- Typing `||` on a new line within a table generates a separator row (`|---|---|`).
+
+Table manipulation commands are also available as ex commands (e.g. `:tablerowafter`, `:tablecoldelete`, `:tablealignleft`, `:tablerealign`). See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#table-widget-suppression-in-live-preview) for details on table widget suppression.
 
 ### Workspace keyboard control
 
@@ -210,6 +225,7 @@ Opening brackets `(`, `[`, `{` add inner spaces. Closing brackets `)`, `]`, `}`,
 | `:tablecolleft` / `:tablecolright`                           | Move column left / right                       |
 | `:tablecoldelete`                                            | Delete column                                  |
 | `:tablealignleft` / `:tablealigncenter` / `:tablealignright` | Set column alignment                           |
+| `:tablerealign`                                              | Realign table columns to uniform widths        |
 
 ### EasyMotion / Hop
 

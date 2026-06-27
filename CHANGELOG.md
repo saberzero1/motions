@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Vim support in Live Preview table cells** — Obsidian's Live Preview table widget now has full vim integration. Each table cell's CM6 editor inherits vim keybindings, and the plugin bridges status bar, chord display, and which-key to the active cell. ([#19](https://github.com/saberzero1/motions/issues/19))
-    - Status bar shows correct vim mode (NORMAL/INSERT/VISUAL) when editing inside a table cell
-    - Chord display and which-key hints work inside table cells
-    - `Escape` in normal mode exits the table cell and returns focus to the main editor
-    - Surround (`ysiw"`, `ds"`, `cs"'`) works inside table cells
-- **Vertical table cell navigation** — `]r`/`[r` moves to the same column in the next/previous row. No-op at the first/last row. Uses Tab synthesis internally (the only reliable cell-switching mechanism in Obsidian's table widget).
+- **Plain-text table editing in Live Preview** — replaced the table cell bridge approach with a table widget suppressor that shows tables as raw Markdown in Live Preview. All vim motions, operators, and text objects work naturally on table content. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Table widget suppressor patches `RangeSetBuilder.prototype.add` to skip table replace-decorations
+    - Default mode: "Always raw" — tables always display as plain Markdown
+    - Experimental "Cursor-aware" mode available (renders widget when cursor is outside table)
+    - "Off" mode restores Obsidian's default interactive table editor
+    - Three-way setting: **Settings → Vim Motions → Table widget in live preview**
+- **Vertical table cell navigation** — `]r`/`[r` moves to the same column in the next/previous row, skipping separator rows
+- **Table cell text objects** — `i|`/`a|` for operating on table cells with standard vim operators:
+    - `i|`: content between surrounding pipes (like `i(`)
+    - `a|`: content plus the trailing pipe
+    - Works with `d`, `c`, `y`, `v`: `di|` deletes cell content, `ci|` changes it, `yi|` yanks it
+- **Table realignment** — `:tablerealign` (short: `:tablerea`) ex command and `<Leader>tr` mapping. Computes column widths across all rows, pads cells uniformly, and respects `:---`/`---:`/`:---:` alignment markers in separator rows.
+- **Table auto-format on `|`** — CM6 `inputHandler` extension that realigns table columns when `|` is typed in insert mode. Typing `||` on a new line within a table generates a separator row (`|---|---|`).
 - **Table manipulation keybindings** — `<Leader>t` prefix commands mapped to Obsidian's built-in table commands, inspired by [vim-table-mode](https://github.com/dhruvasagar/vim-table-mode):
     - `<Leader>tm` — insert table
     - `<Leader>to`/`tO` — add row below/above
@@ -23,19 +30,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `<Leader>tiL`/`tiH` — add column right/left
     - `<Leader>tL`/`tH` — move column right/left
     - `<Leader>tdc` — delete column
-- **Table ex commands** — 14 new ex commands for table manipulation: `:tableinsert`, `:tablerowafter`, `:tablerowbefore`, `:tablerowup`, `:tablerowdown`, `:tablerowdelete`, `:tablecolafter`, `:tablecolbefore`, `:tablecolleft`, `:tablecolright`, `:tablecoldelete`, `:tablealignleft`, `:tablealigncenter`, `:tablealignright`
-- **`]\|`/`[\|` in Live Preview table cells** — horizontal cell navigation now works inside the table widget by synthesizing Tab/Shift-Tab
-- E2E test suite `test/specs/table-cell-bridge.e2e.ts` with 6 tests covering status bar updates, vim mode detection, cell document isolation, and focus restoration
+    - `<Leader>tr` — realign table
+- **Table ex commands** — 15 ex commands for table manipulation: `:tableinsert`, `:tablerowafter`, `:tablerowbefore`, `:tablerowup`, `:tablerowdown`, `:tablerowdelete`, `:tablecolafter`, `:tablecolbefore`, `:tablecolleft`, `:tablecolright`, `:tablecoldelete`, `:tablealignleft`, `:tablealigncenter`, `:tablealignright`, `:tablerealign`
+- **Internalized monkey-around** — `src/util/around.ts` provides safe prototype patching with automatic removal, replacing the external `monkey-around` dependency
+- E2E test suite expansion: 22 tests in `table-cell-bridge.e2e.ts` (cursor-aware toggle, widget suppression, `j`/`k` navigation through tables, separator row traversal, post-edit navigation), 24 tests in `tables.e2e.ts` (cell navigation, vertical navigation, text objects, realignment)
 
 ### Fixed
 
-- **Table cell status bar silent** — status bar, chord display, and which-key went silent when focus entered a Live Preview table cell because the plugin's UI components only listened to the main editor's vim adapter. A new `TableCellBridge` detects cell focus transitions and forwards the cell adapter's vim events to the UI. ([#19](https://github.com/saberzero1/motions/issues/19))
-- **`]\|`/`[\|` crash in table cells** — `clipCursorToContent` threw "Cannot read properties of null (reading 'insertMode')" because the Tab synthesis destroyed the cell editor synchronously mid-motion. Fixed by deferring Tab dispatch with `setTimeout(0)`.
+- **Cursor stuck on table separator after insert-mode edit** — after editing a table cell in insert mode, Obsidian's async table handler repositions the cursor, preventing `k` from crossing the separator row (`|---|---|`). Fixed with a custom `tableAwareMoveUp` motion that skips separator rows when moving up after a table edit. The motion detects the snap-back pattern and compensates by jumping two lines (over the separator) instead of one. Operator-pending context (`dk`) is excluded from the skip to preserve correct delete ranges.
+- **Table widget suppressor default** — changed default from "Cursor-aware" to "Always raw". The cursor-aware mode has known issues with CM6 replace-decoration boundaries that trap the cursor. "Always raw" provides reliable vim navigation.
+
+### Changed
+
+- Replaced `TableCellBridge` approach (per-cell vim bridge) with plain-text table widget suppression. The bridge approach required maintaining vim state across Obsidian's cell-scoped editors; the suppressor simply prevents the table widget from rendering, exposing raw Markdown.
+- `tableWidgetMode` setting default changed from `'cursor'` to `'always'`
+- Legacy `suppressTableWidget: boolean` setting migrated: `true` → `'always'`, `false` → `'off'`
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: added "Vim in Live Preview table cells" section documenting works/doesn't-work lists, `]r`/`[r` implementation details, `u` undo limitation, and ex mode panel positioning
-- `README.md`: expanded table navigation section with vertical navigation (`]r`/`[r`), escape, table manipulation commands, and ex commands
+- `KNOWN_LIMITATIONS.md`: updated table navigation section with new features (vertical nav, text objects, realignment, auto-format); documented cursor-aware mode as experimental; documented cursor snap-back limitation
+- `README.md`: added `i|`/`a|` to text objects table, `]r`/`[r` to navigation, table text objects section, auto-format docs, `<Leader>tr` and `:tablerealign` to commands
 
 ## [0.15.0] - 2026-06-26
 

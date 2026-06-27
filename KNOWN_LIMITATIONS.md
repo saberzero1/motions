@@ -39,45 +39,32 @@ The multi-line text object scanner uses a simple forward/backward search for the
 
 Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded.
 
-## Table navigation scope
+## Table navigation and editing
 
-`]|` and `[|` navigate between table cells. The following are intentionally not implemented:
+`]|`/`[|` (or `]c`/`[c`) navigate horizontally between table cells. `]r`/`[r` navigate vertically to the same column in adjacent rows (skipping separator rows). `i|`/`a|` text objects operate on individual cells — `di|` deletes cell content, `ci|` changes it, `vi|` selects it.
+
+`:tablerealign` (or `<Leader>tr`) reformats a table so all columns have uniform width, respecting `:---`/`---:`/`:---:` alignment markers in separator rows.
+
+Auto-format: typing `|` in insert mode on a table line triggers automatic column realignment. Typing `||` on a new line within a table generates a separator row matching the header's column count.
+
+The following are intentionally not implemented:
 
 - **`j`/`k` column tracking**: Vim's `defineMotion` has no fall-through mechanism. Overriding `j`/`k` to detect tables on every keypress is fragile and would break normal line navigation if the detection is wrong. Users can add `nmap <Tab> ]|` to their vimrc if they want Tab-based cell navigation.
 - **`Tab`/`Shift-Tab`**: These conflict with Obsidian's built-in table Tab handling and insert-mode tab completion.
 
-## Vim in Live Preview table cells
+## Table widget suppression in Live Preview
 
-In Live Preview mode, Obsidian replaces Markdown tables with an interactive table widget. Each cell gets its own isolated CM6 editor with a single-line document containing only that cell's text. Vim keybindings are inherited from the main editor via `registerEditorExtension`, so basic motions work.
+By default, the plugin suppresses Obsidian's interactive table widget in Live Preview mode so that tables render as raw Markdown text. This gives full vim support: all motions, operators, text objects, EasyMotion, and multi-line operations work naturally on table content, just like in Source mode.
 
-**Works inside table cells:**
+The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping the replace-decoration that would create the table widget. Detection uses runtime DOM fingerprinting — the first time a table widget renders, its constructor is recorded, and all subsequent instances are suppressed. Non-table widgets (math, code blocks, embeds) are not affected.
 
-- Mode switching (`Escape`, `i`, `v`, `a`, `o`, etc.)
-- Character/word motions (`h`, `l`, `w`, `b`, `e`, `0`, `$`, `f`, `t`)
-- Operators within the cell (`d`, `c`, `y`, `x`, `r`, `s`, `.`)
-- Visual mode within the cell
-- Surround (`ysiw"`, `ds"`, `cs"'`, etc.)
-- Table cell navigation (`]|`/`]c` and `[|`/`[c`) — mapped to Tab/Shift-Tab in the table widget
-- Vertical cell navigation (`]r`/`[r`) — move to same column in next/previous row
-- Table manipulation via `<Leader>t` commands — add/delete/move rows and columns, align columns
-- Table manipulation via ex commands (`:tablerowafter`, `:tablecoldelete`, etc.)
-- Status bar mode indicator and chord display
-- Which-key hints
+**Cursor-aware mode (experimental)**: The "Cursor-aware" option attempts to show raw Markdown only when the cursor is inside the table and render the widget otherwise. This mode has known issues with cursor navigation — CM6's replace-decoration creates an atomic block that `moveVertically` cannot enter from adjacent lines, causing the cursor to skip over or get stuck at the table boundary. Use "Always raw" (the default) for reliable vim navigation.
 
-**Does not work inside table cells:**
+**Disable suppression**: Set to "Off" in **Settings → Vim Motions → Table widget in live preview** to restore Obsidian's interactive table editor. With suppression off, vim operations inside table cells are limited to single-cell scope (each cell has its own isolated editor).
 
-- **`u` (undo)**: each cell has its own isolated undo history. `u` only undoes edits within the current cell session, not document-level changes. Use `Ctrl+Z` (Obsidian's undo) for document-level undo.
-- **Structural navigation** (`]h`, `[h`, `]l`, `[l`, `]n`, `[n`): operates on the main document, not the cell's isolated content.
-- **EasyMotion**: overlays are positioned relative to the main editor viewport.
-- **Multi-line text objects** (`iB`, `aC`, `io`, etc.): the cell doc has no surrounding context.
-- **Ex mode (`:`)**: opens the command line below the table cell editor instead of the main editor. Commands still execute but the panel position is cosmetically wrong.
+**Table manipulation commands** (`<Leader>t` prefix and ex commands like `:tablerowafter`) call Obsidian commands via `executeCommandById`. These may not work when the table widget is suppressed, since Obsidian's table commands expect the interactive widget to be present. Use Source mode table editing or manual Markdown editing instead.
 
-**Table cell navigation details:**
-
-- `]r`/`[r` navigates vertically by synthesizing Tab/Shift-Tab × (number of columns). This is the only reliable mechanism — Obsidian's table widget does not respond to synthesized mouse events or focus calls for cell activation. At the first/last row, `]r`/`[r` is a no-op.
-- `Escape` in normal mode exits the table cell and returns focus to the main editor.
-
-**Workaround**: For full vim support in tables, switch to **Source mode** (**Settings → Editor → Default editing mode → Source mode**, or the source/preview toggle in the editor toolbar). In Source mode, tables are plain Markdown text and all vim features work normally.
+**First-render learning lag**: On the very first load after plugin install, the suppressor needs to observe one table widget render to learn its constructor. The first table may briefly flash as a widget before being suppressed on the next render cycle. This one-time learning is cached for the session.
 
 ## Vimrc hot-reload
 

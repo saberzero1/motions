@@ -11,28 +11,6 @@ import type { LeaderRegistry } from '../ui/which-key';
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
 
-function isInsideTableWidget(cm: CmAdapter): boolean {
-    return !!cm.cm6?.dom?.closest('.cm-table-widget');
-}
-
-function synthesizeTab(cm: CmAdapter, shift: boolean): void {
-    const el = cm.cm6?.contentDOM;
-    if (!el) return;
-    // Defer: Tab destroys the current cell editor, so vim must finish
-    // processing the current motion before we trigger the cell switch.
-    setTimeout(() => {
-        el.dispatchEvent(
-            new KeyboardEvent('keydown', {
-                key: 'Tab',
-                code: 'Tab',
-                shiftKey: shift,
-                bubbles: true,
-                cancelable: true,
-            }),
-        );
-    }, 0);
-}
-
 function isTableLine(text: string): boolean {
     return TABLE_RE.test(text);
 }
@@ -83,11 +61,6 @@ function findPrevCellStart(line: string, cursorCh: number): number | null {
 }
 
 export const tableNextCellMotion: MotionFn = (cm, head) => {
-    if (isInsideTableWidget(cm)) {
-        synthesizeTab(cm, false);
-        return head;
-    }
-
     const lineText = cm.getLine(head.line);
     if (!isTableLine(lineText)) return null;
 
@@ -115,11 +88,6 @@ export const tableNextCellMotion: MotionFn = (cm, head) => {
 };
 
 export const tablePrevCellMotion: MotionFn = (cm, head) => {
-    if (isInsideTableWidget(cm)) {
-        synthesizeTab(cm, true);
-        return head;
-    }
-
     const lineText = cm.getLine(head.line);
     if (!isTableLine(lineText)) return null;
 
@@ -145,53 +113,184 @@ export const tablePrevCellMotion: MotionFn = (cm, head) => {
     return null;
 };
 
-function navigateToAdjacentRow(cm: CmAdapter, direction: 1 | -1): void {
-    if (!isInsideTableWidget(cm)) return;
-    const widget = cm.cm6.dom.closest('.cm-table-widget');
-    if (!widget) return;
-    const cmEditor = widget.querySelector('.cm-editor');
-    const cell = cmEditor?.closest('th, td') as HTMLTableCellElement | null;
-    if (!cell) return;
-    const row = cell.parentElement as HTMLTableRowElement | null;
-    if (!row) return;
-    const table = row.closest('table');
-    if (!table) return;
-    const allRows = Array.from(
-        table.querySelectorAll<HTMLTableRowElement>('tr'),
-    );
-    const rowIndex = allRows.indexOf(row);
-    if (direction === 1 && rowIndex >= allRows.length - 1) return;
-    if (direction === -1 && rowIndex <= 0) return;
-    const numCols = row.cells.length;
-    if (numCols === 0) return;
-    const shift = direction === -1;
-
-    let remaining = numCols;
-    // Defer first Tab so vim finishes processing the current action.
-    setTimeout(function sendTab() {
-        if (remaining <= 0) return;
-        remaining--;
-        const el = widget.querySelector('.cm-content') as HTMLElement | null;
-        if (!el) return;
-        el.dispatchEvent(
-            new KeyboardEvent('keydown', {
-                key: 'Tab',
-                code: 'Tab',
-                shiftKey: shift,
-                bubbles: true,
-                cancelable: true,
-            }),
-        );
-        if (remaining > 0) setTimeout(sendTab, 10);
-    }, 0);
+function getPipeIndex(line: string, ch: number): number {
+    const pipes = findCellBoundaries(line);
+    let idx = 0;
+    for (const pos of pipes) {
+        if (pos >= ch) break;
+        idx++;
+    }
+    return idx;
 }
 
-export const tableNextRowAction: ActionFn = (cm) => {
-    navigateToAdjacentRow(cm, 1);
+function getCellStartAtPipeIndex(line: string, pipeIdx: number): number {
+    const pipes = findCellBoundaries(line);
+    const leftPipe = pipes[pipeIdx - 1];
+    if (leftPipe === undefined) return 0;
+    const afterPipe = leftPipe + 1;
+    const trimmed = line.substring(afterPipe).search(/\S/);
+    return trimmed >= 0 ? afterPipe + trimmed : afterPipe;
+}
+
+function tableVerticalMotion(
+    cm: CmAdapter,
+    head: { line: number; ch: number },
+    direction: 1 | -1,
+): { line: number; ch: number } | null {
+    const lineText = cm.getLine(head.line);
+    if (!isTableLine(lineText)) return null;
+
+    const pipeIdx = getPipeIndex(lineText, head.ch);
+    const bound = direction === 1 ? cm.lastLine() : cm.firstLine();
+
+    for (
+        let line = head.line + direction;
+        direction === 1 ? line <= bound : line >= bound;
+        line += direction
+    ) {
+        const text = cm.getLine(line);
+        if (!isTableLine(text)) return null;
+        if (isSeparatorLine(text)) continue;
+        return { line, ch: getCellStartAtPipeIndex(text, pipeIdx) };
+    }
+
+    return null;
+}
+
+export const tableNextRowMotion: MotionFn = (cm, head) =>
+    tableVerticalMotion(cm, head, 1);
+
+export const tablePrevRowMotion: MotionFn = (cm, head) =>
+    tableVerticalMotion(cm, head, -1);
+
+function findTableBounds(
+    cm: { getLine(n: number): string; firstLine(): number; lastLine(): number },
+    cursorLine: number,
+): { start: number; end: number } | null {
+    const lineText = cm.getLine(cursorLine);
+    if (!isTableLine(lineText)) return null;
+
+    let start = cursorLine;
+    while (start > cm.firstLine() && isTableLine(cm.getLine(start - 1))) {
+        start--;
+    }
+
+    let end = cursorLine;
+    while (end < cm.lastLine() && isTableLine(cm.getLine(end + 1))) {
+        end++;
+    }
+
+    return { start, end };
+}
+
+type ColumnAlignment = 'left' | 'center' | 'right' | 'none';
+
+function parseSeparatorAlignments(line: string): ColumnAlignment[] {
+    const cells = line.split('|').slice(1, -1);
+    return cells.map((cell) => {
+        const trimmed = cell.trim();
+        const leftColon = trimmed.startsWith(':');
+        const rightColon = trimmed.endsWith(':');
+        if (leftColon && rightColon) return 'center';
+        if (rightColon) return 'right';
+        if (leftColon) return 'left';
+        return 'none';
+    });
+}
+
+function buildSeparatorCell(width: number, alignment: ColumnAlignment): string {
+    const dashes = '-'.repeat(Math.max(width, 3));
+    switch (alignment) {
+        case 'left':
+            return `:${dashes.slice(1)}`;
+        case 'right':
+            return `${dashes.slice(1)}:`;
+        case 'center':
+            return `:${dashes.slice(2)}:`;
+        default:
+            return dashes;
+    }
+}
+
+function splitTableCells(line: string): string[] {
+    return line.split('|').slice(1, -1);
+}
+
+export function realignTable(cm: CmAdapter): void {
+    const cursor = cm.getCursor();
+    const bounds = findTableBounds(cm, cursor.line);
+    if (!bounds) return;
+
+    const rows: string[][] = [];
+    let separatorIdx = -1;
+    let alignments: ColumnAlignment[] = [];
+
+    for (let line = bounds.start; line <= bounds.end; line++) {
+        const text = cm.getLine(line);
+        if (isSeparatorLine(text)) {
+            separatorIdx = line - bounds.start;
+            alignments = parseSeparatorAlignments(text);
+            rows.push([]);
+        } else {
+            rows.push(splitTableCells(text).map((c) => c.trim()));
+        }
+    }
+
+    const colCount = Math.max(...rows.map((r) => r.length));
+    if (colCount <= 0) return;
+
+    const colWidths: number[] = Array.from({ length: colCount }, () => 3);
+    for (const row of rows) {
+        for (let col = 0; col < row.length; col++) {
+            const cell = row[col];
+            if (cell !== undefined && cell.length > (colWidths[col] ?? 0)) {
+                colWidths[col] = cell.length;
+            }
+        }
+    }
+
+    while (alignments.length < colCount) {
+        alignments.push('none');
+    }
+
+    const newLines: string[] = [];
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row === undefined) continue;
+
+        if (i === separatorIdx) {
+            const sepCells = colWidths.map((w, col) =>
+                buildSeparatorCell(w, alignments[col] ?? 'none'),
+            );
+            newLines.push(`| ${sepCells.join(' | ')} |`);
+            continue;
+        }
+
+        const paddedCells = colWidths.map((w, col) => {
+            const content = row[col] ?? '';
+            return content.padEnd(w);
+        });
+        newLines.push(`| ${paddedCells.join(' | ')} |`);
+    }
+
+    const from = { line: bounds.start, ch: 0 };
+    const lastLineText = cm.getLine(bounds.end);
+    const to = { line: bounds.end, ch: lastLineText.length };
+    cm.replaceRange(newLines.join('\n'), from, to);
+
+    const newCursorLine = Math.min(
+        cursor.line,
+        bounds.start + newLines.length - 1,
+    );
+    cm.setCursor(newCursorLine, cursor.ch);
+}
+
+export const tableRealignAction: ActionFn = (cm) => {
+    realignTable(cm);
 };
 
-export const tablePrevRowAction: ActionFn = (cm) => {
-    navigateToAdjacentRow(cm, -1);
+export const tableRealignEx: ExCommandFn = (cm) => {
+    realignTable(cm);
 };
 
 function executeCommand(app: App, commandId: string): void {
@@ -334,11 +433,6 @@ export function registerTableActions(
     app: App,
     leaderRegistry?: LeaderRegistry,
 ): void {
-    reg.defineAction('tableNextRow', tableNextRowAction);
-    reg.mapCommand(']r', 'action', 'tableNextRow', {});
-    reg.defineAction('tablePrevRow', tablePrevRowAction);
-    reg.mapCommand('[r', 'action', 'tablePrevRow', {});
-
     const leaderKey = leaderRegistry?.getLeaderKey() ?? '\\';
 
     for (const cmd of TABLE_COMMANDS) {
@@ -357,5 +451,14 @@ export function registerTableActions(
             reg.mapCommand(lhs, 'action', cmd.action, {});
             leaderRegistry.addBinding(lhs, cmd.leaderDesc, 'builtin');
         }
+    }
+
+    reg.defineAction('tableRealign', tableRealignAction);
+    reg.defineEx('tablerealign', 'tablerea', tableRealignEx);
+
+    if (leaderRegistry) {
+        const lhs = leaderKey + 'tr';
+        reg.mapCommand(lhs, 'action', 'tableRealign', {});
+        leaderRegistry.addBinding(lhs, 'Table: realign', 'builtin');
     }
 }

@@ -40,7 +40,12 @@ import {
     createNewerChangeMotion,
 } from './vim/changelist';
 import { VimInfoModal } from './ui/vim-info-modal';
-import { TableCellBridge } from './vim/table-cell-bridge';
+import { installTableWidgetSuppressor } from './vim/table-widget-suppressor';
+import { createTableAutoFormatExtension } from './vim/table-auto-format';
+import {
+    installTableCursorFix,
+    createTableCursorFixExtension,
+} from './vim/table-cursor-fix';
 import { EditorView } from '@codemirror/view';
 
 export default class VimMotionsPlugin extends Plugin {
@@ -52,7 +57,8 @@ export default class VimMotionsPlugin extends Plugin {
     scrolloffManager: ScrolloffManager | null = null;
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
-    tableCellBridge: TableCellBridge | null = null;
+    private uninstallTableSuppressor: (() => void) | null = null;
+    private uninstallTableCursorFix: (() => void) | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
@@ -291,16 +297,20 @@ export default class VimMotionsPlugin extends Plugin {
         // --- Which-key overlay ---
         this.rebuildWhichKey();
 
-        // --- Table cell focus bridge ---
-        this.tableCellBridge = new TableCellBridge(this.app, vim);
-        this.tableCellBridge.onCellFocus((adapter) => {
-            this.modeTracker?.attachToTableCell(adapter);
-            this.whichKeyOverlay?.attachToTableCell(adapter);
-        });
-        this.tableCellBridge.onCellBlur(() => {
-            this.modeTracker?.detachFromTableCell();
-            this.whichKeyOverlay?.detachFromTableCell();
-        });
+        if (this.settings.tableWidgetMode !== 'off') {
+            this.uninstallTableSuppressor = installTableWidgetSuppressor(
+                this.app,
+                this.settings.tableWidgetMode,
+            );
+        }
+
+        if (this.settings.enableTableNav) {
+            this.registerEditorExtension(
+                createTableAutoFormatExtension(this.app),
+            );
+            this.registerEditorExtension(createTableCursorFixExtension());
+            this.uninstallTableCursorFix = installTableCursorFix();
+        }
     }
 
     reloadFeatures(): void {
@@ -391,6 +401,20 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.rebuildExSuggest();
         this.rebuildWhichKey();
+
+        this.uninstallTableCursorFix?.();
+        this.uninstallTableCursorFix = null;
+        this.uninstallTableSuppressor?.();
+        this.uninstallTableSuppressor = null;
+        if (this.settings.tableWidgetMode !== 'off') {
+            this.uninstallTableSuppressor = installTableWidgetSuppressor(
+                this.app,
+                this.settings.tableWidgetMode,
+            );
+        }
+        if (this.settings.enableTableNav) {
+            this.uninstallTableCursorFix = installTableCursorFix();
+        }
     }
 
     private rebuildExSuggest(): void {
@@ -560,8 +584,10 @@ export default class VimMotionsPlugin extends Plugin {
 
     onunload() {
         this.cleanupHintModeWindows();
-        this.tableCellBridge?.destroy();
-        this.tableCellBridge = null;
+        this.uninstallTableCursorFix?.();
+        this.uninstallTableCursorFix = null;
+        this.uninstallTableSuppressor?.();
+        this.uninstallTableSuppressor = null;
         this.exSuggest?.destroy();
         this.exSuggest = null;
         this.whichKeyOverlay?.destroy();
@@ -578,11 +604,25 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async loadSettings() {
+        const raw = (await this.loadData()) as Record<string, unknown> | null;
         this.settings = Object.assign(
             {},
             DEFAULT_SETTINGS,
-            (await this.loadData()) as Partial<VimMotionsSettings>,
+            raw as Partial<VimMotionsSettings>,
         );
+        this.migrateLegacySettings(raw);
+    }
+
+    private migrateLegacySettings(raw: Record<string, unknown> | null): void {
+        if (!raw) return;
+        if (
+            'suppressTableWidget' in raw &&
+            typeof raw.suppressTableWidget === 'boolean'
+        ) {
+            this.settings.tableWidgetMode = raw.suppressTableWidget
+                ? 'always'
+                : 'off';
+        }
     }
 
     async saveSettings() {

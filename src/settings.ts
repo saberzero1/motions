@@ -74,6 +74,7 @@ export interface VimMotionsSettings {
     easyMotionDimming: boolean;
     enableHardWrap: boolean;
     enableTableNav: boolean;
+    tableWidgetMode: 'off' | 'cursor' | 'always';
     enableHintMode: boolean;
     hintModeLabels: string;
     hintModeHotkey: string;
@@ -98,6 +99,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     easyMotionDimming: true,
     enableHardWrap: true,
     enableTableNav: true,
+    tableWidgetMode: 'always',
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',
@@ -400,6 +402,28 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.enableTableNav)
                     .onChange(async (value) => {
                         this.plugin.settings.enableTableNav = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Table widget in live preview')
+            .setDesc(
+                'Controls how tables display in Live Preview. ' +
+                    '"Always raw" keeps tables as plain text (recommended for vim). ' +
+                    '"Cursor-aware" (experimental) shows raw Markdown when editing a table and the rendered widget otherwise. ' +
+                    '"Off" uses the default interactive table editor.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOption('always', 'Always raw')
+                    .addOption('cursor', 'Cursor-aware (experimental)')
+                    .addOption('off', 'Off')
+                    .setValue(this.plugin.settings.tableWidgetMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.tableWidgetMode =
+                            value as VimMotionsSettings['tableWidgetMode'];
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
