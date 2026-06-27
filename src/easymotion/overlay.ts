@@ -33,10 +33,12 @@ export interface OverlayHandle {
 export function showOverlay(
     cm: CmAdapter,
     targets: LabeledTarget[],
-    options?: { shade?: boolean },
+    options?: { shade?: boolean; fontSize?: number },
 ): OverlayHandle | null {
     const view = cm.cm6;
     if (!view) return null;
+
+    const fs = options?.fontSize ?? 14;
 
     // Shade is appended directly to scrollDOM (not inside the wrapper)
     // so that its `right: 0; bottom: 0` resolves against the full
@@ -48,14 +50,15 @@ export function showOverlay(
     }
 
     const wrapper = createDiv({ cls: 'vim-motions-easymotion' });
+    wrapper.style.setProperty('--vim-motions-em-font-size', `${fs}px`);
     view.scrollDOM.appendChild(wrapper);
 
     const labelContainer = createDiv();
     wrapper.appendChild(labelContainer);
 
-    const LABEL_CHAR_WIDTH = 8.5;
+    const LABEL_CHAR_WIDTH = fs * 0.6;
     const LABEL_PAD_X = 6;
-    const LABEL_HEIGHT = 16;
+    const LABEL_HEIGHT = fs + 2;
 
     function labelWidth(len: number): number {
         return len * LABEL_CHAR_WIDTH + LABEL_PAD_X;

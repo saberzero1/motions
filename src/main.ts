@@ -203,6 +203,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
                 () => this.settings.easyMotionDimming,
+                () => this.settings.labelFontSize,
             );
         }
         if (this.settings.enableHintMode) {
@@ -373,6 +374,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
                 () => this.settings.easyMotionDimming,
+                () => this.settings.labelFontSize,
             );
         }
         if (this.settings.enableHintMode && this.leaderRegistry) {
@@ -486,6 +488,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
                 () => this.settings.easyMotionDimming,
+                () => this.settings.labelFontSize,
             );
         }
         if (this.settings.enableHintMode) {
@@ -507,6 +510,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.hintModeAction = createHintModeAction(
             this.app,
             this.settings.hintModeLabels,
+            () => this.settings.labelFontSize,
         );
         reg.defineAction('hintMode', this.hintModeAction);
         const leader = leaderRegistry.getLeaderKey();

@@ -291,7 +291,11 @@ function refocusEditor(app: App): void {
     }, 150);
 }
 
-export function createHintModeAction(app: App, hintChars?: string): () => void {
+export function createHintModeAction(
+    app: App,
+    hintChars?: string,
+    fontSize?: () => number,
+): () => void {
     return () => {
         const allElements = activeDocument.querySelectorAll(TARGET_SELECTOR);
         const visible = Array.from(allElements).filter(isVisible);
@@ -299,6 +303,8 @@ export function createHintModeAction(app: App, hintChars?: string): () => void {
 
         const labels = generateHintLabels(visible.length, hintChars);
         const container = createDiv({ cls: 'vim-motions-hint-overlay' });
+        const fs = fontSize ? fontSize() : 14;
+        container.style.setProperty('--vim-motions-hint-font-size', `${fs}px`);
         activeDocument.body.appendChild(container);
 
         const targets: HintTarget[] = visible.map((el, i) => ({

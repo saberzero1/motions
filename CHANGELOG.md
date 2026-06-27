@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **EasyMotion labels on hidden text in Live Preview** — word-start targets inside hidden markdown syntax (e.g., the URL portion of `[text](url)`) no longer receive labels. `filterVisibleTargets()` deduplicates targets whose `coordsAtPos()` resolves to the same pixel position, which occurs when multiple document offsets map to the boundary of a replaced decoration. ([#6](https://github.com/saberzero1/motions/issues/6))
 - **EasyMotion dimming setting required app reload** — toggling **Settings → Vim Motions → EasyMotion dimming** now takes effect immediately. The `dimming` parameter was changed from a captured `boolean` to a `() => boolean` getter, so the shade state is read at motion invocation time instead of registration time.
 
+### Added
+
+- **Label font size setting** — configurable font size for EasyMotion and hint mode labels via **Settings → Vim Motions → Label font size** (10–20px slider, default: 14). EasyMotion collision detection scales proportionally with the configured size.
+- **Label color customization via CSS** — label colors are now overridable via CSS custom properties. EasyMotion: `--vim-motions-em-bg`, `--vim-motions-em-fg`. Hint mode: `--vim-motions-hint-bg`, `--vim-motions-hint-fg`. All default to `--text-accent` / `--text-on-accent`.
+
 ## [0.17.0] - 2026-06-27
 
 ### Fixed

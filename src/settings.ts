@@ -81,6 +81,7 @@ export interface VimMotionsSettings {
     scrolloffLines: number;
     multilineScanLimit: number;
     easyMotionLabels: string;
+    labelFontSize: number;
     cursorShapes: CursorShapes;
     whichKeyMode: 'off' | 'leader' | 'all';
     leaderBindings: LeaderBinding[];
@@ -106,6 +107,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     scrolloffLines: 5,
     multilineScanLimit: 20,
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
+    labelFontSize: 14,
     cursorShapes: { ...DEFAULT_CURSOR_SHAPES },
     whichKeyMode: 'off',
     leaderBindings: [],
@@ -388,6 +390,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.easyMotionDimming)
                     .onChange(async (value) => {
                         this.plugin.settings.easyMotionDimming = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Label font size')
+            .setDesc(
+                'Font size for EasyMotion and hint mode labels (10–20px). ' +
+                    'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(10, 20, 1)
+                    .setValue(this.plugin.settings.labelFontSize)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        this.plugin.settings.labelFontSize = value;
                         await this.plugin.saveSettings();
                     }),
             );

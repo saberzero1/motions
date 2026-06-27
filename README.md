@@ -349,6 +349,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Vim mode display prompt — customizable text per mode (normal, insert, visual, replace)
 - EasyMotion (on/off)
 - EasyMotion dimming (on/off, default: on)
+- Label font size (10–20px, default: 14) — shared by EasyMotion and hint mode
+- Label colors (via CSS: `--vim-motions-em-bg`/`em-fg` for EasyMotion, `--vim-motions-hint-bg`/`hint-fg` for hint mode)
 - Hint mode (on/off)
 - Hint mode label characters (customizable)
 - Hint mode global hotkey (press-to-record, works in modals)

@@ -21,15 +21,20 @@ import { waitForKey, waitForLabel } from './keypress';
 
 const DEFAULT_LABELS = 'asdghklqwertyuiopzxcvbnmfj';
 
+interface OverlayOptions {
+    shade: () => boolean;
+    fontSize: () => number;
+}
+
 type MotionTriggerFactory = (
     app: App,
     labels: string,
-    shade: () => boolean,
+    opts: OverlayOptions,
 ) => (cm: CmAdapter) => Promise<{ line: number; ch: number } | null>;
 
 function createMotionTrigger(
     labels: string,
-    shade: () => boolean,
+    opts: OverlayOptions,
     findTargets: (cm: CmAdapter) => Target[],
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
@@ -37,7 +42,10 @@ function createMotionTrigger(
         if (targets.length === 0) return null;
 
         const labeled = assignLabels(targets, labels);
-        const overlay = showOverlay(cm, labeled, { shade: shade() });
+        const overlay = showOverlay(cm, labeled, {
+            shade: opts.shade(),
+            fontSize: opts.fontSize(),
+        });
         if (!overlay) return null;
 
         try {
@@ -53,7 +61,7 @@ function createMotionTrigger(
 
 function createCharMotionTrigger(
     labels: string,
-    shade: () => boolean,
+    opts: OverlayOptions,
     findTargets: (cm: CmAdapter, char: string) => Target[],
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
@@ -64,7 +72,10 @@ function createCharMotionTrigger(
         if (targets.length === 0) return null;
 
         const labeled = assignLabels(targets, labels);
-        const overlay = showOverlay(cm, labeled, { shade: shade() });
+        const overlay = showOverlay(cm, labeled, {
+            shade: opts.shade(),
+            fontSize: opts.fontSize(),
+        });
         if (!overlay) return null;
 
         try {
@@ -89,8 +100,8 @@ function wordTrigger(
     direction: Direction,
     bigWord: boolean,
 ): MotionTriggerFactory {
-    return (_app, labels, shade) =>
-        createMotionTrigger(labels, shade, (cm) =>
+    return (_app, labels, opts) =>
+        createMotionTrigger(labels, opts, (cm) =>
             findWordStartTargets(cm, direction, bigWord),
         );
 }
@@ -99,36 +110,36 @@ function wordEndTrigger(
     direction: Direction,
     bigWord: boolean,
 ): MotionTriggerFactory {
-    return (_app, labels, shade) =>
-        createMotionTrigger(labels, shade, (cm) =>
+    return (_app, labels, opts) =>
+        createMotionTrigger(labels, opts, (cm) =>
             findWordEndTargets(cm, direction, bigWord),
         );
 }
 
 function charTrigger(direction: Direction): MotionTriggerFactory {
-    return (_app, labels, shade) =>
-        createCharMotionTrigger(labels, shade, (cm, char) =>
+    return (_app, labels, opts) =>
+        createCharMotionTrigger(labels, opts, (cm, char) =>
             findCharTargets(cm, char, direction),
         );
 }
 
 function tillTrigger(direction: Direction): MotionTriggerFactory {
-    return (_app, labels, shade) =>
-        createCharMotionTrigger(labels, shade, (cm, char) =>
+    return (_app, labels, opts) =>
+        createCharMotionTrigger(labels, opts, (cm, char) =>
             findTillTargets(cm, char, direction),
         );
 }
 
 function lineTrigger(direction: Direction): MotionTriggerFactory {
-    return (_app, labels, shade) =>
-        createMotionTrigger(labels, shade, (cm) =>
+    return (_app, labels, opts) =>
+        createMotionTrigger(labels, opts, (cm) =>
             findLineTargets(cm, direction),
         );
 }
 
 function searchTrigger(direction: Direction): MotionTriggerFactory {
-    return (_app, labels, shade) =>
-        createMotionTrigger(labels, shade, (cm) => {
+    return (_app, labels, opts) =>
+        createMotionTrigger(labels, opts, (cm) => {
             const vim = getVimApi();
             return vim ? findSearchTargets(cm, direction, vim) : [];
         });
@@ -284,9 +295,11 @@ export function registerEasyMotion(
     labels: string | undefined,
     leaderRegistry: LeaderRegistry,
     dimming: () => boolean,
+    fontSize: () => number,
 ): void {
     const chars = labels ?? DEFAULT_LABELS;
     const leader = leaderRegistry.getLeaderKey();
+    const opts: OverlayOptions = { shade: dimming, fontSize };
 
     // Unmap the leader key's default binding (e.g. <Space> → l) so that
     // mapCommand multi-key sequences starting with the leader can accumulate
@@ -294,7 +307,7 @@ export function registerEasyMotion(
     reg.unmapDefaultBinding(leader);
 
     for (const def of EASYMOTION_DEFS) {
-        const motionFactory = def.createTrigger(app, chars, dimming);
+        const motionFactory = def.createTrigger(app, chars, opts);
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
             return motionFactory(cm);
@@ -305,7 +318,7 @@ export function registerEasyMotion(
     }
 
     for (const def of EXTRA_DEFS) {
-        const motionFactory = def.createTrigger(app, chars, dimming);
+        const motionFactory = def.createTrigger(app, chars, opts);
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
             return motionFactory(cm);
