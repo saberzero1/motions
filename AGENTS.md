@@ -104,6 +104,21 @@ npm run build
 - **Run**: `npm run test:e2e` (requires Xvfb + herbstluftwm on Linux, or native display on macOS).
 - **Coverage**: `npm run test:coverage` — reports command-level coverage from `test/neovim-command-index.yaml`.
 
+**IMPORTANT: ChromeDriver version mismatch**
+
+The e2e tests use Electron's built-in Chromium, and the system-installed ChromeDriver frequently mismatches the Electron/Chromium version bundled by Obsidian. This causes errors like `session not created: This version of ChromeDriver only supports Chrome version X` or similar WebDriver session failures.
+
+**Fix**: Always run tests inside the Nix development shell:
+
+```bash
+nix develop
+npm run test:e2e
+```
+
+The `flake.nix` in this repository (and in the `~/Repos/codemirror-vim` fork) pins compatible versions of ChromeDriver, Chromium, and other system dependencies. The same applies when running the fork's browser test suite — use `nix develop` there as well.
+
+If you encounter ChromeDriver/Chromium mismatch errors, do **not** attempt to install or upgrade ChromeDriver globally. Use `nix develop` instead.
+
 **Important: e2e test runtime**
 
 The full e2e suite (`npm run test:e2e`) runs 57 spec files and takes approximately **16 minutes**. Each spec launches a fresh Obsidian instance. When running from an agent or script:
