@@ -404,7 +404,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 slider
                     .setLimits(10, 20, 1)
                     .setValue(this.plugin.settings.labelFontSize)
-                    .setDynamicTooltip()
                     .onChange(async (value) => {
                         this.plugin.settings.labelFontSize = value;
                         await this.plugin.saveSettings();
