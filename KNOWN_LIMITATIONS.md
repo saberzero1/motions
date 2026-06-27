@@ -367,7 +367,9 @@ The async visual mode selection itself works correctly — the `v + f + label` t
 
 ## ~~Properties navigation in bundled fork mode~~ (Fixed)
 
-Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. This matches the built-in vim behavior — pressing `k` from the first line of the editor navigates into the properties panel. `gk` (visual line up) also enters the properties panel, so users who remap `k` to `gk` in their vimrc get the same frontmatter navigation behavior. ([#25](https://github.com/saberzero1/motions/issues/25))
+Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region or when the cursor is stuck at the boundary of the properties widget, and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. Both `k` and `gk` enter the properties panel — `gk` (`moveByDisplayLines`) checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`.
+
+The plugin's `tableAwareMoveUp` motion (which overrides `k` when table navigation is enabled) bypasses `findPosV` with its own line arithmetic. To preserve frontmatter navigation, `tableAwareMoveUp` delegates to `findPosV` when the computed target line falls inside the frontmatter region, allowing the `focusBefore` callback to fire. ([#25](https://github.com/saberzero1/motions/issues/25))
 
 ## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)
 

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`gk` does not enter frontmatter navigation** — `gk` (visual line up) now enters the properties panel when the cursor is at the top of a note, matching `k` behavior. The fork's `moveByDisplayLines` was missing the `focusBefore` check that `moveByLines` already had. Users who remap `k` to `gk` in their vimrc can now navigate into frontmatter. ([#25](https://github.com/saberzero1/motions/issues/25))
+- **`k`/`gk` do not enter frontmatter navigation** — both `k` and `gk` now enter the properties panel when the cursor is at the top of a note. Two fixes: (1) the fork's `moveByDisplayLines` was missing the `focusBefore` check that `moveByLines` already had, and (2) the fork's `findPosV` frontmatter detection only triggered when the cursor moved into the frontmatter region (`pos.line < start.line`), but when the properties widget replaced the frontmatter lines, the cursor couldn't move up at all — now also triggers at the boundary (`pos.line === start.line`). Additionally, the plugin's `tableAwareMoveUp` motion (which overrides `k` for table separator skipping) bypassed `findPosV` entirely — it now delegates to `findPosV` when the target line is inside the frontmatter. ([#25](https://github.com/saberzero1/motions/issues/25))
 - **`gk`/`gj` over headings resets cursor to column 0** — `gk` (and `gj`) no longer jumps to the beginning of the line when crossing Obsidian headings in live preview. Headings are rendered with larger fonts, making them visually taller. The fork's `findPosV` widget-detection heuristic falsely treated the multi-line jump caused by the heading's height as a skipped replaced widget (e.g. MathJax) and overrode the cursor position. The heuristic now checks for actual replaced/widget decorations (`dec.point === true`) before activating, and a `posAtCoords` fallback corrects cases where `moveVertically` misresolves the goalColumn on decorated lines. ([#26](https://github.com/saberzero1/motions/issues/26))
 
 ### Added
@@ -23,8 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section to include `gk` frontmatter fix
+- `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section with `k`/`gk` frontmatter fix and `tableAwareMoveUp` interaction
 - `KNOWN_LIMITATIONS.md`: added `gk` frontmatter entry to behavioral deviations table
+- `DIFFERENCES.md` (fork): updated "Properties navigation" section with boundary detection and dual-case `focusBefore` logic
 - `KNOWN_LIMITATIONS.md`: updated "Visual line navigation and replaced widget decorations" section with heading-aware fix and `posAtCoords` fallback
 - `KNOWN_LIMITATIONS.md`: updated `gj`/`gk` widgets behavioral deviation entry with heading decoration handling
 - `README.md`: added `gD`, `<C-w>gd`, `<C-w>gD` to workspace keyboard control table

@@ -62,6 +62,23 @@ export const tableAwareMoveUp: MotionFn = (
 
     if (line === head.line) return null;
 
+    const findPosV = (
+        cm as unknown as {
+            findPosV: (
+                pos: { line: number; ch: number },
+                amount: number,
+                unit: string,
+            ) => { focusBefore?: () => void };
+        }
+    ).findPosV;
+    if (findPosV) {
+        const posV = findPosV.call(cm, head, -1, 'line');
+        if (posV?.focusBefore) {
+            posV.focusBefore();
+            return null;
+        }
+    }
+
     const targetText = cm.getLine(line);
     const ch = Math.min(head.ch, Math.max(0, targetText.length - 1));
     return { line, ch };
