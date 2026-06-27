@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-06-27
+
 ### Fixed
 
 - **EasyMotion dimming not visible** — the shade overlay (`.vim-motions-easymotion-shade`) was invisible because it was a child of the zero-size absolutely-positioned wrapper div. The shade is now appended directly to `scrollDOM` as a sibling of the wrapper, so its `right: 0; bottom: 0` resolves against the full editor dimensions. ([#6](https://github.com/saberzero1/motions/issues/6))
