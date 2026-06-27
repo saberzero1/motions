@@ -58,7 +58,7 @@ By default, the plugin suppresses Obsidian's interactive table widget in Live Pr
 
 The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping the replace-decoration that would create the table widget. Detection uses runtime DOM fingerprinting — the first time a table widget renders, its constructor is recorded, and all subsequent instances are suppressed. Non-table widgets (math, code blocks, embeds) are not affected.
 
-**Cursor-aware mode (experimental)**: The "Cursor-aware" option attempts to show raw Markdown only when the cursor is inside the table and render the widget otherwise. This mode has known issues with cursor navigation — CM6's replace-decoration creates an atomic block that `moveVertically` cannot enter from adjacent lines, causing the cursor to skip over or get stuck at the table boundary. Use "Always raw" (the default) for reliable vim navigation.
+**Cursor-aware mode**: The "Cursor-aware" option shows a rendered HTML table when the cursor is outside the table and raw Markdown when editing. The rendered table is a read-only widget produced by the plugin (not Obsidian's interactive table editor), using Obsidian's CSS classes (`cm-embed-block`, `markdown-rendered`, `table-wrapper`, `table-cell-wrapper`) for theme compatibility. When the cursor enters the table range, the widget is removed and the raw Markdown is editable with full vim support.
 
 **Disable suppression**: Set to "Off" in **Settings → Vim Motions → Table widget in live preview** to restore Obsidian's interactive table editor. With suppression off, vim operations inside table cells are limited to single-cell scope (each cell has its own isolated editor).
 

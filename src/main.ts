@@ -41,6 +41,10 @@ import {
 } from './vim/changelist';
 import { VimInfoModal } from './ui/vim-info-modal';
 import { installTableWidgetSuppressor } from './vim/table-widget-suppressor';
+import {
+    tableRenderField,
+    setTableRenderEnabled,
+} from './vim/table-render-widget';
 import { createTableAutoFormatExtension } from './vim/table-auto-format';
 import {
     installTableCursorFix,
@@ -304,6 +308,9 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
+        setTableRenderEnabled(this.settings.tableWidgetMode === 'cursor');
+        this.registerEditorExtension(tableRenderField);
+
         if (this.settings.enableTableNav) {
             this.registerEditorExtension(
                 createTableAutoFormatExtension(this.app),
@@ -412,6 +419,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.tableWidgetMode,
             );
         }
+        setTableRenderEnabled(this.settings.tableWidgetMode === 'cursor');
         if (this.settings.enableTableNav) {
             this.uninstallTableCursorFix = installTableCursorFix();
         }

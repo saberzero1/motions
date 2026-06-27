@@ -411,14 +411,14 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             .setName('Table widget in live preview')
             .setDesc(
                 'Controls how tables display in Live Preview. ' +
-                    '"Always raw" keeps tables as plain text (recommended for vim). ' +
-                    '"Cursor-aware" (experimental) shows raw Markdown when editing a table and the rendered widget otherwise. ' +
+                    '"Always raw" keeps tables as plain text. ' +
+                    '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
                     '"Off" uses the default interactive table editor.',
             )
             .addDropdown((dropdown) =>
                 dropdown
                     .addOption('always', 'Always raw')
-                    .addOption('cursor', 'Cursor-aware (experimental)')
+                    .addOption('cursor', 'Cursor-aware')
                     .addOption('off', 'Off')
                     .setValue(this.plugin.settings.tableWidgetMode)
                     .onChange(async (value) => {

@@ -31,8 +31,11 @@ async function hasAnyTableWidget(): Promise<boolean> {
 }
 
 async function countTableWidgets(): Promise<number> {
-    return (await browser.executeObsidian(() => {
-        return document.querySelectorAll('.cm-table-widget').length;
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return 0;
+        const container = (view as unknown as { contentEl: HTMLElement }).contentEl;
+        return container.querySelectorAll('.cm-table-widget').length;
     })) as number;
 }
 
@@ -676,5 +679,174 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
 
             expect(await countTableWidgets()).toBe(0);
         });
+    });
+});
+
+async function enableCursorAwareMode(): Promise<void> {
+    await browser.executeObsidian(({ app }) => {
+        const plugins = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        {
+                            settings: Record<string, unknown>;
+                            reloadFeatures: () => void;
+                        }
+                    >;
+                };
+            }
+        ).plugins;
+        const vm = plugins.plugins['vim-motions'];
+        if (!vm) return;
+        vm.settings.tableWidgetMode = 'cursor';
+        vm.reloadFeatures();
+    });
+    await browser.pause(PAUSE.EDITOR_SETTLE);
+}
+
+async function enableAlwaysRawMode(): Promise<void> {
+    await browser.executeObsidian(({ app }) => {
+        const plugins = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        {
+                            settings: Record<string, unknown>;
+                            reloadFeatures: () => void;
+                        }
+                    >;
+                };
+            }
+        ).plugins;
+        const vm = plugins.plugins['vim-motions'];
+        if (!vm) return;
+        vm.settings.tableWidgetMode = 'always';
+        vm.reloadFeatures();
+    });
+    await browser.pause(PAUSE.EDITOR_SETTLE);
+}
+
+async function countRenderedTables(): Promise<number> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return 0;
+        const container = (view as unknown as { contentEl: HTMLElement }).contentEl;
+        return container.querySelectorAll('.vim-table-rendered').length;
+    })) as number;
+}
+
+describe('Cursor-aware table rendering', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await ensureLivePreview();
+        await enableCursorAwareMode();
+    });
+
+    after(async function () {
+        await enableAlwaysRawMode();
+    });
+
+    it('should render custom widget when cursor is outside table', async function () {
+        await setupEditor('Text above.\n\n| A | B |\n|---|---|\n| 1 | 2 |', {
+            line: 0,
+            ch: 0,
+        });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+        expect(await countRenderedTables()).toBe(1);
+        expect(await countTableWidgets()).toBe(0);
+    });
+
+    it('should hide widget when cursor enters table', async function () {
+        await setupEditor('Text above.\n\n| A | B |\n|---|---|\n| 1 | 2 |', {
+            line: 0,
+            ch: 0,
+        });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        expect(await countRenderedTables()).toBe(1);
+
+        await setupEditor('Text above.\n\n| A | B |\n|---|---|\n| 1 | 2 |', {
+            line: 3,
+            ch: 2,
+        });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        expect(await countRenderedTables()).toBe(0);
+    });
+
+    it('should render only non-focused table in multi-table doc', async function () {
+        await setupEditor(TWO_TABLES, { line: 4, ch: 2 });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+        expect(await countRenderedTables()).toBe(1);
+    });
+
+    it('widget should have correct theme classes', async function () {
+        await setupEditor('Text above.\n\n| A | B |\n|---|---|\n| 1 | 2 |', {
+            line: 0,
+            ch: 0,
+        });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+        const classes = (await browser.executeObsidian(() => {
+            const el = document.querySelector('.vim-table-rendered');
+            if (!el) return null;
+            return {
+                hasEmbedBlock: el.classList.contains('cm-embed-block'),
+                hasMarkdownRendered:
+                    el.classList.contains('markdown-rendered'),
+                hasTableWrapper:
+                    el.querySelector('.table-wrapper') !== null,
+                hasTable:
+                    el.querySelector('.table-wrapper > table') !== null,
+                hasCellWrapper:
+                    el.querySelector('.table-cell-wrapper') !== null,
+            };
+        })) as Record<string, boolean> | null;
+
+        expect(classes).not.toBeNull();
+        expect(classes?.hasEmbedBlock).toBe(true);
+        expect(classes?.hasMarkdownRendered).toBe(true);
+        expect(classes?.hasTableWrapper).toBe(true);
+        expect(classes?.hasTable).toBe(true);
+        expect(classes?.hasCellWrapper).toBe(true);
+    });
+
+    it('should render alignment correctly', async function () {
+        await setupEditor(
+            'Text.\n\n| L | C | R |\n|:---|:---:|---:|\n| 1 | 2 | 3 |',
+            { line: 0, ch: 0 },
+        );
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+        const aligns = (await browser.executeObsidian(() => {
+            const widget = document.querySelector('.vim-table-rendered');
+            if (!widget) return null;
+            const ths = widget.querySelectorAll('th');
+            return Array.from(ths).map(
+                (th) => th.getAttribute('align') ?? 'none',
+            );
+        })) as string[] | null;
+
+        expect(aligns).not.toBeNull();
+        expect(aligns).toEqual(['left', 'center', 'right']);
+    });
+
+    it('non-table widgets should be unaffected', async function () {
+        await setupEditor('$$\nx^2\n$$', { line: 0, ch: 0 });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+        expect(await countRenderedTables()).toBe(0);
     });
 });
