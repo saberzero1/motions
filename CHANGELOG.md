@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-06-27
+
 ### Fixed
 
 - **Visual mode cursor displaced at end-of-line (regression)** — exiting charwise visual mode (`v$<Esc>`, `vlll<Esc>`) at end-of-line left the cursor one position past the last character. The fork's `exitVisualMode()` called `clipCursorToContent()` while `vim.visualMode` was still `true`, which allowed the cursor to land at the linebreak position; after clearing the flag, the cursor remained displaced. Fixed by clearing visual flags before `setCursor`. Also fixed a latent JS loose equality bug in `measureCursor()` where `false != "\n"` evaluated to `false` due to type coercion. ([#15](https://github.com/saberzero1/motions/issues/15))
