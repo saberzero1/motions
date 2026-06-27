@@ -10,6 +10,10 @@ describe('Workspace extended', function () {
 
     describe('Split operations', function () {
         it('<C-w>v should split vertically', async function () {
+            const beforeCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
             const result = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
@@ -45,9 +49,21 @@ describe('Workspace extended', function () {
                 },
             )) as { success?: boolean; error?: string };
             expect(result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const afterCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            expect(afterCount).toBeGreaterThan(beforeCount);
         });
 
         it('<C-w>s should split horizontally', async function () {
+            const beforeCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
             const result = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
@@ -83,6 +99,230 @@ describe('Workspace extended', function () {
                 },
             )) as { success?: boolean; error?: string };
             expect(result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const afterCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            expect(afterCount).toBeGreaterThan(beforeCount);
+        });
+
+        it('<C-w>c should close tab (leaf count decreases)', async function () {
+            const splitResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'v');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(splitResult).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const beforeCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            const result = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'c');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const afterCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            expect(afterCount).toBeLessThan(beforeCount);
+        });
+
+        it('<C-w>o should close other tabs', async function () {
+            const split1Result = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'v');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(split1Result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const split2Result = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'v');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(split2Result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const beforeCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            expect(beforeCount).toBeGreaterThanOrEqual(3);
+
+            const result = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'o');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const afterCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            expect(afterCount).toBeLessThan(beforeCount);
         });
     });
 
@@ -550,7 +790,45 @@ describe('Workspace extended', function () {
         it('<C-w>h should focus left pane without error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
-            const result = await browser.executeObsidian(
+
+            const splitResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'v');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(splitResult).toHaveProperty('success', true);
+            await browser.pause(300);
+
+            const result = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
                         const Vim = (
@@ -583,14 +861,97 @@ describe('Workspace extended', function () {
                         return { error: String(e) };
                     }
                 },
-            );
+            )) as { success?: boolean; error?: string };
             expect(result).toHaveProperty('success', true);
         });
 
         it('<C-w>l should focus right pane without error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
-            const result = await browser.executeObsidian(
+
+            const splitResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'v');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(splitResult).toHaveProperty('success', true);
+            await browser.pause(300);
+
+            (await browser.executeObsidian(({ app, obsidian }) => {
+                try {
+                    const Vim = (
+                        window as unknown as Record<string, unknown> & {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleKey: (
+                                        cm: unknown,
+                                        key: string,
+                                    ) => boolean;
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    if (!Vim) return { error: 'No Vim' };
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'No view' };
+                    view.editor.focus();
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm;
+                    if (!adapter) return { error: 'No adapter' };
+                    Vim.handleKey(adapter, '<C-w>');
+                    Vim.handleKey(adapter, 'h');
+                    return { success: true };
+                } catch (e) {
+                    return { error: String(e) };
+                }
+            })) as { success?: boolean; error?: string };
+            await browser.pause(300);
+
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (view) {
+                    (
+                        window as unknown as Record<string, unknown>
+                    ).__testPrevView = view;
+                }
+            });
+
+            const result = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
                         const Vim = (
@@ -623,14 +984,67 @@ describe('Workspace extended', function () {
                         return { error: String(e) };
                     }
                 },
-            );
+            )) as { success?: boolean; error?: string };
             expect(result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const leafChanged = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    const prev = (window as unknown as Record<string, unknown>)
+                        .__testPrevView;
+                    return view !== prev;
+                },
+            )) as boolean;
+
+            expect(leafChanged).toBe(true);
         });
 
         it('<C-w>j should focus pane below without error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
-            const result = await browser.executeObsidian(
+
+            const splitResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 's');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(splitResult).toHaveProperty('success', true);
+            await browser.pause(300);
+
+            const result = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
                         const Vim = (
@@ -663,14 +1077,52 @@ describe('Workspace extended', function () {
                         return { error: String(e) };
                     }
                 },
-            );
+            )) as { success?: boolean; error?: string };
             expect(result).toHaveProperty('success', true);
         });
 
         it('<C-w>k should focus pane above without error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
-            const result = await browser.executeObsidian(
+
+            const splitResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 's');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(splitResult).toHaveProperty('success', true);
+            await browser.pause(300);
+
+            const result = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
                         const Vim = (
@@ -703,7 +1155,7 @@ describe('Workspace extended', function () {
                         return { error: String(e) };
                     }
                 },
-            );
+            )) as { success?: boolean; error?: string };
             expect(result).toHaveProperty('success', true);
         });
 
@@ -747,6 +1199,74 @@ describe('Workspace extended', function () {
                 },
             );
             expect(result).toHaveProperty('success', true);
+        });
+    });
+
+    describe('Regression tests', function () {
+        it('<C-w> followed by invalid suffix should not execute the suffix', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(300);
+
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (view) {
+                    view.editor.setValue('hello');
+                    view.editor.setCursor(0, 0);
+                    view.editor.focus();
+                }
+            });
+            await browser.pause(200);
+
+            const result = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    try {
+                        const Vim = (
+                            window as unknown as Record<string, unknown> & {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<C-w>');
+                        Vim.handleKey(adapter, 'x');
+                        return { success: true };
+                    } catch (e) {
+                        return { error: String(e) };
+                    }
+                },
+            )) as { success?: boolean; error?: string };
+            expect(result).toHaveProperty('success', true);
+
+            await browser.pause(300);
+
+            const content = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view?.editor.getValue() ?? '';
+                },
+            )) as string;
+
+            expect(content).toBe('hello');
         });
     });
 });

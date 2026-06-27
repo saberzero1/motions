@@ -98,6 +98,41 @@ describe('Insert mode commands (Tier 1)', function () {
             const val = await getEditorValue();
             expect(val).toBe('hello ');
         });
+
+        it('CTRL-W should delete word before cursor with pre-existing content', async function () {
+            await setupEditor('word1 word2', { line: 0, ch: 11 });
+
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm as Record<string, unknown> | undefined;
+                if (!adapter) return;
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return;
+                Vim.handleKey(adapter, 'a');
+                Vim.handleKey(adapter, '<C-w>');
+            });
+            await browser.pause(300);
+            await sendVimEscape();
+            await browser.pause(200);
+            const val = await getEditorValue();
+            expect(val).toBe('word1 ');
+        });
     });
 
     describe('CTRL-U (delete to start of line)', function () {
