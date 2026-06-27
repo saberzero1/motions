@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-06-27
+
 ### Added
 
 - **Cursor-aware table editing in Live Preview** — replaced the table cell bridge approach with a custom table rendering system. Tables display as themed HTML when the cursor is outside and switch to raw Markdown when editing. All vim motions, operators, and text objects work naturally on table content. ([#19](https://github.com/saberzero1/motions/issues/19))
