@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Plain-text table editing in Live Preview** — replaced the table cell bridge approach with a table widget suppressor that shows tables as raw Markdown in Live Preview. All vim motions, operators, and text objects work naturally on table content. ([#19](https://github.com/saberzero1/motions/issues/19))
-    - Table widget suppressor patches `RangeSetBuilder.prototype.add` to skip table replace-decorations
-    - Default mode: "Always raw" — tables always display as plain Markdown
-    - Experimental "Cursor-aware" mode available (renders widget when cursor is outside table)
+- **Cursor-aware table editing in Live Preview** — replaced the table cell bridge approach with a custom table rendering system. Tables display as themed HTML when the cursor is outside and switch to raw Markdown when editing. All vim motions, operators, and text objects work naturally on table content. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Custom `TableRenderWidget` renders markdown tables as HTML using Obsidian's CSS classes (`cm-embed-block`, `markdown-rendered`, `table-wrapper`, `table-cell-wrapper`) for full theme compatibility
+    - `StateField` provides `Decoration.replace` for tables the cursor is NOT in; removes decoration when cursor enters
+    - Table widget suppressor patches `RangeSetBuilder.prototype.add` to suppress Obsidian's interactive table widget
+    - Default mode: "Cursor-aware" — rendered table when cursor is outside, raw Markdown when editing
+    - "Always raw" mode keeps tables as plain Markdown at all times
     - "Off" mode restores Obsidian's default interactive table editor
     - Three-way setting: **Settings → Vim Motions → Table widget in live preview**
+    - Supports alignment markers (`:---`, `---:`, `:---:`) in rendered tables
 - **Vertical table cell navigation** — `]r`/`[r` moves to the same column in the next/previous row, skipping separator rows
 - **Table cell text objects** — `i|`/`a|` for operating on table cells with standard vim operators:
     - `i|`: content between surrounding pipes (like `i(`)
@@ -33,23 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `<Leader>tr` — realign table
 - **Table ex commands** — 15 ex commands for table manipulation: `:tableinsert`, `:tablerowafter`, `:tablerowbefore`, `:tablerowup`, `:tablerowdown`, `:tablerowdelete`, `:tablecolafter`, `:tablecolbefore`, `:tablecolleft`, `:tablecolright`, `:tablecoldelete`, `:tablealignleft`, `:tablealigncenter`, `:tablealignright`, `:tablerealign`
 - **Internalized monkey-around** — `src/util/around.ts` provides safe prototype patching with automatic removal, replacing the external `monkey-around` dependency
-- E2E test suite expansion: 22 tests in `table-cell-bridge.e2e.ts` (cursor-aware toggle, widget suppression, `j`/`k` navigation through tables, separator row traversal, post-edit navigation), 24 tests in `tables.e2e.ts` (cell navigation, vertical navigation, text objects, realignment)
+- E2E test suite expansion: 28 tests in `table-cell-bridge.e2e.ts` (cursor-aware rendering, widget suppression, `j`/`k` navigation through tables, separator row traversal, post-edit navigation, theme class verification, alignment rendering), 24 tests in `tables.e2e.ts` (cell navigation, vertical navigation, text objects, realignment)
 
 ### Fixed
 
 - **Cursor stuck on table separator after insert-mode edit** — after editing a table cell in insert mode, Obsidian's async table handler repositions the cursor, preventing `k` from crossing the separator row (`|---|---|`). Fixed with a custom `tableAwareMoveUp` motion that skips separator rows when moving up after a table edit. The motion detects the snap-back pattern and compensates by jumping two lines (over the separator) instead of one. Operator-pending context (`dk`) is excluded from the skip to preserve correct delete ranges.
-- **Table widget suppressor default** — changed default from "Cursor-aware" to "Always raw". The cursor-aware mode has known issues with CM6 replace-decoration boundaries that trap the cursor. "Always raw" provides reliable vim navigation.
+- **Cursor-aware table rendering** — the "Cursor-aware" mode now uses a custom read-only `TableRenderWidget` instead of Obsidian's interactive table widget. Tables render as themed HTML when the cursor is outside, with no async cursor snap-backs or state corruption.
 
 ### Changed
 
-- Replaced `TableCellBridge` approach (per-cell vim bridge) with plain-text table widget suppression. The bridge approach required maintaining vim state across Obsidian's cell-scoped editors; the suppressor simply prevents the table widget from rendering, exposing raw Markdown.
-- `tableWidgetMode` setting default changed from `'cursor'` to `'always'`
+- Replaced `TableCellBridge` approach (per-cell vim bridge) with cursor-aware table rendering. The bridge approach required maintaining vim state across Obsidian's cell-scoped editors; the new system suppresses Obsidian's widget and provides its own themed read-only widget via a `StateField`.
+- `tableWidgetMode` setting default: `'cursor'` (cursor-aware rendering)
 - Legacy `suppressTableWidget: boolean` setting migrated: `true` → `'always'`, `false` → `'off'`
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: updated table navigation section with new features (vertical nav, text objects, realignment, auto-format); documented cursor-aware mode as experimental; documented cursor snap-back limitation
-- `README.md`: added `i|`/`a|` to text objects table, `]r`/`[r` to navigation, table text objects section, auto-format docs, `<Leader>tr` and `:tablerealign` to commands
+- `KNOWN_LIMITATIONS.md`: updated table navigation section with new features (vertical nav, text objects, realignment, auto-format); documented cursor-aware mode architecture
+- `README.md`: updated table navigation description for cursor-aware rendering; added `i|`/`a|` to text objects table, `]r`/`[r` to navigation, table text objects section, auto-format docs, `<Leader>tr` and `:tablerealign` to commands
 
 ## [0.15.0] - 2026-06-26
 

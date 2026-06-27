@@ -34,7 +34,8 @@ async function countTableWidgets(): Promise<number> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return 0;
-        const container = (view as unknown as { contentEl: HTMLElement }).contentEl;
+        const container = (view as unknown as { contentEl: HTMLElement })
+            .contentEl;
         return container.querySelectorAll('.cm-table-widget').length;
     })) as number;
 }
@@ -732,7 +733,8 @@ async function countRenderedTables(): Promise<number> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return 0;
-        const container = (view as unknown as { contentEl: HTMLElement }).contentEl;
+        const container = (view as unknown as { contentEl: HTMLElement })
+            .contentEl;
         return container.querySelectorAll('.vim-table-rendered').length;
     })) as number;
 }
@@ -802,12 +804,9 @@ describe('Cursor-aware table rendering', function () {
             if (!el) return null;
             return {
                 hasEmbedBlock: el.classList.contains('cm-embed-block'),
-                hasMarkdownRendered:
-                    el.classList.contains('markdown-rendered'),
-                hasTableWrapper:
-                    el.querySelector('.table-wrapper') !== null,
-                hasTable:
-                    el.querySelector('.table-wrapper > table') !== null,
+                hasMarkdownRendered: el.classList.contains('markdown-rendered'),
+                hasTableWrapper: el.querySelector('.table-wrapper') !== null,
+                hasTable: el.querySelector('.table-wrapper > table') !== null,
                 hasCellWrapper:
                     el.querySelector('.table-cell-wrapper') !== null,
             };

@@ -99,7 +99,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     easyMotionDimming: true,
     enableHardWrap: true,
     enableTableNav: true,
-    tableWidgetMode: 'always',
+    tableWidgetMode: 'cursor',
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',

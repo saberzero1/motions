@@ -48,14 +48,8 @@ function findTableRanges(state: EditorState): TableRange[] {
     return ranges;
 }
 
-function cursorInRange(
-    state: EditorState,
-    from: number,
-    to: number,
-): boolean {
-    return state.selection.ranges.some(
-        (r) => r.from <= to && r.to >= from,
-    );
+function cursorInRange(state: EditorState, from: number, to: number): boolean {
+    return state.selection.ranges.some((r) => r.from <= to && r.to >= from);
 }
 
 function splitCells(line: string): string[] {
@@ -87,8 +81,7 @@ function parseTable(lines: string[]): {
             break;
         }
     }
-    const alignments =
-        sepIdx >= 0 ? parseAlignments(lines[sepIdx]!) : [];
+    const alignments = sepIdx >= 0 ? parseAlignments(lines[sepIdx]!) : [];
     const rows: string[][] = [];
     for (let i = sepIdx >= 0 ? sepIdx + 1 : 1; i < lines.length; i++) {
         const line = lines[i];

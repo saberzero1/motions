@@ -65,7 +65,7 @@ Behavior:
 
 ### Table navigation
 
-Navigate Markdown table cells without leaving Vim mode. In Live Preview, the plugin suppresses Obsidian's interactive table widget so tables display as raw Markdown — all vim motions work naturally.
+Navigate Markdown table cells without leaving Vim mode. In Live Preview, the plugin renders tables as themed HTML when the cursor is outside and switches to raw Markdown when editing — all vim motions work naturally on table content. Configurable via **Settings → Vim Motions → Table widget in live preview** (cursor-aware / always raw / off).
 
 | Keybinding    | Description                         |
 | ------------- | ----------------------------------- |

@@ -54,11 +54,11 @@ The following are intentionally not implemented:
 
 ## Table widget suppression in Live Preview
 
-By default, the plugin suppresses Obsidian's interactive table widget in Live Preview mode so that tables render as raw Markdown text. This gives full vim support: all motions, operators, text objects, EasyMotion, and multi-line operations work naturally on table content, just like in Source mode.
+By default (cursor-aware mode), tables display as themed HTML when the cursor is outside and switch to raw Markdown when the cursor enters the table. The rendered table is a read-only `TableRenderWidget` produced by the plugin (not Obsidian's interactive table editor), using Obsidian's CSS classes (`cm-embed-block`, `markdown-rendered`, `table-wrapper`, `table-cell-wrapper`) for theme compatibility. When the cursor enters the table range, the widget is removed and raw Markdown is editable with full vim support.
 
-The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping the replace-decoration that would create the table widget. Detection uses runtime DOM fingerprinting — the first time a table widget renders, its constructor is recorded, and all subsequent instances are suppressed. Non-table widgets (math, code blocks, embeds) are not affected.
+The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping the replace-decoration that would create Obsidian's table widget. Detection uses the `cm-table-widget` class on the widget's container element. Non-table widgets (math, code blocks, embeds) are not affected. In cursor-aware mode, the plugin provides its own `Decoration.replace` via a `StateField` for tables the cursor is NOT in.
 
-**Cursor-aware mode**: The "Cursor-aware" option shows a rendered HTML table when the cursor is outside the table and raw Markdown when editing. The rendered table is a read-only widget produced by the plugin (not Obsidian's interactive table editor), using Obsidian's CSS classes (`cm-embed-block`, `markdown-rendered`, `table-wrapper`, `table-cell-wrapper`) for theme compatibility. When the cursor enters the table range, the widget is removed and the raw Markdown is editable with full vim support.
+**Always raw mode**: Set to "Always raw" to keep tables as plain Markdown at all times. Useful when cursor-aware rendering causes issues or when you prefer to always see the raw table syntax.
 
 **Disable suppression**: Set to "Off" in **Settings → Vim Motions → Table widget in live preview** to restore Obsidian's interactive table editor. With suppression off, vim operations inside table cells are limited to single-cell scope (each cell has its own isolated editor).
 
