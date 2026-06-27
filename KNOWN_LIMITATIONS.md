@@ -272,7 +272,11 @@ The `adjustRangeForVisualMode` fix removed the single-character skip, but CM Vim
 
 **Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison.
 
-In charwise visual mode (`v`), selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. The fork's `measureCursor()` in `block-cursor.ts` adjusts the cursor position backward by 1 in forward visual selections (`anchor < head`) to display the cursor on the last selected character. The original `letter != "\n"` guard (added in commit `8e8ea52` for empty lines) prevented this adjustment at EOL on non-empty lines. The fix uses the vim state (`vim.visualLine`, `vim.visualBlock`) to only apply the EOL decrement in charwise visual mode — linewise (`V`) and blockwise (`<C-v>`) skip the adjustment, preserving their existing rendering behavior.
+In charwise visual mode (`v`), selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. Two issues were identified and fixed:
+
+1. **`exitVisualMode` cursor clipping** (`src/vim.js`): `exitVisualMode()` called `clipCursorToContent()` while `vim.visualMode` was still `true`. In visual mode, `clipCursorToContent` allows `ch = text.length` (the linebreak position). After clearing `vim.visualMode` on the next line, the cursor was already set one position past the last character. Reproducible as: `vlll<Esc>` on "abc" — `l` past the last char is allowed in visual mode, but Escape should clip back to normal-mode bounds (`ch = text.length - 1`). Fixed by clearing visual flags before `setCursor`, while preserving the `updateLastSelection` call order. ([#15](https://github.com/saberzero1/motions/issues/15))
+
+2. **`measureCursor` EOL adjustment** (`src/block-cursor.ts`): The `letter != "\n"` comparison used loose equality (`!=`). When `head >= doc.length` (cursor past document end), the short-circuit `head < doc.length && sliceDoc(...)` produced `false`, and `false != "\n"` evaluated to `false` due to JS type coercion (both coerce to `0`). This caused the wrong branch to execute at document end. Fixed by producing `""` instead of `false` and using strict inequality (`!==`). The original charwise visual mode fix (using `vim.visualLine`/`vim.visualBlock` to scope the EOL decrement) remains in place.
 
 ## Test-discovered behavioral discrepancies
 

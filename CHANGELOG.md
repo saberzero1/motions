@@ -9,16 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Visual mode cursor displaced at end-of-line (regression)** — exiting charwise visual mode (`v$<Esc>`, `vlll<Esc>`) at end-of-line left the cursor one position past the last character. The fork's `exitVisualMode()` called `clipCursorToContent()` while `vim.visualMode` was still `true`, which allowed the cursor to land at the linebreak position; after clearing the flag, the cursor remained displaced. Fixed by clearing visual flags before `setCursor`. Also fixed a latent JS loose equality bug in `measureCursor()` where `false != "\n"` evaluated to `false` due to type coercion. ([#15](https://github.com/saberzero1/motions/issues/15))
 - **Leader key mappings not working via vimrc** — `let mapleader = ","` (or space, or any custom leader) in `.obsidian.vimrc` now correctly re-registers EasyMotion, hint mode, table manipulation, and settings leader bindings with the new leader key. Previously, the initial backslash-leader `mapCommand` entries persisted in the keymap because `Vim.unmap()` could not remove `mapCommand`-created entries, and `unmapDefaultBinding` skipped non-special keys like comma. The fork now provides `Vim.removeMapCommand(keys)` for clean removal, and `VimRegistration` uses scoped leader binding tracking to selectively unregister stale bindings when the leader changes. ([#21](https://github.com/saberzero1/motions/issues/21), [#6](https://github.com/saberzero1/motions/issues/6))
 - **`<C-w>` workspace commands not working** — `<C-w>v`, `<C-w>h/j/k/l`, `<C-w>s`, `<C-w>c/q`, and `<C-w>o` now work correctly when Obsidian's default Ctrl+W hotkey is unbound. The fork's `matchCommand` had an `idle` entry for `<C-w>` in normal mode that consumed the key as a no-op before the second keystroke could arrive, preventing multi-key `<C-w>X` sequences from matching. The fork now deprioritizes `idle` full matches when more-specific partial matches exist (e.g. `<C-w>v`, `<C-w>h` registered via `mapCommand`). The `idle` entry still fires when no sub-commands are registered, preventing the keystroke from propagating to the browser. ([#20](https://github.com/saberzero1/motions/issues/20))
 
 ### Added
 
+- Fork regression test `exit_visual_mode_cursor_clipping` covering `vlll<Esc>`, `vll<Esc>`, and `v$<Esc>` cursor positioning
 - E2E tests for leader key mapping behavior: comma and space leader key mappings execute correctly via `Vim.handleKey`, leader keys do not insert literal characters in normal mode, EasyMotion overlay appears with custom leader and old leader bindings are cleaned up
 - E2E tests for `<C-w>` workspace commands: `<C-w>v`/`<C-w>s` verify leaf count increases (split created), `<C-w>c` verifies leaf count decreases (tab closed), `<C-w>o` verifies other tabs closed, `<C-w>h/j/k/l` verify focus changes after split, `<C-w>` followed by invalid suffix (`x`) verifies the suffix does not execute as a standalone command, insert-mode `<C-w>` non-regression verifies delete-word still works
 
 ### Documentation
 
+- `KNOWN_LIMITATIONS.md`: updated "Visual mode cursor displaced at end-of-line" section with `exitVisualMode` root cause and `measureCursor` coercion fix
+- `DIFFERENCES.md` (fork): updated "Visual mode cursor positioning at EOL" section with `exitVisualMode` ordering fix and strict equality fix
 - `KNOWN_LIMITATIONS.md`: expanded "EasyMotion leader key conflict" fixed section with leader re-registration and `removeMapCommand` details
 - `KNOWN_LIMITATIONS.md`: updated "`<C-w>` prefix conflict" section — removed codemirror-vim limitation framing, kept user-action requirement (unbind Obsidian's Ctrl+W hotkey)
 - `DIFFERENCES.md` (fork): added "`removeMapCommand` API" section documenting the new keymap removal method
