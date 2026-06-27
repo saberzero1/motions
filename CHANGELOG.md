@@ -10,17 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`gk` does not enter frontmatter navigation** — `gk` (visual line up) now enters the properties panel when the cursor is at the top of a note, matching `k` behavior. The fork's `moveByDisplayLines` was missing the `focusBefore` check that `moveByLines` already had. Users who remap `k` to `gk` in their vimrc can now navigate into frontmatter. ([#25](https://github.com/saberzero1/motions/issues/25))
+- **`gk`/`gj` over headings resets cursor to column 0** — `gk` (and `gj`) no longer jumps to the beginning of the line when crossing Obsidian headings in live preview. Headings are rendered with larger fonts, making them visually taller. The fork's `findPosV` widget-detection heuristic falsely treated the multi-line jump caused by the heading's height as a skipped replaced widget (e.g. MathJax) and overrode the cursor position. The heuristic now checks for actual replaced/widget decorations (`dec.point === true`) before activating, and a `posAtCoords` fallback corrects cases where `moveVertically` misresolves the goalColumn on decorated lines. ([#26](https://github.com/saberzero1/motions/issues/26))
 
 ### Added
 
 - **`gD` — open link in new tab** — `gD` opens the link under the cursor in a new tab, using the same bracket-aware link detection as `gd`. External URLs open in the browser. ([#23](https://github.com/saberzero1/motions/issues/23))
 - **`<C-w>gd` / `<C-w>gD` — open link in split** — `<C-w>gd` opens the link under the cursor in a horizontal split, `<C-w>gD` in a vertical split. Follows the Neovim `<C-w>s`/`<C-w>v` convention (lowercase = horizontal, uppercase = vertical). ([#23](https://github.com/saberzero1/motions/issues/23))
 - E2E tests for `gD`, `<C-w>gd`, `<C-w>gD`: link-on-wikilink navigation (new tab, horizontal split, vertical split), no-op outside links, leaf count verification
+- E2E tests for `gk`/`gj` over headings: cursor horizontal position preserved across single and multiple headings, symmetry between `gk` and `gj`
 
 ### Documentation
 
 - `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section to include `gk` frontmatter fix
 - `KNOWN_LIMITATIONS.md`: added `gk` frontmatter entry to behavioral deviations table
+- `KNOWN_LIMITATIONS.md`: updated "Visual line navigation and replaced widget decorations" section with heading-aware fix and `posAtCoords` fallback
+- `KNOWN_LIMITATIONS.md`: updated `gj`/`gk` widgets behavioral deviation entry with heading decoration handling
 - `README.md`: added `gD`, `<C-w>gd`, `<C-w>gD` to workspace keyboard control table
 
 ## [0.18.0] - 2026-06-27

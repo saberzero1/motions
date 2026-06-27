@@ -49,6 +49,38 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             await vimKeys('g', 'k');
             expect((await getCursorPos()).line).toBe(0);
         });
+
+        it('gk over heading should preserve horizontal position (#26)', async function () {
+            const content = 'above the heading\n# Heading\nbelow the heading';
+            await setupEditor(content, { line: 2, ch: 5 });
+            // Use `l` to reset vim.lastMotion so gk recalculates lastHSPos
+            await vimKeys('l');
+            await vimKeys('g', 'k');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+            expect(pos.ch).toBeGreaterThan(0);
+        });
+
+        it('gk over multiple headings should not reset column (#26)', async function () {
+            const content =
+                'first line here\n## Heading Two\n### Heading Three\nlast line here';
+            await setupEditor(content, { line: 3, ch: 5 });
+            await vimKeys('l');
+            await vimKeys('g', 'k');
+            let pos = await getCursorPos();
+            expect(pos.line).toBe(2);
+            expect(pos.ch).toBeGreaterThan(0);
+        });
+
+        it('gj over heading should also preserve horizontal position (#26)', async function () {
+            const content = 'above the heading\n# Heading\nbelow the heading';
+            await setupEditor(content, { line: 0, ch: 5 });
+            await vimKeys('l');
+            await vimKeys('g', 'j');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+            expect(pos.ch).toBeGreaterThan(0);
+        });
     });
 
     describe('g0 / g$ / g^', function () {
