@@ -269,6 +269,7 @@ These commands exist but behave differently from Neovim:
 | `:global` cursor   | Cursor at last matched line after `:g/pattern/d`        | Fixed in fork                                              | Fork sets cursor to last matched line (clamped to document end) after line-deleting `:g` commands. Non-destructive `:g` leaves cursor where the last sub-command placed it.                                                                                                   |
 | `:s` empty         | Repeats last pattern with default flags (no `/g`)       | Fixed in fork                                              | Fork's `:s` without arguments no longer preserves the `/g` flag from the previous substitution.                                                                                                                                                                               |
 | `gj`/`gk` widgets  | Navigates into replaced decorations                     | Fixed in fork                                              | Fork's `findPosV` detects multi-line jumps from `moveVertically` and steps one document line instead, landing inside replaced widget ranges (e.g. rendered MathJax).                                                                                                          |
+| `gk` frontmatter   | Navigates into frontmatter like `k`                     | Fixed in fork                                              | Fork's `moveByDisplayLines` now checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`. Users who remap `k` to `gk` can now enter frontmatter navigation.                                                                                |
 
 ## Visual mode on single-character text objects
 
@@ -366,7 +367,7 @@ The async visual mode selection itself works correctly — the `v + f + label` t
 
 ## ~~Properties navigation in bundled fork mode~~ (Fixed)
 
-Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. This matches the built-in vim behavior — pressing `k` from the first line of the editor navigates into the properties panel.
+Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. This matches the built-in vim behavior — pressing `k` from the first line of the editor navigates into the properties panel. `gk` (visual line up) also enters the properties panel, so users who remap `k` to `gk` in their vimrc get the same frontmatter navigation behavior. ([#25](https://github.com/saberzero1/motions/issues/25))
 
 ## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)
 
