@@ -129,6 +129,8 @@ This limitation is confirmed upstream in [obsidian-vimrc-support issue #16](http
 
 EasyMotion and hint mode bindings now call `unmapDefaultBinding(leader)` before `mapCommand` registration. This removes the leader key's default Vim binding (e.g. `<Space>` → `l`) from codemirror-vim's keymap so that `mapCommand` multi-key sequences starting with the leader can accumulate in the input buffer. The vimrc parser also correctly handles `let mapleader = " "` (space inside quotes). EasyMotion works with any leader key, including space and comma.
 
+When `.obsidian.vimrc` sets a custom leader via `let mapleader = ","`, the plugin now properly cleans up the initial backslash-leader bindings and re-registers all leader-dependent features (EasyMotion, hint mode, table manipulation, settings leader bindings) with the new leader. Previously, the old `\`-leader `mapCommand` entries persisted in the keymap alongside the new leader bindings because `Vim.unmap()` could not remove `mapCommand`-created entries. The fork now provides `Vim.removeMapCommand(keys)` for clean removal. `unmapDefaultBinding` also correctly handles non-special keys (comma, semicolon, etc.) that were previously skipped due to an early-return guard.
+
 ## Table navigation on non-US keyboards
 
 `]|` and `[|` use the pipe character (`|`), which on many non-US keyboard layouts (German, Dutch, Nordic, etc.) requires AltGr or a modifier combination. codemirror-vim's `vimKeyFromEvent` translates AltGr keypresses as `<C-A-|>` or `<A-|>`, which does not match the registered `]|` keybinding.

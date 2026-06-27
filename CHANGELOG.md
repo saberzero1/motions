@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Leader key mappings not working via vimrc** — `let mapleader = ","` (or space, or any custom leader) in `.obsidian.vimrc` now correctly re-registers EasyMotion, hint mode, table manipulation, and settings leader bindings with the new leader key. Previously, the initial backslash-leader `mapCommand` entries persisted in the keymap because `Vim.unmap()` could not remove `mapCommand`-created entries, and `unmapDefaultBinding` skipped non-special keys like comma. The fork now provides `Vim.removeMapCommand(keys)` for clean removal, and `VimRegistration` uses scoped leader binding tracking to selectively unregister stale bindings when the leader changes. ([#21](https://github.com/saberzero1/motions/issues/21), [#6](https://github.com/saberzero1/motions/issues/6))
+
+### Added
+
+- E2E tests for leader key mapping behavior: comma and space leader key mappings execute correctly via `Vim.handleKey`, leader keys do not insert literal characters in normal mode, EasyMotion overlay appears with custom leader and old leader bindings are cleaned up
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: expanded "EasyMotion leader key conflict" fixed section with leader re-registration and `removeMapCommand` details
+- `DIFFERENCES.md` (fork): added "`removeMapCommand` API" section documenting the new keymap removal method
+
 ## [0.16.0] - 2026-06-27
 
 ### Added

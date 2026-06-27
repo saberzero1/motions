@@ -433,6 +433,343 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
         });
     });
 
+    describe('leader key mappings execute correctly (issue #21)', function () {
+        describe('comma as leader', function () {
+            before(async function () {
+                await loadVimrc(
+                    ['let mapleader = ","', 'nmap <leader>j gj'].join('\n') +
+                        '\n',
+                );
+            });
+
+            it(',j should move cursor down (mapped to gj)', async function () {
+                await setupEditor('line one\nline two\nline three', {
+                    line: 0,
+                    ch: 0,
+                });
+                const result = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const Vim = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, ',');
+                        Vim.handleKey(adapter, 'j');
+                        const cursor = view.editor.getCursor();
+                        return { line: cursor.line, ch: cursor.ch };
+                    },
+                )) as { line: number; ch: number };
+                expect(result.line).toBe(1);
+            });
+
+            it('comma should not insert a literal comma in normal mode', async function () {
+                await setupEditor('hello', { line: 0, ch: 0 });
+                const result = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const Vim = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<Esc>');
+                        Vim.handleKey(adapter, ',');
+                        return { value: view.editor.getValue() };
+                    },
+                )) as { value: string };
+                expect(result.value).toBe('hello');
+            });
+        });
+
+        describe('space as leader', function () {
+            before(async function () {
+                await loadVimrc(
+                    ['let mapleader = ","', 'nmap <leader>j gj'].join('\n') +
+                        '\n',
+                );
+                const diag = (await browser.executeObsidian(async ({ app }) => {
+                    const plugin = (
+                        app as unknown as {
+                            plugins: {
+                                plugins: Record<
+                                    string,
+                                    {
+                                        vimrcLoaded?: boolean;
+                                        vimrcCommandCount?: number;
+                                        leaderRegistry?: {
+                                            getLeaderKey: () => string;
+                                        };
+                                    }
+                                >;
+                            };
+                        }
+                    ).plugins.plugins['vim-motions'];
+                    let vimrcContent: string | null = null;
+                    try {
+                        vimrcContent =
+                            await app.vault.adapter.read('.obsidian.vimrc');
+                    } catch {
+                        vimrcContent = 'READ_ERROR';
+                    }
+                    const files = app.vault.getFiles().map((f) => f.path);
+                    return {
+                        vimrcLoaded: plugin?.vimrcLoaded,
+                        vimrcCommandCount: plugin?.vimrcCommandCount,
+                        leaderKey: plugin?.leaderRegistry?.getLeaderKey(),
+                        vimrcContent,
+                        fileCount: files.length,
+                        vimrcInFiles: files.some((f) => f.includes('vimrc')),
+                    };
+                })) as Record<string, unknown>;
+                console.log(
+                    'EasyMotion before() diagnostic:',
+                    JSON.stringify(diag),
+                );
+            });
+
+            it('space+j should move cursor down (mapped to gj)', async function () {
+                await setupEditor('line one\nline two\nline three', {
+                    line: 0,
+                    ch: 0,
+                });
+                const result = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const Vim = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, ' ');
+                        Vim.handleKey(adapter, 'j');
+                        const cursor = view.editor.getCursor();
+                        return { line: cursor.line, ch: cursor.ch };
+                    },
+                )) as { line: number; ch: number };
+                expect(result.line).toBe(1);
+            });
+
+            it('space should not insert a literal space in normal mode', async function () {
+                await setupEditor('hello', { line: 0, ch: 0 });
+                const result = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const Vim = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '<Esc>');
+                        Vim.handleKey(adapter, ' ');
+                        return { value: view.editor.getValue() };
+                    },
+                )) as { value: string };
+                expect(result.value).toBe('hello');
+            });
+        });
+
+        describe('EasyMotion with custom leader via reregisterLeaderFeatures', function () {
+            it(',,w should trigger EasyMotion overlay after leader change to comma', async function () {
+                await setupEditor('Hello world foo bar baz', {
+                    line: 0,
+                    ch: 0,
+                });
+                const result = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const plugin = (
+                            app as unknown as {
+                                plugins: {
+                                    plugins: Record<
+                                        string,
+                                        {
+                                            leaderRegistry?: {
+                                                setLeaderKey: (
+                                                    k: string,
+                                                ) => void;
+                                                getLeaderKey: () => string;
+                                            };
+                                            reregisterLeaderFeatures?: () => void;
+                                        }
+                                    >;
+                                };
+                            }
+                        ).plugins.plugins['vim-motions'];
+                        if (
+                            !plugin?.leaderRegistry ||
+                            !plugin.reregisterLeaderFeatures
+                        )
+                            return { error: 'No plugin API' };
+
+                        plugin.leaderRegistry.setLeaderKey(',');
+                        plugin.reregisterLeaderFeatures();
+
+                        const Vim = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.setValue('Hello world foo bar baz');
+                        view.editor.setCursor(0, 0);
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, ',');
+                        Vim.handleKey(adapter, ',');
+                        Vim.handleKey(adapter, 'w');
+                        const hasOverlay = !!activeDocument.querySelector(
+                            '.vim-motions-easymotion',
+                        );
+                        return {
+                            success: true,
+                            hasOverlay,
+                            leaderKey: plugin.leaderRegistry.getLeaderKey(),
+                        };
+                    },
+                )) as Record<string, unknown>;
+                expect(result).toHaveProperty('success', true);
+                expect(result).toHaveProperty('leaderKey', ',');
+                expect(result).toHaveProperty('hasOverlay', true);
+                await sendVimEscape();
+                await browser.pause(200);
+            });
+
+            it('\\\\w should NOT trigger EasyMotion after leader change to comma', async function () {
+                // Dismiss any leftover overlay from the previous test
+                await browser.executeObsidian(() => {
+                    activeDocument
+                        .querySelectorAll('.vim-motions-easymotion')
+                        .forEach((el) => el.remove());
+                });
+                await browser.pause(100);
+                await setupEditor('Hello world foo bar baz', {
+                    line: 0,
+                    ch: 0,
+                });
+                const result = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const Vim = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    Vim?: {
+                                        handleKey: (
+                                            cm: unknown,
+                                            key: string,
+                                        ) => boolean;
+                                    };
+                                };
+                            }
+                        ).CodeMirrorAdapter?.Vim;
+                        if (!Vim) return { error: 'No Vim' };
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return { error: 'No view' };
+                        view.editor.setValue('Hello world foo bar baz');
+                        view.editor.setCursor(0, 0);
+                        view.editor.focus();
+                        const cm = (
+                            view.editor as unknown as Record<string, unknown>
+                        ).cm as Record<string, unknown>;
+                        const adapter = cm?.cm;
+                        if (!adapter) return { error: 'No adapter' };
+                        Vim.handleKey(adapter, '\\');
+                        Vim.handleKey(adapter, '\\');
+                        Vim.handleKey(adapter, 'w');
+                        const hasOverlay = !!activeDocument.querySelector(
+                            '.vim-motions-easymotion',
+                        );
+                        return { success: true, hasOverlay };
+                    },
+                )) as { success: boolean; hasOverlay: boolean };
+                expect(result).toHaveProperty('success', true);
+                expect(result).toHaveProperty('hasOverlay', false);
+                await sendVimEscape();
+                await browser.pause(200);
+            });
+        });
+    });
+
     describe('fold emulation via exmap + obcommand', function () {
         before(async function () {
             await loadVimrc(

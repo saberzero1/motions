@@ -18,7 +18,6 @@ import { VimModeTracker } from './vim/mode-tracker';
 import { ScrolloffManager, createScrolloffExtension } from './vim/scrolloff';
 import { loadVimrc, applyVimrcMaps } from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
-import type { VimApi } from './types/vim-api';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { getVimApi, isVimEnabled, getCmAdapter } from './vim/vim-api';
@@ -154,7 +153,6 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     this.vimrcMaps = vimrcResult.maps;
                     applyVimrcMaps(vim, this.vimrcMaps);
-                    this.reapplySettingsLeaderBindings(vim);
                     this.reregisterLeaderFeatures();
                     this.rebuildWhichKey();
                     this.vimrcLoaded = true;
@@ -178,11 +176,13 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableTableNav) {
             registerTableMotions(this.registration);
+            this.registration.beginLeaderScope();
             registerTableActions(
                 this.registration,
                 this.app,
                 this.leaderRegistry ?? undefined,
             );
+            this.registration.endLeaderScope();
         }
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
@@ -195,6 +195,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
             registerExCommands(this.registration, this.app, vim);
         }
+        this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion) {
             registerEasyMotion(
                 this.registration,
@@ -213,6 +214,7 @@ export default class VimMotionsPlugin extends Plugin {
             });
             this.setupHintModeWindows();
         }
+        this.registration.endLeaderScope();
 
         // --- Neovim default remaps (always on, use map so user vimrc noremap can override) ---
         this.registration.map('Y', 'y$', 'normal');
@@ -282,14 +284,12 @@ export default class VimMotionsPlugin extends Plugin {
         this.addSettingTab(new VimMotionsSettingTab(this.app, this));
 
         // --- Leader bindings from settings UI ---
-        for (const binding of this.settings.leaderBindings) {
-            if (binding.key && binding.commandId) {
-                const leaderKey = this.leaderRegistry.getLeaderKey();
-                const lhs = leaderKey + binding.key;
-                vim.map(lhs, ':ob ' + binding.commandId);
-                this.leaderRegistry.addBinding(lhs, ':ob ' + binding.commandId);
-            }
-        }
+        this.registration.beginLeaderScope();
+        this.applySettingsLeaderBindings(
+            this.registration,
+            this.leaderRegistry,
+        );
+        this.registration.endLeaderScope();
 
         // --- Insert escape handler ---
         this.insertEscapeHandler = new InsertEscapeHandler(this.app, vim);
@@ -346,11 +346,13 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableTableNav) {
             registerTableMotions(this.registration);
+            this.registration.beginLeaderScope();
             registerTableActions(
                 this.registration,
                 this.app,
                 this.leaderRegistry ?? undefined,
             );
+            this.registration.endLeaderScope();
         }
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
@@ -363,6 +365,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
             registerExCommands(this.registration, this.app, vim);
         }
+        this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && this.leaderRegistry) {
             registerEasyMotion(
                 this.registration,
@@ -375,6 +378,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHintMode && this.leaderRegistry) {
             this.registerHintMode(this.registration, this.leaderRegistry);
         }
+        this.registration.endLeaderScope();
         this.registration.map('Y', 'y$', 'normal');
         this.registration.map('Q', '@@', 'normal');
 
@@ -465,9 +469,11 @@ export default class VimMotionsPlugin extends Plugin {
 
     private reregisterLeaderFeatures(): void {
         if (!this.registration || !this.leaderRegistry) return;
+        this.registration.unregisterLeaderBindings();
         this.leaderRegistry.clearBuiltinBindings();
-        if (this.settings.enableWorkspaceNav) {
-            registerWorkspaceNavigation(
+        this.registration.beginLeaderScope();
+        if (this.settings.enableTableNav) {
+            registerTableActions(
                 this.registration,
                 this.app,
                 this.leaderRegistry,
@@ -485,6 +491,11 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHintMode) {
             this.registerHintMode(this.registration, this.leaderRegistry);
         }
+        this.applySettingsLeaderBindings(
+            this.registration,
+            this.leaderRegistry,
+        );
+        this.registration.endLeaderScope();
     }
 
     private hintModeAction: (() => void) | null = null;
@@ -573,20 +584,16 @@ export default class VimMotionsPlugin extends Plugin {
         this.hintWindowDocs.clear();
     }
 
-    private reapplySettingsLeaderBindings(vim: VimApi): void {
-        if (!this.leaderRegistry) return;
-        const leaderKey = this.leaderRegistry.getLeaderKey();
+    private applySettingsLeaderBindings(
+        reg: VimRegistration,
+        leaderRegistry: LeaderRegistry,
+    ): void {
+        const leaderKey = leaderRegistry.getLeaderKey();
         for (const binding of this.settings.leaderBindings) {
             if (!binding.key || !binding.commandId) continue;
-            const oldLhs = '\\' + binding.key;
-            try {
-                vim.unmap(oldLhs);
-            } catch {
-                /* old binding may not exist */
-            }
             const lhs = leaderKey + binding.key;
-            vim.map(lhs, ':ob ' + binding.commandId);
-            this.leaderRegistry.addBinding(lhs, ':ob ' + binding.commandId);
+            reg.map(lhs, ':ob ' + binding.commandId);
+            leaderRegistry.addBinding(lhs, ':ob ' + binding.commandId);
         }
     }
 

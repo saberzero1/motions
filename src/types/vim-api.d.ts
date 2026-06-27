@@ -179,6 +179,8 @@ export interface VimApi {
         extra?: Record<string, unknown>,
     ): void;
 
+    removeMapCommand(keys: string): boolean;
+
     handleKey(cm: CmAdapter, key: string, origin?: string): boolean;
     handleEx(cm: CmAdapter, input: string): void;
 
