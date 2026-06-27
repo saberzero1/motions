@@ -202,7 +202,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
-                this.settings.easyMotionDimming,
+                () => this.settings.easyMotionDimming,
             );
         }
         if (this.settings.enableHintMode) {
@@ -372,7 +372,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
-                this.settings.easyMotionDimming,
+                () => this.settings.easyMotionDimming,
             );
         }
         if (this.settings.enableHintMode && this.leaderRegistry) {
@@ -485,7 +485,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings.easyMotionLabels,
                 this.leaderRegistry,
-                this.settings.easyMotionDimming,
+                () => this.settings.easyMotionDimming,
             );
         }
         if (this.settings.enableHintMode) {

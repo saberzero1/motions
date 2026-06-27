@@ -266,6 +266,8 @@ Jump to any visible position with two keystrokes.
 
 All easymotion motions work in visual mode — `v` + easymotion extends the character selection, `V` + easymotion extends the line selection. Operator-pending mode (`d` + easymotion, `c` + easymotion, `y` + easymotion) works natively via the fork's async motion support.
 
+**Live Preview aware**: in Live Preview mode, hidden markdown syntax (e.g., the URL in `[text](url)`, collapsed formatting marks) is excluded from target scanning — labels only appear on visible text. When targets are close together, labels stack vertically instead of overlapping.
+
 All easymotion actions can be remapped in `.obsidian.vimrc`. Bidirectional variants (`easyMotionBdWord`, `easyMotionBdFind`, etc.) and repeat (`easyMotionRepeat`) are also available as named actions.
 
 ### Hint mode (Vimium-style navigation)

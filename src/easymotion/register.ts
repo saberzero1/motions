@@ -16,7 +16,7 @@ import {
     findSearchTargets,
 } from './targets';
 import { assignLabels } from './labels';
-import { showOverlay } from './overlay';
+import { showOverlay, filterVisibleTargets } from './overlay';
 import { waitForKey, waitForLabel } from './keypress';
 
 const DEFAULT_LABELS = 'asdghklqwertyuiopzxcvbnmfj';
@@ -24,20 +24,20 @@ const DEFAULT_LABELS = 'asdghklqwertyuiopzxcvbnmfj';
 type MotionTriggerFactory = (
     app: App,
     labels: string,
-    shade: boolean,
+    shade: () => boolean,
 ) => (cm: CmAdapter) => Promise<{ line: number; ch: number } | null>;
 
 function createMotionTrigger(
     labels: string,
-    shade: boolean,
+    shade: () => boolean,
     findTargets: (cm: CmAdapter) => Target[],
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
-        const targets = findTargets(cm);
+        const targets = filterVisibleTargets(cm, findTargets(cm));
         if (targets.length === 0) return null;
 
         const labeled = assignLabels(targets, labels);
-        const overlay = showOverlay(cm, labeled, { shade });
+        const overlay = showOverlay(cm, labeled, { shade: shade() });
         if (!overlay) return null;
 
         try {
@@ -53,18 +53,18 @@ function createMotionTrigger(
 
 function createCharMotionTrigger(
     labels: string,
-    shade: boolean,
+    shade: () => boolean,
     findTargets: (cm: CmAdapter, char: string) => Target[],
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
         const charKey = await waitForKey();
         if (!charKey || charKey.length !== 1) return null;
 
-        const targets = findTargets(cm, charKey);
+        const targets = filterVisibleTargets(cm, findTargets(cm, charKey));
         if (targets.length === 0) return null;
 
         const labeled = assignLabels(targets, labels);
-        const overlay = showOverlay(cm, labeled, { shade });
+        const overlay = showOverlay(cm, labeled, { shade: shade() });
         if (!overlay) return null;
 
         try {
@@ -283,10 +283,9 @@ export function registerEasyMotion(
     app: App,
     labels: string | undefined,
     leaderRegistry: LeaderRegistry,
-    dimming?: boolean,
+    dimming: () => boolean,
 ): void {
     const chars = labels ?? DEFAULT_LABELS;
-    const shade = dimming ?? true;
     const leader = leaderRegistry.getLeaderKey();
 
     // Unmap the leader key's default binding (e.g. <Space> → l) so that
@@ -295,7 +294,7 @@ export function registerEasyMotion(
     reg.unmapDefaultBinding(leader);
 
     for (const def of EASYMOTION_DEFS) {
-        const motionFactory = def.createTrigger(app, chars, shade);
+        const motionFactory = def.createTrigger(app, chars, dimming);
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
             return motionFactory(cm);
@@ -306,7 +305,7 @@ export function registerEasyMotion(
     }
 
     for (const def of EXTRA_DEFS) {
-        const motionFactory = def.createTrigger(app, chars, shade);
+        const motionFactory = def.createTrigger(app, chars, dimming);
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
             return motionFactory(cm);
