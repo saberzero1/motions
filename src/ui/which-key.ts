@@ -12,6 +12,7 @@ export interface LeaderBinding {
 interface WhichKeyEntry {
     key: string;
     description: string;
+    group?: boolean;
 }
 
 const SHOW_DELAY = 500;
@@ -63,6 +64,7 @@ function buildNextKeyEntries(
         toKeys?: string;
         operatorPending?: boolean;
     }>,
+    groupLabels?: Map<string, string>,
 ): WhichKeyEntry[] {
     const groups = new Map<
         string,
@@ -87,7 +89,8 @@ function buildNextKeyEntries(
         group.push(entry);
     }
 
-    const result: WhichKeyEntry[] = [];
+    const groupEntries: WhichKeyEntry[] = [];
+    const singleEntries: WhichKeyEntry[] = [];
     for (const [key, group] of groups) {
         if (group.length === 1) {
             const entry = group[0]!;
@@ -95,35 +98,44 @@ function buildNextKeyEntries(
                 entry.keys.length > key.length
                     ? entry.keys.slice(key.length)
                     : '';
-            result.push({
+            const whichEntry: WhichKeyEntry = {
                 key: entry.keys,
                 description: describeKeymapEntry(entry),
-            });
+            };
             if (suffix) {
-                result[result.length - 1]!.key = key + suffix;
+                whichEntry.key = key + suffix;
             }
+            singleEntries.push(whichEntry);
         } else {
             const singleChar = group.filter((e) => e.keys === key);
             if (singleChar.length > 0) {
-                result.push({
+                singleEntries.push({
                     key,
                     description: describeKeymapEntry(singleChar[0]!),
                 });
             }
             const multiChar = group.filter((e) => e.keys !== key);
             if (multiChar.length > 0) {
-                const label =
+                const customLabel = groupLabels?.get(key);
+                const fallback =
                     singleChar.length > 0
                         ? `+${multiChar.length} more`
                         : `+${multiChar.length} keys`;
+                const label = customLabel
+                    ? `${customLabel} (+${multiChar.length})`
+                    : fallback;
                 if (singleChar.length === 0) {
-                    result.push({ key, description: label });
+                    groupEntries.push({
+                        key,
+                        description: label,
+                        group: true,
+                    });
                 }
             }
         }
     }
 
-    return result;
+    return [...groupEntries, ...singleEntries];
 }
 
 function getVimStatus(adapter: CmAdapter): string {
@@ -160,6 +172,8 @@ export class WhichKeyOverlay {
     private leaderKey: string;
     private leaderBindings: LeaderBinding[];
     private generalMode: boolean;
+    private groupLeaderBindings: boolean;
+    private groupLabels: Map<string, string>;
     private overlay: HTMLElement | null = null;
     private showTimer: number | null = null;
     private keyHandler: ((key: string) => void) | null = null;
@@ -168,6 +182,7 @@ export class WhichKeyOverlay {
         null;
     private lastAdapter: CmAdapter | null = null;
     private pendingLeader = false;
+    private leaderPrefix = '';
     private lastStatus = '';
 
     constructor(
@@ -175,11 +190,15 @@ export class WhichKeyOverlay {
         leaderKey: string,
         leaderBindings: LeaderBinding[],
         generalMode: boolean,
+        groupLeaderBindings: boolean,
+        groupLabels: Map<string, string>,
     ) {
         this.app = app;
         this.leaderKey = leaderKey;
         this.leaderBindings = leaderBindings;
         this.generalMode = generalMode;
+        this.groupLeaderBindings = groupLeaderBindings;
+        this.groupLabels = groupLabels;
     }
 
     attach(): void {
@@ -260,6 +279,7 @@ export class WhichKeyOverlay {
     private onKeyPressLeaderOnly(key: string): void {
         if (key === this.leaderKey && !this.pendingLeader) {
             this.pendingLeader = true;
+            this.leaderPrefix = '';
             this.clearTimer();
             this.showTimer = window.setTimeout(() => {
                 if (this.pendingLeader) {
@@ -267,6 +287,18 @@ export class WhichKeyOverlay {
                 }
             }, SHOW_DELAY);
             return;
+        }
+
+        if (this.pendingLeader && this.groupLeaderBindings && this.overlay) {
+            const nextPrefix = this.leaderPrefix + key;
+            const matching = this.leaderBindings.filter((b) =>
+                b.key.startsWith(nextPrefix),
+            );
+            if (matching.length > 1) {
+                this.leaderPrefix = nextPrefix;
+                this.showLeaderBindings();
+                return;
+            }
         }
 
         if (this.pendingLeader) {
@@ -306,11 +338,51 @@ export class WhichKeyOverlay {
     }
 
     private showLeaderBindings(): void {
-        const entries: WhichKeyEntry[] = this.leaderBindings.map((b) => ({
-            key: b.key,
-            description: b.command,
+        const prefix = this.leaderPrefix;
+        const filtered = prefix
+            ? this.leaderBindings.filter((b) => b.key.startsWith(prefix))
+            : this.leaderBindings;
+
+        const titlePrefix = prefix
+            ? `${this.leaderKey} ${prefix} \u2026`
+            : `${this.leaderKey} \u2026`;
+
+        if (!this.groupLeaderBindings) {
+            const entries: WhichKeyEntry[] = filtered.map((b) => ({
+                key: prefix ? b.key.slice(prefix.length) : b.key,
+                description: b.command,
+            }));
+            this.showOverlay(titlePrefix, entries);
+            return;
+        }
+
+        const bindingsForGrouping = filtered.map((b) => ({
+            keys: prefix ? b.key.slice(prefix.length) : b.key,
+            type: 'action' as const,
+            action: b.command,
         }));
-        this.showOverlay(`${this.leaderKey} \u2026`, entries);
+
+        const absolutePrefix = this.leaderKey + prefix;
+        const relativeLabels = this.getRelativeGroupLabels(absolutePrefix);
+
+        const entries = buildNextKeyEntries(
+            bindingsForGrouping,
+            relativeLabels,
+        );
+        this.showOverlay(titlePrefix, entries);
+    }
+
+    private getRelativeGroupLabels(keyBuffer: string): Map<string, string> {
+        const relative = new Map<string, string>();
+        for (const [key, label] of this.groupLabels) {
+            if (keyBuffer && key.startsWith(keyBuffer)) {
+                const rel = key.slice(keyBuffer.length);
+                if (rel) relative.set(rel, label);
+            } else if (!keyBuffer) {
+                relative.set(key, label);
+            }
+        }
+        return relative;
     }
 
     private showCompletions(
@@ -329,26 +401,72 @@ export class WhichKeyOverlay {
             if (typeof vim.getKeymap !== 'function') return;
             const keymap = vim.getKeymap(context);
             const filtered = keymap.filter((e) => isValidInOperatorPending(e));
-            const grouped = buildNextKeyEntries(filtered);
+            const labels = this.getRelativeGroupLabels('');
+            const grouped = buildNextKeyEntries(filtered, labels);
             entries.push(...grouped);
         } else if (keyBuffer) {
             if (typeof vim.getCompletions !== 'function') return;
             const effectiveContext = opPending ? 'operatorPending' : context;
             const completions = vim.getCompletions(keyBuffer, effectiveContext);
 
+            const isLeaderScope =
+                !opPending && keyBuffer.startsWith(this.leaderKey);
+
             const leaderBindingMap = new Map<string, string>();
-            if (!opPending && keyBuffer === this.leaderKey) {
+            if (isLeaderScope) {
+                const leaderSuffix = keyBuffer.slice(this.leaderKey.length);
                 for (const b of this.leaderBindings) {
-                    leaderBindingMap.set(b.key, b.command);
+                    if (!leaderSuffix || b.key.startsWith(leaderSuffix)) {
+                        const rel = leaderSuffix
+                            ? b.key.slice(leaderSuffix.length)
+                            : b.key;
+                        leaderBindingMap.set(rel, b.command);
+                    }
                 }
             }
 
-            for (const c of completions) {
-                const leaderDesc = leaderBindingMap.get(c.suffix);
-                entries.push({
-                    key: c.suffix,
-                    description: leaderDesc ?? describeKeymapEntry(c),
-                });
+            if (this.groupLeaderBindings) {
+                const completionEntries = completions.map((c) => ({
+                    keys: c.suffix,
+                    type: c.type ?? 'action',
+                    operator: (c as Record<string, unknown>).operator as
+                        | string
+                        | undefined,
+                    motion: (c as Record<string, unknown>).motion as
+                        | string
+                        | undefined,
+                    action:
+                        leaderBindingMap.get(c.suffix) ??
+                        ((c as Record<string, unknown>).action as
+                            | string
+                            | undefined),
+                    toKeys: (c as Record<string, unknown>).toKeys as
+                        | string
+                        | undefined,
+                }));
+
+                const labels = this.getRelativeGroupLabels(keyBuffer);
+                const grouped = buildNextKeyEntries(completionEntries, labels);
+
+                if (grouped.length > 0) {
+                    entries.push(...grouped);
+                } else {
+                    for (const c of completions) {
+                        const desc = leaderBindingMap.get(c.suffix);
+                        entries.push({
+                            key: c.suffix,
+                            description: desc ?? describeKeymapEntry(c),
+                        });
+                    }
+                }
+            } else {
+                for (const c of completions) {
+                    const desc = leaderBindingMap.get(c.suffix);
+                    entries.push({
+                        key: c.suffix,
+                        description: desc ?? describeKeymapEntry(c),
+                    });
+                }
             }
         }
 
@@ -382,9 +500,10 @@ export class WhichKeyOverlay {
         });
 
         for (const entry of entries) {
-            const row = grid.createEl('div', {
-                cls: 'vim-motions-which-key-row',
-            });
+            const rowCls = entry.group
+                ? 'vim-motions-which-key-row vim-motions-which-key-group'
+                : 'vim-motions-which-key-row';
+            const row = grid.createEl('div', { cls: rowCls });
             row.createEl('span', {
                 cls: 'vim-motions-which-key-key',
                 text: entry.key,
@@ -407,6 +526,7 @@ export class WhichKeyOverlay {
 
     private dismiss(): void {
         this.pendingLeader = false;
+        this.leaderPrefix = '';
         this.lastStatus = '';
         this.clearTimer();
         if (this.overlay) {
@@ -419,6 +539,10 @@ export class WhichKeyOverlay {
 export class LeaderRegistry {
     private leaderKey = '\\';
     private bindings: LeaderBinding[] = [];
+    private groupLabels = new Map<
+        string,
+        { label: string; builtin: boolean }
+    >();
 
     setLeaderKey(key: string): void {
         this.leaderKey = key;
@@ -447,11 +571,26 @@ export class LeaderRegistry {
         }
     }
 
+    addGroupLabel(prefix: string, label: string, builtin = false): void {
+        this.groupLabels.set(prefix, { label, builtin });
+    }
+
     clearBuiltinBindings(): void {
         this.bindings = this.bindings.filter((b) => b.source !== 'builtin');
+        for (const [key, entry] of this.groupLabels) {
+            if (entry.builtin) this.groupLabels.delete(key);
+        }
     }
 
     getBindings(): LeaderBinding[] {
         return [...this.bindings];
+    }
+
+    getGroupLabels(): Map<string, string> {
+        const result = new Map<string, string>();
+        for (const [key, entry] of this.groupLabels) {
+            result.set(key, entry.label);
+        }
+        return result;
     }
 }

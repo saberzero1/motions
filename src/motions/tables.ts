@@ -460,5 +460,6 @@ export function registerTableActions(
         const lhs = leaderKey + 'tr';
         reg.mapCommand(lhs, 'action', 'tableRealign', {});
         leaderRegistry.addBinding(lhs, 'Table: realign', 'builtin');
+        leaderRegistry.addGroupLabel('t', 'Table', true);
     }
 }

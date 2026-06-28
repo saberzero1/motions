@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Which-key leader grouping** — leader key bindings in the which-key overlay are now grouped by prefix key, matching Neovim's which-key plugin behavior. When grouping is enabled (default), pressing the leader key shows collapsed groups (e.g. `t` → `Table (+11)`, `\` → `EasyMotion (+17)`) instead of listing every binding individually. Pressing a group key drills down to show only bindings within that group. Configurable via **Settings → Vim Motions → Which-key leader grouping** (grouped / flat). ([#27](https://github.com/saberzero1/motions/issues/27))
+    - Groups are sorted first in the overlay, followed by ungrouped single-key bindings
+    - Group rows are visually distinct (accent color, italic) via the `.vim-motions-which-key-group` CSS class
+    - Grouping applies to all completions in "all partial keys" mode, not just leader-scoped bindings — any multi-key prefix (`g`, `z`, `[`, `]`, custom mappings) can be grouped
+    - Drill-down works in both "leader key only" and "all partial keys" which-key modes
+- **Which-key group labels** — configurable names for key groups in the which-key overlay. Prefix keys can be labeled (e.g. `\t` → `Table`, `gr` → `LSP`) instead of showing the generic `+N keys` text. Built-in features register default labels (Table, EasyMotion) that can be overridden. Labels support `<leader>` token expansion (e.g. `<leader>t` resolves to the actual leader key + `t`). Configurable via **Settings → Vim Motions → Which-key group labels**.
 - E2E test suite `test/specs/vim-state-hardening.e2e.ts` with 7 tests: blur prefix recovery, `gg`/`G` after plugin reload, keymap protection via `unmap()`, `resetKeymap()` recovery after force-unmap, `leaveVimMode` cleanup from insert mode
 - Fork unit tests: 10 new tests for async motion generation tracking (superseded motion discarded, superseded delete discarded), keymap protection (`unmap` skips defaults, `unmap` removes user mapping preserving default, `unmap gg` preserves default, `resetKeymap` restores after force-unmap, `resetKeymap` preserves user mappings, `mapclear` preserves defaults), `leaveVimMode` cleanup (clears input state, cleanup from insert mode)
 - Fork test count: 1672 (up from 1660)

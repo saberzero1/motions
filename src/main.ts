@@ -463,11 +463,27 @@ export default class VimMotionsPlugin extends Plugin {
         if (mode === 'off') return;
         if (!generalMode && bindings.length === 0) return;
 
+        const registryLabels = this.leaderRegistry.getGroupLabels();
+        const groupLabels = new Map<string, string>();
+        for (const [key, label] of registryLabels) {
+            groupLabels.set(leaderKey + key, label);
+        }
+        for (const entry of this.settings.whichKeyGroupLabels) {
+            if (entry.key && entry.label) {
+                const expandedKey = entry.key
+                    .trim()
+                    .replace(/<leader>/gi, leaderKey);
+                groupLabels.set(expandedKey, entry.label);
+            }
+        }
+
         this.whichKeyOverlay = new WhichKeyOverlay(
             this.app,
             leaderKey,
             bindings,
             generalMode,
+            this.settings.whichKeyGrouping === 'grouped',
+            groupLabels,
         );
         this.whichKeyOverlay.attach();
     }

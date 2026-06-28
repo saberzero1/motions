@@ -175,11 +175,28 @@ In "all" mode, the overlay reads the fork's `getInputState()` to detect operator
 
 The overlay attaches to the active editor pane's `contentEl` with `position: absolute`, so it stays within the editor bounds and doesn't cover other panes. Maximum height is 40% of the pane. The multi-column grid layout uses `auto-fill` with `minmax(200px, 1fr)` columns.
 
-Limitations:
+### Grouping
+
+When **Which-key leader grouping** is set to "Grouped" (default), bindings sharing a common prefix key are collapsed into a single group entry (e.g. `t` → `Table (+11)`). Pressing the group key drills down to show only the bindings within that group. Groups are sorted before ungrouped entries. Setting the mode to "Flat" restores the original behavior of listing all bindings individually.
+
+Grouping applies to all completions — not just leader-scoped bindings. Any multi-key prefix (`g`, `z`, `[`, `]`, user-defined sequences) benefits from grouping when multiple completions share a next key.
+
+### Group labels
+
+Groups are labeled with a generic `+N keys` text by default. Custom labels can be configured via **Settings → Vim Motions → Which-key group labels** using the full key prefix:
+
+- Leader-relative groups: use the leader character + prefix (e.g. `\t` for table commands under leader `\`)
+- Non-leader groups: use the raw prefix (e.g. `gr` for LSP commands, `cs` for surround changes)
+- `<leader>` token: expanded to the actual leader key (e.g. `<leader>t` resolves to `\t` with default leader)
+
+Built-in features register default labels (Table, EasyMotion) that user entries can override. Whitespace in the prefix field is trimmed.
+
+### Limitations
 
 - The 500ms delay is hardcoded (not configurable via settings)
 - User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions (shown as the raw rhs key sequence)
 - The overlay does not show during macro playback or when a register prefix (`"a`) is pending
+- In "leader key only" mode, drill-down requires the overlay to be visible (500ms delay must elapse before pressing the group key)
 
 ## `<C-w>` prefix conflict with Obsidian hotkeys
 

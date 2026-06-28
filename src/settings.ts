@@ -29,6 +29,11 @@ export interface LeaderBinding {
     commandId: string;
 }
 
+export interface GroupLabel {
+    key: string;
+    label: string;
+}
+
 export interface ModePrompts {
     normal: string;
     insert: string;
@@ -84,6 +89,8 @@ export interface VimMotionsSettings {
     labelFontSize: number;
     cursorShapes: CursorShapes;
     whichKeyMode: 'off' | 'leader' | 'all';
+    whichKeyGrouping: 'flat' | 'grouped';
+    whichKeyGroupLabels: GroupLabel[];
     leaderBindings: LeaderBinding[];
 }
 
@@ -110,6 +117,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     labelFontSize: 14,
     cursorShapes: { ...DEFAULT_CURSOR_SHAPES },
     whichKeyMode: 'off',
+    whichKeyGrouping: 'grouped',
+    whichKeyGroupLabels: [],
     leaderBindings: [],
 };
 
@@ -637,6 +646,41 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
+        new Setting(containerEl)
+            .setName('Which-key leader grouping')
+            .setDesc(
+                'How leader key bindings are displayed. ' +
+                    '"Grouped" collapses bindings by prefix (e.g. t \u2192 +5 keys) and lets you drill down. ' +
+                    '"Flat" shows all bindings at once.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        grouped: 'Grouped',
+                        flat: 'Flat',
+                    })
+                    .setValue(this.plugin.settings.whichKeyGrouping)
+                    .onChange(async (value) => {
+                        this.plugin.settings.whichKeyGrouping = value as
+                            | 'flat'
+                            | 'grouped';
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl).setName('Which-key group labels').setHeading();
+        new Setting(containerEl).setDesc(
+            'Name groups by their full key prefix. Use the leader character + prefix for leader groups ' +
+                '(e.g. "\\t" for table), or a raw prefix for non-leader groups (e.g. "cs" for surround changes). ' +
+                'Built-in features register default labels that your entries can override.',
+        );
+
+        const groupLabelsContainer = containerEl.createDiv({
+            cls: 'vim-motions-group-labels',
+        });
+        this.renderGroupLabels(groupLabelsContainer);
+
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(
             `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
@@ -646,6 +690,60 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             cls: 'vim-motions-leader-bindings',
         });
         this.renderLeaderBindings(bindingsContainer);
+    }
+
+    private renderGroupLabels(container: HTMLElement): void {
+        container.empty();
+        const labels = this.plugin.settings.whichKeyGroupLabels;
+
+        for (let i = 0; i < labels.length; i++) {
+            const entry = labels[i];
+            if (!entry) continue;
+            const setting = new Setting(container)
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Prefix (e.g., t)')
+                        .setValue(entry.key)
+                        .onChange(async (value) => {
+                            entry.key = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Label (e.g., table)')
+                        .setValue(entry.label)
+                        .onChange(async (value) => {
+                            entry.label = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
+                .addExtraButton((button) =>
+                    button
+                        .setIcon('cross')
+                        .setTooltip('Remove')
+                        .onClick(async () => {
+                            labels.splice(i, 1);
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                            this.renderGroupLabels(container);
+                        }),
+                );
+            setting.settingEl.addClass('vim-motions-leader-binding-row');
+        }
+
+        new Setting(container).addButton((button) =>
+            button
+                .setButtonText('Add group label')
+                .setCta()
+                .onClick(async () => {
+                    labels.push({ key: '', label: '' });
+                    await this.plugin.saveSettings();
+                    this.renderGroupLabels(container);
+                }),
+        );
     }
 
     private renderLeaderBindings(container: HTMLElement): void {

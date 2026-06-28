@@ -293,7 +293,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar. Customizable per-mode text (including emoji) via settings.
 - **Vim chord display** — shows pending keystrokes (e.g. `2d`, `gq`) in the status bar as you type a multi-key command.
 - **Powerline-style status bar** — optional colored mode indicator with per-mode background colors and a triangular separator. No special fonts required. Override colors via CSS custom properties (`--vim-pl-normal-bg`, etc.).
-- **Which-key hints** — shows available key continuations in a popup after a short delay. Configurable: off, leader key only, or all partial keys. In "all" mode, pressing `d` shows available motions/text objects, `g` shows g-prefixed commands, etc.
+- **Which-key hints** — shows available key continuations in a popup after a short delay. Configurable: off, leader key only, or all partial keys. In "all" mode, pressing `d` shows available motions/text objects, `g` shows g-prefixed commands, etc. Leader bindings can be grouped by prefix (like Neovim's which-key plugin) — pressing `<leader>` shows `t` → `Table (+11)` instead of listing all table commands. Drill into a group by pressing its key. Grouping mode (grouped/flat) and custom group labels are configurable in settings.
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
 - **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
@@ -361,6 +361,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Multi-line text object scan range (5–200, default: 20)
 - EasyMotion label characters (customizable)
 - Which-key hints (off / leader key only / all partial keys, default: off)
+- Which-key leader grouping (grouped / flat, default: grouped) — collapse bindings by prefix with drill-down
+- Which-key group labels — name groups by prefix key (e.g. `\t` → Table); supports `<leader>` expansion
 - Leader key bindings (add/remove key-to-command mappings without editing vimrc)
 
 ## Installation

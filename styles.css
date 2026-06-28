@@ -206,6 +206,11 @@
     text-overflow: ellipsis;
 }
 
+.vim-motions-which-key-group .vim-motions-which-key-cmd {
+    color: var(--text-accent);
+    font-style: italic;
+}
+
 .vim-motions-leader-binding-row .setting-item-control {
     gap: 6px;
 }
