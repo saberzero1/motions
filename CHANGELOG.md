@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`gg`/`G` and other keymaps intermittently stop working** — comprehensive vim state hardening across the codemirror-vim fork and plugin to prevent keymaps from breaking until app reload. Root causes identified and fixed: stale normal-mode key prefix state persisting across focus changes, global singleton keymap corruption via `unmap()` removing default entries, incomplete `leaveVimMode()` cleanup leaking insert-mode listeners, and async motion race conditions. ([#18](https://github.com/saberzero1/motions/issues/18))
+    - **Fork: blur handler resets partial key prefixes** — the CM6 ViewPlugin now registers a `blur` listener on `contentDOM` that calls `clearInputState()` when the editor loses focus in normal mode. A stale prefix like `g` no longer persists across tab switches or modal opens, preventing the next keystroke from being silently swallowed.
+    - **Fork: `leaveVimMode()` cleanup hardened** — now removes insert-mode `change`/`keydown` listeners if the editor was destroyed while in insert mode, clears the global `lastInsertModeKeyTimer`, clears `virtualPrompt`, and resets `inputState` before nulling `cm.state.vim`.
+    - **Fork: default keymaps protected from `unmap()`** — default keymap entries are tagged with `_isDefault` and a frozen snapshot is stored at module init. `unmap()` now skips default entries unless explicitly requested. New `Vim.resetKeymap()` API restores defaults from the snapshot while preserving user mappings. `mapclear()` updated to use the `_isDefault` flag instead of fragile index-based partitioning.
+    - **Fork: async motion generation tracking** — `_commandGeneration` counter on vim state prevents stale async motion callbacks from executing after a newer command has already run. Protects EasyMotion operator-pending mode (`d` + easymotion) from race conditions.
+    - **Plugin: pane-switch state reset** — `active-leaf-change` handler now clears pending vim input state on all editors when switching panes, preventing partial commands from leaking across editors.
+    - **Plugin: `resetKeymap()` on load** — calls `Vim.resetKeymap()` during plugin `onload()` to ensure a clean keymap baseline on plugin enable/reload, recovering from any prior corruption in the same app session.
+
+### Added
+
+- E2E test suite `test/specs/vim-state-hardening.e2e.ts` with 7 tests: blur prefix recovery, `gg`/`G` after plugin reload, keymap protection via `unmap()`, `resetKeymap()` recovery after force-unmap, `leaveVimMode` cleanup from insert mode
+- Fork unit tests: 10 new tests for async motion generation tracking (superseded motion discarded, superseded delete discarded), keymap protection (`unmap` skips defaults, `unmap` removes user mapping preserving default, `unmap gg` preserves default, `resetKeymap` restores after force-unmap, `resetKeymap` preserves user mappings, `mapclear` preserves defaults), `leaveVimMode` cleanup (clears input state, cleanup from insert mode)
+- Fork test count: 1672 (up from 1660)
+
+### Documentation
+
+- `DIFFERENCES.md` (fork): added sections for blur handler, `leaveVimMode` cleanup hardening, default keymap protection (`_isDefault` tagging, `resetKeymap()`, `mapclear()` update), async motion generation tracking, `clearInputState` API exposure
+- `KNOWN_LIMITATIONS.md`: added "Vim state hardening" section documenting the multi-layered defense against intermittent keymap breakage
+- `README.md`: added "Improved vim state reliability" bullet to recommended setup section
+
 ## [0.19.0] - 2026-06-27
 
 ### Fixed

@@ -71,8 +71,12 @@ export interface VimState {
     visualLine?: boolean;
     visualBlock?: boolean;
     lastSelection?: unknown;
-    inputState?: unknown;
+    inputState?: {
+        keyBuffer: string[];
+        [key: string]: unknown;
+    };
     marks?: Record<string, { find(): VimPos | undefined; clear(): void }>;
+    status?: string;
 }
 
 /** Keymap entry types used by Vim.mapCommand. */
@@ -191,6 +195,9 @@ export interface VimApi {
         aliases?: string[],
         callback?: (value: unknown, cm: CmAdapter) => void,
     ): void;
+
+    clearInputState(cm: CmAdapter, reason?: string): void;
+    resetKeymap(): void;
 
     setOption(name: string, value: unknown): void;
     getOption(name: string): unknown;

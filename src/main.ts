@@ -94,6 +94,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         // --- Vim API setup ---
+        vim.resetKeymap();
         registerVimOptions(vim);
         this.registration = new VimRegistration(vim);
 
@@ -102,6 +103,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableVimrc) {
             this.registerEvent(
                 this.app.workspace.on('active-leaf-change', async () => {
+                    this.resetVimInputStateOnPaneSwitch(vim);
+
                     if (this.vimrcLoaded) {
                         applyVimrcMaps(vim, this.vimrcMaps);
                         return;
@@ -599,6 +602,23 @@ export default class VimMotionsPlugin extends Plugin {
             reg.map(lhs, ':ob ' + binding.commandId);
             leaderRegistry.addBinding(lhs, ':ob ' + binding.commandId);
         }
+    }
+
+    private resetVimInputStateOnPaneSwitch(
+        vimApi: import('./types/vim-api').VimApi,
+    ): void {
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            const view = leaf.view;
+            if (view.getViewType() !== 'markdown') return;
+            const cm = getCmAdapter(view as MarkdownView);
+            if (!cm?.state?.vim) return;
+            const vimState = cm.state.vim;
+            const bufferLen = vimState.inputState?.keyBuffer?.length ?? 0;
+            if (bufferLen > 0 && !vimState.insertMode) {
+                vimApi.clearInputState(cm, 'pane-switch');
+                if (vimState.status) vimState.status = '';
+            }
+        });
     }
 
     onunload() {

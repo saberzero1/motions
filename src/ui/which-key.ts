@@ -127,7 +127,7 @@ function buildNextKeyEntries(
 }
 
 function getVimStatus(adapter: CmAdapter): string {
-    const vim = adapter.state.vim as unknown as { status?: string } | undefined;
+    const vim = adapter.state.vim;
     return vim?.status ?? '';
 }
 
