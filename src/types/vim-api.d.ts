@@ -173,7 +173,11 @@ export interface VimApi {
 
     map(lhs: string, rhs: string, context?: MapContext): void;
     noremap(lhs: string, rhs: string, context?: MapContext): void;
-    unmap(lhs: string, context?: MapContext): boolean;
+    unmap(
+        lhs: string,
+        context?: MapContext,
+        options?: { includeDefaults?: boolean },
+    ): boolean;
 
     mapCommand(
         keys: string,

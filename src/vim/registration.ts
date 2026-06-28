@@ -101,13 +101,13 @@ export class VimRegistration {
         const cmKey = keyToCmNotation(key);
         if (cmKey) {
             try {
-                this.vim.unmap(cmKey);
+                this.vim.unmap(cmKey, undefined, { includeDefaults: true });
             } catch {
                 /* no default binding for this key */
             }
         }
         try {
-            this.vim.unmap(key);
+            this.vim.unmap(key, undefined, { includeDefaults: true });
         } catch {
             /* no default binding for literal key — expected for backslash */
         }
