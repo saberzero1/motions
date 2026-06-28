@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-06-27
+
 ### Fixed
 
 - **`let mapleader = ","` (comma) and other keys with default Vim bindings not working as leader for EasyMotion** — `unmapDefaultBinding` now passes `{ includeDefaults: true }` to `vim.unmap()`, so built-in codemirror-vim bindings (e.g. `,` → `repeatLastCharacterSearch`, `;` → forward repeat) are actually removed before registering EasyMotion `mapCommand` multi-key sequences. Previously, `vim.unmap()` silently skipped `_isDefault` keymap entries, meaning the default single-key binding consumed the first keystroke before the multi-key sequence (e.g. `,,w`) could accumulate. Space as leader was unaffected because the default `<Space>` binding uses angle-bracket notation which doesn't collide with literal space in `commandMatch`. ([#6](https://github.com/saberzero1/motions/issues/6))
