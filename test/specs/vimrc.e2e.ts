@@ -158,7 +158,11 @@ describe('Vimrc support (Phase 2)', function () {
                                 name: string,
                                 args: Record<string, unknown>,
                             ) => void;
-                            unmap: (keys: string) => boolean;
+                            unmap: (
+                                keys: string,
+                                ctx?: string,
+                                options?: { includeDefaults?: boolean },
+                            ) => boolean;
                         };
                     };
                 }
@@ -170,7 +174,7 @@ describe('Vimrc support (Phase 2)', function () {
             if (!view) return { error: 'No view' };
 
             try {
-                Vim.unmap('<Space>');
+                Vim.unmap('<Space>', undefined, { includeDefaults: true });
             } catch {
                 /* may not exist */
             }
