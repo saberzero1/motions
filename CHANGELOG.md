@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-06-29
+
 ### Added
 
 - **Smart list continuation on `o`/`O`** — pressing `o` or `O` on a Markdown list line now automatically continues the list marker on the new line. Supports unordered lists (`- `, `* `, `+ `), ordered lists (`1. `, `1) `), task lists (`- [ ] `, `- [x] `), ordered task lists (`1. [ ] `), custom checkbox states (`- [!] `, `- [?] `, `- [/] `, etc.), indented lists, blockquote lists (`> - `), and nested blockquotes (`> > - `). Ordered lists increment the number for `o` (below) and keep the same number for `O` (above). Checked tasks always continue with an unchecked `[ ] `. Lines inside fenced code blocks are excluded. Controlled by **Settings → Vim Motions → Smart list continuation on o/O** (on by default). Disable for plain Neovim behavior.
@@ -17,8 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`O` on first line after frontmatter behaves like `o`** — pressing `O` on the first content line below YAML frontmatter inserted the new line into the frontmatter region (swallowed by Obsidian's properties UI) instead of above the current line. The smart list continuation override compared `curLine === cm.firstLine()`, which is always `false` when frontmatter is present (firstLine is 0, cursor is on line 3+). Added `firstEditableLine()` helper that scans past `---`-delimited frontmatter to find the true first content line, and changed the boundary check to `curLine <= firstEditableLine(cm)`. The insertion point now targets the current line (`{ line: curLine, ch: 0 }`) instead of hardcoded line 0, so it works correctly with or without frontmatter.
-- E2E regression tests for `o`/`O` with frontmatter: `O` on unordered/ordered/task list after frontmatter inserts above, `o` after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path
+- **`O` on first line after frontmatter behaves like `o`** — pressing `O` on the first content line below YAML frontmatter inserted the new line into the frontmatter region (swallowed by Obsidian's properties UI) instead of above the current line. Fixed in both the fork and the plugin:
+    - Fork: `newLineAndEnterInsertMode` in `vim.js` compared `insertAt.line === cm.firstLine()` — always false when frontmatter is present. Now scans past `---`-delimited frontmatter to find the first editable line and uses `insertAt.line <= firstEditable` as the boundary check. The insertion point uses `{ line: insertAt.line, ch: 0 }` instead of hardcoded `firstLine()`, so it works for all line types (plain text, headings, etc.) with or without frontmatter.
+    - Plugin: the smart list continuation override in `open-line.ts` had the same `curLine === cm.firstLine()` issue. Added `firstEditableLine()` helper with the same frontmatter scan, changed the boundary check to `curLine <= firstEditableLine(cm)`, and updated the insertion point to `{ line: curLine, ch: 0 }`.
+- E2E regression tests for `o`/`O` with frontmatter: `O` on unordered/ordered/task list after frontmatter inserts above, `o` after frontmatter inserts below, `O` on non-list line after frontmatter inserts above, `o` on non-list line after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path
 - **`gk` on wrapped line after frontmatter jumps straight to properties** — when the first line below the frontmatter wraps across multiple display lines, `gk` now correctly navigates through the wrapped display lines before entering the properties panel. Previously, the `stuckAtBoundary` check in the fork's `findPosV` treated display-line movement within a wrapped line as "stuck" (same document line) and immediately fired `focusBefore`. The check now also verifies that the cursor offset truly didn't change (`range.head === startOffset`), distinguishing "cursor moved to a higher display line within a wrapped line" from "cursor is truly stuck at the frontmatter boundary." ([#25](https://github.com/saberzero1/motions/issues/25))
 - **`let mapleader = " "` (space) not working as leader key** — space as leader now works regardless of which features are enabled. The default `<Space>` → `l` binding in codemirror-vim's keymap consumed the space keystroke before leader-prefixed sequences could accumulate. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so the fix only applied when EasyMotion was enabled. The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — so any key used as leader (space, comma, semicolon, etc.) works for all leader-dependent features (table manipulation, hint mode, settings leader bindings) even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
 - **Mislabeled "space as leader" e2e test** — the `describe('space as leader')` test block was loading `let mapleader = ","` instead of `let mapleader = " "`, making it a duplicate of the comma test rather than a true space leader test. Fixed to use space, providing actual cross-platform regression coverage.
@@ -32,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `KNOWN_LIMITATIONS.md`: added "Smart list continuation and frontmatter" section documenting the `O` boundary fix
+- `DIFFERENCES.md` (fork): added "Frontmatter-aware `O` (open line above)" section documenting the `newLineAndEnterInsertMode` fix
 - `README.md`: updated smart list continuation description to mention frontmatter awareness
 - `README.md`: updated settings list to reflect new section grouping and ordering
 - `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section with wrapped-line `stuckAtBoundary` edge case fix
