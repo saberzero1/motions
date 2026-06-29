@@ -211,6 +211,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             });
         }
 
+        // ── Vim features ───────────────────────────────────────────
+
+        new Setting(containerEl).setName('Vim features').setHeading();
+
         new Setting(containerEl)
             .setName('Text objects')
             .setDesc('Enable Markdown-aware text objects (i*, a*, il, etc.)')
@@ -255,7 +259,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Smart list continuation on o/o')
+            .setName('Smart list continuation on o/O')
             .setDesc(
                 'When pressing o or O on a list line, automatically continue the list ' +
                     'marker (bullets, numbers, checkboxes). Disable for plain Neovim behavior.',
@@ -265,6 +269,43 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.listContinuationOnOpen)
                     .onChange(async (value) => {
                         this.plugin.settings.listContinuationOnOpen = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Table navigation')
+            .setDesc(
+                'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableTableNav)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableTableNav = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Table widget in live preview')
+            .setDesc(
+                'Controls how tables display in Live Preview. ' +
+                    '"Always raw" keeps tables as plain text. ' +
+                    '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
+                    '"Off" uses the default interactive table editor.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOption('always', 'Always raw')
+                    .addOption('cursor', 'Cursor-aware')
+                    .addOption('off', 'Off')
+                    .setValue(this.plugin.settings.tableWidgetMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.tableWidgetMode =
+                            value as VimMotionsSettings['tableWidgetMode'];
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -284,6 +325,161 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        // ── Jump navigation ──────────────────────────────────────────
+
+        new Setting(containerEl).setName('Jump navigation').setHeading();
+
+        new Setting(containerEl)
+            .setName('EasyMotion')
+            .setDesc(
+                'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableEasyMotion)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableEasyMotion = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('EasyMotion dimming')
+            .setDesc('Dim non-target text when EasyMotion is active.')
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.easyMotionDimming)
+                    .onChange(async (value) => {
+                        this.plugin.settings.easyMotionDimming = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('EasyMotion label characters')
+            .setDesc(
+                'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
+            )
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.settings.easyMotionLabels)
+                    .onChange(async (value) => {
+                        this.plugin.settings.easyMotionLabels =
+                            value || 'asdghklqwertyuiopzxcvbnmfj';
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Hint mode')
+            .setDesc(
+                'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableHintMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableHintMode = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Hint mode label characters')
+            .setDesc(
+                'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
+            )
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.settings.hintModeLabels)
+                    .onChange(async (value) => {
+                        this.plugin.settings.hintModeLabels =
+                            value || 'asdfghjkl';
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        const hotkeySettingItem = new Setting(containerEl)
+            .setName('Hint mode global hotkey')
+            .setDesc(
+                'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
+            );
+
+        const hotkeyDisplay = hotkeySettingItem.controlEl.createSpan({
+            cls: 'setting-hotkey vim-motions-hotkey-display',
+        });
+        hotkeyDisplay.textContent = formatHotkey(
+            this.plugin.settings.hintModeHotkey,
+        );
+
+        hotkeySettingItem.addButton((button) =>
+            button.setButtonText('Record').onClick(() => {
+                button.setButtonText('Press keys\u2026');
+                const onKey = (e: KeyboardEvent) => {
+                    if (
+                        e.key === 'Shift' ||
+                        e.key === 'Control' ||
+                        e.key === 'Alt' ||
+                        e.key === 'Meta'
+                    )
+                        return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    activeDocument.removeEventListener('keydown', onKey, true);
+
+                    const mods: string[] = [];
+                    if (e.ctrlKey) mods.push('ctrl');
+                    if (e.shiftKey) mods.push('shift');
+                    if (e.altKey) mods.push('alt');
+                    if (e.metaKey) mods.push('meta');
+
+                    const key = e.key === 'Unidentified' ? e.code : e.key;
+                    const serialized = mods.join(',') + ':' + key;
+
+                    this.plugin.settings.hintModeHotkey = serialized;
+                    void this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+
+                    hotkeyDisplay.textContent = formatHotkey(serialized);
+                    button.setButtonText('Record');
+                };
+                activeDocument.addEventListener('keydown', onKey, true);
+            }),
+        );
+
+        if (this.plugin.settings.hintModeHotkey) {
+            hotkeySettingItem.addButton((button) =>
+                button.setButtonText('Clear').onClick(() => {
+                    this.plugin.settings.hintModeHotkey = '';
+                    void this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                    hotkeyDisplay.textContent = '';
+                }),
+            );
+        }
+
+        new Setting(containerEl)
+            .setName('Label font size')
+            .setDesc(
+                'Font size for EasyMotion and hint mode labels (10\u201320px). ' +
+                    'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(10, 20, 1)
+                    .setValue(this.plugin.settings.labelFontSize)
+                    .onChange(async (value) => {
+                        this.plugin.settings.labelFontSize = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        // ── Status bar ───────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Status bar').setHeading();
 
         new Setting(containerEl)
             .setName('Vim mode status bar')
@@ -380,220 +576,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 }),
             );
 
-        new Setting(containerEl)
-            .setName(`Load ${this.app.vault.configDir}.vimrc`)
-            .setDesc(
-                `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableVimrc)
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableVimrc = value;
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('EasyMotion')
-            .setDesc(
-                'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableEasyMotion)
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableEasyMotion = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('EasyMotion dimming')
-            .setDesc('Dim non-target text when EasyMotion is active.')
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.easyMotionDimming)
-                    .onChange(async (value) => {
-                        this.plugin.settings.easyMotionDimming = value;
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Label font size')
-            .setDesc(
-                'Font size for EasyMotion and hint mode labels (10–20px). ' +
-                    'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
-            )
-            .addSlider((slider) =>
-                slider
-                    .setLimits(10, 20, 1)
-                    .setValue(this.plugin.settings.labelFontSize)
-                    .onChange(async (value) => {
-                        this.plugin.settings.labelFontSize = value;
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Table navigation')
-            .setDesc(
-                'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableTableNav)
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableTableNav = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Table widget in live preview')
-            .setDesc(
-                'Controls how tables display in Live Preview. ' +
-                    '"Always raw" keeps tables as plain text. ' +
-                    '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
-                    '"Off" uses the default interactive table editor.',
-            )
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOption('always', 'Always raw')
-                    .addOption('cursor', 'Cursor-aware')
-                    .addOption('off', 'Off')
-                    .setValue(this.plugin.settings.tableWidgetMode)
-                    .onChange(async (value) => {
-                        this.plugin.settings.tableWidgetMode =
-                            value as VimMotionsSettings['tableWidgetMode'];
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Hint mode')
-            .setDesc(
-                'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableHintMode)
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableHintMode = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Hint mode label characters')
-            .setDesc(
-                'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
-            )
-            .addText((text) =>
-                text
-                    .setValue(this.plugin.settings.hintModeLabels)
-                    .onChange(async (value) => {
-                        this.plugin.settings.hintModeLabels =
-                            value || 'asdfghjkl';
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        const hotkeySettingItem = new Setting(containerEl)
-            .setName('Hint mode global hotkey')
-            .setDesc(
-                'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
-            );
-
-        const hotkeyDisplay = hotkeySettingItem.controlEl.createSpan({
-            cls: 'setting-hotkey vim-motions-hotkey-display',
-        });
-        hotkeyDisplay.textContent = formatHotkey(
-            this.plugin.settings.hintModeHotkey,
-        );
-
-        hotkeySettingItem.addButton((button) =>
-            button.setButtonText('Record').onClick(() => {
-                button.setButtonText('Press keys\u2026');
-                const onKey = (e: KeyboardEvent) => {
-                    if (
-                        e.key === 'Shift' ||
-                        e.key === 'Control' ||
-                        e.key === 'Alt' ||
-                        e.key === 'Meta'
-                    )
-                        return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    activeDocument.removeEventListener('keydown', onKey, true);
-
-                    const mods: string[] = [];
-                    if (e.ctrlKey) mods.push('ctrl');
-                    if (e.shiftKey) mods.push('shift');
-                    if (e.altKey) mods.push('alt');
-                    if (e.metaKey) mods.push('meta');
-
-                    const key = e.key === 'Unidentified' ? e.code : e.key;
-                    const serialized = mods.join(',') + ':' + key;
-
-                    this.plugin.settings.hintModeHotkey = serialized;
-                    void this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-
-                    hotkeyDisplay.textContent = formatHotkey(serialized);
-                    button.setButtonText('Record');
-                };
-                activeDocument.addEventListener('keydown', onKey, true);
-            }),
-        );
-
-        if (this.plugin.settings.hintModeHotkey) {
-            hotkeySettingItem.addButton((button) =>
-                button.setButtonText('Clear').onClick(() => {
-                    this.plugin.settings.hintModeHotkey = '';
-                    void this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-                    hotkeyDisplay.textContent = '';
-                }),
-            );
-        }
-
-        new Setting(containerEl)
-            .setName('Scrolloff lines')
-            .setDesc(
-                'Number of lines to keep visible above and below when scrolling (0 to disable).',
-            )
-            .addSlider((slider) =>
-                slider
-                    .setLimits(0, 20, 1)
-                    .setValue(this.plugin.settings.scrolloffLines)
-                    .onChange(async (value) => {
-                        this.plugin.settings.scrolloffLines = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Multi-line text object scan range')
-            .setDesc(
-                'Maximum lines to scan in each direction for multi-line text objects (bold, italic, etc.). Higher values find longer spans.',
-            )
-            .addSlider((slider) =>
-                slider
-                    .setLimits(5, 200, 5)
-                    .setValue(this.plugin.settings.multilineScanLimit)
-                    .onChange(async (value) => {
-                        this.plugin.settings.multilineScanLimit = value;
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
+        // ── Cursor shapes ────────────────────────────────────────────
 
         new Setting(containerEl).setName('Cursor shapes').setHeading();
 
@@ -641,8 +624,40 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             });
         }
 
+        // ── Vimrc & key bindings ─────────────────────────────────────
+
+        new Setting(containerEl).setName('Vimrc & key bindings').setHeading();
+
         new Setting(containerEl)
-            .setName('Which-key hints')
+            .setName(`Load ${this.app.vault.configDir}.vimrc`)
+            .setDesc(
+                `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableVimrc)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableVimrc = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl).setName('Leader key bindings').setHeading();
+        new Setting(containerEl).setDesc(
+            `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
+        );
+
+        const bindingsContainer = containerEl.createDiv({
+            cls: 'vim-motions-leader-bindings',
+        });
+        this.renderLeaderBindings(bindingsContainer);
+
+        // ── Which-key ────────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Which-key hints').setHeading();
+
+        new Setting(containerEl)
+            .setName('Which-key mode')
             .setDesc(
                 'Show available key continuations in a popup after a short delay.',
             )
@@ -699,15 +714,41 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         });
         this.renderGroupLabels(groupLabelsContainer);
 
-        new Setting(containerEl).setName('Leader key bindings').setHeading();
-        new Setting(containerEl).setDesc(
-            `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
-        );
+        // ── Advanced ─────────────────────────────────────────────────
 
-        const bindingsContainer = containerEl.createDiv({
-            cls: 'vim-motions-leader-bindings',
-        });
-        this.renderLeaderBindings(bindingsContainer);
+        new Setting(containerEl).setName('Advanced').setHeading();
+
+        new Setting(containerEl)
+            .setName('Scrolloff lines')
+            .setDesc(
+                'Number of lines to keep visible above and below when scrolling (0 to disable).',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(0, 20, 1)
+                    .setValue(this.plugin.settings.scrolloffLines)
+                    .onChange(async (value) => {
+                        this.plugin.settings.scrolloffLines = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Multi-line text object scan range')
+            .setDesc(
+                'Maximum lines to scan in each direction for multi-line text objects (bold, italic, etc.). Higher values find longer spans.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(5, 200, 5)
+                    .setValue(this.plugin.settings.multilineScanLimit)
+                    .onChange(async (value) => {
+                        this.plugin.settings.multilineScanLimit = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
     }
 
     private renderGroupLabels(container: HTMLElement): void {

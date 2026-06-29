@@ -341,33 +341,55 @@ If obsidian-vimrc-support is also installed, Vim Motions skips its own `:ob` com
 
 ## Settings
 
-All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting.
+All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. Settings are organized into the following sections:
+
+**Vim features**
 
 - Text objects (on/off)
 - Structural navigation (on/off)
 - Hard-wrap operators `gq`/`gw` (on/off)
 - Smart list continuation on `o`/`O` (on/off, default: on) — continue list markers when opening new lines
 - Table navigation (on/off)
+- Table widget in live preview (cursor-aware / always raw / off)
 - Workspace navigation (on/off)
-- Load `.obsidian.vimrc` (on/off)
+
+**Jump navigation**
+
+- EasyMotion (on/off)
+- EasyMotion dimming (on/off, default: on)
+- EasyMotion label characters (customizable)
+- Hint mode (on/off)
+- Hint mode label characters (customizable)
+- Hint mode global hotkey (press-to-record, works in modals)
+- Label font size (10–20px, default: 14) — shared by EasyMotion and hint mode
+- Label colors (via CSS: `--vim-motions-em-bg`/`em-fg` for EasyMotion, `--vim-motions-hint-bg`/`hint-fg` for hint mode)
+
+**Status bar**
+
 - Vim mode status bar (on/off)
 - Vim chord display (on/off, default: on)
 - Powerline-style status bar (on/off, default: off)
 - Vim mode display prompt — customizable text per mode (normal, insert, visual, replace)
-- EasyMotion (on/off)
-- EasyMotion dimming (on/off, default: on)
-- Label font size (10–20px, default: 14) — shared by EasyMotion and hint mode
-- Label colors (via CSS: `--vim-motions-em-bg`/`em-fg` for EasyMotion, `--vim-motions-hint-bg`/`hint-fg` for hint mode)
-- Hint mode (on/off)
-- Hint mode label characters (customizable)
-- Hint mode global hotkey (press-to-record, works in modals)
-- Scrolloff lines (0–20, default: 5)
-- Multi-line text object scan range (5–200, default: 20)
-- EasyMotion label characters (customizable)
-- Which-key hints (off / leader key only / all partial keys, default: off)
+
+**Cursor shapes**
+
+- Per-mode cursor shape (block / bar / underline / hollow) — requires bundled fork mode
+
+**Vimrc & key bindings**
+
+- Load `.obsidian.vimrc` (on/off)
+- Leader key bindings (add/remove key-to-command mappings without editing vimrc)
+
+**Which-key hints**
+
+- Which-key mode (off / leader key only / all partial keys, default: off)
 - Which-key leader grouping (grouped / flat, default: grouped) — collapse bindings by prefix with drill-down
 - Which-key group labels — name groups by prefix key (e.g. `\t` → Table); supports `<leader>` expansion
-- Leader key bindings (add/remove key-to-command mappings without editing vimrc)
+
+**Advanced**
+
+- Scrolloff lines (0–20, default: 5)
+- Multi-line text object scan range (5–200, default: 20)
 
 ## Installation
 

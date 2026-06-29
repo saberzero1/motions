@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Smart list continuation on `o`/`O`** — pressing `o` or `O` on a Markdown list line now automatically continues the list marker on the new line. Supports unordered lists (`- `, `* `, `+ `), ordered lists (`1. `, `1) `), task lists (`- [ ] `, `- [x] `), ordered task lists (`1. [ ] `), custom checkbox states (`- [!] `, `- [?] `, `- [/] `, etc.), indented lists, blockquote lists (`> - `), and nested blockquotes (`> > - `). Ordered lists increment the number for `o` (below) and keep the same number for `O` (above). Checked tasks always continue with an unchecked `[ ] `. Lines inside fenced code blocks are excluded. Controlled by **Settings → Vim Motions → Smart list continuation on o/o** (on by default). Disable for plain Neovim behavior.
+- **Smart list continuation on `o`/`O`** — pressing `o` or `O` on a Markdown list line now automatically continues the list marker on the new line. Supports unordered lists (`- `, `* `, `+ `), ordered lists (`1. `, `1) `), task lists (`- [ ] `, `- [x] `), ordered task lists (`1. [ ] `), custom checkbox states (`- [!] `, `- [?] `, `- [/] `, etc.), indented lists, blockquote lists (`> - `), and nested blockquotes (`> > - `). Ordered lists increment the number for `o` (below) and keep the same number for `O` (above). Checked tasks always continue with an unchecked `[ ] `. Lines inside fenced code blocks are excluded. Controlled by **Settings → Vim Motions → Smart list continuation on o/O** (on by default). Disable for plain Neovim behavior.
     - Fork: added `getAction(name)` API to the `vimApi` object for action introspection, enabling the save/restore pattern for built-in action overrides
     - Plugin: added `defineActionOverride` method to `VimRegistration` that captures the original action before overriding and restores it on plugin unload — ensuring `o`/`O` revert to default vim behavior when the plugin is disabled
 - Fork test count: 1690 (up from 1686, 4 new `getAction` API tests)
@@ -24,10 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mislabeled "space as leader" e2e test** — the `describe('space as leader')` test block was loading `let mapleader = ","` instead of `let mapleader = " "`, making it a duplicate of the comma test rather than a true space leader test. Fixed to use space, providing actual cross-platform regression coverage.
 - E2E regression tests for `gk` wrapped-line frontmatter edge case: `gk` navigates display lines on wrapped first content line, `gk` enters properties on non-wrapping first content line, `k` enters properties from first content line
 
+### Changed
+
+- **Settings tab reorganized** — settings are now grouped under section headings for easier navigation: **Vim features** (text objects, structural navigation, hard-wrap, smart list continuation, table navigation, table widget mode, workspace navigation), **Jump navigation** (EasyMotion, hint mode, shared label font size), **Status bar** (mode indicator, chord display, powerline, mode prompts), **Cursor shapes**, **Vimrc & key bindings** (vimrc toggle, leader key bindings), **Which-key hints** (mode, grouping, group labels), **Advanced** (scrolloff, multi-line scan range). Previously, settings appeared as an undifferentiated list with only a few headings.
+- **EasyMotion label characters** — now exposed as a dedicated text field in the Jump navigation settings section. Previously only configurable by knowing the default value.
+
 ### Documentation
 
 - `KNOWN_LIMITATIONS.md`: added "Smart list continuation and frontmatter" section documenting the `O` boundary fix
 - `README.md`: updated smart list continuation description to mention frontmatter awareness
+- `README.md`: updated settings list to reflect new section grouping and ordering
 - `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section with wrapped-line `stuckAtBoundary` edge case fix
 - `DIFFERENCES.md` (fork): updated "Properties navigation" section with `range.head === startOffset` guard
 
