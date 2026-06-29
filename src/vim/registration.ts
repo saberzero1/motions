@@ -8,11 +8,19 @@ import type {
 } from '../types/vim-api';
 
 interface Registration {
-    type: 'motion' | 'action' | 'operator' | 'ex' | 'map' | 'mapCommand';
+    type:
+        | 'motion'
+        | 'action'
+        | 'actionOverride'
+        | 'operator'
+        | 'ex'
+        | 'map'
+        | 'mapCommand';
     name: string;
     context?: MapContext;
     keys?: string;
     leaderScoped?: boolean;
+    originalFn?: ActionFn;
 }
 
 const noopMotion: MotionFn = (_cm, head) => head;
@@ -64,6 +72,16 @@ export class VimRegistration {
     defineAction(name: string, fn: ActionFn): void {
         this.vim.defineAction(name, fn);
         this.pushReg({ type: 'action', name });
+    }
+
+    defineActionOverride(
+        name: string,
+        factory: (original: ActionFn) => ActionFn,
+    ): void {
+        const original = this.vim.getAction?.(name) ?? noopAction;
+        const replacement = factory(original);
+        this.vim.defineAction(name, replacement);
+        this.pushReg({ type: 'actionOverride', name, originalFn: original });
     }
 
     defineOperator(name: string, fn: OperatorFn): void {
@@ -134,6 +152,11 @@ export class VimRegistration {
                 break;
             case 'action':
                 this.vim.defineAction(reg.name, noopAction);
+                break;
+            case 'actionOverride':
+                if (reg.originalFn) {
+                    this.vim.defineAction(reg.name, reg.originalFn);
+                }
                 break;
             case 'operator':
                 this.vim.defineOperator(reg.name, noopOperator);

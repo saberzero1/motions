@@ -78,6 +78,7 @@ export interface VimMotionsSettings {
     enableEasyMotion: boolean;
     easyMotionDimming: boolean;
     enableHardWrap: boolean;
+    listContinuationOnOpen: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'off' | 'cursor' | 'always';
     enableHintMode: boolean;
@@ -106,6 +107,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableEasyMotion: true,
     easyMotionDimming: true,
     enableHardWrap: true,
+    listContinuationOnOpen: true,
     enableTableNav: true,
     tableWidgetMode: 'cursor',
     enableHintMode: true,
@@ -247,6 +249,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.enableHardWrap)
                     .onChange(async (value) => {
                         this.plugin.settings.enableHardWrap = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Smart list continuation on o/o')
+            .setDesc(
+                'When pressing o or O on a list line, automatically continue the list ' +
+                    'marker (bullets, numbers, checkboxes). Disable for plain Neovim behavior.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.listContinuationOnOpen)
+                    .onChange(async (value) => {
+                        this.plugin.settings.listContinuationOnOpen = value;
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),

@@ -61,7 +61,7 @@ This limit exists for performance — scanning the entire document on every keys
 
 The multi-line text object scanner uses a simple forward/backward search for the nearest delimiter. It has no nesting awareness. Overlapping or nested delimiters across lines (e.g., bold inside italic spanning multiple lines) may produce incorrect selections.
 
-Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded.
+Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded. Fenced code blocks inside blockquotes (` > ``` `) are also not detected — `findFenceLines` only matches fences at the start of a line (`/^```/`). This affects all features that use `findFenceLines` for code block detection (text objects, smart list continuation).
 
 ## Table navigation and editing
 

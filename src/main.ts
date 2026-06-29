@@ -13,6 +13,7 @@ import {
     registerBufferNavigation,
 } from './motions/register';
 import { registerOperators } from './operators/register';
+import { createSmartOpenLineAction } from './actions/open-line';
 import { registerTextObjects } from './text-objects/register';
 import { VimModeTracker } from './vim/mode-tracker';
 import { ScrolloffManager, createScrolloffExtension } from './vim/scrolloff';
@@ -173,6 +174,16 @@ export default class VimMotionsPlugin extends Plugin {
 
         // --- Core ex command (needed by leader bindings) ---
         registerObCommand(this.registration, this.app);
+
+        // --- Action overrides (unconditional, setting checked at runtime) ---
+        this.registration.defineActionOverride(
+            'newLineAndEnterInsertMode',
+            (original) =>
+                createSmartOpenLineAction(
+                    original,
+                    () => this.settings.listContinuationOnOpen,
+                ),
+        );
 
         // --- Feature registrations ---
         if (this.settings.enableTextObjects) {
@@ -345,6 +356,15 @@ export default class VimMotionsPlugin extends Plugin {
 
         // :ob must be re-registered unconditionally (unregisterAll noops it)
         registerObCommand(this.registration, this.app);
+
+        this.registration.defineActionOverride(
+            'newLineAndEnterInsertMode',
+            (original) =>
+                createSmartOpenLineAction(
+                    original,
+                    () => this.settings.listContinuationOnOpen,
+                ),
+        );
 
         if (this.leaderRegistry) {
             this.registration.unmapDefaultBinding(

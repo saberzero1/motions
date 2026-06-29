@@ -168,6 +168,7 @@ export interface CmAdapter {
 export interface VimApi {
     defineMotion(name: string, fn: MotionFn): void;
     defineAction(name: string, fn: ActionFn): void;
+    getAction?(name: string): ActionFn | undefined;
     defineOperator(name: string, fn: OperatorFn): void;
     defineEx(name: string, shortName: string, fn: ExCommandFn): void;
 

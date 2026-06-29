@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Smart list continuation on `o`/`O`** — pressing `o` or `O` on a Markdown list line now automatically continues the list marker on the new line. Supports unordered lists (`- `, `* `, `+ `), ordered lists (`1. `, `1) `), task lists (`- [ ] `, `- [x] `), ordered task lists (`1. [ ] `), custom checkbox states (`- [!] `, `- [?] `, `- [/] `, etc.), indented lists, blockquote lists (`> - `), and nested blockquotes (`> > - `). Ordered lists increment the number for `o` (below) and keep the same number for `O` (above). Checked tasks always continue with an unchecked `[ ] `. Lines inside fenced code blocks are excluded. Controlled by **Settings → Vim Motions → Smart list continuation on o/o** (on by default). Disable for plain Neovim behavior.
+    - Fork: added `getAction(name)` API to the `vimApi` object for action introspection, enabling the save/restore pattern for built-in action overrides
+    - Plugin: added `defineActionOverride` method to `VimRegistration` that captures the original action before overriding and restores it on plugin unload — ensuring `o`/`O` revert to default vim behavior when the plugin is disabled
+- Fork test count: 1690 (up from 1686, 4 new `getAction` API tests)
+- E2E test suite `test/specs/open-line-list.e2e.ts` with 35 tests covering all list types, indentation levels, blockquotes, nested blockquotes, code block exclusion, undo, and edge cases
+
 ### Fixed
 
 - **`let mapleader = " "` (space) not working as leader key** — space as leader now works regardless of which features are enabled. The default `<Space>` → `l` binding in codemirror-vim's keymap consumed the space keystroke before leader-prefixed sequences could accumulate. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so the fix only applied when EasyMotion was enabled. The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — so any key used as leader (space, comma, semicolon, etc.) works for all leader-dependent features (table manipulation, hint mode, settings leader bindings) even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
