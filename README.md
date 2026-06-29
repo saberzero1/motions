@@ -317,10 +317,10 @@ nmap Y y$
 
 " Leader key mappings
 exmap saveFile obcommand editor:save-file
-nmap <leader>w :saveFile
+nmap <leader>w :saveFile<CR>
 
 " Execute Obsidian commands
-nmap <C-s> :saveFile
+nmap <C-s> :saveFile<CR>
 
 " Settings
 set clipboard=unnamed
@@ -335,9 +335,9 @@ Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inore
 
 `let mapleader` supports any key, including space (`let mapleader = " "`), comma, semicolon, and backslash (default). The leader key's default Vim binding is automatically unmapped so leader-prefixed sequences work correctly.
 
-Supported `set` options: `clipboard` (`unnamed`/`unnamedplus` — syncs yank/delete/paste with system clipboard), `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`. Use `set noexpandtab` to disable boolean options.
+Supported `set` options: `clipboard` (`unnamed`/`unnamedplus` — syncs yank/delete/paste with system clipboard), `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`, `guicursor` (per-mode cursor shapes, e.g. `set guicursor=n:block,i:bar,v:underline`). Use `set noexpandtab` to disable boolean options.
 
-If obsidian-vimrc-support is also installed, Vim Motions skips its own `:ob` command registration to avoid conflicts.
+If obsidian-vimrc-support is also installed, both plugins can coexist — Vim Motions registers its own `:ob` command independently.
 
 ## Settings
 
