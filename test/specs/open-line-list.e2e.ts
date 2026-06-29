@@ -229,6 +229,74 @@ describe('Smart list continuation (o/O)', function () {
         });
     });
 
+    describe('frontmatter boundary', function () {
+        it('O on first list line after frontmatter should insert above', async function () {
+            const content = ['---', 'title: test', '---', '- item1'].join('\n');
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimRawKeys('O\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toBe('- ');
+            expect(lines[4]).toBe('- item1');
+            expect(await getCursorPos()).toEqual({ line: 3, ch: 1 });
+        });
+
+        it('o on first list line after frontmatter should insert below', async function () {
+            const content = ['---', 'title: test', '---', '- item1'].join('\n');
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimRawKeys('o\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toBe('- item1');
+            expect(lines[4]).toBe('- ');
+            expect(await getCursorPos()).toEqual({ line: 4, ch: 1 });
+        });
+
+        it('O on ordered list after frontmatter should insert above', async function () {
+            const content = ['---', 'title: test', '---', '1. first'].join(
+                '\n',
+            );
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimRawKeys('O\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toMatch(/^\d+\.\s$/);
+            expect(lines[4]).toMatch(/^\d+\.\sfirst$/);
+            expect((await getCursorPos()).line).toBe(3);
+        });
+
+        it('O on task list after frontmatter should insert above', async function () {
+            const content = ['---', 'title: test', '---', '- [ ] todo'].join(
+                '\n',
+            );
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimRawKeys('O\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toBe('- [ ] ');
+            expect(lines[4]).toBe('- [ ] todo');
+            expect(await getCursorPos()).toEqual({ line: 3, ch: 5 });
+        });
+
+        it('O on second line after frontmatter should use normal insertion', async function () {
+            const content = [
+                '---',
+                'title: test',
+                '---',
+                '- first',
+                '- second',
+            ].join('\n');
+            await setupEditor(content, { line: 4, ch: 0 });
+            await vimRawKeys('O\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toBe('- first');
+            expect(lines[4]).toBe('- ');
+            expect(lines[5]).toBe('- second');
+            expect(await getCursorPos()).toEqual({ line: 4, ch: 1 });
+        });
+    });
+
     describe('fallback and edge cases', function () {
         it('o on non-list line should not add marker', async function () {
             await setupEditor('plain text', { line: 0, ch: 0 });

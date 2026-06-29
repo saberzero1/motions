@@ -289,7 +289,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 
 ### Quality of life
 
-- **Smart list continuation** — `o`/`O` on a list line continues the marker (bullets, numbers, checkboxes) on the new line. Supports all Markdown list types including ordered task lists (`1. [ ] `), custom checkbox states (`[!]`, `[?]`, `[/]`), indented lists, and blockquote lists (`> - `). Configurable via settings; disable for plain Neovim behavior.
+- **Smart list continuation** — `o`/`O` on a list line continues the marker (bullets, numbers, checkboxes) on the new line. Supports all Markdown list types including ordered task lists (`1. [ ] `), custom checkbox states (`[!]`, `[?]`, `[/]`), indented lists, and blockquote lists (`> - `). Works correctly on the first line after YAML frontmatter — `O` inserts above and `o` inserts below, even when properties are visible. Configurable via settings; disable for plain Neovim behavior.
 - **Neovim defaults** — `Y` yanks to end of line (`y$`) and `Q` replays last recorded macro (`@@`), matching Neovim's defaults instead of CM Vim's legacy behavior.
 - **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar. Customizable per-mode text (including emoji) via settings.
 - **Vim chord display** — shows pending keystrokes (e.g. `2d`, `gq`) in the status bar as you type a multi-key command.

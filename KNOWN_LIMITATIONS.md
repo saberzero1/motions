@@ -63,6 +63,14 @@ The multi-line text object scanner uses a simple forward/backward search for the
 
 Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded. Fenced code blocks inside blockquotes (` > ``` `) are also not detected — `findFenceLines` only matches fences at the start of a line (`/^```/`). This affects all features that use `findFenceLines` for code block detection (text objects, smart list continuation).
 
+## ~~Smart list continuation and frontmatter~~ (Fixed)
+
+`O` (open line above) on the first content line after YAML frontmatter previously behaved like `o` (open line below). The smart list continuation override in `src/actions/open-line.ts` compared `curLine === cm.firstLine()` to decide whether to use the "insert at document start" path. With frontmatter present, `cm.firstLine()` returns 0 (the opening `---`) while the cursor is on the first post-frontmatter line (e.g. line 3), so the check was always false. The else branch inserted at the end of the previous line — which fell inside the frontmatter region, causing Obsidian's properties UI to swallow the new line.
+
+Fixed by adding `firstEditableLine()` that scans past `---`-delimited frontmatter to find the first content line, and changing the boundary check to `curLine <= firstEditableLine(cm)`. The insertion point uses `{ line: curLine, ch: 0 }` instead of hardcoded line 0. Documents without frontmatter are unaffected — `firstEditableLine()` returns `cm.firstLine()` when the first line is not `---`.
+
+**Test coverage**: `test/specs/open-line-list.e2e.ts` — 5 regression tests: `O` on unordered/ordered/task list after frontmatter inserts above, `o` after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path.
+
 ## Table navigation and editing
 
 `]|`/`[|` (or `]c`/`[c`) navigate horizontally between table cells. `]r`/`[r` navigate vertically to the same column in adjacent rows (skipping separator rows). `i|`/`a|` text objects operate on individual cells — `di|` deletes cell content, `ci|` changes it, `vi|` selects it.

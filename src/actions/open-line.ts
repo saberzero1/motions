@@ -12,6 +12,23 @@ import {
 const LIST_CONTINUATION_RE =
     /^(\s*)((?:>\s?)*)([-*+]\s(?:\[.\]\s)?|\d+[.)]\s(?:\[.\]\s)?)/;
 
+/** First line after YAML frontmatter, or `cm.firstLine()` if none. */
+function firstEditableLine(cm: {
+    firstLine(): number;
+    getLine(n: number): string;
+    lastLine(): number;
+}): number {
+    const first = cm.firstLine();
+    if (cm.getLine(first) !== '---') return first;
+
+    // Scan for the closing `---`.
+    for (let i = first + 1; i <= cm.lastLine(); i++) {
+        if (cm.getLine(i) === '---') return i + 1;
+    }
+    // Malformed frontmatter (no closing `---`) — fall back.
+    return first;
+}
+
 interface ListContinuation {
     below: string;
     above: string;
@@ -86,9 +103,9 @@ export function createSmartOpenLineAction(
             cm.replaceRange('\n' + prefix, { line: curLine, ch: lineLen });
             cm.setCursor(curLine + 1, prefix.length);
         } else {
-            if (curLine === cm.firstLine()) {
-                cm.replaceRange(prefix + '\n', { line: 0, ch: 0 });
-                cm.setCursor(0, prefix.length);
+            if (curLine <= firstEditableLine(cm)) {
+                cm.replaceRange(prefix + '\n', { line: curLine, ch: 0 });
+                cm.setCursor(curLine, prefix.length);
             } else {
                 const prevLine = curLine - 1;
                 const prevLen = cm.getLine(prevLine).length;
