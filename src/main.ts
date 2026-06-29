@@ -156,6 +156,14 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     this.vimrcMaps = vimrcResult.maps;
                     applyVimrcMaps(vim, this.vimrcMaps);
+                    // Unmap the leader key's default binding (e.g. <Space> → l)
+                    // so leader-prefixed sequences accumulate in the key buffer
+                    // instead of being consumed by the default keymap.
+                    if (this.registration && this.leaderRegistry) {
+                        this.registration.unmapDefaultBinding(
+                            this.leaderRegistry.getLeaderKey(),
+                        );
+                    }
                     this.reregisterLeaderFeatures();
                     this.rebuildWhichKey();
                     this.vimrcLoaded = true;
@@ -338,6 +346,12 @@ export default class VimMotionsPlugin extends Plugin {
         // :ob must be re-registered unconditionally (unregisterAll noops it)
         registerObCommand(this.registration, this.app);
 
+        if (this.leaderRegistry) {
+            this.registration.unmapDefaultBinding(
+                this.leaderRegistry.getLeaderKey(),
+            );
+        }
+
         if (this.settings.enableTextObjects) {
             registerTextObjects(
                 this.registration,
@@ -492,6 +506,9 @@ export default class VimMotionsPlugin extends Plugin {
         if (!this.registration || !this.leaderRegistry) return;
         this.registration.unregisterLeaderBindings();
         this.leaderRegistry.clearBuiltinBindings();
+        this.registration.unmapDefaultBinding(
+            this.leaderRegistry.getLeaderKey(),
+        );
         this.registration.beginLeaderScope();
         if (this.settings.enableTableNav) {
             registerTableActions(

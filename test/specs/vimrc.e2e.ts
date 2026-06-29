@@ -522,46 +522,8 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
         describe('space as leader', function () {
             before(async function () {
                 await loadVimrc(
-                    ['let mapleader = ","', 'nmap <leader>j gj'].join('\n') +
+                    ['let mapleader = " "', 'nmap <leader>j gj'].join('\n') +
                         '\n',
-                );
-                const diag = (await browser.executeObsidian(async ({ app }) => {
-                    const plugin = (
-                        app as unknown as {
-                            plugins: {
-                                plugins: Record<
-                                    string,
-                                    {
-                                        vimrcLoaded?: boolean;
-                                        vimrcCommandCount?: number;
-                                        leaderRegistry?: {
-                                            getLeaderKey: () => string;
-                                        };
-                                    }
-                                >;
-                            };
-                        }
-                    ).plugins.plugins['vim-motions'];
-                    let vimrcContent: string | null = null;
-                    try {
-                        vimrcContent =
-                            await app.vault.adapter.read('.obsidian.vimrc');
-                    } catch {
-                        vimrcContent = 'READ_ERROR';
-                    }
-                    const files = app.vault.getFiles().map((f) => f.path);
-                    return {
-                        vimrcLoaded: plugin?.vimrcLoaded,
-                        vimrcCommandCount: plugin?.vimrcCommandCount,
-                        leaderKey: plugin?.leaderRegistry?.getLeaderKey(),
-                        vimrcContent,
-                        fileCount: files.length,
-                        vimrcInFiles: files.some((f) => f.includes('vimrc')),
-                    };
-                })) as Record<string, unknown>;
-                console.log(
-                    'EasyMotion before() diagnostic:',
-                    JSON.stringify(diag),
                 );
             });
 

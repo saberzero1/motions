@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`let mapleader = " "` (space) not working as leader key** — space as leader now works regardless of which features are enabled. The default `<Space>` → `l` binding in codemirror-vim's keymap consumed the space keystroke before leader-prefixed sequences could accumulate. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so the fix only applied when EasyMotion was enabled. The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — so any key used as leader (space, comma, semicolon, etc.) works for all leader-dependent features (table manipulation, hint mode, settings leader bindings) even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
+- **Mislabeled "space as leader" e2e test** — the `describe('space as leader')` test block was loading `let mapleader = ","` instead of `let mapleader = " "`, making it a duplicate of the comma test rather than a true space leader test. Fixed to use space, providing actual cross-platform regression coverage.
+
 ## [0.20.0] - 2026-06-29
 
 ### Fixed
