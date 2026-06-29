@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2] - 2026-06-29
+
+### Fixed
+
+- **Plugin fails to load when built-in Vim mode is enabled** — three fork-only API methods were called unconditionally, but do not exist on Obsidian's built-in Vim API. When built-in Vim mode is enabled (or when another plugin pre-installs `window.CodeMirrorAdapter.Vim` with the built-in API), `getVimApi()` returns the built-in Vim object and the calls throw `TypeError: … is not a function`. Added `typeof` guards to all three call sites and marked the methods as optional in the `VimApi` type definition. ([#29](https://github.com/saberzero1/motions/issues/29))
+    - `vim.resetKeymap()` in `onload()` — prevented the plugin from loading entirely
+    - `vimApi.clearInputState(cm, 'pane-switch')` in the `active-leaf-change` handler — crashed on every tab switch when a partial key buffer was pending
+    - `this.vim.removeMapCommand(reg.keys)` in `VimRegistration.removeRegistration()` — crashed during plugin unload or feature toggle when cleaning up `mapCommand` registrations
+
 ## [0.21.1] - 2026-06-29
 
 ### Fixed
