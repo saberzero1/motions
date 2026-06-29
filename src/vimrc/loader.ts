@@ -240,6 +240,8 @@ async function loadVimrcFile(
                 noremap: parsed.noremap ?? false,
                 context: parsed.context,
             });
+            applied++;
+            continue;
         }
 
         const isTextwidthSet =
