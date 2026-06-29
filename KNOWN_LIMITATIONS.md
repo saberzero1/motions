@@ -67,9 +67,14 @@ Delimiters inside fenced code blocks are excluded from the scan — the scanner 
 
 `O` (open line above) on the first content line after YAML frontmatter previously behaved like `o` (open line below). The smart list continuation override in `src/actions/open-line.ts` compared `curLine === cm.firstLine()` to decide whether to use the "insert at document start" path. With frontmatter present, `cm.firstLine()` returns 0 (the opening `---`) while the cursor is on the first post-frontmatter line (e.g. line 3), so the check was always false. The else branch inserted at the end of the previous line — which fell inside the frontmatter region, causing Obsidian's properties UI to swallow the new line.
 
-Fixed by adding `firstEditableLine()` that scans past `---`-delimited frontmatter to find the first content line, and changing the boundary check to `curLine <= firstEditableLine(cm)`. The insertion point uses `{ line: curLine, ch: 0 }` instead of hardcoded line 0. Documents without frontmatter are unaffected — `firstEditableLine()` returns `cm.firstLine()` when the first line is not `---`.
+Fixed in both layers:
 
-**Test coverage**: `test/specs/open-line-list.e2e.ts` — 5 regression tests: `O` on unordered/ordered/task list after frontmatter inserts above, `o` after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path.
+- **Fork** (`vim.js`): `newLineAndEnterInsertMode` now scans past `---`-delimited frontmatter to find the first editable line and uses `insertAt.line <= firstEditable` as the boundary check. The insertion point uses `{ line: insertAt.line, ch: 0 }` instead of hardcoded `cm.firstLine()`. This fixes `O` on all line types (plain text, headings, etc.).
+- **Plugin** (`open-line.ts`): the smart list continuation override adds `firstEditableLine()` with the same frontmatter scan, changing the boundary check to `curLine <= firstEditableLine(cm)`. This fixes `O` on list lines specifically.
+
+Documents without frontmatter are unaffected — both paths fall back to `cm.firstLine()` when the first line is not `---`.
+
+**Test coverage**: `test/specs/open-line-list.e2e.ts` — 7 regression tests: `O` on unordered/ordered/task list after frontmatter inserts above, `o` on list after frontmatter inserts below, `O` on non-list line after frontmatter inserts above, `o` on non-list line after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path.
 
 ## Table navigation and editing
 

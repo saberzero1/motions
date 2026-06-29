@@ -278,6 +278,30 @@ describe('Smart list continuation (o/O)', function () {
             expect(await getCursorPos()).toEqual({ line: 3, ch: 5 });
         });
 
+        it('O on non-list line after frontmatter should insert above', async function () {
+            const content = ['---', 'title: test', '---', 'plain text'].join(
+                '\n',
+            );
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimRawKeys('O\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toBe('');
+            expect(lines[4]).toBe('plain text');
+        });
+
+        it('o on non-list line after frontmatter should insert below', async function () {
+            const content = ['---', 'title: test', '---', 'plain text'].join(
+                '\n',
+            );
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimRawKeys('o\x1b');
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+            expect(lines[3]).toBe('plain text');
+            expect(lines[4]).toBe('');
+        });
+
         it('O on second line after frontmatter should use normal insertion', async function () {
             const content = [
                 '---',
