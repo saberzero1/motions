@@ -187,8 +187,8 @@ describe('Vimrc support (Phase 2)', function () {
                 .cm as Record<string, unknown>;
             const adapter = cm?.cm;
             if (!adapter) return { error: 'No adapter' };
-            Vim.handleKey(adapter, ' ');
-            Vim.handleKey(adapter, ' ');
+            Vim.handleKey(adapter, '<Space>');
+            Vim.handleKey(adapter, '<Space>');
             Vim.handleKey(adapter, 'w');
             return { success: true, triggered };
         })) as { success: boolean; triggered: boolean };
