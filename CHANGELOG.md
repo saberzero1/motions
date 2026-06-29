@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-06-29
+
 ### Fixed
 
 - **Space-as-leader key mappings not matching in codemirror-vim** — `Vim.map(' j', 'gj')` and `Vim.mapCommand(' w', ...)` stored literal space in the keymap (`' j'`), but `vimKeyFromEvent` produces `'<Space>'` on key press. The `commandMatch` string comparison never found a match, so leader-prefixed sequences silently failed. The fork now normalizes literal spaces to `<Space>` in `_mapCommand` (both `keys` and `toKeys`), `unmap()`, and `removeMapCommand()`. Existing angle-bracket groups (`<C-Space>`, `<S-Space>`) are preserved. This is the root-cause fix for the space-as-leader issue — the 0.21.0 plugin-side fix (`unmapDefaultBinding` centralization) was necessary but not sufficient without this keymap normalization. ([#21](https://github.com/saberzero1/motions/issues/21))
