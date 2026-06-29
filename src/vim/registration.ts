@@ -143,7 +143,10 @@ export class VimRegistration {
                 this.vim.unmap(reg.name, reg.context);
                 break;
             case 'mapCommand':
-                if (reg.keys) {
+                if (
+                    reg.keys &&
+                    typeof this.vim.removeMapCommand === 'function'
+                ) {
                     this.vim.removeMapCommand(reg.keys);
                 }
                 break;

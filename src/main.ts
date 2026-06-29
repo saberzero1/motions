@@ -95,7 +95,11 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         // --- Vim API setup ---
-        vim.resetKeymap();
+        // resetKeymap() is a fork-only method; guard against the built-in
+        // Vim API which does not expose it.
+        if (typeof vim.resetKeymap === 'function') {
+            vim.resetKeymap();
+        }
         registerVimOptions(vim);
         this.registration = new VimRegistration(vim);
 
@@ -668,7 +672,9 @@ export default class VimMotionsPlugin extends Plugin {
             const vimState = cm.state.vim;
             const bufferLen = vimState.inputState?.keyBuffer?.length ?? 0;
             if (bufferLen > 0 && !vimState.insertMode) {
-                vimApi.clearInputState(cm, 'pane-switch');
+                if (typeof vimApi.clearInputState === 'function') {
+                    vimApi.clearInputState(cm, 'pane-switch');
+                }
                 if (vimState.status) vimState.status = '';
             }
         });
