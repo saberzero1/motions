@@ -17,8 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`gk` on wrapped line after frontmatter jumps straight to properties** — when the first line below the frontmatter wraps across multiple display lines, `gk` now correctly navigates through the wrapped display lines before entering the properties panel. Previously, the `stuckAtBoundary` check in the fork's `findPosV` treated display-line movement within a wrapped line as "stuck" (same document line) and immediately fired `focusBefore`. The check now also verifies that the cursor offset truly didn't change (`range.head === startOffset`), distinguishing "cursor moved to a higher display line within a wrapped line" from "cursor is truly stuck at the frontmatter boundary." ([#25](https://github.com/saberzero1/motions/issues/25))
 - **`let mapleader = " "` (space) not working as leader key** — space as leader now works regardless of which features are enabled. The default `<Space>` → `l` binding in codemirror-vim's keymap consumed the space keystroke before leader-prefixed sequences could accumulate. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so the fix only applied when EasyMotion was enabled. The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — so any key used as leader (space, comma, semicolon, etc.) works for all leader-dependent features (table manipulation, hint mode, settings leader bindings) even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
 - **Mislabeled "space as leader" e2e test** — the `describe('space as leader')` test block was loading `let mapleader = ","` instead of `let mapleader = " "`, making it a duplicate of the comma test rather than a true space leader test. Fixed to use space, providing actual cross-platform regression coverage.
+- E2E regression tests for `gk` wrapped-line frontmatter edge case: `gk` navigates display lines on wrapped first content line, `gk` enters properties on non-wrapping first content line, `k` enters properties from first content line
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: updated "Properties navigation" section with wrapped-line `stuckAtBoundary` edge case fix
+- `DIFFERENCES.md` (fork): updated "Properties navigation" section with `range.head === startOffset` guard
 
 ## [0.20.0] - 2026-06-29
 

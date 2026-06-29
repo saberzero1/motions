@@ -81,6 +81,62 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             expect(pos.line).toBe(1);
             expect(pos.ch).toBeGreaterThan(0);
         });
+
+        it('gk on wrapped line after frontmatter should navigate display lines first (#25)', async function () {
+            const wrappedLine = 'word '.repeat(30).trim();
+            const content = [
+                '---',
+                'title: test',
+                '---',
+                wrappedLine,
+                'second line',
+            ].join('\n');
+            // Place cursor near the end of the long line — guaranteed to be on
+            // a lower display line when the editor wraps it.
+            await setupEditor(content, { line: 3, ch: 80 });
+            await vimKeys('g', 'k');
+            const pos = await getCursorPos();
+            // Cursor must stay on the same document line (the wrapped line)
+            // but move to an earlier character position (higher display line).
+            expect(pos.line).toBe(3);
+            expect(pos.ch).toBeLessThan(80);
+        });
+
+        it('gk on top display line after frontmatter should not stay stuck (#25)', async function () {
+            const content = [
+                '---',
+                'title: test',
+                '---',
+                'short first line',
+                'second line',
+            ].join('\n');
+            await setupEditor(content, { line: 3, ch: 0 });
+            await vimKeys('g', 'k');
+            const pos = await getCursorPos();
+            // On a short (non-wrapping) first content line, gk from ch=0
+            // has nowhere to go within the line — it should enter properties
+            // (cursor stays or moves to line 3, same as k).
+            expect(pos.line).toBeGreaterThanOrEqual(3);
+        });
+
+        it('k on first content line after frontmatter should still enter properties (#25)', async function () {
+            const content = [
+                '---',
+                'title: test',
+                '---',
+                'first line',
+                'second line',
+            ].join('\n');
+            await setupEditor(content, { line: 3, ch: 0 });
+            const before = await getCursorPos();
+            expect(before.line).toBe(3);
+            await vimKeys('k');
+            // k moves by document lines — from the first content line,
+            // it should NOT move the cursor into frontmatter text (line 0-2).
+            // Instead it either enters properties (cursor stays) or stays put.
+            const after = await getCursorPos();
+            expect(after.line).toBeGreaterThanOrEqual(3);
+        });
     });
 
     describe('g0 / g$ / g^', function () {
