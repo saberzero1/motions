@@ -27,6 +27,9 @@ test-vault/.obsidian/*.json
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 
+# Built plugin files copied into test vault
+test-vault/.obsidian/plugins/vim-motions/
+
 # WDIO / E2E testing
 .obsidian-cache/
 
