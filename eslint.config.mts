@@ -38,6 +38,7 @@ export default tseslint.config(
             reportUnusedDisableDirectives: 'off',
         },
         rules: {
+            'obsidianmd/prefer-active-doc': 'off',
             'import/no-nodejs-modules': [
                 'error',
                 {

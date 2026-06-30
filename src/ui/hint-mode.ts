@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/prefer-active-doc -- intentional: use `document`/`window` for mobile compatibility (#30) */
 import { MarkdownView, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
 

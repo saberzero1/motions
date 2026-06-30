@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/prefer-active-doc -- intentional: use `document` for mobile compatibility (#30) */
 import type { LabeledTarget } from './types';
 
 export function waitForKey(): Promise<string | null> {
