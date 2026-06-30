@@ -339,10 +339,10 @@
 
 /* --- Formatting mark cursor fix --- */
 
-.cm-vimMode .cm-line:not(.cm-active) .cm-formatting {
-    color: transparent !important;
+.cm-editor.cm-vimMode .cm-content .cm-line:not(.cm-active) span.cm-formatting {
+    color: transparent;
 }
 
-.cm-vimMode .cm-active .cm-formatting {
+.cm-editor.cm-vimMode .cm-content .cm-active span.cm-formatting {
     color: inherit;
 }
