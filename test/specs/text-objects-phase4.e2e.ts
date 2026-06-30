@@ -373,24 +373,45 @@ describe('Phase 4 text objects', function () {
 
         it('cursor should not snap to formatting mark boundary', async function () {
             await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 1, ch: 1 });
-            const line1 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                return view ? { cursor: view.editor.getCursor() } : { error: 'no view' };
-            })) as Record<string, unknown>;
+            const line1 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view
+                        ? { cursor: view.editor.getCursor() }
+                        : { error: 'no view' };
+                },
+            )) as Record<string, unknown>;
 
             await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 2, ch: 1 });
-            const line2 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                return view ? { cursor: view.editor.getCursor() } : { error: 'no view' };
-            })) as Record<string, unknown>;
+            const line2 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view
+                        ? { cursor: view.editor.getCursor() }
+                        : { error: 'no view' };
+                },
+            )) as Record<string, unknown>;
 
             await setupEditor('Hello *x* world', { line: 0, ch: 7 });
-            const inline = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                return view ? { cursor: view.editor.getCursor() } : { error: 'no view' };
-            })) as Record<string, unknown>;
+            const inline = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view
+                        ? { cursor: view.editor.getCursor() }
+                        : { error: 'no view' };
+                },
+            )) as Record<string, unknown>;
 
-            console.log('Formatting cursor fix:', JSON.stringify({ line1, line2, inline }));
+            console.log(
+                'Formatting cursor fix:',
+                JSON.stringify({ line1, line2, inline }),
+            );
             expect((line1.cursor as { ch: number }).ch).toBe(1);
             expect((line2.cursor as { ch: number }).ch).toBe(1);
             expect((inline.cursor as { ch: number }).ch).toBe(7);
@@ -399,94 +420,171 @@ describe('Phase 4 text objects', function () {
         it.skip('should diagnose formatting mark CSS on inactive line', async function () {
             await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 0, ch: 1 });
 
-            const step1 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                if (!view) return { error: 'no view' };
-                return { step: 'after setupEditor', cursor: view.editor.getCursor() };
-            })) as Record<string, unknown>;
+            const step1 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'no view' };
+                    return {
+                        step: 'after setupEditor',
+                        cursor: view.editor.getCursor(),
+                    };
+                },
+            )) as Record<string, unknown>;
 
             await sendVimEscape();
 
-            const step2 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                if (!view) return { error: 'no view' };
-                return { step: 'after sendVimEscape', cursor: view.editor.getCursor() };
-            })) as Record<string, unknown>;
+            const step2 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'no view' };
+                    return {
+                        step: 'after sendVimEscape',
+                        cursor: view.editor.getCursor(),
+                    };
+                },
+            )) as Record<string, unknown>;
 
             await browser.pause(50);
 
-            const step3 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                if (!view) return { error: 'no view' };
-                const editorView = (view.editor as unknown as Record<string, unknown>).cm as
-                    { contentDOM: HTMLElement } | undefined;
-                const lineEl = editorView?.contentDOM.querySelector('.cm-line');
-                const isActive = lineEl?.classList.contains('cm-active') ?? false;
-                const formattingEls = lineEl ? Array.from(lineEl.querySelectorAll('[class*="formatting"]')).map(s => ({
-                    className: (s as HTMLElement).className,
-                    display: getComputedStyle(s as HTMLElement).display,
-                    width: (s as HTMLElement).getBoundingClientRect().width,
-                })) : [];
-                return {
-                    step: 'after pause',
-                    cursor: view.editor.getCursor(),
-                    isActiveLine: isActive,
-                    formattingEls,
-                };
-            })) as Record<string, unknown>;
+            const step3 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'no view' };
+                    const editorView = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as { contentDOM: HTMLElement } | undefined;
+                    const lineEl =
+                        editorView?.contentDOM.querySelector('.cm-line');
+                    const isActive =
+                        lineEl?.classList.contains('cm-active') ?? false;
+                    const formattingEls = lineEl
+                        ? Array.from(
+                              lineEl.querySelectorAll('[class*="formatting"]'),
+                          ).map((s) => ({
+                              className: (s as HTMLElement).className,
+                              display: getComputedStyle(s as HTMLElement)
+                                  .display,
+                              width: (s as HTMLElement).getBoundingClientRect()
+                                  .width,
+                          }))
+                        : [];
+                    return {
+                        step: 'after pause',
+                        cursor: view.editor.getCursor(),
+                        isActiveLine: isActive,
+                        formattingEls,
+                    };
+                },
+            )) as Record<string, unknown>;
 
             await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 1, ch: 1 });
-            const step4 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                return view ? { step: 'line1 ch:1', cursor: view.editor.getCursor() } : { error: 'no view' };
-            })) as Record<string, unknown>;
+            const step4 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view
+                        ? {
+                              step: 'line1 ch:1',
+                              cursor: view.editor.getCursor(),
+                          }
+                        : { error: 'no view' };
+                },
+            )) as Record<string, unknown>;
 
             await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 2, ch: 1 });
-            const step5 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                return view ? { step: 'line2 ch:1', cursor: view.editor.getCursor() } : { error: 'no view' };
-            })) as Record<string, unknown>;
+            const step5 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view
+                        ? {
+                              step: 'line2 ch:1',
+                              cursor: view.editor.getCursor(),
+                          }
+                        : { error: 'no view' };
+                },
+            )) as Record<string, unknown>;
 
             await setupEditor('Hello *x* world', { line: 0, ch: 7 });
-            const step6 = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                return view ? { step: 'Hello *x* ch:7', cursor: view.editor.getCursor() } : { error: 'no view' };
-            })) as Record<string, unknown>;
+            const step6 = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view
+                        ? {
+                              step: 'Hello *x* ch:7',
+                              cursor: view.editor.getCursor(),
+                          }
+                        : { error: 'no view' };
+                },
+            )) as Record<string, unknown>;
 
-            const cssCheck = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-                if (!view) return { error: 'no view' };
-                const editorView = (view.editor as unknown as Record<string, unknown>).cm as
-                    { contentDOM: HTMLElement } | undefined;
-                if (!editorView) return { error: 'no editorView' };
-                const lines = Array.from(editorView.contentDOM.querySelectorAll('.cm-line'));
-                return lines.map((line, i) => {
-                    const isActive = line.classList.contains('cm-active');
-                    const fmtEls = Array.from(line.querySelectorAll('[class*="formatting"]'));
-                    return {
-                        lineIdx: i,
-                        isActive,
-                        text: line.textContent,
-                        formattingMarks: fmtEls.map(el => {
-                            const cs = getComputedStyle(el as HTMLElement);
-                            return {
-                                text: el.textContent,
-                                display: cs.display,
-                                visibility: cs.visibility,
-                                width: (el as HTMLElement).getBoundingClientRect().width,
-                                height: (el as HTMLElement).getBoundingClientRect().height,
-                                fontSize: cs.fontSize,
-                                opacity: cs.opacity,
-                                overflow: cs.overflow,
-                                position: cs.position,
-                                clip: cs.clip,
-                            };
-                        }),
-                    };
-                });
-            })) as unknown[];
-            console.log('CSS formatting diag:', JSON.stringify(cssCheck, null, 2));
-            console.log('LP snap sequence:', JSON.stringify([step1, step2, step3, step4, step5, step6], null, 2));
+            const cssCheck = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'no view' };
+                    const editorView = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as { contentDOM: HTMLElement } | undefined;
+                    if (!editorView) return { error: 'no editorView' };
+                    const lines = Array.from(
+                        editorView.contentDOM.querySelectorAll('.cm-line'),
+                    );
+                    return lines.map((line, i) => {
+                        const isActive = line.classList.contains('cm-active');
+                        const fmtEls = Array.from(
+                            line.querySelectorAll('[class*="formatting"]'),
+                        );
+                        return {
+                            lineIdx: i,
+                            isActive,
+                            text: line.textContent,
+                            formattingMarks: fmtEls.map((el) => {
+                                const cs = getComputedStyle(el as HTMLElement);
+                                return {
+                                    text: el.textContent,
+                                    display: cs.display,
+                                    visibility: cs.visibility,
+                                    width: (
+                                        el as HTMLElement
+                                    ).getBoundingClientRect().width,
+                                    height: (
+                                        el as HTMLElement
+                                    ).getBoundingClientRect().height,
+                                    fontSize: cs.fontSize,
+                                    opacity: cs.opacity,
+                                    overflow: cs.overflow,
+                                    position: cs.position,
+                                    clip: cs.clip,
+                                };
+                            }),
+                        };
+                    });
+                },
+            )) as unknown[];
+            console.log(
+                'CSS formatting diag:',
+                JSON.stringify(cssCheck, null, 2),
+            );
+            console.log(
+                'LP snap sequence:',
+                JSON.stringify(
+                    [step1, step2, step3, step4, step5, step6],
+                    null,
+                    2,
+                ),
+            );
             expect(step1).not.toHaveProperty('error');
         });
 

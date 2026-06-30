@@ -339,6 +339,7 @@ The plugin suppresses Obsidian's `Decoration.replace({})` for markdown formattin
 A `StateField` tracks the current document so the `RangeSetBuilder.add` interceptor can read the text at each decoration's range and match it against known formatting marks. Only empty replace decorations (no widget) covering 1–2 characters of matching text are suppressed.
 
 CSS styling in `styles.css` hides the now-visible formatting marks on non-active lines:
+
 ```css
 .cm-vimMode .cm-line:not(.cm-active) .cm-formatting {
     color: transparent !important;

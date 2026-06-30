@@ -14,7 +14,12 @@
  * (see styles.css) to maintain the visual appearance of hidden formatting.
  */
 
-import { RangeSetBuilder, StateField, type Extension, type Transaction } from '@codemirror/state';
+import {
+    RangeSetBuilder,
+    StateField,
+    type Extension,
+    type Transaction,
+} from '@codemirror/state';
 import { around } from '../util/around';
 
 let enabled = false;
@@ -46,11 +51,11 @@ function isFormattingReplace(
 
 const docTrackerField = StateField.define<null>({
     create(state) {
-        activeDoc = state.doc as unknown as typeof activeDoc;
+        activeDoc = state.doc;
         return null;
     },
     update(_: null, tr: Transaction) {
-        activeDoc = tr.state.doc as unknown as typeof activeDoc;
+        activeDoc = tr.state.doc;
         return null;
     },
 });
@@ -72,7 +77,10 @@ export function installFormattingCursorFix(): () => void {
                 to: unknown,
                 value: unknown,
             ) {
-                if (enabled && isFormattingReplace(from as number, to as number, value)) {
+                if (
+                    enabled &&
+                    isFormattingReplace(from as number, to as number, value)
+                ) {
                     return;
                 }
                 return orig.call(this, from, to, value);
@@ -85,7 +93,10 @@ export function installFormattingCursorFix(): () => void {
                 to: unknown,
                 value: unknown,
             ) {
-                if (enabled && isFormattingReplace(from as number, to as number, value)) {
+                if (
+                    enabled &&
+                    isFormattingReplace(from as number, to as number, value)
+                ) {
                     return false;
                 }
                 return orig.call(this, from, to, value);
