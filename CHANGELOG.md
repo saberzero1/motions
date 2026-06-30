@@ -11,18 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Mobile support** — the plugin is no longer desktop-only. Changed `isDesktopOnly` to `false` in `manifest.json`, replacing Obsidian's desktop-only globals (`activeWindow`, `activeDocument`) with standard `window`/`document` equivalents across hint mode, EasyMotion keypress handling, and the settings hotkey recorder. Physical keyboard users on mobile (Bluetooth keyboards, keyboard cases) get the full feature set. On-screen keyboard users are limited by Obsidian's soft keyboard constraints (no `:` or `/` entry). ([#30](https://github.com/saberzero1/motions/issues/30))
-    - `src/ui/hint-mode.ts`: `activeWindow` → `window` (7 replacements), `activeDocument` → `document` (4 replacements)
-    - `src/easymotion/keypress.ts`: `activeDocument` → `document` (5 replacements)
-    - `src/settings.ts`: `activeDocument` → `document` (2 replacements) for hotkey recorder
+- **Mobile support** — the plugin is no longer desktop-only. Changed `isDesktopOnly` to `false` in `manifest.json`. EasyMotion and hint mode are disabled on mobile via `Platform.isMobile` guards because they depend on `activeDocument`/`activeWindow` (desktop-only Obsidian globals). All other features (core vim, text objects, navigation, workspace commands, vimrc, status bar, tables, surround) work on mobile. ([#30](https://github.com/saberzero1/motions/issues/30))
+    - `src/main.ts`: added `Platform.isMobile` guards to skip EasyMotion and hint mode registration on mobile (in `onload`, `reloadFeatures`, and `reregisterLeaderFeatures`)
     - `eslint.config.mts`: added `@codemirror/*` and `@lezer/*` to `import/no-nodejs-modules` allow list — `eslint-plugin-obsidianmd` enables this rule when `isDesktopOnly: false`
-    - `obsidianmd/prefer-active-doc` lint warnings suppressed with comments referencing #30
 
 ### Fixed
 
 - **EasyMotion big-WORD regex crashes on iOS < 16.4** — `BIG_WORD_START_RE` used a lookbehind assertion (`(?<=\s|^)\S`) which is not supported on iOS versions before 16.4. Rewritten as a two-pass scanner: first checks start-of-line for non-whitespace, then finds `\s\S` transitions mid-line. The `obsidianmd/regex-lookbehind` lint rule (enabled when `isDesktopOnly: false`) caught this. ([#30](https://github.com/saberzero1/motions/issues/30))
 - **`import/no-nodejs-modules` false positives on `@codemirror/*` imports** — `eslint-plugin-obsidianmd` enables this rule when `isDesktopOnly: false` in `manifest.json`. The existing `import/core-modules` setting does not affect this rule's allow list. Added explicit `allow` entries for all `@codemirror/*` and `@lezer/*` packages to the rule configuration.
-
 - **Configurable insert mode escape timeout** — `set insertmodeescapetimeout=N` (alias `imet`, range 100–5000ms, default: 1000ms) controls how long the plugin waits between keystrokes when matching the `insertmodeescape` sequence (e.g. `jk`). Matches Neovim's `timeoutlen` default of 1000ms. Previously hardcoded at 200ms — too tight for normal typing. Configurable via vimrc, Settings UI (**Settings → Vim Motions → Vim engine → Insert mode escape timeout**), or runtime `Vim.setOption('insertmodeescapetimeout', 500)`. ([#31](https://github.com/saberzero1/motions/issues/31))
 - **Vimrc ↔ Settings parity** — all plugin settings are now configurable via `.obsidian.vimrc` in addition to the Settings UI. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values. Settings overridden by vimrc are shown as disabled controls in the settings tab with a note indicating the vimrc directive that set them (e.g., "Set by vimrc: `set scrolloff=10`").
     - **Boolean feature toggles** via `set`/`set no`: `textobjects`, `navigation`, `hardwrap`, `listcontinuation`, `tablenav`, `workspacenav`, `easymotion`, `easymotiondimming`, `hintmode`, `statusbar`, `chorddisplay`, `powerline`
@@ -40,13 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vimrc `set` command routing** — all known `set` options are now handled directly in the vimrc loader via a `KNOWN_SET_OPTIONS` mapping table, calling `onSettingOverride` directly instead of relying on `defineOption` callback dispatch through `vim.handleEx`. This ensures reliable settings override regardless of codemirror-vim initialization order. Unknown options fall through to `handleEx` for forward compatibility.
 - **Spurious `defineOption` callback prevention** — `registerVimOptions` now uses a `registered` flag to prevent `defineOption` callbacks from firing during initial option registration (codemirror-vim calls `setOption(name, defaultValue)` internally during `defineOption`). Without this guard, every option with a truthy default would spuriously populate `vimrcOverrides` and trigger `reloadFeatures` during plugin startup.
 - E2E test suite `test/specs/vimrc-settings.e2e.ts` with 11 tests covering boolean/number/string/enum option overrides, mode prompts, which-key labels, override tracking, and combined overrides
-
-### Changed
-
-- **`minAppVersion` bumped to 1.2.3** — required for `setDisabled()` API on settings controls (used to disable vimrc-overridden settings in the UI). Obsidian 1.2.3 was released March 2023.
-
-### Fixed
-
 - **`set insertmodeescape=jk` not working (frame-perfect timing required)** — the `InsertEscapeHandler` listened to `vim-keypress` events, which only fire for keys processed by codemirror-vim as vim commands. In insert mode, regular character keys bypass vim entirely and go through CM6's text input pipeline — the handler never saw them. Rewrote to use DOM `keydown` events on the editor element, correctly intercepting keystrokes in insert mode. Also fixed the `insertmodeescape` vim option not storing its value for `getOption()` retrieval (callback returned `undefined` instead of the stored value). ([#31](https://github.com/saberzero1/motions/issues/31))
 - **`dk` not deleting in operator-pending mode** — `dk` (delete current and previous line) was a no-op because `tableAwareMoveUp` was registered with `context: 'normal'`, causing it to be filtered out in operator-pending mode. CM Vim's keymap search then failed to fall through to the default `k` motion. Removed the context restriction since the motion already handles operator-pending mode internally via its `hasOperator` check.
 - **Cursor snaps to formatting mark boundary in Live Preview** — placing the cursor inside formatted text (`*italic*`, `**bold**`, `` `code` ``, `~~strike~~`, `==highlight==`) would snap to the delimiter boundary instead of the intended position. Obsidian's Live Preview uses `Decoration.replace({})` to hide formatting marks on inactive lines, creating zero-width gaps that cause CM6's position mapping to collapse. Fixed by intercepting `Decoration.replace({})` via `RangeSetBuilder.prototype.add` patching (same pattern as the table widget suppressor) and suppressing empty replace decorations whose text matches known formatting marks (`*`, `**`, `_`, `__`, `` ` ``, `~~`, `==`). A `StateField` tracks the current document for text extraction. CSS styling (`color: transparent`) hides the now-visible marks on inactive lines while preserving their positional space.
@@ -55,9 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`V` linewise visual cursor at end of line instead of column 0** — linewise visual mode (`V`, `Vj`, etc.) now positions the cursor at column 0 of the head line, matching Neovim. The fork's `makeCmSelection` was setting `head.ch = lineLength(line)` for display, which placed the cursor at the end of the line. A `ViewPlugin` with `Decoration.line` now provides the full-line visual highlight independently of the CM6 selection head position.
 - **Vimrc map re-application** — vimrc key mappings are now re-applied 200ms after initial load as a safety net against CM Vim initialization timing. If the initial `applyVimrcMaps` call runs before the CM6 vim extension has fully settled, the delayed retry ensures mappings take effect.
 
+### Changed
+
+- **`minAppVersion` bumped to 1.2.3** — required for `setDisabled()` API on settings controls (used to disable vimrc-overridden settings in the UI). Obsidian 1.2.3 was released March 2023.
+
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: replaced "Desktop only" section with "Mobile support" section including feature-by-platform compatibility matrix
+- `KNOWN_LIMITATIONS.md`: replaced "Desktop only" section with "Mobile support" section documenting `Platform.isMobile` guards and feature-by-platform compatibility matrix
 - `README.md`: updated Requirements from "Desktop only" to "Desktop and mobile" with link to known limitations
 - `KNOWN_LIMITATIONS.md`: added "Insert mode escape" section documenting the `keydown`-based handler, configurable timeout, and the `vim-keypress` event limitation; updated `vi*` single-character status to fixed via formatting mark suppression; updated `%` + strings to note Lezer limitation in Markdown; updated `<<` unindent entry to note fork fix; removed `V` linewise cursor deviation; updated `nmap L $` section with investigation findings; added "Formatting mark suppression" section
 - `README.md`: added `insertmodeescapetimeout` to number options table and vimrc example; added insert mode escape timeout to settings list

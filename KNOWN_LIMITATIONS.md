@@ -253,7 +253,7 @@ Standard Vim's `gf` opens the file whose path is under the cursor. In Obsidian, 
 
 ## Mobile support
 
-The plugin works on mobile with limitations. Physical keyboard users (Bluetooth keyboards, keyboard cases) get the full experience — all Vim commands, EasyMotion, hint mode, and keybindings work. On-screen keyboard users are limited by Obsidian's soft keyboard, which does not support `:` and `/` command entry (making ex commands and search unusable).
+The plugin works on mobile with limitations. EasyMotion and hint mode are disabled on mobile because they depend on desktop-only Obsidian globals (`activeDocument`, `activeWindow`) that are unavailable on mobile. All other features work, though on-screen keyboard users are further limited by Obsidian's soft keyboard, which does not support `:` and `/` command entry.
 
 Features by platform:
 
@@ -261,8 +261,8 @@ Features by platform:
 | ------------------------ | ------- | -------------------------- | ---------------------- |
 | Core Vim motions         | ✅      | ✅                         | ⚠️ Limited             |
 | Text objects             | ✅      | ✅                         | ⚠️ Limited             |
-| EasyMotion               | ✅      | ✅                         | ❌ Requires keys       |
-| Hint mode                | ✅      | ✅                         | ❌ Requires keys       |
+| EasyMotion               | ✅      | ❌ Disabled                | ❌ Disabled            |
+| Hint mode                | ✅      | ❌ Disabled                | ❌ Disabled            |
 | Ex commands (`:w`, `:q`) | ✅      | ✅                         | ❌ No `:` entry        |
 | Search (`/`, `?`)        | ✅      | ✅                         | ❌ No `/` entry        |
 | Workspace nav (`<C-w>`)  | ✅      | ✅                         | ❌ No modifier keys    |

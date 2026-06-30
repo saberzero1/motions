@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, Plugin } from 'obsidian';
+import { MarkdownView, Notice, Platform, Plugin } from 'obsidian';
 import {
     DEFAULT_SETTINGS,
     CommandLabel,
@@ -295,7 +295,7 @@ export default class VimMotionsPlugin extends Plugin {
             registerExCommands(this.registration, this.app, vim);
         }
         this.registration.beginLeaderScope();
-        if (this.settings.enableEasyMotion) {
+        if (this.settings.enableEasyMotion && !Platform.isMobile) {
             registerEasyMotion(
                 this.registration,
                 this.app,
@@ -305,7 +305,7 @@ export default class VimMotionsPlugin extends Plugin {
                 () => this.settings.labelFontSize,
             );
         }
-        if (this.settings.enableHintMode) {
+        if (this.settings.enableHintMode && !Platform.isMobile) {
             this.registerHintMode(this.registration, this.leaderRegistry);
             this.addCommand({
                 id: 'show-hint-labels',
@@ -484,7 +484,11 @@ export default class VimMotionsPlugin extends Plugin {
             registerExCommands(this.registration, this.app, vim);
         }
         this.registration.beginLeaderScope();
-        if (this.settings.enableEasyMotion && this.leaderRegistry) {
+        if (
+            this.settings.enableEasyMotion &&
+            this.leaderRegistry &&
+            !Platform.isMobile
+        ) {
             registerEasyMotion(
                 this.registration,
                 this.app,
@@ -494,7 +498,11 @@ export default class VimMotionsPlugin extends Plugin {
                 () => this.settings.labelFontSize,
             );
         }
-        if (this.settings.enableHintMode && this.leaderRegistry) {
+        if (
+            this.settings.enableHintMode &&
+            this.leaderRegistry &&
+            !Platform.isMobile
+        ) {
             this.registerHintMode(this.registration, this.leaderRegistry);
         }
         this.registration.endLeaderScope();
@@ -638,7 +646,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
             );
         }
-        if (this.settings.enableEasyMotion) {
+        if (this.settings.enableEasyMotion && !Platform.isMobile) {
             registerEasyMotion(
                 this.registration,
                 this.app,
@@ -648,7 +656,7 @@ export default class VimMotionsPlugin extends Plugin {
                 () => this.settings.labelFontSize,
             );
         }
-        if (this.settings.enableHintMode) {
+        if (this.settings.enableHintMode && !Platform.isMobile) {
             this.registerHintMode(this.registration, this.leaderRegistry);
         }
         this.applySettingsLeaderBindings(

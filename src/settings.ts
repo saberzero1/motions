@@ -679,7 +679,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             return;
                         e.preventDefault();
                         e.stopPropagation();
-                        document.removeEventListener('keydown', onKey, true);
+                        activeDocument.removeEventListener(
+                            'keydown',
+                            onKey,
+                            true,
+                        );
 
                         const mods: string[] = [];
                         if (e.ctrlKey) mods.push('ctrl');
@@ -698,7 +702,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         hotkeyDisplay.textContent = formatHotkey(serialized);
                         button.setButtonText('Record');
                     };
-                    document.addEventListener('keydown', onKey, true);
+                    activeDocument.addEventListener('keydown', onKey, true);
                 }),
         );
 

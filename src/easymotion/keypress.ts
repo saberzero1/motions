@@ -5,14 +5,14 @@ export function waitForKey(): Promise<string | null> {
         const handler = (e: KeyboardEvent) => {
             e.preventDefault();
             e.stopPropagation();
-            document.removeEventListener('keydown', handler, true);
+            activeDocument.removeEventListener('keydown', handler, true);
             if (e.key === 'Escape') {
                 resolve(null);
             } else {
                 resolve(e.key);
             }
         };
-        document.addEventListener('keydown', handler, true);
+        activeDocument.addEventListener('keydown', handler, true);
     });
 }
 
@@ -28,7 +28,7 @@ export function waitForLabel(
             e.stopPropagation();
 
             if (e.key === 'Escape') {
-                document.removeEventListener('keydown', handler, true);
+                activeDocument.removeEventListener('keydown', handler, true);
                 resolve(null);
                 return;
             }
@@ -46,7 +46,7 @@ export function waitForLabel(
             const typed = prefix + e.key;
             const exact = labels.find((t) => t.label === typed);
             if (exact) {
-                document.removeEventListener('keydown', handler, true);
+                activeDocument.removeEventListener('keydown', handler, true);
                 resolve(exact);
                 return;
             }
@@ -57,6 +57,6 @@ export function waitForLabel(
                 onNarrow(remaining);
             }
         };
-        document.addEventListener('keydown', handler, true);
+        activeDocument.addEventListener('keydown', handler, true);
     });
 }
