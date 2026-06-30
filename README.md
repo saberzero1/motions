@@ -440,7 +440,7 @@ If obsidian-vimrc-support is also installed, both plugins can coexist — Vim Mo
 
 ## Settings
 
-All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. Settings are organized into the following sections:
+All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. On Obsidian 1.13.0+, all settings are indexed by Obsidian's global settings search. Settings are organized into the following sections:
 
 **Vim features**
 

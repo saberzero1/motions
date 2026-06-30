@@ -6,6 +6,7 @@ import {
     SuggestModal,
     TextComponent,
 } from 'obsidian';
+import type { SettingDefinitionItem } from 'obsidian';
 import VimMotionsPlugin from './main';
 import { isBundledVimActive } from './vim/bundled-vim';
 
@@ -192,9 +193,845 @@ class CommandPickerModal extends SuggestModal<ObsidianCommand> {
 export class VimMotionsSettingTab extends PluginSettingTab {
     plugin: VimMotionsPlugin;
 
+    /** Settings keys that require reloadFeatures() after change. */
+    private static readonly RELOAD_KEYS = new Set([
+        'enableTextObjects',
+        'enableNavigation',
+        'enableHardWrap',
+        'listContinuationOnOpen',
+        'enableTableNav',
+        'tableWidgetMode',
+        'enableWorkspaceNav',
+        'enableEasyMotion',
+        'enableHintMode',
+        'enableStatusBar',
+        'enableChordDisplay',
+        'enablePowerline',
+        'modePrompts.normal',
+        'modePrompts.insert',
+        'modePrompts.visual',
+        'modePrompts.replace',
+        'cursorShapes.normal',
+        'cursorShapes.insert',
+        'cursorShapes.visual',
+        'cursorShapes.replace',
+        'cursorShapes.operatorPending',
+        'scrolloffLines',
+        'multilineScanLimit',
+        'whichKeyMode',
+        'whichKeyGrouping',
+    ]);
+
     constructor(app: App, plugin: VimMotionsPlugin) {
         super(app, plugin);
         this.plugin = plugin;
+    }
+
+    private isOverridden(key: string): boolean {
+        return !!this.plugin.vimrcOverrides?.get(key);
+    }
+
+    private describeOverride(key: string, desc?: string): string {
+        const directive = this.plugin.vimrcOverrides?.get(key);
+        if (!directive) return desc ?? '';
+        const note = `Set by vimrc: \`${directive}\``;
+        return desc ? `${desc} (${note})` : note;
+    }
+
+    getSettingDefinitions(): SettingDefinitionItem[] {
+        const forkActive = isBundledVimActive();
+        const cursorShapeOptions: Record<string, string> = {
+            block: 'Block',
+            bar: 'Bar',
+            underline: 'Underline',
+            hollow: 'Hollow',
+        };
+
+        const builtinVimOn =
+            (
+                this.app.vault as unknown as {
+                    getConfig: (key: string) => unknown;
+                }
+            ).getConfig('vimMode') === true;
+
+        return [
+            // ── Built-in vim warning ────────────────────────────────
+            ...(builtinVimOn
+                ? [
+                      {
+                          name: 'Recommended: disable built-in Vim mode',
+                          desc:
+                              'Vim Motions includes an enhanced vim engine with Neovim-correct behavior, ' +
+                              'operator-pending EasyMotion, and theme-aligned cursor styling. ' +
+                              'These improvements are only active when Obsidian\u2019s built-in Vim mode is off. ' +
+                              'Go to settings \u2192 editor \u2192 Vim key bindings and turn it off, then reload Obsidian.',
+                          aliases: ['vim mode', 'built-in vim'],
+                      } satisfies SettingDefinitionItem,
+                  ]
+                : []),
+
+            // ── Vim features ────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Vim features',
+                items: [
+                    {
+                        name: 'Text objects',
+                        desc: this.describeOverride(
+                            'enableTextObjects',
+                            'Enable Markdown-aware text objects (i*, a*, il, etc.)',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableTextObjects',
+                            disabled: () =>
+                                this.isOverridden('enableTextObjects'),
+                        },
+                    },
+                    {
+                        name: 'Structural navigation',
+                        desc: this.describeOverride(
+                            'enableNavigation',
+                            'Enable heading, list, and link navigation motions (]h, ]l, ]n, etc.)',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableNavigation',
+                            disabled: () =>
+                                this.isOverridden('enableNavigation'),
+                        },
+                    },
+                    {
+                        name: 'Hard-wrap operator (gq)',
+                        desc: this.describeOverride(
+                            'enableHardWrap',
+                            'Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableHardWrap',
+                            disabled: () => this.isOverridden('enableHardWrap'),
+                        },
+                    },
+                    {
+                        name: 'Smart list continuation on o/O',
+                        desc: this.describeOverride(
+                            'listContinuationOnOpen',
+                            'When pressing o or O on a list line, automatically continue the list ' +
+                                'marker (bullets, numbers, checkboxes). Disable for plain Neovim behavior.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'listContinuationOnOpen',
+                            disabled: () =>
+                                this.isOverridden('listContinuationOnOpen'),
+                        },
+                    },
+                    {
+                        name: 'Table navigation',
+                        desc: this.describeOverride(
+                            'enableTableNav',
+                            'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableTableNav',
+                            disabled: () => this.isOverridden('enableTableNav'),
+                        },
+                    },
+                    {
+                        name: 'Table widget in live preview',
+                        desc: this.describeOverride(
+                            'tableWidgetMode',
+                            'Controls how tables display in Live Preview. ' +
+                                '"Always raw" keeps tables as plain text. ' +
+                                '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
+                                '"Off" uses the default interactive table editor.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'tableWidgetMode',
+                            options: {
+                                always: 'Always raw',
+                                cursor: 'Cursor-aware',
+                                off: 'Off',
+                            },
+                            disabled: () =>
+                                this.isOverridden('tableWidgetMode'),
+                        },
+                    },
+                    {
+                        name: 'Workspace navigation',
+                        desc: this.describeOverride(
+                            'enableWorkspaceNav',
+                            'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableWorkspaceNav',
+                            disabled: () =>
+                                this.isOverridden('enableWorkspaceNav'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Vim engine ──────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Vim engine',
+                items: [
+                    {
+                        name: 'Clipboard',
+                        desc: this.describeOverride(
+                            'clipboard',
+                            'Sync yank/delete/paste with the system clipboard (unnamed/unnamedplus).',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'clipboard',
+                            options: {
+                                '': 'Off',
+                                unnamed: 'Unnamed',
+                                unnamedplus: 'Unnamedplus',
+                            },
+                            disabled: () => this.isOverridden('clipboard'),
+                        },
+                    },
+                    {
+                        name: 'Tabstop',
+                        desc: this.describeOverride(
+                            'tabstop',
+                            'Tab display width (1\u20138).',
+                        ),
+                        control: {
+                            type: 'slider' as const,
+                            key: 'tabstop',
+                            min: 1,
+                            max: 8,
+                            step: 1,
+                            disabled: () => this.isOverridden('tabstop'),
+                        },
+                    },
+                    {
+                        name: 'Shiftwidth',
+                        desc: this.describeOverride(
+                            'shiftwidth',
+                            'Indent width (1\u20138).',
+                        ),
+                        control: {
+                            type: 'slider' as const,
+                            key: 'shiftwidth',
+                            min: 1,
+                            max: 8,
+                            step: 1,
+                            disabled: () => this.isOverridden('shiftwidth'),
+                        },
+                    },
+                    {
+                        name: 'Expand tab',
+                        desc: this.describeOverride(
+                            'expandtab',
+                            'Use spaces instead of tabs.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'expandtab',
+                            disabled: () => this.isOverridden('expandtab'),
+                        },
+                    },
+                    {
+                        name: 'Insert mode escape',
+                        desc: this.describeOverride(
+                            'insertmodeescape',
+                            'Two-key sequence to exit insert mode (e.g. jk).',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'insertmodeescape',
+                            disabled: () =>
+                                this.isOverridden('insertmodeescape'),
+                        },
+                    },
+                    {
+                        name: 'Insert mode escape timeout',
+                        desc: this.describeOverride(
+                            'insertmodeescapetimeout',
+                            'Timeout in milliseconds for insert mode escape sequence (100\u20135000).',
+                        ),
+                        control: {
+                            type: 'number' as const,
+                            key: 'insertmodeescapetimeout',
+                            min: 100,
+                            max: 5000,
+                            disabled: () =>
+                                this.isOverridden('insertmodeescapetimeout'),
+                        },
+                    },
+                    {
+                        name: 'Textwidth',
+                        desc: this.describeOverride(
+                            'textwidth',
+                            'Line wrap width for gq/gw (0 to disable).',
+                        ),
+                        control: {
+                            type: 'number' as const,
+                            key: 'textwidth',
+                            min: 0,
+                            max: 200,
+                            disabled: () => this.isOverridden('textwidth'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Jump navigation ─────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Jump navigation',
+                items: [
+                    {
+                        name: 'EasyMotion',
+                        desc: this.describeOverride(
+                            'enableEasyMotion',
+                            'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableEasyMotion',
+                            disabled: () =>
+                                this.isOverridden('enableEasyMotion'),
+                        },
+                    },
+                    {
+                        name: 'EasyMotion dimming',
+                        desc: this.describeOverride(
+                            'easyMotionDimming',
+                            'Dim non-target text when EasyMotion is active.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'easyMotionDimming',
+                            disabled: () =>
+                                this.isOverridden('easyMotionDimming'),
+                        },
+                    },
+                    {
+                        name: 'EasyMotion label characters',
+                        desc: this.describeOverride(
+                            'easyMotionLabels',
+                            'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'easyMotionLabels',
+                            disabled: () =>
+                                this.isOverridden('easyMotionLabels'),
+                        },
+                    },
+                    {
+                        name: 'Hint mode',
+                        desc: this.describeOverride(
+                            'enableHintMode',
+                            'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableHintMode',
+                            disabled: () => this.isOverridden('enableHintMode'),
+                        },
+                    },
+                    {
+                        name: 'Hint mode label characters',
+                        desc: this.describeOverride(
+                            'hintModeLabels',
+                            'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'hintModeLabels',
+                            disabled: () => this.isOverridden('hintModeLabels'),
+                        },
+                    },
+                    {
+                        name: 'Hint mode global hotkey',
+                        desc: this.describeOverride(
+                            'hintModeHotkey',
+                            'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
+                        ),
+                        render: (setting: Setting) => {
+                            this.renderHotkeyControl(setting);
+                        },
+                    },
+                    {
+                        name: 'Label font size',
+                        desc: this.describeOverride(
+                            'labelFontSize',
+                            'Font size for EasyMotion and hint mode labels (10\u201320px). ' +
+                                'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
+                        ),
+                        control: {
+                            type: 'slider' as const,
+                            key: 'labelFontSize',
+                            min: 10,
+                            max: 20,
+                            step: 1,
+                            disabled: () => this.isOverridden('labelFontSize'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Status bar ──────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Status bar',
+                items: [
+                    {
+                        name: 'Vim mode status bar',
+                        desc: this.describeOverride(
+                            'enableStatusBar',
+                            'Show current Vim mode (normal, insert, visual) in the status bar.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableStatusBar',
+                            disabled: () =>
+                                this.isOverridden('enableStatusBar'),
+                        },
+                    },
+                    {
+                        name: 'Vim chord display',
+                        desc: this.describeOverride(
+                            'enableChordDisplay',
+                            'Show pending keystrokes in the status bar as you type a command (e.g. "2d", "gq").',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableChordDisplay',
+                            disabled: () =>
+                                this.isOverridden('enableChordDisplay'),
+                        },
+                    },
+                    {
+                        name: 'Powerline-style status bar',
+                        desc: this.describeOverride(
+                            'enablePowerline',
+                            'Color the Vim mode indicator with per-mode background colors and a triangular separator.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enablePowerline',
+                            disabled: () =>
+                                this.isOverridden('enablePowerline'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Mode prompts ────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Vim mode display prompt',
+                items: [
+                    {
+                        name: 'Normal mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.normal',
+                            'Status bar text for normal mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.normal',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.normal'),
+                        },
+                    },
+                    {
+                        name: 'Insert mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.insert',
+                            'Status bar text for insert mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.insert',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.insert'),
+                        },
+                    },
+                    {
+                        name: 'Visual mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.visual',
+                            'Status bar text for visual mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.visual',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.visual'),
+                        },
+                    },
+                    {
+                        name: 'Replace mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.replace',
+                            'Status bar text for replace mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.replace',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.replace'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Cursor shapes ───────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Cursor shapes',
+                items: [
+                    {
+                        name: forkActive
+                            ? 'Cursor shape per Vim mode. Configurable via vimrc: set guicursor=n:block,i:bar,v:block,r:underline,o:underline'
+                            : 'Cursor shapes require bundled fork mode. Disable Obsidian\u2019s built-in Vim key bindings (settings \u2192 editor) and restart the plugin to enable these options.',
+                        searchable: false,
+                    },
+                    {
+                        name: 'Normal mode',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'cursorShapes.normal',
+                            options: cursorShapeOptions,
+                            disabled: () =>
+                                !forkActive ||
+                                this.isOverridden('cursorShapes'),
+                        },
+                    },
+                    {
+                        name: 'Insert mode',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'cursorShapes.insert',
+                            options: cursorShapeOptions,
+                            disabled: () =>
+                                !forkActive ||
+                                this.isOverridden('cursorShapes'),
+                        },
+                    },
+                    {
+                        name: 'Visual mode',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'cursorShapes.visual',
+                            options: cursorShapeOptions,
+                            disabled: () =>
+                                !forkActive ||
+                                this.isOverridden('cursorShapes'),
+                        },
+                    },
+                    {
+                        name: 'Replace mode',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'cursorShapes.replace',
+                            options: cursorShapeOptions,
+                            disabled: () =>
+                                !forkActive ||
+                                this.isOverridden('cursorShapes'),
+                        },
+                    },
+                    {
+                        name: 'Operator-pending',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'cursorShapes.operatorPending',
+                            options: cursorShapeOptions,
+                            disabled: () =>
+                                !forkActive ||
+                                this.isOverridden('cursorShapes'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Vimrc & key bindings ────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Vimrc & key bindings',
+                items: [
+                    {
+                        name: `Load ${this.app.vault.configDir}.vimrc`,
+                        desc: this.describeOverride(
+                            'enableVimrc',
+                            `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableVimrc',
+                            disabled: () => this.isOverridden('enableVimrc'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Leader key bindings ─────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Leader key bindings',
+                items: [
+                    {
+                        name: `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
+                        searchable: false,
+                    },
+                    {
+                        name: 'Leader bindings',
+                        searchable: false,
+                        render: (setting: Setting) => {
+                            setting.settingEl.addClass('vim-motions-hidden');
+                            const container = setting.settingEl.parentElement;
+                            if (container) this.renderLeaderBindings(container);
+                        },
+                    },
+                ],
+            },
+
+            // ── Which-key hints ─────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Which-key hints',
+                items: [
+                    {
+                        name: 'Which-key mode',
+                        desc: this.describeOverride(
+                            'whichKeyMode',
+                            'Show available key continuations in a popup after a short delay.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'whichKeyMode',
+                            options: {
+                                off: 'Off',
+                                leader: 'Leader key only',
+                                all: 'All partial keys',
+                            },
+                            disabled: () => this.isOverridden('whichKeyMode'),
+                        },
+                    },
+                    {
+                        name: 'Which-key leader grouping',
+                        desc: this.describeOverride(
+                            'whichKeyGrouping',
+                            'How leader key bindings are displayed. ' +
+                                '"Grouped" collapses bindings by prefix (e.g. t \u2192 +5 keys) and lets you drill down. ' +
+                                '"Flat" shows all bindings at once.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'whichKeyGrouping',
+                            options: {
+                                grouped: 'Grouped',
+                                flat: 'Flat',
+                            },
+                            disabled: () =>
+                                this.isOverridden('whichKeyGrouping'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Which-key group labels ──────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Which-key group labels',
+                items: [
+                    {
+                        name:
+                            'Name groups by their full key prefix. Use the leader character + prefix for leader groups ' +
+                            '(e.g. "\\t" for table), or a raw prefix for non-leader groups (e.g. "cs" for surround changes). ' +
+                            'Built-in features register default labels that your entries can override.',
+                        searchable: false,
+                    },
+                    {
+                        name: 'Group labels',
+                        searchable: false,
+                        render: (setting: Setting) => {
+                            setting.settingEl.addClass('vim-motions-hidden');
+                            const container = setting.settingEl.parentElement;
+                            if (container) this.renderGroupLabels(container);
+                        },
+                    },
+                ],
+            },
+
+            // ── Which-key command labels ────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Which-key command labels',
+                items: [
+                    {
+                        name: 'Describe individual bindings in the which-key popup. Entries set in vimrc appear as read-only rows.',
+                        searchable: false,
+                    },
+                    {
+                        name: 'Command labels',
+                        searchable: false,
+                        render: (setting: Setting) => {
+                            setting.settingEl.addClass('vim-motions-hidden');
+                            const container = setting.settingEl.parentElement;
+                            if (container) this.renderCommandLabels(container);
+                        },
+                    },
+                ],
+            },
+
+            // ── Advanced ────────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Advanced',
+                items: [
+                    {
+                        name: 'Scrolloff lines',
+                        desc: this.describeOverride(
+                            'scrolloffLines',
+                            'Number of lines to keep visible above and below when scrolling (0 to disable).',
+                        ),
+                        control: {
+                            type: 'slider' as const,
+                            key: 'scrolloffLines',
+                            min: 0,
+                            max: 20,
+                            step: 1,
+                            disabled: () => this.isOverridden('scrolloffLines'),
+                        },
+                    },
+                    {
+                        name: 'Multi-line text object scan range',
+                        desc: this.describeOverride(
+                            'multilineScanLimit',
+                            'Maximum lines to scan in each direction for multi-line text objects (bold, italic, etc.). Higher values find longer spans.',
+                        ),
+                        control: {
+                            type: 'slider' as const,
+                            key: 'multilineScanLimit',
+                            min: 5,
+                            max: 200,
+                            step: 5,
+                            disabled: () =>
+                                this.isOverridden('multilineScanLimit'),
+                        },
+                    },
+                ],
+            },
+        ];
+    }
+
+    getControlValue(key: string): unknown {
+        const s: Record<string, unknown> = this.plugin.settings as never;
+        const dotIdx = key.indexOf('.');
+        if (dotIdx !== -1) {
+            const parent = key.slice(0, dotIdx);
+            const child = key.slice(dotIdx + 1);
+            const obj = s[parent];
+            if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                return (obj as Record<string, unknown>)[child];
+            }
+        }
+        return s[key];
+    }
+
+    async setControlValue(key: string, value: unknown): Promise<void> {
+        const s: Record<string, unknown> = this.plugin.settings as never;
+        const dotIdx = key.indexOf('.');
+        if (dotIdx !== -1) {
+            const parent = key.slice(0, dotIdx);
+            const child = key.slice(dotIdx + 1);
+            const obj = s[parent];
+            if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                (obj as Record<string, unknown>)[child] = value;
+            }
+        } else {
+            s[key] = value;
+        }
+
+        this.plugin.vimrcOverrides?.delete(key);
+
+        await this.plugin.saveSettings();
+
+        if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
+            this.plugin.reloadFeatures();
+        }
+    }
+
+    private renderHotkeyControl(setting: Setting): void {
+        const hotkeyOverridden = this.isOverridden('hintModeHotkey');
+        const hotkeyDisplay = setting.controlEl.createSpan({
+            cls: 'setting-hotkey vim-motions-hotkey-display',
+        });
+        hotkeyDisplay.textContent = formatHotkey(
+            this.plugin.settings.hintModeHotkey,
+        );
+
+        setting.addButton((button) =>
+            button
+                .setButtonText('Record')
+                .setDisabled(hotkeyOverridden)
+                .onClick(() => {
+                    button.setButtonText('Press keys\u2026');
+                    const onKey = (e: KeyboardEvent) => {
+                        if (
+                            e.key === 'Shift' ||
+                            e.key === 'Control' ||
+                            e.key === 'Alt' ||
+                            e.key === 'Meta'
+                        )
+                            return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        activeDocument.removeEventListener(
+                            'keydown',
+                            onKey,
+                            true,
+                        );
+
+                        const mods: string[] = [];
+                        if (e.ctrlKey) mods.push('ctrl');
+                        if (e.shiftKey) mods.push('shift');
+                        if (e.altKey) mods.push('alt');
+                        if (e.metaKey) mods.push('meta');
+
+                        const key = e.key === 'Unidentified' ? e.code : e.key;
+                        const serialized = mods.join(',') + ':' + key;
+
+                        this.plugin.settings.hintModeHotkey = serialized;
+                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        void this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+
+                        hotkeyDisplay.textContent = formatHotkey(serialized);
+                        button.setButtonText('Record');
+                    };
+                    activeDocument.addEventListener('keydown', onKey, true);
+                }),
+        );
+
+        if (this.plugin.settings.hintModeHotkey) {
+            setting.addButton((button) =>
+                button
+                    .setButtonText('Clear')
+                    .setDisabled(hotkeyOverridden)
+                    .onClick(() => {
+                        this.plugin.settings.hintModeHotkey = '';
+                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        void this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        hotkeyDisplay.textContent = '';
+                    }),
+            );
+        }
     }
 
     display(): void {
