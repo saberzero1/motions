@@ -87,16 +87,10 @@ export function registerTableMotions(reg: VimRegistration): void {
     reg.defineMotion('tablePrevRow', tablePrevRowMotion);
     reg.mapCommand('[r', 'motion', 'tablePrevRow', {});
     reg.defineMotion('tableAwareMoveUp', tableAwareMoveUp);
-    reg.mapCommand(
-        'k',
-        'motion',
-        'tableAwareMoveUp',
-        {
-            forward: false,
-            linewise: true,
-        },
-        { context: 'normal' },
-    );
+    reg.mapCommand('k', 'motion', 'tableAwareMoveUp', {
+        forward: false,
+        linewise: true,
+    });
 }
 
 export { registerTableActions };

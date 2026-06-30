@@ -29,10 +29,6 @@ export function adjustRangeForVisualMode(
     const forward =
         to.line > from.line || (to.line === from.line && to.ch >= from.ch);
     if (!forward) return range;
-    // Don't collapse single-char ranges — makeCmSelection's +1 won't
-    // fire for custom text objects (exclusive=true), so subtracting 1
-    // from a range that's already 1 char wide lands on the delimiter.
-    if (to.line === from.line && to.ch - 1 <= from.ch) return range;
     return [from, createPos(to.line, to.ch - 1)];
 }
 
