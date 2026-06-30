@@ -24,7 +24,7 @@ export class OutlineModal extends SuggestModal<HeadingItem> {
 
     renderSuggestion(item: HeadingItem, el: HTMLElement): void {
         const indent = '\u00A0\u00A0'.repeat(item.level - 1);
-        el.createEl('span', {
+        el.createSpan({
             text: indent + '#'.repeat(item.level) + ' ' + item.heading,
             cls: 'vim-motions-outline-item',
         });

@@ -180,7 +180,7 @@ class CommandPickerModal extends SuggestModal<ObsidianCommand> {
     }
 
     renderSuggestion(item: ObsidianCommand, el: HTMLElement): void {
-        el.createEl('div', { text: item.name });
+        el.createDiv({ text: item.name });
         el.createEl('small', { text: item.id, cls: 'u-muted' });
     }
 

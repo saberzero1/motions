@@ -1,9 +1,8 @@
-import tseslint from 'typescript-eslint';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
-import { globalIgnores } from 'eslint/config';
+import { globalIgnores, defineConfig } from 'eslint/config';
 
-export default tseslint.config(
+export default defineConfig(
     globalIgnores([
         'node_modules',
         'dist',

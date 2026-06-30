@@ -509,12 +509,12 @@ export class WhichKeyOverlay {
 
         this.overlay = createDiv({ cls: 'vim-motions-which-key' });
 
-        this.overlay.createEl('div', {
+        this.overlay.createDiv({
             cls: 'vim-motions-which-key-title',
             text: title,
         });
 
-        const grid = this.overlay.createEl('div', {
+        const grid = this.overlay.createDiv({
             cls: 'vim-motions-which-key-grid',
         });
 
@@ -522,12 +522,12 @@ export class WhichKeyOverlay {
             const rowCls = entry.group
                 ? 'vim-motions-which-key-row vim-motions-which-key-group'
                 : 'vim-motions-which-key-row';
-            const row = grid.createEl('div', { cls: rowCls });
-            row.createEl('span', {
+            const row = grid.createDiv({ cls: rowCls });
+            row.createSpan({
                 cls: 'vim-motions-which-key-key',
                 text: entry.key,
             });
-            row.createEl('span', {
+            row.createSpan({
                 cls: 'vim-motions-which-key-cmd',
                 text: entry.description,
             });

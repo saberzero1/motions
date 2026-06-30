@@ -121,7 +121,7 @@ export class ExCommandSuggest {
         for (let i = 0; i < this.items.length && i < 10; i++) {
             const item = this.items[i];
             if (!item) continue;
-            const row = this.suggestEl.createEl('div', {
+            const row = this.suggestEl.createDiv({
                 cls: 'vim-motions-ex-suggest-item',
                 text: item,
             });

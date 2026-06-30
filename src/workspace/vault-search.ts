@@ -78,7 +78,7 @@ class SearchResultsModal extends SuggestModal<SearchResult> {
     }
 
     renderSuggestion(item: SearchResult, el: HTMLElement): void {
-        el.createEl('div', {
+        el.createDiv({
             text: item.file.basename,
             cls: 'vim-motions-search-file',
         });

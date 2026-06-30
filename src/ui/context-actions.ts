@@ -76,7 +76,7 @@ class ContextActionsModal extends SuggestModal<CommandItem> {
     }
 
     renderSuggestion(item: CommandItem, el: HTMLElement): void {
-        el.createEl('span', { text: item.name });
+        el.createSpan({ text: item.name });
     }
 
     onChooseSuggestion(item: CommandItem): void {
