@@ -324,13 +324,28 @@ These commands exist but behave differently from Neovim:
 | `gj`/`gk` widgets  | Navigates into replaced decorations                     | Fixed in fork                                              | Fork's `findPosV` detects multi-line jumps from `moveVertically` and steps one document line when a replaced widget decoration is present (e.g. rendered MathJax). Tall-but-unreplaced lines (e.g. headings with larger font) are excluded from the widget-step heuristic via `dec.point` decoration type checking. A `posAtCoords` fallback corrects goalColumn misresolution on decorated lines.                |
 | `gk` frontmatter   | Navigates into frontmatter like `k`                     | Fixed in fork                                              | Fork's `moveByDisplayLines` now checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`. The `stuckAtBoundary` condition uses `range.head === startOffset` to avoid false positives on wrapped lines — `gk` navigates wrapped display lines first and only enters properties from the topmost display line. Users who remap `k` to `gk` can now enter frontmatter navigation. |
 
-## Visual mode on single-character text objects
+## ~~Visual mode on single-character text objects~~ (Fixed)
 
-**Status**: Not fixed. `vi*` on `*x*` selects `*` (the delimiter) instead of `x` (the content).
+**Status**: Fixed via formatting mark suppression.
 
-Investigation found the root cause is **Live Preview cursor snapping**, not a text object or `makeCmSelection` bug. When `setupEditor` places the cursor at ch:7 (on `x` inside `*x*`), Live Preview's italic rendering collapses the `*` delimiters and snaps the cursor to ch:6 (the delimiter boundary). The text object then operates from ch:6, and `findContainingPair` with `inner: true` skips the pair because the cursor is on the opening delimiter (line 72 of `delimiter.ts`: `if (cursorOnOpen || cursorOnClose) continue`). The motion returns `null`, and the visual selection reverts to the pre-motion state (the `*` character at ch:6).
+`vi*` on `*x*` previously selected `*` (the delimiter) instead of `x` (the content). The root cause was Live Preview cursor snapping: Obsidian uses `Decoration.replace({})` to hide formatting marks (`*`, `**`, `_`, `~~`, etc.) on inactive lines, creating zero-width gaps. When the cursor was placed inside formatted text, CM6's position mapping snapped to the delimiter boundary instead of the intended content position.
 
-The text object logic and `adjustRangeForVisualMode` work correctly when the cursor is at the expected position. The fix requires either cursor stabilization after Live Preview decoration updates, or adjusting the text object to handle cursor-on-delimiter as a valid inner selection starting from the character after the delimiter.
+Fixed by suppressing `Decoration.replace({})` for formatting mark characters via `RangeSetBuilder.prototype.add` patching (same pattern as the table widget suppressor in `table-widget-suppressor.ts`). The formatting characters remain in the DOM and are hidden via CSS (`color: transparent`) on inactive lines. This preserves their positional space, preventing cursor snapping. On the active line, Obsidian's own CSS reveals the marks normally.
+
+## Formatting mark suppression in Live Preview
+
+The plugin suppresses Obsidian's `Decoration.replace({})` for markdown formatting marks (`*`, `**`, `_`, `__`, `` ` ``, `~~`, `==`) to prevent cursor snapping when navigating into formatted content. The suppression uses the same `RangeSetBuilder.prototype.add` monkey-patching pattern as the table widget suppressor.
+
+A `StateField` tracks the current document so the `RangeSetBuilder.add` interceptor can read the text at each decoration's range and match it against known formatting marks. Only empty replace decorations (no widget) covering 1–2 characters of matching text are suppressed.
+
+CSS styling in `styles.css` hides the now-visible formatting marks on non-active lines:
+```css
+.cm-vimMode .cm-line:not(.cm-active) .cm-formatting {
+    color: transparent !important;
+}
+```
+
+On the active line (`.cm-active`), Obsidian's own CSS reveals the marks normally. This maintains the visual appearance of Live Preview while ensuring correct cursor positioning for vim operations.
 
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 
