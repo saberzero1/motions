@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-06-30
+
 ### Added
 
 - **Mobile support** — the plugin is no longer desktop-only. Changed `isDesktopOnly` to `false` in `manifest.json`, replacing Obsidian's desktop-only globals (`activeWindow`, `activeDocument`) with standard `window`/`document` equivalents across hint mode, EasyMotion keypress handling, and the settings hotkey recorder. Physical keyboard users on mobile (Bluetooth keyboards, keyboard cases) get the full feature set. On-screen keyboard users are limited by Obsidian's soft keyboard constraints (no `:` or `/` entry). ([#30](https://github.com/saberzero1/motions/issues/30))
