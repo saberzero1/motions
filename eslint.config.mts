@@ -37,7 +37,6 @@ export default defineConfig(
             reportUnusedDisableDirectives: 'off',
         },
         rules: {
-            'obsidianmd/prefer-active-doc': 'off',
             'import/no-nodejs-modules': [
                 'error',
                 {
