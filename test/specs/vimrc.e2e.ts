@@ -6,6 +6,7 @@ import {
     getCursorPos,
     getEditorValue,
     getRegisterContent,
+    getVimMode,
     unsupported,
     sendVimEscape,
 } from '../helpers';
@@ -932,6 +933,58 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
                 return 'normal';
             })) as string;
             expect(mode).toBe('normal');
+        });
+    });
+
+    describe('set insertmodeescapetimeout (escape timeout)', function () {
+        before(async function () {
+            await loadVimrc('set insertmodeescape=jk\n');
+        });
+
+        it('jk typed within timeout should exit insert mode', async function () {
+            await browser.executeObsidian(() => {
+                const w = window as unknown as Record<string, unknown>;
+                const cma = w.CodeMirrorAdapter as
+                    | Record<string, unknown>
+                    | undefined;
+                const vimApi = cma?.Vim as
+                    | {
+                          setOption?: (n: string, v: unknown) => void;
+                      }
+                    | undefined;
+                vimApi?.setOption?.('insertmodeescape', 'jk');
+                vimApi?.setOption?.('insertmodeescapetimeout', 1000);
+            });
+            await setupEditor('hello', { line: 0, ch: 0 });
+            await vimKeys('i');
+            await browser.keys('j');
+            await browser.pause(200);
+            await browser.keys('k');
+            await browser.pause(300);
+            expect(await getVimMode()).toBe('normal');
+        });
+
+        it('jk typed after timeout should stay in insert mode', async function () {
+            await browser.executeObsidian(() => {
+                const w = window as unknown as Record<string, unknown>;
+                const cma = w.CodeMirrorAdapter as
+                    | Record<string, unknown>
+                    | undefined;
+                const vimApi = cma?.Vim as
+                    | {
+                          setOption?: (n: string, v: unknown) => void;
+                      }
+                    | undefined;
+                vimApi?.setOption?.('insertmodeescape', 'jk');
+                vimApi?.setOption?.('insertmodeescapetimeout', 200);
+            });
+            await setupEditor('hello', { line: 0, ch: 0 });
+            await vimKeys('i');
+            await browser.keys('j');
+            await browser.pause(1500);
+            await browser.keys('k');
+            await browser.pause(300);
+            expect(await getVimMode()).toBe('insert');
         });
     });
 

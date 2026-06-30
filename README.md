@@ -298,7 +298,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
 - **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
-- **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc.
+- **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc. Timeout is configurable via `set insertmodeescapetimeout=1000` (default: 1000ms, matching Neovim's `timeoutlen`).
 - **Settings hot-reload** — toggle features on and off without restarting Obsidian.
 - **Built-in `.obsidian.vimrc`** — load key mappings, settings overrides, and which-key labels without needing obsidian-vimrc-support.
 
@@ -322,6 +322,7 @@ set expandtab
 set tabstop=4
 set shiftwidth=2
 set insertmodeescape=jk
+set insertmodeescapetimeout=1000
 set easymotion
 set nopowerline
 set easymotionlabels=asdghklqwertyuiopzxcvbnmfj
@@ -374,14 +375,15 @@ Use `set <option>` to enable, `set no<option>` to disable.
 
 Use `set <option>=<value>`.
 
-| Option          | Alias | Description                              | Default | Range |
-| --------------- | ----- | ---------------------------------------- | ------- | ----- |
-| `scrolloff`     | `so`  | Lines to keep visible above/below cursor | 5       | 0–20  |
-| `scanlimit`     | `sl`  | Max lines to scan for text objects       | 20      | 5–200 |
-| `labelfontsize` | `lfs` | Font size for EasyMotion/hint labels     | 14      | 10–20 |
-| `tabstop`       | `ts`  | Tab display width                        | 4       | —     |
-| `shiftwidth`    | `sw`  | Indent width                             | 4       | —     |
-| `textwidth`     | `tw`  | Line wrap width for `gq`/`gw`            | 80      | —     |
+| Option                    | Alias  | Description                              | Default | Range    |
+| ------------------------- | ------ | ---------------------------------------- | ------- | -------- |
+| `scrolloff`               | `so`   | Lines to keep visible above/below cursor | 5       | 0–20     |
+| `scanlimit`               | `sl`   | Max lines to scan for text objects       | 20      | 5–200    |
+| `labelfontsize`           | `lfs`  | Font size for EasyMotion/hint labels     | 14      | 10–20    |
+| `tabstop`                 | `ts`   | Tab display width                        | 4       | —        |
+| `shiftwidth`              | `sw`   | Indent width                             | 4       | —        |
+| `textwidth`               | `tw`   | Line wrap width for `gq`/`gw`            | 80      | —        |
+| `insertmodeescapetimeout` | `imet` | Timeout (ms) for insert escape sequence  | 1000    | 100–5000 |
 
 #### String options
 
@@ -479,6 +481,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Shift width (1-8, default: 4)
 - Expand tab (on/off, default: on)
 - Insert mode escape (text, default: off)
+- Insert mode escape timeout (100–5000ms, default: 1000)
 - Text width (0-200, default: 80)
 
 **Vimrc & key bindings**

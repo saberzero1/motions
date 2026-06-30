@@ -95,6 +95,18 @@ const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     hl: { type: 'string', settingsKey: 'hintModeLabels' },
     insertmodeescape: { type: 'string', settingsKey: 'insertmodeescape' },
     ime: { type: 'string', settingsKey: 'insertmodeescape' },
+    insertmodeescapetimeout: {
+        type: 'number',
+        settingsKey: 'insertmodeescapetimeout',
+        min: 100,
+        max: 5000,
+    },
+    imet: {
+        type: 'number',
+        settingsKey: 'insertmodeescapetimeout',
+        min: 100,
+        max: 5000,
+    },
     tablewidget: {
         type: 'string',
         settingsKey: 'tableWidgetMode',

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Configurable insert mode escape timeout** — `set insertmodeescapetimeout=N` (alias `imet`, range 100–5000ms, default: 1000ms) controls how long the plugin waits between keystrokes when matching the `insertmodeescape` sequence (e.g. `jk`). Matches Neovim's `timeoutlen` default of 1000ms. Previously hardcoded at 200ms — too tight for normal typing. Configurable via vimrc, Settings UI (**Settings → Vim Motions → Vim engine → Insert mode escape timeout**), or runtime `Vim.setOption('insertmodeescapetimeout', 500)`. ([#31](https://github.com/saberzero1/motions/issues/31))
 - **Vimrc ↔ Settings parity** — all plugin settings are now configurable via `.obsidian.vimrc` in addition to the Settings UI. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values. Settings overridden by vimrc are shown as disabled controls in the settings tab with a note indicating the vimrc directive that set them (e.g., "Set by vimrc: `set scrolloff=10`").
     - **Boolean feature toggles** via `set`/`set no`: `textobjects`, `navigation`, `hardwrap`, `listcontinuation`, `tablenav`, `workspacenav`, `easymotion`, `easymotiondimming`, `hintmode`, `statusbar`, `chorddisplay`, `powerline`
     - **Number options** via `set <option>=<value>`: `scrolloff` (0–20), `scanlimit` (5–200), `labelfontsize` (10–20)
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`set insertmodeescape=jk` not working (frame-perfect timing required)** — the `InsertEscapeHandler` listened to `vim-keypress` events, which only fire for keys processed by codemirror-vim as vim commands. In insert mode, regular character keys bypass vim entirely and go through CM6's text input pipeline — the handler never saw them. Rewrote to use DOM `keydown` events on the editor element, correctly intercepting keystrokes in insert mode. Also fixed the `insertmodeescape` vim option not storing its value for `getOption()` retrieval (callback returned `undefined` instead of the stored value). ([#31](https://github.com/saberzero1/motions/issues/31))
 - **`dk` not deleting in operator-pending mode** — `dk` (delete current and previous line) was a no-op because `tableAwareMoveUp` was registered with `context: 'normal'`, causing it to be filtered out in operator-pending mode. CM Vim's keymap search then failed to fall through to the default `k` motion. Removed the context restriction since the motion already handles operator-pending mode internally via its `hasOperator` check.
 - **Cursor snaps to formatting mark boundary in Live Preview** — placing the cursor inside formatted text (`*italic*`, `**bold**`, `` `code` ``, `~~strike~~`, `==highlight==`) would snap to the delimiter boundary instead of the intended position. Obsidian's Live Preview uses `Decoration.replace({})` to hide formatting marks on inactive lines, creating zero-width gaps that cause CM6's position mapping to collapse. Fixed by intercepting `Decoration.replace({})` via `RangeSetBuilder.prototype.add` patching (same pattern as the table widget suppressor) and suppressing empty replace decorations whose text matches known formatting marks (`*`, `**`, `_`, `__`, `` ` ``, `~~`, `==`). A `StateField` tracks the current document for text extraction. CSS styling (`color: transparent`) hides the now-visible marks on inactive lines while preserving their positional space.
 - **`%` bracket matching skips brackets in strings and comments** — the fork's `scanForBracket` fallback now calls `getTokenTypeAt()` for each bracket candidate and skips brackets inside `"string"` or `"comment"` tokens. Previously, positional stack counting would match a bracket inside a string literal. Note: in Markdown mode, Lezer does not classify double-quoted text as string tokens, so this primarily benefits languages with proper syntax trees.
@@ -41,9 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: updated `vi*` single-character status to fixed via formatting mark suppression; updated `%` + strings to note Lezer limitation in Markdown; updated `<<` unindent entry to note fork fix; removed `V` linewise cursor deviation; updated `nmap L $` section with investigation findings; added "Formatting mark suppression" section
+- `KNOWN_LIMITATIONS.md`: added "Insert mode escape" section documenting the `keydown`-based handler, configurable timeout, and the `vim-keypress` event limitation; updated `vi*` single-character status to fixed via formatting mark suppression; updated `%` + strings to note Lezer limitation in Markdown; updated `<<` unindent entry to note fork fix; removed `V` linewise cursor deviation; updated `nmap L $` section with investigation findings; added "Formatting mark suppression" section
+- `README.md`: added `insertmodeescapetimeout` to number options table and vimrc example; added insert mode escape timeout to settings list
 - `DIFFERENCES.md` (fork): added sections for `scanForBracket` string/comment awareness, indent operator `shiftwidth`/`expandtab` support, linewise visual cursor positioning with decoration-based highlight
-- `README.md`: updated recommended setup to mention `<<`/`>>` shiftwidth support
 
 ## [0.21.2] - 2026-06-29
 

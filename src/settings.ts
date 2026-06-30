@@ -99,6 +99,7 @@ export interface VimMotionsSettings {
     shiftwidth: number;
     expandtab: boolean;
     insertmodeescape: string;
+    insertmodeescapetimeout: number;
     textwidth: number;
     whichKeyMode: 'off' | 'leader' | 'all';
     whichKeyGrouping: 'flat' | 'grouped';
@@ -135,6 +136,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     shiftwidth: 4,
     expandtab: true,
     insertmodeescape: '',
+    insertmodeescapetimeout: 1000,
     textwidth: 80,
     whichKeyMode: 'off',
     whichKeyGrouping: 'grouped',
@@ -486,6 +488,36 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }),
             );
+
+        new Setting(containerEl)
+            .setName('Insert mode escape timeout')
+            .setDesc(
+                describeOverride(
+                    'insertmodeescapetimeout',
+                    'Timeout in milliseconds for insert mode escape sequence (100–5000).',
+                ),
+            )
+            .addText((text) => {
+                text.setValue(
+                    String(this.plugin.settings.insertmodeescapetimeout),
+                );
+                text.inputEl.type = 'number';
+                text.inputEl.min = '100';
+                text.inputEl.max = '5000';
+                text.setDisabled(isOverridden('insertmodeescapetimeout'));
+                text.onChange(async (value) => {
+                    const n = Number(value);
+                    this.plugin.settings.insertmodeescapetimeout = Number.isNaN(
+                        n,
+                    )
+                        ? 1000
+                        : Math.max(100, Math.min(5000, n));
+                    this.plugin.vimrcOverrides?.delete(
+                        'insertmodeescapetimeout',
+                    );
+                    await this.plugin.saveSettings();
+                });
+            });
 
         new Setting(containerEl)
             .setName('Textwidth')

@@ -22,6 +22,9 @@ export function setClipboardOption(value: string): void {
     clipboardValue = value;
 }
 
+let insertEscapeValue = '';
+let insertEscapeTimeoutValue = 1000;
+
 export function registerVimOptions(
     vim: VimApi,
     onSettingOverride?: (
@@ -71,10 +74,31 @@ export function registerVimOptions(
         notify('expandtab', enabled, `set ${enabled ? '' : 'no'}expandtab`);
     });
     vim.defineOption('insertmodeescape', '', 'string', ['ime'], (value) => {
-        if (value === undefined) return;
+        if (value === undefined) return insertEscapeValue;
         const str = typeof value === 'string' ? value : '';
+        insertEscapeValue = str;
         notify('insertmodeescape', str, `set insertmodeescape=${str}`);
+        return undefined;
     });
+    vim.defineOption(
+        'insertmodeescapetimeout',
+        1000,
+        'number',
+        ['imet'],
+        (value) => {
+            if (value === undefined) return insertEscapeTimeoutValue;
+            const n = typeof value === 'number' ? value : Number(value);
+            if (!isNaN(n) && n >= 100 && n <= 5000) {
+                insertEscapeTimeoutValue = n;
+                notify(
+                    'insertmodeescapetimeout',
+                    n,
+                    `set insertmodeescapetimeout=${n}`,
+                );
+            }
+            return undefined;
+        },
+    );
     vim.defineOption('guicursor', '', 'string', [], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';
