@@ -372,6 +372,12 @@ describe('Phase 4 text objects', function () {
         });
 
         it.skip('vi* on single-char italic should select the character', async function () {
+            // Live Preview cursor snap: setupEditor places cursor at ch:7 (on 'x'),
+            // but Live Preview's italic rendering snaps it to ch:6 (the * delimiter
+            // boundary). The text object then operates from ch:6 instead of ch:7.
+            // This is a Live Preview cursor positioning issue, not a text object bug.
+            // The text object and adjustRangeForVisualMode work correctly when the
+            // cursor is at the expected position.
             await setupEditor('Hello *x* world', { line: 0, ch: 7 });
             await vimKeys('v', 'i', '*');
             expect(await getSelection()).toBe('x');

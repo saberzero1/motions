@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`vi*` on single-character italic selects delimiter instead of content** — `vi*` on `*x*` now correctly selects `x` instead of `*`. The `adjustRangeForVisualMode` function subtracted 1 from the end position to compensate for CM Vim's inclusive selection adjustment, but for single-character ranges this collapsed the range to zero width, landing on the delimiter. Added a guard that preserves the original range when `to.ch - 1 <= from.ch`, preventing collapse while maintaining the compensation for multi-character ranges.
+- **`dk` not deleting in operator-pending mode** — `dk` (delete current and previous line) was a no-op because `tableAwareMoveUp` was registered with `context: 'normal'`, causing it to be filtered out in operator-pending mode. CM Vim's keymap search then failed to fall through to the default `k` motion. Removed the context restriction since the motion already handles operator-pending mode internally via its `hasOperator` check.
 - **`%` bracket matching skips brackets in strings and comments** — the fork's `scanForBracket` fallback now calls `getTokenTypeAt()` for each bracket candidate and skips brackets inside `"string"` or `"comment"` tokens. Previously, positional stack counting would match a bracket inside a string literal. Note: in Markdown mode, Lezer does not classify double-quoted text as string tokens, so this primarily benefits languages with proper syntax trees.
 - **`<<`/`>>` indent respects `shiftwidth` and `expandtab`** — the fork's indent operator now reads the vim options `shiftwidth` and `expandtab` (via `getOption()`) before falling back to CM6's `tabSize` and `indentWithTabs`. When `set shiftwidth=2` or `set expandtab` is set in `.obsidian.vimrc`, the indent operator uses those values for both visual-block and line-by-line indentation.
 - **`V` linewise visual cursor at end of line instead of column 0** — linewise visual mode (`V`, `Vj`, etc.) now positions the cursor at column 0 of the head line, matching Neovim. The fork's `makeCmSelection` was setting `head.ch = lineLength(line)` for display, which placed the cursor at the end of the line. A `ViewPlugin` with `Decoration.line` now provides the full-line visual highlight independently of the CM6 selection head position.
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: updated `vi*` single-character status to fixed; updated `%` + strings to note Lezer limitation in Markdown; updated `<<` unindent entry to note fork fix; removed `V` linewise cursor deviation; updated `nmap L $` section with investigation findings
+- `KNOWN_LIMITATIONS.md`: updated `vi*` single-character root cause (Live Preview cursor snap, not text object bug); updated `%` + strings to note Lezer limitation in Markdown; updated `<<` unindent entry to note fork fix; removed `V` linewise cursor deviation; updated `nmap L $` section with investigation findings
 - `DIFFERENCES.md` (fork): added sections for `scanForBracket` string/comment awareness, indent operator `shiftwidth`/`expandtab` support, linewise visual cursor positioning with decoration-based highlight
 - `README.md`: updated recommended setup to mention `<<`/`>>` shiftwidth support
 

@@ -324,11 +324,13 @@ These commands exist but behave differently from Neovim:
 | `gj`/`gk` widgets  | Navigates into replaced decorations                     | Fixed in fork                                              | Fork's `findPosV` detects multi-line jumps from `moveVertically` and steps one document line when a replaced widget decoration is present (e.g. rendered MathJax). Tall-but-unreplaced lines (e.g. headings with larger font) are excluded from the widget-step heuristic via `dec.point` decoration type checking. A `posAtCoords` fallback corrects goalColumn misresolution on decorated lines.                |
 | `gk` frontmatter   | Navigates into frontmatter like `k`                     | Fixed in fork                                              | Fork's `moveByDisplayLines` now checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`. The `stuckAtBoundary` condition uses `range.head === startOffset` to avoid false positives on wrapped lines — `gk` navigates wrapped display lines first and only enters properties from the topmost display line. Users who remap `k` to `gk` can now enter frontmatter navigation. |
 
-## ~~Visual mode on single-character text objects~~ (Fixed)
+## Visual mode on single-character text objects
 
-**Status**: Fixed. `vi*` on `*x*` now correctly selects `x`.
+**Status**: Not fixed. `vi*` on `*x*` selects `*` (the delimiter) instead of `x` (the content).
 
-`adjustRangeForVisualMode` unconditionally subtracted 1 from the end position to compensate for CM Vim's `makeCmSelection` inclusive adjustment. For single-character ranges (e.g. `*x*` where the inner content is one character), this collapsed the range to zero width, landing the cursor on the delimiter instead of the content. Fixed by adding a guard: when `to.ch - 1 <= from.ch` on the same line, the original range is returned unchanged. Multi-character text objects are unaffected.
+Investigation found the root cause is **Live Preview cursor snapping**, not a text object or `makeCmSelection` bug. When `setupEditor` places the cursor at ch:7 (on `x` inside `*x*`), Live Preview's italic rendering collapses the `*` delimiters and snaps the cursor to ch:6 (the delimiter boundary). The text object then operates from ch:6, and `findContainingPair` with `inner: true` skips the pair because the cursor is on the opening delimiter (line 72 of `delimiter.ts`: `if (cursorOnOpen || cursorOnClose) continue`). The motion returns `null`, and the visual selection reverts to the pre-motion state (the `*` character at ch:6).
+
+The text object logic and `adjustRangeForVisualMode` work correctly when the cursor is at the expected position. The fix requires either cursor stabilization after Live Preview decoration updates, or adjusting the text object to handle cursor-on-delimiter as a valid inner selection starting from the character after the delimiter.
 
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 
