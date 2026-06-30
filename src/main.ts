@@ -53,6 +53,10 @@ import {
     createTableCursorFixExtension,
 } from './vim/table-cursor-fix';
 import { EditorView } from '@codemirror/view';
+import {
+    installFormattingCursorFix,
+    formattingDocTracker,
+} from './vim/formatting-cursor-fix';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -414,6 +418,9 @@ export default class VimMotionsPlugin extends Plugin {
             this.registerEditorExtension(createTableCursorFixExtension());
             this.uninstallTableCursorFix = installTableCursorFix();
         }
+
+        this.registerEditorExtension(formattingDocTracker);
+        this.register(installFormattingCursorFix());
     }
 
     reloadFeatures(): void {
