@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-07-01
+
 ### Added
 
 - **Declarative settings API (`getSettingDefinitions`)** — implemented Obsidian's 1.13.0+ declarative settings API with a version guard. On Obsidian 1.13.0+, plugin settings appear in Obsidian's global settings search and use the new declarative rendering pipeline. On older versions, the existing imperative `display()` method continues to work unchanged. No `minAppVersion` bump required.
