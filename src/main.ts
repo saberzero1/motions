@@ -161,9 +161,6 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     this.vimrcMaps = vimrcResult.maps;
                     applyVimrcMaps(vim, this.vimrcMaps);
-                    // Unmap the leader key's default binding (e.g. <Space> → l)
-                    // so leader-prefixed sequences accumulate in the key buffer
-                    // instead of being consumed by the default keymap.
                     if (this.registration && this.leaderRegistry) {
                         this.registration.unmapDefaultBinding(
                             this.leaderRegistry.getLeaderKey(),
@@ -172,6 +169,11 @@ export default class VimMotionsPlugin extends Plugin {
                     this.reregisterLeaderFeatures();
                     this.rebuildWhichKey();
                     this.vimrcLoaded = true;
+                    if (this.vimrcMaps.length > 0) {
+                        window.setTimeout(() => {
+                            applyVimrcMaps(vim, this.vimrcMaps);
+                        }, 200);
+                    }
                 }),
             );
         }

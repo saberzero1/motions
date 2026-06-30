@@ -915,3 +915,323 @@ describe('Spike 17 — Diag 5: textwidth via handleEx pipeline', function () {
         expect(result).not.toHaveProperty('error');
     });
 });
+
+// ===========================================================================
+// Diag 6: Deep keymap inspection — where does the L→$ entry go?
+// ===========================================================================
+describe('Spike 17 — Diag 6: Deep keymap inspection', function () {
+    before(async function () {
+        await obsidianPage.write('.obsidian.vimrc', 'nmap L $\n');
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(({ app }) => {
+                    const p = (
+                        app as unknown as {
+                            plugins: {
+                                plugins: Record<
+                                    string,
+                                    { vimrcLoaded?: boolean }
+                                >;
+                            };
+                        }
+                    ).plugins.plugins['vim-motions'];
+                    return p?.vimrcLoaded === true;
+                })) as boolean,
+            { timeout: 5000, interval: 100 },
+        );
+    });
+
+    after(async function () {
+        await obsidianPage.resetVault();
+    });
+
+    it('should map L→$ at runtime, check keymap, then test handleKey', async function () {
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            getKeymap: (
+                                ctx?: string,
+                            ) => Array<Record<string, unknown>>;
+                            map: (l: string, r: string, c?: string) => void;
+                            handleKey: (cm: unknown, k: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim API' };
+
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+
+            const beforeMap = Vim.getKeymap('normal')
+                .filter((e: Record<string, unknown>) => e.keys === 'L')
+                .map((e: Record<string, unknown>) => ({
+                    keys: e.keys,
+                    type: e.type,
+                    toKeys: e.toKeys,
+                    context: e.context,
+                    _isDefault: e._isDefault,
+                }));
+
+            Vim.map('L', '$', 'normal');
+
+            const afterMap = Vim.getKeymap('normal')
+                .filter((e: Record<string, unknown>) => e.keys === 'L')
+                .map((e: Record<string, unknown>) => ({
+                    keys: e.keys,
+                    type: e.type,
+                    toKeys: e.toKeys,
+                    context: e.context,
+                    _isDefault: e._isDefault,
+                }));
+
+            view.editor.setValue('hello world test');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, 'L');
+            const ch = view.editor.getCursor().ch;
+
+            return { beforeMap, afterMap, ch };
+        })) as Record<string, unknown>;
+
+        console.log('Diag 6a — runtime map:', JSON.stringify(result, null, 2));
+        expect(result).not.toHaveProperty('error');
+    });
+
+    it('should check vimrcMaps content and apply manually', async function () {
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            getKeymap: (
+                                ctx?: string,
+                            ) => Array<Record<string, unknown>>;
+                            map: (l: string, r: string, c?: string) => void;
+                            handleKey: (cm: unknown, k: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim API' };
+
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                vimrcLoaded?: boolean;
+                                vimrcMaps?: Array<{
+                                    lhs: string;
+                                    rhs: string;
+                                    noremap: boolean;
+                                    context?: string;
+                                }>;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+
+            const cachedMaps = plugin?.vimrcMaps?.map((m) => ({ ...m })) ?? [];
+
+            const lBefore = Vim.getKeymap('normal')
+                .filter((e: Record<string, unknown>) => e.keys === 'L')
+                .map((e: Record<string, unknown>) => ({
+                    keys: e.keys,
+                    type: e.type,
+                    toKeys: e.toKeys,
+                    context: e.context,
+                }));
+
+            for (const m of cachedMaps) {
+                if (m.noremap) {
+                    (
+                        Vim as unknown as {
+                            noremap: (l: string, r: string, c?: string) => void;
+                        }
+                    ).noremap(m.lhs, m.rhs, m.context);
+                } else {
+                    Vim.map(m.lhs, m.rhs, m.context);
+                }
+            }
+
+            const lAfterReapply = Vim.getKeymap('normal')
+                .filter((e: Record<string, unknown>) => e.keys === 'L')
+                .map((e: Record<string, unknown>) => ({
+                    keys: e.keys,
+                    type: e.type,
+                    toKeys: e.toKeys,
+                    context: e.context,
+                }));
+
+            view.editor.setValue('hello world test');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, 'L');
+            const ch = view.editor.getCursor().ch;
+
+            return { cachedMaps, lBefore, lAfterReapply, ch };
+        })) as Record<string, unknown>;
+
+        console.log(
+            'Diag 6c — cached maps + reapply:',
+            JSON.stringify(result, null, 2),
+        );
+        expect(result).not.toHaveProperty('error');
+    });
+
+    it('should test L→$ via runtime Vim.map then vimKeys', async function () {
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            map: (l: string, r: string, c?: string) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (Vim) Vim.map('L', '$', 'normal');
+        });
+        await setupEditor('hello world test', { line: 0, ch: 0 });
+        await vimKeys('L');
+        const pos = await getCursorPos();
+        console.log('Diag 6e — runtime Vim.map + vimKeys: ch=' + pos.ch);
+        expect(pos.ch).toBe(15);
+    });
+
+    it('should verify vimrc file content and vimrcLoaded state', async function () {
+        const result = (await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<string, Record<string, unknown>>;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+
+            const vimrcPath = app.vault.configDir + '.vimrc';
+            let vimrcContent: string | null = null;
+            try {
+                const adapter = app.vault.adapter as unknown as {
+                    readSync?: (p: string) => string;
+                    read: (p: string) => Promise<string>;
+                };
+                if (adapter.readSync) {
+                    vimrcContent = adapter.readSync(vimrcPath);
+                }
+            } catch (e) {
+                vimrcContent = 'read-error: ' + String(e);
+            }
+
+            return {
+                vimrcLoaded: plugin?.vimrcLoaded,
+                vimrcCommandCount: plugin?.vimrcCommandCount,
+                vimrcRetried: plugin?.vimrcRetried,
+                vimrcMapsLength: Array.isArray(plugin?.vimrcMaps)
+                    ? (plugin.vimrcMaps as unknown[]).length
+                    : 'not-array',
+                vimrcMaps: plugin?.vimrcMaps,
+                vimrcPath,
+                vimrcContent,
+                enableVimrc: (plugin as Record<string, unknown>)?.settings
+                    ? (
+                          (plugin as Record<string, unknown>)
+                              .settings as Record<string, unknown>
+                      )?.enableVimrc
+                    : 'no-settings',
+            };
+        })) as Record<string, unknown>;
+
+        console.log('Diag 6d — vimrc state:', JSON.stringify(result, null, 2));
+        expect(result).not.toHaveProperty('error');
+    });
+
+    it('should check if vimrc L→$ entry exists and trace handleEx', async function () {
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            getKeymap: (
+                                ctx?: string,
+                            ) => Array<Record<string, unknown>>;
+                            handleEx: (cm: unknown, input: string) => void;
+                            handleKey: (cm: unknown, k: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'No Vim API' };
+
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'No view' };
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'No adapter' };
+
+            const beforeEx = Vim.getKeymap('normal')
+                .filter((e: Record<string, unknown>) => e.keys === 'L')
+                .map((e: Record<string, unknown>) => ({
+                    keys: e.keys,
+                    type: e.type,
+                    toKeys: e.toKeys,
+                    context: e.context,
+                    _isDefault: e._isDefault,
+                }));
+
+            Vim.handleEx(adapter, 'nmap L $');
+
+            const afterEx = Vim.getKeymap('normal')
+                .filter((e: Record<string, unknown>) => e.keys === 'L')
+                .map((e: Record<string, unknown>) => ({
+                    keys: e.keys,
+                    type: e.type,
+                    toKeys: e.toKeys,
+                    context: e.context,
+                    _isDefault: e._isDefault,
+                }));
+
+            view.editor.setValue('hello world test');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, 'L');
+            const ch = view.editor.getCursor().ch;
+
+            return { beforeEx, afterEx, ch };
+        })) as Record<string, unknown>;
+
+        console.log(
+            'Diag 6b — handleEx nmap L $:',
+            JSON.stringify(result, null, 2),
+        );
+        expect(result).not.toHaveProperty('error');
+    });
+});

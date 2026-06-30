@@ -371,11 +371,7 @@ describe('Phase 4 text objects', function () {
             await browser.pause(200);
         });
 
-        it.skip('vi* on single-char italic should select the character', async function () {
-            // BUG: CM Vim visual mode selects the delimiter '*' instead of the
-            // single-char content 'x' for *x*. The text object itself returns the
-            // correct range but makeCmSelection shifts the head by -1 for inclusive
-            // motions, landing on the delimiter. Multi-char content works correctly.
+        it('vi* on single-char italic should select the character', async function () {
             await setupEditor('Hello *x* world', { line: 0, ch: 7 });
             await vimKeys('v', 'i', '*');
             expect(await getSelection()).toBe('x');

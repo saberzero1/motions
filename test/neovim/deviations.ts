@@ -55,7 +55,7 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         testPattern: '% should skip quoted brackets',
         description:
             '% goes to ch:3 instead of ch:6. Neovim skips brackets inside double-quoted strings when seeking match.',
-        reason: 'codemirror-vim % does not fully skip brackets inside string literals in all cases',
+        reason: "Markdown's Lezer parser does not classify double-quoted text as string tokens, so getTokenTypeAt returns empty for quotes in Markdown context",
         fields: ['cursor'],
     },
 
@@ -64,13 +64,6 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         description:
             'N after /word search: cursor stays at (5,5) instead of moving to (5,0). The golden test dispatches /word\\nN as a single key sequence but the search panel completion timing differs in CM6.',
         reason: 'Search panel timing in CM6 testWithNeovim dispatch',
-        fields: ['cursor'],
-    },
-    {
-        testPattern: /V.*cursor position|Vj cursor position/,
-        description:
-            'V linewise visual places cursor at end of line instead of ch:0',
-        reason: 'CM6 exclusive selection model moves head to end of line in linewise visual',
         fields: ['cursor'],
     },
 ];
