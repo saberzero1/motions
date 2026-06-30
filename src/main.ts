@@ -1,6 +1,8 @@
 import { MarkdownView, Notice, Plugin } from 'obsidian';
 import {
     DEFAULT_SETTINGS,
+    CommandLabel,
+    GroupLabel,
     VimMotionsSettings,
     VimMotionsSettingTab,
 } from './settings';
@@ -68,6 +70,10 @@ export default class VimMotionsPlugin extends Plugin {
     private hintWindowDocs = new Set<Document>();
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
+    vimrcOverrides: Map<string, string> = new Map();
+    preVimrcSettings!: VimMotionsSettings;
+    vimrcGroupLabels: GroupLabel[] = [];
+    vimrcCommandLabels: CommandLabel[] = [];
     vimrcLoaded = false;
     vimrcRetried = false;
     vimrcCommandCount = 0;
@@ -94,13 +100,77 @@ export default class VimMotionsPlugin extends Plugin {
             return;
         }
 
+        this.vimrcOverrides = new Map();
+        this.preVimrcSettings = { ...this.settings };
+        this.vimrcGroupLabels = [];
+        this.vimrcCommandLabels = [];
+        const onSettingOverride = (
+            key: string,
+            value: unknown,
+            directive?: string,
+        ) => {
+            let applied = false;
+            if (key === 'cursorShapes') {
+                Object.assign(
+                    this.settings.cursorShapes,
+                    value as Partial<typeof this.settings.cursorShapes>,
+                );
+                this.vimrcOverrides.set(key, directive ?? 'set guicursor');
+                applied = true;
+            } else if (key.startsWith('modePrompts.')) {
+                const mode = key.replace(
+                    'modePrompts.',
+                    '',
+                ) as keyof VimMotionsSettings['modePrompts'];
+                if (typeof value === 'string') {
+                    this.settings.modePrompts[mode] = value;
+                    this.vimrcOverrides.set(
+                        key,
+                        directive ?? `let g:mode_prompt_${mode} = ${value}`,
+                    );
+                    applied = true;
+                }
+            } else if (key === 'whichKeyGroupLabel') {
+                const entry = value as GroupLabel;
+                if (entry?.key && entry.label) {
+                    this.vimrcGroupLabels.push(entry);
+                    this.vimrcOverrides.set(
+                        `whichKeyGroupLabel:${entry.key}`,
+                        directive ??
+                            `whichkeygroup ${entry.key} ${entry.label}`,
+                    );
+                    applied = true;
+                }
+            } else if (key === 'whichKeyCommandLabel') {
+                const entry = value as CommandLabel;
+                if (entry?.key && entry.label) {
+                    this.vimrcCommandLabels.push(entry);
+                    this.vimrcOverrides.set(
+                        `whichKeyCommandLabel:${entry.key}`,
+                        directive ??
+                            `whichkeylabel ${entry.key} ${entry.label}`,
+                    );
+                    applied = true;
+                }
+            } else if (key in this.settings) {
+                (this.settings as unknown as Record<string, unknown>)[key] =
+                    value;
+                this.vimrcOverrides.set(key, directive ?? `set ${key}`);
+                applied = true;
+            }
+
+            if (applied && !this.vimrcLoading) {
+                this.reloadFeatures();
+            }
+        };
+
         // --- Vim API setup ---
         // resetKeymap() is a fork-only method; guard against the built-in
         // Vim API which does not expose it.
         if (typeof vim.resetKeymap === 'function') {
             vim.resetKeymap();
         }
-        registerVimOptions(vim);
+        registerVimOptions(vim, onSettingOverride);
         this.registration = new VimRegistration(vim);
 
         // --- Leader key resolution ---
@@ -116,16 +186,11 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
-                    const cursorShapeCb = (
-                        partial: Partial<typeof this.settings.cursorShapes>,
-                    ) => {
-                        Object.assign(this.settings.cursorShapes, partial);
-                    };
                     let vimrcResult = await loadVimrc(
                         this.app,
                         vim,
                         this.leaderRegistry ?? undefined,
-                        cursorShapeCb,
+                        onSettingOverride,
                     );
                     for (
                         let attempt = 0;
@@ -137,7 +202,7 @@ export default class VimMotionsPlugin extends Plugin {
                             this.app,
                             vim,
                             this.leaderRegistry ?? undefined,
-                            cursorShapeCb,
+                            onSettingOverride,
                         );
                         this.vimrcRetried = true;
                     }
@@ -174,6 +239,8 @@ export default class VimMotionsPlugin extends Plugin {
                             applyVimrcMaps(vim, this.vimrcMaps);
                         }, 200);
                     }
+                    this.vimrcLoading = false;
+                    this.reloadFeatures();
                 }),
             );
         }
@@ -516,6 +583,26 @@ export default class VimMotionsPlugin extends Plugin {
                 groupLabels.set(expandedKey, entry.label);
             }
         }
+        for (const entry of this.vimrcGroupLabels) {
+            if (entry.key && entry.label) {
+                groupLabels.set(entry.key, entry.label);
+            }
+        }
+
+        const commandLabels = new Map<string, string>();
+        for (const entry of this.settings.whichKeyCommandLabels) {
+            if (entry.key && entry.label) {
+                const expandedKey = entry.key
+                    .trim()
+                    .replace(/<leader>/gi, leaderKey);
+                commandLabels.set(expandedKey, entry.label);
+            }
+        }
+        for (const entry of this.vimrcCommandLabels) {
+            if (entry.key && entry.label) {
+                commandLabels.set(entry.key, entry.label);
+            }
+        }
 
         this.whichKeyOverlay = new WhichKeyOverlay(
             this.app,
@@ -524,6 +611,7 @@ export default class VimMotionsPlugin extends Plugin {
             generalMode,
             this.settings.whichKeyGrouping === 'grouped',
             groupLabels,
+            commandLabels,
         );
         this.whichKeyOverlay.attach();
     }
@@ -726,6 +814,31 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async saveSettings() {
-        await this.saveData(this.settings);
+        const toSave: VimMotionsSettings = {
+            ...this.settings,
+            modePrompts: { ...this.settings.modePrompts },
+            cursorShapes: { ...this.settings.cursorShapes },
+        };
+        for (const [key] of this.vimrcOverrides) {
+            if (key.startsWith('modePrompts.')) {
+                const mode = key.replace(
+                    'modePrompts.',
+                    '',
+                ) as keyof VimMotionsSettings['modePrompts'];
+                toSave.modePrompts[mode] =
+                    this.preVimrcSettings.modePrompts[mode];
+                continue;
+            }
+            if (key === 'cursorShapes') {
+                toSave.cursorShapes = { ...this.preVimrcSettings.cursorShapes };
+                continue;
+            }
+            if (key in this.preVimrcSettings) {
+                (toSave as unknown as Record<string, unknown>)[key] = (
+                    this.preVimrcSettings as unknown as Record<string, unknown>
+                )[key];
+            }
+        }
+        await this.saveData(toSave);
     }
 }

@@ -50,7 +50,7 @@ Reformat paragraphs with Markdown-aware line wrapping — something Obsidian's b
 
 `gq` moves the cursor to the start of the formatted range. `gw` keeps the cursor at its original position. Both use the same wrapping engine.
 
-The default wrap width is 80 columns. You can change it at runtime via Obsidian's developer console: `CodeMirrorAdapter.Vim.setOption('textwidth', 100)`. Note: `set textwidth=N` in `.obsidian.vimrc` is parsed but does not currently propagate to the `gq`/`gw` operators due to a [known limitation](KNOWN_LIMITATIONS.md#set-textwidth-via-vimrc-does-not-affect-gq).
+The default wrap width is 80 columns. You can change it via `set textwidth=100` in your `.obsidian.vimrc`, via **Settings → Vim Motions → Vim engine → Text width**, or at runtime via Obsidian's developer console: `CodeMirrorAdapter.Vim.setOption('textwidth', 100)`. Note: `set textwidth=N` in vimrc may not propagate to `gq`/`gw` if the vimrc file encounters I/O timing issues — see [known limitation](KNOWN_LIMITATIONS.md#set-textwidth-via-vimrc-may-not-affect-gq).
 
 Behavior:
 
@@ -300,7 +300,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
 - **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc.
 - **Settings hot-reload** — toggle features on and off without restarting Obsidian.
-- **Built-in `.obsidian.vimrc`** — load key mappings and settings without needing obsidian-vimrc-support.
+- **Built-in `.obsidian.vimrc`** — load key mappings, settings overrides, and which-key labels without needing obsidian-vimrc-support.
 
 ## Vimrc support
 
@@ -313,29 +313,126 @@ let mapleader = " "
 " Key mappings
 nnoremap j gj
 nnoremap k gk
-nmap Y y$
+
+" Settings (override Settings UI values)
+set scrolloff=5
+set textwidth=80
+set clipboard=unnamed
+set expandtab
+set tabstop=4
+set shiftwidth=2
+set insertmodeescape=jk
+set easymotion
+set nopowerline
+set easymotionlabels=asdghklqwertyuiopzxcvbnmfj
+
+" Cursor shapes (bundled fork mode only)
+set guicursor=n:block,i:bar,v:block,r:underline,o:underline
+
+" Mode prompts
+let g:mode_prompt_normal = "N"
+let g:mode_prompt_insert = "I"
 
 " Leader key mappings
 exmap saveFile obcommand editor:save-file
 nmap <leader>w :saveFile<CR>
 
-" Execute Obsidian commands
-nmap <C-s> :saveFile<CR>
-
-" Settings
-set clipboard=unnamed
-set tabstop=4
-set textwidth=80
-set shiftwidth=2
-set expandtab
-set insertmodeescape=jk
+" Which-key labels
+whichkeygroup <leader>t Table
+whichkeylabel <leader>w Save file
 ```
 
-Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inoremap`, `vnoremap`, `unmap`, `nunmap`, `iunmap`, `vunmap`, `set`, `let mapleader`, `exmap`, `obcommand`, `source`.
+Supported commands: `map`, `nmap`, `imap`, `vmap`, `noremap`, `nnoremap`, `inoremap`, `vnoremap`, `unmap`, `nunmap`, `iunmap`, `vunmap`, `set`, `let mapleader`, `exmap`, `obcommand`, `source`, `whichkeygroup`, `whichkeylabel`.
 
 `let mapleader` supports any key, including space (`let mapleader = " "`), comma, semicolon, and backslash (default). The leader key's default Vim binding is automatically unmapped so leader-prefixed sequences work correctly.
 
-Supported `set` options: `clipboard` (`unnamed`/`unnamedplus` — syncs yank/delete/paste with system clipboard), `tabstop`/`ts`, `textwidth`/`tw`, `shiftwidth`/`sw`, `expandtab`/`et`, `insertmodeescape`/`ime`, `guicursor` (per-mode cursor shapes, e.g. `set guicursor=n:block,i:bar,v:underline`). Use `set noexpandtab` to disable boolean options.
+### Supported `set` options
+
+All plugin settings can be configured via `set` in your vimrc. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session.
+
+#### Boolean options
+
+Use `set <option>` to enable, `set no<option>` to disable.
+
+| Option              | Alias | Description                           | Default |
+| ------------------- | ----- | ------------------------------------- | ------- |
+| `textobjects`       | `to`  | Markdown-aware text objects           | on      |
+| `navigation`        | `nav` | Heading, list, and link navigation    | on      |
+| `hardwrap`          | `hw`  | `gq`/`gw` hard-wrap operators         | on      |
+| `listcontinuation`  | `lc`  | Smart list continuation on `o`/`O`    | on      |
+| `tablenav`          | `tn`  | Table cell navigation                 | on      |
+| `workspacenav`      | `wn`  | Pane/tab/sidebar control              | on      |
+| `easymotion`        | `em`  | EasyMotion/Hop navigation             | on      |
+| `easymotiondimming` | `emd` | Dim non-target text during EasyMotion | on      |
+| `hintmode`          | `hm`  | Vimium-style hint labels              | on      |
+| `statusbar`         | `sb`  | Vim mode in status bar                | on      |
+| `chorddisplay`      | `cd`  | Pending keystrokes in status bar      | on      |
+| `powerline`         | `pl`  | Colored powerline status bar          | off     |
+| `expandtab`         | `et`  | Use spaces instead of tabs            | on      |
+
+#### Number options
+
+Use `set <option>=<value>`.
+
+| Option          | Alias | Description                              | Default | Range |
+| --------------- | ----- | ---------------------------------------- | ------- | ----- |
+| `scrolloff`     | `so`  | Lines to keep visible above/below cursor | 5       | 0–20  |
+| `scanlimit`     | `sl`  | Max lines to scan for text objects       | 20      | 5–200 |
+| `labelfontsize` | `lfs` | Font size for EasyMotion/hint labels     | 14      | 10–20 |
+| `tabstop`       | `ts`  | Tab display width                        | 4       | —     |
+| `shiftwidth`    | `sw`  | Indent width                             | 4       | —     |
+| `textwidth`     | `tw`  | Line wrap width for `gq`/`gw`            | 80      | —     |
+
+#### String options
+
+Use `set <option>=<value>`.
+
+| Option             | Alias  | Description                                     | Default                               |
+| ------------------ | ------ | ----------------------------------------------- | ------------------------------------- |
+| `clipboard`        | `clip` | System clipboard sync (`unnamed`/`unnamedplus`) | (off)                                 |
+| `insertmodeescape` | `ime`  | Two-key sequence to exit insert mode            | (off)                                 |
+| `easymotionlabels` | `eml`  | Characters for EasyMotion labels                | `asdghklqwertyuiopzxcvbnmfj`          |
+| `hintlabels`       | `hl`   | Characters for hint mode labels                 | `asdfghjkl`                           |
+| `guicursor`        | —      | Per-mode cursor shapes                          | (block/bar/block/underline/underline) |
+| `tablewidget`      | —      | Table widget mode (`off`/`cursor`/`always`)     | `cursor`                              |
+| `whichkey`         | `wk`   | Which-key hints (`off`/`leader`/`all`)          | `off`                                 |
+| `whichkeygrouping` | `wkg`  | Which-key grouping (`flat`/`grouped`)           | `grouped`                             |
+
+#### Mode prompt customization
+
+Use `let` to customize status bar text per mode:
+
+```vim
+let g:mode_prompt_normal = "N"
+let g:mode_prompt_insert = "I"
+let g:mode_prompt_visual = "V"
+let g:mode_prompt_replace = "R"
+```
+
+#### Which-key labels
+
+Name key groups and describe individual bindings in the which-key popup:
+
+```vim
+" Group labels — collapse bindings under a named prefix
+whichkeygroup <leader>t Table
+whichkeygroup <leader>g Git
+
+" Command labels — describe individual bindings
+whichkeylabel <leader>w Save file
+whichkeylabel <leader>q Close tab
+whichkeylabel gd Go to definition
+```
+
+Group and command labels from vimrc are merged with labels configured in Settings. If the same key appears in both, the vimrc value takes precedence.
+
+#### Exclusions
+
+The following settings are not exposed via vimrc:
+
+- **Load .obsidian.vimrc**: Circular dependency.
+- **Hint mode global hotkey**: Requires modifier key capture UI.
+- **Leader key bindings**: Already achievable via `nmap <leader>x :command` in vimrc.
 
 If obsidian-vimrc-support is also installed, both plugins can coexist — Vim Motions registers its own `:ob` command independently.
 
@@ -375,16 +472,27 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 - Per-mode cursor shape (block / bar / underline / hollow) — requires bundled fork mode
 
+**Vim engine**
+
+- Clipboard (off / unnamed / unnamedplus)
+- Tab stop (1-8, default: 4)
+- Shift width (1-8, default: 4)
+- Expand tab (on/off, default: on)
+- Insert mode escape (text, default: off)
+- Text width (0-200, default: 80)
+
 **Vimrc & key bindings**
 
 - Load `.obsidian.vimrc` (on/off)
 - Leader key bindings (add/remove key-to-command mappings without editing vimrc)
+- Note: all settings are also configurable via vimrc when enabled
 
 **Which-key hints**
 
 - Which-key mode (off / leader key only / all partial keys, default: off)
 - Which-key leader grouping (grouped / flat, default: grouped) — collapse bindings by prefix with drill-down
 - Which-key group labels — name groups by prefix key (e.g. `\t` → Table); supports `<leader>` expansion
+- Command labels — name individual bindings shown in the which-key popup
 
 **Advanced**
 
@@ -406,7 +514,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 
 ## Requirements
 
-- Obsidian v1.1.1 or later
+- Obsidian v1.2.3 or later
 - Desktop only (mobile support planned for a future release)
 
 ### Recommended setup

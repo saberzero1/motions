@@ -34,6 +34,11 @@ export interface GroupLabel {
     label: string;
 }
 
+export interface CommandLabel {
+    key: string;
+    label: string;
+}
+
 export interface ModePrompts {
     normal: string;
     insert: string;
@@ -89,9 +94,16 @@ export interface VimMotionsSettings {
     easyMotionLabels: string;
     labelFontSize: number;
     cursorShapes: CursorShapes;
+    clipboard: string;
+    tabstop: number;
+    shiftwidth: number;
+    expandtab: boolean;
+    insertmodeescape: string;
+    textwidth: number;
     whichKeyMode: 'off' | 'leader' | 'all';
     whichKeyGrouping: 'flat' | 'grouped';
     whichKeyGroupLabels: GroupLabel[];
+    whichKeyCommandLabels: CommandLabel[];
     leaderBindings: LeaderBinding[];
 }
 
@@ -118,9 +130,16 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
     labelFontSize: 14,
     cursorShapes: { ...DEFAULT_CURSOR_SHAPES },
+    clipboard: '',
+    tabstop: 4,
+    shiftwidth: 4,
+    expandtab: true,
+    insertmodeescape: '',
+    textwidth: 80,
     whichKeyMode: 'off',
     whichKeyGrouping: 'grouped',
     whichKeyGroupLabels: [],
+    whichKeyCommandLabels: [],
     leaderBindings: [],
 };
 
@@ -181,6 +200,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         containerEl.empty();
 
+        const vimrcOverrides = this.plugin.vimrcOverrides;
+        const getOverride = (key: string) => vimrcOverrides?.get(key);
+        const isOverridden = (key: string) => !!getOverride(key);
+        const describeOverride = (key: string, desc?: string) => {
+            const directive = getOverride(key);
+            if (!directive) return desc ?? '';
+            const note = `Set by vimrc: \`${directive}\``;
+            return desc ? `${desc} (${note})` : note;
+        };
+
         const builtinVimOn =
             (
                 this.app.vault as unknown as {
@@ -217,12 +246,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Text objects')
-            .setDesc('Enable Markdown-aware text objects (i*, a*, il, etc.)')
+            .setDesc(
+                describeOverride(
+                    'enableTextObjects',
+                    'Enable Markdown-aware text objects (i*, a*, il, etc.)',
+                ),
+            )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableTextObjects)
+                    .setDisabled(isOverridden('enableTextObjects'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableTextObjects = value;
+                        this.plugin.vimrcOverrides?.delete('enableTextObjects');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -231,13 +267,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Structural navigation')
             .setDesc(
-                'Enable heading, list, and link navigation motions (]h, ]l, ]n, etc.)',
+                describeOverride(
+                    'enableNavigation',
+                    'Enable heading, list, and link navigation motions (]h, ]l, ]n, etc.)',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableNavigation)
+                    .setDisabled(isOverridden('enableNavigation'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableNavigation = value;
+                        this.plugin.vimrcOverrides?.delete('enableNavigation');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -246,13 +287,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Hard-wrap operator (gq)')
             .setDesc(
-                'Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.',
+                describeOverride(
+                    'enableHardWrap',
+                    'Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableHardWrap)
+                    .setDisabled(isOverridden('enableHardWrap'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableHardWrap = value;
+                        this.plugin.vimrcOverrides?.delete('enableHardWrap');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -261,14 +307,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Smart list continuation on o/O')
             .setDesc(
-                'When pressing o or O on a list line, automatically continue the list ' +
-                    'marker (bullets, numbers, checkboxes). Disable for plain Neovim behavior.',
+                describeOverride(
+                    'listContinuationOnOpen',
+                    'When pressing o or O on a list line, automatically continue the list ' +
+                        'marker (bullets, numbers, checkboxes). Disable for plain Neovim behavior.',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.listContinuationOnOpen)
+                    .setDisabled(isOverridden('listContinuationOnOpen'))
                     .onChange(async (value) => {
                         this.plugin.settings.listContinuationOnOpen = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'listContinuationOnOpen',
+                        );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -277,13 +330,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Table navigation')
             .setDesc(
-                'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
+                describeOverride(
+                    'enableTableNav',
+                    'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableTableNav)
+                    .setDisabled(isOverridden('enableTableNav'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableTableNav = value;
+                        this.plugin.vimrcOverrides?.delete('enableTableNav');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -292,10 +350,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Table widget in live preview')
             .setDesc(
-                'Controls how tables display in Live Preview. ' +
-                    '"Always raw" keeps tables as plain text. ' +
-                    '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
-                    '"Off" uses the default interactive table editor.',
+                describeOverride(
+                    'tableWidgetMode',
+                    'Controls how tables display in Live Preview. ' +
+                        '"Always raw" keeps tables as plain text. ' +
+                        '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
+                        '"Off" uses the default interactive table editor.',
+                ),
             )
             .addDropdown((dropdown) =>
                 dropdown
@@ -303,9 +364,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .addOption('cursor', 'Cursor-aware')
                     .addOption('off', 'Off')
                     .setValue(this.plugin.settings.tableWidgetMode)
+                    .setDisabled(isOverridden('tableWidgetMode'))
                     .onChange(async (value) => {
                         this.plugin.settings.tableWidgetMode =
                             value as VimMotionsSettings['tableWidgetMode'];
+                        this.plugin.vimrcOverrides?.delete('tableWidgetMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -314,17 +377,139 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Workspace navigation')
             .setDesc(
-                'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
+                describeOverride(
+                    'enableWorkspaceNav',
+                    'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableWorkspaceNav)
+                    .setDisabled(isOverridden('enableWorkspaceNav'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableWorkspaceNav = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'enableWorkspaceNav',
+                        );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        // ── Vim engine ──────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Vim engine').setHeading();
+
+        new Setting(containerEl)
+            .setName('Clipboard')
+            .setDesc(
+                describeOverride(
+                    'clipboard',
+                    'Sync yank/delete/paste with the system clipboard (unnamed/unnamedplus).',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOption('', 'Off')
+                    .addOption('unnamed', 'Unnamed')
+                    .addOption('unnamedplus', 'Unnamedplus')
+                    .setValue(this.plugin.settings.clipboard)
+                    .setDisabled(isOverridden('clipboard'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.clipboard = value;
+                        this.plugin.vimrcOverrides?.delete('clipboard');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Tabstop')
+            .setDesc(describeOverride('tabstop', 'Tab display width (1–8).'))
+            .addSlider((slider) =>
+                slider
+                    .setLimits(1, 8, 1)
+                    .setValue(this.plugin.settings.tabstop)
+                    .setDisabled(isOverridden('tabstop'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.tabstop = value;
+                        this.plugin.vimrcOverrides?.delete('tabstop');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Shiftwidth')
+            .setDesc(describeOverride('shiftwidth', 'Indent width (1–8).'))
+            .addSlider((slider) =>
+                slider
+                    .setLimits(1, 8, 1)
+                    .setValue(this.plugin.settings.shiftwidth)
+                    .setDisabled(isOverridden('shiftwidth'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.shiftwidth = value;
+                        this.plugin.vimrcOverrides?.delete('shiftwidth');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Expand tab')
+            .setDesc(
+                describeOverride('expandtab', 'Use spaces instead of tabs.'),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.expandtab)
+                    .setDisabled(isOverridden('expandtab'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.expandtab = value;
+                        this.plugin.vimrcOverrides?.delete('expandtab');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Insert mode escape')
+            .setDesc(
+                describeOverride(
+                    'insertmodeescape',
+                    'Two-key sequence to exit insert mode (e.g. jk).',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.settings.insertmodeescape)
+                    .setDisabled(isOverridden('insertmodeescape'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.insertmodeescape = value;
+                        this.plugin.vimrcOverrides?.delete('insertmodeescape');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Textwidth')
+            .setDesc(
+                describeOverride(
+                    'textwidth',
+                    'Line wrap width for gq/gw (0 to disable).',
+                ),
+            )
+            .addText((text) => {
+                text.setValue(String(this.plugin.settings.textwidth));
+                text.inputEl.type = 'number';
+                text.inputEl.min = '0';
+                text.inputEl.max = '200';
+                text.setDisabled(isOverridden('textwidth'));
+                text.onChange(async (value) => {
+                    const n = Number(value);
+                    this.plugin.settings.textwidth = Number.isNaN(n)
+                        ? 0
+                        : Math.max(0, Math.min(200, n));
+                    this.plugin.vimrcOverrides?.delete('textwidth');
+                    await this.plugin.saveSettings();
+                });
+            });
 
         // ── Jump navigation ──────────────────────────────────────────
 
@@ -333,13 +518,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('EasyMotion')
             .setDesc(
-                'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
+                describeOverride(
+                    'enableEasyMotion',
+                    'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableEasyMotion)
+                    .setDisabled(isOverridden('enableEasyMotion'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableEasyMotion = value;
+                        this.plugin.vimrcOverrides?.delete('enableEasyMotion');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -347,12 +537,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('EasyMotion dimming')
-            .setDesc('Dim non-target text when EasyMotion is active.')
+            .setDesc(
+                describeOverride(
+                    'easyMotionDimming',
+                    'Dim non-target text when EasyMotion is active.',
+                ),
+            )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.easyMotionDimming)
+                    .setDisabled(isOverridden('easyMotionDimming'))
                     .onChange(async (value) => {
                         this.plugin.settings.easyMotionDimming = value;
+                        this.plugin.vimrcOverrides?.delete('easyMotionDimming');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -360,14 +557,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('EasyMotion label characters')
             .setDesc(
-                'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
+                describeOverride(
+                    'easyMotionLabels',
+                    'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
+                ),
             )
             .addText((text) =>
                 text
                     .setValue(this.plugin.settings.easyMotionLabels)
+                    .setDisabled(isOverridden('easyMotionLabels'))
                     .onChange(async (value) => {
                         this.plugin.settings.easyMotionLabels =
                             value || 'asdghklqwertyuiopzxcvbnmfj';
+                        this.plugin.vimrcOverrides?.delete('easyMotionLabels');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -375,13 +577,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Hint mode')
             .setDesc(
-                'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
+                describeOverride(
+                    'enableHintMode',
+                    'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableHintMode)
+                    .setDisabled(isOverridden('enableHintMode'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableHintMode = value;
+                        this.plugin.vimrcOverrides?.delete('enableHintMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -390,14 +597,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Hint mode label characters')
             .setDesc(
-                'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
+                describeOverride(
+                    'hintModeLabels',
+                    'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
+                ),
             )
             .addText((text) =>
                 text
                     .setValue(this.plugin.settings.hintModeLabels)
+                    .setDisabled(isOverridden('hintModeLabels'))
                     .onChange(async (value) => {
                         this.plugin.settings.hintModeLabels =
                             value || 'asdfghjkl';
+                        this.plugin.vimrcOverrides?.delete('hintModeLabels');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -405,8 +617,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         const hotkeySettingItem = new Setting(containerEl)
             .setName('Hint mode global hotkey')
             .setDesc(
-                'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
+                describeOverride(
+                    'hintModeHotkey',
+                    'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
+                ),
             );
+        const hotkeyOverridden = isOverridden('hintModeHotkey');
 
         const hotkeyDisplay = hotkeySettingItem.controlEl.createSpan({
             cls: 'setting-hotkey vim-motions-hotkey-display',
@@ -416,63 +632,80 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         );
 
         hotkeySettingItem.addButton((button) =>
-            button.setButtonText('Record').onClick(() => {
-                button.setButtonText('Press keys\u2026');
-                const onKey = (e: KeyboardEvent) => {
-                    if (
-                        e.key === 'Shift' ||
-                        e.key === 'Control' ||
-                        e.key === 'Alt' ||
-                        e.key === 'Meta'
-                    )
-                        return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    activeDocument.removeEventListener('keydown', onKey, true);
+            button
+                .setButtonText('Record')
+                .setDisabled(hotkeyOverridden)
+                .onClick(() => {
+                    button.setButtonText('Press keys\u2026');
+                    const onKey = (e: KeyboardEvent) => {
+                        if (
+                            e.key === 'Shift' ||
+                            e.key === 'Control' ||
+                            e.key === 'Alt' ||
+                            e.key === 'Meta'
+                        )
+                            return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        activeDocument.removeEventListener(
+                            'keydown',
+                            onKey,
+                            true,
+                        );
 
-                    const mods: string[] = [];
-                    if (e.ctrlKey) mods.push('ctrl');
-                    if (e.shiftKey) mods.push('shift');
-                    if (e.altKey) mods.push('alt');
-                    if (e.metaKey) mods.push('meta');
+                        const mods: string[] = [];
+                        if (e.ctrlKey) mods.push('ctrl');
+                        if (e.shiftKey) mods.push('shift');
+                        if (e.altKey) mods.push('alt');
+                        if (e.metaKey) mods.push('meta');
 
-                    const key = e.key === 'Unidentified' ? e.code : e.key;
-                    const serialized = mods.join(',') + ':' + key;
+                        const key = e.key === 'Unidentified' ? e.code : e.key;
+                        const serialized = mods.join(',') + ':' + key;
 
-                    this.plugin.settings.hintModeHotkey = serialized;
-                    void this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
+                        this.plugin.settings.hintModeHotkey = serialized;
+                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        void this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
 
-                    hotkeyDisplay.textContent = formatHotkey(serialized);
-                    button.setButtonText('Record');
-                };
-                activeDocument.addEventListener('keydown', onKey, true);
-            }),
+                        hotkeyDisplay.textContent = formatHotkey(serialized);
+                        button.setButtonText('Record');
+                    };
+                    activeDocument.addEventListener('keydown', onKey, true);
+                }),
         );
 
         if (this.plugin.settings.hintModeHotkey) {
             hotkeySettingItem.addButton((button) =>
-                button.setButtonText('Clear').onClick(() => {
-                    this.plugin.settings.hintModeHotkey = '';
-                    void this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-                    hotkeyDisplay.textContent = '';
-                }),
+                button
+                    .setButtonText('Clear')
+                    .setDisabled(hotkeyOverridden)
+                    .onClick(() => {
+                        this.plugin.settings.hintModeHotkey = '';
+                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        void this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        hotkeyDisplay.textContent = '';
+                    }),
             );
         }
 
         new Setting(containerEl)
             .setName('Label font size')
             .setDesc(
-                'Font size for EasyMotion and hint mode labels (10\u201320px). ' +
-                    'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
+                describeOverride(
+                    'labelFontSize',
+                    'Font size for EasyMotion and hint mode labels (10\u201320px). ' +
+                        'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
+                ),
             )
             .addSlider((slider) =>
                 slider
                     .setLimits(10, 20, 1)
                     .setValue(this.plugin.settings.labelFontSize)
+                    .setDisabled(isOverridden('labelFontSize'))
                     .onChange(async (value) => {
                         this.plugin.settings.labelFontSize = value;
+                        this.plugin.vimrcOverrides?.delete('labelFontSize');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -484,13 +717,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Vim mode status bar')
             .setDesc(
-                'Show current Vim mode (normal, insert, visual) in the status bar.',
+                describeOverride(
+                    'enableStatusBar',
+                    'Show current Vim mode (normal, insert, visual) in the status bar.',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableStatusBar)
+                    .setDisabled(isOverridden('enableStatusBar'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableStatusBar = value;
+                        this.plugin.vimrcOverrides?.delete('enableStatusBar');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -499,13 +737,20 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Vim chord display')
             .setDesc(
-                'Show pending keystrokes in the status bar as you type a command (e.g. "2d", "gq").',
+                describeOverride(
+                    'enableChordDisplay',
+                    'Show pending keystrokes in the status bar as you type a command (e.g. "2d", "gq").',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableChordDisplay)
+                    .setDisabled(isOverridden('enableChordDisplay'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableChordDisplay = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'enableChordDisplay',
+                        );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -514,13 +759,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Powerline-style status bar')
             .setDesc(
-                'Color the Vim mode indicator with per-mode background colors and a triangular separator.',
+                describeOverride(
+                    'enablePowerline',
+                    'Color the Vim mode indicator with per-mode background colors and a triangular separator.',
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enablePowerline)
+                    .setDisabled(isOverridden('enablePowerline'))
                     .onChange(async (value) => {
                         this.plugin.settings.enablePowerline = value;
+                        this.plugin.vimrcOverrides?.delete('enablePowerline');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -533,47 +783,91 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         const prompts = this.plugin.settings.modePrompts;
         new Setting(containerEl)
             .setName('Normal mode prompt')
-            .setDesc('Status bar text for normal mode.')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.normal',
+                    'Status bar text for normal mode.',
+                ),
+            )
             .addText((text) =>
-                text.setValue(prompts.normal).onChange(async (value) => {
-                    this.plugin.settings.modePrompts.normal =
-                        value || DEFAULT_MODE_PROMPTS.normal;
-                    await this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-                }),
+                text
+                    .setValue(prompts.normal)
+                    .setDisabled(isOverridden('modePrompts.normal'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.normal =
+                            value || DEFAULT_MODE_PROMPTS.normal;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.normal',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
             );
         new Setting(containerEl)
             .setName('Insert mode prompt')
-            .setDesc('Status bar text for insert mode.')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.insert',
+                    'Status bar text for insert mode.',
+                ),
+            )
             .addText((text) =>
-                text.setValue(prompts.insert).onChange(async (value) => {
-                    this.plugin.settings.modePrompts.insert =
-                        value || DEFAULT_MODE_PROMPTS.insert;
-                    await this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-                }),
+                text
+                    .setValue(prompts.insert)
+                    .setDisabled(isOverridden('modePrompts.insert'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.insert =
+                            value || DEFAULT_MODE_PROMPTS.insert;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.insert',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
             );
         new Setting(containerEl)
             .setName('Visual mode prompt')
-            .setDesc('Status bar text for visual mode.')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.visual',
+                    'Status bar text for visual mode.',
+                ),
+            )
             .addText((text) =>
-                text.setValue(prompts.visual).onChange(async (value) => {
-                    this.plugin.settings.modePrompts.visual =
-                        value || DEFAULT_MODE_PROMPTS.visual;
-                    await this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-                }),
+                text
+                    .setValue(prompts.visual)
+                    .setDisabled(isOverridden('modePrompts.visual'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.visual =
+                            value || DEFAULT_MODE_PROMPTS.visual;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.visual',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
             );
         new Setting(containerEl)
             .setName('Replace mode prompt')
-            .setDesc('Status bar text for replace mode.')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.replace',
+                    'Status bar text for replace mode.',
+                ),
+            )
             .addText((text) =>
-                text.setValue(prompts.replace).onChange(async (value) => {
-                    this.plugin.settings.modePrompts.replace =
-                        value || DEFAULT_MODE_PROMPTS.replace;
-                    await this.plugin.saveSettings();
-                    this.plugin.reloadFeatures();
-                }),
+                text
+                    .setValue(prompts.replace)
+                    .setDisabled(isOverridden('modePrompts.replace'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.replace =
+                            value || DEFAULT_MODE_PROMPTS.replace;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.replace',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
             );
 
         // ── Cursor shapes ────────────────────────────────────────────
@@ -608,19 +902,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         ];
 
         for (const { key, label } of cursorModes) {
-            new Setting(containerEl).setName(label).addDropdown((dropdown) => {
+            const cursorOverride = getOverride('cursorShapes');
+            const setting = new Setting(containerEl).setName(label);
+            if (cursorOverride) {
+                setting.setDesc(`Set by vimrc: \`${cursorOverride}\``);
+            }
+            setting.addDropdown((dropdown) => {
                 dropdown
                     .addOptions(cursorShapeOptions)
                     .setValue(this.plugin.settings.cursorShapes[key])
+                    .setDisabled(!forkActive || isOverridden('cursorShapes'))
                     .onChange(async (value) => {
                         this.plugin.settings.cursorShapes[key] =
                             value as CursorShape;
+                        this.plugin.vimrcOverrides?.delete('cursorShapes');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     });
-                if (!forkActive) {
-                    dropdown.selectEl.disabled = true;
-                }
             });
         }
 
@@ -631,13 +929,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName(`Load ${this.app.vault.configDir}.vimrc`)
             .setDesc(
-                `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
+                describeOverride(
+                    'enableVimrc',
+                    `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
+                ),
             )
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.enableVimrc)
+                    .setDisabled(isOverridden('enableVimrc'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableVimrc = value;
+                        this.plugin.vimrcOverrides?.delete('enableVimrc');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -659,7 +962,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Which-key mode')
             .setDesc(
-                'Show available key continuations in a popup after a short delay.',
+                describeOverride(
+                    'whichKeyMode',
+                    'Show available key continuations in a popup after a short delay.',
+                ),
             )
             .addDropdown((dropdown) =>
                 dropdown
@@ -669,11 +975,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         all: 'All partial keys',
                     })
                     .setValue(this.plugin.settings.whichKeyMode)
+                    .setDisabled(isOverridden('whichKeyMode'))
                     .onChange(async (value) => {
                         this.plugin.settings.whichKeyMode = value as
                             | 'off'
                             | 'leader'
                             | 'all';
+                        this.plugin.vimrcOverrides?.delete('whichKeyMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -682,9 +990,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Which-key leader grouping')
             .setDesc(
-                'How leader key bindings are displayed. ' +
-                    '"Grouped" collapses bindings by prefix (e.g. t \u2192 +5 keys) and lets you drill down. ' +
-                    '"Flat" shows all bindings at once.',
+                describeOverride(
+                    'whichKeyGrouping',
+                    'How leader key bindings are displayed. ' +
+                        '"Grouped" collapses bindings by prefix (e.g. t \u2192 +5 keys) and lets you drill down. ' +
+                        '"Flat" shows all bindings at once.',
+                ),
             )
             .addDropdown((dropdown) =>
                 dropdown
@@ -693,10 +1004,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         flat: 'Flat',
                     })
                     .setValue(this.plugin.settings.whichKeyGrouping)
+                    .setDisabled(isOverridden('whichKeyGrouping'))
                     .onChange(async (value) => {
                         this.plugin.settings.whichKeyGrouping = value as
                             | 'flat'
                             | 'grouped';
+                        this.plugin.vimrcOverrides?.delete('whichKeyGrouping');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -714,6 +1027,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         });
         this.renderGroupLabels(groupLabelsContainer);
 
+        new Setting(containerEl)
+            .setName('Which-key command labels')
+            .setHeading();
+        new Setting(containerEl).setDesc(
+            'Describe individual bindings in the which-key popup. Entries set in vimrc appear as read-only rows.',
+        );
+
+        const commandLabelsContainer = containerEl.createDiv({
+            cls: 'vim-motions-command-labels',
+        });
+        this.renderCommandLabels(commandLabelsContainer);
+
         // ── Advanced ─────────────────────────────────────────────────
 
         new Setting(containerEl).setName('Advanced').setHeading();
@@ -721,14 +1046,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Scrolloff lines')
             .setDesc(
-                'Number of lines to keep visible above and below when scrolling (0 to disable).',
+                describeOverride(
+                    'scrolloffLines',
+                    'Number of lines to keep visible above and below when scrolling (0 to disable).',
+                ),
             )
             .addSlider((slider) =>
                 slider
                     .setLimits(0, 20, 1)
                     .setValue(this.plugin.settings.scrolloffLines)
+                    .setDisabled(isOverridden('scrolloffLines'))
                     .onChange(async (value) => {
                         this.plugin.settings.scrolloffLines = value;
+                        this.plugin.vimrcOverrides?.delete('scrolloffLines');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -737,14 +1067,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Multi-line text object scan range')
             .setDesc(
-                'Maximum lines to scan in each direction for multi-line text objects (bold, italic, etc.). Higher values find longer spans.',
+                describeOverride(
+                    'multilineScanLimit',
+                    'Maximum lines to scan in each direction for multi-line text objects (bold, italic, etc.). Higher values find longer spans.',
+                ),
             )
             .addSlider((slider) =>
                 slider
                     .setLimits(5, 200, 5)
                     .setValue(this.plugin.settings.multilineScanLimit)
+                    .setDisabled(isOverridden('multilineScanLimit'))
                     .onChange(async (value) => {
                         this.plugin.settings.multilineScanLimit = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'multilineScanLimit',
+                        );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -754,10 +1091,39 @@ export class VimMotionsSettingTab extends PluginSettingTab {
     private renderGroupLabels(container: HTMLElement): void {
         container.empty();
         const labels = this.plugin.settings.whichKeyGroupLabels;
+        const leaderKey = this.plugin.leaderRegistry?.getLeaderKey() ?? '\\';
+        const normalize = (key: string) =>
+            key.trim().replace(/<leader>/gi, leaderKey);
+
+        const vimrcLabels = this.plugin.vimrcGroupLabels;
+        const vimrcByKey = new Map<string, GroupLabel>();
+        for (const entry of vimrcLabels) {
+            if (!entry?.key || !entry.label) continue;
+            vimrcByKey.set(normalize(entry.key), entry);
+        }
+
+        for (const entry of vimrcLabels) {
+            if (!entry?.key || !entry.label) continue;
+            const setting = new Setting(container)
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Prefix (e.g., t)')
+                        .setValue(entry.key)
+                        .setDisabled(true),
+                )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Label (e.g., table)')
+                        .setValue(`${entry.label} (from vimrc)`)
+                        .setDisabled(true),
+                );
+            setting.settingEl.addClass('vim-motions-leader-binding-row');
+        }
 
         for (let i = 0; i < labels.length; i++) {
             const entry = labels[i];
             if (!entry) continue;
+            if (vimrcByKey.has(normalize(entry.key))) continue;
             const setting = new Setting(container)
                 .addText((text: TextComponent) =>
                     text
@@ -765,6 +1131,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.key)
                         .onChange(async (value) => {
                             entry.key = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyGroupLabels',
+                            );
                             await this.plugin.saveSettings();
                             this.plugin.reloadFeatures();
                         }),
@@ -775,6 +1144,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.label)
                         .onChange(async (value) => {
                             entry.label = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyGroupLabels',
+                            );
                             await this.plugin.saveSettings();
                             this.plugin.reloadFeatures();
                         }),
@@ -805,6 +1177,94 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         );
     }
 
+    private renderCommandLabels(container: HTMLElement): void {
+        container.empty();
+        const labels = this.plugin.settings.whichKeyCommandLabels;
+        const leaderKey = this.plugin.leaderRegistry?.getLeaderKey() ?? '\\';
+        const normalize = (key: string) =>
+            key.trim().replace(/<leader>/gi, leaderKey);
+
+        const vimrcLabels = this.plugin.vimrcCommandLabels;
+        const vimrcByKey = new Map<string, CommandLabel>();
+        for (const entry of vimrcLabels) {
+            if (!entry?.key || !entry.label) continue;
+            vimrcByKey.set(normalize(entry.key), entry);
+        }
+
+        for (const entry of vimrcLabels) {
+            if (!entry?.key || !entry.label) continue;
+            const setting = new Setting(container)
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Key (e.g., <leader>w)')
+                        .setValue(entry.key)
+                        .setDisabled(true),
+                )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Label (e.g., save file)')
+                        .setValue(`${entry.label} (from vimrc)`)
+                        .setDisabled(true),
+                );
+            setting.settingEl.addClass('vim-motions-leader-binding-row');
+        }
+
+        for (let i = 0; i < labels.length; i++) {
+            const entry = labels[i];
+            if (!entry) continue;
+            if (vimrcByKey.has(normalize(entry.key))) continue;
+            const setting = new Setting(container)
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Key (e.g., <leader>w)')
+                        .setValue(entry.key)
+                        .onChange(async (value) => {
+                            entry.key = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyCommandLabels',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Label (e.g., save file)')
+                        .setValue(entry.label)
+                        .onChange(async (value) => {
+                            entry.label = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyCommandLabels',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
+                .addExtraButton((button) =>
+                    button
+                        .setIcon('cross')
+                        .setTooltip('Remove')
+                        .onClick(async () => {
+                            labels.splice(i, 1);
+                            await this.plugin.saveSettings();
+                            this.renderCommandLabels(container);
+                        }),
+                );
+            setting.settingEl.addClass('vim-motions-leader-binding-row');
+        }
+
+        new Setting(container).addButton((button) =>
+            button
+                .setButtonText('Add command label')
+                .setCta()
+                .onClick(async () => {
+                    labels.push({ key: '', label: '' });
+                    await this.plugin.saveSettings();
+                    this.renderCommandLabels(container);
+                }),
+        );
+    }
+
     private renderLeaderBindings(container: HTMLElement): void {
         container.empty();
         const bindings = this.plugin.settings.leaderBindings;
@@ -819,6 +1279,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(binding.key)
                         .onChange(async (value) => {
                             binding.key = value.slice(0, 3);
+                            this.plugin.vimrcOverrides?.delete(
+                                'leaderBindings',
+                            );
                             await this.plugin.saveSettings();
                         }),
                 )
@@ -828,6 +1291,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(binding.commandId)
                         .onChange(async (value) => {
                             binding.commandId = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'leaderBindings',
+                            );
                             await this.plugin.saveSettings();
                         }),
                 )

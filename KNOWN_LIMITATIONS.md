@@ -113,16 +113,19 @@ Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the act
 
 ## `set` option scope
 
-The following `set` options are registered and can be used in `.obsidian.vimrc`:
+All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".
 
-| Option             | Aliases | Description                                                                 |
-| ------------------ | ------- | --------------------------------------------------------------------------- |
-| `clipboard`        | `clip`  | `unnamed` or `unnamedplus` — syncs yank/delete/change with system clipboard |
-| `tabstop`          | `ts`    | Tab size (stored as Vim option; Obsidian controls actual tab rendering)     |
-| `textwidth`        | `tw`    | Wrap width for `gq`/`gw` (default: 80, registered by codemirror-vim)        |
-| `shiftwidth`       | `sw`    | Indent unit size (stored as Vim option)                                     |
-| `expandtab`        | `et`    | Tabs vs spaces (stored as Vim option)                                       |
-| `insertmodeescape` | `ime`   | Two-key sequence to exit insert mode (e.g., `jk`)                           |
+Additionally, `whichkeygroup` and `whichkeylabel` ex commands allow configuring which-key labels, and `let g:mode_prompt_*` allows customizing status bar mode text. These use merge semantics with the Settings UI (both sources contribute; vimrc wins on conflict).
+
+Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`"). Changing a disabled setting requires editing the vimrc.
+
+The following settings are intentionally **not** exposed via vimrc:
+
+| Setting          | Reason                                                       |
+| ---------------- | ------------------------------------------------------------ |
+| `enableVimrc`    | Circular dependency — can't control vimrc loading from vimrc |
+| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)    |
+| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc    |
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `relativenumber`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
@@ -146,9 +149,9 @@ Workaround: if vimrc mappings are not applied, reload the plugin via **Settings 
 
 ## `set textwidth` via vimrc may not affect `gq`
 
-`set textwidth=20` in `.obsidian.vimrc` may not change the wrap width used by the `gq`/`gw` operators if the vimrc file is not loaded successfully (same file I/O timing issue as `nmap L $`).
+`set textwidth=20` in `.obsidian.vimrc` may not change the wrap width used by the `gq`/`gw` operators if the vimrc file is not loaded successfully (same file I/O timing issue as `nmap L $`). The `textwidthSetExplicitly` guard in `options.ts` correctly prevents CM Vim's `defineOption` callback from resetting the value when the vimrc does load successfully.
 
-When the vimrc is loaded successfully, the `textwidthSetExplicitly` guard in `options.ts` correctly prevents CM Vim's `defineOption` callback from resetting the value. The `getTextwidth()` function (used by the `gq`/`gw` operators) returns the explicitly set value.
+With the vimrc-settings parity changes, `set textwidth=N` in vimrc also updates `this.settings.textwidth` via the `onSettingOverride` callback. The `textwidth` setting is now available in the Settings UI (**Settings → Vim Motions → Vim engine → Text width**). The `getTextwidth()` function used by `gq`/`gw` still reads from the module-level variable, so the vimrc I/O timing issue can still cause the value to not propagate.
 
 Workaround: if `set textwidth=N` is not taking effect, reload the plugin. At runtime: `CodeMirrorAdapter.Vim.setOption('textwidth', 20)`.
 

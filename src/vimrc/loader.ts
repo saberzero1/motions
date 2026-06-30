@@ -9,7 +9,167 @@ import {
     parseGuicursor,
 } from '../vim/options';
 import { parseLine } from './parser';
-import type { CursorShapes } from '../settings';
+
+type SettingOverrideFn = (
+    key: string,
+    value: unknown,
+    directive?: string,
+) => void;
+
+interface BoolOpt {
+    type: 'boolean';
+    settingsKey: string;
+}
+interface NumOpt {
+    type: 'number';
+    settingsKey: string;
+    min?: number;
+    max?: number;
+}
+interface StrOpt {
+    type: 'string';
+    settingsKey: string;
+    validValues?: string[];
+}
+
+type KnownOpt = BoolOpt | NumOpt | StrOpt;
+
+const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
+    textobjects: { type: 'boolean', settingsKey: 'enableTextObjects' },
+    to: { type: 'boolean', settingsKey: 'enableTextObjects' },
+    navigation: { type: 'boolean', settingsKey: 'enableNavigation' },
+    nav: { type: 'boolean', settingsKey: 'enableNavigation' },
+    hardwrap: { type: 'boolean', settingsKey: 'enableHardWrap' },
+    hw: { type: 'boolean', settingsKey: 'enableHardWrap' },
+    listcontinuation: {
+        type: 'boolean',
+        settingsKey: 'listContinuationOnOpen',
+    },
+    lc: { type: 'boolean', settingsKey: 'listContinuationOnOpen' },
+    tablenav: { type: 'boolean', settingsKey: 'enableTableNav' },
+    tn: { type: 'boolean', settingsKey: 'enableTableNav' },
+    workspacenav: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
+    wn: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
+    easymotion: { type: 'boolean', settingsKey: 'enableEasyMotion' },
+    em: { type: 'boolean', settingsKey: 'enableEasyMotion' },
+    easymotiondimming: { type: 'boolean', settingsKey: 'easyMotionDimming' },
+    emd: { type: 'boolean', settingsKey: 'easyMotionDimming' },
+    hintmode: { type: 'boolean', settingsKey: 'enableHintMode' },
+    hm: { type: 'boolean', settingsKey: 'enableHintMode' },
+    statusbar: { type: 'boolean', settingsKey: 'enableStatusBar' },
+    sb: { type: 'boolean', settingsKey: 'enableStatusBar' },
+    chorddisplay: { type: 'boolean', settingsKey: 'enableChordDisplay' },
+    cd: { type: 'boolean', settingsKey: 'enableChordDisplay' },
+    powerline: { type: 'boolean', settingsKey: 'enablePowerline' },
+    pl: { type: 'boolean', settingsKey: 'enablePowerline' },
+    expandtab: { type: 'boolean', settingsKey: 'expandtab' },
+    et: { type: 'boolean', settingsKey: 'expandtab' },
+    scrolloff: {
+        type: 'number',
+        settingsKey: 'scrolloffLines',
+        min: 0,
+        max: 20,
+    },
+    so: { type: 'number', settingsKey: 'scrolloffLines', min: 0, max: 20 },
+    scanlimit: {
+        type: 'number',
+        settingsKey: 'multilineScanLimit',
+        min: 5,
+        max: 200,
+    },
+    sl: { type: 'number', settingsKey: 'multilineScanLimit', min: 5, max: 200 },
+    labelfontsize: {
+        type: 'number',
+        settingsKey: 'labelFontSize',
+        min: 10,
+        max: 20,
+    },
+    lfs: { type: 'number', settingsKey: 'labelFontSize', min: 10, max: 20 },
+    tabstop: { type: 'number', settingsKey: 'tabstop' },
+    ts: { type: 'number', settingsKey: 'tabstop' },
+    shiftwidth: { type: 'number', settingsKey: 'shiftwidth' },
+    sw: { type: 'number', settingsKey: 'shiftwidth' },
+    easymotionlabels: { type: 'string', settingsKey: 'easyMotionLabels' },
+    eml: { type: 'string', settingsKey: 'easyMotionLabels' },
+    hintlabels: { type: 'string', settingsKey: 'hintModeLabels' },
+    hl: { type: 'string', settingsKey: 'hintModeLabels' },
+    insertmodeescape: { type: 'string', settingsKey: 'insertmodeescape' },
+    ime: { type: 'string', settingsKey: 'insertmodeescape' },
+    tablewidget: {
+        type: 'string',
+        settingsKey: 'tableWidgetMode',
+        validValues: ['off', 'cursor', 'always'],
+    },
+    whichkey: {
+        type: 'string',
+        settingsKey: 'whichKeyMode',
+        validValues: ['off', 'leader', 'all'],
+    },
+    wk: {
+        type: 'string',
+        settingsKey: 'whichKeyMode',
+        validValues: ['off', 'leader', 'all'],
+    },
+    whichkeygrouping: {
+        type: 'string',
+        settingsKey: 'whichKeyGrouping',
+        validValues: ['flat', 'grouped'],
+    },
+    wkg: {
+        type: 'string',
+        settingsKey: 'whichKeyGrouping',
+        validValues: ['flat', 'grouped'],
+    },
+};
+
+function applyKnownSetOption(
+    optName: string,
+    optValue: string | boolean | number | undefined,
+    vim: VimApi,
+    onSettingOverride?: SettingOverrideFn,
+): boolean {
+    const spec = KNOWN_SET_OPTIONS[optName];
+    if (!spec) return false;
+
+    if (spec.type === 'boolean') {
+        const enabled = optValue !== false;
+        onSettingOverride?.(
+            spec.settingsKey,
+            enabled,
+            `set ${enabled ? '' : 'no'}${optName}`,
+        );
+        try {
+            vim.setOption(optName, enabled);
+        } catch {
+            /* option may not be registered in fork */
+        }
+        return true;
+    }
+
+    if (spec.type === 'number') {
+        const n = typeof optValue === 'number' ? optValue : Number(optValue);
+        if (isNaN(n)) return true;
+        if (spec.min !== undefined && n < spec.min) return true;
+        if (spec.max !== undefined && n > spec.max) return true;
+        onSettingOverride?.(spec.settingsKey, n, `set ${optName}=${n}`);
+        try {
+            vim.setOption(optName, n);
+        } catch {
+            /* option may not be registered in fork */
+        }
+        return true;
+    }
+
+    const str = typeof optValue === 'string' ? optValue : '';
+    if (spec.validValues && !spec.validValues.includes(str)) return true;
+    onSettingOverride?.(spec.settingsKey, str, `set ${optName}=${str}`);
+    try {
+        vim.setOption(optName, str);
+    } catch {
+        /* option may not be registered in fork */
+    }
+    return true;
+}
 
 function getVimrcPath(app: App): string {
     return `${app.vault.configDir}.vimrc`;
@@ -135,7 +295,11 @@ export async function loadVimrc(
     app: App,
     vim: VimApi,
     leaderRegistry?: LeaderRegistry,
-    onCursorShapeChange?: (shapes: Partial<CursorShapes>) => void,
+    onSettingOverride?: (
+        key: string,
+        value: unknown,
+        directive?: string,
+    ) => void,
 ): Promise<VimrcLoadResult> {
     const path = getVimrcPath(app);
 
@@ -154,7 +318,7 @@ export async function loadVimrc(
         path,
         '\\',
         leaderRegistry,
-        onCursorShapeChange,
+        onSettingOverride,
     );
 
     return {
@@ -186,7 +350,11 @@ async function loadVimrcFile(
     path: string,
     leaderKey = '\\',
     leaderRegistry?: LeaderRegistry,
-    onCursorShapeChange?: (shapes: Partial<CursorShapes>) => void,
+    onSettingOverride?: (
+        key: string,
+        value: unknown,
+        directive?: string,
+    ) => void,
 ): Promise<LoadFileResult> {
     const content = await readVimrcFile(app, path);
     if (content === null) {
@@ -197,11 +365,55 @@ async function loadVimrcFile(
     let applied = 0;
     const deferredMaps: DeferredMap[] = [];
 
+    vim.defineEx('whichkeygroup', 'wkg', (_cm, params) => {
+        if (!params.args?.length || params.args.length < 2) return;
+        const key = params.args[0]!.replace(/<leader>/gi, currentLeader);
+        const label = params.args.slice(1).join(' ');
+        onSettingOverride?.(
+            'whichKeyGroupLabel',
+            { key, label },
+            `whichkeygroup ${key} ${label}`,
+        );
+    });
+
+    vim.defineEx('whichkeylabel', 'wkl', (_cm, params) => {
+        if (!params.args?.length || params.args.length < 2) return;
+        const key = params.args[0]!.replace(/<leader>/gi, currentLeader);
+        const label = params.args.slice(1).join(' ');
+        onSettingOverride?.(
+            'whichKeyCommandLabel',
+            { key, label },
+            `whichkeylabel ${key} ${label}`,
+        );
+    });
+
     for (const rawLine of content.split('\n')) {
         const trimmed = rawLine.trim();
         if (!trimmed || trimmed.startsWith('"')) continue;
 
         const parsed = parseLine(trimmed);
+
+        if (
+            parsed?.type === 'let' &&
+            parsed.key?.startsWith('g:mode_prompt_') &&
+            typeof parsed.value === 'string'
+        ) {
+            const mode = parsed.key.replace('g:mode_prompt_', '');
+            if (
+                mode === 'normal' ||
+                mode === 'insert' ||
+                mode === 'visual' ||
+                mode === 'replace'
+            ) {
+                onSettingOverride?.(
+                    `modePrompts.${mode}`,
+                    parsed.value,
+                    trimmed,
+                );
+                applied++;
+                continue;
+            }
+        }
 
         if (
             parsed?.type === 'let' &&
@@ -222,6 +434,7 @@ async function loadVimrcFile(
                 parsed.path,
                 currentLeader,
                 leaderRegistry,
+                onSettingOverride,
             );
             applied += sub.commandCount;
             deferredMaps.push(...sub.deferredMaps);
@@ -244,39 +457,64 @@ async function loadVimrcFile(
             continue;
         }
 
-        const isTextwidthSet =
-            parsed?.type === 'set' &&
-            (parsed.key === 'textwidth' || parsed.key === 'tw') &&
-            parsed.value;
+        if (parsed?.type === 'set') {
+            let optName = parsed.key ?? '';
+            let optValue: string | boolean | number | undefined = parsed.value;
 
-        if (isTextwidthSet) {
-            const tw = Number(parsed.value);
-            if (!isNaN(tw) && tw > 0) {
-                setTextwidth(tw);
-                vim.setOption('textwidth', tw);
+            const isNoPrefix = !optValue && optName.startsWith('no');
+            if (isNoPrefix) {
+                optName = optName.substring(2);
+                optValue = false;
             }
-            applied++;
-            continue;
-        }
 
-        if (
-            parsed?.type === 'set' &&
-            (parsed.key === 'clipboard' || parsed.key === 'clip') &&
-            parsed.value
-        ) {
-            setClipboardOption(parsed.value);
-            vim.setOption('clipboard', parsed.value);
-            applied++;
-            continue;
-        }
+            if (optName === 'textwidth' || optName === 'tw') {
+                const tw = Number(optValue);
+                if (!isNaN(tw) && tw > 0) {
+                    setTextwidth(tw);
+                    vim.setOption('textwidth', tw);
+                }
+                applied++;
+                continue;
+            }
 
-        const isGuicursorSet =
-            parsed?.type === 'set' &&
-            parsed.key === 'guicursor' &&
-            parsed.value;
-        if (isGuicursorSet && onCursorShapeChange) {
-            const partial = parseGuicursor(parsed.value as string);
-            onCursorShapeChange(partial);
+            if (optName === 'clipboard' || optName === 'clip') {
+                const str = typeof optValue === 'string' ? optValue : '';
+                setClipboardOption(str);
+                vim.setOption('clipboard', str);
+                applied++;
+                continue;
+            }
+
+            if (optName === 'guicursor') {
+                const str = typeof optValue === 'string' ? optValue : '';
+                const partial = parseGuicursor(str);
+                if (Object.keys(partial).length > 0) {
+                    onSettingOverride?.(
+                        'cursorShapes',
+                        partial,
+                        `set guicursor=${str}`,
+                    );
+                }
+                applied++;
+                continue;
+            }
+
+            const handled = applyKnownSetOption(
+                optName,
+                optValue,
+                vim,
+                onSettingOverride,
+            );
+            if (handled) {
+                applied++;
+                continue;
+            }
+
+            try {
+                vim.handleEx(cm, processedLine);
+            } catch {
+                /* intentional: skip unknown set options */
+            }
             applied++;
             continue;
         }

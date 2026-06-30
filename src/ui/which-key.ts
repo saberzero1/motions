@@ -38,7 +38,9 @@ function describeKeymapEntry(entry: {
     motion?: string;
     action?: string;
     toKeys?: string;
+    label?: string;
 }): string {
+    if (entry.label) return entry.label;
     if (entry.toKeys) return entry.toKeys;
     if (entry.operator) return entry.operator;
     if (entry.motion) return entry.motion;
@@ -63,6 +65,7 @@ function buildNextKeyEntries(
         action?: string;
         toKeys?: string;
         operatorPending?: boolean;
+        label?: string;
     }>,
     groupLabels?: Map<string, string>,
 ): WhichKeyEntry[] {
@@ -75,6 +78,7 @@ function buildNextKeyEntries(
             motion?: string;
             action?: string;
             toKeys?: string;
+            label?: string;
         }>
     >();
 
@@ -174,6 +178,7 @@ export class WhichKeyOverlay {
     private generalMode: boolean;
     private groupLeaderBindings: boolean;
     private groupLabels: Map<string, string>;
+    private commandLabels: Map<string, string>;
     private overlay: HTMLElement | null = null;
     private showTimer: number | null = null;
     private keyHandler: ((key: string) => void) | null = null;
@@ -192,6 +197,7 @@ export class WhichKeyOverlay {
         generalMode: boolean,
         groupLeaderBindings: boolean,
         groupLabels: Map<string, string>,
+        commandLabels: Map<string, string>,
     ) {
         this.app = app;
         this.leaderKey = leaderKey;
@@ -199,6 +205,7 @@ export class WhichKeyOverlay {
         this.generalMode = generalMode;
         this.groupLeaderBindings = groupLeaderBindings;
         this.groupLabels = groupLabels;
+        this.commandLabels = commandLabels;
     }
 
     attach(): void {
@@ -350,7 +357,8 @@ export class WhichKeyOverlay {
         if (!this.groupLeaderBindings) {
             const entries: WhichKeyEntry[] = filtered.map((b) => ({
                 key: prefix ? b.key.slice(prefix.length) : b.key,
-                description: b.command,
+                description:
+                    this.commandLabels.get(this.leaderKey + b.key) ?? b.command,
             }));
             this.showOverlay(titlePrefix, entries);
             return;
@@ -360,6 +368,7 @@ export class WhichKeyOverlay {
             keys: prefix ? b.key.slice(prefix.length) : b.key,
             type: 'action' as const,
             action: b.command,
+            label: this.commandLabels.get(this.leaderKey + b.key),
         }));
 
         const absolutePrefix = this.leaderKey + prefix;
@@ -400,7 +409,12 @@ export class WhichKeyOverlay {
         if (opPending && !keyBuffer) {
             if (typeof vim.getKeymap !== 'function') return;
             const keymap = vim.getKeymap(context);
-            const filtered = keymap.filter((e) => isValidInOperatorPending(e));
+            const filtered = keymap
+                .filter((e) => isValidInOperatorPending(e))
+                .map((entry) => ({
+                    ...entry,
+                    label: this.commandLabels.get(entry.keys),
+                }));
             const labels = this.getRelativeGroupLabels('');
             const grouped = buildNextKeyEntries(filtered, labels);
             entries.push(...grouped);
@@ -435,14 +449,15 @@ export class WhichKeyOverlay {
                     motion: (c as Record<string, unknown>).motion as
                         | string
                         | undefined,
-                    action:
-                        leaderBindingMap.get(c.suffix) ??
-                        ((c as Record<string, unknown>).action as
-                            | string
-                            | undefined),
+                    action: (c as Record<string, unknown>).action as
+                        | string
+                        | undefined,
                     toKeys: (c as Record<string, unknown>).toKeys as
                         | string
                         | undefined,
+                    label:
+                        this.commandLabels.get(keyBuffer + c.suffix) ??
+                        leaderBindingMap.get(c.suffix),
                 }));
 
                 const labels = this.getRelativeGroupLabels(keyBuffer);
@@ -452,7 +467,9 @@ export class WhichKeyOverlay {
                     entries.push(...grouped);
                 } else {
                     for (const c of completions) {
-                        const desc = leaderBindingMap.get(c.suffix);
+                        const desc =
+                            this.commandLabels.get(keyBuffer + c.suffix) ??
+                            leaderBindingMap.get(c.suffix);
                         entries.push({
                             key: c.suffix,
                             description: desc ?? describeKeymapEntry(c),
@@ -461,7 +478,9 @@ export class WhichKeyOverlay {
                 }
             } else {
                 for (const c of completions) {
-                    const desc = leaderBindingMap.get(c.suffix);
+                    const desc =
+                        this.commandLabels.get(keyBuffer + c.suffix) ??
+                        leaderBindingMap.get(c.suffix);
                     entries.push({
                         key: c.suffix,
                         description: desc ?? describeKeymapEntry(c),

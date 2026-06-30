@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Vimrc ↔ Settings parity** — all plugin settings are now configurable via `.obsidian.vimrc` in addition to the Settings UI. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values. Settings overridden by vimrc are shown as disabled controls in the settings tab with a note indicating the vimrc directive that set them (e.g., "Set by vimrc: `set scrolloff=10`").
+    - **Boolean feature toggles** via `set`/`set no`: `textobjects`, `navigation`, `hardwrap`, `listcontinuation`, `tablenav`, `workspacenav`, `easymotion`, `easymotiondimming`, `hintmode`, `statusbar`, `chorddisplay`, `powerline`
+    - **Number options** via `set <option>=<value>`: `scrolloff` (0–20), `scanlimit` (5–200), `labelfontsize` (10–20)
+    - **String options**: `easymotionlabels`, `hintlabels`
+    - **Enum options**: `tablewidget` (off/cursor/always), `whichkey` (off/leader/all), `whichkeygrouping` (flat/grouped)
+    - **Mode prompt customization** via `let g:mode_prompt_normal = "N"` (and insert/visual/replace)
+    - **Which-key group labels** via `whichkeygroup <leader>t Table` — name key prefix groups in the which-key popup
+    - **Which-key command labels** via `whichkeylabel <leader>w Save file` — describe individual bindings in the which-key popup
+    - **Reverse-direction settings** — clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, and textwidth now have Settings UI controls (previously vimrc-only)
+    - **Priority rule**: vimrc values override Settings UI values when `enableVimrc` is true. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. Changing an overridden setting in the UI clears the override for the current session.
+    - **List merge**: which-key group labels and command labels from vimrc are merged with labels configured in Settings. Vimrc entries appear as read-only rows; the "Add" button remains active for user additions. Vimrc wins on conflict.
+    - **`source` directive fix**: settings and `guicursor` in sourced vimrc files now propagate correctly (pre-existing bug where `onCursorShapeChange` was not passed to recursive `loadVimrcFile` calls)
+    - **`vimrcLoading` flag fix**: the flag is now reset to `false` after successful vimrc load, enabling runtime `:set` commands to trigger immediate `reloadFeatures()`
+- **Vimrc `set` command routing** — all known `set` options are now handled directly in the vimrc loader via a `KNOWN_SET_OPTIONS` mapping table, calling `onSettingOverride` directly instead of relying on `defineOption` callback dispatch through `vim.handleEx`. This ensures reliable settings override regardless of codemirror-vim initialization order. Unknown options fall through to `handleEx` for forward compatibility.
+- **Spurious `defineOption` callback prevention** — `registerVimOptions` now uses a `registered` flag to prevent `defineOption` callbacks from firing during initial option registration (codemirror-vim calls `setOption(name, defaultValue)` internally during `defineOption`). Without this guard, every option with a truthy default would spuriously populate `vimrcOverrides` and trigger `reloadFeatures` during plugin startup.
+- E2E test suite `test/specs/vimrc-settings.e2e.ts` with 11 tests covering boolean/number/string/enum option overrides, mode prompts, which-key labels, override tracking, and combined overrides
+
+### Changed
+
+- **`minAppVersion` bumped to 1.2.3** — required for `setDisabled()` API on settings controls (used to disable vimrc-overridden settings in the UI). Obsidian 1.2.3 was released March 2023.
+
 ### Fixed
 
 - **`vi*` on single-character italic selects delimiter instead of content** — `vi*` on `*x*` now correctly selects `x` instead of `*`. The `adjustRangeForVisualMode` function subtracted 1 from the end position to compensate for CM Vim's inclusive selection adjustment, but for single-character ranges this collapsed the range to zero width, landing on the delimiter. Added a guard that preserves the original range when `to.ch - 1 <= from.ch`, preventing collapse while maintaining the compensation for multi-character ranges.
