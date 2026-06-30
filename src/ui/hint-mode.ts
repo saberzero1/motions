@@ -1,3 +1,4 @@
+/* eslint-disable obsidianmd/prefer-active-doc -- intentional: use `document`/`window` for mobile compatibility (#30) */
 import { MarkdownView, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
 
@@ -73,9 +74,9 @@ function isVisible(el: Element): boolean {
     if (
         rect.width <= 0 ||
         rect.height <= 0 ||
-        rect.top >= activeWindow.innerHeight ||
+        rect.top >= window.innerHeight ||
         rect.bottom <= 0 ||
-        rect.left >= activeWindow.innerWidth ||
+        rect.left >= window.innerWidth ||
         rect.right <= 0
     ) {
         return false;
@@ -83,7 +84,7 @@ function isVisible(el: Element): boolean {
 
     let ancestor = el.parentElement;
     while (ancestor) {
-        const overflow = activeWindow.getComputedStyle(ancestor).overflow;
+        const overflow = window.getComputedStyle(ancestor).overflow;
         if (
             overflow === 'hidden' ||
             overflow === 'scroll' ||
@@ -120,15 +121,15 @@ function getHintPosition(element: Element): { left: number; top: number } {
         if (editor) {
             const editorRect = editor.getBoundingClientRect();
             return {
-                left: editorRect.left + activeWindow.scrollX + 8,
-                top: editorRect.top + activeWindow.scrollY + 8,
+                left: editorRect.left + window.scrollX + 8,
+                top: editorRect.top + window.scrollY + 8,
             };
         }
     }
 
     return {
-        left: rect.left + activeWindow.scrollX,
-        top: rect.top + activeWindow.scrollY,
+        left: rect.left + window.scrollX,
+        top: rect.top + window.scrollY,
     };
 }
 
@@ -156,7 +157,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
         let firstChar = '';
 
         const cleanup = () => {
-            activeDocument.removeEventListener('keydown', handler, true);
+            document.removeEventListener('keydown', handler, true);
         };
 
         const handler = (e: KeyboardEvent) => {
@@ -216,7 +217,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
             });
         };
 
-        activeDocument.addEventListener('keydown', handler, true);
+        document.addEventListener('keydown', handler, true);
     });
 }
 
@@ -297,7 +298,7 @@ export function createHintModeAction(
     fontSize?: () => number,
 ): () => void {
     return () => {
-        const allElements = activeDocument.querySelectorAll(TARGET_SELECTOR);
+        const allElements = document.querySelectorAll(TARGET_SELECTOR);
         const visible = Array.from(allElements).filter(isVisible);
         if (visible.length === 0) return;
 
@@ -305,7 +306,7 @@ export function createHintModeAction(
         const container = createDiv({ cls: 'vim-motions-hint-overlay' });
         const fs = fontSize ? fontSize() : 14;
         container.style.setProperty('--vim-motions-hint-font-size', `${fs}px`);
-        activeDocument.body.appendChild(container);
+        document.body.appendChild(container);
 
         const targets: HintTarget[] = visible.map((el, i) => ({
             element: el,

@@ -74,7 +74,30 @@ function collectRegexTargets(
 }
 
 const WORD_START_RE = /\b\w/g;
-const BIG_WORD_START_RE = /(?<=\s|^)\S/g;
+
+/** Collect big-WORD start positions without lookbehind (iOS < 16.4 compat). */
+function collectBigWordStartTargets(
+    cm: CmAdapter,
+    fromLine: number,
+    toLine: number,
+): Target[] {
+    const targets: Target[] = [];
+    const re = /\s\S/g;
+    for (let line = fromLine; line <= toLine; line++) {
+        const text = cm.getLine(line);
+        // Start-of-line: if the first character is non-whitespace, it's a WORD start
+        if (text.length > 0 && !/\s/.test(text[0]!)) {
+            targets.push({ line, ch: 0 });
+        }
+        // Mid-line: find whitespace followed by non-whitespace
+        re.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        while ((match = re.exec(text)) !== null) {
+            targets.push({ line, ch: match.index + 1 });
+        }
+    }
+    return targets;
+}
 
 export function findWordStartTargets(
     cm: CmAdapter,
@@ -82,8 +105,9 @@ export function findWordStartTargets(
     bigWord: boolean,
 ): Target[] {
     const { fromLine, toLine } = getVisibleRange(cm);
-    const re = bigWord ? BIG_WORD_START_RE : WORD_START_RE;
-    const raw = collectRegexTargets(cm, re, fromLine, toLine);
+    const raw = bigWord
+        ? collectBigWordStartTargets(cm, fromLine, toLine)
+        : collectRegexTargets(cm, WORD_START_RE, fromLine, toLine);
     return filterByDirection(raw, cm, direction);
 }
 

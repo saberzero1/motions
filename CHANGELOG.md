@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Mobile support** — the plugin is no longer desktop-only. Changed `isDesktopOnly` to `false` in `manifest.json`, replacing Obsidian's desktop-only globals (`activeWindow`, `activeDocument`) with standard `window`/`document` equivalents across hint mode, EasyMotion keypress handling, and the settings hotkey recorder. Physical keyboard users on mobile (Bluetooth keyboards, keyboard cases) get the full feature set. On-screen keyboard users are limited by Obsidian's soft keyboard constraints (no `:` or `/` entry). ([#30](https://github.com/saberzero1/motions/issues/30))
+    - `src/ui/hint-mode.ts`: `activeWindow` → `window` (7 replacements), `activeDocument` → `document` (4 replacements)
+    - `src/easymotion/keypress.ts`: `activeDocument` → `document` (5 replacements)
+    - `src/settings.ts`: `activeDocument` → `document` (2 replacements) for hotkey recorder
+    - `eslint.config.mts`: added `@codemirror/*` and `@lezer/*` to `import/no-nodejs-modules` allow list — `eslint-plugin-obsidianmd` enables this rule when `isDesktopOnly: false`
+    - `obsidianmd/prefer-active-doc` lint warnings suppressed with comments referencing #30
+
+### Fixed
+
+- **EasyMotion big-WORD regex crashes on iOS < 16.4** — `BIG_WORD_START_RE` used a lookbehind assertion (`(?<=\s|^)\S`) which is not supported on iOS versions before 16.4. Rewritten as a two-pass scanner: first checks start-of-line for non-whitespace, then finds `\s\S` transitions mid-line. The `obsidianmd/regex-lookbehind` lint rule (enabled when `isDesktopOnly: false`) caught this. ([#30](https://github.com/saberzero1/motions/issues/30))
+- **`import/no-nodejs-modules` false positives on `@codemirror/*` imports** — `eslint-plugin-obsidianmd` enables this rule when `isDesktopOnly: false` in `manifest.json`. The existing `import/core-modules` setting does not affect this rule's allow list. Added explicit `allow` entries for all `@codemirror/*` and `@lezer/*` packages to the rule configuration.
+
 - **Configurable insert mode escape timeout** — `set insertmodeescapetimeout=N` (alias `imet`, range 100–5000ms, default: 1000ms) controls how long the plugin waits between keystrokes when matching the `insertmodeescape` sequence (e.g. `jk`). Matches Neovim's `timeoutlen` default of 1000ms. Previously hardcoded at 200ms — too tight for normal typing. Configurable via vimrc, Settings UI (**Settings → Vim Motions → Vim engine → Insert mode escape timeout**), or runtime `Vim.setOption('insertmodeescapetimeout', 500)`. ([#31](https://github.com/saberzero1/motions/issues/31))
 - **Vimrc ↔ Settings parity** — all plugin settings are now configurable via `.obsidian.vimrc` in addition to the Settings UI. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values. Settings overridden by vimrc are shown as disabled controls in the settings tab with a note indicating the vimrc directive that set them (e.g., "Set by vimrc: `set scrolloff=10`").
     - **Boolean feature toggles** via `set`/`set no`: `textobjects`, `navigation`, `hardwrap`, `listcontinuation`, `tablenav`, `workspacenav`, `easymotion`, `easymotiondimming`, `hintmode`, `statusbar`, `chorddisplay`, `powerline`
@@ -43,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- `KNOWN_LIMITATIONS.md`: replaced "Desktop only" section with "Mobile support" section including feature-by-platform compatibility matrix
+- `README.md`: updated Requirements from "Desktop only" to "Desktop and mobile" with link to known limitations
 - `KNOWN_LIMITATIONS.md`: added "Insert mode escape" section documenting the `keydown`-based handler, configurable timeout, and the `vim-keypress` event limitation; updated `vi*` single-character status to fixed via formatting mark suppression; updated `%` + strings to note Lezer limitation in Markdown; updated `<<` unindent entry to note fork fix; removed `V` linewise cursor deviation; updated `nmap L $` section with investigation findings; added "Formatting mark suppression" section
 - `README.md`: added `insertmodeescapetimeout` to number options table and vimrc example; added insert mode escape timeout to settings list
 - `DIFFERENCES.md` (fork): added sections for `scanForBracket` string/comment awareness, indent operator `shiftwidth`/`expandtab` support, linewise visual cursor positioning with decoration-based highlight

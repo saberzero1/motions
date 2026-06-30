@@ -518,7 +518,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 ## Requirements
 
 - Obsidian v1.2.3 or later
-- Desktop only (mobile support planned for a future release)
+- Desktop and mobile (physical keyboard recommended on mobile — see [known limitations](KNOWN_LIMITATIONS.md#mobile-support))
 
 ### Recommended setup
 

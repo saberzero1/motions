@@ -251,9 +251,25 @@ nmap <C-n> :forward
 
 Standard Vim's `gf` opens the file whose path is under the cursor. In Obsidian, bare file paths in notes are uncommon — most navigation uses `[[wikilinks]]` (handled by `gd`). Our `gf` opens Obsidian's quick switcher instead, which lets users search any file by name. This is more practical for a note-taking context.
 
-## Desktop only
+## Mobile support
 
-The plugin sets `isDesktopOnly: true` in `manifest.json`. Mobile Obsidian has known issues with Vim mode — the soft keyboard does not support `:` and `/` command entry, making ex commands and search unusable. Mobile support is deferred pending investigation.
+The plugin works on mobile with limitations. Physical keyboard users (Bluetooth keyboards, keyboard cases) get the full experience — all Vim commands, EasyMotion, hint mode, and keybindings work. On-screen keyboard users are limited by Obsidian's soft keyboard, which does not support `:` and `/` command entry (making ex commands and search unusable).
+
+Features by platform:
+
+| Feature                  | Desktop | Mobile + physical keyboard | Mobile + soft keyboard |
+| ------------------------ | ------- | -------------------------- | ---------------------- |
+| Core Vim motions         | ✅      | ✅                         | ⚠️ Limited             |
+| Text objects             | ✅      | ✅                         | ⚠️ Limited             |
+| EasyMotion               | ✅      | ✅                         | ❌ Requires keys       |
+| Hint mode                | ✅      | ✅                         | ❌ Requires keys       |
+| Ex commands (`:w`, `:q`) | ✅      | ✅                         | ❌ No `:` entry        |
+| Search (`/`, `?`)        | ✅      | ✅                         | ❌ No `/` entry        |
+| Workspace nav (`<C-w>`)  | ✅      | ✅                         | ❌ No modifier keys    |
+| Status bar               | ✅      | ✅                         | ✅                     |
+| Vimrc                    | ✅      | ✅                         | ✅                     |
+| Settings                 | ✅      | ✅                         | ✅                     |
+| Popout windows           | ✅      | N/A                        | N/A                    |
 
 ## Neovim Ex commands not applicable in Obsidian
 

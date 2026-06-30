@@ -679,11 +679,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             return;
                         e.preventDefault();
                         e.stopPropagation();
-                        activeDocument.removeEventListener(
-                            'keydown',
-                            onKey,
-                            true,
-                        );
+                        // eslint-disable-next-line obsidianmd/prefer-active-doc -- mobile compat (#30)
+                        document.removeEventListener('keydown', onKey, true);
 
                         const mods: string[] = [];
                         if (e.ctrlKey) mods.push('ctrl');
@@ -702,7 +699,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         hotkeyDisplay.textContent = formatHotkey(serialized);
                         button.setButtonText('Record');
                     };
-                    activeDocument.addEventListener('keydown', onKey, true);
+                    // eslint-disable-next-line obsidianmd/prefer-active-doc -- mobile compat (#30)
+                    document.addEventListener('keydown', onKey, true);
                 }),
         );
 

@@ -38,6 +38,24 @@ export default tseslint.config(
             reportUnusedDisableDirectives: 'off',
         },
         rules: {
+            'import/no-nodejs-modules': [
+                'error',
+                {
+                    allow: [
+                        '@codemirror/autocomplete',
+                        '@codemirror/collab',
+                        '@codemirror/commands',
+                        '@codemirror/language',
+                        '@codemirror/lint',
+                        '@codemirror/search',
+                        '@codemirror/state',
+                        '@codemirror/view',
+                        '@lezer/common',
+                        '@lezer/highlight',
+                        '@lezer/lr',
+                    ],
+                },
+            ],
             'import/no-extraneous-dependencies': [
                 'error',
                 {

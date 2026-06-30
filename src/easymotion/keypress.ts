@@ -1,3 +1,4 @@
+/* eslint-disable obsidianmd/prefer-active-doc -- intentional: use `document` for mobile compatibility (#30) */
 import type { LabeledTarget } from './types';
 
 export function waitForKey(): Promise<string | null> {
@@ -5,14 +6,14 @@ export function waitForKey(): Promise<string | null> {
         const handler = (e: KeyboardEvent) => {
             e.preventDefault();
             e.stopPropagation();
-            activeDocument.removeEventListener('keydown', handler, true);
+            document.removeEventListener('keydown', handler, true);
             if (e.key === 'Escape') {
                 resolve(null);
             } else {
                 resolve(e.key);
             }
         };
-        activeDocument.addEventListener('keydown', handler, true);
+        document.addEventListener('keydown', handler, true);
     });
 }
 
@@ -28,7 +29,7 @@ export function waitForLabel(
             e.stopPropagation();
 
             if (e.key === 'Escape') {
-                activeDocument.removeEventListener('keydown', handler, true);
+                document.removeEventListener('keydown', handler, true);
                 resolve(null);
                 return;
             }
@@ -46,7 +47,7 @@ export function waitForLabel(
             const typed = prefix + e.key;
             const exact = labels.find((t) => t.label === typed);
             if (exact) {
-                activeDocument.removeEventListener('keydown', handler, true);
+                document.removeEventListener('keydown', handler, true);
                 resolve(exact);
                 return;
             }
@@ -57,6 +58,6 @@ export function waitForLabel(
                 onNarrow(remaining);
             }
         };
-        activeDocument.addEventListener('keydown', handler, true);
+        document.addEventListener('keydown', handler, true);
     });
 }
