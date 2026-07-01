@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-07-01
+
 ### Changed
 
 - **Formatting mark cursor fix rewritten** — replaced `RangeSetBuilder.prototype` monkey-patching with a CM6 `EditorState.transactionFilter` that corrects cursor positioning near formatting marks in Live Preview. The new approach walks the Lezer syntax tree to identify formatting mark nodes and snaps cursor endpoints that land inside mark ranges to the nearest boundary. Includes end-of-line boundary handling to prevent cursor oscillation when formatting marks extend to the line end (e.g. `**he**` with no trailing content). This eliminates conflicts with obsidian-latex-suite ([#32](https://github.com/saberzero1/motions/issues/32)) and fixes formatting marks being visible in live preview ([#33](https://github.com/saberzero1/motions/issues/33)). The `'always'` formatting mark mode has been removed (users are migrated to `'cursor'`).
