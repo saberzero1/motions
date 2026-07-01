@@ -377,7 +377,7 @@ async function loadVimrcFile(
     let applied = 0;
     const deferredMaps: DeferredMap[] = [];
 
-    vim.defineEx('whichkeygroup', 'wkg', (_cm, params) => {
+    vim.defineEx('whichkeygroup', 'whichkeyg', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
         const key = params.args[0]!.replace(/<leader>/gi, currentLeader);
         const label = params.args.slice(1).join(' ');
@@ -388,7 +388,7 @@ async function loadVimrcFile(
         );
     });
 
-    vim.defineEx('whichkeylabel', 'wkl', (_cm, params) => {
+    vim.defineEx('whichkeylabel', 'whichkeyl', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
         const key = params.args[0]!.replace(/<leader>/gi, currentLeader);
         const label = params.args.slice(1).join(' ');
