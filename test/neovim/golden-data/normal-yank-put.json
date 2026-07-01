@@ -1,7 +1,7 @@
 {
     "suite": "normal-yank-put",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-01T09:07:15.623Z",
+    "recorded_at": "2026-07-01T09:49:02.350Z",
     "cases": [
         {
             "name": "yy then p should paste line below",
@@ -131,6 +131,63 @@
                 "content": "one\ntwo\nthree\none\ntwo",
                 "cursor": {
                     "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "\"Ayy should append to register a",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\"ayyj\"AyyG\"ap",
+            "result": {
+                "content": "first\nsecond\nthird\nfirst\nsecond",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd then \"0p should paste last yank not delete",
+            "initial": {
+                "content": "alpha\nbeta\ngamma",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yyjdd\"0p",
+            "result": {
+                "content": "alpha\ngamma\nalpha",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "\"ayy \"byy should store independently",
+            "initial": {
+                "content": "AAA\nBBB\nCCC",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\"ayyj\"byyG\"ap\"bp",
+            "result": {
+                "content": "AAA\nBBB\nCCC\nAAA\nBBB",
+                "cursor": {
+                    "line": 4,
                     "ch": 0
                 },
                 "mode": "normal"

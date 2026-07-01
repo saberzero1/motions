@@ -1,7 +1,7 @@
 {
     "suite": "normal-motions",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-01T09:07:15.545Z",
+    "recorded_at": "2026-07-01T09:59:21.899Z",
     "cases": [
         {
             "name": "h should move cursor left",
@@ -645,6 +645,63 @@
                 "cursor": {
                     "line": 0,
                     "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "w through markdown formatting",
+            "initial": {
+                "content": "**bold** and *italic* text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "wwww",
+            "result": {
+                "content": "**bold** and *italic* text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 13
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "f should find char past formatting marks",
+            "initial": {
+                "content": "**hello** world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "fw",
+            "result": {
+                "content": "**hello** world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "e through inline code",
+            "initial": {
+                "content": "a `code` b",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "eee",
+            "result": {
+                "content": "a `code` b",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
                 },
                 "mode": "normal"
             }

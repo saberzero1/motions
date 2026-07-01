@@ -1,10 +1,86 @@
 {
-    "suite": "insert-mode",
+    "suite": "macros",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-01T09:49:02.378Z",
+    "recorded_at": "2026-07-01T09:49:02.407Z",
     "cases": [
         {
-            "name": "Escape from insert should allow x to delete",
+            "name": "qa dd q @a should delete two lines",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "qaddq@a",
+            "result": {
+                "content": "three\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2@a should replay macro twice",
+            "initial": {
+                "content": "aaa\nbbb\nccc\nddd\neee",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "qaddq2@a",
+            "result": {
+                "content": "ddd\neee",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "@@ should replay last executed macro",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "qaddq@a@@",
+            "result": {
+                "content": "four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "qa x q 3@a should delete 4 chars total",
+            "initial": {
+                "content": "abcdefgh",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "qaxq3@a",
+            "result": {
+                "content": "efgh",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "macro should record and replay insert",
             "initial": {
                 "content": "hello",
                 "cursor": {
@@ -12,69 +88,12 @@
                     "ch": 0
                 }
             },
-            "keys": "i\u001bx",
+            "keys": "qaAworld\u001bq@a",
             "result": {
-                "content": "ello",
+                "content": "helloworldworld",
                 "cursor": {
                     "line": 0,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "Ctrl-W should delete word in insert",
-            "initial": {
-                "content": "",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "ihello world\u0017\u001b",
-            "result": {
-                "content": "hello ",
-                "cursor": {
-                    "line": 0,
-                    "ch": 5
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "Ctrl-U should delete to start in insert",
-            "initial": {
-                "content": "",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "ihello\u0015\u001b",
-            "result": {
-                "content": "",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "Ctrl-O should execute one normal command",
-            "initial": {
-                "content": "hello\nworld",
-                "cursor": {
-                    "line": 1,
-                    "ch": 0
-                }
-            },
-            "keys": "i\u000fk\u001b",
-            "result": {
-                "content": "hello\nworld",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
+                    "ch": 14
                 },
                 "mode": "normal"
             }

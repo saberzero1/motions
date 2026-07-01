@@ -1,7 +1,7 @@
 {
     "suite": "normal-search",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-01T09:07:15.555Z",
+    "recorded_at": "2026-07-01T09:49:02.274Z",
     "cases": [
         {
             "name": "f should find char to the right",

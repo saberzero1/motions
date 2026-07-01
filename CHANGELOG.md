@@ -18,12 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: `repeatInsertModeChanges` uses `blockInsertLeft` for cursor placement after dot-repeat instead of hardcoded `+1`
 - Neovim golden comparison tests for block visual: 13 golden test cases in `test/specs/vim-builtin/visual-block-golden.e2e.ts` covering insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, and upward selection
 - Spike test suite `test/specs/spikes/spike-block-insert.e2e.ts` with 10 tests covering all block visual insert scenarios
-- Command index entries: `CTRL-V_I`, `CTRL-V_A`, `CTRL-V_c`, `CTRL-V_C`
+- Command index entries: `CTRL-V_I`, `CTRL-V_A`, `CTRL-V_c`, `CTRL-V_C`, `q`, `@`, `@@`
+- Neovim golden comparison tests for marks: 5 golden test cases in `test/specs/vim-builtin/marks-golden.e2e.ts` covering `ma`/`'a`, `` `b ``, `'.`, `''`, ` `` `
+- Neovim golden comparison tests for macros: 5 golden test cases in `test/specs/vim-builtin/macros-golden.e2e.ts` covering `qa`/`@a`, `2@a`, `@@`, `3@a`, insert replay
+- Expanded register golden tests: 3 new cases (`"Ayy` append, `"0p` numbered register, `"a`/`"b` independent) in `normal-yank-put` suite
+- Expanded search/replace golden tests: 2 new cases (`:%s` global, `:2,3s` range) in `ex-commands-builtin` suite
+- Formatting mark cursor golden tests: 3 new cases (`w` through `**`, `f` past `**`, `e` through backticks) in `normal-motions` suite
 
 ### Fixed
 
 - **Block visual mode deviations removed** — all `CTRL-V` block visual deviations in `test/neovim/deviations.ts` have been removed. Block insert/change now matches Neovim output with zero deviations: cursor position after `A` exit is correct, short lines are skipped, and zero-width blocks work for all operators.
 - **Golden recording infrastructure** — `test/neovim/record-golden.ts` now sends `<Esc><Esc>` before each test case to reset Neovim to normal mode, preventing stale visual/insert mode state from leaking between test cases. This fixed 5 pre-existing incorrect golden values in `g-commands.json` (3 mode corrections) and `visual-mode.json` (1 mode correction, 1 cursor + mode correction).
+- **Search dispatch in test wrapper** — `test/neovim/test-wrapper.ts` now detects `/pattern\n` and `?pattern\n` search sequences and dispatches the search + post-keys separately with a settle pause, improving reliability for search-dependent golden tests.
 
 ### Documentation
 

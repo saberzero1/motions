@@ -56,8 +56,8 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
     {
         testPattern: 'N after / search should go to previous match',
         description:
-            'N after /word search: cursor stays at (5,5) instead of moving to (5,0). The golden test dispatches /word\\nN as a single key sequence but the search panel completion timing differs in CM6.',
-        reason: 'Search panel timing in CM6 testWithNeovim dispatch',
+            'N after /word search: cursor stays at (5,5) instead of moving to (5,0). CM6 search panel timing prevents reliable automated dispatch of /pattern followed by N.',
+        reason: 'CM6 search panel timing in test infrastructure',
         fields: ['cursor'],
     },
 ];

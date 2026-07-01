@@ -218,6 +218,24 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: '5|',
             },
+            {
+                name: 'w through markdown formatting',
+                content: '**bold** and *italic* text',
+                cursor: { line: 0, ch: 0 },
+                keys: 'wwww',
+            },
+            {
+                name: 'f should find char past formatting marks',
+                content: '**hello** world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'fw',
+            },
+            {
+                name: 'e through inline code',
+                content: 'a `code` b',
+                cursor: { line: 0, ch: 0 },
+                keys: 'eee',
+            },
         ],
     },
     {
@@ -933,6 +951,24 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: '2yyGp',
             },
+            {
+                name: '"Ayy should append to register a',
+                content: 'first\nsecond\nthird',
+                cursor: { line: 0, ch: 0 },
+                keys: '"ayyj"AyyG"ap',
+            },
+            {
+                name: 'dd then "0p should paste last yank not delete',
+                content: 'alpha\nbeta\ngamma',
+                cursor: { line: 0, ch: 0 },
+                keys: 'yyjdd"0p',
+            },
+            {
+                name: '"ayy "byy should store independently',
+                content: 'AAA\nBBB\nCCC',
+                cursor: { line: 0, ch: 0 },
+                keys: '"ayyj"byyG"ap"bp',
+            },
         ],
     },
     {
@@ -1280,6 +1316,18 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 1, ch: 0 },
                 keys: ':d\n',
             },
+            {
+                name: ':%s should replace across all lines',
+                content: 'old\nold\nold',
+                cursor: { line: 0, ch: 0 },
+                keys: ':%s/old/new/g\n',
+            },
+            {
+                name: ':2,3s should replace in range',
+                content: 'keep\nchange\nchange\nkeep',
+                cursor: { line: 0, ch: 0 },
+                keys: ':2,3s/change/done/g\n',
+            },
         ],
     },
     {
@@ -1403,6 +1451,76 @@ export const SUITES: SuiteDefinition[] = [
                 content: 'abc\ndef\nghi',
                 cursor: { line: 2, ch: 0 },
                 keys: '\x16kkIX\x1b',
+            },
+        ],
+    },
+    {
+        name: 'marks',
+        cases: [
+            {
+                name: "ma then 'a should jump to marked line",
+                content: 'line1\nline2\nline3\nline4\nline5',
+                cursor: { line: 2, ch: 3 },
+                keys: "magg'a",
+            },
+            {
+                name: '`a should jump to exact mark position',
+                content: 'line1\nline2\nline3\nline4\nline5',
+                cursor: { line: 3, ch: 2 },
+                keys: 'mbgg`b',
+            },
+            {
+                name: "'. should jump to line of last edit",
+                content: 'line1\nline2\nline3',
+                cursor: { line: 2, ch: 0 },
+                keys: "xgg'.",
+            },
+            {
+                name: "'' should jump to line before last jump",
+                content: 'line1\nline2\nline3\nline4\nline5',
+                cursor: { line: 0, ch: 0 },
+                keys: "G''",
+            },
+            {
+                name: '`` should jump to position before last jump',
+                content: 'line1\nline2\nline3\nline4\nline5',
+                cursor: { line: 1, ch: 3 },
+                keys: 'G``',
+            },
+        ],
+    },
+    {
+        name: 'macros',
+        cases: [
+            {
+                name: 'qa dd q @a should delete two lines',
+                content: 'one\ntwo\nthree\nfour',
+                cursor: { line: 0, ch: 0 },
+                keys: 'qaddq@a',
+            },
+            {
+                name: '2@a should replay macro twice',
+                content: 'aaa\nbbb\nccc\nddd\neee',
+                cursor: { line: 0, ch: 0 },
+                keys: 'qaddq2@a',
+            },
+            {
+                name: '@@ should replay last executed macro',
+                content: 'one\ntwo\nthree\nfour',
+                cursor: { line: 0, ch: 0 },
+                keys: 'qaddq@a@@',
+            },
+            {
+                name: 'qa x q 3@a should delete 4 chars total',
+                content: 'abcdefgh',
+                cursor: { line: 0, ch: 0 },
+                keys: 'qaxq3@a',
+            },
+            {
+                name: 'macro should record and replay insert',
+                content: 'hello',
+                cursor: { line: 0, ch: 0 },
+                keys: 'qaAworld\x1bq@a',
             },
         ],
     },

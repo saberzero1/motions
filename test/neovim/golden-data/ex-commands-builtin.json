@@ -1,7 +1,7 @@
 {
     "suite": "ex-commands-builtin",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-01T09:07:15.659Z",
+    "recorded_at": "2026-07-01T09:49:02.383Z",
     "cases": [
         {
             "name": ":s/old/new/ should replace first on line",
@@ -74,6 +74,44 @@
                 "content": "one\nthree",
                 "cursor": {
                     "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":%s should replace across all lines",
+            "initial": {
+                "content": "old\nold\nold",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":%s/old/new/g\n",
+            "result": {
+                "content": "new\nnew\nnew",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":2,3s should replace in range",
+            "initial": {
+                "content": "keep\nchange\nchange\nkeep",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":2,3s/change/done/g\n",
+            "result": {
+                "content": "keep\ndone\ndone\nkeep",
+                "cursor": {
+                    "line": 2,
                     "ch": 0
                 },
                 "mode": "normal"

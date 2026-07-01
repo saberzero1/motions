@@ -11,6 +11,14 @@ function findExColonIndex(keys: string): number {
     return afterNewline !== -1 ? afterNewline + 1 : -1;
 }
 
+function findSearchIndex(keys: string): number {
+    if (keys.startsWith('/') || keys.startsWith('?')) return 0;
+    const afterNewline = keys.indexOf('\n/');
+    if (afterNewline !== -1) return afterNewline + 1;
+    const afterNewlineQ = keys.indexOf('\n?');
+    return afterNewlineQ !== -1 ? afterNewlineQ + 1 : -1;
+}
+
 async function dispatchVimKeys(keys: string): Promise<void> {
     const exIdx = findExColonIndex(keys);
     const exMatch =
@@ -50,9 +58,28 @@ async function dispatchVimKeys(keys: string): Promise<void> {
         if (postKeys) {
             await dispatchVimKeys(postKeys);
         }
-    } else {
-        await vimRawKeys(keys);
+        return;
     }
+
+    const searchIdx = findSearchIndex(keys);
+    const searchNewline =
+        searchIdx !== -1 ? keys.indexOf('\n', searchIdx + 1) : -1;
+    if (searchIdx !== -1 && searchNewline !== -1) {
+        const preKeys = keys.substring(0, searchIdx);
+        const searchKeys = keys.substring(searchIdx, searchNewline + 1);
+        const postKeys = keys.substring(searchNewline + 1);
+        if (preKeys) {
+            await vimRawKeys(preKeys);
+        }
+        await vimRawKeys(searchKeys);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        if (postKeys) {
+            await vimRawKeys(postKeys);
+        }
+        return;
+    }
+
+    await vimRawKeys(keys);
 }
 
 let nvimClient: NeovimClient | null = null;
@@ -83,6 +110,7 @@ export function testWithNeovim(
         await setupEditor(config.content, config.cursor);
         for (const segment of config.keys) {
             await dispatchVimKeys(segment);
+            await browser.pause(PAUSE.KEY_GAP);
         }
 
         if (process.env.NEOVIM_COMPARE === '1' && nvimClient) {

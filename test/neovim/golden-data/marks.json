@@ -1,0 +1,102 @@
+{
+    "suite": "marks",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-01T09:49:02.403Z",
+    "cases": [
+        {
+            "name": "ma then 'a should jump to marked line",
+            "initial": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 2,
+                    "ch": 3
+                }
+            },
+            "keys": "magg'a",
+            "result": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "`a should jump to exact mark position",
+            "initial": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 3,
+                    "ch": 2
+                }
+            },
+            "keys": "mbgg`b",
+            "result": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 3,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "'. should jump to line of last edit",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "xgg'.",
+            "result": {
+                "content": "line1\nline2\nine3",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "'' should jump to line before last jump",
+            "initial": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "G''",
+            "result": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "`` should jump to position before last jump",
+            "initial": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 1,
+                    "ch": 3
+                }
+            },
+            "keys": "G``",
+            "result": {
+                "content": "line1\nline2\nline3\nline4\nline5",
+                "cursor": {
+                    "line": 1,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

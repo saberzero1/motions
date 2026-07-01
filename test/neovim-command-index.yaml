@@ -559,6 +559,27 @@ normal_mode:
             test_file: 'vim-builtin/normal-scroll.e2e.ts',
             description: 'subtract N from number at/after cursor',
         }
+    q:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/macros-golden.e2e.ts',
+            description: 'record typed characters into register',
+        }
+    '@':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/macros-golden.e2e.ts',
+            description: 'execute contents of register',
+        }
+    '@@':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/macros-golden.e2e.ts',
+            description: 'repeat previous @{register}',
+        }
     Q:
         {
             tier: 2,
