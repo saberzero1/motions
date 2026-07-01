@@ -7,12 +7,6 @@ export interface Deviation {
 
 export const KNOWN_DEVIATIONS: Deviation[] = [
     {
-        testPattern: /CTRL-V block/,
-        description: 'Block visual mode column editing',
-        reason: 'CodeMirror Vim does not support block insert',
-        fields: ['content'],
-    },
-    {
         testPattern: /zO|zC|zA/,
         description: 'Recursive fold operations map to non-recursive',
         reason: "Obsidian fold API doesn't distinguish recursive from non-recursive",

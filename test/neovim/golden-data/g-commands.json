@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-06-26T08:49:56.618Z",
+    "recorded_at": "2026-07-01T09:07:15.650Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -19,7 +19,7 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "visual"
+                "mode": "normal"
             }
         },
         {
@@ -38,7 +38,7 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "visual"
+                "mode": "normal"
             }
         },
         {
@@ -57,7 +57,7 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "visual"
+                "mode": "normal"
             }
         },
         {

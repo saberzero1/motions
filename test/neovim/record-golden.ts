@@ -12,6 +12,7 @@ async function recordSuite(
 
     for (const tc of cases) {
         process.stderr.write(`  ${tc.name}...`);
+        await nvim.input('\x1b\x1b');
         await nvim.setContent(tc.content);
         await nvim.setCursor(tc.cursor.line, tc.cursor.ch);
         await nvim.input(tc.keys);

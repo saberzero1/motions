@@ -1323,4 +1323,87 @@ export const SUITES: SuiteDefinition[] = [
             },
         ],
     },
+    {
+        name: 'visual-block',
+        cases: [
+            {
+                name: 'CTRL-V block insert at left column',
+                content: 'abc\ndef\nghi',
+                cursor: { line: 0, ch: 0 },
+                keys: '\x16jjIX\x1b',
+            },
+            {
+                name: 'CTRL-V block insert at right column',
+                content: 'abc\ndef\nghi',
+                cursor: { line: 0, ch: 0 },
+                keys: '\x16jjAX\x1b',
+            },
+            {
+                name: 'CTRL-V block change',
+                content: 'abcd\nefgh\nijkl',
+                cursor: { line: 0, ch: 1 },
+                keys: '\x16jjlcXY\x1b',
+            },
+            {
+                name: 'CTRL-V block change to EOL',
+                content: 'abcdef\nghijkl\nmnopqr',
+                cursor: { line: 0, ch: 2 },
+                keys: '\x16jjlCXY\x1b',
+            },
+            {
+                name: 'CTRL-V block delete',
+                content: 'abc\ndef\nghi',
+                cursor: { line: 0, ch: 0 },
+                keys: '\x16jjx',
+            },
+            {
+                name: 'CTRL-V block case toggle',
+                content: 'abcDEF\nghiJKL\nmnoPQR',
+                cursor: { line: 0, ch: 0 },
+                keys: '\x16jjll~',
+            },
+            {
+                name: 'CTRL-V block replace',
+                content: 'abcd\nefgh\nijkl',
+                cursor: { line: 0, ch: 1 },
+                keys: '\x16jjllrX',
+            },
+            {
+                name: 'CTRL-V block insert pads short lines',
+                content: 'abcdefgh\nab\nabcde',
+                cursor: { line: 0, ch: 5 },
+                keys: '\x16jjIX\x1b',
+            },
+            {
+                name: 'CTRL-V block yank then paste',
+                content: 'abc\ndef\nghi\n---',
+                cursor: { line: 0, ch: 0 },
+                keys: '\x16jjlyGp',
+            },
+            {
+                name: 'CTRL-V zero-width block C to EOL',
+                content: 'abcdef\nghijkl\nmnopqr',
+                cursor: { line: 0, ch: 2 },
+                keys: '\x16jjCXY\x1b',
+            },
+            {
+                name: 'CTRL-V zero-width block I',
+                content: 'abcdef\nghijkl\nmnopqr',
+                cursor: { line: 0, ch: 2 },
+                keys: '\x16jjIX\x1b',
+            },
+            {
+                name: 'CTRL-V block A cursor at left edge',
+                content: 'abc\ndef\nghi',
+                cursor: { line: 0, ch: 1 },
+                keys: '\x16jjAX\x1b',
+            },
+            {
+                name: 'CTRL-V block I upward selection',
+                content: 'abc\ndef\nghi',
+                cursor: { line: 2, ch: 0 },
+                keys: '\x16kkIX\x1b',
+            },
+        ],
+    },
 ];

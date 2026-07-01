@@ -1237,6 +1237,34 @@ visual_mode:
             test_file: 'vim-builtin/visual-mode.e2e.ts',
             description: 'start blockwise Visual (CM Vim native)',
         }
+    CTRL-V_I:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-block-golden.e2e.ts',
+            description: 'insert at left column of block selection',
+        }
+    CTRL-V_A:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-block-golden.e2e.ts',
+            description: 'append at right column of block selection',
+        }
+    CTRL-V_c:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-block-golden.e2e.ts',
+            description: 'change block selection',
+        }
+    CTRL-V_C:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/visual-block-golden.e2e.ts',
+            description: 'change block selection to EOL',
+        }
 
 insert_mode:
     Escape:

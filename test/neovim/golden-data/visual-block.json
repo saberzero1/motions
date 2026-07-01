@@ -1,96 +1,20 @@
 {
-    "suite": "normal-marks-jumps",
+    "suite": "visual-block",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-01T09:07:15.565Z",
+    "recorded_at": "2026-07-01T09:25:11.008Z",
     "cases": [
         {
-            "name": "} should move to next empty line",
+            "name": "CTRL-V block insert at left column",
             "initial": {
-                "content": "line1\nline2\n\nline4\nline5",
+                "content": "abc\ndef\nghi",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "}",
+            "keys": "\u0016jjIX\u001b",
             "result": {
-                "content": "line1\nline2\n\nline4\nline5",
-                "cursor": {
-                    "line": 2,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "{ should move to previous empty line",
-            "initial": {
-                "content": "line1\nline2\n\nline4\nline5",
-                "cursor": {
-                    "line": 4,
-                    "ch": 0
-                }
-            },
-            "keys": "{",
-            "result": {
-                "content": "line1\nline2\n\nline4\nline5",
-                "cursor": {
-                    "line": 2,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "2} should move 2 paragraphs forward",
-            "initial": {
-                "content": "a\n\nb\n\nc",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "2}",
-            "result": {
-                "content": "a\n\nb\n\nc",
-                "cursor": {
-                    "line": 3,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "} at end should not move",
-            "initial": {
-                "content": "a\n\nb",
-                "cursor": {
-                    "line": 2,
-                    "ch": 0
-                }
-            },
-            "keys": "}",
-            "result": {
-                "content": "a\n\nb",
-                "cursor": {
-                    "line": 2,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "{ at start should not move",
-            "initial": {
-                "content": "a\n\nb",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "{",
-            "result": {
-                "content": "a\n\nb",
+                "content": "Xabc\nXdef\nXghi",
                 "cursor": {
                     "line": 0,
                     "ch": 0
@@ -99,55 +23,17 @@
             }
         },
         {
-            "name": "2{ should move 2 paragraphs backward",
+            "name": "CTRL-V block insert at right column",
             "initial": {
-                "content": "a\n\nb\n\nc",
-                "cursor": {
-                    "line": 4,
-                    "ch": 0
-                }
-            },
-            "keys": "2{",
-            "result": {
-                "content": "a\n\nb\n\nc",
-                "cursor": {
-                    "line": 1,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "% should jump to matching paren",
-            "initial": {
-                "content": "(hello world)",
+                "content": "abc\ndef\nghi",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "%",
+            "keys": "\u0016jjAX\u001b",
             "result": {
-                "content": "(hello world)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 12
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "% should jump back from closing paren",
-            "initial": {
-                "content": "(hello world)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 12
-                }
-            },
-            "keys": "%",
-            "result": {
-                "content": "(hello world)",
+                "content": "aXbc\ndXef\ngXhi",
                 "cursor": {
                     "line": 0,
                     "ch": 0
@@ -156,114 +42,209 @@
             }
         },
         {
-            "name": "% should work with curly braces",
+            "name": "CTRL-V block change",
             "initial": {
-                "content": "{ code }",
+                "content": "abcd\nefgh\nijkl",
                 "cursor": {
                     "line": 0,
-                    "ch": 0
+                    "ch": 1
                 }
             },
-            "keys": "%",
+            "keys": "\u0016jjlcXY\u001b",
             "result": {
-                "content": "{ code }",
+                "content": "aXYd\neXYh\niXYl",
                 "cursor": {
                     "line": 0,
-                    "ch": 7
+                    "ch": 2
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "% should work with square brackets",
+            "name": "CTRL-V block change to EOL",
             "initial": {
-                "content": "[items]",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "%",
-            "result": {
-                "content": "[items]",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "% across lines",
-            "initial": {
-                "content": "(\nhello\n)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "%",
-            "result": {
-                "content": "(\nhello\n)",
-                "cursor": {
-                    "line": 2,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "% with nested brackets",
-            "initial": {
-                "content": "(a(b)c)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "%",
-            "result": {
-                "content": "(a(b)c)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "% on inner bracket",
-            "initial": {
-                "content": "(a(b)c)",
+                "content": "abcdef\nghijkl\nmnopqr",
                 "cursor": {
                     "line": 0,
                     "ch": 2
                 }
             },
-            "keys": "%",
+            "keys": "\u0016jjlCXY\u001b",
             "result": {
-                "content": "(a(b)c)",
+                "content": "abXY\nghXY\nmnXY",
                 "cursor": {
                     "line": 0,
-                    "ch": 4
+                    "ch": 3
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "N after / search should go to previous match",
+            "name": "CTRL-V block delete",
             "initial": {
-                "content": "word\n(word)\n{word\nword.\n\nword search\n}word\nword\nword",
+                "content": "abc\ndef\nghi",
                 "cursor": {
-                    "line": 5,
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\u0016jjx",
+            "result": {
+                "content": "bc\nef\nhi",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block case toggle",
+            "initial": {
+                "content": "abcDEF\nghiJKL\nmnoPQR",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\u0016jjll~",
+            "result": {
+                "content": "ABCDEF\nGHIJKL\nMNOPQR",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block replace",
+            "initial": {
+                "content": "abcd\nefgh\nijkl",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "\u0016jjllrX",
+            "result": {
+                "content": "aXXX\neXXX\niXXX",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block insert pads short lines",
+            "initial": {
+                "content": "abcdefgh\nab\nabcde",
+                "cursor": {
+                    "line": 0,
                     "ch": 5
                 }
             },
-            "keys": "/word\nN",
+            "keys": "\u0016jjIX\u001b",
             "result": {
-                "content": "word\n(word)\n{word\nword.\n\nword search\n}word\nword\nword",
+                "content": "abcdeXfgh\nab\nabcdeX",
                 "cursor": {
-                    "line": 5,
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block yank then paste",
+            "initial": {
+                "content": "abc\ndef\nghi\n---",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\u0016jjlyGp",
+            "result": {
+                "content": "abc\ndef\nghi\n-ab--\n de\n gh",
+                "cursor": {
+                    "line": 3,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V zero-width block C to EOL",
+            "initial": {
+                "content": "abcdef\nghijkl\nmnopqr",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "\u0016jjCXY\u001b",
+            "result": {
+                "content": "abXY\nghXY\nmnXY",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V zero-width block I",
+            "initial": {
+                "content": "abcdef\nghijkl\nmnopqr",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "\u0016jjIX\u001b",
+            "result": {
+                "content": "abXcdef\nghXijkl\nmnXopqr",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block A cursor at left edge",
+            "initial": {
+                "content": "abc\ndef\nghi",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "\u0016jjAX\u001b",
+            "result": {
+                "content": "abXc\ndeXf\nghXi",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block I upward selection",
+            "initial": {
+                "content": "abc\ndef\nghi",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "\u0016kkIX\u001b",
+            "result": {
+                "content": "Xabc\nXdef\nXghi",
+                "cursor": {
+                    "line": 0,
                     "ch": 0
                 },
                 "mode": "normal"

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Block visual insert (`I`/`A`), change (`c`/`C`)** — `CTRL-V` block visual mode now supports `I` (insert at left column), `A` (append at right column), `c` (change block), and `C` (change to EOL) with multi-cursor editing on all selected lines. Text appears on all lines in real-time as you type (unlike Neovim, where text only appears on the primary cursor until `<Esc>`). Short lines that don't reach the block column are skipped, matching Neovim behavior. Dot-repeat (`.`) works for block insert operations. Block visual delete (`d`), yank (`y`), paste (`p`/`P`), indent (`>`/`<`), replace (`r`), and case toggle (`~`) were already working.
+    - Fork: `enterInsertMode` preserves `wasInVisualBlock` before `exitVisualMode` clears the flag
+    - Fork: `selectForInsert` skips lines shorter than the block column instead of clipping
+    - Fork: `operators.change` adds a `vim.visualBlock` path for block change and block change-to-EOL
+    - Fork: `exitInsertMode` positions cursor at the block's left column via `blockInsertLeft` instead of the standard `ch - 1`, matching Neovim's cursor placement after block `A`
+    - Fork: `makeCmSelection` block mode treats `fromCh === toCh` (zero-width block) the same as `fromCh < toCh`, fixing `C` on zero-width blocks
+    - Fork: `repeatInsertModeChanges` uses `blockInsertLeft` for cursor placement after dot-repeat instead of hardcoded `+1`
+- Neovim golden comparison tests for block visual: 13 golden test cases in `test/specs/vim-builtin/visual-block-golden.e2e.ts` covering insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, and upward selection
+- Spike test suite `test/specs/spikes/spike-block-insert.e2e.ts` with 10 tests covering all block visual insert scenarios
+- Command index entries: `CTRL-V_I`, `CTRL-V_A`, `CTRL-V_c`, `CTRL-V_C`
+
+### Fixed
+
+- **Block visual mode deviations removed** — all `CTRL-V` block visual deviations in `test/neovim/deviations.ts` have been removed. Block insert/change now matches Neovim output with zero deviations: cursor position after `A` exit is correct, short lines are skipped, and zero-width blocks work for all operators.
+- **Golden recording infrastructure** — `test/neovim/record-golden.ts` now sends `<Esc><Esc>` before each test case to reset Neovim to normal mode, preventing stale visual/insert mode state from leaking between test cases. This fixed 5 pre-existing incorrect golden values in `g-commands.json` (3 mode corrections) and `visual-mode.json` (1 mode correction, 1 cursor + mode correction).
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: added "Block visual mode (CTRL-V) insert not supported (Fixed)" section
+- `DIFFERENCES.md` (fork): added "Block visual insert (`I`/`A`), change (`c`/`C`)" section documenting all 6 fork changes
+- `README.md`: added block visual insert/change to recommended setup section
+
 ## [0.23.0] - 2026-07-01
 
 ### Added
