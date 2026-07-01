@@ -450,6 +450,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Smart list continuation on `o`/`O` (on/off, default: on) — continue list markers when opening new lines
 - Table navigation (on/off)
 - Table widget in live preview (cursor-aware / always raw / off)
+- Formatting marks in live preview (cursor-aware / off) — corrects cursor positioning near formatting marks in Live Preview
 - Workspace navigation (on/off)
 
 **Jump navigation**
@@ -525,7 +526,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 **Disable** Obsidian's built-in Vim mode (**Settings → Editor → Vim key bindings → off**). When built-in vim is off, Vim Motions provides its own enhanced vim engine (a [fork of codemirror-vim](https://github.com/saberzero1/codemirror-vim)) with:
 
 - **Neovim-correct behavior** for `dd` cursor positioning, `J` join whitespace, `di{` multiline brackets, `dj`/`dk` at document boundaries, `:s` cursor, `%` string-awareness, `db`/`d2w` cross-line whitespace, `<<`/`>>` shiftwidth/expandtab support, block visual insert (`I`/`A`/`c`/`C`), and more
-- **Correct cursor positioning in Live Preview** — formatting marks (`*`, `**`, `` ` ``, `~~`, `==`) are suppressed from Obsidian's replace decorations so the cursor doesn't snap to delimiter boundaries when navigating into formatted content
+- **Correct cursor positioning in Live Preview** — a transaction filter corrects cursor placement near formatting marks (`*`, `**`, `` ` ``, `~~`, `==`) in Live Preview, preventing the cursor from snapping to delimiter boundaries when navigating into formatted content
 - **Async motion support** enabling native operator-pending easymotion (`d` + easymotion, `c` + easymotion, `y` + easymotion)
 - **Improved vim state reliability** — default keymaps are protected from accidental removal, partial key prefixes reset on focus loss, and async motion races are guarded by generation tracking
 - **Theme-aligned cursor styling** using Obsidian's CSS variables (`--interactive-accent`)

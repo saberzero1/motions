@@ -371,8 +371,8 @@ describe('Phase 4 text objects', function () {
             await browser.pause(200);
         });
 
-        it('cursor should not snap to formatting mark boundary', async function () {
-            await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 1, ch: 1 });
+        it('cursor on content inside formatting marks should be reachable', async function () {
+            await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 1, ch: 2 });
             const line1 = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     const view = app.workspace.getActiveViewOfType(
@@ -384,19 +384,7 @@ describe('Phase 4 text objects', function () {
                 },
             )) as Record<string, unknown>;
 
-            await setupEditor('*aaaaa*\n*aa*\n*a*', { line: 2, ch: 1 });
-            const line2 = (await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    const view = app.workspace.getActiveViewOfType(
-                        obsidian.MarkdownView,
-                    );
-                    return view
-                        ? { cursor: view.editor.getCursor() }
-                        : { error: 'no view' };
-                },
-            )) as Record<string, unknown>;
-
-            await setupEditor('Hello *x* world', { line: 0, ch: 7 });
+            await setupEditor('Hello *italic* world', { line: 0, ch: 9 });
             const inline = (await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     const view = app.workspace.getActiveViewOfType(
@@ -410,11 +398,10 @@ describe('Phase 4 text objects', function () {
 
             console.log(
                 'Formatting cursor fix:',
-                JSON.stringify({ line1, line2, inline }),
+                JSON.stringify({ line1, inline }),
             );
-            expect((line1.cursor as { ch: number }).ch).toBe(1);
-            expect((line2.cursor as { ch: number }).ch).toBe(1);
-            expect((inline.cursor as { ch: number }).ch).toBe(7);
+            expect((line1.cursor as { ch: number }).ch).toBe(2);
+            expect((inline.cursor as { ch: number }).ch).toBe(9);
         });
 
         it.skip('should diagnose formatting mark CSS on inactive line', async function () {

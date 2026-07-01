@@ -68,6 +68,7 @@ export default defineConfig(
                 {
                     brands: [
                         'EasyMotion',
+                        'Live Preview',
                         'Markdown',
                         'o/O',
                         'Obsidian',

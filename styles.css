@@ -340,13 +340,3 @@
 .vim-motions-easymotion-label-second {
     opacity: 0.7;
 }
-
-/* --- Formatting mark cursor fix --- */
-
-.cm-editor.cm-vimMode .cm-content .cm-line:not(.cm-active) span.cm-formatting {
-    color: transparent;
-}
-
-.cm-editor.cm-vimMode .cm-content .cm-active span.cm-formatting {
-    color: inherit;
-}

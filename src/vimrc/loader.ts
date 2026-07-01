@@ -112,6 +112,11 @@ const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         settingsKey: 'tableWidgetMode',
         validValues: ['off', 'cursor', 'always'],
     },
+    formattingmarkmode: {
+        type: 'string',
+        settingsKey: 'formattingMarkMode',
+        validValues: ['off', 'cursor'],
+    },
     whichkey: {
         type: 'string',
         settingsKey: 'whichKeyMode',

@@ -255,6 +255,13 @@ export function registerVimOptions(
             notify('tableWidgetMode', str, `set tablewidget=${str}`);
         }
     });
+    vim.defineOption('formattingmarkmode', 'cursor', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'off' || str === 'cursor') {
+            notify('formattingMarkMode', str, `set formattingmarkmode=${str}`);
+        }
+    });
     vim.defineOption('whichkey', 'off', 'string', ['wk'], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';

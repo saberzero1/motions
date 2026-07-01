@@ -54,9 +54,9 @@ import {
 } from './vim/table-cursor-fix';
 import { EditorView } from '@codemirror/view';
 import {
-    installFormattingCursorFix,
-    formattingDocTracker,
-} from './vim/formatting-cursor-fix';
+    setFormattingMarkMode,
+    createFormattingTransactionFilter,
+} from './vim/formatting-mark-fix';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -419,8 +419,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.uninstallTableCursorFix = installTableCursorFix();
         }
 
-        this.registerEditorExtension(formattingDocTracker);
-        this.register(installFormattingCursorFix());
+        setFormattingMarkMode(this.settings.formattingMarkMode ?? 'cursor');
+        this.registerEditorExtension(createFormattingTransactionFilter());
     }
 
     reloadFeatures(): void {
@@ -554,6 +554,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableTableNav) {
             this.uninstallTableCursorFix = installTableCursorFix();
         }
+        setFormattingMarkMode(this.settings.formattingMarkMode ?? 'cursor');
     }
 
     private rebuildExSuggest(): void {
@@ -825,6 +826,9 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.tableWidgetMode = raw.suppressTableWidget
                 ? 'always'
                 : 'off';
+        }
+        if (this.settings.formattingMarkMode === ('always' as string)) {
+            this.settings.formattingMarkMode = 'cursor';
         }
     }
 
