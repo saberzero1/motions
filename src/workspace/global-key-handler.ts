@@ -138,7 +138,7 @@ export class GlobalKeyHandler {
 
     install(): void {
         const mainDoc =
-            this.app.workspace.containerEl.ownerDocument ?? document;
+            this.app.workspace.containerEl.ownerDocument ?? activeDocument;
         this.installOnDocument(mainDoc);
 
         const ref = this.app.workspace.on(

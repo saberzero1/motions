@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-07-02
+
 ### Fixed
 
 - **Vim engine settings changed via Settings UI not taking effect** — changing clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, or textwidth in **Settings → Vim Motions → Vim engine** only persisted the value to disk but did not push it to the vim engine via `vim.setOption()`. The setting appeared to save but had no effect until Obsidian was reloaded. The same settings worked correctly when set via `.obsidian.vimrc` because the vimrc loader explicitly calls `vim.setOption()`. Fixed by adding `vim.setOption()` calls to each vim engine setting's `onChange` handler in `src/settings.ts`. For clipboard and textwidth, the module-level state helpers (`setClipboardOption`, `setTextwidth`) are also called to match the vimrc loader's behavior. ([#39](https://github.com/saberzero1/motions/issues/39))

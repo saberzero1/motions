@@ -1,8 +1,8 @@
 {
     "id": "vim-motions",
     "name": "Vim Motions",
-    "version": "0.24.0",
-    "minAppVersion": "1.2.3",
+    "version": "0.25.0",
+    "minAppVersion": "1.4.10",
     "description": "Enhances the built-in Vim mode with Markdown-aware text objects, structural navigation, workspace keyboard control, and a polished Neovim-native experience.",
     "author": "Emile Bangma",
     "authorUrl": "https://github.com/saberzero1",
