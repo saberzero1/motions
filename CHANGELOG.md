@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Vim engine settings changed via Settings UI not taking effect** — changing clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, or textwidth in **Settings → Vim Motions → Vim engine** only persisted the value to disk but did not push it to the vim engine via `vim.setOption()`. The setting appeared to save but had no effect until Obsidian was reloaded. The same settings worked correctly when set via `.obsidian.vimrc` because the vimrc loader explicitly calls `vim.setOption()`. Fixed by adding `vim.setOption()` calls to each vim engine setting's `onChange` handler in `src/settings.ts`. For clipboard and textwidth, the module-level state helpers (`setClipboardOption`, `setTextwidth`) are also called to match the vimrc loader's behavior. ([#39](https://github.com/saberzero1/motions/issues/39))
+
 ### Added
 
 - **Global workspace navigation** — workspace keyboard commands (`<C-w>h/j/k/l`, `gt/gT`, `H/L`, `:q`, scroll keys, etc.) now work across ALL Obsidian views, not just markdown editors. When a non-editor view (PDF, graph, canvas, image, backlinks, etc.) is focused, a capture-phase keydown handler intercepts workspace-relevant keystrokes and dispatches them via Obsidian's command system. When a CodeMirror editor is focused, codemirror-vim handles everything as before — no regression. ([#35](https://github.com/saberzero1/motions/issues/35))
@@ -33,8 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`: this entry
-- `KNOWN_LIMITATIONS.md`: added "Global workspace navigation" section documenting Ctrl-d/f/b Obsidian hotkey prerequisite and scroll target limitations
-- `README.md`: updated workspace keyboard control section with global navigation commands, scrolling keys, and standalone ex command line; added hotkey unbinding note for Ctrl-d/f/b
+- `KNOWN_LIMITATIONS.md`: added "Global workspace navigation" section documenting Ctrl-d/f/b Obsidian hotkey prerequisite and scroll target limitations; updated "Vimrc hot-reload" section to note that vim engine settings now hot-reload via Settings UI
+- `README.md`: updated workspace keyboard control section with global navigation commands, scrolling keys, and standalone ex command line; added hotkey unbinding note for Ctrl-d/f/b; updated Vim engine settings section to note immediate hot-reload
 
 ## [0.24.0] - 2026-07-01
 

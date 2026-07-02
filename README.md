@@ -319,7 +319,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
 - **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
 - **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc. Timeout is configurable via `set insertmodeescapetimeout=1000` (default: 1000ms, matching Neovim's `timeoutlen`).
-- **Settings hot-reload** — toggle features on and off without restarting Obsidian.
+- **Settings hot-reload** — toggle features on and off without restarting Obsidian. Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, textwidth) also take effect immediately.
 - **Built-in `.obsidian.vimrc`** — load key mappings, settings overrides, and which-key labels without needing obsidian-vimrc-support.
 
 ## Vimrc support
@@ -504,6 +504,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Insert mode escape (text, default: off)
 - Insert mode escape timeout (100–5000ms, default: 1000)
 - Text width (0-200, default: 80)
+
+All vim engine settings take effect immediately when changed — no restart required.
 
 **Vimrc & key bindings**
 

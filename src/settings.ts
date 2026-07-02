@@ -9,6 +9,8 @@ import {
 import type { SettingDefinitionItem } from 'obsidian';
 import VimMotionsPlugin from './main';
 import { isBundledVimActive } from './vim/bundled-vim';
+import { getVimApi } from './vim/vim-api';
+import { setClipboardOption, setTextwidth } from './vim/options';
 
 export function formatHotkey(serialized: string): string {
     if (!serialized) return '';
@@ -1307,6 +1309,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.clipboard = value;
                         this.plugin.vimrcOverrides?.delete('clipboard');
                         await this.plugin.saveSettings();
+                        setClipboardOption(value);
+                        const vim = getVimApi();
+                        if (vim) vim.setOption('clipboard', value);
                     }),
             );
 
@@ -1322,6 +1327,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.tabstop = value;
                         this.plugin.vimrcOverrides?.delete('tabstop');
                         await this.plugin.saveSettings();
+                        const vim = getVimApi();
+                        if (vim) vim.setOption('tabstop', value);
                     }),
             );
 
@@ -1337,6 +1344,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.shiftwidth = value;
                         this.plugin.vimrcOverrides?.delete('shiftwidth');
                         await this.plugin.saveSettings();
+                        const vim = getVimApi();
+                        if (vim) vim.setOption('shiftwidth', value);
                     }),
             );
 
@@ -1353,6 +1362,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.expandtab = value;
                         this.plugin.vimrcOverrides?.delete('expandtab');
                         await this.plugin.saveSettings();
+                        const vim = getVimApi();
+                        if (vim) vim.setOption('expandtab', value);
                     }),
             );
 
@@ -1372,6 +1383,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.insertmodeescape = value;
                         this.plugin.vimrcOverrides?.delete('insertmodeescape');
                         await this.plugin.saveSettings();
+                        const vim = getVimApi();
+                        if (vim) vim.setOption('insertmodeescape', value);
                     }),
             );
 
@@ -1393,15 +1406,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 text.setDisabled(isOverridden('insertmodeescapetimeout'));
                 text.onChange(async (value) => {
                     const n = Number(value);
-                    this.plugin.settings.insertmodeescapetimeout = Number.isNaN(
-                        n,
-                    )
+                    const clamped = Number.isNaN(n)
                         ? 1000
                         : Math.max(100, Math.min(5000, n));
+                    this.plugin.settings.insertmodeescapetimeout = clamped;
                     this.plugin.vimrcOverrides?.delete(
                         'insertmodeescapetimeout',
                     );
                     await this.plugin.saveSettings();
+                    const vim = getVimApi();
+                    if (vim) vim.setOption('insertmodeescapetimeout', clamped);
                 });
             });
 
@@ -1421,11 +1435,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 text.setDisabled(isOverridden('textwidth'));
                 text.onChange(async (value) => {
                     const n = Number(value);
-                    this.plugin.settings.textwidth = Number.isNaN(n)
+                    const clamped = Number.isNaN(n)
                         ? 0
                         : Math.max(0, Math.min(200, n));
+                    this.plugin.settings.textwidth = clamped;
                     this.plugin.vimrcOverrides?.delete('textwidth');
                     await this.plugin.saveSettings();
+                    if (clamped > 0) setTextwidth(clamped);
+                    const vim = getVimApi();
+                    if (vim) vim.setOption('textwidth', clamped);
                 });
             });
 
