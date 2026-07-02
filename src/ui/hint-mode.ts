@@ -389,7 +389,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
         activeDocument.body.appendChild(textarea);
         textarea.select();
         try {
-            activeDocument.execCommand('copy');
+            await navigator.clipboard.writeText(text);
         } finally {
             textarea.remove();
         }

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-07-03
+
 ### Added
 
 - **Vimium-style hint actions in non-editor views** — hint mode now supports multiple actions via a key-tree dispatch when a non-editor view (graph, PDF, canvas, etc.) is focused. `f` activates (click/focus), `F` opens in a new pane, `yf` yanks the target's URL or text to clipboard, `df` closes the target tab or pane. Count prefix works: `3f` activates three targets sequentially. In editor context, `<leader><leader>h` (unchanged) triggers hints with Ctrl/Cmd modifier during label selection upgrading to open-in-new-pane.
