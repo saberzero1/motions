@@ -192,11 +192,14 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
+                    const customVimrcPath =
+                        this.settings.vimrcPath || undefined;
                     let vimrcResult = await loadVimrc(
                         this.app,
                         vim,
                         this.leaderRegistry ?? undefined,
                         onSettingOverride,
+                        customVimrcPath,
                     );
                     for (
                         let attempt = 0;
@@ -209,6 +212,7 @@ export default class VimMotionsPlugin extends Plugin {
                             vim,
                             this.leaderRegistry ?? undefined,
                             onSettingOverride,
+                            customVimrcPath,
                         );
                         this.vimrcRetried = true;
                     }

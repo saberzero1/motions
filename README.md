@@ -320,11 +320,11 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
 - **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc. Timeout is configurable via `set insertmodeescapetimeout=1000` (default: 1000ms, matching Neovim's `timeoutlen`).
 - **Settings hot-reload** — toggle features on and off without restarting Obsidian. Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, textwidth) also take effect immediately.
-- **Built-in `.obsidian.vimrc`** — load key mappings, settings overrides, and which-key labels without needing obsidian-vimrc-support.
+- **Built-in `.obsidian.vimrc`** — load key mappings, settings overrides, and which-key labels without needing obsidian-vimrc-support. Supports custom file paths for Obsidian Sync compatibility (dotfiles are not synced).
 
 ## Vimrc support
 
-Vim Motions has built-in support for `.obsidian.vimrc` files, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. Place a `.obsidian.vimrc` file in your vault root:
+Vim Motions has built-in support for `.obsidian.vimrc` files, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. By default, place a `.obsidian.vimrc` file in your vault root. For **Obsidian Sync** users (which skips dotfiles), configure a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path** — e.g. `vimrc.md` or `config/my.vimrc`:
 
 ```vim
 " Example .obsidian.vimrc
@@ -510,6 +510,7 @@ All vim engine settings take effect immediately when changed — no restart requ
 **Vimrc & key bindings**
 
 - Load `.obsidian.vimrc` (on/off)
+- Custom vimrc path (file-suggest input, default: `.obsidian.vimrc`) — set a custom vault path for your vimrc file, useful when Obsidian Sync skips dotfiles ([#34](https://github.com/saberzero1/motions/issues/34))
 - Leader key bindings (add/remove key-to-command mappings without editing vimrc)
 - Note: all settings are also configurable via vimrc when enabled
 

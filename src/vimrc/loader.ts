@@ -188,7 +188,8 @@ function applyKnownSetOption(
     return true;
 }
 
-function getVimrcPath(app: App): string {
+function getVimrcPath(app: App, customPath?: string): string {
+    if (customPath) return customPath;
     return `${app.vault.configDir}.vimrc`;
 }
 
@@ -252,8 +253,9 @@ export function registerVimrcExCommands(vim: VimApi, app: App): void {
 export async function resolveLeaderKey(
     app: App,
     leaderRegistry: LeaderRegistry,
+    customPath?: string,
 ): Promise<void> {
-    const path = getVimrcPath(app);
+    const path = getVimrcPath(app, customPath);
     await resolveLeaderFromFile(app, path, leaderRegistry);
 }
 
@@ -317,8 +319,9 @@ export async function loadVimrc(
         value: unknown,
         directive?: string,
     ) => void,
+    customPath?: string,
 ): Promise<VimrcLoadResult> {
-    const path = getVimrcPath(app);
+    const path = getVimrcPath(app, customPath);
 
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     const cm = view ? getCmAdapter(view) : null;

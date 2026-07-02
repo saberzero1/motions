@@ -9,6 +9,7 @@ import {
 import type { SettingDefinitionItem } from 'obsidian';
 import VimMotionsPlugin from './main';
 import { isBundledVimActive } from './vim/bundled-vim';
+import { VimrcFileSuggest } from './ui/vimrc-file-suggest';
 import { getVimApi } from './vim/vim-api';
 import { setClipboardOption, setTextwidth } from './vim/options';
 
@@ -109,6 +110,7 @@ export interface VimMotionsSettings {
     whichKeyGrouping: 'flat' | 'grouped';
     whichKeyGroupLabels: GroupLabel[];
     whichKeyCommandLabels: CommandLabel[];
+    vimrcPath: string;
     leaderBindings: LeaderBinding[];
 }
 
@@ -147,6 +149,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     whichKeyGrouping: 'grouped',
     whichKeyGroupLabels: [],
     whichKeyCommandLabels: [],
+    vimrcPath: '',
     leaderBindings: [],
 };
 
@@ -223,6 +226,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'cursorShapes.operatorPending',
         'scrolloffLines',
         'multilineScanLimit',
+        'vimrcPath',
         'whichKeyMode',
         'whichKeyGrouping',
     ]);
@@ -1880,6 +1884,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }),
             );
+
+        new Setting(containerEl)
+            .setName('Custom vimrc path')
+            .setDesc(
+                `Path to a vimrc file in your vault. Leave empty to use the default ${this.app.vault.configDir}.vimrc.`,
+            )
+            .addText((text) => {
+                text.setPlaceholder(`${this.app.vault.configDir}.vimrc`)
+                    .setValue(this.plugin.settings.vimrcPath)
+                    .setDisabled(!this.plugin.settings.enableVimrc)
+                    .onChange(async (value) => {
+                        this.plugin.settings.vimrcPath = value;
+                        await this.plugin.saveSettings();
+                    });
+                new VimrcFileSuggest(this.app, text.inputEl);
+            });
 
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(

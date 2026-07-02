@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Custom vimrc file path** — new setting to load vimrc from a custom vault path instead of the default `.obsidian.vimrc`. Useful when using Obsidian Sync, which skips dotfiles. The setting provides file-suggest autocompletion filtered to `*.vimrc` files in the vault. Leave empty to use the default `.obsidian.vimrc`. Changing the path triggers a full vimrc reload. ([#34](https://github.com/saberzero1/motions/issues/34))
+    - `src/settings.ts`: added `vimrcPath: string` to `VimMotionsSettings` interface and defaults, added `vimrcPath` to `RELOAD_KEYS`, added file-suggest text input below the "Load .obsidian.vimrc" toggle
+    - `src/ui/vimrc-file-suggest.ts`: new file — `VimrcFileSuggest` extends Obsidian's `AbstractInputSuggest<TFile>` to autocomplete vault files ending in `.vimrc`
+    - `src/vimrc/loader.ts`: `getVimrcPath()`, `loadVimrc()`, and `resolveLeaderKey()` accept optional `customPath` parameter
+    - `src/main.ts`: passes `settings.vimrcPath` to loader functions
+    - E2E test suite `test/specs/vimrc-custom-path.e2e.ts` with 7 tests covering custom path loading, default fallback, non-existent path resilience, and non-dotfile path for Sync compatibility
+
+### Documentation
+
+- `CHANGELOG.md`: this entry
+- `KNOWN_LIMITATIONS.md`: updated "Vimrc hot-reload" section to document custom vimrc path behavior
+- `README.md`: updated vimrc support section, settings list, and quality of life to document custom vimrc path setting
+
 ## [0.25.0] - 2026-07-02
 
 ### Fixed

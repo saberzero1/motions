@@ -105,7 +105,17 @@ The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping t
 
 ## Vimrc hot-reload
 
-Changing `.obsidian.vimrc` requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
+Changing the vimrc file requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
+
+### Custom vimrc path
+
+The vimrc file path is configurable via **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path**. By default (empty), the plugin loads `.obsidian.vimrc` from the vault root. Setting a custom path (e.g. `config/my.vimrc` or `vimrc.md`) loads the vimrc from that vault-relative path instead. The setting provides file-suggest autocompletion filtered to `*.vimrc` files in the vault. ([#34](https://github.com/saberzero1/motions/issues/34))
+
+This is primarily useful for **Obsidian Sync**, which does not sync dotfiles (files starting with `.`). Users can place their vimrc at a non-dotfile path (e.g. `vimrc.md`, `config/vimrc`) and point the setting to it.
+
+Changing the custom path in settings triggers `reloadFeatures()` (the path is in `RELOAD_KEYS`), but a full vimrc re-parse requires reloading the plugin — the same limitation as editing the vimrc file itself.
+
+### Vim engine settings
 
 Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, textwidth) changed via **Settings → Vim Motions → Vim engine** now take effect immediately — each setting's `onChange` handler calls `vim.setOption()` to push the value to the vim engine in addition to persisting it to disk. Previously, these settings only saved to disk and required an Obsidian reload to take effect (the vimrc code path always worked because it called `vim.setOption()` directly). ([#39](https://github.com/saberzero1/motions/issues/39))
 
