@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-07-02
+
 ### Fixed
 
 - **Stale jumpList markers crash vim state on document switch** — `gg`, `G`, and other motions with `toJumplist: true` threw `RangeError: Invalid position N in document of length M` when switching between documents of different lengths (especially with PDF++ plugin). The global jumpList stored `Marker` objects with absolute offsets from the previous (longer) document. When `jumpList.add()` called `curMark.find()` on a stale marker, `posFromIndex` passed the old offset to `doc.lineAt()` without bounds checking, crashing through `processMotion` → `processCommand` → the `cm.operation()` try-catch, which wiped and re-initialized vim state. Subsequent keystrokes fell through to default CM6 text insertion. ([#18](https://github.com/saberzero1/motions/issues/18))
