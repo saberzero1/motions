@@ -236,6 +236,48 @@ Built-in features register default labels (Table, EasyMotion) that user entries 
 
 Obsidian's default "Close current tab" hotkey is bound to Ctrl+W. Users must unbind it in **Settings → Hotkeys** (search for "Close current tab") for the `<C-w>` prefix (`<C-w>h/j/k/l`, `<C-w>v`, `<C-w>s`, `<C-w>c`, `<C-w>q`, `<C-w>o`) to work. This is also noted in the settings toggle and README. The close-tab functionality remains available via `:q`, `:quit`, `<C-w>c`, or `<C-w>q` (the latter two work once the Obsidian hotkey is removed).
 
+## Global workspace navigation
+
+**Status**: Working. Workspace commands work across all Obsidian views (PDF, graph, canvas, image, backlinks, etc.), not just markdown editors. ([#35](https://github.com/saberzero1/motions/issues/35))
+
+A capture-phase `keydown` listener on `document` intercepts workspace-relevant keystrokes when no CodeMirror editor or text input is focused. When an editor IS focused, events propagate to codemirror-vim unchanged.
+
+### Supported keys in non-editor views
+
+**Navigation**: `<C-w>h/j/k/l` (focus pane), `<C-w>v/s` (split), `<C-w>c/q` (close), `<C-w>o` (close others), `gt/gT` (tabs), `Ngt` (Nth tab), `H/L` (prev/next tab), `Ctrl-o/Ctrl-i` (history)
+
+**Scrolling**: `j/k` (line), `Nj/Nk` (N lines), `gg/G` (top/bottom), `Ctrl-u` (half page up), `Ctrl-d/f/b` (see below)
+
+**Ex commands**: `:` opens a standalone command modal with tab-completion for globally-safe ex commands (`:q`, `:wq`, `:e`, `:sp`, etc.)
+
+### `Ctrl-d`, `Ctrl-f`, `Ctrl-b` require unbinding Obsidian defaults
+
+Obsidian's default hotkeys for `Ctrl-d` (delete paragraph), `Ctrl-f` (search), and `Ctrl-b` (toggle bold/sidebar) intercept these keys at the Electron level before any DOM event listener fires — including capture-phase listeners. The plugin's handler never receives the keydown event.
+
+**Fix**: Unbind the conflicting hotkeys in **Settings → Hotkeys** (search for the key combination and remove the binding). After unbinding, `Ctrl-d/f/b` work as expected for half-page/full-page scrolling.
+
+`Ctrl-u` works without any changes because Obsidian has no default hotkey for it.
+
+This is the same class of issue as the `<C-w>` prefix conflict (documented above) — Obsidian's hotkey system takes priority over plugin DOM event listeners.
+
+### Scroll target detection
+
+The global handler finds the scrollable element in the active view by walking the DOM tree for the largest element with `overflow-y: auto|scroll` and `scrollHeight > clientHeight`. This works for standard scrollable views (PDFs, reading mode, backlinks, file explorer).
+
+**Unsupported scroll targets**: Canvas and graph views use non-standard rendering (infinite canvas, WebGL) without a traditional scrollable container. `j/k` and scroll commands are silently no-ops in these views.
+
+### `H`/`L` behavior in non-editor views
+
+In standard Vim, `H`/`L` move the cursor to the top/bottom of the visible screen. In non-editor views there is no cursor, so `H`/`L` are repurposed for previous/next tab switching, matching [obsidian-vim-keynav](https://github.com/guoang/obsidian-vim-keynav) conventions. Editor behavior is unchanged.
+
+### `Ctrl-o`/`Ctrl-i` dual purpose
+
+In editor context, codemirror-vim uses `<C-o>`/`<C-i>` for the within-file jumplist. In non-editor views, the global handler maps them to `app:go-back`/`app:go-forward` (Obsidian's history navigation). There is no conflict because the global handler only fires when no editor is focused.
+
+### Editor-only ex commands
+
+The standalone ex command modal (`:` in non-editor views) supports 34 commands that don't require a CmAdapter. The following editor-dependent commands show "Not a global command" when invoked from the modal: `:e!`, `:saveas`, `:read`, `:marks`, `:delmarks`, `:changes`.
+
 ## Cross-document jump history (`Ctrl-o` / `Ctrl-i`)
 
 codemirror-vim's built-in `<C-o>` and `<C-i>` handle the **within-file** jump list (jumping between cursor positions in the current document). Overriding them for cross-document navigation would break within-file jumps.
@@ -266,6 +308,7 @@ Features by platform:
 | Ex commands (`:w`, `:q`) | ✅      | ✅                         | ❌ No `:` entry        |
 | Search (`/`, `?`)        | ✅      | ✅                         | ❌ No `/` entry        |
 | Workspace nav (`<C-w>`)  | ✅      | ✅                         | ❌ No modifier keys    |
+| Global workspace nav     | ✅      | ❌ Disabled                | ❌ Disabled            |
 | Status bar               | ✅      | ✅                         | ✅                     |
 | Vimrc                    | ✅      | ✅                         | ✅                     |
 | Settings                 | ✅      | ✅                         | ✅                     |

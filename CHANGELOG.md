@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Global workspace navigation** — workspace keyboard commands (`<C-w>h/j/k/l`, `gt/gT`, `H/L`, `:q`, scroll keys, etc.) now work across ALL Obsidian views, not just markdown editors. When a non-editor view (PDF, graph, canvas, image, backlinks, etc.) is focused, a capture-phase keydown handler intercepts workspace-relevant keystrokes and dispatches them via Obsidian's command system. When a CodeMirror editor is focused, codemirror-vim handles everything as before — no regression. ([#35](https://github.com/saberzero1/motions/issues/35))
+    - **Navigation**: `<C-w>h/j/k/l` (focus pane), `<C-w>v/s` (split), `<C-w>c/q` (close), `<C-w>o` (close others), `gt/gT` (next/prev tab), `Ngt` (Nth tab), `H/L` (prev/next tab), `Ctrl-o/Ctrl-i` (history back/forward)
+    - **Scrolling**: `j/k` (line scroll), `gg/G` (top/bottom), `Ctrl-d/u` (half page), `Ctrl-f/b` (full page), with count prefix support (`5j` = 5 lines)
+    - **Ex command line**: `:` opens a standalone command modal with tab-completion for 34 globally-safe ex commands (`:q`, `:wq`, `:e {file}`, `:sp`, `:vs`, `:ob {cmd}`, etc.)
+    - **Chord display**: pending keystrokes (`<C-w>`, `g`, `3`) shown in status bar via `setGlobalChord()` on `VimModeTracker`
+    - **Sequence timeout**: multi-key sequences reset after 1000ms (matches vim's `timeoutlen`)
+    - **Popout window support**: handler installed on all windows via `workspace.on('window-open')`
+    - **Input suppression**: keys not intercepted in text inputs, contentEditable, modals, command palette, or IME composition
+    - **Scroll target detection**: DOM tree-walking finds the largest scrollable container in arbitrary views (same approach as obsidian-vim-keynav)
+    - New file: `src/workspace/global-key-handler.ts` — `GlobalKeyHandler` class with `shouldIntercept()`, `SequenceStateMachine`, scroll target detection
+    - New file: `src/ui/global-ex-command.ts` — `GlobalExCommandModal` extending Obsidian's `SuggestModal`
+    - `src/vim/mode-tracker.ts`: added `setGlobalChord(text)` method for non-editor chord display
+    - `src/workspace/navigation.ts`: exported `executeCommand()` for reuse by global handler
+    - E2E test suite `test/specs/global-nav.e2e.ts` with 15 tests covering navigation, scrolling, ex commands, input suppression, sequence timeout, and no-regression
+- **`H`/`L` tab switching in non-editor views** — repurposes `H`/`L` (screen top/bottom in editors) for previous/next tab navigation when a non-editor view is focused, matching [obsidian-vim-keynav](https://github.com/guoang/obsidian-vim-keynav) conventions
+- **`Ctrl-o`/`Ctrl-i` history navigation in non-editor views** — maps to `app:go-back` / `app:go-forward` when no editor is focused (in editor context, codemirror-vim uses these for the within-file jumplist)
+
+### Changed
+
+- **`<C-w>o`, `:only`, `:qa`, `:xall` now close ALL view types** — previously filtered by `getViewType() === 'markdown'`, leaving PDFs/images/etc. open. Now closes all tabs regardless of view type, matching Neovim behavior. Same change applied to `g<C-t>` (goto Nth tab) which now counts all leaves, not just markdown.
+
+### Documentation
+
+- `CHANGELOG.md`: this entry
+- `KNOWN_LIMITATIONS.md`: added "Global workspace navigation" section documenting Ctrl-d/f/b Obsidian hotkey prerequisite and scroll target limitations
+- `README.md`: updated workspace keyboard control section with global navigation commands, scrolling keys, and standalone ex command line; added hotkey unbinding note for Ctrl-d/f/b
+
 ## [0.24.0] - 2026-07-01
 
 ### Changed

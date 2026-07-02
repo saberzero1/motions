@@ -23,6 +23,7 @@ import { loadVimrc, applyVimrcMaps } from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
+import { GlobalKeyHandler } from './workspace/global-key-handler';
 import { getVimApi, isVimEnabled, getCmAdapter } from './vim/vim-api';
 import {
     createBundledVimExtension,
@@ -70,6 +71,7 @@ export default class VimMotionsPlugin extends Plugin {
     private uninstallTableSuppressor: (() => void) | null = null;
     private uninstallTableCursorFix: (() => void) | null = null;
     exSuggest: ExCommandSuggest | null = null;
+    private globalKeyHandler: GlobalKeyHandler | null = null;
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
     private vimrcLoading = false;
@@ -380,6 +382,15 @@ export default class VimMotionsPlugin extends Plugin {
         this.scrolloffManager.setup(this.settings.scrolloffLines);
         this.registerEditorExtension(createScrolloffExtension());
 
+        if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+            this.globalKeyHandler = new GlobalKeyHandler(
+                this.app,
+                this.settings,
+                this.modeTracker,
+            );
+            this.globalKeyHandler.install();
+        }
+
         // --- Settings tab ---
         this.addSettingTab(new VimMotionsSettingTab(this.app, this));
 
@@ -516,6 +527,17 @@ export default class VimMotionsPlugin extends Plugin {
                 modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
+        }
+
+        this.globalKeyHandler?.destroy();
+        this.globalKeyHandler = null;
+        if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+            this.globalKeyHandler = new GlobalKeyHandler(
+                this.app,
+                this.settings,
+                this.modeTracker,
+            );
+            this.globalKeyHandler.install();
         }
 
         this.scrolloffManager?.setup(this.settings.scrolloffLines);
@@ -787,6 +809,8 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        this.globalKeyHandler?.destroy();
+        this.globalKeyHandler = null;
         this.cleanupHintModeWindows();
         this.uninstallTableCursorFix?.();
         this.uninstallTableCursorFix = null;

@@ -5,5 +5,8 @@
   "editor:save-file": [],
   "navigate-back": [],
   "navigate-forward": [],
-  "graph:open": []
+  "graph:open": [],
+  "editor:open-search": [],
+  "editor:toggle-bold": [],
+  "editor:delete-paragraph": []
 }

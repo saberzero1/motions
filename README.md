@@ -113,37 +113,57 @@ Table manipulation commands are also available as ex commands (e.g. `:tablerowaf
 
 ### Workspace keyboard control
 
-Navigate Obsidian without a mouse, following Neovim window management conventions.
+Navigate Obsidian without a mouse, following Neovim window management conventions. **All workspace commands work across all Obsidian views** — not just markdown editors. When a non-editor view (PDF, graph, canvas, image viewer, etc.) is focused, the plugin intercepts workspace-relevant keystrokes via a global key handler.
 
-| Keybinding          | Description                                         |
-| ------------------- | --------------------------------------------------- |
-| `<C-w>h/j/k/l`      | Focus pane left/down/up/right                       |
-| `<C-w>v`            | Split vertical                                      |
-| `<C-w>s`            | Split horizontal                                    |
-| `<C-w>c` / `<C-w>q` | Close current tab                                   |
-| `<C-w>o`            | Close all other tabs                                |
-| `gt` / `gT`         | Next/previous tab                                   |
-| `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3) |
-| `gd`                | Go to definition — open the link under the cursor   |
-| `gD`                | Open link under cursor in a new tab                 |
-| `<C-w>gd`           | Open link under cursor in a horizontal split        |
-| `<C-w>gD`           | Open link under cursor in a vertical split          |
-| `gx`                | Open URL under cursor in browser                    |
-| `gf`                | Open file switcher (quick open)                     |
-| `grn`               | Rename current note                                 |
-| `grr`               | Show backlinks to current note                      |
-| `gra`               | Show context-aware actions for cursor position      |
-| `gO`                | Open document outline (searchable heading list)     |
-| `g<C-g>`            | Show document statistics (words, lines, characters) |
-| `gp` / `gP`         | Paste and move cursor past pasted text              |
-| `ga`                | Show character info under cursor (codepoint, hex)   |
-| `g;` / `g,`         | Jump to older/newer change position                 |
-| `za`                | Toggle fold at cursor                               |
-| `zc` / `zo`         | Fold / unfold at cursor                             |
-| `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    |
-| `zM` / `zR`         | Fold all / unfold all                               |
+| Keybinding          | Description                                         | Global |
+| ------------------- | --------------------------------------------------- | ------ |
+| `<C-w>h/j/k/l`      | Focus pane left/down/up/right                       | Yes    |
+| `<C-w>v`            | Split vertical                                      | Yes    |
+| `<C-w>s`            | Split horizontal                                    | Yes    |
+| `<C-w>c` / `<C-w>q` | Close current tab                                   | Yes    |
+| `<C-w>o`            | Close all other tabs                                | Yes    |
+| `gt` / `gT`         | Next/previous tab                                   | Yes    |
+| `Ngt`               | Go to Nth tab (e.g., `3gt` goes to tab 3)           | Yes    |
+| `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3) | —      |
+| `H` / `L`           | Previous/next tab (non-editor views only)           | Yes    |
+| `Ctrl-o` / `Ctrl-i` | Navigate back/forward in history (non-editor views) | Yes    |
+| `gd`                | Go to definition — open the link under the cursor   | —      |
+| `gD`                | Open link under cursor in a new tab                 | —      |
+| `<C-w>gd`           | Open link under cursor in a horizontal split        | —      |
+| `<C-w>gD`           | Open link under cursor in a vertical split          | —      |
+| `gx`                | Open URL under cursor in browser                    | —      |
+| `gf`                | Open file switcher (quick open)                     | —      |
+| `grn`               | Rename current note                                 | —      |
+| `grr`               | Show backlinks to current note                      | —      |
+| `gra`               | Show context-aware actions for cursor position      | —      |
+| `gO`                | Open document outline (searchable heading list)     | —      |
+| `g<C-g>`            | Show document statistics (words, lines, characters) | —      |
+| `gp` / `gP`         | Paste and move cursor past pasted text              | —      |
+| `ga`                | Show character info under cursor (codepoint, hex)   | —      |
+| `g;` / `g,`         | Jump to older/newer change position                 | —      |
+| `za`                | Toggle fold at cursor                               | —      |
+| `zc` / `zo`         | Fold / unfold at cursor                             | —      |
+| `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    | —      |
+| `zM` / `zR`         | Fold all / unfold all                               | —      |
+
+**Scrolling in non-editor views:**
+
+| Keybinding          | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `j` / `k`           | Scroll down/up one line                          |
+| `Nj` / `Nk`         | Scroll N lines (e.g., `5j` scrolls 5 lines down) |
+| `gg`                | Scroll to top                                    |
+| `G`                 | Scroll to bottom                                 |
+| `Ctrl-d` / `Ctrl-u` | Scroll half page down/up                         |
+| `Ctrl-f` / `Ctrl-b` | Scroll full page down/up                         |
+
+**Standalone ex command line:**
+
+Pressing `:` in a non-editor view opens a command modal with tab-completion for globally-safe ex commands (`:q`, `:wq`, `:e {file}`, `:sp`, `:vs`, `:ob {cmd}`, `:sidebar`, `:grep`, etc.). Commands that require an active editor (`:e!`, `:saveas`, `:read`, `:marks`) show a notice when invoked from the modal.
 
 > **Note:** The `<C-w>` prefix may conflict with Obsidian's default "Close current tab" hotkey. To use `<C-w>` bindings, go to **Settings → Hotkeys**, search for "Close current tab", and remove or rebind the Ctrl+W hotkey. The close-tab functionality remains available via `:q` or `:quit`.
+
+> **Note:** `Ctrl-d`, `Ctrl-f`, and `Ctrl-b` require unbinding Obsidian's default hotkeys for those keys in **Settings → Hotkeys**. Obsidian's defaults intercept these keys before the plugin can handle them. `Ctrl-u` works without changes.
 
 ### Surround (vim-surround)
 

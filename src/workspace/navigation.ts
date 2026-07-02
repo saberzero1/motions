@@ -14,7 +14,7 @@ import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 
-function executeCommand(app: App, commandId: string): void {
+export function executeCommand(app: App, commandId: string): void {
     (
         app as unknown as {
             commands: { executeCommandById: (id: string) => void };
@@ -32,7 +32,7 @@ function createCloseOthersAction(app: App): ActionFn {
     return () => {
         const active = app.workspace.getLeaf(false);
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf !== active && leaf.view.getViewType() === 'markdown') {
+            if (leaf !== active) {
                 leaf.detach();
             }
         });
@@ -44,9 +44,7 @@ function createGotoTabAction(app: App): ActionFn {
         const n = actionArgs.repeat ?? 1;
         const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf.view.getViewType() === 'markdown') {
-                leaves.push(leaf);
-            }
+            leaves.push(leaf);
         });
         const target = leaves[n - 1];
         if (target) {

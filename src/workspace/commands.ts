@@ -137,9 +137,7 @@ function createWriteQuitCommand(app: App): ExCommandFn {
 function createCloseAllCommand(app: App): ExCommandFn {
     return () => {
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf.view.getViewType() === 'markdown') {
-                leaf.detach();
-            }
+            leaf.detach();
         });
     };
 }
@@ -148,7 +146,7 @@ function createCloseOthersExCommand(app: App): ExCommandFn {
     return () => {
         const active = app.workspace.getLeaf(false);
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf !== active && leaf.view.getViewType() === 'markdown') {
+            if (leaf !== active) {
                 leaf.detach();
             }
         });
@@ -287,9 +285,7 @@ function createXallCommand(app: App): ExCommandFn {
     return () => {
         executeCommand(app, 'editor:save-file');
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf.view.getViewType() === 'markdown') {
-                leaf.detach();
-            }
+            leaf.detach();
         });
     };
 }

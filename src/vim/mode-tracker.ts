@@ -148,6 +148,12 @@ export class VimModeTracker {
         this.chordBarEl.setText(chord);
     }
 
+    setGlobalChord(text: string): void {
+        if (!this.chordBarEl) return;
+        if (this.lastAdapter) return;
+        this.chordBarEl.setText(text);
+    }
+
     private updateDisplay(): void {
         const modeLabel =
             this.modeLabels[this.currentMode] ??
