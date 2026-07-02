@@ -7,21 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Custom vimrc file path** — new setting to load vimrc from a custom vault path instead of the default `.obsidian.vimrc`. Useful when using Obsidian Sync, which skips dotfiles. The setting provides file-suggest autocompletion filtered to `*.vimrc` files in the vault. Leave empty to use the default `.obsidian.vimrc`. Changing the path triggers a full vimrc reload. ([#34](https://github.com/saberzero1/motions/issues/34))
-    - `src/settings.ts`: added `vimrcPath: string` to `VimMotionsSettings` interface and defaults, added `vimrcPath` to `RELOAD_KEYS`, added file-suggest text input below the "Load .obsidian.vimrc" toggle
-    - `src/ui/vimrc-file-suggest.ts`: new file — `VimrcFileSuggest` extends Obsidian's `AbstractInputSuggest<TFile>` to autocomplete vault files ending in `.vimrc`
-    - `src/vimrc/loader.ts`: `getVimrcPath()`, `loadVimrc()`, and `resolveLeaderKey()` accept optional `customPath` parameter
-    - `src/main.ts`: passes `settings.vimrcPath` to loader functions
-    - E2E test suite `test/specs/vimrc-custom-path.e2e.ts` with 7 tests covering custom path loading, default fallback, non-existent path resilience, and non-dotfile path for Sync compatibility
-
-### Documentation
-
-- `CHANGELOG.md`: this entry
-- `KNOWN_LIMITATIONS.md`: updated "Vimrc hot-reload" section to document custom vimrc path behavior
-- `README.md`: updated vimrc support section, settings list, and quality of life to document custom vimrc path setting
-
 ## [0.25.0] - 2026-07-02
 
 ### Fixed
@@ -47,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - E2E test suite `test/specs/global-nav.e2e.ts` with 15 tests covering navigation, scrolling, ex commands, input suppression, sequence timeout, and no-regression
 - **`H`/`L` tab switching in non-editor views** — repurposes `H`/`L` (screen top/bottom in editors) for previous/next tab navigation when a non-editor view is focused, matching [obsidian-vim-keynav](https://github.com/guoang/obsidian-vim-keynav) conventions
 - **`Ctrl-o`/`Ctrl-i` history navigation in non-editor views** — maps to `app:go-back` / `app:go-forward` when no editor is focused (in editor context, codemirror-vim uses these for the within-file jumplist)
+- **Custom vimrc file path** — new setting to load vimrc from a custom vault path instead of the default `.obsidian.vimrc`. Useful when using Obsidian Sync, which skips dotfiles. The setting provides file-suggest autocompletion filtered to `*.vimrc` files in the vault. Leave empty to use the default `.obsidian.vimrc`. Changing the path triggers a full vimrc reload. ([#34](https://github.com/saberzero1/motions/issues/34))
+    - `src/settings.ts`: added `vimrcPath: string` to `VimMotionsSettings` interface and defaults, added `vimrcPath` to `RELOAD_KEYS`, added file-suggest text input below the "Load .obsidian.vimrc" toggle
+    - `src/ui/vimrc-file-suggest.ts`: new file — `VimrcFileSuggest` extends Obsidian's `AbstractInputSuggest<TFile>` to autocomplete vault files ending in `.vimrc`
+    - `src/vimrc/loader.ts`: `getVimrcPath()`, `loadVimrc()`, and `resolveLeaderKey()` accept optional `customPath` parameter
+    - `src/main.ts`: passes `settings.vimrcPath` to loader functions
+    - E2E test suite `test/specs/vimrc-custom-path.e2e.ts` with 7 tests covering custom path loading, default fallback, non-existent path resilience, and non-dotfile path for Sync compatibility
 
 ### Changed
 
@@ -54,10 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: this entry
 - `KNOWN_LIMITATIONS.md`: added "Global workspace navigation" section documenting Ctrl-d/f/b Obsidian hotkey prerequisite and scroll target limitations; updated "Vimrc hot-reload" section to note that vim engine settings now hot-reload via Settings UI
+- `KNOWN_LIMITATIONS.md`: updated "Vimrc hot-reload" section to document custom vimrc path behavior
 - `README.md`: updated workspace keyboard control section with global navigation commands, scrolling keys, and standalone ex command line; added hotkey unbinding note for Ctrl-d/f/b; updated Vim engine settings section to note immediate hot-reload
 - `README.md`: updated powerline status bar description to mention Style Settings support; updated label colors description to mention Style Settings
+- `README.md`: updated vimrc support section, settings list, and quality of life to document custom vimrc path setting
 - `styles.css`: added `/* @settings */` block with Style Settings variable bindings; powerline CSS variables moved from local definitions to inline fallbacks for Style Settings compatibility
 
 ## [0.24.0] - 2026-07-01
