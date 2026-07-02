@@ -68,9 +68,9 @@ const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         type: 'number',
         settingsKey: 'scrolloffLines',
         min: 0,
-        max: 20,
+        max: 9999,
     },
-    so: { type: 'number', settingsKey: 'scrolloffLines', min: 0, max: 20 },
+    so: { type: 'number', settingsKey: 'scrolloffLines', min: 0, max: 9999 },
     scanlimit: {
         type: 'number',
         settingsKey: 'multilineScanLimit',

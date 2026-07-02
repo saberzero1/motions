@@ -928,11 +928,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             'Number of lines to keep visible above and below when scrolling (0 to disable).',
                         ),
                         control: {
-                            type: 'slider' as const,
+                            type: 'number' as const,
                             key: 'scrolloffLines',
                             min: 0,
-                            max: 20,
-                            step: 1,
+                            max: 9999,
+                            placeholder: '5',
                             disabled: () => this.isOverridden('scrolloffLines'),
                         },
                     },
@@ -2007,18 +2007,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     'Number of lines to keep visible above and below when scrolling (0 to disable).',
                 ),
             )
-            .addSlider((slider) =>
-                slider
-                    .setLimits(0, 20, 1)
-                    .setValue(this.plugin.settings.scrolloffLines)
-                    .setDisabled(isOverridden('scrolloffLines'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.scrolloffLines = value;
-                        this.plugin.vimrcOverrides?.delete('scrolloffLines');
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
+            .addText((text) => {
+                text.setValue(String(this.plugin.settings.scrolloffLines));
+                text.inputEl.type = 'number';
+                text.inputEl.min = '0';
+                text.inputEl.max = '9999';
+                text.setDisabled(isOverridden('scrolloffLines'));
+                text.onChange(async (value) => {
+                    const n = Number(value);
+                    const clamped = Number.isNaN(n)
+                        ? 5
+                        : Math.max(0, Math.min(9999, Math.floor(n)));
+                    this.plugin.settings.scrolloffLines = clamped;
+                    this.plugin.vimrcOverrides?.delete('scrolloffLines');
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                });
+            });
 
         new Setting(containerEl)
             .setName('Multi-line text object scan range')

@@ -28,12 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dropdowns only focus but don't change value** — `<select>` elements cannot be programmatically opened in Chromium. Changed activation behavior to cycle to the next option value and dispatch a `change` event, giving immediate feedback instead of requiring manual Arrow key interaction.
 - **Broadened form control selectors** — `STANDARD_SELECTORS` now includes `input:not([type="hidden"]):not([disabled])`, `textarea:not([disabled])`, and `select:not([disabled])` to ensure all visible form controls (text inputs, search bars, dropdowns) receive hint labels regardless of their Obsidian-specific parent structure. Removed redundant Obsidian-specific selectors that were subsets of the broader standard selectors. Changed `.setting-item-control .checkbox-container` to `.checkbox-container` to match toggles rendered by Obsidian 1.13+'s declarative settings API outside the traditional `.setting-item-control` parent.
 
+### Changed
+
+- **Scrolloff cap raised from 20 to 9999** — the `scrolloff` setting now accepts values up to 9999 (previously capped at 20), enabling the standard Vim pattern of `set scrolloff=999` to keep the cursor vertically centered while scrolling. The Settings UI control has been changed from a slider to a validated number input field. Affects all four validation points: Settings UI (structured + manual rendering), vimrc `set scrolloff=N` / `set so=N`, and the vim `defineOption` callback. The underlying CSS `scrollMargins` implementation was already uncapped. ([#40](https://github.com/saberzero1/motions/issues/40))
+    - `src/settings.ts`: structured definition changed from `type: 'slider'` to `type: 'number'` with `max: 9999`; manual rendering changed from `.addSlider()` to `.addText()` with `type='number'`, `min='0'`, `max='9999'`, integer clamping, and fallback to default 5 on invalid input
+    - `src/vimrc/loader.ts`: `scrolloff` and `so` option definitions updated from `max: 20` to `max: 9999`
+    - `src/vim/options.ts`: `defineOption` callback validation updated from `n <= 20` to `n <= 9999`
+
 ### Documentation
 
 - `KNOWN_LIMITATIONS.md`: added "Hint mode actions" section documenting the vimium-style key-tree, context split, modifier upgrade, target classification, settings gating, modal behavior, clipboard fallback, and stale target handling
 - `KNOWN_LIMITATIONS.md`: updated "Global workspace navigation" supported keys to include hint actions (`f`/`F`/`yf`/`df`)
+- `KNOWN_LIMITATIONS.md`: updated "Scrolloff line height assumption" section to document the raised cap and centered-cursor pattern
 - `README.md`: updated hint mode section with vimium-style actions, non-editor key table, and new Obsidian commands
 - `README.md`: updated workspace keyboard control table with hint action keys
+- `README.md`: updated scrolloff range from 0–20 to 0–9999 in number options table and settings list; updated scrolloff description to mention `set scrolloff=999` for centered cursor
 
 ## [0.26.0] - 2026-07-02
 
@@ -174,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configurable insert mode escape timeout** — `set insertmodeescapetimeout=N` (alias `imet`, range 100–5000ms, default: 1000ms) controls how long the plugin waits between keystrokes when matching the `insertmodeescape` sequence (e.g. `jk`). Matches Neovim's `timeoutlen` default of 1000ms. Previously hardcoded at 200ms — too tight for normal typing. Configurable via vimrc, Settings UI (**Settings → Vim Motions → Vim engine → Insert mode escape timeout**), or runtime `Vim.setOption('insertmodeescapetimeout', 500)`. ([#31](https://github.com/saberzero1/motions/issues/31))
 - **Vimrc ↔ Settings parity** — all plugin settings are now configurable via `.obsidian.vimrc` in addition to the Settings UI. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values. Settings overridden by vimrc are shown as disabled controls in the settings tab with a note indicating the vimrc directive that set them (e.g., "Set by vimrc: `set scrolloff=10`").
     - **Boolean feature toggles** via `set`/`set no`: `textobjects`, `navigation`, `hardwrap`, `listcontinuation`, `tablenav`, `workspacenav`, `easymotion`, `easymotiondimming`, `hintmode`, `statusbar`, `chorddisplay`, `powerline`
-    - **Number options** via `set <option>=<value>`: `scrolloff` (0–20), `scanlimit` (5–200), `labelfontsize` (10–20)
+    - **Number options** via `set <option>=<value>`: `scrolloff` (0–9999), `scanlimit` (5–200), `labelfontsize` (10–20)
     - **String options**: `easymotionlabels`, `hintlabels`
     - **Enum options**: `tablewidget` (off/cursor/always), `whichkey` (off/leader/all), `whichkeygrouping` (flat/grouped)
     - **Mode prompt customization** via `let g:mode_prompt_normal = "N"` (and insert/visual/replace)

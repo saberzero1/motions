@@ -339,7 +339,7 @@ Navigate the entire Obsidian interface without a mouse, with multiple actions ma
 - **Which-key hints** — shows available key continuations in a popup after a short delay. Configurable: off, leader key only, or all partial keys. In "all" mode, pressing `d` shows available motions/text objects, `g` shows g-prefixed commands, etc. Leader bindings can be grouped by prefix (like Neovim's which-key plugin) — pressing `<leader>` shows `t` → `Table (+11)` instead of listing all table commands. Drill into a group by pressing its key. Grouping mode (grouped/flat) and custom group labels are configurable in settings.
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
-- **Scrolloff** — configurable number of lines to keep visible above/below the cursor. Adapts to your font size automatically.
+- **Scrolloff** — configurable number of lines to keep visible above/below the cursor (0–9999). Set `scrolloff=999` in your vimrc to keep the cursor vertically centered, matching the standard Vim pattern. Adapts to your font size automatically.
 - **Configurable insert escape** — set `jk`, `jj`, or any two-key sequence to exit insert mode via `set insertmodeescape=jk` in your vimrc. Timeout is configurable via `set insertmodeescapetimeout=1000` (default: 1000ms, matching Neovim's `timeoutlen`).
 - **Settings hot-reload** — toggle features on and off without restarting Obsidian. Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, textwidth) also take effect immediately.
 - **Built-in `.obsidian.vimrc`** — load key mappings, settings overrides, and which-key labels without needing obsidian-vimrc-support. Supports custom file paths for Obsidian Sync compatibility (dotfiles are not synced).
@@ -419,7 +419,7 @@ Use `set <option>=<value>`.
 
 | Option                    | Alias  | Description                              | Default | Range    |
 | ------------------------- | ------ | ---------------------------------------- | ------- | -------- |
-| `scrolloff`               | `so`   | Lines to keep visible above/below cursor | 5       | 0–20     |
+| `scrolloff`               | `so`   | Lines to keep visible above/below cursor | 5       | 0–9999   |
 | `scanlimit`               | `sl`   | Max lines to scan for text objects       | 20      | 5–200    |
 | `labelfontsize`           | `lfs`  | Font size for EasyMotion/hint labels     | 14      | 10–20    |
 | `tabstop`                 | `ts`   | Tab display width                        | 4       | —        |
@@ -545,7 +545,7 @@ All vim engine settings take effect immediately when changed — no restart requ
 
 **Advanced**
 
-- Scrolloff lines (0–20, default: 5)
+- Scrolloff lines (0–9999, default: 5)
 - Multi-line text object scan range (5–200, default: 20)
 
 ## Installation

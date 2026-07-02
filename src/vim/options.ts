@@ -208,7 +208,7 @@ export function registerVimOptions(
     vim.defineOption('scrolloff', 5, 'number', ['so'], (value) => {
         if (value === undefined) return;
         const n = typeof value === 'number' ? value : Number(value);
-        if (!isNaN(n) && n >= 0 && n <= 20) {
+        if (!isNaN(n) && n >= 0 && n <= 9999) {
             notify('scrolloffLines', n, `set scrolloff=${n}`);
         }
     });
