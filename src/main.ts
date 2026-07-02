@@ -449,6 +449,9 @@ export default class VimMotionsPlugin extends Plugin {
         const vim = getVimApi();
         if (!vim) return;
 
+        if (typeof vim.resetKeymap === 'function') {
+            vim.resetKeymap();
+        }
         this.registration = new VimRegistration(vim);
 
         // :ob must be re-registered unconditionally (unregisterAll noops it)

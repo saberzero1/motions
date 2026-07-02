@@ -201,6 +201,74 @@ describe('Vim state hardening (issue #18)', function () {
         });
     });
 
+    describe('Stale jumpList markers after document switch', function () {
+        it('gg should work after switching to a shorter document', async function () {
+            const longContent = Array.from(
+                { length: 50 },
+                (_, i) => `line ${i + 1}`,
+            ).join('\n');
+            await setupEditor(longContent, { line: 49, ch: 0 });
+            await vimKeys('G');
+            await browser.pause(PAUSE.KEY_GAP);
+            await vimKeys('g', 'g');
+            await browser.pause(PAUSE.KEY_GAP);
+
+            await setupEditor('short', { line: 0, ch: 0 });
+            await vimKeys('g', 'g');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+        });
+
+        it('G should work after switching to a shorter document', async function () {
+            const longContent = Array.from(
+                { length: 50 },
+                (_, i) => `line ${i + 1}`,
+            ).join('\n');
+            await setupEditor(longContent, { line: 0, ch: 0 });
+            await vimKeys('G');
+            await browser.pause(PAUSE.KEY_GAP);
+
+            await setupEditor('first\nsecond', { line: 0, ch: 0 });
+            await vimKeys('G');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+        });
+
+        it('gg and G should work after reloadFeatures on shorter doc', async function () {
+            const longContent = Array.from(
+                { length: 30 },
+                (_, i) => `line ${i + 1}`,
+            ).join('\n');
+            await setupEditor(longContent, { line: 29, ch: 0 });
+            await vimKeys('G');
+            await browser.pause(PAUSE.KEY_GAP);
+
+            await setupEditor('a\nb\nc', { line: 0, ch: 0 });
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { reloadFeatures: () => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                if (plugin) plugin.reloadFeatures();
+            });
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            await vimKeys('G');
+            let pos = await getCursorPos();
+            expect(pos.line).toBe(2);
+
+            await vimKeys('g', 'g');
+            pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+        });
+    });
+
     describe('leaveVimMode cleanup from insert mode', function () {
         it('should not leave stale listeners after destroy in insert mode', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
