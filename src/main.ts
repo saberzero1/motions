@@ -32,7 +32,7 @@ import {
     isBundledVimActive,
 } from './vim/bundled-vim';
 import { ExCommandSuggest } from './ui/ex-suggest';
-import { createHintModeAction } from './ui/hint-mode';
+import { createHintActions } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import { registerVimOptions } from './vim/options';
@@ -312,11 +312,26 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         if (this.settings.enableHintMode && !Platform.isMobile) {
-            this.registerHintMode(this.registration, this.leaderRegistry);
+            this.registerHintActions(this.registration, this.leaderRegistry);
             this.addCommand({
                 id: 'show-hint-labels',
                 name: 'Show hint labels',
-                callback: () => this.hintModeAction?.(),
+                callback: () => this.hintActions?.activate(),
+            });
+            this.addCommand({
+                id: 'hint-open-new-pane',
+                name: 'Hint: open in new pane',
+                callback: () => this.hintActions?.openNew(),
+            });
+            this.addCommand({
+                id: 'hint-yank',
+                name: 'Hint: yank link or text',
+                callback: () => this.hintActions?.yank(),
+            });
+            this.addCommand({
+                id: 'hint-close',
+                name: 'Hint: close tab or pane',
+                callback: () => this.hintActions?.close(),
             });
             this.setupHintModeWindows();
         }
@@ -391,6 +406,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings,
                 this.modeTracker,
+                this.hintActions,
             );
             this.globalKeyHandler.install();
         }
@@ -443,6 +459,7 @@ export default class VimMotionsPlugin extends Plugin {
     reloadFeatures(): void {
         this.modeTracker?.destroy();
         this.modeTracker = null;
+        this.hintActions = null;
         this.registration?.unregisterAll();
         this.leaderRegistry?.clearBuiltinBindings();
 
@@ -523,7 +540,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.leaderRegistry &&
             !Platform.isMobile
         ) {
-            this.registerHintMode(this.registration, this.leaderRegistry);
+            this.registerHintActions(this.registration, this.leaderRegistry);
         }
         this.registration.endLeaderScope();
         this.registration.map('Y', 'y$', 'normal');
@@ -545,6 +562,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.settings,
                 this.modeTracker,
+                this.hintActions,
             );
             this.globalKeyHandler.install();
         }
@@ -689,7 +707,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         if (this.settings.enableHintMode && !Platform.isMobile) {
-            this.registerHintMode(this.registration, this.leaderRegistry);
+            this.registerHintActions(this.registration, this.leaderRegistry);
         }
         this.applySettingsLeaderBindings(
             this.registration,
@@ -698,18 +716,25 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.endLeaderScope();
     }
 
-    private hintModeAction: (() => void) | null = null;
+    private hintActions: {
+        activate: (count?: number) => void;
+        openNew: (count?: number) => void;
+        yank: (count?: number) => void;
+        close: (count?: number) => void;
+    } | null = null;
 
-    private registerHintMode(
+    private registerHintActions(
         reg: VimRegistration,
         leaderRegistry: LeaderRegistry,
     ): void {
-        this.hintModeAction = createHintModeAction(
+        this.hintActions = createHintActions(
             this.app,
             this.settings.hintModeLabels,
             () => this.settings.labelFontSize,
         );
-        reg.defineAction('hintMode', this.hintModeAction);
+        reg.defineAction('hintMode', () => {
+            this.hintActions?.activate();
+        });
         const leader = leaderRegistry.getLeaderKey();
         const hintKeys = leader + leader + 'h';
         reg.mapCommand(hintKeys, 'action', 'hintMode', {});
@@ -740,10 +765,9 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     private setupHintModeOnWindow(doc: Document): void {
-        if (!this.hintModeAction) return;
+        if (!this.hintActions) return;
         if (this.hintWindowDocs.has(doc)) return;
         this.hintWindowDocs.add(doc);
-        const action = this.hintModeAction;
 
         const handler = (e: KeyboardEvent) => {
             const parsed = this.parseHotkey(this.settings.hintModeHotkey);
@@ -759,7 +783,7 @@ export default class VimMotionsPlugin extends Plugin {
             ) {
                 e.preventDefault();
                 e.stopPropagation();
-                action();
+                this.hintActions?.activate();
             }
         };
         doc.addEventListener('keydown', handler, true);

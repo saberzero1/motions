@@ -266,6 +266,8 @@ A capture-phase `keydown` listener on `document` intercepts workspace-relevant k
 
 **Navigation**: `<C-w>h/j/k/l` (focus pane), `<C-w>v/s` (split), `<C-w>c/q` (close), `<C-w>o` (close others), `gt/gT` (tabs), `Ngt` (Nth tab), `H/L` (prev/next tab), `Ctrl-o/Ctrl-i` (history)
 
+**Hint actions**: `f` (activate/click), `F` (open in new pane), `yf` (yank URL/text), `df` (close tab/pane) — see [Hint mode actions](#hint-mode-actions)
+
 **Scrolling**: `j/k` (line), `Nj/Nk` (N lines), `gg/G` (top/bottom), `Ctrl-u` (half page up), `Ctrl-d/f/b` (see below)
 
 **Ex commands**: `:` opens a standalone command modal with tab-completion for globally-safe ex commands (`:q`, `:wq`, `:e`, `:sp`, etc.)
@@ -297,6 +299,75 @@ In editor context, codemirror-vim uses `<C-o>`/`<C-i>` for the within-file jumpl
 ### Editor-only ex commands
 
 The standalone ex command modal (`:` in non-editor views) supports 34 commands that don't require a CmAdapter. The following editor-dependent commands show "Not a global command" when invoked from the modal: `:e!`, `:saveas`, `:read`, `:marks`, `:delmarks`, `:changes`.
+
+## Hint mode actions
+
+**Status**: Working. Hint mode supports multiple vimium-style actions with a context-appropriate split between editor and non-editor views.
+
+### Non-editor context (GlobalKeyHandler)
+
+When a non-editor view (graph, PDF, canvas, etc.) is focused, full vimium-style hint bindings are available:
+
+| Key  | Action   | Behavior                                                             |
+| ---- | -------- | -------------------------------------------------------------------- |
+| `f`  | Activate | Click button, focus pane, navigate link, focus input                 |
+| `F`  | Open new | Open link/pane in new pane; fallback to activate for other targets   |
+| `yf` | Yank     | Copy URL for links, note path for tabs, display text for others      |
+| `df` | Close    | Close tab/pane via `leaf.detach()`; Notice for non-closeable targets |
+
+Count prefix works: `3f` activates three targets sequentially (overlay re-shown between each). `3yf` yanks three URLs. `3df` closes three tabs.
+
+The `y` and `d` keys enter pending states (`Y_PENDING`/`D_PENDING`) that only accept `f` as continuation. Any other key resets the sequence. Chord display shows `y` or `d` while pending, using the existing `SEQUENCE_TIMEOUT` of 1000ms.
+
+### Editor context (vim engine)
+
+`<leader><leader>h` triggers hint mode (unchanged). Action is selected by modifier keys during label selection:
+
+- No modifier → activate (click/focus/navigate)
+- Ctrl/Cmd held while typing label → open in new pane
+
+Yank and close are not mapped to editor key sequences (they conflict with vim's native `y` and `d` operators). They are registered as Obsidian commands for custom hotkey assignment:
+
+- `vim-motions:hint-open-new-pane` — "Hint: open in new pane"
+- `vim-motions:hint-yank` — "Hint: yank link or text"
+- `vim-motions:hint-close` — "Hint: close tab or pane"
+
+### Target classification
+
+Each hint target is classified by type during discovery, before label assignment. The classification determines per-action behavior:
+
+- `.workspace-leaf-content` → `pane` (focus via `setActiveLeaf`)
+- `.workspace-tab-header` → `tab` (close via `leaf.detach()`)
+- `a[href]`, `[data-href]`, `.cm-underline` → `link` (navigate via `openLinkText`)
+- `input`, `textarea`, `select`, `[contenteditable]` → `input` (focus; `<select>` cycles to next option)
+- `button`, `.clickable-icon`, `[role="button"]` → `button` (click)
+- everything else → `generic` (pointer event sequence + click)
+
+Target discovery filters:
+
+- Elements with `.is-measuring` class are excluded (Obsidian 1.13+ shadow `<select>` copies used for layout measurement)
+- Child elements inside `.checkbox-container` are excluded (the container itself is the clickable toggle, not its inner `<input>`)
+- `input[type="hidden"]` and disabled elements are excluded
+
+### Settings gating
+
+Hint actions in non-editor context require BOTH `enableWorkspaceNav` (gates GlobalKeyHandler) AND `enableHintMode` (gates hint actions). Disabling hint mode via settings stops `f`/`F`/`y`/`d` interception in GlobalKeyHandler. The existing `enableHintMode` setting controls all hint labels — in both editor and non-editor contexts.
+
+### Modal behavior
+
+Navigation keys (`j`/`k`/`g`/`z`/`:`/`H`/`L`/Ctrl-combinations) are suppressed when any Obsidian modal is open (settings, command palette, etc.) via `isModalOpen()`. This prevents scrolling and navigation from interfering with modal interaction.
+
+Hint actions (`f`/`F`/`yf`/`df`) are NOT suppressed in modals — they use a separate `shouldInterceptHints()` gate. This allows hint labels to target and activate modal controls (buttons, toggles, dropdowns, text fields). After activating a toggle or dropdown in a modal, the element is blurred so `f` can immediately re-trigger hint mode without pressing Escape.
+
+During hint label selection, GlobalKeyHandler bails entirely via an `isHintModeActive()` flag, preventing label characters from being intercepted as navigation or hint-trigger keys.
+
+### Clipboard fallback
+
+`hintYank` uses `navigator.clipboard.writeText()` with a fallback to a temporary textarea + `document.execCommand('copy')` for environments where the Clipboard API is restricted. The deprecated `execCommand` path is defensive — in Obsidian's Electron runtime, `navigator.clipboard` should always work.
+
+### Stale target handling
+
+Targets are validated via `el.isConnected` before action execution. If an element has been removed from the DOM between overlay display and label selection (e.g., Obsidian re-rendered a view), a Notice is shown and the action is aborted. During count iterations, if re-activation finds no visible targets, it stops silently without repeated Notices.
 
 ## Cross-document jump history (`Ctrl-o` / `Ctrl-i`)
 

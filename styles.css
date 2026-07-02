@@ -302,6 +302,12 @@
     opacity: 0.2;
 }
 
+.vim-motions-clipboard-helper {
+    position: fixed;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .vim-motions-hotkey-display {
     font-family: var(--font-monospace);
     margin-right: 8px;

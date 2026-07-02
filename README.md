@@ -146,6 +146,16 @@ Navigate Obsidian without a mouse, following Neovim window management convention
 | `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    | —      |
 | `zM` / `zR`         | Fold all / unfold all                               | —      |
 
+**Hint actions in non-editor views:**
+
+| Keybinding | Description                                              |
+| ---------- | -------------------------------------------------------- |
+| `f`        | Show hint labels, activate target (click/focus/navigate) |
+| `F`        | Show hint labels, open target in new pane                |
+| `yf`       | Show hint labels, yank target URL or text to clipboard   |
+| `df`       | Show hint labels, close target tab or pane               |
+| `Nf`       | Activate N targets sequentially (e.g., `3f` activates 3) |
+
 **Scrolling in non-editor views:**
 
 | Keybinding          | Description                                      |
@@ -295,17 +305,29 @@ All easymotion actions can be remapped in `.obsidian.vimrc`. Bidirectional varia
 
 ### Hint mode (Vimium-style navigation)
 
-Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h` (or a configurable global hotkey) to label every clickable element on screen — buttons, tabs, sidebar items, settings controls, editor panes, links — then type the label to activate it.
+Navigate the entire Obsidian interface without a mouse, with multiple actions matching vimium's key-tree model.
+
+**In non-editor views** (graph, PDF, canvas, etc.), full vimium-style bindings are available:
+
+| Keybinding | Description                                                                |
+| ---------- | -------------------------------------------------------------------------- |
+| `f`        | Activate: click button, focus pane, navigate link, focus input             |
+| `F`        | Open in new pane (links/panes); fallback to activate for other targets     |
+| `yf`       | Yank: copy URL for links, note path for tabs, display text for others      |
+| `df`       | Close: close tab or pane; shows notice for non-closeable targets           |
+| `3f`       | Count: activate three targets sequentially (overlay re-shown between each) |
+
+**In editor context**, `<leader><leader>h` (or a configurable global hotkey) triggers hint mode. Hold Ctrl/Cmd while typing a label to open in a new pane (matching vimium's modifier behavior).
 
 - **Works everywhere**: editor, sidebar, tab bar, settings modal, modals, popout windows
 - **Smart labels**: single-character labels when few targets, two-character (home-row first) when many
 - **Keyboard recovery**: Backspace resets after a wrong first character, Escape cancels
 - **Pane navigation**: select an editor pane label to focus it (uses `setActiveLeaf` for proper Obsidian focus)
-- **Modifier support**: hold Ctrl/Cmd while selecting a link to open in a new pane
+- **Modifier support**: hold Ctrl/Cmd while selecting a label to open in a new pane
 - **Internal links**: `[[wikilinks]]` and `[markdown](links)` are opened via Obsidian's link resolver, not raw click
 - **Scroll-aware**: only visible elements are labeled — items scrolled out of view in containers are excluded
 - **Global hotkey**: configure a key combination in **Settings → Vim Motions → Hint mode global hotkey** that works even when modals (settings, command palette) have focus
-- **Registered as Obsidian command**: `vim-motions:show-hint-labels` — assign a hotkey in **Settings → Hotkeys** or trigger from the command palette
+- **Obsidian commands**: `vim-motions:show-hint-labels`, `vim-motions:hint-open-new-pane`, `vim-motions:hint-yank`, `vim-motions:hint-close` — assign hotkeys in **Settings → Hotkeys** or trigger from the command palette
 
 ### Quality of life
 

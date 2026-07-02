@@ -4,6 +4,7 @@ import type { VimMotionsSettings } from '../settings';
 import type { VimModeTracker } from '../vim/mode-tracker';
 import { executeCommand } from './navigation';
 import { GlobalExCommandModal } from '../ui/global-ex-command';
+import { isHintModeActive } from '../ui/hint-mode';
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -14,6 +15,8 @@ const enum SeqState {
     CW_PENDING,
     CW_G_PENDING,
     Z_PENDING,
+    Y_PENDING,
+    D_PENDING,
 }
 
 const SEQUENCE_TIMEOUT = 1000;
@@ -32,6 +35,10 @@ function isEditorOrInputFocused(doc: Document): boolean {
     if (el.closest('.prompt-input')) return true;
 
     return false;
+}
+
+function isModalOpen(doc: Document): boolean {
+    return !!doc.querySelector('.modal-container');
 }
 
 function closeAllTabs(app: App): void {
@@ -116,6 +123,12 @@ export class GlobalKeyHandler {
     private app: App;
     private settings: VimMotionsSettings;
     private modeTracker: VimModeTracker | null;
+    private hintActions: {
+        activate: (count?: number) => void;
+        openNew: (count?: number) => void;
+        yank: (count?: number) => void;
+        close: (count?: number) => void;
+    } | null;
 
     private docs = new Set<Document>();
     private cleanups: (() => void)[] = [];
@@ -128,10 +141,17 @@ export class GlobalKeyHandler {
         app: App,
         settings: VimMotionsSettings,
         modeTracker: VimModeTracker | null,
+        hintActions: {
+            activate: (count?: number) => void;
+            openNew: (count?: number) => void;
+            yank: (count?: number) => void;
+            close: (count?: number) => void;
+        } | null,
     ) {
         this.app = app;
         this.settings = settings;
         this.modeTracker = modeTracker;
+        this.hintActions = hintActions;
     }
 
     // ── Lifecycle ───────────────────────────────────────────────
@@ -199,6 +219,10 @@ export class GlobalKeyHandler {
                 return countStr + '<C-w>g';
             case SeqState.Z_PENDING:
                 return countStr + 'z';
+            case SeqState.Y_PENDING:
+                return countStr + 'y';
+            case SeqState.D_PENDING:
+                return countStr + 'd';
             default:
                 return countStr;
         }
@@ -211,6 +235,14 @@ export class GlobalKeyHandler {
     // ── Interception gate ───────────────────────────────────────
 
     private shouldIntercept(e: KeyboardEvent, doc: Document): boolean {
+        if (!this.settings.enableWorkspaceNav) return false;
+        if (e.isComposing) return false;
+        if (isEditorOrInputFocused(doc)) return false;
+        if (isModalOpen(doc)) return false;
+        return true;
+    }
+
+    private shouldInterceptHints(e: KeyboardEvent, doc: Document): boolean {
         if (!this.settings.enableWorkspaceNav) return false;
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
@@ -263,12 +295,12 @@ export class GlobalKeyHandler {
     // ── Main handler ────────────────────────────────────────────
 
     private onKeydown(e: KeyboardEvent, doc: Document): void {
+        if (isHintModeActive()) return;
+
         if (this.state !== SeqState.IDLE && this.state !== SeqState.COUNT) {
             this.handlePending(e);
             return;
         }
-
-        if (!this.shouldIntercept(e, doc)) return;
 
         if (
             e.key === 'Shift' ||
@@ -278,6 +310,74 @@ export class GlobalKeyHandler {
         ) {
             return;
         }
+
+        if (this.hintActions !== null && this.shouldInterceptHints(e, doc)) {
+            if (this.state === SeqState.IDLE) {
+                if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+                    if (e.key === 'F') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.hintActions.openNew();
+                        return;
+                    }
+                }
+                if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+                    if (e.key === 'f') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.hintActions.activate();
+                        return;
+                    }
+                    if (e.key === 'y') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.state = SeqState.Y_PENDING;
+                        this.startTimeout();
+                        this.updateChord();
+                        return;
+                    }
+                    if (e.key === 'd') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.state = SeqState.D_PENDING;
+                        this.startTimeout();
+                        this.updateChord();
+                        return;
+                    }
+                }
+            } else if (this.state === SeqState.COUNT) {
+                if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+                    if (e.key === 'F') {
+                        const repeat = this.count || 1;
+                        this.hintActions.openNew(repeat);
+                        this.resetSequence();
+                        return;
+                    }
+                }
+                if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+                    const repeat = this.count || 1;
+                    if (e.key === 'f') {
+                        this.hintActions.activate(repeat);
+                        this.resetSequence();
+                        return;
+                    }
+                    if (e.key === 'y') {
+                        this.state = SeqState.Y_PENDING;
+                        this.startTimeout();
+                        this.updateChord();
+                        return;
+                    }
+                    if (e.key === 'd') {
+                        this.state = SeqState.D_PENDING;
+                        this.startTimeout();
+                        this.updateChord();
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (!this.shouldIntercept(e, doc)) return;
 
         // <C-o>/<C-i>: jumplist in codemirror-vim, history nav here (non-editor only).
         if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
@@ -461,6 +561,12 @@ export class GlobalKeyHandler {
             case SeqState.Z_PENDING:
                 this.handleZPending(e);
                 break;
+            case SeqState.Y_PENDING:
+                this.handleYPending(e);
+                break;
+            case SeqState.D_PENDING:
+                this.handleDPending(e);
+                break;
             default:
                 this.resetSequence();
         }
@@ -642,6 +748,26 @@ export class GlobalKeyHandler {
     }
 
     private handleZPending(_e: KeyboardEvent): void {
+        this.resetSequence();
+    }
+
+    private handleYPending(e: KeyboardEvent): void {
+        if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+            if (e.key === 'f') {
+                const repeat = this.count || 1;
+                this.hintActions?.yank(repeat);
+            }
+        }
+        this.resetSequence();
+    }
+
+    private handleDPending(e: KeyboardEvent): void {
+        if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+            if (e.key === 'f') {
+                const repeat = this.count || 1;
+                this.hintActions?.close(repeat);
+            }
+        }
         this.resetSequence();
     }
 }

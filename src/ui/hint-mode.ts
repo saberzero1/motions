@@ -1,14 +1,22 @@
-import { MarkdownView, type WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Notice, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
 
 export const HOME_ROW = 'asdfghjkl';
 export const ALL_KEYS = 'abcdefghijklmnopqrstuvwxyz';
 
+let hintModeActive = false;
+
+export function isHintModeActive(): boolean {
+    return hintModeActive;
+}
+
 // Standard HTML selectors (stable across Obsidian versions)
 const STANDARD_SELECTORS = [
     'a[href]',
     'button:not([disabled])',
-    'input[type="checkbox"]',
+    'input:not([type="hidden"]):not([disabled])',
+    'textarea:not([disabled])',
+    'select:not([disabled])',
     '[role="button"]',
     '[role="tab"]',
     '[data-href]',
@@ -31,12 +39,8 @@ const OBSIDIAN_SELECTORS = [
     '.menu-item',
     '.modal-close-button',
     '.vertical-tab-nav-item',
-    '.setting-item-control button',
-    '.setting-item-control .checkbox-container',
-    '.setting-item-control select',
-    '.setting-group-search-control .setting-group-filter',
+    '.checkbox-container',
     '.modal-header-button',
-    '.search-input-container input',
 ];
 
 export const TARGET_SELECTOR = [
@@ -108,6 +112,9 @@ interface HintTarget {
     element: Element;
     label: string;
     labelEl: HTMLElement;
+    targetType: 'link' | 'pane' | 'tab' | 'button' | 'input' | 'generic';
+    leaf?: WorkspaceLeaf;
+    href?: string;
 }
 
 function getHintPosition(element: Element): { left: number; top: number } {
@@ -154,8 +161,10 @@ interface HintResult {
 function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
     return new Promise((resolve) => {
         let firstChar = '';
+        hintModeActive = true;
 
         const cleanup = () => {
+            hintModeActive = false;
             activeDocument.removeEventListener('keydown', handler, true);
         };
 
@@ -231,31 +240,96 @@ function findLeafForElement(app: App, el: HTMLElement): WorkspaceLeaf | null {
     return found;
 }
 
-function activateElement(
+function classifyTarget(
+    el: Element,
     app: App,
-    el: HTMLElement,
-    openInNewPane: boolean,
-): void {
+): {
+    targetType: HintTarget['targetType'];
+    leaf?: WorkspaceLeaf;
+    href?: string;
+} {
     if (el.classList.contains('workspace-leaf-content')) {
-        const leaf = findLeafForElement(app, el);
-        if (leaf) {
-            app.workspace.setActiveLeaf(leaf, { focus: true });
+        return {
+            targetType: 'pane',
+            leaf: findLeafForElement(app, el as HTMLElement) ?? undefined,
+        };
+    }
+
+    if (el.classList.contains('workspace-tab-header')) {
+        return {
+            targetType: 'tab',
+            leaf: findLeafForElement(app, el as HTMLElement) ?? undefined,
+        };
+    }
+
+    if (
+        el.instanceOf(HTMLAnchorElement) ||
+        el.matches('[data-href]') ||
+        el.classList.contains('cm-underline')
+    ) {
+        const href =
+            el.getAttribute('data-href') ??
+            (el.instanceOf(HTMLAnchorElement) ? el.getAttribute('href') : null);
+        return {
+            targetType: 'link',
+            href: href ?? undefined,
+        };
+    }
+
+    if (
+        el.instanceOf(HTMLInputElement) ||
+        el.instanceOf(HTMLTextAreaElement) ||
+        el.instanceOf(HTMLSelectElement) ||
+        el.getAttribute('contenteditable') === 'true'
+    ) {
+        return { targetType: 'input' };
+    }
+
+    if (
+        el.instanceOf(HTMLButtonElement) ||
+        el.classList.contains('clickable-icon') ||
+        el.matches('[role="button"]')
+    ) {
+        return { targetType: 'button' };
+    }
+
+    return { targetType: 'generic' };
+}
+
+function hintActivate(
+    app: App,
+    target: HintTarget,
+    openInNewPane: boolean,
+): boolean {
+    const el = target.element as HTMLElement;
+    const inModal = !!el.closest('.modal-container');
+
+    if (target.targetType === 'pane') {
+        if (target.leaf) {
+            app.workspace.setActiveLeaf(target.leaf, { focus: true });
             const mdView = app.workspace.getActiveViewOfType(MarkdownView);
             if (mdView) {
                 mdView.editor.focus();
             }
         }
-        return;
+        return !inModal;
     }
 
-    if (el.getAttribute('contenteditable') === 'true') {
+    if (target.targetType === 'input') {
         el.focus();
-        return;
+        if (el.instanceOf(HTMLSelectElement)) {
+            const sel = el;
+            const next = (sel.selectedIndex + 1) % sel.options.length;
+            sel.selectedIndex = next;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            if (inModal) el.blur();
+        } else {
+            el.click();
+        }
+        return !inModal;
     }
 
-    const linkHref =
-        el.getAttribute('data-href') ??
-        (el.instanceOf(HTMLAnchorElement) ? el.getAttribute('href') : null);
+    const linkHref = target.href ?? null;
     const isInternalLink =
         linkHref &&
         !linkHref.startsWith('http://') &&
@@ -264,7 +338,7 @@ function activateElement(
     if (isInternalLink) {
         const activeFile = app.workspace.getActiveFile()?.path ?? '';
         void app.workspace.openLinkText(linkHref, activeFile, openInNewPane);
-        return;
+        return !inModal;
     }
 
     if (openInNewPane) {
@@ -276,10 +350,99 @@ function activateElement(
                 metaKey: true,
             }),
         );
-        return;
+        return !inModal;
     }
 
+    el.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+    );
+    el.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, cancelable: true }),
+    );
     el.click();
+    if (inModal) {
+        el.blur();
+        const focused = activeDocument.activeElement as HTMLElement | null;
+        if (focused && el.contains(focused)) {
+            focused.blur();
+        }
+    }
+    return !inModal;
+}
+
+function hintOpenNew(app: App, target: HintTarget): boolean {
+    if (target.targetType === 'link' || target.targetType === 'pane') {
+        return hintActivate(app, target, true);
+    }
+    return hintActivate(app, target, false);
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch {
+        const textarea = activeDocument.createEl('textarea', {
+            cls: 'vim-motions-clipboard-helper',
+        });
+        textarea.value = text;
+        activeDocument.body.appendChild(textarea);
+        textarea.select();
+        try {
+            activeDocument.execCommand('copy');
+        } finally {
+            textarea.remove();
+        }
+        return true;
+    }
+}
+
+function hintYank(_app: App, target: HintTarget): boolean {
+    const el = target.element as HTMLElement;
+    let text = '';
+
+    if (target.targetType === 'link' && target.href) {
+        text = target.href;
+    } else if (target.targetType === 'tab' || target.targetType === 'pane') {
+        const view = target.leaf?.view;
+        text =
+            view?.getDisplayText?.() ??
+            (view instanceof MarkdownView ? view.file?.path : '') ??
+            '';
+    } else {
+        text = el.ariaLabel || el.title || el.textContent || '';
+    }
+
+    const trimmed = text.trim();
+    if (trimmed.length === 0) {
+        new Notice('Nothing to copy');
+        return true;
+    }
+
+    void copyToClipboard(trimmed).then((ok) => {
+        if (ok) {
+            const preview =
+                trimmed.length > 120 ? `${trimmed.slice(0, 117)}...` : trimmed;
+            new Notice(`Copied: ${preview}`);
+        } else {
+            new Notice('Failed to copy');
+        }
+    });
+
+    return !el.closest('.modal-container');
+}
+
+function hintClose(_app: App, target: HintTarget): boolean {
+    if (
+        (target.targetType === 'tab' || target.targetType === 'pane') &&
+        target.leaf?.view
+    ) {
+        target.leaf.detach();
+        return false;
+    }
+
+    new Notice('Cannot close this element');
+    return false;
 }
 
 function refocusEditor(app: App): void {
@@ -296,10 +459,39 @@ export function createHintModeAction(
     hintChars?: string,
     fontSize?: () => number,
 ): () => void {
-    return () => {
+    return createHintActions(app, hintChars, fontSize).activate;
+}
+
+function createHintAction(
+    app: App,
+    actionName: 'activate' | 'openNew' | 'yank' | 'close',
+    hintChars?: string,
+    fontSize?: () => number,
+): (count?: number) => void {
+    const actions = {
+        activate: (app: App, target: HintTarget) =>
+            hintActivate(app, target, false),
+        openNew: hintOpenNew,
+        yank: hintYank,
+        close: hintClose,
+    } as const;
+
+    const run = (count?: number, showNotice: boolean = true): void => {
         const allElements = activeDocument.querySelectorAll(TARGET_SELECTOR);
-        const visible = Array.from(allElements).filter(isVisible);
-        if (visible.length === 0) return;
+        const visible = Array.from(allElements)
+            .filter(isVisible)
+            .filter(
+                (el) =>
+                    !el.closest('.checkbox-container') ||
+                    el.classList.contains('checkbox-container'),
+            )
+            .filter((el) => !el.classList.contains('is-measuring'));
+        if (visible.length === 0) {
+            if (showNotice) {
+                new Notice('No hint targets found');
+            }
+            return;
+        }
 
         const labels = generateHintLabels(visible.length, hintChars);
         const container = createDiv({ cls: 'vim-motions-hint-overlay' });
@@ -307,25 +499,66 @@ export function createHintModeAction(
         container.style.setProperty('--vim-motions-hint-font-size', `${fs}px`);
         activeDocument.body.appendChild(container);
 
-        const targets: HintTarget[] = visible.map((el, i) => ({
-            element: el,
-            label: labels[i] ?? '',
-            labelEl: createSpan(),
-        }));
+        const targets: HintTarget[] = visible.map((el, i) => {
+            const classified = classifyTarget(el, app);
+            return {
+                element: el,
+                label: labels[i] ?? '',
+                labelEl: createSpan(),
+                targetType: classified.targetType,
+                leaf: classified.leaf,
+                href: classified.href,
+            };
+        });
 
         showHints(targets, container);
 
         void waitForHintKey(targets).then((result) => {
             container.remove();
-            if (result.target) {
-                const openInNewPane = result.ctrlKey || result.metaKey;
-                activateElement(
-                    app,
-                    result.target.element as HTMLElement,
-                    openInNewPane,
-                );
+            if (!result.target) return;
+            if (!result.target.element.isConnected) {
+                new Notice('Target is no longer available');
+                return;
             }
-            refocusEditor(app);
+
+            let action = actions[actionName];
+            if (
+                actionName === 'activate' &&
+                (result.ctrlKey || result.metaKey)
+            ) {
+                action = actions.openNew;
+            }
+
+            const shouldRefocus = action(app, result.target);
+            if (shouldRefocus) {
+                refocusEditor(app);
+            }
+
+            if (count && count > 1) {
+                window.requestAnimationFrame(() => {
+                    run(count - 1, false);
+                });
+            }
         });
+    };
+
+    return (count?: number) => run(count ?? 1);
+}
+
+export function createHintActions(
+    app: App,
+    hintChars?: string,
+    fontSize?: () => number,
+): {
+    activate: (count?: number) => void;
+    openNew: (count?: number) => void;
+    yank: (count?: number) => void;
+    close: (count?: number) => void;
+} {
+    return {
+        activate: createHintAction(app, 'activate', hintChars, fontSize),
+        openNew: createHintAction(app, 'openNew', hintChars, fontSize),
+        yank: createHintAction(app, 'yank', hintChars, fontSize),
+        close: createHintAction(app, 'close', hintChars, fontSize),
     };
 }

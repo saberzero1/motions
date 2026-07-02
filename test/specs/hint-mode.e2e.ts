@@ -1,7 +1,8 @@
 import { browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { sendVimEscape } from '../helpers';
+import { PAUSE, sendVimEscape } from '../helpers';
 function getVimHandle() {
     return browser.executeObsidian(({ app, obsidian }) => {
         const Vim = (
@@ -64,6 +65,46 @@ function triggerHintMode() {
     }>;
 }
 
+async function loadTwoTabs(): Promise<void> {
+    await obsidianPage.loadWorkspaceLayout({
+        main: {
+            id: 'tabs-root',
+            type: 'split',
+            children: [
+                {
+                    id: 'tab-group',
+                    type: 'tabs',
+                    children: [
+                        {
+                            id: 'tab-1',
+                            type: 'leaf',
+                            state: {
+                                type: 'markdown',
+                                state: {
+                                    file: 'Welcome.md',
+                                    mode: 'source',
+                                },
+                            },
+                        },
+                        {
+                            id: 'tab-2',
+                            type: 'leaf',
+                            state: {
+                                type: 'graph',
+                                state: {},
+                            },
+                        },
+                    ],
+                },
+            ],
+            direction: 'vertical',
+        },
+        active: 'tab-2',
+        lastOpenFiles: [],
+    });
+    await browser.pause(PAUSE.OBSIDIAN_LOAD);
+}
+
 describe('Hint mode', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -72,6 +113,20 @@ describe('Hint mode', function () {
     });
 
     afterEach(async function () {
+        // Dismiss any active hint overlay by dispatching a real Escape
+        // KeyboardEvent to the document. This triggers the capture-phase
+        // listener in waitForHintKey() which cleans itself up.
+        // sendVimEscape() only reaches the vim engine, not the DOM listener.
+        await browser.executeObsidian(() => {
+            activeDocument.dispatchEvent(
+                new KeyboardEvent('keydown', {
+                    key: 'Escape',
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+        });
+        await browser.pause(200);
         await sendVimEscape();
         await browser.pause(200);
         await browser.executeObsidian(() => {
@@ -103,8 +158,7 @@ describe('Hint mode', function () {
         });
 
         it('Escape should dismiss the hint overlay', async function () {
-            const result = await triggerHintMode();
-            expect(result).toHaveProperty('hasOverlay', true);
+            await triggerHintMode();
 
             await browser.pause(100);
             await browser.keys(['Escape']);
@@ -400,6 +454,34 @@ describe('Hint mode', function () {
             });
         });
 
+        it('modifier should upgrade activate to open-new', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+
+            const firstLabel = (await browser.executeObsidian(() => {
+                const label = activeDocument.querySelector(
+                    '.vim-motions-hint-label',
+                );
+                return label?.textContent ?? '';
+            })) as string;
+
+            expect(firstLabel.length).toBeGreaterThanOrEqual(1);
+
+            for (const ch of firstLabel) {
+                await browser.keys([Key.Ctrl, ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const afterActivation = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                return { overlayGone: !overlay };
+            })) as { overlayGone: boolean };
+            expect(afterActivation.overlayGone).toBe(true);
+        });
+
         it('Obsidian command show-hint-labels should be registered', async function () {
             const hasCommand = (await browser.executeObsidian(({ app }) => {
                 const commands = (
@@ -439,6 +521,173 @@ describe('Hint mode', function () {
             expect(style).not.toHaveProperty('error');
             expect(style.pointerEvents).toBe('none');
             expect(style.position).toBe('absolute');
+        });
+    });
+
+    describe('Tier 3: Vimium-style actions (non-editor context)', function () {
+        beforeEach(async function () {
+            await loadTwoTabs();
+        });
+
+        it('f from graph view should show hint overlay', async function () {
+            await browser.keys(['f']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+
+            expect(hasOverlay).toBe(true);
+        });
+
+        it('F from graph view should show hint overlay', async function () {
+            await browser.keys(['F']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+
+            expect(hasOverlay).toBe(true);
+        });
+
+        it('yf from graph view should show hint overlay', async function () {
+            await browser.keys(['y']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['f']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const labelCount = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                return (
+                    overlay?.querySelectorAll('.vim-motions-hint-label')
+                        .length ?? 0
+                );
+            })) as number;
+
+            expect(labelCount).toBeGreaterThan(0);
+        });
+
+        it('df from graph view should show hint overlay and dismiss on label', async function () {
+            await browser.keys(['d']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['f']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const overlayInfo = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return { hasOverlay: false, labelCount: 0 };
+                const labels = overlay.querySelectorAll(
+                    '.vim-motions-hint-label',
+                );
+                return { hasOverlay: true, labelCount: labels.length };
+            })) as { hasOverlay: boolean; labelCount: number };
+
+            expect(overlayInfo.hasOverlay).toBe(true);
+            expect(overlayInfo.labelCount).toBeGreaterThan(0);
+
+            const firstLabel = (await browser.executeObsidian(() => {
+                const label = activeDocument.querySelector(
+                    '.vim-motions-hint-label',
+                );
+                return label?.textContent ?? '';
+            })) as string;
+
+            for (const ch of firstLabel) {
+                await browser.keys([ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const afterActivation = (await browser.executeObsidian(() => {
+                return !activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+            expect(afterActivation).toBe(true);
+        });
+
+        it('Escape should dismiss hint overlay from f', async function () {
+            await browser.keys(['f']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await browser.keys(['Escape']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const overlayGone = (await browser.executeObsidian(() => {
+                return !activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+
+            expect(overlayGone).toBe(true);
+        });
+
+        it('yg from graph view should reset without overlay', async function () {
+            await browser.keys(['y']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+
+            expect(hasOverlay).toBe(false);
+        });
+    });
+
+    describe('Command registration', function () {
+        it('Obsidian command hint-open-new-pane should be registered', async function () {
+            const hasCommand = (await browser.executeObsidian(({ app }) => {
+                const commands = (
+                    app as unknown as {
+                        commands: {
+                            commands: Record<string, unknown>;
+                        };
+                    }
+                ).commands.commands;
+                return 'vim-motions:hint-open-new-pane' in commands;
+            })) as boolean;
+            expect(hasCommand).toBe(true);
+        });
+
+        it('Obsidian command hint-yank should be registered', async function () {
+            const hasCommand = (await browser.executeObsidian(({ app }) => {
+                const commands = (
+                    app as unknown as {
+                        commands: {
+                            commands: Record<string, unknown>;
+                        };
+                    }
+                ).commands.commands;
+                return 'vim-motions:hint-yank' in commands;
+            })) as boolean;
+            expect(hasCommand).toBe(true);
+        });
+
+        it('Obsidian command hint-close should be registered', async function () {
+            const hasCommand = (await browser.executeObsidian(({ app }) => {
+                const commands = (
+                    app as unknown as {
+                        commands: {
+                            commands: Record<string, unknown>;
+                        };
+                    }
+                ).commands.commands;
+                return 'vim-motions:hint-close' in commands;
+            })) as boolean;
+            expect(hasCommand).toBe(true);
         });
     });
 });

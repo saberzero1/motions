@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Vimium-style hint actions in non-editor views** — hint mode now supports multiple actions via a key-tree dispatch when a non-editor view (graph, PDF, canvas, etc.) is focused. `f` activates (click/focus), `F` opens in a new pane, `yf` yanks the target's URL or text to clipboard, `df` closes the target tab or pane. Count prefix works: `3f` activates three targets sequentially. In editor context, `<leader><leader>h` (unchanged) triggers hints with Ctrl/Cmd modifier during label selection upgrading to open-in-new-pane.
+    - `src/ui/hint-mode.ts`: refactored into action-dispatch architecture with `HintTarget` type classification (`link`/`pane`/`tab`/`button`/`input`/`generic`), four action functions (`hintActivate`/`hintOpenNew`/`hintYank`/`hintClose`), `createHintActions()` factory, count support via `requestAnimationFrame` recursion, modifier-based action upgrade, `el.isConnected` validation, clipboard fallback
+    - `src/workspace/global-key-handler.ts`: added `Y_PENDING`/`D_PENDING` states to `SeqState` enum, `hintActions` constructor parameter, `f`/`F`/`y`/`d` dispatch in IDLE and COUNT states, `handleYPending`/`handleDPending` handlers, `chordText()` updates
+    - `src/main.ts`: `registerHintMode()` → `registerHintActions()`, `hintModeAction` → `hintActions` field, stale hotkey closure fix (indirection pattern), `reloadFeatures()` reset, three new Obsidian commands
+    - New Obsidian commands: `vim-motions:hint-open-new-pane`, `vim-motions:hint-yank`, `vim-motions:hint-close`
+    - E2E tests: 10 new tests covering non-editor `f`/`F`/`yf`/`df`, modifier upgrade, escape, invalid sequence reset, command registration
+
+### Fixed
+
+- **Global key handler intercepts navigation keys in Obsidian settings modal** — `j`/`k`/`g`/`z`/`:` and other navigation keys were consumed by GlobalKeyHandler when the settings modal was open. Navigation keys are now suppressed when `.modal-container` is detected in the DOM via `isModalOpen()`. Hint actions (`f`/`F`/`yf`/`df`) still work in modals — they use a separate `shouldInterceptHints()` gate that does not check for modals.
+- **Hint mode labels re-trigger instead of selecting label characters** — pressing `f` to activate hint mode, then typing a label character that is also `f`, would re-trigger hint mode via GlobalKeyHandler instead of being captured by the label selection handler. Fixed by adding an `isHintModeActive()` flag (exported from `hint-mode.ts`) that makes GlobalKeyHandler bail entirely during label selection.
+- **Settings toggles not responding to hint activation** — Obsidian's toggle controls (`.checkbox-container`, a `<label>` element) required `pointerdown`/`pointerup` events before `click` to trigger the toggle handler. Added full pointer event sequence dispatch for generic element activation.
+- **Settings dropdowns cycling to wrong element on Obsidian 1.13+** — Obsidian 1.13+ adds hidden `<select class="dropdown is-measuring">` shadow copies of every dropdown for layout measurement. These shadow selects have only 1 option and are positioned at the same coordinates as the real dropdown, causing hint labels to sometimes target the measurement copy. Fixed by filtering out elements with the `is-measuring` class during target discovery.
+- **Settings controls require Escape before re-activating hints** — after activating a toggle or cycling a dropdown in the settings modal, focus remained on the control element, preventing GlobalKeyHandler from intercepting `f` for the next hint activation. Fixed by blurring the activated element (and any focused child) after activation when inside a `.modal-container`.
+- **Dropdowns only focus but don't change value** — `<select>` elements cannot be programmatically opened in Chromium. Changed activation behavior to cycle to the next option value and dispatch a `change` event, giving immediate feedback instead of requiring manual Arrow key interaction.
+- **Broadened form control selectors** — `STANDARD_SELECTORS` now includes `input:not([type="hidden"]):not([disabled])`, `textarea:not([disabled])`, and `select:not([disabled])` to ensure all visible form controls (text inputs, search bars, dropdowns) receive hint labels regardless of their Obsidian-specific parent structure. Removed redundant Obsidian-specific selectors that were subsets of the broader standard selectors. Changed `.setting-item-control .checkbox-container` to `.checkbox-container` to match toggles rendered by Obsidian 1.13+'s declarative settings API outside the traditional `.setting-item-control` parent.
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: added "Hint mode actions" section documenting the vimium-style key-tree, context split, modifier upgrade, target classification, settings gating, modal behavior, clipboard fallback, and stale target handling
+- `KNOWN_LIMITATIONS.md`: updated "Global workspace navigation" supported keys to include hint actions (`f`/`F`/`yf`/`df`)
+- `README.md`: updated hint mode section with vimium-style actions, non-editor key table, and new Obsidian commands
+- `README.md`: updated workspace keyboard control table with hint action keys
+
 ## [0.26.0] - 2026-07-02
 
 ### Fixed
