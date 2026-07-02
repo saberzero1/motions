@@ -1452,6 +1452,18 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 2, ch: 0 },
                 keys: '\x16kkIX\x1b',
             },
+            {
+                name: 'CTRL-V $ Escape cursor position',
+                content: 'abcdef\ngh\nijklmnop',
+                cursor: { line: 0, ch: 1 },
+                keys: '\x16jj$\x1b',
+            },
+            {
+                name: 'CTRL-V $ delete to EOL',
+                content: 'abc\nde\nfghij',
+                cursor: { line: 0, ch: 1 },
+                keys: '\x16jj$d',
+            },
         ],
     },
     {

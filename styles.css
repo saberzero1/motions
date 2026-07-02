@@ -11,6 +11,13 @@
     color: var(--text-normal);
 }
 
+/* --- Visual line mode selection (theme-aware override for fork's baseTheme) --- */
+
+.cm-editor .cm-line.cm-vim-linewise-selection {
+    background-color: var(--text-selection, rgba(0, 100, 200, 0.2));
+    color: inherit;
+}
+
 /* --- Status bar --- */
 
 .vim-motions-hidden {

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Visual line mode (V) highlight doesn't match Obsidian theme** — the linewise selection highlight used hardcoded rgba colors via the fork's `EditorView.baseTheme`, which didn't adapt to Obsidian themes. The fork's `&light`/`&dark` CSS variants never activated because Obsidian doesn't add `cm-dark`/`cm-light` classes to `.cm-editor`. Added a CSS override in `styles.css` using `var(--text-selection)` (Obsidian's accent-derived selection color) at specificity 0-3-0, which beats both the fork's base theme (0-2-0) and Obsidian's code block background (0-2-1) without `!important`. ([#38](https://github.com/saberzero1/motions/issues/38))
+- **Visual line mode highlight invisible inside code blocks** — the linewise selection `Decoration.line()` class competed with Obsidian's `HyperMD-codeblock-bg` class on the same `.cm-line` element. The code block background (applied at specificity 0-2-1 via `.cm-s-obsidian div.HyperMD-codeblock-bg`) won the specificity fight. Fixed by the same CSS override above — specificity 0-3-0 beats 0-2-1. ([#38](https://github.com/saberzero1/motions/issues/38))
+- **Visual block select (Ctrl-V) on EOL displaces cursor rightward** — `makeCmSelection` in the fork's block mode branch added `+1` to `toCh` for inclusive selection without per-line clamping. When `$` (end-of-line) set `toCh` to the actual line length, `toCh + 1` pushed the cursor one position past the last character. Fixed by clamping `toCh` and `fromCh` to each line's length inside the per-line loop, since each line in a block selection has a different length. The `$` motion's `Infinity` return for `ch` is preserved upstream — clamping only happens at the selection-building stage. ([#38](https://github.com/saberzero1/motions/issues/38))
+- **Formatting mark transaction filter corrupts visual selections** — the `EditorState.transactionFilter` in `formatting-mark-fix.ts` snapped cursor positions past formatting marks (`**`, `*`, `` ` ``, `~~`, `==`) for all selection changes, including visual mode selections. When extending a visual selection across formatted text in Live Preview, the filter's `snapRange` function modified the selection head to a formatting mark boundary, causing the selection to jump or collapse unexpectedly. Fixed by adding a `range.empty` guard that skips snapping for non-empty (visual) selections — the formatting mark correction is only needed for normal-mode cursor movement. ([#38](https://github.com/saberzero1/motions/issues/38))
+    - Fork: `makeCmSelection` block mode now clamps `toCh`/`fromCh` per-line via `lineLength(cm, top + i)`
+    - Plugin: `formatting-mark-fix.ts` skips `snapRange` when `range.empty` is false
+    - Plugin: `styles.css` adds `.cm-editor .cm-line.cm-vim-linewise-selection` override with `var(--text-selection)` fallback chain
+- **Visual block `$` delete cursor deviation** — `<C-v>jj$d` leaves cursor at `ch:1` instead of Neovim's `ch:0` after deleting to EOL. This is a pre-existing cursor-after-block-delete positioning issue in the fork (content is correct, only cursor position differs). Registered as a known deviation in `test/neovim/deviations.ts`.
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: updated "Formatting mark cursor correction in Live Preview" section to document the visual mode bypass
+- `KNOWN_LIMITATIONS.md`: updated "Block visual mode" section test coverage count (13 → 15 golden tests)
+- `DIFFERENCES.md` (fork): added "Block visual EOL cursor clamping" section documenting `makeCmSelection` per-line clamp
+- `README.md`: updated recommended setup to mention theme-aligned visual line highlighting
+
 ## [0.25.0] - 2026-07-02
 
 ### Fixed

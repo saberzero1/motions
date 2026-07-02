@@ -54,6 +54,14 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
     },
 
     {
+        testPattern: 'CTRL-V $ delete to EOL',
+        description:
+            'Cursor lands at ch:1 instead of ch:0 after block delete to EOL',
+        reason: 'Cursor repositioning after block delete does not account for shortened line',
+        fields: ['cursor'],
+    },
+
+    {
         testPattern: 'N after / search should go to previous match',
         description:
             'N after /word search: cursor stays at (5,5) instead of moving to (5,0). CM6 search panel timing prevents reliable automated dispatch of /pattern followed by N.',

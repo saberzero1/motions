@@ -552,7 +552,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 - **Correct cursor positioning in Live Preview** — a transaction filter corrects cursor placement near formatting marks (`*`, `**`, `` ` ``, `~~`, `==`) in Live Preview, preventing the cursor from snapping to delimiter boundaries when navigating into formatted content
 - **Async motion support** enabling native operator-pending easymotion (`d` + easymotion, `c` + easymotion, `y` + easymotion)
 - **Improved vim state reliability** — default keymaps are protected from accidental removal, partial key prefixes reset on focus loss, and async motion races are guarded by generation tracking
-- **Theme-aligned cursor styling** using Obsidian's CSS variables (`--interactive-accent`)
+- **Theme-aligned cursor and selection styling** using Obsidian's CSS variables (`--interactive-accent` for cursors, `--text-selection` for visual line highlights)
 
 The plugin also works with built-in vim mode enabled — it extends whatever vim engine is active. But the fork provides a more accurate Vim experience.
 

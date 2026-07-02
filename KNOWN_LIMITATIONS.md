@@ -429,6 +429,8 @@ The filter walks the Lezer syntax tree (`syntaxTree(state).iterate()`) to identi
 
 When a formatting mark extends to the end of a line (e.g. `**he**` with no trailing content), the filter does not snap rightward past the mark — there is no valid cursor position beyond it on that line. The cursor stabilizes at the mark boundary instead of oscillating. When the cursor did not actually move (e.g. `l` at end of line is a no-op), the filter skips adjustment entirely.
 
+The filter only applies to empty (cursor) selections. Non-empty selections (visual mode) are skipped entirely — the `range.empty` guard ensures that `v`, `V`, and `<C-v>` selections across formatted text are not corrupted by formatting mark snapping. ([#38](https://github.com/saberzero1/motions/issues/38))
+
 **Known limitation: `ci*` in Live Preview** — the `c` (change) operator deletes text and enters insert mode at the deletion point. If the deletion point falls inside a collapsed formatting mark region, the insert cursor may land at the wrong position. `di*` (delete without entering insert mode) works correctly. This limitation is deferred to a future widget-based approach.
 
 The previous approach (v0.22.0) used `RangeSetBuilder.prototype.add` monkey-patching to suppress Obsidian's replace decorations globally, with CSS `color: transparent` to hide the now-visible marks. This was replaced because the monkey-patching conflicted with obsidian-latex-suite (issue #32, causing phantom text insertion) and the CSS workaround didn't fully cover all formatting mark types (issue #33). The `'always'` mode (show marks on all lines) was removed because it required monkey-patching to implement.
@@ -576,7 +578,7 @@ CM6's native multi-cursor support means typed text appears on all lines in real-
 
 Block visual operations that were already working: delete (`d`), yank (`y`), paste (`p`/`P`), indent (`>`/`<`), replace (`r`), case toggle (`~`), corner swap (`o`/`O`). Now also working: insert (`I`/`A`), change (`c`/`C`).
 
-**Test coverage**: `test/specs/vim-builtin/visual-block-golden.e2e.ts` — 13 golden Neovim comparison tests covering block insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, and upward selection.
+**Test coverage**: `test/specs/vim-builtin/visual-block-golden.e2e.ts` — 15 golden Neovim comparison tests covering block insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, upward selection, `$` escape cursor position, and `$` delete to EOL.
 
 ## Intentionally not supported
 

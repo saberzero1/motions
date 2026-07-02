@@ -74,6 +74,7 @@ export function createFormattingTransactionFilter(): Extension {
 
             let adjusted = false;
             const newRanges = newSel.ranges.map((range, i) => {
+                if (!range.empty) return range;
                 const oldHead =
                     i < oldSel.ranges.length
                         ? oldSel.ranges[i]!.head

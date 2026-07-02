@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     vimKeys,
+    vimRawKeys,
     getCursorPos,
     getEditorValue,
     getSelection,
@@ -122,6 +123,29 @@ describe('Formatting mark cursor fix (transaction filter)', function () {
             await vimKeys('l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l', 'l');
             await vimKeys('h', 'h', 'h', 'h', 'h', 'h', 'h', 'h', 'h', 'h');
             expect(await getEditorValue()).toBe(content);
+        });
+    });
+
+    describe('visual mode should bypass formatting mark snapping', function () {
+        it('v + motion across bold should not snap selection head', async function () {
+            await setupEditor('Hello **bold** world', { line: 0, ch: 0 });
+            await vimKeys('v');
+            await browser.pause(PAUSE.MODE_SWITCH);
+            for (let i = 0; i < 12; i++) {
+                await browser.keys(['l']);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE - PAUSE.KEY_GAP);
+            const sel = await getSelection();
+            expect(sel.length).toBe(13);
+            expect(await getEditorValue()).toBe('Hello **bold** world');
+        });
+
+        it('V + j + d across lines with formatting marks should delete both lines', async function () {
+            const content = '**bold line**\n*italic line*\nnormal line';
+            await setupEditor(content, { line: 0, ch: 0 });
+            await vimRawKeys('Vjd');
+            expect(await getEditorValue()).toBe('normal line');
         });
     });
 
