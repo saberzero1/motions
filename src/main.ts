@@ -432,6 +432,8 @@ export default class VimMotionsPlugin extends Plugin {
 
         setFormattingMarkMode(this.settings.formattingMarkMode ?? 'cursor');
         this.registerEditorExtension(createFormattingTransactionFilter());
+
+        this.app.workspace.trigger('parse-style-settings');
     }
 
     reloadFeatures(): void {
@@ -829,6 +831,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration?.unregisterAll();
         this.registration = null;
         uninstallVimBridge();
+        this.app.workspace.trigger('parse-style-settings');
     }
 
     async loadSettings() {

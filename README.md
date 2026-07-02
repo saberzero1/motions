@@ -313,7 +313,7 @@ Navigate the entire Obsidian interface without a mouse. Press `<leader><leader>h
 - **Neovim defaults** — `Y` yanks to end of line (`y$`) and `Q` replays last recorded macro (`@@`), matching Neovim's defaults instead of CM Vim's legacy behavior.
 - **Vim mode status bar** — shows NORMAL / INSERT / VISUAL / REPLACE in the status bar. Customizable per-mode text (including emoji) via settings.
 - **Vim chord display** — shows pending keystrokes (e.g. `2d`, `gq`) in the status bar as you type a multi-key command.
-- **Powerline-style status bar** — optional colored mode indicator with per-mode background colors and a triangular separator. No special fonts required. Override colors via CSS custom properties (`--vim-pl-normal-bg`, etc.).
+- **Powerline-style status bar** — optional colored mode indicator with per-mode background colors and a triangular separator. No special fonts required. Override colors via CSS custom properties (`--vim-pl-normal-bg`, etc.) or via the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin (separate light/dark mode defaults).
 - **Which-key hints** — shows available key continuations in a popup after a short delay. Configurable: off, leader key only, or all partial keys. In "all" mode, pressing `d` shows available motions/text objects, `g` shows g-prefixed commands, etc. Leader bindings can be grouped by prefix (like Neovim's which-key plugin) — pressing `<leader>` shows `t` → `Table (+11)` instead of listing all table commands. Drill into a group by pressing its key. Grouping mode (grouped/flat) and custom group labels are configurable in settings.
 - **Ex command completion** — Tab-complete ex commands as you type in the `:` command line.
 - **Macro recording indicator** — shows RECORDING @{register} in the status bar when recording a macro.
@@ -482,7 +482,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 - Hint mode label characters (customizable)
 - Hint mode global hotkey (press-to-record, works in modals)
 - Label font size (10–20px, default: 14) — shared by EasyMotion and hint mode
-- Label colors (via CSS: `--vim-motions-em-bg`/`em-fg` for EasyMotion, `--vim-motions-hint-bg`/`hint-fg` for hint mode)
+- Label colors (via CSS: `--vim-motions-em-bg`/`em-fg` for EasyMotion, `--vim-motions-hint-bg`/`hint-fg` for hint mode; also configurable via [Style Settings](https://github.com/obsidian-community/obsidian-style-settings))
 
 **Status bar**
 

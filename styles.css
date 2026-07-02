@@ -64,15 +64,6 @@
 /* --- Powerline-style status bar --- */
 
 .vim-motions-powerline {
-    --vim-pl-normal-bg: var(--color-blue, #7daea3);
-    --vim-pl-normal-fg: var(--text-on-accent, #1d2021);
-    --vim-pl-insert-bg: var(--color-green, #a9b665);
-    --vim-pl-insert-fg: var(--text-on-accent, #1d2021);
-    --vim-pl-visual-bg: var(--color-orange, #d8a657);
-    --vim-pl-visual-fg: var(--text-on-accent, #1d2021);
-    --vim-pl-replace-bg: var(--color-red, #ea6962);
-    --vim-pl-replace-fg: var(--text-on-accent, #1d2021);
-
     padding: 0 8px;
     margin-top: -4px;
     margin-bottom: -4px;
@@ -91,35 +82,39 @@
 }
 
 .vim-motions-powerline[data-vim-mode='normal'] {
-    color: var(--vim-pl-normal-fg);
-    background-color: var(--vim-pl-normal-bg);
+    color: var(--vim-pl-normal-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-normal-bg, var(--color-blue, #7daea3));
 }
 .vim-motions-powerline[data-vim-mode='normal']::after {
-    border-color: transparent transparent transparent var(--vim-pl-normal-bg);
+    border-color: transparent transparent transparent
+        var(--vim-pl-normal-bg, var(--color-blue, #7daea3));
 }
 
 .vim-motions-powerline[data-vim-mode='insert'] {
-    color: var(--vim-pl-insert-fg);
-    background-color: var(--vim-pl-insert-bg);
+    color: var(--vim-pl-insert-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-insert-bg, var(--color-green, #a9b665));
 }
 .vim-motions-powerline[data-vim-mode='insert']::after {
-    border-color: transparent transparent transparent var(--vim-pl-insert-bg);
+    border-color: transparent transparent transparent
+        var(--vim-pl-insert-bg, var(--color-green, #a9b665));
 }
 
 .vim-motions-powerline[data-vim-mode='visual'] {
-    color: var(--vim-pl-visual-fg);
-    background-color: var(--vim-pl-visual-bg);
+    color: var(--vim-pl-visual-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-visual-bg, var(--color-orange, #d8a657));
 }
 .vim-motions-powerline[data-vim-mode='visual']::after {
-    border-color: transparent transparent transparent var(--vim-pl-visual-bg);
+    border-color: transparent transparent transparent
+        var(--vim-pl-visual-bg, var(--color-orange, #d8a657));
 }
 
 .vim-motions-powerline[data-vim-mode='replace'] {
-    color: var(--vim-pl-replace-fg);
-    background-color: var(--vim-pl-replace-bg);
+    color: var(--vim-pl-replace-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-replace-bg, var(--color-red, #ea6962));
 }
 .vim-motions-powerline[data-vim-mode='replace']::after {
-    border-color: transparent transparent transparent var(--vim-pl-replace-bg);
+    border-color: transparent transparent transparent
+        var(--vim-pl-replace-bg, var(--color-red, #ea6962));
 }
 
 .vim-motions-easymotion {
@@ -340,3 +335,108 @@
 .vim-motions-easymotion-label-second {
     opacity: 0.7;
 }
+
+/* @settings
+
+name: Vim Motions
+id: vim-motions
+settings:
+    -
+        id: powerline-colors
+        title: Powerline status bar
+        description: Background and text colors for each Vim mode in the powerline status bar.
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: vim-pl-normal-bg
+        title: Normal mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#4878BE'
+        default-dark: '#7daea3'
+    -
+        id: vim-pl-normal-fg
+        title: Normal mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-insert-bg
+        title: Insert mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#49A54D'
+        default-dark: '#a9b665'
+    -
+        id: vim-pl-insert-fg
+        title: Insert mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-visual-bg
+        title: Visual mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#D4960A'
+        default-dark: '#d8a657'
+    -
+        id: vim-pl-visual-fg
+        title: Visual mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-replace-bg
+        title: Replace mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#D44242'
+        default-dark: '#ea6962'
+    -
+        id: vim-pl-replace-fg
+        title: Replace mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: label-colors
+        title: Jump labels
+        description: Colors for EasyMotion and hint mode labels.
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: vim-motions-em-bg
+        title: EasyMotion label background
+        type: variable-themed-color
+        format: hex
+        default-light: '#705dcf'
+        default-dark: '#7f6df2'
+    -
+        id: vim-motions-em-fg
+        title: EasyMotion label text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#ffffff'
+    -
+        id: vim-motions-hint-bg
+        title: Hint mode label background
+        type: variable-themed-color
+        format: hex
+        default-light: '#705dcf'
+        default-dark: '#7f6df2'
+    -
+        id: vim-motions-hint-fg
+        title: Hint mode label text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#ffffff'
+*/

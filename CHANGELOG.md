@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Style Settings integration** — powerline status bar colors and jump label colors are now customizable via the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin. The `styles.css` file includes a `/* @settings */` block exposing 12 color pickers with separate light/dark mode defaults: powerline background and text for each vim mode (normal, insert, visual, replace), EasyMotion label background/text, and hint mode label background/text. The plugin triggers `parse-style-settings` on load/unload so Style Settings discovers the configuration automatically. Users without Style Settings are unaffected — the existing CSS variable fallback chain (`--vim-pl-*-bg` → Obsidian theme variable → hardcoded fallback) continues to work identically. ([#37](https://github.com/saberzero1/motions/issues/37))
 - **Global workspace navigation** — workspace keyboard commands (`<C-w>h/j/k/l`, `gt/gT`, `H/L`, `:q`, scroll keys, etc.) now work across ALL Obsidian views, not just markdown editors. When a non-editor view (PDF, graph, canvas, image, backlinks, etc.) is focused, a capture-phase keydown handler intercepts workspace-relevant keystrokes and dispatches them via Obsidian's command system. When a CodeMirror editor is focused, codemirror-vim handles everything as before — no regression. ([#35](https://github.com/saberzero1/motions/issues/35))
     - **Navigation**: `<C-w>h/j/k/l` (focus pane), `<C-w>v/s` (split), `<C-w>c/q` (close), `<C-w>o` (close others), `gt/gT` (next/prev tab), `Ngt` (Nth tab), `H/L` (prev/next tab), `Ctrl-o/Ctrl-i` (history back/forward)
     - **Scrolling**: `j/k` (line scroll), `gg/G` (top/bottom), `Ctrl-d/u` (half page), `Ctrl-f/b` (full page), with count prefix support (`5j` = 5 lines)
@@ -39,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CHANGELOG.md`: this entry
 - `KNOWN_LIMITATIONS.md`: added "Global workspace navigation" section documenting Ctrl-d/f/b Obsidian hotkey prerequisite and scroll target limitations; updated "Vimrc hot-reload" section to note that vim engine settings now hot-reload via Settings UI
 - `README.md`: updated workspace keyboard control section with global navigation commands, scrolling keys, and standalone ex command line; added hotkey unbinding note for Ctrl-d/f/b; updated Vim engine settings section to note immediate hot-reload
+- `README.md`: updated powerline status bar description to mention Style Settings support; updated label colors description to mention Style Settings
+- `styles.css`: added `/* @settings */` block with Style Settings variable bindings; powerline CSS variables moved from local definitions to inline fallbacks for Style Settings compatibility
 
 ## [0.24.0] - 2026-07-01
 
