@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-07-03
+
+### Fixed
+
+- **Custom vimrc path setting missing from Obsidian 1.13+ settings** — the "Custom vimrc path" text input was present in the legacy `display()` rendering but missing from the `getSettingDefinitions()` declarative API. On Obsidian 1.13+, users could not see or configure the custom vimrc path in settings. Added the `vimrcPath` text control to the "Vimrc & key bindings" group in `getSettingDefinitions()`, with `aliases` for settings search discoverability and a `disabled` predicate gated on `enableVimrc`. ([#34](https://github.com/saberzero1/motions/issues/34))
+
 ## [0.27.0] - 2026-07-03
 
 ### Added
