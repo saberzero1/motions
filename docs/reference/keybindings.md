@@ -7,6 +7,8 @@ tags:
     - cheat-sheet
 ---
 
+# Keybinding reference
+
 ## Markdown text objects
 
 Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).

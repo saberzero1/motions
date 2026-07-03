@@ -44,7 +44,7 @@ Press `<leader><leader>w` (default leader is `\`) to see EasyMotion labels on ev
 
 - `<leader><leader>f{char}` — find a character forward
 - `<leader><leader>j` — jump to a line below
-- `d<leader><leader>w` — delete to an EasyMotion target (operator-pending)
+- `d` + `<leader><leader>w` — delete to an EasyMotion target (operator-pending)
 
 ## 5. Navigate the workspace
 

@@ -25,8 +25,10 @@ The `<C-w>` prefix allows for intuitive movement between splits. Use `<C-w>h`, `
 
 Navigate your notes by following links with Vim commands. These commands use Obsidian's internal link resolver to find the target file.
 
-- `gd` or `gD`: Follow the link under the cursor in the current pane.
-- `<C-w>gd` or `<C-w>gD`: Open the link under the cursor in a new vertical split.
+- `gd`: Follow the link under the cursor in the current pane.
+- `gD`: Open the link under the cursor in a new tab.
+- `<C-w>gd`: Open the link under the cursor in a horizontal split.
+- `<C-w>gD`: Open the link under the cursor in a vertical split.
 
 ## Document commands
 
@@ -35,7 +37,7 @@ Vim Motions adds several document-level commands for quick access to Obsidian fe
 - `gO`: Open the document outline (symbols).
 - `g<C-g>`: Show document statistics (word count, character count).
 - `ga`: Show information about the character under the cursor.
-- `gp` and `gP`: Paste text from the clipboard.
+- `gp` and `gP`: Paste and move cursor past pasted text.
 - `grn`: Rename the current file.
 - `grr`: Show backlinks for the current file.
 - `gra`: Show context actions (code actions).

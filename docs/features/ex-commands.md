@@ -1,6 +1,6 @@
 ---
 title: Ex commands
-description: 50+ ex commands for file management, buffer navigation, window management, table manipulation, and Obsidian integration.
+description: 60+ ex commands for file management, buffer navigation, window management, table manipulation, and Obsidian integration.
 tags:
     - features
     - keybindings
@@ -8,7 +8,7 @@ tags:
 
 # Ex commands
 
-Vim Motions provides 50+ ex commands accessible via `:` in Normal mode. Commands cover file operations, buffer management, window splits, table manipulation, and Obsidian-specific integration.
+Vim Motions provides 60+ ex commands accessible via `:` in Normal mode. Commands cover file operations, buffer management, window splits, table manipulation, and Obsidian-specific integration.
 
 ## Command reference
 
@@ -54,3 +54,5 @@ Ex commands support tab-completion as you type in the `:` command line, matching
 ## Configuration
 
 Ex commands are always enabled — there is no toggle setting. The `:ob` command is registered independently from [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support), so both plugins can coexist.
+
+See [[known-limitations#Platform]] for Neovim ex commands that are not applicable in Obsidian.

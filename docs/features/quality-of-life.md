@@ -3,6 +3,7 @@ title: Quality of life
 description: Neovim defaults, smart list continuation, scrolloff, insert escape, status bar, which-key hints, and other convenience features.
 tags:
     - features
+    - keybindings
 ---
 
 # Quality of life
@@ -87,3 +88,5 @@ Tab-complete ex commands as you type in the `:` command line.
 ## Settings hot-reload
 
 All feature toggles and vim engine settings take effect immediately when changed — no Obsidian restart required. This includes clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, and textwidth.
+
+See [[known-limitations#UI & display]] for known display-related limitations and [[known-limitations#Vimrc]] for vimrc timing issues.

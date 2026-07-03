@@ -6,6 +6,8 @@ tags:
     - keybindings
 ---
 
+# EasyMotion
+
 EasyMotion (inspired by [vim-easymotion](https://github.com/easymotion/vim-easymotion) and [hop.nvim](https://github.com/smoka7/hop.nvim)) provides a way to jump to any visible position in the editor with minimal keystrokes. Instead of repeating `w` or `f` to reach a target, you trigger a motion, type a search character (if required), and then type a one or two-character label that appears over the target.
 
 ## Find motions
@@ -41,7 +43,7 @@ EasyMotion integrates natively with visual mode. Pressing `v` or `V` followed by
 
 ## Operator-pending mode
 
-EasyMotion supports operator-pending mode for `d`, `c`, and `y`. This allows for powerful combinations like `d<leader><leader>w{label}` to delete from the cursor to a specific word.
+EasyMotion supports operator-pending mode for `d`, `c`, and `y`. This allows for powerful combinations like `d` + `<leader><leader>w` + `{label}` to delete from the cursor to a specific word.
 
 > [!info]
 > Operator-pending support requires the **bundled fork mode** (Obsidian's built-in Vim mode disabled). It uses the fork's async motion support to resolve the jump target before applying the operator.
@@ -61,7 +63,7 @@ The EasyMotion engine is specifically tuned for Obsidian's Live Preview mode:
 
 You can customize EasyMotion behavior in **Settings → Vim Motions → Jump navigation**:
 
-- **Label characters**: Define the characters used for jump labels (default: `asdfghjklqwertyuiopzxcvbnm`).
+- **Label characters**: Define the characters used for jump labels (default: `asdghklqwertyuiopzxcvbnmfj`).
 - **Dimming**: Toggle whether the editor text dims when EasyMotion is active.
 - **Font size**: Adjust the size of the jump labels.
 

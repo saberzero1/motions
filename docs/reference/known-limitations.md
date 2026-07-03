@@ -7,6 +7,8 @@ tags:
     - troubleshooting
 ---
 
+# Known limitations
+
 This page documents known limitations, architectural constraints, and intentional design decisions in Vim Motions.
 
 ## EasyMotion

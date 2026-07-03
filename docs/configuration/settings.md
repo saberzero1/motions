@@ -7,12 +7,14 @@ tags:
     - reference
 ---
 
+# Settings reference
+
 All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. On Obsidian 1.13.0+, all settings are indexed by Obsidian's global settings search.
 
 ## Vim features
 
 | Name                             | Type     | Default  | Range/Options             | Vimrc                  | Description                                                                              |
-| :------------------------------- | :------- | :------- | :------------------------ | :--------------------- | :--------------------------------------------------------------------------------------- |
+| -------------------------------- | -------- | -------- | ------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- |
 | Text objects                     | toggle   | `true`   | —                         | `set textobjects`      | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                             |
 | Structural navigation            | toggle   | `true`   | —                         | `set navigation`       | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).              |
 | Hard-wrap operator (gq)          | toggle   | `true`   | —                         | `set hardwrap`         | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.             |
@@ -28,7 +30,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 ## Vim engine
 
 | Name                       | Type     | Default | Range/Options                     | Vimrc                         | Description                                              |
-| :------------------------- | :------- | :------ | :-------------------------------- | :---------------------------- | :------------------------------------------------------- |
+| -------------------------- | -------- | ------- | --------------------------------- | ----------------------------- | -------------------------------------------------------- |
 | Clipboard                  | dropdown | `(off)` | `unnamed`, `unnamedplus`, `(off)` | `set clipboard`               | Sync yank/delete/paste with the system clipboard.        |
 | Tabstop                    | slider   | `4`     | 1–8                               | `set tabstop`                 | Tab display width.                                       |
 | Shiftwidth                 | slider   | `4`     | 1–8                               | `set shiftwidth`              | Indent width.                                            |
@@ -40,7 +42,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 ## Jump navigation
 
 | Name                        | Type   | Default                      | Range/Options | Vimrc                   | Description                                                   |
-| :-------------------------- | :----- | :--------------------------- | :------------ | :---------------------- | :------------------------------------------------------------ |
+| --------------------------- | ------ | ---------------------------- | ------------- | ----------------------- | ------------------------------------------------------------- |
 | EasyMotion                  | toggle | `true`                       | —             | `set easymotion`        | Enable easymotion/hop navigation (`<leader><leader>w`, etc.). |
 | EasyMotion dimming          | toggle | `true`                       | —             | `set easymotiondimming` | Dim non-target text when EasyMotion is active.                |
 | EasyMotion label characters | text   | `asdghklqwertyuiopzxcvbnmfj` | —             | `set easymotionlabels`  | Characters used for EasyMotion labels.                        |
@@ -52,7 +54,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 ## Status bar
 
 | Name                       | Type   | Default | Range/Options | Vimrc              | Description                                                   |
-| :------------------------- | :----- | :------ | :------------ | :----------------- | :------------------------------------------------------------ |
+| -------------------------- | ------ | ------- | ------------- | ------------------ | ------------------------------------------------------------- |
 | Vim mode status bar        | toggle | `true`  | —             | `set statusbar`    | Show current Vim mode in the status bar.                      |
 | Vim chord display          | toggle | `true`  | —             | `set chorddisplay` | Show pending keystrokes in the status bar.                    |
 | Powerline-style status bar | toggle | `false` | —             | `set powerline`    | Color the Vim mode indicator with per-mode background colors. |
@@ -60,7 +62,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 ## Vim mode display prompt
 
 | Name                | Type | Default   | Range/Options | Vimrc                       | Description                       |
-| :------------------ | :--- | :-------- | :------------ | :-------------------------- | :-------------------------------- |
+| ------------------- | ---- | --------- | ------------- | --------------------------- | --------------------------------- |
 | Normal mode prompt  | text | `NORMAL`  | —             | `let g:mode_prompt_normal`  | Status bar text for normal mode.  |
 | Insert mode prompt  | text | `INSERT`  | —             | `let g:mode_prompt_insert`  | Status bar text for insert mode.  |
 | Visual mode prompt  | text | `VISUAL`  | —             | `let g:mode_prompt_visual`  | Status bar text for visual mode.  |
@@ -72,7 +74,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 > Cursor shapes require bundled fork mode. Disable Obsidian's built-in Vim key bindings to enable these options.
 
 | Name             | Type     | Default     | Range/Options                         | Vimrc           | Description                             |
-| :--------------- | :------- | :---------- | :------------------------------------ | :-------------- | :-------------------------------------- |
+| ---------------- | -------- | ----------- | ------------------------------------- | --------------- | --------------------------------------- |
 | Normal mode      | dropdown | `block`     | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for normal mode.           |
 | Insert mode      | dropdown | `bar`       | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for insert mode.           |
 | Visual mode      | dropdown | `block`     | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for visual mode.           |
@@ -82,7 +84,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 ## Vimrc & key bindings
 
 | Name                   | Type   | Default   | Range/Options | Vimrc | Description                                          |
-| :--------------------- | :----- | :-------- | :------------ | :---- | :--------------------------------------------------- |
+| ---------------------- | ------ | --------- | ------------- | ----- | ---------------------------------------------------- |
 | Load `.obsidian.vimrc` | toggle | `true`    | —             | —     | Load key mappings and settings from .obsidian.vimrc. |
 | Custom vimrc path      | text   | `(empty)` | —             | —     | Path to a vimrc file in your vault.                  |
 
@@ -93,7 +95,7 @@ Map leader key sequences to Obsidian commands. This UI allows you to add new bin
 ## Which-key hints
 
 | Name                      | Type     | Default   | Range/Options          | Vimrc                  | Description                                  |
-| :------------------------ | :------- | :-------- | :--------------------- | :--------------------- | :------------------------------------------- |
+| ------------------------- | -------- | --------- | ---------------------- | ---------------------- | -------------------------------------------- |
 | Which-key mode            | dropdown | `off`     | `off`, `leader`, `all` | `set whichkey`         | Show available key continuations in a popup. |
 | Which-key leader grouping | dropdown | `grouped` | `grouped`, `flat`      | `set whichkeygrouping` | How leader key bindings are displayed.       |
 
@@ -108,7 +110,7 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 ## Advanced
 
 | Name                              | Type   | Default | Range/Options | Vimrc           | Description                                                          |
-| :-------------------------------- | :----- | :------ | :------------ | :-------------- | :------------------------------------------------------------------- |
+| --------------------------------- | ------ | ------- | ------------- | --------------- | -------------------------------------------------------------------- |
 | Scrolloff lines                   | number | `5`     | `0–9999`      | `set scrolloff` | Number of lines to keep visible above and below when scrolling.      |
 | Multi-line text object scan range | slider | `20`    | `5–200`       | `set scanlimit` | Maximum lines to scan in each direction for multi-line text objects. |
 

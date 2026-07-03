@@ -25,7 +25,7 @@ Obsidian's built-in Vim mode provides basic motions and operators, but lacks Mar
 - **[[hint-mode|Hint mode]]** — Vimium-style keyboard navigation for the entire Obsidian UI
 - **[[workspace-navigation|Workspace navigation]]** — `<C-w>` splits, `gt`/`gT` tabs, `:sp`/`:vs` ex commands
 - **[[surround|Surround]]** — vim-surround with Markdown delimiter support (count-prefix for `**bold**`, `~~strike~~`)
-- **[[ex-commands|50+ ex commands]]** — file, buffer, window, table, and navigation commands
+- **[[ex-commands|60+ ex commands]]** — file, buffer, window, table, and navigation commands
 - **[[vimrc|Built-in vimrc]]** — `.obsidian.vimrc` loader compatible with obsidian-vimrc-support syntax
 
 ## Requirements

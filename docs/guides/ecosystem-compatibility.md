@@ -9,20 +9,15 @@ tags:
 
 Vim Motions is designed to coexist with other Vim-related Obsidian plugins. When the bundled fork is active, the plugin installs a bridge at `window.CodeMirrorAdapter.Vim` so ecosystem plugins can discover the Vim API at its canonical location.
 
-## Plugin compatibility
+## How compatibility works
 
-| Plugin                                                                   | Compatible | Notes                                                                                                                                           |
-| ------------------------------------------------------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) | ✅         | Both register `:ob` independently. Can coexist or you can migrate fully — see [[migrating-from-vimrc-support]].                                 |
-| [vim-im-control](https://github.com/hideakitai/obsidian-vim-im-control)  | ✅         | Discovers the Vim API via the bridge. Works in both built-in and bundled fork modes.                                                            |
-| [Latex Suite](https://github.com/artisticat1/obsidian-latex-suite)       | ✅         | The bundled vim extension is registered at `Prec.highest` so auto-snippets, tabstop navigation, and math-mode features work in vim insert mode. |
-| [PDF++](https://github.com/RyotaUshio/obsidian-pdf-plus)                 | ✅         | Non-editor views are handled by the global key handler. Workspace navigation (`<C-w>`, `gt`/`gT`) works in PDF views.                           |
+Vim Motions is compatible with other Vim-related plugins by design, not through per-plugin special-casing. The compatibility approach is generic:
 
-## Vim API bridge
+- **Vim API bridge**: When the bundled fork is active (built-in vim disabled), the plugin installs a property descriptor at `window.CodeMirrorAdapter.Vim` that returns the fork's Vim singleton. Any plugin that discovers the Vim API via this standard path — the same path Obsidian's own code uses — automatically works with the fork's enhanced API.
+- **Extension priority**: The bundled vim extension is registered at `Prec.highest` so its keydown handler fires before other extensions, preventing double key consumption.
+- **Global key handler**: Non-editor views (PDF, graph, canvas, etc.) are handled by a global key handler that intercepts workspace-relevant keystrokes. This works regardless of what plugin rendered the view.
 
-When the bundled fork is active (built-in vim disabled), the plugin installs a property descriptor at `window.CodeMirrorAdapter.Vim` that returns the fork's Vim singleton. This uses a getter rather than a static value, ensuring the fork always wins regardless of plugin load order.
-
-Ecosystem plugins that access the Vim API via `window.CodeMirrorAdapter.Vim` (the standard discovery path) will automatically use the fork's enhanced API.
+These mechanisms are not targeted at specific plugins — they ensure compatibility with the entire ecosystem of plugins that use the standard Vim API discovery path.
 
 ## Built-in vim mode
 

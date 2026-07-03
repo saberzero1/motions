@@ -15,7 +15,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[workspace-navigation|Workspace keyboard control]]** — navigate panes, tabs, and sidebar without a mouse
 - **[[surround|Surround]]** — add, change, or delete surrounding delimiters (vim-surround)
 - **[[hardwrap|Hard-wrap formatting]]** — Markdown-aware `gq`/`gw` operators
-- **[[ex-commands|50+ ex commands]]** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, and more
+- **[[ex-commands|60+ ex commands]]** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, and more
 - **[[vimrc|Built-in vimrc]]** — `.obsidian.vimrc` loader with 35+ configurable settings
 - **[[hint-mode|Vimium-style hints]]** — navigate the entire Obsidian UI with keyboard hints
 
