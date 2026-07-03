@@ -28,10 +28,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 43 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in v0.28.0
+## What's new in v0.29.0
 
-- **Vimium-style hint actions** — `f` activates, `F` opens in new pane, `yf` yanks, `df` closes
-- **Visual-line mode fixes** — correct selection rendering in Live Preview with collapsed markup
-- **Scrolloff cap raised to 9999** — `set scrolloff=999` now keeps the cursor vertically centered
+- **Visual-line widget fix** — `V` mode no longer loses highlight when moving over checkbox widgets in Live Preview
+- **Documentation site** — full feature reference, getting started guide, and changelog at [saberzero1.github.io/motions](https://saberzero1.github.io/motions)
 
 See the [[changelog|full changelog]] for details.
