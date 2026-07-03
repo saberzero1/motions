@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-07-03
+
 ### Fixed
 
 - **Visual line selection overlap in Live Preview** — visual-line mode (`V`) rendered both the plugin's custom full-line highlight decoration and the native CM6 `::selection` CSS simultaneously, causing a visible double-highlight. Fixed by adding a `.cm-vimVisualLine` class to the editor scrollDOM when in visual-line mode and extending the `::selection` transparency rule to suppress native selection rendering in that mode. Charwise (`v`) and blockwise (`Ctrl-V`) visual modes are unaffected. ([#41](https://github.com/saberzero1/motions/issues/41))
