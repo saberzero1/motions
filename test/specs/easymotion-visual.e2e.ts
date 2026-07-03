@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     getSelection,
+    getRegisterContent,
     getVimMode,
     sendVimEscape,
 } from '../helpers';
@@ -194,8 +195,14 @@ describe('EasyMotion visual mode', function () {
                 await browser.keys([secondLabel]);
                 await browser.pause(300);
 
-                const selection = await getSelection();
-                expect(selection).toContain('line');
+                // Visual-line uses cursor-only CM6 selection, so
+                // getSelection() returns "". Yank and check the register.
+                await browser.keys(['y']);
+                await browser.pause(300);
+                const reg = await getRegisterContent('"');
+                expect(reg).not.toBeNull();
+                expect(reg!.text).toContain('line');
+                expect(reg!.linewise).toBe(true);
             } else {
                 await sendVimEscape();
             }
