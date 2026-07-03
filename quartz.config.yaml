@@ -167,7 +167,7 @@ plugins:
           position: beforeBody
           priority: 20
     - source: github:quartz-community/tag-list
-      enabled: false
+      enabled: true
       layout:
           position: beforeBody
           priority: 30
@@ -206,7 +206,7 @@ plugins:
       enabled: true
       options:
           links:
-              GitHub: https://github.com/saberzero1/vim-motions
+              GitHub: https://github.com/saberzero1/motions
               Obsidian: https://community.obsidian.md/plugins/vim-motions
     - source: github:quartz-community/recent-notes
       enabled: false
@@ -231,7 +231,7 @@ plugins:
               - tags
               - aliases
           excludedProperties: []
-          hidePropertiesView: false
+          hidePropertiesView: true
           delimiters: ---
           language: yaml
       order: 5

@@ -6,6 +6,7 @@ on:
         paths:
             - 'docs/**'
             - 'quartz.config.yaml'
+            - 'CHANGELOG.md'
             - '.github/workflows/docs.yml'
     workflow_dispatch:
 
@@ -33,6 +34,22 @@ jobs:
                   repository: jackyzha0/quartz
                   ref: v5
                   path: quartz
+
+            - name: Generate changelog docs page
+              run: |
+                  mkdir -p docs/reference
+                  {
+                      echo '---'
+                      echo 'title: Changelog'
+                      echo 'description: All notable changes to Vim Motions, following Keep a Changelog format.'
+                      echo 'tags:'
+                      echo '  - reference'
+                      echo '---'
+                      echo ''
+                      echo '> See individual releases on [GitHub](https://github.com/saberzero1/motions/releases) for per-version discussion and asset downloads.'
+                      echo ''
+                      cat CHANGELOG.md
+                  } > docs/reference/changelog.md
 
             - name: Inject content and config
               run: |

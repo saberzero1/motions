@@ -1,0 +1,170 @@
+---
+title: Vimrc
+description: Built-in .obsidian.vimrc support — key mappings, set options, leader bindings, and which-key labels.
+tags:
+    - configuration
+---
+
+# Vimrc
+
+Vim Motions has built-in support for `.obsidian.vimrc` files, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. When both plugins are installed, they coexist — Vim Motions registers its own `:ob` command independently.
+
+## File location
+
+By default, place a `.obsidian.vimrc` file in your vault root. For **Obsidian Sync** users (which skips dotfiles), configure a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path** — e.g., `vimrc.md` or `config/my.vimrc`.
+
+> [!tip] Obsidian Sync
+> Dotfiles are not synced by Obsidian Sync. Use a non-dotfile path like `vimrc.md` and configure it in settings to ensure your vimrc syncs across devices.
+
+## Example vimrc
+
+```vim
+" Leader key
+let mapleader = " "
+
+" Key mappings
+nnoremap j gj
+nnoremap k gk
+
+" Settings (override Settings UI values)
+set scrolloff=5
+set textwidth=80
+set clipboard=unnamed
+set expandtab
+set tabstop=4
+set shiftwidth=2
+set insertmodeescape=jk
+set insertmodeescapetimeout=1000
+set easymotion
+set nopowerline
+set easymotionlabels=asdghklqwertyuiopzxcvbnmfj
+
+" Cursor shapes (bundled fork mode only)
+set guicursor=n:block,i:bar,v:block,r:underline,o:underline
+
+" Mode prompts
+let g:mode_prompt_normal = "N"
+let g:mode_prompt_insert = "I"
+
+" Leader key mappings
+exmap saveFile obcommand editor:save-file
+nmap <leader>w :saveFile<CR>
+
+" Which-key labels
+whichkeygroup <leader>t Table
+whichkeylabel <leader>w Save file
+```
+
+## Supported commands
+
+| Command                                          | Description                                     |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `map` / `nmap` / `imap` / `vmap`                 | Mode-specific key mappings                      |
+| `noremap` / `nnoremap` / `inoremap` / `vnoremap` | Non-recursive mappings                          |
+| `unmap` / `nunmap` / `iunmap` / `vunmap`         | Remove mappings                                 |
+| `set`                                            | Set plugin options (see tables below)           |
+| `let mapleader`                                  | Set the leader key                              |
+| `exmap`                                          | Define a named command from an Obsidian command |
+| `obcommand`                                      | Execute an Obsidian command by ID               |
+| `source`                                         | Source another vimrc file                       |
+| `whichkeygroup`                                  | Name a which-key group by prefix                |
+| `whichkeylabel`                                  | Label an individual binding in which-key        |
+
+## Leader key
+
+`let mapleader` supports any key: space (`let mapleader = " "`), comma, semicolon, backslash (default). The leader key's default Vim binding is automatically unmapped so leader-prefixed sequences work correctly.
+
+## Boolean options
+
+Use `set <option>` to enable, `set no<option>` to disable.
+
+| Option              | Alias | Description                           | Default |
+| ------------------- | ----- | ------------------------------------- | ------- |
+| `textobjects`       | `to`  | Markdown-aware text objects           | on      |
+| `navigation`        | `nav` | Heading, list, and link navigation    | on      |
+| `hardwrap`          | `hw`  | `gq`/`gw` hard-wrap operators         | on      |
+| `listcontinuation`  | `lc`  | Smart list continuation on `o`/`O`    | on      |
+| `tablenav`          | `tn`  | Table cell navigation                 | on      |
+| `workspacenav`      | `wn`  | Pane/tab/sidebar control              | on      |
+| `easymotion`        | `em`  | EasyMotion/Hop navigation             | on      |
+| `easymotiondimming` | `emd` | Dim non-target text during EasyMotion | on      |
+| `hintmode`          | `hm`  | Vimium-style hint labels              | on      |
+| `statusbar`         | `sb`  | Vim mode in status bar                | on      |
+| `chorddisplay`      | `cd`  | Pending keystrokes in status bar      | on      |
+| `powerline`         | `pl`  | Colored powerline status bar          | off     |
+| `expandtab`         | `et`  | Use spaces instead of tabs            | on      |
+
+## Number options
+
+Use `set <option>=<value>`.
+
+| Option                    | Alias  | Description                              | Default | Range    |
+| ------------------------- | ------ | ---------------------------------------- | ------- | -------- |
+| `scrolloff`               | `so`   | Lines to keep visible above/below cursor | 5       | 0-9999   |
+| `scanlimit`               | `sl`   | Max lines to scan for text objects       | 20      | 5-200    |
+| `labelfontsize`           | `lfs`  | Font size for EasyMotion/hint labels     | 14      | 10-20    |
+| `tabstop`                 | `ts`   | Tab display width                        | 4       | 1-8      |
+| `shiftwidth`              | `sw`   | Indent width                             | 4       | 1-8      |
+| `textwidth`               | `tw`   | Line wrap width for `gq`/`gw`            | 80      | 0-200    |
+| `insertmodeescapetimeout` | `imet` | Timeout (ms) for insert escape sequence  | 1000    | 100-5000 |
+
+## String options
+
+Use `set <option>=<value>`.
+
+| Option             | Alias  | Description                                     | Default                               |
+| ------------------ | ------ | ----------------------------------------------- | ------------------------------------- |
+| `clipboard`        | `clip` | System clipboard sync (`unnamed`/`unnamedplus`) | (off)                                 |
+| `insertmodeescape` | `ime`  | Two-key sequence to exit insert mode            | (off)                                 |
+| `easymotionlabels` | `eml`  | Characters for EasyMotion labels                | `asdghklqwertyuiopzxcvbnmfj`          |
+| `hintlabels`       | `hl`   | Characters for hint mode labels                 | `asdfghjkl`                           |
+| `guicursor`        | —      | Per-mode cursor shapes                          | (block/bar/block/underline/underline) |
+| `tablewidget`      | —      | Table widget mode (`off`/`cursor`/`always`)     | `cursor`                              |
+| `whichkey`         | `wk`   | Which-key hints (`off`/`leader`/`all`)          | `off`                                 |
+| `whichkeygrouping` | `wkg`  | Which-key grouping (`flat`/`grouped`)           | `grouped`                             |
+
+## Mode prompt customization
+
+```vim
+let g:mode_prompt_normal = "N"
+let g:mode_prompt_insert = "I"
+let g:mode_prompt_visual = "V"
+let g:mode_prompt_replace = "R"
+```
+
+## Which-key labels
+
+```vim
+" Group labels — collapse bindings under a named prefix
+whichkeygroup <leader>t Table
+whichkeygroup <leader>g Git
+
+" Command labels — describe individual bindings
+whichkeylabel <leader>w Save file
+whichkeylabel gd Go to definition
+```
+
+Group and command labels from vimrc are merged with labels configured in Settings. If the same key appears in both, the vimrc value takes precedence.
+
+## Override behavior
+
+When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values.
+
+Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`").
+
+## Settings not available via vimrc
+
+| Setting          | Reason                                                        |
+| ---------------- | ------------------------------------------------------------- |
+| `enableVimrc`    | Circular dependency — cannot control vimrc loading from vimrc |
+| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)     |
+| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc     |
+
+Unknown `set` options are silently ignored.
+
+## Known issues
+
+- Changing the vimrc file requires reloading the plugin — the file is loaded once during startup
+- `nmap L $` and similar mappings may not apply if the vimrc file encounters I/O timing issues — reload the plugin as a workaround
+
+See [[known-limitations#Vimrc]] for detailed technical limitations.
