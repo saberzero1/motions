@@ -57,6 +57,10 @@ jobs:
                   cp -r docs quartz/content
                   cp quartz.config.yaml quartz/quartz.config.yaml
 
+            - name: Inject style overrides
+              run: |
+                  echo 'div.center table { margin-left: 0; margin-right: 0; }' >> quartz/styles/custom.scss
+
             - uses: actions/setup-node@v4
               with:
                   node-version: 24
