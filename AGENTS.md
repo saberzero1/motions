@@ -240,6 +240,75 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - Ship features that require cloud services without clear disclosure and explicit opt-in.
 - Store or transmit vault contents unless essential and consented.
 
+## Documentation maintenance
+
+The documentation site at `saberzero1.github.io/motions` is built from `docs/` using Quartz v5. Documentation updates are part of the implementation — a feature or fix is not complete until its docs are updated.
+
+### Change-to-page routing
+
+When making a change, update these docs pages:
+
+| Change type                       | Docs pages to update                                                                                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New keybinding/motion             | `reference/keybindings.md` (canonical table) — feature pages transclude via `![[keybindings#Section]]`                                               |
+| New text object                   | `reference/keybindings.md` § "Markdown text objects" + `features/text-objects.md`                                                                    |
+| New ex command                    | `reference/keybindings.md` § "Ex commands" + `features/ex-commands.md`                                                                               |
+| New setting                       | `configuration/settings.md` (add to correct group of 12)                                                                                             |
+| New vimrc option                  | `configuration/vimrc.md` (add to correct options table)                                                                                              |
+| New feature (entire)              | New `features/<name>.md` + `features/index.md` (add link) + `reference/keybindings.md` (add section) + `configuration/settings.md` (if new settings) |
+| Bug fix                           | `KNOWN_LIMITATIONS.md` (mark Fixed if applicable) → `reference/known-limitations.md` (move to collapsed section)                                     |
+| New limitation                    | `KNOWN_LIMITATIONS.md` (add section) → `reference/known-limitations.md` (add under feature area)                                                     |
+| Setting default changed           | `configuration/settings.md` (update default value)                                                                                                   |
+| Keybinding changed/removed        | `reference/keybindings.md` (update/remove) — feature pages auto-update via transclusion                                                              |
+| Installation requirements changed | `getting-started/installation.md` + `getting-started/recommended-setup.md`                                                                           |
+| CHANGELOG.md updated              | Nothing — auto-generated at build time by the docs workflow                                                                                          |
+
+### Page ownership by feature area
+
+| Feature area          | Canonical docs page                 | Settings group(s)                                             |
+| --------------------- | ----------------------------------- | ------------------------------------------------------------- |
+| Text objects          | `features/text-objects.md`          | Vim features (textobjects), Advanced (scanlimit)              |
+| Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                     |
+| Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                          |
+| Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)               |
+| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)  |
+| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)            |
+| Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                   |
+| Surround              | `features/surround.md`              | (no settings — fork feature)                                  |
+| Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                |
+| Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.) |
+| Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                          |
+| Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                 |
+| Cursor shapes         | `configuration/cursor-shapes.md`    | Cursor shapes                                                 |
+| Status bar            | `configuration/status-bar.md`       | Status bar, Vim mode display prompt                           |
+
+### Transclusion conventions
+
+- Keybinding tables are single-sourced in `reference/keybindings.md`. Feature pages transclude via `![[keybindings#Section Heading]]`.
+- When adding a new keybinding section, add it to `reference/keybindings.md` with a `## Section Heading`. Feature pages can immediately transclude it.
+- Never duplicate keybinding tables across pages manually — always transclude from the canonical source.
+
+### Frontmatter requirements
+
+Every page in `docs/` must have:
+
+```yaml
+---
+title: Page Title # Sentence case
+description: Brief desc # 1-2 sentences
+tags: # From: getting-started, features, configuration, reference,
+    - category-name #       keybindings, troubleshooting, guide, development
+---
+```
+
+### Content style
+
+- Keybindings in inline code: `` `]h` ``, `` `<C-w>v` ``
+- Vim notation in inline code: `` `<leader>` ``, `` `<CR>` ``
+- Settings paths bold with arrows: **Settings → Vim Motions → Jump navigation**
+- Callout types: `[!tip]` (recommended), `[!info]` (fork-mode-only), `[!warning]` (conflicts), `[!bug]` (limitations)
+- Internal links as wikilinks: `[[installation]]`, `[[settings#Vim engine]]`
+
 ## Common tasks
 
 ### Organize code across multiple files
