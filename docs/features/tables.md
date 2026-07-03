@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Tables
-
 ## Introduction
 
 Vim Motions provides comprehensive support for Markdown tables, including structural navigation, cell-level text objects, manipulation commands, and a specialized table widget for Live Preview that preserves Vim's editing power.

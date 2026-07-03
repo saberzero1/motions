@@ -6,8 +6,6 @@ tags:
     - configuration
 ---
 
-# Migrating from obsidian-vimrc-support
-
 Vim Motions includes a built-in `.obsidian.vimrc` loader that is compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. You can either use both plugins side by side or migrate entirely to Vim Motions' loader.
 
 ## Coexistence

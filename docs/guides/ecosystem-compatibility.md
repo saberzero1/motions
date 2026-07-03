@@ -5,8 +5,6 @@ tags:
     - guide
 ---
 
-# Ecosystem compatibility
-
 Vim Motions is designed to coexist with other Vim-related Obsidian plugins. When the bundled fork is active, the plugin installs a bridge at `window.CodeMirrorAdapter.Vim` so ecosystem plugins can discover the Vim API at its canonical location.
 
 ## How compatibility works

@@ -5,8 +5,6 @@ tags:
     - configuration
 ---
 
-# Status bar
-
 Vim Motions shows the current Vim mode and pending keystrokes in Obsidian's status bar. All status bar features can be toggled and customized independently.
 
 ## Vim mode display

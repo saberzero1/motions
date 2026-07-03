@@ -7,8 +7,6 @@ tags:
     - reference
 ---
 
-# Settings reference
-
 All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. On Obsidian 1.13.0+, all settings are indexed by Obsidian's global settings search.
 
 ## Vim features

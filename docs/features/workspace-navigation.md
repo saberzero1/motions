@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Workspace navigation
-
 Vim Motions provides Neovim-style window management that works across all Obsidian views. This includes a global key handler that intercepts keystrokes even when no editor is focused, allowing you to control the entire workspace with your keyboard.
 
 ## Pane and split navigation

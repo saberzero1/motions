@@ -5,8 +5,6 @@ tags:
     - guide
 ---
 
-# Mobile usage
-
 Vim Motions works on iOS and Android with a physical keyboard. On-screen keyboard support is limited by platform constraints.
 
 ## Feature availability

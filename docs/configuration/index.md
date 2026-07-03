@@ -5,8 +5,6 @@ tags:
     - configuration
 ---
 
-# Configuration
-
 Vim Motions can be configured through two mechanisms: the **Settings UI** and a **vimrc file**. Both support all plugin settings, and changes take effect immediately without restarting Obsidian.
 
 ## Settings UI

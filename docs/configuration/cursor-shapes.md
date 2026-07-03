@@ -5,8 +5,6 @@ tags:
     - configuration
 ---
 
-# Cursor shapes
-
 Vim Motions supports per-mode cursor shapes, letting you visually distinguish between Normal, Insert, Visual, Replace, and Operator-pending modes.
 
 > [!info] Requires bundled fork mode

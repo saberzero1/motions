@@ -6,8 +6,6 @@ tags:
     - setup
 ---
 
-# Recommended setup
-
 ## Disable built-in Vim mode
 
 For the best experience, **disable** Obsidian's built-in Vim mode:

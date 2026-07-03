@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Structural navigation
-
 Jump between document structures using bracket motions. All navigation motions work with counts (e.g., `3]h` jumps 3 headings forward) and operators (e.g., `d]h` deletes to the next heading).
 
 ## Keybindings

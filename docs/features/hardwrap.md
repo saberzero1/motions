@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Hard-wrap formatting
-
 Reformat paragraphs with Markdown-aware line wrapping — something Obsidian's built-in Vim mode does not support.
 
 ## Keybindings

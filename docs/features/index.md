@@ -5,8 +5,6 @@ tags:
     - features
 ---
 
-# Features
-
 Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Each feature can be toggled independently in [[settings|Settings]].
 
 ## Markdown editing

@@ -5,8 +5,6 @@ tags:
     - development
 ---
 
-# Development
-
 ## Quick start
 
 ```bash

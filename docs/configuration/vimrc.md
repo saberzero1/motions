@@ -5,8 +5,6 @@ tags:
     - configuration
 ---
 
-# Vimrc
-
 Vim Motions has built-in support for `.obsidian.vimrc` files, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. When both plugins are installed, they coexist — Vim Motions registers its own `:ob` command independently.
 
 ## File location

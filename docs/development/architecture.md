@@ -5,8 +5,6 @@ tags:
     - development
 ---
 
-# Architecture
-
 ## Overview
 
 Vim Motions provides an enhanced Vim experience for Obsidian, built on a specialized fork of `codemirror-vim`. It extends Obsidian's editing capabilities with Markdown-aware text objects, structural navigation, and advanced workspace control while maintaining compatibility with the existing Vim ecosystem.

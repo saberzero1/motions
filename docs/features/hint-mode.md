@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Hint mode
-
 Hint mode provides Vimium-style keyboard navigation for the entire Obsidian interface. When activated, the plugin identifies clickable elements in the viewport and overlays them with unique character labels. Typing a label triggers an action on the corresponding element, such as clicking a button, focusing a pane, or navigating a link.
 
 ## Non-editor view actions

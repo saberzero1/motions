@@ -6,8 +6,6 @@ tags:
     - configuration
 ---
 
-# Style customization
-
 Vim Motions' visual elements — EasyMotion labels, hint mode labels, and the powerline status bar — can be customized via CSS custom properties or the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin.
 
 ## CSS custom properties

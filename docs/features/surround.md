@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Surround
-
 The surround feature brings the power of `vim-surround` to Obsidian. It allows you to add, change, and delete surrounding delimiters like brackets, quotes, and HTML tags. This implementation includes native support for Markdown formatting marks and function wrapping.
 
 > [!info]

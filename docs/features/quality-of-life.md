@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Quality of life
-
 Vim Motions includes several convenience features that improve the day-to-day Vim experience in Obsidian.
 
 ## Keybindings

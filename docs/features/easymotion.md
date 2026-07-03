@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# EasyMotion
-
 EasyMotion (inspired by [vim-easymotion](https://github.com/easymotion/vim-easymotion) and [hop.nvim](https://github.com/smoka7/hop.nvim)) provides a way to jump to any visible position in the editor with minimal keystrokes. Instead of repeating `w` or `f` to reach a target, you trigger a motion, type a search character (if required), and then type a one or two-character label that appears over the target.
 
 ## Find motions

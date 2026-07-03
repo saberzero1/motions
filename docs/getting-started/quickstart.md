@@ -5,8 +5,6 @@ tags:
     - getting-started
 ---
 
-# Quickstart
-
 Get up and running with Vim Motions in 5 minutes. This guide assumes you've already [[installation|installed the plugin]].
 
 ## 1. Disable built-in Vim mode

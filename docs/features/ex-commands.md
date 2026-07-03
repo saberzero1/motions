@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Ex commands
-
 Vim Motions provides 60+ ex commands accessible via `:` in Normal mode. Commands cover file operations, buffer management, window splits, table manipulation, and Obsidian-specific integration.
 
 ## Command reference

@@ -5,8 +5,6 @@ tags:
     - getting-started
 ---
 
-# Getting started
-
 Vim Motions is an [Obsidian](https://obsidian.md) community plugin that enhances Vim mode with features tailored for Markdown editing. It bridges the gap between Neovim's capabilities and Obsidian's editor, giving you a polished Vim experience without leaving your vault.
 
 ## Who is it for?

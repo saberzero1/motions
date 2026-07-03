@@ -6,8 +6,6 @@ tags:
     - keybindings
 ---
 
-# Text objects
-
 Markdown text objects allow you to operate on document structures using standard Vim operators like `d` (delete), `c` (change), `y` (yank), and `v` (visual select). These objects are aware of Markdown syntax, enabling precise editing of formatted text, links, and structural blocks.
 
 ![[keybindings#Markdown text objects]]

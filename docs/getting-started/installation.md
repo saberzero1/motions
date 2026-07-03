@@ -6,8 +6,6 @@ tags:
     - installation
 ---
 
-# Installation
-
 ## From community directory
 
 1. Open **Settings → Community plugins**

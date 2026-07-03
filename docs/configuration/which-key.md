@@ -5,8 +5,6 @@ tags:
     - configuration
 ---
 
-# Which-key
-
 Which-key shows available key continuations in a popup after you press a partial key sequence. Similar to Neovim's [which-key.nvim](https://github.com/folke/which-key.nvim), it helps you discover and remember keybindings without consulting documentation.
 
 ## Modes
