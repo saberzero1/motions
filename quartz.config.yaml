@@ -245,7 +245,7 @@ plugins:
           subdir: plugin
       enabled: true
       options:
-          theme: neovim
+          theme: terminal2k
           mode: both
     - source: github:quartz-community/encrypted-pages
       enabled: false
