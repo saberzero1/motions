@@ -1,9 +1,9 @@
 ---
 title: Surround
-description: vim-surround implementation with Markdown delimiter support: add, change, and delete surrounding brackets, quotes, tags, and formatting marks.
+description: vim-surround implementation with Markdown delimiter support for adding, changing, and deleting surrounding brackets, quotes, tags, and formatting marks.
 tags:
-  - features
-  - keybindings
+    - features
+    - keybindings
 ---
 
 # Surround
