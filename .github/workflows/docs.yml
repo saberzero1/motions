@@ -59,7 +59,7 @@ jobs:
 
             - name: Inject style overrides
               run: |
-                  echo 'div.center table { margin-left: 0; margin-right: 0; }' >> quartz/styles/custom.scss
+                  echo 'div.center table { margin-left: 0; margin-right: 0; }' >> quartz/quartz/styles/custom.scss
 
             - uses: actions/setup-node@v4
               with:
