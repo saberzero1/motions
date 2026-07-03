@@ -5,6 +5,7 @@ import {
     vimKeys,
     getEditorValue,
     getCursorPos,
+    getRegisterContent,
     sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
@@ -271,6 +272,98 @@ describe('Visual mode (Tier 1)', function () {
             await browser.keys(['d']);
             await browser.pause(300);
             expect(await getEditorValue()).toBe('one\ntwo');
+        });
+    });
+
+    describe('V + y yanked content', function () {
+        it('V + y should yank full line content including markup', async function () {
+            await setupEditor(
+                'click [[a link]] and [go](https://example.com)!',
+                { line: 0, ch: 0 },
+            );
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['y']);
+            await browser.pause(300);
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('[[a link]]');
+            expect(reg!.text).toContain('https://example.com');
+            expect(reg!.linewise).toBe(true);
+        });
+
+        it('V + j + y should yank two full lines', async function () {
+            await setupEditor('first\nsecond\nthird', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['j']);
+            await browser.pause(30);
+            await browser.keys(['y']);
+            await browser.pause(300);
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('first');
+            expect(reg!.text).toContain('second');
+            expect(reg!.text).not.toContain('third');
+            expect(reg!.linewise).toBe(true);
+        });
+    });
+
+    describe('gv (reselect linewise)', function () {
+        it('gv after V + y should reselect and delete same lines', async function () {
+            await setupEditor('one\ntwo\nthree\nfour', { line: 1, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['j']);
+            await browser.pause(30);
+            await browser.keys(['y']);
+            await browser.pause(300);
+            await vimKeys('g', 'v');
+            await browser.pause(100);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('one\nfour');
+        });
+    });
+
+    describe('V <-> v transitions', function () {
+        it('v then V should switch to linewise and delete full line', async function () {
+            await setupEditor('hello world\nsecond line\nthird', {
+                line: 0,
+                ch: 3,
+            });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['v']);
+            await browser.pause(30);
+            await browser.keys(['l', 'l']);
+            await browser.pause(30);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('second line\nthird');
+        });
+
+        it('V then v should switch to charwise', async function () {
+            await setupEditor('hello world\nsecond line', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['v']);
+            await browser.pause(30);
+            await browser.keys(['e']);
+            await browser.pause(30);
+            await browser.keys(['d']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe(' world\nsecond line');
         });
     });
 

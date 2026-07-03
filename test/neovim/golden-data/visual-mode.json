@@ -1,7 +1,7 @@
 {
     "suite": "visual-mode",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-02T11:45:39.524Z",
+    "recorded_at": "2026-07-03T10:59:48.432Z",
     "cases": [
         {
             "name": "v + e + d should delete selection",
@@ -324,6 +324,120 @@
                     "ch": 9
                 },
                 "mode": "visual"
+            }
+        },
+        {
+            "name": "V + j + y cursor position after yank",
+            "initial": {
+                "content": "first\nsecond\nthird\nfourth",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vjy",
+            "result": {
+                "content": "first\nsecond\nthird\nfourth",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + 2j + d should delete three lines",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "V2jd",
+            "result": {
+                "content": "one\nfive",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + k cursor position moving up",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "Vk",
+            "result": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "V + j + k cursor position back to start",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Vjk",
+            "result": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "visual"
+            }
+        },
+        {
+            "name": "v then V should switch to linewise delete",
+            "initial": {
+                "content": "hello world\nsecond line\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "vllVd",
+            "result": {
+                "content": "second line\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V then v should switch to charwise",
+            "initial": {
+                "content": "hello world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vveld",
+            "result": {
+                "content": "world\nsecond line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
             }
         }
     ]

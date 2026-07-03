@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Visual line selection overlap in Live Preview** — visual-line mode (`V`) rendered both the plugin's custom full-line highlight decoration and the native CM6 `::selection` CSS simultaneously, causing a visible double-highlight. Fixed by adding a `.cm-vimVisualLine` class to the editor scrollDOM when in visual-line mode and extending the `::selection` transparency rule to suppress native selection rendering in that mode. Charwise (`v`) and blockwise (`Ctrl-V`) visual modes are unaffected. ([#41](https://github.com/saberzero1/motions/issues/41))
+- **Visual-line cursor displacement over collapsed markup in Live Preview** — navigating with `V` + `j`/`k` on lines containing collapsed markup (`[[wikilinks]]`, `[text](url)`) caused Obsidian to uncollapse the hidden content, reflowing the line and making the cursor appear to need extra steps. Root cause: `updateCmSelection` set a spanning CM6 `EditorSelection` range across the full line content; Obsidian's Live Preview detects selection overlap with `Decoration.replace` ranges and reveals them. Fixed by setting a cursor-only CM6 selection (at `sel.head` position) in visual-line mode — the `linewiseVisualHighlight` ViewPlugin already provides the visual highlight independently from `vim.sel`, and operators (`y`/`d`/`c`) recompute their own selection at dispatch time. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `updateCmSelection` in `vim.js` now sets `cm.setCursor(sel.head)` instead of a spanning range when `vim.visualLine` is true
+    - Fork: `joinLines` action in `vim.js` now reads from `vim.sel` instead of `cm.getCursor('anchor'/'head')` in visual mode, fixing `V` + `J` regression from cursor-only selection
+    - Fork: `replace` action in `vim.js` now reads from `vim.sel` instead of `cm.getCursor('start'/'end')` in visual mode, with line boundary expansion for visual-line; removed unused `selections` variable
+    - Fork: `index.ts` adds Ctrl+C special-case that copies linewise text from `vim.sel` when `somethingSelected()` returns false in visual-line mode
+    - Fork: `index.ts` adds `.cm-vimVisualLine` class toggle in `updateClass()`
+    - Fork: `block-cursor.ts` extends `::selection` suppression CSS selector to include `.cm-vimVisualLine`
+    - Plugin: `styles.css` overrides `.cm-vim-linewise-selection` with `var(--text-selection)` for theme alignment (already present from 0.27.0)
+    - 6 new Neovim golden comparison test cases: `V+j+y` cursor position, `V+2j+d` multi-line delete, `Vk` upward selection, `Vjk` round-trip, `v→V` transition, `V→v` transition
+    - 7 new e2e tests: visual-line yank with markup content, multi-line yank register verification, `gv` after visual-line yank, `v→V` and `V→v` mode transitions
+
 ## [0.27.1] - 2026-07-03
 
 ### Fixed

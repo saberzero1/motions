@@ -1117,6 +1117,42 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'v$',
             },
+            {
+                name: 'V + j + y cursor position after yank',
+                content: 'first\nsecond\nthird\nfourth',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Vjy',
+            },
+            {
+                name: 'V + 2j + d should delete three lines',
+                content: 'one\ntwo\nthree\nfour\nfive',
+                cursor: { line: 1, ch: 0 },
+                keys: 'V2jd',
+            },
+            {
+                name: 'V + k cursor position moving up',
+                content: 'first\nsecond\nthird',
+                cursor: { line: 2, ch: 0 },
+                keys: 'Vk',
+            },
+            {
+                name: 'V + j + k cursor position back to start',
+                content: 'first\nsecond\nthird',
+                cursor: { line: 1, ch: 0 },
+                keys: 'Vjk',
+            },
+            {
+                name: 'v then V should switch to linewise delete',
+                content: 'hello world\nsecond line\nthird',
+                cursor: { line: 0, ch: 3 },
+                keys: 'vllVd',
+            },
+            {
+                name: 'V then v should switch to charwise',
+                content: 'hello world\nsecond line',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Vveld',
+            },
         ],
     },
     {

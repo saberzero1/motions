@@ -516,6 +516,22 @@ The filter only applies to empty (cursor) selections. Non-empty selections (visu
 
 The previous approach (v0.22.0) used `RangeSetBuilder.prototype.add` monkey-patching to suppress Obsidian's replace decorations globally, with CSS `color: transparent` to hide the now-visible marks. This was replaced because the monkey-patching conflicted with obsidian-latex-suite (issue #32, causing phantom text insertion) and the CSS workaround didn't fully cover all formatting mark types (issue #33). The `'always'` mode (show marks on all lines) was removed because it required monkey-patching to implement.
 
+## ~~Visual line selection overlap in Live Preview~~ (Fixed)
+
+**Status**: Fixed. Double-highlight eliminated, cursor displacement resolved. ([#41](https://github.com/saberzero1/motions/issues/41))
+
+Two issues affected visual-line mode (`V`) in Live Preview:
+
+1. **Double highlight**: The plugin's custom `linewiseVisualHighlight` decoration (full-line highlight via `Decoration.line`) and the native CM6 `::selection` CSS rendered simultaneously. The native `::selection` was hidden in normal mode via `.cm-vimMode:not(.cm-vimVisual)` but was intentionally left visible in all visual modes (needed for charwise and blockwise). Fixed by adding a `.cm-vimVisualLine` class toggle and extending the `::selection` suppression to include visual-line mode. Charwise and blockwise visual modes remain unaffected.
+
+2. **Cursor displacement over collapsed markup**: Navigating with `j`/`k` on lines containing collapsed markup (`[[wikilinks]]`, `[text](url)`) caused Obsidian to uncollapse the hidden content, reflowing the line. This happened because `updateCmSelection` set a spanning CM6 `EditorSelection` range across the full line content, and Obsidian's Live Preview detects selection overlap with `Decoration.replace` ranges and reveals them (this is Obsidian plugin-level behavior, not CM6 core). Fixed by setting a cursor-only CM6 selection in visual-line mode — the `linewiseVisualHighlight` ViewPlugin provides the visual highlight independently from `vim.sel`, and operators recompute their own selection at dispatch time.
+
+Actions that read from the CM6 selection in visual mode (`joinLines`, `replace`) were updated to read from `vim.sel` instead, and a Ctrl+C special-case copies linewise text from `vim.sel` when `somethingSelected()` returns false.
+
+**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected.
+
+**Test coverage**: 6 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, and register content verification.
+
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 
 **Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison.
