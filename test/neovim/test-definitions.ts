@@ -1153,6 +1153,18 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'Vveld',
             },
+            {
+                name: 'V from mid-column + j + d should delete two lines',
+                content: '- alpha\n- [ ] beta\n- gamma',
+                cursor: { line: 0, ch: 2 },
+                keys: 'Vjd',
+            },
+            {
+                name: 'V from mid-column + 2j + y cursor at col 0',
+                content: '- one\n- two\n- three\n- four',
+                cursor: { line: 0, ch: 3 },
+                keys: 'V2jy',
+            },
         ],
     },
     {

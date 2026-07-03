@@ -1,7 +1,7 @@
 {
     "suite": "macros",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-03T10:59:48.477Z",
+    "recorded_at": "2026-07-03T17:17:56.967Z",
     "cases": [
         {
             "name": "qa dd q @a should delete two lines",

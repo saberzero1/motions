@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-07-03
+
+### Fixed
+
+- **Visual-line cursor lands inside widget decorations in Live Preview** — when entering visual-line mode (`V`) at a non-zero column (e.g., cursor on `a` in `- a`) and moving down to a line with a checkbox (`- [ ] d`), the cursor position `sel.head.ch` was preserved from the starting column. In Live Preview, `[ ]` is replaced by a checkbox widget via `Decoration.replace`; placing the cursor inside this replaced range caused the visual-line highlight to disappear. Fixed by always using column 0 for the cursor-only CM6 selection in visual-line mode, matching Neovim's behavior. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `updateCmSelection` in `vim.js` now uses `cm.setCursor(sel.head.line, 0)` instead of `cm.setCursor(sel.head.line, sel.head.ch)`
+    - 2 new Neovim golden comparison test cases: `V` from mid-column + `j` + `d` with checkbox content, `V` from mid-column + `2j` + `y` cursor at col 0
+
+### Documentation
+
+- Added Quartz-powered documentation site at [saberzero1.github.io/motions](https://saberzero1.github.io/motions) with full feature reference, getting started guide, and changelog.
+
 ## [0.28.0] - 2026-07-03
 
 ### Fixed
