@@ -803,6 +803,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             disabled: () => this.isOverridden('enableVimrc'),
                         },
                     },
+                    {
+                        name: 'Custom vimrc path',
+                        desc: `Path to a vimrc file in your vault. Leave empty to use the default ${this.app.vault.configDir}.vimrc. Useful when Obsidian Sync skips dotfiles.`,
+                        aliases: ['vimrc location', 'vimrc sync'],
+                        control: {
+                            type: 'text' as const,
+                            key: 'vimrcPath',
+                            disabled: () => !this.plugin.settings.enableVimrc,
+                        },
+                    },
                 ],
             },
 
