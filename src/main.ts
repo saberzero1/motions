@@ -62,6 +62,7 @@ import {
     setFormattingMarkMode,
     createFormattingTransactionFilter,
 } from './vim/formatting-mark-fix';
+import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -74,6 +75,7 @@ export default class VimMotionsPlugin extends Plugin {
     whichKeyOverlay: WhichKeyOverlay | null = null;
     private uninstallTableSuppressor: (() => void) | null = null;
     private uninstallTableCursorFix: (() => void) | null = null;
+    private uninstallVisualLineFix: (() => void) | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
     private globalRegistry: GlobalMappingRegistry | null = null;
@@ -483,6 +485,8 @@ export default class VimMotionsPlugin extends Plugin {
 
         setFormattingMarkMode(this.settings.formattingMarkMode ?? 'cursor');
         this.registerEditorExtension(createFormattingTransactionFilter());
+
+        this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
 
         this.app.workspace.trigger('parse-style-settings');
     }
@@ -967,6 +971,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.uninstallTableCursorFix = null;
         this.uninstallTableSuppressor?.();
         this.uninstallTableSuppressor = null;
+        this.uninstallVisualLineFix?.();
+        this.uninstallVisualLineFix = null;
         this.exSuggest?.destroy();
         this.exSuggest = null;
         this.whichKeyOverlay?.destroy();

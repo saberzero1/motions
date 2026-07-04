@@ -536,11 +536,15 @@ Two issues affected visual-line mode (`V`) in Live Preview:
 
 Actions that read from the CM6 selection in visual mode (`joinLines`, `replace`) were updated to read from `vim.sel` instead, and a Ctrl+C special-case copies linewise text from `vim.sel` when `somethingSelected()` returns false. The async motion `.then()` callback (used by EasyMotion in visual mode) now wraps `updateCmSelection` in `cm.operation()` with `isVimOp = true` to prevent `handleExternalSelection` from exiting visual mode when it sees cursor-only selection. The cursor-only selection always uses column 0 (matching Neovim) to avoid landing inside widget decorations (checkboxes, collapsed links) on the head line.
 
-**Obsidian command passthrough**: When a key is NOT handled by vim in visual-line mode, the CM6 selection is temporarily expanded to the full linewise range before the event propagates to Obsidian. This ensures Obsidian's built-in commands (Tab/indent, Ctrl+B bold, Ctrl+I italic, etc.) operate on all selected lines. The cursor-only selection is restored via microtask after the command executes.
+**Obsidian command passthrough** (two layers):
 
-**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode during vim key processing. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected. Obsidian's own commands see the correct linewise selection because of the passthrough mechanism above.
+1. **Fork-side (keyboard events)**: When a key is NOT handled by vim in visual-line mode, `handleKey` in the fork's `index.ts` temporarily expands the CM6 selection to the full linewise range before the event propagates. The cursor-only selection is restored via microtask after Obsidian processes the command. This covers commands triggered by keys that pass through CM6's bubble-phase event handler.
 
-**Test coverage**: 8 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, register content verification, and mid-column visual-line with checkbox content.
+2. **Plugin-side (all invocation paths)**: `app.commands.executeCommand` is wrapped via the `around()` utility (`src/vim/visual-line-command-fix.ts`). When the active editor is in visual-line mode, the wrapper expands the CM6 selection before the command executes and restores cursor-only after. This covers all invocation paths: Obsidian hotkeys (which fire in the capture phase on `window`, before CM6's bubble-phase handler), command palette, toolbar buttons, and programmatic `executeCommandById` calls. The wrapper uses the same `around()` pattern as the table widget suppressor, stacking safely with other plugins that patch `executeCommand`.
+
+**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode during vim key processing. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected. Obsidian's own commands see the correct linewise selection because of the passthrough mechanisms above.
+
+**Test coverage**: 8 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, register content verification, and mid-column visual-line with checkbox content. 10 spike tests (`spike23-visual-line-hotkey-commands.e2e.ts`) verifying command execution via `executeCommandById`, hotkey path, and selection state inspection.
 
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 

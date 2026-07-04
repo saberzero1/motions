@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Obsidian commands only affect cursor line in visual-line mode (all invocation paths)** — the previous fix (0.31.0, fork-side) only covered keyboard events that vim didn't handle: it expanded the CM6 selection in the fork's `handleKey` during the bubble phase. However, Obsidian's `Keymap` registers its keydown listener on `window` in the **capture phase** (`addEventListener("keydown", handler, true)`), which fires before CM6's bubble-phase handler — so commands triggered via Obsidian hotkeys executed with cursor-only selection before the fork could expand it. Additionally, commands invoked via `executeCommandById` (command palette, toolbar buttons, other plugins) bypassed the DOM event path entirely. Spike test confirmed: `editor:toggle-numbered-list`, `editor:toggle-bullet-list`, `editor:toggle-bold`, and `editor:indent-list` all affected only 1 line regardless of invocation method. Fixed by wrapping `app.commands.executeCommand` via `around()` to temporarily expand the CM6 selection to the full linewise range from `vim.sel` before any Obsidian command executes, then restoring cursor-only after. Covers all invocation paths: hotkeys, command palette, toolbar, and programmatic `executeCommandById`. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Plugin: `src/vim/visual-line-command-fix.ts` — `installVisualLineCommandFix()` wraps `app.commands.executeCommand` using the existing `around()` utility (safe for multi-plugin stacking); installed in `onload()`, cleaned up in `onunload()`
+    - Spike test: `test/specs/spikes/spike23-visual-line-hotkey-commands.e2e.ts` — 10 tests verifying direct command, hotkey, and selection state behavior
+
 ## [0.32.0] - 2026-07-05
 
 ### Added
