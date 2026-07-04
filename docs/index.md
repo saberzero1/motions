@@ -28,10 +28,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 43 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in v0.30.0
+## What's new in v0.31.0
 
-- **Custom global key mappings** — `gmap`, `gnoremap`, and `gunmap` in `.obsidian.vimrc` let you define, override, or remove key bindings for non-editor contexts (graph view, canvas, PDF, reading mode, and more). See [[vimrc#Global key mappings]].
-- **Global which-key overlay** — non-editor key sequences now show a which-key popup (e.g., `<C-w>` shows all window commands). Label your bindings with `gwhichkeylabel`/`gwhichkeygroup`. See [[which-key#Global (non-editor) labels]].
-- **`:gmap` ex command** — list all active global bindings with their source (default/user)
+- **visual-line mode now properly preserves selection for Obsidian commands** — `tab`/`shift-tab` now work as expected in visual-line mode, and `:ObsidianCommand` commands now operate on the entire selection.
 
 See the [[changelog|full changelog]] for details.

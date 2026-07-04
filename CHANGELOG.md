@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-07-04
+
 ### Fixed
 
 - **Obsidian commands (Tab/indent, formatting toggles) only affect cursor line in visual-line mode** — when vim didn't handle a key in visual-line mode, the event propagated to Obsidian with a cursor-only CM6 selection. Obsidian's commands (`editor:indent-list`, `editor:toggle-bold`, etc.) only saw one line instead of the full visual selection. Fixed by temporarily expanding the CM6 selection to the full linewise range before the event propagates, then restoring cursor-only via microtask after Obsidian's command executes. ([#41](https://github.com/saberzero1/motions/issues/41))
