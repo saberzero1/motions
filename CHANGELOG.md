@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-07-04
+
+### Added
+
+- **User-configurable global key mappings (`gmap`/`gnoremap`/`gunmap`)** — non-editor key bindings (graph view, canvas, PDF, reading mode, file explorer, empty workspace) can now be customized via `.obsidian.vimrc`. Previously, all non-editor bindings were hardcoded. The `<leader>` key is shared with editor mappings. ([#43](https://github.com/saberzero1/motions/issues/43))
+    - `gmap <leader>f :obcommand switcher:open` — bind `<leader>f` to open the quick switcher in non-editor views
+    - `gnoremap <leader>s :sidebar left` — functionally identical to `gmap` (accepted for vim syntax familiarity)
+    - `gunmap H` — remove the default `H → previous tab` binding (key propagates to Obsidian)
+    - Right-hand side supports `:obcommand <id>` for Obsidian commands and `:<ex-command> [args]` for global ex commands
+    - User bindings override defaults; `gunmap` removes any binding (user or default)
+    - Count prefix support: `5j` scrolls 5 lines, `3gt` goes to tab 3 (matching existing behavior)
+    - New files: `src/workspace/global-mapping-registry.ts` (registry with prefix-matching resolver), `src/workspace/global-defaults.ts` (default binding table)
+    - Refactored `src/workspace/global-key-handler.ts` from 770-line hardcoded state machine to 255-line table-driven dispatch via `GlobalMappingRegistry`
+    - E2E tests: `test/specs/gmap.e2e.ts` (12 tests), `test/specs/gmap-vimrc.e2e.ts` (9 tests)
+- **Global which-key overlay** — non-editor key sequences now show a which-key popup after 500ms, displaying available completions. Pressing `<C-w>` shows `h`/`j`/`k`/`l`/`v`/`s`/`c`/`q`/`o` window commands. Controlled by the existing `whichKeyMode` setting (`off`/`leader`/`all`).
+    - New file: `src/ui/global-which-key.ts` — `GlobalWhichKeyOverlay` class, shares CSS with editor which-key
+    - Reuses `vim-motions-which-key` CSS classes from `styles.css` (no CSS changes needed)
+    - Popout window support via `Document` parameter tracking
+    - Dismiss on sequence completion, timeout, or focus change to editor
+- **Global which-key labels (`gwhichkeylabel`/`gwhichkeygroup`)** — label global bindings for the non-editor which-key overlay, independent from editor which-key labels
+    - `gwhichkeylabel <leader>f Open file` — shows "Open file" instead of the raw command ID
+    - `gwhichkeygroup <leader> +leader` — groups `<leader>*` bindings under a named prefix
+- **`:gmap` ex command** — lists all active global bindings with source (default/user) in a modal. Available in both editor and non-editor `:` command contexts.
+- **`executeGlobalExCommand` helper** — exported from `global-ex-command.ts` for programmatic ex command dispatch without opening the modal UI
+
+### Documentation
+
+- `docs/configuration/vimrc.md`: added `gmap`/`gnoremap`/`gunmap`/`gwhichkeylabel`/`gwhichkeygroup` to supported commands table, added "Global key mappings" section with full syntax and examples
+- `docs/features/workspace-navigation.md`: added "Customizing global bindings" section
+- `docs/configuration/which-key.md`: updated modes to note non-editor overlay support, added "Global (non-editor) labels" section
+- `docs/reference/keybindings.md`: added `:gmap` ex command, added customization note to non-editor bindings section
+
 ## [0.29.0] - 2026-07-03
 
 ### Fixed

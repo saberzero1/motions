@@ -32,6 +32,8 @@ test-vault/.obsidian/plugins/vim-motions/
 
 # WDIO / E2E testing
 .obsidian-cache/
+test-vault/.obsidian.vimrc
+test-vault/.obsidian/plugins/wdio-obsidian-service-plugin/
 
 # Sisyphus plans
 .sisyphus/
