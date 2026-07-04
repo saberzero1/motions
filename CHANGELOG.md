@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-07-05
+
 ### Added
 
 - **Select mode (`gh`/`gH`/`g<C-h>`)** — Vim select mode where typing replaces the selection and enters insert mode. `gh` enters charwise, `gH` linewise, `g<C-h>` blockwise. `<C-g>` toggles between visual and select mode. `<BS>` deletes the selection. Matches Neovim behavior. ([#45](https://github.com/saberzero1/motions/issues/45))

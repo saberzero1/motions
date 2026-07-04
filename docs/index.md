@@ -28,8 +28,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 43 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in v0.31.0
+## What's new in v0.32.0
 
-- **visual-line mode now properly preserves selection for Obsidian commands** — `tab`/`shift-tab` now work as expected in visual-line mode, and `:ObsidianCommand` commands now operate on the entire selection.
+- **Select mode (`gh`/`gH`/`g<C-h>`)** — Vim select mode where typing replaces the selection and enters insert mode, matching Neovim behavior
+- **Virtual Replace mode (`gR`)** — replace mode that operates on screen columns instead of byte positions, with TAB-aware virtual column math
+- **Full mode indicator coverage** — status bar now distinguishes `V-LINE`, `V-BLOCK`, `COMMAND`, `SEARCH`, and `INSERT-NORMAL` modes, with all 11 mode prompts configurable via settings and vimrc
+- **Configurable which-key delay** — set the delay before the which-key popup appears (0–2000ms) via settings or `set whichkeydelay=<ms>` in vimrc
 
 See the [[changelog|full changelog]] for details.
