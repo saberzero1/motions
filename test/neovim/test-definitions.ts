@@ -1584,4 +1584,79 @@ export const SUITES: SuiteDefinition[] = [
             },
         ],
     },
+    {
+        name: 'select-mode',
+        cases: [
+            {
+                name: 'gh extends charwise and typing replaces',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'ghllx\x1b',
+            },
+            {
+                name: 'gH selects entire line and typing replaces',
+                content: 'first\nsecond',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gHx\x1b',
+            },
+            {
+                name: 'gh + BS deletes selection',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'ghll\x08',
+            },
+            {
+                name: 'gh + Esc exits without change',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'ghll\x1b',
+            },
+            {
+                name: 'v then Ctrl-G toggles to select then type replaces',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'vll\x07x\x1b',
+            },
+        ],
+    },
+    {
+        name: 'virtual-replace-mode',
+        cases: [
+            {
+                name: 'gR replaces characters',
+                content: 'hello',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gRxy\x1b',
+            },
+            {
+                name: 'gR at EOL appends',
+                content: 'hi',
+                cursor: { line: 0, ch: 1 },
+                keys: 'gRxyz\x1b',
+            },
+            {
+                name: 'gR + BS restores original',
+                content: 'hello',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gRx\x08\x1b',
+            },
+        ],
+    },
+    {
+        name: 'ctrl-o-return',
+        cases: [
+            {
+                name: 'Ctrl-O from insert returns to insert after motion',
+                content: 'hello world foo',
+                cursor: { line: 0, ch: 0 },
+                keys: 'i\x0fw\x1b',
+            },
+            {
+                name: 'Ctrl-O from replace returns to replace then types',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'R\x0flx\x1b',
+            },
+        ],
+    },
 ];

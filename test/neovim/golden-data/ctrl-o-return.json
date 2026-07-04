@@ -1,42 +1,42 @@
 {
-    "suite": "normal-scroll",
+    "suite": "ctrl-o-return",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.414Z",
+    "recorded_at": "2026-07-04T20:45:58.453Z",
     "cases": [
         {
-            "name": "Ctrl-A should increment number",
+            "name": "Ctrl-O from insert returns to insert after motion",
             "initial": {
-                "content": "count: 5",
+                "content": "hello world foo",
                 "cursor": {
                     "line": 0,
-                    "ch": 7
+                    "ch": 0
                 }
             },
-            "keys": "\u0001",
+            "keys": "i\u000fw\u001b",
             "result": {
-                "content": "count: 6",
+                "content": "hello world foo",
                 "cursor": {
                     "line": 0,
-                    "ch": 7
+                    "ch": 5
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "Ctrl-X should decrement number",
+            "name": "Ctrl-O from replace returns to replace then types",
             "initial": {
-                "content": "count: 5",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 7
+                    "ch": 0
                 }
             },
-            "keys": "\u0018",
+            "keys": "R\u000flx\u001b",
             "result": {
-                "content": "count: 4",
+                "content": "hxllo world",
                 "cursor": {
                     "line": 0,
-                    "ch": 7
+                    "ch": 1
                 },
                 "mode": "normal"
             }

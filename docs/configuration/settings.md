@@ -59,12 +59,19 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vim mode display prompt
 
-| Name                | Type | Default   | Range/Options | Vimrc                       | Description                       |
-| ------------------- | ---- | --------- | ------------- | --------------------------- | --------------------------------- |
-| Normal mode prompt  | text | `NORMAL`  | —             | `let g:mode_prompt_normal`  | Status bar text for normal mode.  |
-| Insert mode prompt  | text | `INSERT`  | —             | `let g:mode_prompt_insert`  | Status bar text for insert mode.  |
-| Visual mode prompt  | text | `VISUAL`  | —             | `let g:mode_prompt_visual`  | Status bar text for visual mode.  |
-| Replace mode prompt | text | `REPLACE` | —             | `let g:mode_prompt_replace` | Status bar text for replace mode. |
+| Name                        | Type | Default     | Range/Options | Vimrc                             | Description                                                 |
+| --------------------------- | ---- | ----------- | ------------- | --------------------------------- | ----------------------------------------------------------- |
+| Normal mode prompt          | text | `NORMAL`    | —             | `let g:mode_prompt_normal`        | Status bar text for normal mode.                            |
+| Insert mode prompt          | text | `INSERT`    | —             | `let g:mode_prompt_insert`        | Status bar text for insert mode.                            |
+| Visual mode prompt          | text | `VISUAL`    | —             | `let g:mode_prompt_visual`        | Status bar text for visual mode.                            |
+| V-Line mode prompt          | text | `V-LINE`    | —             | `let g:mode_prompt_visual_line`   | Status bar text for visual line mode.                       |
+| V-Block mode prompt         | text | `V-BLOCK`   | —             | `let g:mode_prompt_visual_block`  | Status bar text for visual block mode.                      |
+| Replace mode prompt         | text | `REPLACE`   | —             | `let g:mode_prompt_replace`       | Status bar text for replace mode.                           |
+| Select mode prompt          | text | `SELECT`    | —             | `let g:mode_prompt_select`        | Status bar text for select mode.                            |
+| Virtual replace mode prompt | text | `V-REPLACE` | —             | `let g:mode_prompt_vreplace`      | Status bar text for virtual replace mode.                   |
+| Command mode prompt         | text | `COMMAND`   | —             | `let g:mode_prompt_command`       | Status bar text for command-line mode.                      |
+| Search mode prompt          | text | `SEARCH`    | —             | `let g:mode_prompt_search`        | Status bar text for search mode.                            |
+| Insert-normal mode prompt   | text | `NORMAL`    | —             | `let g:mode_prompt_insert_normal` | Status bar text when in normal mode via Ctrl-O from insert. |
 
 ## Cursor shapes
 

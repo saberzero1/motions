@@ -14,8 +14,14 @@ export interface VimPos {
 
 /** Vim mode descriptor emitted on mode change events. */
 export interface VimModeChange {
-    mode: 'normal' | 'insert' | 'visual' | 'replace';
-    subMode?: 'linewise' | 'blockwise' | '';
+    mode: 'normal' | 'insert' | 'visual' | 'replace' | 'select' | 'vreplace';
+    subMode?:
+        | 'linewise'
+        | 'blockwise'
+        | 'ctrl-o'
+        | 'ctrl-o-replace'
+        | 'ctrl-o-vreplace'
+        | '';
 }
 
 /** Arguments passed to motion functions. */
@@ -70,6 +76,8 @@ export interface VimState {
     visualMode?: boolean;
     visualLine?: boolean;
     visualBlock?: boolean;
+    selectMode?: boolean;
+    virtualReplace?: boolean;
     lastSelection?: unknown;
     inputState?: {
         keyBuffer: string[];
@@ -88,7 +96,7 @@ export type KeymapType =
     | 'keyToKey';
 
 /** Context for key mappings. */
-export type MapContext = 'normal' | 'visual' | 'insert';
+export type MapContext = 'normal' | 'visual' | 'insert' | 'select';
 
 /**
  * Motion function signature.
@@ -132,6 +140,7 @@ export interface CmAdapter {
     /** Internal Vim state. */
     state: {
         vim?: VimState;
+        dialog?: HTMLElement | null;
     };
 
     getCursor(start?: string): VimPos;
@@ -156,6 +165,7 @@ export interface CmAdapter {
     on(event: 'vim-mode-change', handler: (mode: VimModeChange) => void): void;
     on(event: 'vim-keypress', handler: (key: string) => void): void;
     on(event: 'vim-command-done', handler: () => void): void;
+    on(event: 'dialog', handler: () => void): void;
 
     /** Unsubscribe from CM5-compat events. */
     off(event: string, handler: (...args: unknown[]) => void): void;

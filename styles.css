@@ -124,6 +124,69 @@
         var(--vim-pl-replace-bg, var(--color-red, #ea6962));
 }
 
+.vim-motions-powerline[data-vim-mode='v-line'] {
+    color: var(--vim-pl-v-line-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-v-line-bg, var(--color-orange, #d8a657));
+}
+.vim-motions-powerline[data-vim-mode='v-line']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-v-line-bg, var(--color-orange, #d8a657));
+}
+
+.vim-motions-powerline[data-vim-mode='v-block'] {
+    color: var(--vim-pl-v-block-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-v-block-bg, var(--color-orange, #d8a657));
+}
+.vim-motions-powerline[data-vim-mode='v-block']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-v-block-bg, var(--color-orange, #d8a657));
+}
+
+.vim-motions-powerline[data-vim-mode='command'] {
+    color: var(--vim-pl-command-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-command-bg, var(--color-blue, #7daea3));
+}
+.vim-motions-powerline[data-vim-mode='command']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-command-bg, var(--color-blue, #7daea3));
+}
+
+.vim-motions-powerline[data-vim-mode='search'] {
+    color: var(--vim-pl-search-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-search-bg, var(--color-blue, #7daea3));
+}
+.vim-motions-powerline[data-vim-mode='search']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-search-bg, var(--color-blue, #7daea3));
+}
+
+.vim-motions-powerline[data-vim-mode='select'] {
+    color: var(--vim-pl-select-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-select-bg, var(--color-orange, #d8a657));
+}
+.vim-motions-powerline[data-vim-mode='select']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-select-bg, var(--color-orange, #d8a657));
+}
+
+.vim-motions-powerline[data-vim-mode='vreplace'] {
+    color: var(--vim-pl-vreplace-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-vreplace-bg, var(--color-red, #ea6962));
+}
+.vim-motions-powerline[data-vim-mode='vreplace']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-vreplace-bg, var(--color-red, #ea6962));
+}
+
+.vim-motions-powerline[data-vim-mode='insert-normal'] {
+    color: var(--vim-pl-normal-fg, var(--text-on-accent, #1d2021));
+    background-color: var(--vim-pl-normal-bg, var(--color-blue, #7daea3));
+}
+.vim-motions-powerline[data-vim-mode='insert-normal']::after {
+    border-color: transparent transparent transparent
+        var(--vim-pl-normal-bg, var(--color-blue, #7daea3));
+}
+
 .vim-motions-easymotion {
     position: absolute;
     top: 0;
@@ -413,6 +476,90 @@ settings:
     -
         id: vim-pl-replace-fg
         title: Replace mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-v-line-bg
+        title: V-Line mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#D4960A'
+        default-dark: '#d8a657'
+    -
+        id: vim-pl-v-line-fg
+        title: V-Line mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-v-block-bg
+        title: V-Block mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#D4960A'
+        default-dark: '#d8a657'
+    -
+        id: vim-pl-v-block-fg
+        title: V-Block mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-command-bg
+        title: Command mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#4878BE'
+        default-dark: '#7daea3'
+    -
+        id: vim-pl-command-fg
+        title: Command mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-search-bg
+        title: Search mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#4878BE'
+        default-dark: '#7daea3'
+    -
+        id: vim-pl-search-fg
+        title: Search mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-select-bg
+        title: Select mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#D4960A'
+        default-dark: '#d8a657'
+    -
+        id: vim-pl-select-fg
+        title: Select mode text
+        type: variable-themed-color
+        format: hex
+        default-light: '#ffffff'
+        default-dark: '#1d2021'
+    -
+        id: vim-pl-vreplace-bg
+        title: V-Replace mode background
+        type: variable-themed-color
+        format: hex
+        default-light: '#D44242'
+        default-dark: '#ea6962'
+    -
+        id: vim-pl-vreplace-fg
+        title: V-Replace mode text
         type: variable-themed-color
         format: hex
         default-light: '#ffffff'

@@ -49,8 +49,11 @@ export async function getVimMode(): Promise<string> {
         const vim = (adapter?.state as Record<string, unknown> | undefined)
             ?.vim as Record<string, unknown> | undefined;
         if (vim) {
+            if (vim.selectMode) return 'select';
+            if (vim.insertMode && vim.virtualReplace) return 'vreplace';
             if (vim.insertMode) return 'insert';
             if (vim.visualMode) return 'visual';
+            if (vim.insertModeReturn) return 'insert-normal';
             return 'normal';
         }
         // Bundled vim: editorView is the CM6 EditorView, .cm is the adapter
@@ -62,10 +65,26 @@ export async function getVimMode(): Promise<string> {
             bundledAdapter.state as Record<string, unknown> | undefined
         )?.vim as Record<string, unknown> | undefined;
         if (!bVim) return 'unknown';
+        if (bVim.selectMode) return 'select';
+        if (bVim.insertMode && bVim.virtualReplace) return 'vreplace';
         if (bVim.insertMode) return 'insert';
         if (bVim.visualMode) return 'visual';
+        if (bVim.insertModeReturn) return 'insert-normal';
         return 'normal';
     })) as string;
+}
+
+export async function getStatusBarMode(): Promise<{
+    text: string;
+    dataAttr: string;
+}> {
+    return (await browser.executeObsidian(() => {
+        const el = document.querySelector('.vim-motions-mode');
+        return {
+            text: (el as HTMLElement)?.textContent ?? '',
+            dataAttr: (el as HTMLElement)?.dataset?.vimMode ?? '',
+        };
+    })) as { text: string; dataAttr: string };
 }
 
 export async function getRegisterContent(

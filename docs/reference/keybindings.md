@@ -192,6 +192,22 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    | —      |
 | `zM` / `zR`         | Fold all / unfold all                               | —      |
 
+## Select mode
+
+| Keybinding | Description                                              |
+| ---------- | -------------------------------------------------------- |
+| `gh`       | Enter select mode (charwise)                             |
+| `gH`       | Enter select mode (linewise)                             |
+| `g<C-h>`   | Enter select mode (blockwise)                            |
+| `<C-g>`    | Toggle between visual and select mode (in visual/select) |
+| `gV`       | Prevent select mode reselection after mapping            |
+
+## Virtual replace mode
+
+| Keybinding | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| `gR`       | Enter virtual replace mode (replace by screen column) |
+
 ## Non-editor view bindings
 
 Navigate and interact with non-editor views like PDFs, graphs, and canvases.

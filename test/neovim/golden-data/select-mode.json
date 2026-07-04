@@ -1,20 +1,39 @@
 {
-    "suite": "macros",
+    "suite": "select-mode",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.445Z",
+    "recorded_at": "2026-07-04T20:45:58.450Z",
     "cases": [
         {
-            "name": "qa dd q @a should delete two lines",
+            "name": "gh extends charwise and typing replaces",
             "initial": {
-                "content": "one\ntwo\nthree\nfour",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "qaddq@a",
+            "keys": "ghllx\u001b",
             "result": {
-                "content": "three\nfour",
+                "content": "llxello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gH selects entire line and typing replaces",
+            "initial": {
+                "content": "first\nsecond",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gHx\u001b",
+            "result": {
+                "content": "xsecond",
                 "cursor": {
                     "line": 0,
                     "ch": 0
@@ -23,77 +42,58 @@
             }
         },
         {
-            "name": "2@a should replay macro twice",
+            "name": "gh + BS deletes selection",
             "initial": {
-                "content": "aaa\nbbb\nccc\nddd\neee",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "qaddq2@a",
+            "keys": "ghll\b",
             "result": {
-                "content": "ddd\neee",
+                "content": "lello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "insert"
+            }
+        },
+        {
+            "name": "gh + Esc exits without change",
+            "initial": {
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
                     "ch": 0
+                }
+            },
+            "keys": "ghll\u001b",
+            "result": {
+                "content": "llello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "@@ should replay last executed macro",
+            "name": "v then Ctrl-G toggles to select then type replaces",
             "initial": {
-                "content": "one\ntwo\nthree\nfour",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "qaddq@a@@",
+            "keys": "vll\u0007x\u001b",
             "result": {
-                "content": "four",
+                "content": "xlo world",
                 "cursor": {
                     "line": 0,
                     "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "qa x q 3@a should delete 4 chars total",
-            "initial": {
-                "content": "abcdefgh",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "qaxq3@a",
-            "result": {
-                "content": "efgh",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "macro should record and replay insert",
-            "initial": {
-                "content": "hello",
-                "cursor": {
-                    "line": 0,
-                    "ch": 0
-                }
-            },
-            "keys": "qaAworld\u001bq@a",
-            "result": {
-                "content": "helloworldworld",
-                "cursor": {
-                    "line": 0,
-                    "ch": 14
                 },
                 "mode": "normal"
             }

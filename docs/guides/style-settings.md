@@ -35,11 +35,29 @@ body {
 ```css
 body {
     --vim-pl-normal-bg: #a3be8c;
+    --vim-pl-normal-fg: #ffffff;
     --vim-pl-insert-bg: #88c0d0;
+    --vim-pl-insert-fg: #ffffff;
     --vim-pl-visual-bg: #b48ead;
+    --vim-pl-visual-fg: #ffffff;
+    --vim-pl-v-line-bg: #b48ead;
+    --vim-pl-v-line-fg: #ffffff;
+    --vim-pl-v-block-bg: #b48ead;
+    --vim-pl-v-block-fg: #ffffff;
     --vim-pl-replace-bg: #bf616a;
+    --vim-pl-replace-fg: #ffffff;
+    --vim-pl-select-bg: #b48ead;
+    --vim-pl-select-fg: #ffffff;
+    --vim-pl-vreplace-bg: #bf616a;
+    --vim-pl-vreplace-fg: #ffffff;
+    --vim-pl-command-bg: #88c0d0;
+    --vim-pl-command-fg: #ffffff;
+    --vim-pl-search-bg: #88c0d0;
+    --vim-pl-search-fg: #ffffff;
 }
 ```
+
+All these properties are configurable via the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin with separate light and dark mode defaults.
 
 ## Style Settings plugin
 

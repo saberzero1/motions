@@ -342,6 +342,24 @@ The surround operator implements the full vim-surround command set: `ds`/`cs`/`y
 
 The per-mode cursor shape settings (block, bar, underline, hollow) only take effect when Obsidian's built-in Vim mode is disabled. With built-in Vim enabled, Obsidian renders its own block cursor and the plugin has no control over its shape. The `set guicursor=...` vimrc command is also only effective in bundled fork mode.
 
+## Select mode and Virtual Replace mode
+
+### Select mode limitations
+
+**Status**: Partial support.
+
+Select mode (`gh`, `gH`, `g<C-h>`) is supported, but `selectmode=mouse` may not work due to CM6 mouse event limitations. `:smap` and `:sunmap` commands are available and correctly fallback to `:vmap` when no select-specific mapping exists, matching Neovim's behavior. `selectmode=key` and `keymodel=startsel` options are accepted but shifted cursor key behavior is not functional.
+
+### Virtual Replace mode limitations
+
+**Status**: Basic support.
+
+Virtual Replace mode (`gR`) operates on screen columns. TAB virtual-column handling is basic — East Asian Width (double-width CJK characters) is not yet accounted for in column width calculation. Newline handling in vreplace mode is simplified; `gR` does not delete the rest of the line (falls through to CM6 default).
+
+### Mode indicators
+
+Mode indicators for select, v-replace, command, search, and insert-normal require bundled fork mode (built-in vim mode OFF). The operator-pending mode indicator is intentionally not shown as it is too transient to be useful in the status bar.
+
 ## UI & display
 
 ### Which-key overlay

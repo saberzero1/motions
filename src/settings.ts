@@ -48,6 +48,13 @@ export interface ModePrompts {
     insert: string;
     visual: string;
     replace: string;
+    visualLine: string;
+    visualBlock: string;
+    select: string;
+    vreplace: string;
+    command: string;
+    search: string;
+    insertNormal: string;
 }
 
 export const DEFAULT_MODE_PROMPTS: ModePrompts = {
@@ -55,6 +62,13 @@ export const DEFAULT_MODE_PROMPTS: ModePrompts = {
     insert: 'INSERT',
     visual: 'VISUAL',
     replace: 'REPLACE',
+    visualLine: 'V-LINE',
+    visualBlock: 'V-BLOCK',
+    select: 'SELECT',
+    vreplace: 'V-REPLACE',
+    command: 'COMMAND',
+    search: 'SEARCH',
+    insertNormal: 'NORMAL',
 };
 
 export type CursorShape = 'block' | 'bar' | 'underline' | 'hollow';
@@ -219,6 +233,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'modePrompts.insert',
         'modePrompts.visual',
         'modePrompts.replace',
+        'modePrompts.visualLine',
+        'modePrompts.visualBlock',
+        'modePrompts.select',
+        'modePrompts.vreplace',
+        'modePrompts.command',
+        'modePrompts.search',
+        'modePrompts.insertNormal',
         'cursorShapes.normal',
         'cursorShapes.insert',
         'cursorShapes.visual',
@@ -712,6 +733,97 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             key: 'modePrompts.replace',
                             disabled: () =>
                                 this.isOverridden('modePrompts.replace'),
+                        },
+                    },
+                    {
+                        name: 'Visual line mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.visualLine',
+                            'Status bar text for visual line mode (V).',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.visualLine',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.visualLine'),
+                        },
+                    },
+                    {
+                        name: 'Visual block mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.visualBlock',
+                            'Status bar text for visual block mode (Ctrl-V).',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.visualBlock',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.visualBlock'),
+                        },
+                    },
+                    {
+                        name: 'Select mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.select',
+                            'Status bar text for select mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.select',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.select'),
+                        },
+                    },
+                    {
+                        name: 'Virtual replace mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.vreplace',
+                            'Status bar text for virtual replace mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.vreplace',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.vreplace'),
+                        },
+                    },
+                    {
+                        name: 'Command mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.command',
+                            'Status bar text for command-line mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.command',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.command'),
+                        },
+                    },
+                    {
+                        name: 'Search mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.search',
+                            'Status bar text for search mode.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.search',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.search'),
+                        },
+                    },
+                    {
+                        name: 'Insert-normal mode prompt',
+                        desc: this.describeOverride(
+                            'modePrompts.insertNormal',
+                            'Status bar text when in normal mode via Ctrl-O from insert.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'modePrompts.insertNormal',
+                            disabled: () =>
+                                this.isOverridden('modePrompts.insertNormal'),
                         },
                     },
                 ],

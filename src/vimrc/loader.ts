@@ -459,14 +459,23 @@ async function loadVimrcFile(
             typeof parsed.value === 'string'
         ) {
             const mode = parsed.key.replace('g:mode_prompt_', '');
-            if (
-                mode === 'normal' ||
-                mode === 'insert' ||
-                mode === 'visual' ||
-                mode === 'replace'
-            ) {
+            const VIMRC_MODE_MAP: Record<string, string> = {
+                normal: 'normal',
+                insert: 'insert',
+                visual: 'visual',
+                replace: 'replace',
+                visual_line: 'visualLine',
+                visual_block: 'visualBlock',
+                select: 'select',
+                vreplace: 'vreplace',
+                command: 'command',
+                search: 'search',
+                insert_normal: 'insertNormal',
+            };
+            const camelMode = VIMRC_MODE_MAP[mode];
+            if (camelMode) {
                 onSettingOverride?.(
-                    `modePrompts.${mode}`,
+                    `modePrompts.${camelMode}`,
                     parsed.value,
                     trimmed,
                 );

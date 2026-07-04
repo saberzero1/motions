@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Select mode (`gh`/`gH`/`g<C-h>`)** — Vim select mode where typing replaces the selection and enters insert mode. `gh` enters charwise, `gH` linewise, `g<C-h>` blockwise. `<C-g>` toggles between visual and select mode. `<BS>` deletes the selection. Matches Neovim behavior. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Fork: `enterSelectMode`, `toggleSelectMode`, `preventReselect` actions in `vim.js`; `selectMode` flag on vim state; `'select'` context for keymap dispatch with visual fallback; `gv` preserves and restores select mode via `lastSelection`
+    - Fork: `:smap`, `:snoremap`, `:sunmap`, `:smapclear` ex commands for select-mode-specific mappings
+    - Fork: `selectmode` option (`set selectmode=cmd` makes `v`/`V`/`<C-v>` enter select mode); `keymodel` option (accepted, shifted cursor key behavior deferred)
+    - Plugin: status bar shows `SELECT`, `data-vim-mode="select"`, powerline CSS with `::after` triangle, Style Settings entries
+    - 16 fork browser tests, 5 Neovim golden test cases, 3 e2e tests
+- **Virtual Replace mode (`gR`)** — replace mode that operates on screen columns instead of byte positions. TAB-aware virtual column math with replace stack for `<BS>` restore. `<Insert>` toggles between virtual replace and insert mode. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Fork: `virtualReplaceChar` and `virtualReplaceBackspace` adapter methods in `cm_adapter.ts`; `virtualReplace` flag and `replaceStack` on vim state; `{mode: "vreplace"}` mode change event
+    - Plugin: status bar shows `V-REPLACE`, `data-vim-mode="vreplace"`, powerline CSS, Style Settings entries
+    - 10 fork browser tests, 3 Neovim golden test cases, 2 e2e tests
+- **Visual Line / Visual Block mode indicators** — status bar now distinguishes `V-LINE` and `V-BLOCK` from `VISUAL`. Uses the fork's existing `subMode` event field. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Plugin: mode-tracker maps `subMode: "linewise"` → `visualLine`, `"blockwise"` → `visualBlock`; `data-vim-mode="v-line"` / `"v-block"`; powerline CSS + Style Settings entries
+    - 3 e2e tests
+- **Command-line and Search mode indicators** — status bar shows `COMMAND` when `:` prompt is open and `SEARCH` when `/` or `?` prompt is open. Detects dialog type via DOM text node inspection of the fork's `"dialog"` event. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Plugin: `dialogHandler` in mode-tracker with `preDialogMode` tracking for restoration on dialog close; `getDialogPrefix()` walks DOM child nodes; `data-vim-mode="command"` / `"search"`; powerline CSS + Style Settings entries
+    - 5 e2e tests (including rapid `:` → `Esc` → `/` → `Esc` cycling)
+- **Insert-Normal mode indicator** — status bar shows the configured insert-normal prompt (default `NORMAL`) when `<C-o>` is pressed in insert mode, then returns to `INSERT` after one command. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Plugin: mode-tracker detects `subMode.startsWith('ctrl-o')` → `insertNormal`; `data-vim-mode="insert-normal"`; powerline CSS
+    - 2 e2e tests
+- **All 11 mode prompts configurable** — mode prompt text for all modes (normal, insert, visual, v-line, v-block, replace, select, v-replace, command, search, insert-normal) is configurable via Settings UI and vimrc (`let g:mode_prompt_visual_line = "VL"`, etc.)
+    - Plugin: `ModePrompts` interface expanded; settings UI entries for all modes; vimrc `VIMRC_MODE_MAP` with snake_case → camelCase mapping; `RELOAD_KEYS` updated
+
+### Fixed
+
+- **`<C-o>` in replace mode returns to insert instead of replace** — `oneNormalCommand` now saves the pre-Ctrl-O mode state and returns to the correct mode (insert, replace, or virtual replace) after the single normal command. Uses `_suppressModeSignal` to prevent a spurious `{mode:"normal"}` event, emitting `{mode:"normal", subMode:"ctrl-o"|"ctrl-o-replace"|"ctrl-o-vreplace"}` instead. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Fork: `insertModeReturnArgs` on vim state; `_suppressModeSignal` flag in `exitInsertMode`
+    - 5 fork browser tests, 2 Neovim golden test cases, 2 e2e tests
+- **`R` mode `<BS>` does not restore original character** — regular replace mode now maintains a replace stack (same mechanism as virtual replace). `<BS>` restores the original character under cursor, matching Neovim behavior. Previously, `<BS>` only moved the cursor left. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Fork: `handleReplaceModeInput` pushes original chars to `replaceStack` before overwriting; BS pops and restores with explicit `setCursor` for correct positioning
+    - 4 fork browser tests
+- **Replace/vreplace character I/O only works through DOM events** — unified replace mode character handling from `index.ts` (DOM-only path) into `vim.js` (`handleReplaceModeInput`). `Vim.handleKey` is now authoritative for all replace-mode operations — programmatic dispatch, macro replay, and dot-repeat work correctly through both paths. ([#45](https://github.com/saberzero1/motions/issues/45))
+    - Fork: `handleReplaceModeInput` in `vim.js` called from `handleKeyInsertMode` `match.type == 'none'` branch; `virtualReplaceChar`/`virtualReplaceBackspace` adapter methods; removed overwrite block and helpers from `index.ts`
+    - 7 fork browser tests (overwrite, BS restore, dot-repeat, macro replay, Ctrl-H)
+
+### Documentation
+
+- `docs/configuration/status-bar.md`: lists all 11 mode indicators, all `data-vim-mode` attribute values, all CSS variables, all vimrc directives, fork mode requirement callout
+- `docs/configuration/settings.md`: all 11 mode prompt settings with vimrc equivalents
+- `docs/guides/style-settings.md`: all 20 powerline CSS variables (bg + fg for 10 modes)
+- `docs/reference/keybindings.md`: select mode (`gh`, `gH`, `g<C-h>`, `<C-g>`, `gV`) and virtual replace (`gR`) sections
+- `docs/reference/known-limitations.md`: select mode and virtual replace mode limitations
+- `KNOWN_LIMITATIONS.md`: `selectmode=mouse` CM6 limitation, `selectmode=key`/`keymodel=startsel` deferred, East Asian Width, `gR` newline behavior
+- `DIFFERENCES.md` (fork): 7 new sections covering select mode, virtual replace, replace stack, unified char handling, Ctrl-O fix, mapping commands, type changes
+
 ## [0.31.0] - 2026-07-04
 
 ### Fixed

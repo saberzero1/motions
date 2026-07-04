@@ -1,0 +1,64 @@
+{
+    "suite": "virtual-replace-mode",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-04T20:45:58.452Z",
+    "cases": [
+        {
+            "name": "gR replaces characters",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gRxy\u001b",
+            "result": {
+                "content": "xyllo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gR at EOL appends",
+            "initial": {
+                "content": "hi",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "gRxyz\u001b",
+            "result": {
+                "content": "hxyz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gR + BS restores original",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gRx\b\u001b",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

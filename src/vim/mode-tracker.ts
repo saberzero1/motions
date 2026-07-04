@@ -8,7 +8,14 @@ const DEFAULT_MODE_LABELS: Record<string, string> = {
     normal: 'NORMAL',
     insert: 'INSERT',
     visual: 'VISUAL',
+    visualLine: 'V-LINE',
+    visualBlock: 'V-BLOCK',
     replace: 'REPLACE',
+    select: 'SELECT',
+    vreplace: 'V-REPLACE',
+    command: 'COMMAND',
+    search: 'SEARCH',
+    insertNormal: 'NORMAL',
 };
 
 export interface VimModeTrackerOptions {
@@ -26,6 +33,8 @@ export class VimModeTracker {
     private modeHandler: ((mode: VimModeChange) => void) | null = null;
     private keyHandler: ((key: string) => void) | null = null;
     private lastAdapter: CmAdapter | null = null;
+    private dialogHandler: (() => void) | null = null;
+    private preDialogMode: string | null = null;
     constructor(plugin: Plugin, options?: VimModeTrackerOptions) {
         this.modeLabels = options?.modePrompts
             ? { ...options.modePrompts }
@@ -56,9 +65,17 @@ export class VimModeTracker {
 
     attach(app: App): void {
         const modeHandler = (mode: VimModeChange) => {
-            this.currentMode = mode.mode;
-            if (mode.subMode === 'linewise') {
-                this.currentMode = 'visual';
+            if (mode.mode === 'visual' && mode.subMode === 'linewise') {
+                this.currentMode = 'visualLine';
+            } else if (mode.mode === 'visual' && mode.subMode === 'blockwise') {
+                this.currentMode = 'visualBlock';
+            } else if (
+                mode.mode === 'normal' &&
+                mode.subMode?.startsWith('ctrl-o')
+            ) {
+                this.currentMode = 'insertNormal';
+            } else {
+                this.currentMode = mode.mode;
             }
             this.syncRecordingState();
             this.updateDisplay();
@@ -72,11 +89,31 @@ export class VimModeTracker {
         };
         this.keyHandler = keyHandler;
 
+        const dialogHandler = () => {
+            const dialog = this.lastAdapter?.state?.dialog;
+            if (dialog) {
+                const prefix = this.getDialogPrefix(dialog);
+                if (prefix === ':') {
+                    this.preDialogMode = this.currentMode;
+                    this.currentMode = 'command';
+                } else if (prefix === '/' || prefix === '?') {
+                    this.preDialogMode = this.currentMode;
+                    this.currentMode = 'search';
+                }
+            } else if (this.preDialogMode) {
+                this.currentMode = this.preDialogMode;
+                this.preDialogMode = null;
+            }
+            this.updateDisplay();
+        };
+        this.dialogHandler = dialogHandler;
+
         const attachToAdapter = (adapter: CmAdapter) => {
             this.lastAdapter = adapter;
             adapter.on('vim-mode-change', modeHandler);
             adapter.on('vim-keypress', keyHandler);
             adapter.on('vim-command-done', keyHandler);
+            adapter.on('dialog', dialogHandler);
         };
 
         app.workspace.on('active-leaf-change', () => {
@@ -114,6 +151,9 @@ export class VimModeTracker {
                     'vim-command-done',
                     this.keyHandler as (...args: unknown[]) => void,
                 );
+            }
+            if (this.dialogHandler) {
+                this.lastAdapter.off('dialog', this.dialogHandler);
             }
             this.lastAdapter = null;
         }
@@ -163,7 +203,39 @@ export class VimModeTracker {
             ? ` RECORDING @${this.recording}`
             : '';
         this.statusBarEl.setText(modeLabel + recordLabel);
-        this.statusBarEl.dataset['vimMode'] = this.currentMode;
+        this.statusBarEl.dataset['vimMode'] = this.modeToDataAttr(
+            this.currentMode,
+        );
+    }
+
+    private modeToDataAttr(mode: string): string {
+        const map: Record<string, string> = {
+            visualLine: 'v-line',
+            visualBlock: 'v-block',
+            insertNormal: 'insert-normal',
+        };
+        return map[mode] ?? mode;
+    }
+
+    /**
+     * Detect dialog type from DOM structure.
+     * showPrompt() in vim.js calls makePrompt(prefix, desc) which creates:
+     *   <span> TEXT_NODE(prefix) <input/> </span>
+     * The prefix is a raw text node (':', '/', '?'), NOT a span element.
+     */
+    private getDialogPrefix(dialog: HTMLElement): string | null {
+        const firstSpan = dialog.querySelector('span');
+        if (!firstSpan) return null;
+        for (const child of Array.from(firstSpan.childNodes)) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                const text = child.textContent?.trim();
+                if (text === ':' || text === '/' || text === '?') {
+                    return text;
+                }
+                return null;
+            }
+        }
+        return null;
     }
 
     destroy(): void {
