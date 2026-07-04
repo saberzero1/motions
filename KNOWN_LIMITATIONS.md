@@ -528,9 +528,11 @@ Two issues affected visual-line mode (`V`) in Live Preview:
 
 Actions that read from the CM6 selection in visual mode (`joinLines`, `replace`) were updated to read from `vim.sel` instead, and a Ctrl+C special-case copies linewise text from `vim.sel` when `somethingSelected()` returns false. The async motion `.then()` callback (used by EasyMotion in visual mode) now wraps `updateCmSelection` in `cm.operation()` with `isVimOp = true` to prevent `handleExternalSelection` from exiting visual mode when it sees cursor-only selection. The cursor-only selection always uses column 0 (matching Neovim) to avoid landing inside widget decorations (checkboxes, collapsed links) on the head line.
 
-**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected.
+**Obsidian command passthrough**: When a key is NOT handled by vim in visual-line mode, the CM6 selection is temporarily expanded to the full linewise range before the event propagates to Obsidian. This ensures Obsidian's built-in commands (Tab/indent, Ctrl+B bold, Ctrl+I italic, etc.) operate on all selected lines. The cursor-only selection is restored via microtask after the command executes.
 
-**Test coverage**: 6 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, and register content verification.
+**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode during vim key processing. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected. Obsidian's own commands see the correct linewise selection because of the passthrough mechanism above.
+
+**Test coverage**: 8 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, register content verification, and mid-column visual-line with checkbox content.
 
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 
