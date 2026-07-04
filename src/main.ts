@@ -24,6 +24,10 @@ import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { GlobalKeyHandler } from './workspace/global-key-handler';
+import { GlobalMappingRegistry } from './workspace/global-mapping-registry';
+import type { DeferredGlobalMap } from './vimrc/loader';
+import { registerDefaultGlobalMappings } from './workspace/global-defaults';
+import { GlobalWhichKeyOverlay } from './ui/global-which-key';
 import { getVimApi, isVimEnabled, getCmAdapter } from './vim/vim-api';
 import {
     createBundledVimExtension,
@@ -72,6 +76,14 @@ export default class VimMotionsPlugin extends Plugin {
     private uninstallTableCursorFix: (() => void) | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
+    private globalRegistry: GlobalMappingRegistry | null = null;
+    private globalWhichKeyOverlay: GlobalWhichKeyOverlay | null = null;
+    private vimrcGlobalMaps: DeferredGlobalMap[] = [];
+    private vimrcGlobalUnmaps: string[] = [];
+    private vimrcGlobalWhichKeyLabels: Array<{ key: string; label: string }> =
+        [];
+    private vimrcGlobalWhichKeyGroups: Array<{ key: string; label: string }> =
+        [];
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
     private vimrcLoading = false;
@@ -235,7 +247,14 @@ export default class VimMotionsPlugin extends Plugin {
                         );
                     }
                     this.vimrcMaps = vimrcResult.maps;
+                    this.vimrcGlobalMaps = vimrcResult.globalMaps;
+                    this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
+                    this.vimrcGlobalWhichKeyLabels =
+                        vimrcResult.globalWhichKeyLabels;
+                    this.vimrcGlobalWhichKeyGroups =
+                        vimrcResult.globalWhichKeyGroups;
                     applyVimrcMaps(vim, this.vimrcMaps);
+                    this.applyGlobalMaps();
                     if (this.registration && this.leaderRegistry) {
                         this.registration.unmapDefaultBinding(
                             this.leaderRegistry.getLeaderKey(),
@@ -298,7 +317,12 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.leaderRegistry,
             );
-            registerExCommands(this.registration, this.app, vim);
+            registerExCommands(
+                this.registration,
+                this.app,
+                vim,
+                this.globalRegistry ?? undefined,
+            );
         }
         this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && !Platform.isMobile) {
@@ -402,13 +426,20 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(createScrolloffExtension());
 
         if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+            this.globalRegistry = new GlobalMappingRegistry();
+            registerDefaultGlobalMappings(
+                this.globalRegistry,
+                this.app,
+                this.hintActions,
+            );
             this.globalKeyHandler = new GlobalKeyHandler(
                 this.app,
                 this.settings,
                 this.modeTracker,
-                this.hintActions,
+                this.globalRegistry,
             );
             this.globalKeyHandler.install();
+            this.rebuildGlobalWhichKey();
         }
 
         // --- Settings tab ---
@@ -518,7 +549,12 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.leaderRegistry,
             );
-            registerExCommands(this.registration, this.app, vim);
+            registerExCommands(
+                this.registration,
+                this.app,
+                vim,
+                this.globalRegistry ?? undefined,
+            );
         }
         this.registration.beginLeaderScope();
         if (
@@ -555,16 +591,27 @@ export default class VimMotionsPlugin extends Plugin {
             this.modeTracker.attach(this.app);
         }
 
+        this.globalWhichKeyOverlay?.destroy();
+        this.globalWhichKeyOverlay = null;
         this.globalKeyHandler?.destroy();
         this.globalKeyHandler = null;
+        this.globalRegistry = null;
         if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+            this.globalRegistry = new GlobalMappingRegistry();
+            registerDefaultGlobalMappings(
+                this.globalRegistry,
+                this.app,
+                this.hintActions,
+            );
+            this.applyGlobalMaps();
             this.globalKeyHandler = new GlobalKeyHandler(
                 this.app,
                 this.settings,
                 this.modeTracker,
-                this.hintActions,
+                this.globalRegistry,
             );
             this.globalKeyHandler.install();
+            this.rebuildGlobalWhichKey();
         }
 
         this.scrolloffManager?.setup(this.settings.scrolloffLines);
@@ -822,6 +869,72 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    private applyGlobalMaps(): void {
+        if (!this.globalRegistry) return;
+        for (const gm of this.vimrcGlobalMaps) {
+            let action: import('./workspace/global-mapping-registry').GlobalMapAction;
+            if (gm.rhs.startsWith(':obcommand ')) {
+                action = {
+                    type: 'obcommand',
+                    commandId: gm.rhs.slice(':obcommand '.length).trim(),
+                };
+            } else if (gm.rhs.startsWith(':')) {
+                action = { type: 'ex', command: gm.rhs.slice(1).trim() };
+            } else {
+                console.warn(`Vim Motions: invalid gmap rhs: ${gm.rhs}`);
+                continue;
+            }
+            this.globalRegistry.addMapping(gm.lhs, action, {
+                source: 'user',
+                gate: 'standard',
+            });
+        }
+        for (const key of this.vimrcGlobalUnmaps) {
+            this.globalRegistry.removeMapping(key);
+        }
+        for (const entry of this.vimrcGlobalWhichKeyLabels) {
+            this.globalRegistry.setLabel(entry.key, entry.label);
+        }
+        for (const entry of this.vimrcGlobalWhichKeyGroups) {
+            this.globalRegistry.setGroupLabel(entry.key, entry.label);
+        }
+    }
+
+    private rebuildGlobalWhichKey(): void {
+        this.globalWhichKeyOverlay?.destroy();
+        this.globalWhichKeyOverlay = null;
+
+        if (!this.globalKeyHandler || !this.globalRegistry) return;
+
+        const mode = this.settings.whichKeyMode;
+        if (mode === 'off') return;
+
+        const leaderKey = this.leaderRegistry?.getLeaderKey() ?? '\\';
+        const generalMode = mode === 'all';
+
+        const commandLabels = new Map<string, string>();
+        for (const entry of this.vimrcGlobalWhichKeyLabels) {
+            commandLabels.set(entry.key, entry.label);
+        }
+
+        const groupLabels = new Map<string, string>();
+        for (const entry of this.vimrcGlobalWhichKeyGroups) {
+            groupLabels.set(entry.key, entry.label);
+        }
+        for (const [prefix, label] of this.globalRegistry.getGroupLabels()) {
+            groupLabels.set(prefix, label);
+        }
+
+        this.globalWhichKeyOverlay = new GlobalWhichKeyOverlay(
+            this.app,
+            generalMode ? 'all' : 'leader',
+            leaderKey,
+            commandLabels,
+            groupLabels,
+        );
+        this.globalWhichKeyOverlay.attach(this.globalKeyHandler);
+    }
+
     private resetVimInputStateOnPaneSwitch(
         vimApi: import('./types/vim-api').VimApi,
     ): void {
@@ -842,8 +955,11 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        this.globalWhichKeyOverlay?.destroy();
+        this.globalWhichKeyOverlay = null;
         this.globalKeyHandler?.destroy();
         this.globalKeyHandler = null;
+        this.globalRegistry = null;
         this.cleanupHintModeWindows();
         this.uninstallTableCursorFix?.();
         this.uninstallTableCursorFix = null;

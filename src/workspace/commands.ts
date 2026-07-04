@@ -3,6 +3,7 @@ import { createGrepCommand } from './vault-search';
 import type { ExCommandFn, VimApi } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import { VimInfoModal } from '../ui/vim-info-modal';
+import type { GlobalMappingRegistry } from './global-mapping-registry';
 
 function createObCommand(app: App): ExCommandFn {
     return (_cm, params) => {
@@ -446,6 +447,7 @@ export function registerExCommands(
     reg: VimRegistration,
     app: App,
     vim?: VimApi,
+    globalRegistry?: GlobalMappingRegistry,
 ): void {
     reg.defineEx('sidebar', 'sid', createSidebarCommand(app));
     reg.defineEx('explorer', 'exp', createExplorerCommand(app));
@@ -512,4 +514,23 @@ export function registerExCommands(
 
     reg.defineEx('version', 've', createVersionCommand(app));
     reg.defineEx('delmarks', 'delm', createDelmarksCommand());
+
+    reg.defineEx('gmap', '', () => {
+        if (!globalRegistry) return;
+        const entries = globalRegistry.getAllEntries();
+        const rows = entries.map((e) => {
+            let actionStr = '';
+            if (e.action.type === 'obcommand')
+                actionStr = ':ob ' + e.action.commandId;
+            else if (e.action.type === 'ex') actionStr = ':' + e.action.command;
+            else actionStr = '(builtin)';
+            return [e.keys, actionStr, e.source];
+        });
+        new VimInfoModal(
+            app,
+            'Global Mappings',
+            [{ header: 'Keys' }, { header: 'Action' }, { header: 'Source' }],
+            rows,
+        ).open();
+    });
 }

@@ -210,6 +210,8 @@ Navigate and interact with non-editor views like PDFs, graphs, and canvases.
 | `Ctrl-d` / `Ctrl-u` | Scroll half page down/up                                 |
 | `Ctrl-f` / `Ctrl-b` | Scroll full page down/up                                 |
 
+All non-editor bindings can be customized via `gmap`, `gnoremap`, and `gunmap` in your `.obsidian.vimrc`. Use `:gmap` to list all active global bindings. See [[vimrc#Global key mappings]] for syntax.
+
 ## Ex commands
 
 Execute commands via the `:` command line, grouped by function.
@@ -290,6 +292,7 @@ Execute commands via the `:` command line, grouped by function.
 | `:reg` / `:registers`              | Show register contents in a modal  |
 | `:delmarks {marks}`                | Delete specified marks             |
 | `:version` / `:ve`                 | Show plugin version                |
+| `:gmap`                            | List all active global bindings    |
 
 ## Quality of life
 

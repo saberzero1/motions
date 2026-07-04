@@ -2,6 +2,10 @@ export interface VimrcCommand {
     type:
         | 'map'
         | 'unmap'
+        | 'gmap'
+        | 'gunmap'
+        | 'gwhichkeylabel'
+        | 'gwhichkeygroup'
         | 'set'
         | 'let'
         | 'exmap'
@@ -33,6 +37,13 @@ const MAP_COMMANDS = new Set([
 ]);
 
 const UNMAP_COMMANDS = new Set(['unmap', 'nunmap', 'iunmap', 'vunmap']);
+
+const GMAP_COMMANDS = new Set(['gmap', 'gnoremap']);
+
+const GUNMAP_COMMANDS = new Set(['gunmap']);
+
+const GWHICHKEYLABEL_CMD = 'gwhichkeylabel';
+const GWHICHKEYGROUP_CMD = 'gwhichkeygroup';
 
 function getMapContext(
     cmd: string,
@@ -79,6 +90,44 @@ export function parseLine(line: string): VimrcCommand | null {
             context: getMapContext(cmd),
             lhs,
         };
+    }
+
+    if (GMAP_COMMANDS.has(cmd)) {
+        const lhs = parts[1];
+        const rhs = parts.slice(2).join(' ');
+        if (!lhs || !rhs) return null;
+        return {
+            type: 'gmap',
+            raw: trimmed,
+            mapType: cmd,
+            noremap: isNoremap(cmd),
+            lhs,
+            rhs,
+        };
+    }
+
+    if (GUNMAP_COMMANDS.has(cmd)) {
+        const lhs = parts[1];
+        if (!lhs) return null;
+        return {
+            type: 'gunmap',
+            raw: trimmed,
+            lhs,
+        };
+    }
+
+    if (cmd === GWHICHKEYLABEL_CMD) {
+        const lhs = parts[1];
+        const rhs = parts.slice(2).join(' ');
+        if (!lhs || !rhs) return null;
+        return { type: 'gwhichkeylabel', raw: trimmed, lhs, rhs };
+    }
+
+    if (cmd === GWHICHKEYGROUP_CMD) {
+        const lhs = parts[1];
+        const rhs = parts.slice(2).join(' ');
+        if (!lhs || !rhs) return null;
+        return { type: 'gwhichkeygroup', raw: trimmed, lhs, rhs };
     }
 
     if (cmd === 'set') {

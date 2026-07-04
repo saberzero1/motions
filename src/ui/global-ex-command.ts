@@ -1,15 +1,20 @@
 import { App, Notice, SuggestModal } from 'obsidian';
 import { executeCommand } from '../workspace/navigation';
+import type { GlobalMappingRegistry } from '../workspace/global-mapping-registry';
+import { VimInfoModal } from './vim-info-modal';
 
-type GlobalExFn = (app: App, args: string) => void;
+export type GlobalExFn = (app: App, args: string) => void;
 
-interface GlobalExEntry {
+export interface GlobalExEntry {
     name: string;
     shortName: string;
     fn: GlobalExFn;
 }
 
-function buildGlobalExCommands(app: App): GlobalExEntry[] {
+export function buildGlobalExCommands(
+    app: App,
+    globalRegistry?: GlobalMappingRegistry,
+): GlobalExEntry[] {
     const cmd =
         (commandId: string): GlobalExFn =>
         () =>
@@ -187,10 +192,37 @@ function buildGlobalExCommands(app: App): GlobalExEntry[] {
         { name: 'back', shortName: 'bac', fn: cmd('app:go-back') },
         { name: 'forward', shortName: 'fo', fn: cmd('app:go-forward') },
         { name: 'version', shortName: 've', fn: version },
+        {
+            name: 'gmap',
+            shortName: '',
+            fn: () => {
+                if (!globalRegistry) return;
+                const allEntries = globalRegistry.getAllEntries();
+                const rows = allEntries.map((e) => {
+                    let actionStr = '';
+                    if (e.action.type === 'obcommand')
+                        actionStr = ':ob ' + e.action.commandId;
+                    else if (e.action.type === 'ex')
+                        actionStr = ':' + e.action.command;
+                    else actionStr = '(builtin)';
+                    return [e.keys, actionStr, e.source];
+                });
+                new VimInfoModal(
+                    app,
+                    'Global Mappings',
+                    [
+                        { header: 'Keys' },
+                        { header: 'Action' },
+                        { header: 'Source' },
+                    ],
+                    rows,
+                ).open();
+            },
+        },
     ];
 }
 
-function matchCommand(
+export function matchCommand(
     input: string,
     entries: GlobalExEntry[],
 ): { entry: GlobalExEntry; args: string } | null {
@@ -218,12 +250,24 @@ interface ExSuggestion {
     fullInput: string;
 }
 
+export function executeGlobalExCommand(
+    app: App,
+    command: string,
+    globalRegistry?: GlobalMappingRegistry,
+): void {
+    const entries = buildGlobalExCommands(app, globalRegistry);
+    const result = matchCommand(command, entries);
+    if (result) {
+        result.entry.fn(app, result.args);
+    }
+}
+
 export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
     private entries: GlobalExEntry[];
 
-    constructor(app: App) {
+    constructor(app: App, globalRegistry?: GlobalMappingRegistry) {
         super(app);
-        this.entries = buildGlobalExCommands(app);
+        this.entries = buildGlobalExCommands(app, globalRegistry);
         this.setPlaceholder('Ex command');
         this.setInstructions([
             { command: 'Enter', purpose: 'execute' },

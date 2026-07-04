@@ -17,6 +17,8 @@ Configure via **Settings → Vim Motions → Which-key hints** or `set whichkey=
 | `leader` | Popup appears only after pressing the leader key |
 | `all`    | Popup appears after any partial key sequence     |
 
+This setting controls which-key in **both** editor and non-editor contexts. In non-editor views (graph, canvas, PDF, reading mode), the which-key popup shows global binding completions — for example, pressing `<C-w>` shows available window commands (`h`, `j`, `k`, `l`, `v`, `s`, etc.).
+
 In `all` mode, pressing `d` shows available motions and text objects, `g` shows g-prefixed commands, `z` shows fold commands, `[` and `]` show bracket motions, etc.
 
 ## Grouping
@@ -66,3 +68,17 @@ Group and command labels from vimrc are merged with labels configured in Setting
 
 > [!tip] Organize with groups
 > Use `whichkeygroup` to name your custom leader binding groups. The grouped display is more readable when you have many bindings.
+
+## Global (non-editor) labels
+
+Label global bindings separately from editor bindings using `gwhichkeylabel` and `gwhichkeygroup`:
+
+```vim
+gwhichkeygroup <leader> +leader bindings
+gwhichkeylabel <leader>f Open file
+gwhichkeylabel <leader>e Reveal in explorer
+```
+
+These labels appear in the non-editor which-key overlay. They are independent from editor which-key labels — the same key prefix can have different labels in each context.
+
+See [[vimrc#Global key mappings]] for how to define global bindings with `gmap`.

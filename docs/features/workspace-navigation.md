@@ -76,6 +76,27 @@ Pressing `:` in a non-editor view opens a standalone command modal. This modal s
 
 ![[keybindings#Non-editor view bindings]]
 
+## Customizing global bindings
+
+All non-editor key bindings can be customized via `.obsidian.vimrc` using `gmap`, `gnoremap`, and `gunmap`. These commands define, override, or remove key bindings that work outside the editor.
+
+```vim
+" Add a new binding
+gmap <leader>f :obcommand switcher:open
+
+" Override a default binding
+gmap H :obcommand app:go-back
+
+" Remove a default binding entirely
+gunmap L
+```
+
+The right-hand side supports `:obcommand <id>` for Obsidian commands and `:<ex-command>` for global ex commands (`:sidebar`, `:split`, `:grep`, etc.).
+
+Use `:gmap` in the ex command line to list all active global bindings with their source (default or user).
+
+The non-editor which-key overlay shows available completions when a partial key sequence is pending (e.g., pressing `<C-w>` shows all window commands). Label your bindings with `gwhichkeylabel` and `gwhichkeygroup` in vimrc. See [[vimrc#Global key mappings]] for full syntax.
+
 ## Configuration
 
 Workspace navigation is enabled by default. You can toggle it or configure it through the following methods:

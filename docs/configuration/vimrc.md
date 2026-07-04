@@ -51,6 +51,16 @@ nmap <leader>w :saveFile<CR>
 " Which-key labels
 whichkeygroup <leader>t Table
 whichkeylabel <leader>w Save file
+
+" Global mappings (non-editor contexts)
+gmap <leader>f :obcommand switcher:open
+gmap <leader>e :obcommand file-explorer:reveal-active-file
+gnoremap <leader>s :sidebar left
+gunmap H
+
+" Global which-key labels
+gwhichkeygroup <leader> +leader
+gwhichkeylabel <leader>f Open file
 ```
 
 ## Supported commands
@@ -65,8 +75,12 @@ whichkeylabel <leader>w Save file
 | `exmap`                                          | Define a named command from an Obsidian command |
 | `obcommand`                                      | Execute an Obsidian command by ID               |
 | `source`                                         | Source another vimrc file                       |
+| `gmap` / `gnoremap`                              | Global key mapping for non-editor contexts      |
+| `gunmap`                                         | Remove a global mapping                         |
 | `whichkeygroup`                                  | Name a which-key group by prefix                |
 | `whichkeylabel`                                  | Label an individual binding in which-key        |
+| `gwhichkeygroup`                                 | Name a global which-key group by prefix         |
+| `gwhichkeylabel`                                 | Label a global binding in which-key             |
 
 ## Leader key
 
@@ -143,6 +157,44 @@ whichkeylabel gd Go to definition
 ```
 
 Group and command labels from vimrc are merged with labels configured in Settings. If the same key appears in both, the vimrc value takes precedence.
+
+## Global key mappings
+
+`gmap` and `gnoremap` define key bindings for non-editor contexts — graph view, canvas, PDF viewer, reading mode, file explorer, and any other view where no editor is focused. These bindings use the same `<leader>` key as editor mappings.
+
+```vim
+" Map <leader>f to open the quick switcher in non-editor views
+gmap <leader>f :obcommand switcher:open
+
+" Map <leader>e to reveal the active file in the explorer
+gmap <leader>e :obcommand file-explorer:reveal-active-file
+
+" Map a key to an ex command
+gnoremap <leader>s :sidebar left
+
+" Remove a default global binding
+gunmap H
+```
+
+The right-hand side must be either `:obcommand <command-id>` (to execute an Obsidian command) or `:<ex-command> [args]` (to execute a global ex command like `:sidebar`, `:split`, `:grep`, etc.). Key-to-key remapping is not supported in global context.
+
+`gnoremap` is functionally identical to `gmap` — both are accepted for familiarity with Vim syntax.
+
+Use `gunmap` to remove any global binding, including built-in defaults like `H` (previous tab) or `L` (next tab). After `gunmap`, the key is no longer intercepted and propagates to Obsidian's native handlers.
+
+Use `:gmap` in the ex command line to list all active global bindings.
+
+### Global which-key labels
+
+Label your global bindings for the non-editor which-key overlay:
+
+```vim
+gwhichkeygroup <leader> +leader bindings
+gwhichkeylabel <leader>f Open file
+gwhichkeylabel <leader>e Reveal in explorer
+```
+
+These labels appear in the which-key overlay when a partial global key sequence is pending (e.g., pressing `<leader>` in a non-editor view shows all `<leader>*` global bindings).
 
 ## Override behavior
 

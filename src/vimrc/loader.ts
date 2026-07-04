@@ -294,6 +294,10 @@ export interface VimrcLoadResult {
     commandCount: number;
     path: string;
     maps: DeferredMap[];
+    globalMaps: DeferredGlobalMap[];
+    globalUnmaps: string[];
+    globalWhichKeyLabels: Array<{ key: string; label: string }>;
+    globalWhichKeyGroups: Array<{ key: string; label: string }>;
 }
 
 export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
@@ -326,7 +330,17 @@ export async function loadVimrc(
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     const cm = view ? getCmAdapter(view) : null;
     if (!cm) {
-        return { found: true, ready: false, commandCount: 0, path, maps: [] };
+        return {
+            found: true,
+            ready: false,
+            commandCount: 0,
+            path,
+            maps: [],
+            globalMaps: [],
+            globalUnmaps: [],
+            globalWhichKeyLabels: [],
+            globalWhichKeyGroups: [],
+        };
     }
 
     registerVimrcExCommands(vim, app);
@@ -347,6 +361,10 @@ export async function loadVimrc(
         commandCount: result.commandCount,
         path,
         maps: result.deferredMaps,
+        globalMaps: result.deferredGlobalMaps,
+        globalUnmaps: result.globalUnmaps,
+        globalWhichKeyLabels: result.globalWhichKeyLabels,
+        globalWhichKeyGroups: result.globalWhichKeyGroups,
     };
 }
 
@@ -357,10 +375,20 @@ interface DeferredMap {
     context?: 'normal' | 'visual' | 'insert';
 }
 
+export interface DeferredGlobalMap {
+    lhs: string;
+    rhs: string;
+    noremap: boolean;
+}
+
 interface LoadFileResult {
     found: boolean;
     commandCount: number;
     deferredMaps: DeferredMap[];
+    deferredGlobalMaps: DeferredGlobalMap[];
+    globalUnmaps: string[];
+    globalWhichKeyLabels: Array<{ key: string; label: string }>;
+    globalWhichKeyGroups: Array<{ key: string; label: string }>;
 }
 
 async function loadVimrcFile(
@@ -378,12 +406,24 @@ async function loadVimrcFile(
 ): Promise<LoadFileResult> {
     const content = await readVimrcFile(app, path);
     if (content === null) {
-        return { found: false, commandCount: 0, deferredMaps: [] };
+        return {
+            found: false,
+            commandCount: 0,
+            deferredMaps: [],
+            deferredGlobalMaps: [],
+            globalUnmaps: [],
+            globalWhichKeyLabels: [],
+            globalWhichKeyGroups: [],
+        };
     }
 
     let currentLeader = leaderKey;
     let applied = 0;
     const deferredMaps: DeferredMap[] = [];
+    const deferredGlobalMaps: DeferredGlobalMap[] = [];
+    const globalUnmaps: string[] = [];
+    const globalWhichKeyLabels: Array<{ key: string; label: string }> = [];
+    const globalWhichKeyGroups: Array<{ key: string; label: string }> = [];
 
     vim.defineEx('whichkeygroup', 'whichkeyg', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
@@ -458,6 +498,10 @@ async function loadVimrcFile(
             );
             applied += sub.commandCount;
             deferredMaps.push(...sub.deferredMaps);
+            deferredGlobalMaps.push(...sub.deferredGlobalMaps);
+            globalUnmaps.push(...sub.globalUnmaps);
+            globalWhichKeyLabels.push(...sub.globalWhichKeyLabels);
+            globalWhichKeyGroups.push(...sub.globalWhichKeyGroups);
             continue;
         }
 
@@ -473,6 +517,39 @@ async function loadVimrcFile(
                 noremap: parsed.noremap ?? false,
                 context: parsed.context,
             });
+            applied++;
+            continue;
+        }
+
+        if (parsed?.type === 'gmap' && parsed.lhs && parsed.rhs) {
+            const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
+            const rhs = parsed.rhs.replace(/<leader>/gi, currentLeader);
+            deferredGlobalMaps.push({
+                lhs,
+                rhs,
+                noremap: parsed.noremap ?? false,
+            });
+            applied++;
+            continue;
+        }
+
+        if (parsed?.type === 'gunmap' && parsed.lhs) {
+            const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
+            globalUnmaps.push(lhs);
+            applied++;
+            continue;
+        }
+
+        if (parsed?.type === 'gwhichkeylabel' && parsed.lhs && parsed.rhs) {
+            const key = parsed.lhs.replace(/<leader>/gi, currentLeader);
+            globalWhichKeyLabels.push({ key, label: parsed.rhs });
+            applied++;
+            continue;
+        }
+
+        if (parsed?.type === 'gwhichkeygroup' && parsed.lhs && parsed.rhs) {
+            const key = parsed.lhs.replace(/<leader>/gi, currentLeader);
+            globalWhichKeyGroups.push({ key, label: parsed.rhs });
             applied++;
             continue;
         }
@@ -547,5 +624,13 @@ async function loadVimrcFile(
         }
     }
 
-    return { found: true, commandCount: applied, deferredMaps };
+    return {
+        found: true,
+        commandCount: applied,
+        deferredMaps,
+        deferredGlobalMaps,
+        globalUnmaps,
+        globalWhichKeyLabels,
+        globalWhichKeyGroups,
+    };
 }
