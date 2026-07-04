@@ -241,10 +241,31 @@ describe('gmap vimrc integration', function () {
     });
 
     it('which-key overlay should show on <C-w>', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: { whichKeyMode: string };
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (plugin) {
+                plugin.settings.whichKeyMode = 'all';
+                plugin.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
         await loadTwoTabs();
 
         await browser.keys([Key.Ctrl, 'w']);
-        await browser.pause(600);
+        await browser.pause(800);
 
         const visible = (await browser.executeObsidian(() => {
             return !!document.querySelector('.vim-motions-which-key');
@@ -253,6 +274,26 @@ describe('gmap vimrc integration', function () {
 
         await browser.keys(['h']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: { whichKeyMode: string };
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (plugin) {
+                plugin.settings.whichKeyMode = 'off';
+                plugin.reloadFeatures();
+            }
+        });
     });
 
     it('gwhichkeylabel/gwhichkeygroup should be stored on registry', async function () {
