@@ -21,6 +21,19 @@ This setting controls which-key in **both** editor and non-editor contexts. In n
 
 In `all` mode, pressing `d` shows available motions and text objects, `g` shows g-prefixed commands, `z` shows fold commands, `[` and `]` show bracket motions, etc.
 
+## Popup delay
+
+Configure via **Settings → Vim Motions → Which-key popup delay** or `set whichkeydelay=<ms>` (alias `wkd`) in vimrc.
+
+The delay controls how long to wait (in milliseconds) before the which-key popup first appears after a partial key sequence. The default is `500` ms. Set to `0` for instant display.
+
+Once the popup is visible, subsequent keystrokes update it **instantly** — the delay only applies to the initial appearance. Single-key commands that resolve immediately (like `j`, `k`) never trigger the popup regardless of delay.
+
+```vim
+set whichkeydelay=300   " show after 300ms
+set wkd=0               " show instantly
+```
+
 ## Grouping
 
 Configure via **Settings → Vim Motions → Which-key leader grouping** or `set whichkeygrouping=<mode>` in vimrc.

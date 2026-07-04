@@ -137,6 +137,18 @@ const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         settingsKey: 'whichKeyGrouping',
         validValues: ['flat', 'grouped'],
     },
+    whichkeydelay: {
+        type: 'number',
+        settingsKey: 'whichKeyDelay',
+        min: 0,
+        max: 2000,
+    },
+    wkd: {
+        type: 'number',
+        settingsKey: 'whichKeyDelay',
+        min: 0,
+        max: 2000,
+    },
 };
 
 function applyKnownSetOption(

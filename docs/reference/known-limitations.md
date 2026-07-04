@@ -367,8 +367,10 @@ Mode indicators for select, v-replace, command, search, and insert-normal requir
 The which-key overlay has three modes (configurable via **Settings → Vim Motions → Which-key hints**):
 
 - **Off** — no which-key overlay
-- **Leader key only** — shows leader bindings when the leader key is pressed and held for 500ms
+- **Leader key only** — shows leader bindings after pressing the leader key (after the configurable popup delay, default 500ms)
 - **All partial keys** — shows available continuations after any partial key sequence (operators, prefix keys, leader)
+
+The popup delay is configurable via **Settings → Vim Motions → Which-key popup delay** or `set whichkeydelay=<ms>` in vimrc (range 0–2000ms, default 500ms). Once the popup is visible, subsequent keystrokes update it instantly — the delay only applies to the initial appearance.
 
 In "all" mode, the overlay reads the fork's `getInputState()` to detect operator-pending state and `vim.status` for partial key chords. Operator-pending mode shows grouped next-key options filtered to motions, text objects, and operatorPending actions. Prefix keys (like `g`, `z`) show `getCompletions()` results. Special keys (`<Left>`, `<C-n>`, etc.) and insert-only entries are filtered out.
 
@@ -392,10 +394,8 @@ Built-in features register default labels (Table, EasyMotion) that user entries 
 
 #### Limitations
 
-- The 500ms delay is hardcoded (not configurable via settings)
 - User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions (shown as the raw rhs key sequence)
 - The overlay does not show during macro playback or when a register prefix (`"a`) is pending
-- In "leader key only" mode, drill-down requires the overlay to be visible (500ms delay must elapse before pressing the group key)
 
 ### Status bar left-alignment
 

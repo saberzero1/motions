@@ -15,7 +15,7 @@ interface WhichKeyEntry {
     group?: boolean;
 }
 
-const SHOW_DELAY = 500;
+const DEFAULT_SHOW_DELAY = 500;
 
 const OPERATOR_PENDING_TYPES = new Set(['motion', 'operatorMotion', 'search']);
 
@@ -179,6 +179,7 @@ export class WhichKeyOverlay {
     private groupLeaderBindings: boolean;
     private groupLabels: Map<string, string>;
     private commandLabels: Map<string, string>;
+    private showDelay: number;
     private overlay: HTMLElement | null = null;
     private showTimer: number | null = null;
     private keyHandler: ((key: string) => void) | null = null;
@@ -198,6 +199,7 @@ export class WhichKeyOverlay {
         groupLeaderBindings: boolean,
         groupLabels: Map<string, string>,
         commandLabels: Map<string, string>,
+        showDelay?: number,
     ) {
         this.app = app;
         this.leaderKey = leaderKey;
@@ -206,6 +208,7 @@ export class WhichKeyOverlay {
         this.groupLeaderBindings = groupLeaderBindings;
         this.groupLabels = groupLabels;
         this.commandLabels = commandLabels;
+        this.showDelay = showDelay ?? DEFAULT_SHOW_DELAY;
     }
 
     attach(): void {
@@ -288,15 +291,34 @@ export class WhichKeyOverlay {
             this.pendingLeader = true;
             this.leaderPrefix = '';
             this.clearTimer();
-            this.showTimer = window.setTimeout(() => {
-                if (this.pendingLeader) {
-                    this.showLeaderBindings();
-                }
-            }, SHOW_DELAY);
+            if (this.showDelay > 0) {
+                this.showTimer = window.setTimeout(() => {
+                    if (this.pendingLeader) {
+                        this.showLeaderBindings();
+                    }
+                }, this.showDelay);
+            } else {
+                this.showLeaderBindings();
+            }
             return;
         }
 
         if (this.pendingLeader && this.groupLeaderBindings && this.overlay) {
+            const nextPrefix = this.leaderPrefix + key;
+            const matching = this.leaderBindings.filter((b) =>
+                b.key.startsWith(nextPrefix),
+            );
+            if (matching.length > 1) {
+                this.leaderPrefix = nextPrefix;
+                this.showLeaderBindings();
+                return;
+            }
+        }
+
+        if (this.pendingLeader && !this.overlay) {
+            // Overlay hasn't appeared yet (still in delay) — show immediately
+            // on partial match so the user sees feedback without waiting.
+            this.clearTimer();
             const nextPrefix = this.leaderPrefix + key;
             const matching = this.leaderBindings.filter((b) =>
                 b.key.startsWith(nextPrefix),
@@ -329,19 +351,32 @@ export class WhichKeyOverlay {
 
         this.lastStatus = status;
         const capturedAdapter = this.lastAdapter;
-        this.showTimer = window.setTimeout(() => {
-            if (!capturedAdapter) return;
-            const currentOpPending = isOperatorPending(capturedAdapter);
-            const currentKeyBuffer = getKeyBuffer(capturedAdapter);
-            if (currentOpPending || currentKeyBuffer) {
-                this.showCompletions(
-                    capturedAdapter,
-                    this.lastStatus,
-                    currentOpPending,
-                    currentKeyBuffer,
-                );
-            }
-        }, SHOW_DELAY);
+
+        if (this.overlay) {
+            this.showCompletionsIfPartial(capturedAdapter);
+            return;
+        }
+
+        if (this.showDelay > 0) {
+            this.showTimer = window.setTimeout(() => {
+                this.showCompletionsIfPartial(capturedAdapter);
+            }, this.showDelay);
+        } else {
+            this.showCompletionsIfPartial(capturedAdapter);
+        }
+    }
+
+    private showCompletionsIfPartial(adapter: CmAdapter): void {
+        const opPending = isOperatorPending(adapter);
+        const keyBuffer = getKeyBuffer(adapter);
+        if (opPending || keyBuffer) {
+            this.showCompletions(
+                adapter,
+                this.lastStatus,
+                opPending,
+                keyBuffer,
+            );
+        }
     }
 
     private showLeaderBindings(): void {

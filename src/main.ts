@@ -724,6 +724,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.whichKeyGrouping === 'grouped',
             groupLabels,
             commandLabels,
+            this.settings.whichKeyDelay,
         );
         this.whichKeyOverlay.attach();
     }
@@ -931,6 +932,7 @@ export default class VimMotionsPlugin extends Plugin {
             leaderKey,
             commandLabels,
             groupLabels,
+            this.settings.whichKeyDelay,
         );
         this.globalWhichKeyOverlay.attach(this.globalKeyHandler);
     }

@@ -122,6 +122,7 @@ export interface VimMotionsSettings {
     textwidth: number;
     whichKeyMode: 'off' | 'leader' | 'all';
     whichKeyGrouping: 'flat' | 'grouped';
+    whichKeyDelay: number;
     whichKeyGroupLabels: GroupLabel[];
     whichKeyCommandLabels: CommandLabel[];
     vimrcPath: string;
@@ -161,6 +162,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     textwidth: 80,
     whichKeyMode: 'off',
     whichKeyGrouping: 'grouped',
+    whichKeyDelay: 500,
     whichKeyGroupLabels: [],
     whichKeyCommandLabels: [],
     vimrcPath: '',
@@ -250,6 +252,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'vimrcPath',
         'whichKeyMode',
         'whichKeyGrouping',
+        'whichKeyDelay',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
@@ -988,6 +991,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                             disabled: () =>
                                 this.isOverridden('whichKeyGrouping'),
+                        },
+                    },
+                    {
+                        name: 'Which-key popup delay',
+                        desc: this.describeOverride(
+                            'whichKeyDelay',
+                            'Delay in milliseconds before the which-key popup appears (0\u20132000). ' +
+                                'Only applies to the initial popup \u2014 subsequent keystrokes update the popup instantly.',
+                        ),
+                        control: {
+                            type: 'number' as const,
+                            key: 'whichKeyDelay',
+                            min: 0,
+                            max: 2000,
+                            disabled: () => this.isOverridden('whichKeyDelay'),
                         },
                     },
                 ],

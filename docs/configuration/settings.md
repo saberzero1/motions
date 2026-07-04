@@ -99,10 +99,11 @@ Map leader key sequences to Obsidian commands. This UI allows you to add new bin
 
 ## Which-key hints
 
-| Name                      | Type     | Default   | Range/Options          | Vimrc                  | Description                                  |
-| ------------------------- | -------- | --------- | ---------------------- | ---------------------- | -------------------------------------------- |
-| Which-key mode            | dropdown | `off`     | `off`, `leader`, `all` | `set whichkey`         | Show available key continuations in a popup. |
-| Which-key leader grouping | dropdown | `grouped` | `grouped`, `flat`      | `set whichkeygrouping` | How leader key bindings are displayed.       |
+| Name                      | Type     | Default   | Range/Options          | Vimrc                  | Description                                                                                       |
+| ------------------------- | -------- | --------- | ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
+| Which-key mode            | dropdown | `off`     | `off`, `leader`, `all` | `set whichkey`         | Show available key continuations in a popup.                                                      |
+| Which-key leader grouping | dropdown | `grouped` | `grouped`, `flat`      | `set whichkeygrouping` | How leader key bindings are displayed.                                                            |
+| Which-key popup delay     | number   | `500`     | 0–2000                 | `set whichkeydelay`    | Delay in milliseconds before the popup appears. Subsequent keystrokes update the popup instantly. |
 
 ## Which-key group labels
 

@@ -2,7 +2,7 @@ import type { App } from 'obsidian';
 import type { GlobalMapEntry } from '../workspace/global-mapping-registry';
 import type { GlobalKeyHandler } from '../workspace/global-key-handler';
 
-const SHOW_DELAY = 500;
+const DEFAULT_SHOW_DELAY = 500;
 
 export class GlobalWhichKeyOverlay {
     private app: App;
@@ -10,6 +10,7 @@ export class GlobalWhichKeyOverlay {
     private leaderKey: string;
     private commandLabels: Map<string, string>;
     private groupLabels: Map<string, string>;
+    private showDelay: number;
     private overlay: HTMLElement | null = null;
     private showTimer: number | null = null;
     private handler: GlobalKeyHandler | null = null;
@@ -20,12 +21,14 @@ export class GlobalWhichKeyOverlay {
         leaderKey: string,
         commandLabels: Map<string, string>,
         groupLabels: Map<string, string>,
+        showDelay?: number,
     ) {
         this.app = app;
         this.mode = mode;
         this.leaderKey = leaderKey;
         this.commandLabels = commandLabels;
         this.groupLabels = groupLabels;
+        this.showDelay = showDelay ?? DEFAULT_SHOW_DELAY;
     }
 
     attach(handler: GlobalKeyHandler): void {
@@ -62,12 +65,26 @@ export class GlobalWhichKeyOverlay {
         }
 
         this.clearTimer();
-        const capturedChord = chord;
-        const capturedCompletions = completions;
-        const capturedDoc = doc;
-        this.showTimer = window.setTimeout(() => {
-            this.showOverlay(capturedChord, capturedCompletions, capturedDoc);
-        }, SHOW_DELAY);
+
+        if (this.overlay) {
+            this.showOverlay(chord, completions, doc);
+            return;
+        }
+
+        if (this.showDelay > 0) {
+            const capturedChord = chord;
+            const capturedCompletions = completions;
+            const capturedDoc = doc;
+            this.showTimer = window.setTimeout(() => {
+                this.showOverlay(
+                    capturedChord,
+                    capturedCompletions,
+                    capturedDoc,
+                );
+            }, this.showDelay);
+        } else {
+            this.showOverlay(chord, completions, doc);
+        }
     }
 
     private showOverlay(

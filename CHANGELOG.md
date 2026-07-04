@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - 2 e2e tests
 - **All 11 mode prompts configurable** — mode prompt text for all modes (normal, insert, visual, v-line, v-block, replace, select, v-replace, command, search, insert-normal) is configurable via Settings UI and vimrc (`let g:mode_prompt_visual_line = "VL"`, etc.)
     - Plugin: `ModePrompts` interface expanded; settings UI entries for all modes; vimrc `VIMRC_MODE_MAP` with snake_case → camelCase mapping; `RELOAD_KEYS` updated
+- **Configurable which-key popup delay** — the delay before the which-key popup appears is now configurable via **Settings → Vim Motions → Which-key hints → Which-key popup delay** or `set whichkeydelay=<ms>` (alias `wkd`) in vimrc. Range 0–2000ms, default 500ms. Set to `0` for instant display. Once the popup is visible, subsequent keystrokes update it instantly — the delay only applies to the initial appearance. Single-key commands that resolve immediately never trigger the popup regardless of delay setting.
+    - `src/settings.ts`: added `whichKeyDelay: number` to `VimMotionsSettings` (default 500), added to `RELOAD_KEYS`, added number input control in "Which-key hints" group
+    - `src/vimrc/loader.ts`: added `whichkeydelay` / `wkd` to `KNOWN_SET_OPTIONS` (number, 0–2000)
+    - `src/ui/which-key.ts`: replaced hardcoded `SHOW_DELAY` with configurable `showDelay` constructor parameter; `onKeyPressGeneral` updates overlay immediately when already visible instead of restarting delay; extracted `showCompletionsIfPartial()` helper
+    - `src/ui/global-which-key.ts`: same pattern — configurable delay, instant updates when overlay already visible
+    - `src/main.ts`: passes `settings.whichKeyDelay` to both `WhichKeyOverlay` and `GlobalWhichKeyOverlay` constructors
 
 ### Fixed
 
