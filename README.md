@@ -8,14 +8,14 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, and table cells with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
+- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, autocommands, and Neovim-compatible syntax
+- **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)
 - **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support)
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, and cursor-aware table widget
 - **60+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:sidebar`, and more
-- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, autocommands, and Neovim-compatible syntax
-- **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 
 ## Installation
@@ -43,6 +43,7 @@ Full documentation: **https://saberzero1.github.io/motions**
 
 - [Getting started](https://saberzero1.github.io/motions/getting-started/)
 - [Features](https://saberzero1.github.io/motions/features/)
+- [Lua configuration](https://saberzero1.github.io/motions/configuration/lua-config)
 - [Settings reference](https://saberzero1.github.io/motions/configuration/settings)
 - [Keybinding cheat sheet](https://saberzero1.github.io/motions/reference/keybindings)
 - [Known limitations](https://saberzero1.github.io/motions/reference/known-limitations)
