@@ -8,8 +8,24 @@ on:
     workflow_dispatch:
 
 jobs:
-    e2e-tests:
+    discover:
         runs-on: ubuntu-latest
+        outputs:
+            specs: ${{ steps.find.outputs.specs }}
+        steps:
+            - uses: actions/checkout@v6
+            - id: find
+              run: |
+                  specs=$(find test/specs -name '*.e2e.ts' | sort | jq -R -s -c 'split("\n") | map(select(. != ""))')
+                  echo "specs=$specs" >> "$GITHUB_OUTPUT"
+
+    e2e:
+        needs: discover
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                spec: ${{ fromJson(needs.discover.outputs.specs) }}
 
         steps:
             - uses: actions/checkout@v6
@@ -46,7 +62,5 @@ jobs:
                   herbstluftwm &
                   sleep 1
 
-            - name: Run E2E tests
-              run: npm run test:e2e
-              env:
-                  WDIO_MAX_INSTANCES: 2
+            - name: Run E2E test
+              run: npx wdio run ./wdio.conf.mts --spec '${{ matrix.spec }}'
