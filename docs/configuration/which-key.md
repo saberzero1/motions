@@ -9,7 +9,7 @@ Which-key shows available key continuations in a popup after you press a partial
 
 ## Modes
 
-Configure via **Settings → Vim Motions → Which-key hints** or `set whichkey=<mode>` in vimrc.
+Configure via **Settings → Vim Motions → Which-key hints**, `vim.opt.whichkey = "mode"` in Lua, or `set whichkey=<mode>` in vimrc.
 
 | Mode     | Behavior                                         |
 | -------- | ------------------------------------------------ |
@@ -23,20 +23,25 @@ In `all` mode, pressing `d` shows available motions and text objects, `g` shows 
 
 ## Popup delay
 
-Configure via **Settings → Vim Motions → Which-key popup delay** or `set whichkeydelay=<ms>` (alias `wkd`) in vimrc.
+Configure via **Settings → Vim Motions → Which-key popup delay**, `vim.opt.whichkeydelay = <ms>` in Lua, or `set whichkeydelay=<ms>` (alias `wkd`) in vimrc.
 
 The delay controls how long to wait (in milliseconds) before the which-key popup first appears after a partial key sequence. The default is `500` ms. Set to `0` for instant display.
 
 Once the popup is visible, subsequent keystrokes update it **instantly** — the delay only applies to the initial appearance. Single-key commands that resolve immediately (like `j`, `k`) never trigger the popup regardless of delay.
 
+```lua
+vim.opt.whichkeydelay = 300 -- show after 300ms
+```
+
 ```vim
-set whichkeydelay=300   " show after 300ms
-set wkd=0               " show instantly
+" Or via vimrc:
+set whichkeydelay=300
+set wkd=0
 ```
 
 ## Grouping
 
-Configure via **Settings → Vim Motions → Which-key leader grouping** or `set whichkeygrouping=<mode>` in vimrc.
+Configure via **Settings → Vim Motions → Which-key leader grouping**, `vim.opt.whichkeygrouping = "mode"` in Lua, or `set whichkeygrouping=<mode>` in vimrc.
 
 | Mode      | Behavior                                                                                                                                                     |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -45,7 +50,9 @@ Configure via **Settings → Vim Motions → Which-key leader grouping** or `set
 
 ## Group labels
 
-Name groups by their key prefix to give the collapsed group a descriptive label:
+Name groups by their key prefix to give the collapsed group a descriptive label.
+
+In Lua, use the `desc` option in `vim.keymap.set` for individual bindings. Group labels are currently configured via the Settings UI or vimrc:
 
 ```vim
 whichkeygroup <leader>t Table
@@ -59,7 +66,16 @@ Built-in features register default group labels. Your entries override the defau
 
 ## Command labels
 
-Describe individual bindings shown in the which-key popup:
+Describe individual bindings shown in the which-key popup.
+
+In Lua, use the `desc` option in `vim.keymap.set`:
+
+```lua
+vim.keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save file" })
+-- The `desc` option automatically appears in which-key
+```
+
+In vimrc:
 
 ```vim
 whichkeylabel <leader>w Save file
@@ -72,19 +88,25 @@ Command labels can also be configured in **Settings → Vim Motions → Which-ke
 
 ## Merge behavior
 
-Group and command labels from vimrc are merged with labels configured in Settings. If the same key appears in both, the vimrc value takes precedence.
+Group and command labels from Lua, vimrc, and Settings are merged. If the same key appears in multiple sources, the hierarchy is: Lua > vimrc > Settings.
 
 ## Tips
 
 > [!tip] Start with leader-only mode
-> If you're new to which-key, start with `set whichkey=leader` to see the popup only for leader bindings. Switch to `all` once you're comfortable.
+> If you're new to which-key, start with `vim.opt.whichkey = "leader"` to see the popup only for leader bindings. Switch to `all` once you're comfortable.
 
 > [!tip] Organize with groups
-> Use `whichkeygroup` to name your custom leader binding groups. The grouped display is more readable when you have many bindings.
+> Use the `desc` option in Lua or `whichkeygroup` in vimrc to name your custom leader binding groups. The grouped display is more readable when you have many bindings.
 
 ## Global (non-editor) labels
 
-Label global bindings separately from editor bindings using `gwhichkeylabel` and `gwhichkeygroup`:
+Label global bindings separately from editor bindings. Global bindings in Lua use the same `desc` option:
+
+```lua
+vim.keymap.set("n", "<leader>f", ":obcommand switcher:open", { desc = "Open file" })
+```
+
+In vimrc, use `gwhichkeylabel` and `gwhichkeygroup`:
 
 ```vim
 gwhichkeygroup <leader> +leader bindings

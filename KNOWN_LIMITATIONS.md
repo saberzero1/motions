@@ -691,6 +691,61 @@ Block visual operations that were already working: delete (`d`), yank (`y`), pas
 
 **Test coverage**: `test/specs/vim-builtin/visual-block-golden.e2e.ts` — 15 golden Neovim comparison tests covering block insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, upward selection, `$` escape cursor position, and `$` delete to EOL.
 
+## Lua configuration (`init.lua`)
+
+**Status**: Working. Sandboxed Lua 5.3 runtime via Fengari (pure JS). ([#46](https://github.com/saberzero1/motions/issues/46))
+
+The plugin supports `.obsidian.init.lua` as an alternative to `.obsidian.vimrc`. Enable in **Settings → Vim Motions → Vimrc & key bindings → Enable Lua configuration**.
+
+### Supported APIs
+
+`vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `print()`. See `docs/configuration/lua-config.md` for the full reference.
+
+### Unsupported Neovim APIs
+
+`require()`, `vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic` — accessing these produces a clear error message. The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+
+### `vim.fn.*` subset (planned)
+
+`vim.fn.has(feature)` for platform detection and `vim.fn.expand('%')` for file-conditional config are planned. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped (system fingerprinting concern). See `.sisyphus/plans/lua-config-integration.md` for the full `vim.fn` catalogue and design decisions.
+
+### Hybrid loading
+
+Settings (`vim.opt`) and keymaps (`vim.keymap.set`) load immediately without an active editor. `vim.cmd()` calls are queued and executed when the first editor receives focus. If no init.lua file exists, the loader silently skips (no notice).
+
+### Loading order
+
+init.lua loads after vimrc. Both can be used simultaneously — Lua values override vimrc values on conflict. This differs from Neovim, which uses either `init.lua` or `.vimrc`, not both.
+
+### Function callbacks and Tier 3 functions
+
+Lua function callbacks (`vim.keymap.set('n', 'key', function() ... end)`) execute at keypress time, not config-load time. Editor-state-dependent functions (e.g., `vim.fn.line('.')`) are planned to work inside callbacks but error at config-load time (context-aware execution).
+
+### Known deviations from Neovim
+
+4 deviations registered in `test/neovim/deviations.ts`:
+
+- `keymap.del` + `Q`: plugin's built-in `Q→@@` mapping persists after Lua unmap
+- `cw` + `<Esc>` in mapped keys: test infrastructure key dispatch difference
+- Visual surround cursor: off-by-one in visual mode
+- Leader key in test: leaderRegistry propagation timing in `executeLuaForTest`
+
+### Bundle size
+
+Fengari adds +238KB minified / +79KB gzipped. Total plugin size: 574KB minified (11.5% of the 5000KB soft limit).
+
+### Intentionally skipped Lua features
+
+| Feature                                 | Reason                                                      |
+| --------------------------------------- | ----------------------------------------------------------- |
+| `require()` / plugin loading            | Security — sandboxed environment, no module system          |
+| `vim.api.nvim_*`                        | 100+ Neovim-internal functions, not portable                |
+| `vim.fn.hostname()` / `vim.fn.getenv()` | System fingerprinting concern                               |
+| `vim.lsp.*` / `vim.treesitter.*`        | Not applicable to Obsidian                                  |
+| Async Lua (coroutine ↔ Promise bridge) | Deferred — synchronous callbacks cover the primary use case |
+
+**Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 9 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, and disabled state.
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:

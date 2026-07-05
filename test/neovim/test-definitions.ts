@@ -3,6 +3,7 @@ export interface TestCaseDefinition {
     content: string;
     cursor: { line: number; ch: number };
     keys: string;
+    luaSetup?: string;
 }
 
 export interface SuiteDefinition {
@@ -1656,6 +1657,98 @@ export const SUITES: SuiteDefinition[] = [
                 content: 'hello world',
                 cursor: { line: 0, ch: 0 },
                 keys: 'R\x0flx\x1b',
+            },
+        ],
+    },
+    {
+        name: 'lua-keymaps',
+        cases: [
+            {
+                name: 'lua nmap deletes line with Q',
+                content: 'hello\nworld\nfoo',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Q',
+                luaSetup: "vim.keymap.set('n', 'Q', 'dd')",
+            },
+            {
+                name: 'lua nmap X deletes line',
+                content: 'aaa\nbbb\nccc',
+                cursor: { line: 0, ch: 0 },
+                keys: 'X',
+                luaSetup: "vim.keymap.set('n', 'X', 'dd')",
+            },
+            {
+                name: 'lua imap jk exits insert mode',
+                content: 'hello',
+                cursor: { line: 0, ch: 5 },
+                keys: 'ajk',
+                luaSetup: "vim.keymap.set('i', 'jk', '<Esc>')",
+            },
+            {
+                name: 'lua nmap with noremap default (dd not recursive)',
+                content: 'line1\nline2\nline3',
+                cursor: { line: 1, ch: 0 },
+                keys: 'Z',
+                luaSetup: "vim.keymap.set('n', 'Z', 'dd')",
+            },
+            {
+                name: 'lua nmap with remap=true makes recursive mapping',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Z',
+                luaSetup:
+                    "vim.keymap.set('n', 'Y', 'dd'); vim.keymap.set('n', 'Z', 'Y', { remap = true })",
+            },
+            {
+                name: 'lua keymap.del removes mapping',
+                content: 'first\nsecond\nthird',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Q',
+                luaSetup:
+                    "vim.keymap.set('n', 'Q', 'dd'); vim.keymap.del('n', 'Q')",
+            },
+            {
+                name: 'lua nmap change word',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Zfoo<Esc>',
+                luaSetup: "vim.keymap.set('n', 'Z', 'cw')",
+            },
+            {
+                name: 'lua nmap join lines',
+                content: 'line1\nline2\nline3',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Z',
+                luaSetup: "vim.keymap.set('n', 'Z', 'J')",
+            },
+            {
+                name: 'lua nmap yank word and paste',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'ZWP',
+                luaSetup: "vim.keymap.set('n', 'Z', 'yw')",
+            },
+            {
+                name: 'lua vmap surrounds with parens',
+                content: 'hello',
+                cursor: { line: 0, ch: 0 },
+                keys: 'vlllZ',
+                luaSetup: "vim.keymap.set('v', 'Z', 'c()<Esc>P')",
+            },
+            {
+                name: 'lua multi-mode mapping (n and v)',
+                content: 'first\nsecond',
+                cursor: { line: 0, ch: 0 },
+                keys: 'Z',
+                luaSetup: "vim.keymap.set({'n', 'v'}, 'Z', 'dd')",
+            },
+            {
+                name: 'lua leader key mapping',
+                content: 'delete me\nkeep me',
+                cursor: { line: 0, ch: 0 },
+                keys: ' d',
+                luaSetup:
+                    "vim.g.mapleader = ' '; vim.keymap.set('n', '<leader>d', 'dd')",
             },
         ],
     },

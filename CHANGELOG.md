@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Lua configuration support (`.obsidian.init.lua`)** — optional Neovim-style Lua configuration using a sandboxed Fengari Lua 5.3 runtime. Provides conditional logic, function-based keymaps, and familiar `vim.keymap.set` / `vim.opt` syntax. Disabled by default — enable in **Settings → Vim Motions → Vimrc & key bindings → Enable Lua configuration**. ([#46](https://github.com/saberzero1/motions/issues/46))
+    - `vim.opt.<name> = value` / `vim.o.<name>` — set any plugin option (backed by the same `KNOWN_SET_OPTIONS` map as vimrc `set` commands)
+    - `vim.g.mapleader` / `vim.g.<name>` — set leader key and user variables
+    - `vim.keymap.set(mode, lhs, rhs, opts)` — key mappings with string or function RHS, `desc` for which-key labels, `noremap`/`remap` control, multi-mode support
+    - `vim.keymap.del(mode, lhs)` — remove mappings
+    - `vim.cmd(string)` — execute ex commands (deferred until first editor focus)
+    - `vim.vault_name()` — returns the current vault name for per-vault conditional config
+    - `print(...)` — outputs to developer console
+    - Unsupported Neovim APIs (`vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`, `require()`) return clear error messages
+    - Sandbox: 6 defense layers — selective library loading (no `io`/`os`/`debug`/`package`), dangerous globals stripped (`load`/`dofile`/`loadfile`), no `fengari-interop`, instruction-count timeout via `lua_sethook` (1M instruction limit), custom environment table
+    - Hybrid loading: settings and keymaps load immediately without an active editor; `vim.cmd()` calls are queued and executed on first editor focus
+    - Override hierarchy: init.lua loads after vimrc — Lua values override vimrc on conflict
+    - Settings: `enableLuaConfig` (toggle, default off), `luaConfigPath` (custom file path)
+    - Bundle impact: +238KB minified / +79KB gzipped (Fengari runtime)
+    - Plugin: `src/lua/engine.ts` (sandbox + timeout), `src/lua/api.ts` (vim.\* bridge), `src/lua/loader.ts` (hybrid file loading), `src/lua/types.ts` (Fengari type declarations)
+    - 12 Neovim golden comparison test cases (`lua-keymaps` suite), 9 e2e integration tests, 4 known deviations registered
+
+### Documentation
+
+- `docs/configuration/lua-config.md`: full Lua configuration reference with supported APIs, all `vim.opt` options, mapping examples, loading order, and unsupported API documentation
+- `docs/configuration/settings.md`: added Lua column to all settings tables, added `enableLuaConfig` and `luaConfigPath` settings
+- `docs/configuration/index.md`: reordered — Lua configuration presented as primary method, vimrc as alternative
+- `docs/configuration/vimrc.md`: added tip pointing to Lua configuration for advanced use cases
+- `docs/configuration/which-key.md`: added Lua `desc` option integration for which-key labels
+- `docs/configuration/cursor-shapes.md`: added `vim.cmd` workaround note for guicursor
+- `docs/configuration/status-bar.md`: added Lua equivalents for status bar settings
+- `docs/features/quality-of-life.md`: added Lua examples alongside vimrc
+- `docs/features/workspace-navigation.md`: added Lua examples alongside vimrc
+- `docs/getting-started/quickstart.md`: reordered — Lua shown as recommended configuration path
+
 ## [0.33.0] - 2026-07-05
 
 ### Fixed

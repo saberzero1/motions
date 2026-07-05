@@ -1,0 +1,235 @@
+{
+    "suite": "lua-keymaps",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-05T06:41:53.741Z",
+    "cases": [
+        {
+            "name": "lua nmap deletes line with Q",
+            "initial": {
+                "content": "hello\nworld\nfoo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Q",
+            "result": {
+                "content": "world\nfoo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua nmap X deletes line",
+            "initial": {
+                "content": "aaa\nbbb\nccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "X",
+            "result": {
+                "content": "bbb\nccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua imap jk exits insert mode",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "ajk",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua nmap with noremap default (dd not recursive)",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Z",
+            "result": {
+                "content": "line1\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua nmap with remap=true makes recursive mapping",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Z",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua keymap.del removes mapping",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Q",
+            "result": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua nmap change word",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Zfoo<Esc>",
+            "result": {
+                "content": "foo world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua nmap join lines",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Z",
+            "result": {
+                "content": "line1 line2\nline3",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua nmap yank word and paste",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ZWP",
+            "result": {
+                "content": "hello hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua vmap surrounds with parens",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "vlllZ",
+            "result": {
+                "content": "(hell)o",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua multi-mode mapping (n and v)",
+            "initial": {
+                "content": "first\nsecond",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Z",
+            "result": {
+                "content": "second",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "lua leader key mapping",
+            "initial": {
+                "content": "delete me\nkeep me",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": " d",
+            "result": {
+                "content": "keep me",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

@@ -289,11 +289,39 @@ In Obsidian 1.13+, the settings window opens as a separate OS-level Electron Bro
 
 Hint mode works in all other contexts: the main window, workspace popout windows (popped-out notes), and any in-app modal (command palette, file switcher, etc.).
 
+## Lua configuration
+
+### Supported and unsupported APIs
+
+The Lua config runtime (`init.lua`) supports `vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, and `print()`. See [[lua-config]] for the full reference.
+
+Unsupported Neovim APIs (`require()`, `vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`) return clear error messages. The runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+
+### `vim.fn.*` subset
+
+`vim.fn.has(feature)` for platform detection and `vim.fn.expand('%')` for file-conditional config are planned. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped to avoid system fingerprinting.
+
+### Hybrid loading
+
+Settings (`vim.opt`) and keymaps (`vim.keymap.set`) load immediately without an active editor. `vim.cmd()` calls are queued and executed when the first editor receives focus. If no `init.lua` file exists, the loader silently skips.
+
+### Loading order with vimrc
+
+`init.lua` loads after vimrc. Both can be used simultaneously — Lua values override vimrc values on conflict. This differs from Neovim, which uses either `init.lua` or `.vimrc`, not both.
+
+### Function callbacks and editor-dependent functions
+
+Lua function callbacks (`vim.keymap.set('n', 'key', function() ... end)`) execute at keypress time, not config-load time. Editor-state-dependent functions (e.g., `vim.fn.line('.')`) are planned to work inside callbacks but error at config-load time (context-aware execution).
+
+### Bundle size
+
+Fengari (Lua 5.3 VM) adds +238KB minified / +79KB gzipped. Total plugin size: 574KB minified (11.5% of the 5000KB soft limit).
+
 ## Vim engine
 
 ### `set` option scope
 
-All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".
+All plugin settings are configurable via `set` options in `.obsidian.vimrc` or `vim.opt` in `.obsidian.init.lua`. When vimrc and/or Lua config are enabled, config values override the corresponding Settings UI values for the current session. Override priority: init.lua > vimrc > Settings UI. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See [[settings]] for the full options table.
 
 Additionally, `whichkeygroup` and `whichkeylabel` ex commands allow configuring which-key labels, and `let g:mode_prompt_*` allows customizing status bar mode text. These use merge semantics with the Settings UI (both sources contribute; vimrc wins on conflict).
 
@@ -301,11 +329,12 @@ Settings overridden by vimrc appear as disabled controls in the settings tab wit
 
 The following settings are intentionally **not** exposed via vimrc:
 
-| Setting          | Reason                                                       |
-| ---------------- | ------------------------------------------------------------ |
-| `enableVimrc`    | Circular dependency — can't control vimrc loading from vimrc |
-| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)    |
-| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc    |
+| Setting           | Reason                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| `enableVimrc`     | Circular dependency — can't control vimrc loading from vimrc                              |
+| `enableLuaConfig` | Circular dependency — can't control init.lua loading from init.lua                        |
+| `hintModeHotkey`  | Requires modifier key capture UI (press-to-record widget)                                 |
+| `leaderBindings`  | Already achievable via `nmap <leader>x :command` in vimrc or `vim.keymap.set` in init.lua |
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `relativenumber`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
@@ -453,6 +482,7 @@ Features by platform:
 | Global workspace nav     | ✅      | ❌ Disabled                | ❌ Disabled            |
 | Status bar               | ✅      | ✅                         | ✅                     |
 | Vimrc                    | ✅      | ✅                         | ✅                     |
+| Lua config (init.lua)    | ✅      | ✅                         | ✅                     |
 | Settings                 | ✅      | ✅                         | ✅                     |
 | Popout windows           | ✅      | N/A                        | N/A                    |
 
@@ -485,10 +515,10 @@ The following Neovim Ex commands have no meaningful equivalent in Obsidian and w
 
 #### Scripting / autocommands
 
-| Command                                | Neovim description | Why N/A                                                                        |
-| -------------------------------------- | ------------------ | ------------------------------------------------------------------------------ |
-| `:autocmd` / `:augroup`                | Autocommands       | Obsidian plugins handle events via the Plugin API, not Vim autocommands        |
-| `:function` / `:call` / `:if` / `:for` | Vimscript          | The plugin is not a Vimscript interpreter. Use `.obsidian.vimrc` for mappings. |
+| Command                                | Neovim description | Why N/A                                                                                                                      |
+| -------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `:autocmd` / `:augroup`                | Autocommands       | Obsidian plugins handle events via the Plugin API, not Vim autocommands                                                      |
+| `:function` / `:call` / `:if` / `:for` | Vimscript          | The plugin is not a Vimscript interpreter. Use `.obsidian.init.lua` for conditional logic or `.obsidian.vimrc` for mappings. |
 
 #### Diff mode
 

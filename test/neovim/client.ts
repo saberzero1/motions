@@ -41,6 +41,10 @@ export class NeovimClient {
         await this.nvim.command('redraw');
     }
 
+    async executeLua(code: string): Promise<void> {
+        await this.nvim.command(`lua ${code}`);
+    }
+
     async getContent(): Promise<string> {
         const buf = await this.nvim.buffer;
         const lines = await buf.getLines({

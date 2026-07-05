@@ -34,7 +34,7 @@ interface StrOpt {
 
 type KnownOpt = BoolOpt | NumOpt | StrOpt;
 
-const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
+export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     textobjects: { type: 'boolean', settingsKey: 'enableTextObjects' },
     to: { type: 'boolean', settingsKey: 'enableTextObjects' },
     navigation: { type: 'boolean', settingsKey: 'enableNavigation' },

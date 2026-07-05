@@ -9,13 +9,19 @@ Vim Motions shows the current Vim mode and pending keystrokes in Obsidian's stat
 
 ## Vim mode display
 
-Shows `NORMAL`, `INSERT`, `VISUAL`, `V-LINE`, `V-BLOCK`, `REPLACE`, `SELECT`, `V-REPLACE`, `COMMAND`, `SEARCH`, or `NORMAL (insert-normal)` in the status bar. Toggle via **Settings → Vim Motions → Status bar → Vim mode status bar** or `set statusbar` / `set nostatusbar` in vimrc.
+Shows `NORMAL`, `INSERT`, `VISUAL`, `V-LINE`, `V-BLOCK`, `REPLACE`, `SELECT`, `V-REPLACE`, `COMMAND`, `SEARCH`, or `NORMAL (insert-normal)` in the status bar. Toggle via **Settings → Vim Motions → Status bar → Vim mode status bar**, `vim.opt.statusbar = true` in Lua, or `set statusbar` / `set nostatusbar` in vimrc.
 
 ### Custom mode text
 
-Customize the text shown for each mode via **Settings → Vim Motions → Vim mode display prompt** or in vimrc:
+Customize the text shown for each mode via **Settings → Vim Motions → Vim mode display prompt**, in Lua, or in vimrc:
+
+```lua
+vim.g.mode_prompt_normal = "N"
+vim.g.mode_prompt_insert = "I"
+```
 
 ```vim
+" Or via vimrc:
 let g:mode_prompt_normal = "N"
 let g:mode_prompt_insert = "I"
 let g:mode_prompt_visual = "V"
@@ -29,7 +35,7 @@ let g:mode_prompt_search = "/"
 let g:mode_prompt_insert_normal = "(i)"
 ```
 
-Supports any text including emoji — e.g., `let g:mode_prompt_normal = "🟢"`.
+Supports any text including emoji — e.g., `vim.g.mode_prompt_normal = "🟢"`.
 
 > [!info] Fork mode required
 > Select, V-Replace, Command, Search, and Insert-Normal indicators require the fork's vim engine (recommended setup with built-in vim mode OFF). In built-in vim mode, only NORMAL, INSERT, VISUAL, and REPLACE are shown.
@@ -38,7 +44,7 @@ Supports any text including emoji — e.g., `let g:mode_prompt_normal = "🟢"`.
 
 Shows pending keystrokes as you type a multi-key command (e.g., `2d`, `gq`, `<leader>t`). This helps confirm your input is being registered, especially for long sequences.
 
-Toggle via **Settings → Vim Motions → Status bar → Vim chord display** or `set chorddisplay` / `set nochorddisplay` in vimrc.
+Toggle via **Settings → Vim Motions → Status bar → Vim chord display**, `vim.opt.chorddisplay = true` in Lua, or `set chorddisplay` / `set nochorddisplay` in vimrc.
 
 ## Macro recording indicator
 
@@ -48,7 +54,7 @@ When recording a macro, the status bar shows `RECORDING @{register}` (e.g., `REC
 
 Optional colored mode indicator with per-mode background colors and a triangular separator. No special fonts required — the separator is a Unicode character.
 
-Toggle via **Settings → Vim Motions → Status bar → Powerline-style status bar** or `set powerline` / `set nopowerline` in vimrc.
+Toggle via **Settings → Vim Motions → Status bar → Powerline-style status bar**, `vim.opt.powerline = true` in Lua, or `set powerline` / `set nopowerline` in vimrc.
 
 ### Color customization
 

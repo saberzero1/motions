@@ -78,10 +78,15 @@ Pressing `:` in a non-editor view opens a standalone command modal. This modal s
 
 ## Customizing global bindings
 
-All non-editor key bindings can be customized via `.obsidian.vimrc` using `gmap`, `gnoremap`, and `gunmap`. These commands define, override, or remove key bindings that work outside the editor.
+All non-editor key bindings can be customized via `.obsidian.init.lua` or `.obsidian.vimrc`. These commands define, override, or remove key bindings that work outside the editor.
+
+```lua
+-- Add a new binding in Lua
+vim.keymap.set("n", "<leader>f", ":obcommand switcher:open", { desc = "Open file" })
+```
 
 ```vim
-" Add a new binding
+" Or via vimrc:
 gmap <leader>f :obcommand switcher:open
 
 " Override a default binding
@@ -95,13 +100,14 @@ The right-hand side supports `:obcommand <id>` for Obsidian commands and `:<ex-c
 
 Use `:gmap` in the ex command line to list all active global bindings with their source (default or user).
 
-The non-editor which-key overlay shows available completions when a partial key sequence is pending (e.g., pressing `<C-w>` shows all window commands). Label your bindings with `gwhichkeylabel` and `gwhichkeygroup` in vimrc. See [[vimrc#Global key mappings]] for full syntax.
+The non-editor which-key overlay shows available completions when a partial key sequence is pending (e.g., pressing `<C-w>` shows all window commands). Label your bindings with the `desc` option in Lua or `gwhichkeylabel` and `gwhichkeygroup` in vimrc. See [[lua-config]] or [[vimrc#Global key mappings]] for full syntax.
 
 ## Configuration
 
 Workspace navigation is enabled by default. You can toggle it or configure it through the following methods:
 
 - **Settings**: Toggle via **Settings → Vim Motions → Workspace navigation**.
-- **Vimrc**: Add `set workspacenav` to your `.obsidian.vimrc` to ensure it is enabled.
+- **Lua**: Add `vim.opt.workspacenav = true` to your `.obsidian.init.lua`.
+- **Vimrc**: Add `set workspacenav` to your `.obsidian.vimrc`.
 
 See [[known-limitations#Workspace & hint mode]] for detailed technical limitations.

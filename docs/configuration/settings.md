@@ -11,87 +11,89 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vim features
 
-| Name                             | Type     | Default  | Range/Options             | Vimrc                  | Description                                                                              |
-| -------------------------------- | -------- | -------- | ------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- |
-| Text objects                     | toggle   | `true`   | —                         | `set textobjects`      | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                             |
-| Structural navigation            | toggle   | `true`   | —                         | `set navigation`       | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).              |
-| Hard-wrap operator (gq)          | toggle   | `true`   | —                         | `set hardwrap`         | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.             |
-| Smart list continuation on o/O   | toggle   | `true`   | —                         | `set listcontinuation` | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O. |
-| Table navigation                 | toggle   | `true`   | —                         | `set tablenav`         | Enable table cell navigation motions (`]\|`, `[\|`, `]c`, `[c`).                         |
-| Table widget in live preview     | dropdown | `cursor` | `always`, `cursor`, `off` | `set tablewidget`      | Controls how tables display in Live Preview.                                             |
-| Formatting marks in Live Preview | dropdown | `cursor` | `cursor`, `off`           | —                      | Corrects cursor positioning near formatting marks in Live Preview.                       |
-| Workspace navigation             | toggle   | `true`   | —                         | `set workspacenav`     | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.).                      |
+| Name                             | Type     | Default  | Range/Options             | Lua                          | Vimrc                  | Description                                                                              |
+| -------------------------------- | -------- | -------- | ------------------------- | ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- | ----- | --------------- |
+| Text objects                     | toggle   | `true`   | —                         | `vim.opt.textobjects`        | `set textobjects`      | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                             |
+| Structural navigation            | toggle   | `true`   | —                         | `vim.opt.navigation`         | `set navigation`       | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).              |
+| Hard-wrap operator (gq)          | toggle   | `true`   | —                         | `vim.opt.hardwrap`           | `set hardwrap`         | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.             |
+| Smart list continuation on o/O   | toggle   | `true`   | —                         | `vim.opt.listcontinuation`   | `set listcontinuation` | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O. |
+| Table navigation                 | toggle   | `true`   | —                         | `vim.opt.tablenav`           | `set tablenav`         | Enable table cell navigation motions (`]                                                 | `, `[ | `, `]c`, `[c`). |
+| Table widget in live preview     | dropdown | `cursor` | `always`, `cursor`, `off` | `vim.opt.tablewidget`        | `set tablewidget`      | Controls how tables display in Live Preview.                                             |
+| Formatting marks in Live Preview | dropdown | `cursor` | `cursor`, `off`           | `vim.opt.formattingmarkmode` | —                      | Corrects cursor positioning near formatting marks in Live Preview.                       |
+| Workspace navigation             | toggle   | `true`   | —                         | `vim.opt.workspacenav`       | `set workspacenav`     | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.).                      |
 
 > [!warning]
 > **Workspace navigation**: `<C-w>` may conflict with Obsidian's "Close current tab" hotkey. Rebind it in **Settings → Hotkeys**.
 
 ## Vim engine
 
-| Name                       | Type     | Default | Range/Options                     | Vimrc                         | Description                                              |
-| -------------------------- | -------- | ------- | --------------------------------- | ----------------------------- | -------------------------------------------------------- |
-| Clipboard                  | dropdown | `(off)` | `unnamed`, `unnamedplus`, `(off)` | `set clipboard`               | Sync yank/delete/paste with the system clipboard.        |
-| Tabstop                    | slider   | `4`     | 1–8                               | `set tabstop`                 | Tab display width.                                       |
-| Shiftwidth                 | slider   | `4`     | 1–8                               | `set shiftwidth`              | Indent width.                                            |
-| Expand tab                 | toggle   | `true`  | —                                 | `set expandtab`               | Use spaces instead of tabs.                              |
-| Insert mode escape         | text     | `(off)` | —                                 | `set insertmodeescape`        | Two-key sequence to exit insert mode (e.g., `jk`).       |
-| Insert mode escape timeout | number   | `1000`  | 100–5000                          | `set insertmodeescapetimeout` | Timeout in milliseconds for insert mode escape sequence. |
-| Textwidth                  | number   | `80`    | 0–200                             | `set textwidth`               | Line wrap width for `gq`/`gw` (0 to disable).            |
+| Name                       | Type     | Default | Range/Options                     | Lua                               | Vimrc                         | Description                                              |
+| -------------------------- | -------- | ------- | --------------------------------- | --------------------------------- | ----------------------------- | -------------------------------------------------------- |
+| Clipboard                  | dropdown | `(off)` | `unnamed`, `unnamedplus`, `(off)` | `vim.opt.clipboard`               | `set clipboard`               | Sync yank/delete/paste with the system clipboard.        |
+| Tabstop                    | slider   | `4`     | 1–8                               | `vim.opt.tabstop`                 | `set tabstop`                 | Tab display width.                                       |
+| Shiftwidth                 | slider   | `4`     | 1–8                               | `vim.opt.shiftwidth`              | `set shiftwidth`              | Indent width.                                            |
+| Expand tab                 | toggle   | `true`  | —                                 | `vim.opt.expandtab`               | `set expandtab`               | Use spaces instead of tabs.                              |
+| Insert mode escape         | text     | `(off)` | —                                 | `vim.opt.insertmodeescape`        | `set insertmodeescape`        | Two-key sequence to exit insert mode (e.g., `jk`).       |
+| Insert mode escape timeout | number   | `1000`  | 100–5000                          | `vim.opt.insertmodeescapetimeout` | `set insertmodeescapetimeout` | Timeout in milliseconds for insert mode escape sequence. |
+| Textwidth                  | number   | `80`    | 0–200                             | `vim.opt.textwidth`               | `set textwidth`               | Line wrap width for `gq`/`gw` (0 to disable).            |
 
 ## Jump navigation
 
-| Name                        | Type   | Default                      | Range/Options | Vimrc                   | Description                                                   |
-| --------------------------- | ------ | ---------------------------- | ------------- | ----------------------- | ------------------------------------------------------------- |
-| EasyMotion                  | toggle | `true`                       | —             | `set easymotion`        | Enable easymotion/hop navigation (`<leader><leader>w`, etc.). |
-| EasyMotion dimming          | toggle | `true`                       | —             | `set easymotiondimming` | Dim non-target text when EasyMotion is active.                |
-| EasyMotion label characters | text   | `asdghklqwertyuiopzxcvbnmfj` | —             | `set easymotionlabels`  | Characters used for EasyMotion labels.                        |
-| Hint mode                   | toggle | `true`                       | —             | `set hintmode`          | Enable vimium-style link hints to click UI elements.          |
-| Hint mode label characters  | text   | `asdfghjkl`                  | —             | `set hintlabels`        | Characters used for hint labels.                              |
-| Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                       | Key combination to trigger hint mode from anywhere.           |
-| Label font size             | slider | `14`                         | 10–20         | `set labelfontsize`     | Font size for EasyMotion and hint mode labels.                |
+| Name                        | Type   | Default                      | Range/Options | Lua                         | Vimrc                   | Description                                                   |
+| --------------------------- | ------ | ---------------------------- | ------------- | --------------------------- | ----------------------- | ------------------------------------------------------------- |
+| EasyMotion                  | toggle | `true`                       | —             | `vim.opt.easymotion`        | `set easymotion`        | Enable easymotion/hop navigation (`<leader><leader>w`, etc.). |
+| EasyMotion dimming          | toggle | `true`                       | —             | `vim.opt.easymotiondimming` | `set easymotiondimming` | Dim non-target text when EasyMotion is active.                |
+| EasyMotion label characters | text   | `asdghklqwertyuiopzxcvbnmfj` | —             | `vim.opt.easymotionlabels`  | `set easymotionlabels`  | Characters used for EasyMotion labels.                        |
+| Hint mode                   | toggle | `true`                       | —             | `vim.opt.hintmode`          | `set hintmode`          | Enable vimium-style link hints to click UI elements.          |
+| Hint mode label characters  | text   | `asdfghjkl`                  | —             | `vim.opt.hintlabels`        | `set hintlabels`        | Characters used for hint labels.                              |
+| Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                           | —                       | Key combination to trigger hint mode from anywhere.           |
+| Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`     | `set labelfontsize`     | Font size for EasyMotion and hint mode labels.                |
 
 ## Status bar
 
-| Name                       | Type   | Default | Range/Options | Vimrc              | Description                                                   |
-| -------------------------- | ------ | ------- | ------------- | ------------------ | ------------------------------------------------------------- |
-| Vim mode status bar        | toggle | `true`  | —             | `set statusbar`    | Show current Vim mode in the status bar.                      |
-| Vim chord display          | toggle | `true`  | —             | `set chorddisplay` | Show pending keystrokes in the status bar.                    |
-| Powerline-style status bar | toggle | `false` | —             | `set powerline`    | Color the Vim mode indicator with per-mode background colors. |
+| Name                       | Type   | Default | Range/Options | Lua                    | Vimrc              | Description                                                   |
+| -------------------------- | ------ | ------- | ------------- | ---------------------- | ------------------ | ------------------------------------------------------------- |
+| Vim mode status bar        | toggle | `true`  | —             | `vim.opt.statusbar`    | `set statusbar`    | Show current Vim mode in the status bar.                      |
+| Vim chord display          | toggle | `true`  | —             | `vim.opt.chorddisplay` | `set chorddisplay` | Show pending keystrokes in the status bar.                    |
+| Powerline-style status bar | toggle | `false` | —             | `vim.opt.powerline`    | `set powerline`    | Color the Vim mode indicator with per-mode background colors. |
 
 ## Vim mode display prompt
 
-| Name                        | Type | Default     | Range/Options | Vimrc                             | Description                                                 |
-| --------------------------- | ---- | ----------- | ------------- | --------------------------------- | ----------------------------------------------------------- |
-| Normal mode prompt          | text | `NORMAL`    | —             | `let g:mode_prompt_normal`        | Status bar text for normal mode.                            |
-| Insert mode prompt          | text | `INSERT`    | —             | `let g:mode_prompt_insert`        | Status bar text for insert mode.                            |
-| Visual mode prompt          | text | `VISUAL`    | —             | `let g:mode_prompt_visual`        | Status bar text for visual mode.                            |
-| V-Line mode prompt          | text | `V-LINE`    | —             | `let g:mode_prompt_visual_line`   | Status bar text for visual line mode.                       |
-| V-Block mode prompt         | text | `V-BLOCK`   | —             | `let g:mode_prompt_visual_block`  | Status bar text for visual block mode.                      |
-| Replace mode prompt         | text | `REPLACE`   | —             | `let g:mode_prompt_replace`       | Status bar text for replace mode.                           |
-| Select mode prompt          | text | `SELECT`    | —             | `let g:mode_prompt_select`        | Status bar text for select mode.                            |
-| Virtual replace mode prompt | text | `V-REPLACE` | —             | `let g:mode_prompt_vreplace`      | Status bar text for virtual replace mode.                   |
-| Command mode prompt         | text | `COMMAND`   | —             | `let g:mode_prompt_command`       | Status bar text for command-line mode.                      |
-| Search mode prompt          | text | `SEARCH`    | —             | `let g:mode_prompt_search`        | Status bar text for search mode.                            |
-| Insert-normal mode prompt   | text | `NORMAL`    | —             | `let g:mode_prompt_insert_normal` | Status bar text when in normal mode via Ctrl-O from insert. |
+| Name                        | Type | Default     | Range/Options | Lua                               | Vimrc                             | Description                                                 |
+| --------------------------- | ---- | ----------- | ------------- | --------------------------------- | --------------------------------- | ----------------------------------------------------------- |
+| Normal mode prompt          | text | `NORMAL`    | —             | `vim.g.mode_prompt_normal`        | `let g:mode_prompt_normal`        | Status bar text for normal mode.                            |
+| Insert mode prompt          | text | `INSERT`    | —             | `vim.g.mode_prompt_insert`        | `let g:mode_prompt_insert`        | Status bar text for insert mode.                            |
+| Visual mode prompt          | text | `VISUAL`    | —             | `vim.g.mode_prompt_visual`        | `let g:mode_prompt_visual`        | Status bar text for visual mode.                            |
+| V-Line mode prompt          | text | `V-LINE`    | —             | `vim.g.mode_prompt_visual_line`   | `let g:mode_prompt_visual_line`   | Status bar text for visual line mode.                       |
+| V-Block mode prompt         | text | `V-BLOCK`   | —             | `vim.g.mode_prompt_visual_block`  | `let g:mode_prompt_visual_block`  | Status bar text for visual block mode.                      |
+| Replace mode prompt         | text | `REPLACE`   | —             | `vim.g.mode_prompt_replace`       | `let g:mode_prompt_replace`       | Status bar text for replace mode.                           |
+| Select mode prompt          | text | `SELECT`    | —             | `vim.g.mode_prompt_select`        | `let g:mode_prompt_select`        | Status bar text for select mode.                            |
+| Virtual replace mode prompt | text | `V-REPLACE` | —             | `vim.g.mode_prompt_vreplace`      | `let g:mode_prompt_vreplace`      | Status bar text for virtual replace mode.                   |
+| Command mode prompt         | text | `COMMAND`   | —             | `vim.g.mode_prompt_command`       | `let g:mode_prompt_command`       | Status bar text for command-line mode.                      |
+| Search mode prompt          | text | `SEARCH`    | —             | `vim.g.mode_prompt_search`        | `let g:mode_prompt_search`        | Status bar text for search mode.                            |
+| Insert-normal mode prompt   | text | `NORMAL`    | —             | `vim.g.mode_prompt_insert_normal` | `let g:mode_prompt_insert_normal` | Status bar text when in normal mode via Ctrl-O from insert. |
 
 ## Cursor shapes
 
 > [!info]
 > Cursor shapes require bundled fork mode. Disable Obsidian's built-in Vim key bindings to enable these options.
 
-| Name             | Type     | Default     | Range/Options                         | Vimrc           | Description                             |
-| ---------------- | -------- | ----------- | ------------------------------------- | --------------- | --------------------------------------- |
-| Normal mode      | dropdown | `block`     | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for normal mode.           |
-| Insert mode      | dropdown | `bar`       | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for insert mode.           |
-| Visual mode      | dropdown | `block`     | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for visual mode.           |
-| Replace mode     | dropdown | `underline` | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for replace mode.          |
-| Operator-pending | dropdown | `underline` | `block`, `bar`, `underline`, `hollow` | `set guicursor` | Cursor shape for operator-pending mode. |
+| Name             | Type     | Default     | Range/Options                         | Lua | Vimrc           | Description                             |
+| ---------------- | -------- | ----------- | ------------------------------------- | --- | --------------- | --------------------------------------- |
+| Normal mode      | dropdown | `block`     | `block`, `bar`, `underline`, `hollow` | —   | `set guicursor` | Cursor shape for normal mode.           |
+| Insert mode      | dropdown | `bar`       | `block`, `bar`, `underline`, `hollow` | —   | `set guicursor` | Cursor shape for insert mode.           |
+| Visual mode      | dropdown | `block`     | `block`, `bar`, `underline`, `hollow` | —   | `set guicursor` | Cursor shape for visual mode.           |
+| Replace mode     | dropdown | `underline` | `block`, `bar`, `underline`, `hollow` | —   | `set guicursor` | Cursor shape for replace mode.          |
+| Operator-pending | dropdown | `underline` | `block`, `bar`, `underline`, `hollow` | —   | `set guicursor` | Cursor shape for operator-pending mode. |
 
 ## Vimrc & key bindings
 
-| Name                   | Type   | Default   | Range/Options | Vimrc | Description                                          |
-| ---------------------- | ------ | --------- | ------------- | ----- | ---------------------------------------------------- |
-| Load `.obsidian.vimrc` | toggle | `true`    | —             | —     | Load key mappings and settings from .obsidian.vimrc. |
-| Custom vimrc path      | text   | `(empty)` | —             | —     | Path to a vimrc file in your vault.                  |
+| Name                     | Type   | Default   | Range/Options | Lua | Vimrc | Description                                          |
+| ------------------------ | ------ | --------- | ------------- | --- | ----- | ---------------------------------------------------- |
+| Load `.obsidian.vimrc`   | toggle | `true`    | —             | —   | —     | Load key mappings and settings from .obsidian.vimrc. |
+| Custom vimrc path        | text   | `(empty)` | —             | —   | —     | Path to a vimrc file in your vault.                  |
+| Enable Lua configuration | toggle | `false`   | (none)        | —   | —     | Load configuration from .obsidian.init.lua.          |
+| Custom Lua config path   | text   | `(empty)` | (none)        | —   | —     | Path to an init.lua file in your vault.              |
 
 ## Leader key bindings
 
@@ -99,11 +101,11 @@ Map leader key sequences to Obsidian commands. This UI allows you to add new bin
 
 ## Which-key hints
 
-| Name                      | Type     | Default   | Range/Options          | Vimrc                  | Description                                                                                       |
-| ------------------------- | -------- | --------- | ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
-| Which-key mode            | dropdown | `off`     | `off`, `leader`, `all` | `set whichkey`         | Show available key continuations in a popup.                                                      |
-| Which-key leader grouping | dropdown | `grouped` | `grouped`, `flat`      | `set whichkeygrouping` | How leader key bindings are displayed.                                                            |
-| Which-key popup delay     | number   | `500`     | 0–2000                 | `set whichkeydelay`    | Delay in milliseconds before the popup appears. Subsequent keystrokes update the popup instantly. |
+| Name                      | Type     | Default   | Range/Options          | Lua                        | Vimrc                  | Description                                                                                       |
+| ------------------------- | -------- | --------- | ---------------------- | -------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
+| Which-key mode            | dropdown | `off`     | `off`, `leader`, `all` | `vim.opt.whichkey`         | `set whichkey`         | Show available key continuations in a popup.                                                      |
+| Which-key leader grouping | dropdown | `grouped` | `grouped`, `flat`      | `vim.opt.whichkeygrouping` | `set whichkeygrouping` | How leader key bindings are displayed.                                                            |
+| Which-key popup delay     | number   | `500`     | 0–2000                 | `vim.opt.whichkeydelay`    | `set whichkeydelay`    | Delay in milliseconds before the popup appears. Subsequent keystrokes update the popup instantly. |
 
 ## Which-key group labels
 
@@ -115,10 +117,10 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 
 ## Advanced
 
-| Name                              | Type   | Default | Range/Options | Vimrc           | Description                                                          |
-| --------------------------------- | ------ | ------- | ------------- | --------------- | -------------------------------------------------------------------- |
-| Scrolloff lines                   | number | `5`     | `0–9999`      | `set scrolloff` | Number of lines to keep visible above and below when scrolling.      |
-| Multi-line text object scan range | slider | `20`    | `5–200`       | `set scanlimit` | Maximum lines to scan in each direction for multi-line text objects. |
+| Name                              | Type   | Default | Range/Options | Lua                 | Vimrc           | Description                                                          |
+| --------------------------------- | ------ | ------- | ------------- | ------------------- | --------------- | -------------------------------------------------------------------- |
+| Scrolloff lines                   | number | `5`     | `0–9999`      | `vim.opt.scrolloff` | `set scrolloff` | Number of lines to keep visible above and below when scrolling.      |
+| Multi-line text object scan range | slider | `20`    | `5–200`       | `vim.opt.scanlimit` | `set scanlimit` | Maximum lines to scan in each direction for multi-line text objects. |
 
 > [!tip]
 > Set **Scrolloff lines** to `9999` to keep the cursor vertically centered.
@@ -126,5 +128,6 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 ## Settings not available via vimrc
 
 - **Load .obsidian.vimrc** (`enableVimrc`): Cannot be set via vimrc because the setting itself determines whether the vimrc is loaded (circular dependency).
+- **Enable Lua configuration** (`enableLuaConfig`): Cannot be set via vimrc or init.lua (circular dependency).
 - **Hint mode global hotkey** (`hintModeHotkey`): Requires a specialized recording UI to capture modifier keys and cannot be easily represented as a simple string in a vimrc file.
 - **Leader key bindings** (`leaderBindings`): While the plugin provides a UI for this, the same functionality is already achievable via standard `nmap <leader>...` commands in your vimrc.

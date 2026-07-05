@@ -66,23 +66,33 @@ Type `:` to enter the ex command line:
 - `:grep pattern` — search the vault
 - `:ob command-id` — run any Obsidian command
 
-## 7. Set up your vimrc
+## 7. Set up your configuration
 
-Create a `.obsidian.vimrc` file in your vault root:
+Create an `.obsidian.init.lua` file in your vault root (recommended):
+
+```lua
+vim.g.mapleader = " "
+vim.opt.scrolloff = 8
+vim.opt.clipboard = "unnamed"
+vim.keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save" })
+vim.keymap.set("i", "jk", "<Esc>", { desc = "Exit insert mode" })
+```
+
+Or use `.obsidian.vimrc` if you prefer traditional Vim syntax:
 
 ```vim
 let mapleader = " "
-nnoremap j gj
-nnoremap k gk
-set scrolloff=5
+set scrolloff=8
 set clipboard=unnamed
 set insertmodeescape=jk
+nmap <leader>w :w<CR>
 ```
 
-The plugin loads this automatically. See [[vimrc]] for the full reference.
+The plugin loads these automatically. See [[lua-config]] or [[vimrc]] for the full reference.
 
 ## Next steps
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions and commands
+- **[[lua-config|Lua configuration]]** — recommended configuration method
 - **[[settings|Settings reference]]** — configure every aspect of the plugin
 - **[[features/index|Feature overview]]** — deep-dives into each feature

@@ -126,6 +126,8 @@ export interface VimMotionsSettings {
     whichKeyGroupLabels: GroupLabel[];
     whichKeyCommandLabels: CommandLabel[];
     vimrcPath: string;
+    enableLuaConfig: boolean;
+    luaConfigPath: string;
     leaderBindings: LeaderBinding[];
 }
 
@@ -166,6 +168,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     whichKeyGroupLabels: [],
     whichKeyCommandLabels: [],
     vimrcPath: '',
+    enableLuaConfig: false,
+    luaConfigPath: '',
     leaderBindings: [],
 };
 
@@ -250,6 +254,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'scrolloffLines',
         'multilineScanLimit',
         'vimrcPath',
+        'enableLuaConfig',
+        'luaConfigPath',
         'whichKeyMode',
         'whichKeyGrouping',
         'whichKeyDelay',
@@ -261,13 +267,24 @@ export class VimMotionsSettingTab extends PluginSettingTab {
     }
 
     private isOverridden(key: string): boolean {
-        return !!this.plugin.vimrcOverrides?.get(key);
+        return (
+            !!this.plugin.vimrcOverrides?.get(key) ||
+            !!this.plugin.luaOverrides?.get(key)
+        );
     }
 
     private describeOverride(key: string, desc?: string): string {
-        const directive = this.plugin.vimrcOverrides?.get(key);
-        if (!directive) return desc ?? '';
-        const note = `Set by vimrc: \`${directive}\``;
+        const notes: string[] = [];
+        const vimrcDirective = this.plugin.vimrcOverrides?.get(key);
+        if (vimrcDirective) {
+            notes.push(`Set by vimrc: \`${vimrcDirective}\``);
+        }
+        const luaDirective = this.plugin.luaOverrides?.get(key);
+        if (luaDirective) {
+            notes.push(`Set by init.lua: \`${luaDirective}\``);
+        }
+        if (notes.length === 0) return desc ?? '';
+        const note = notes.join(' · ');
         return desc ? `${desc} (${note})` : note;
     }
 
@@ -2036,6 +2053,42 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(!this.plugin.settings.enableVimrc)
                     .onChange(async (value) => {
                         this.plugin.settings.vimrcPath = value;
+                        await this.plugin.saveSettings();
+                    });
+                new VimrcFileSuggest(this.app, text.inputEl);
+            });
+
+        new Setting(containerEl)
+            .setName(`Load ${this.app.vault.configDir}.init.lua`)
+            .setDesc(
+                describeOverride(
+                    'enableLuaConfig',
+                    `Experimental: load key mappings and settings from ${this.app.vault.configDir}.init.lua in your vault root.`,
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableLuaConfig)
+                    .setDisabled(isOverridden('enableLuaConfig'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableLuaConfig = value;
+                        this.plugin.vimrcOverrides?.delete('enableLuaConfig');
+                        this.plugin.luaOverrides?.delete('enableLuaConfig');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Custom init.lua path')
+            .setDesc(
+                `Path to an init.lua file in your vault. Leave empty to use the default ${this.app.vault.configDir}.init.lua.`,
+            )
+            .addText((text) => {
+                text.setPlaceholder(`${this.app.vault.configDir}.init.lua`)
+                    .setValue(this.plugin.settings.luaConfigPath)
+                    .setDisabled(!this.plugin.settings.enableLuaConfig)
+                    .onChange(async (value) => {
+                        this.plugin.settings.luaConfigPath = value;
                         await this.plugin.saveSettings();
                     });
                 new VimrcFileSuggest(this.app, text.inputEl);

@@ -104,10 +104,27 @@ export function testWithNeovim(
         content: string;
         cursor: { line: number; ch: number };
         keys: string[];
+        luaSetup?: string;
     },
 ): void {
     it(`[nvim] ${name}`, async function () {
         await setupEditor(config.content, config.cursor);
+        if (config.luaSetup) {
+            await browser.executeObsidian(({ app }, luaCode: string) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { executeLuaForTest?: (code: string) => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                plugin?.executeLuaForTest?.(luaCode);
+            }, config.luaSetup);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        }
         for (const segment of config.keys) {
             await dispatchVimKeys(segment);
             await browser.pause(PAUSE.KEY_GAP);
@@ -116,6 +133,9 @@ export function testWithNeovim(
         if (process.env.NEOVIM_COMPARE === '1' && nvimClient) {
             await nvimClient.setContent(config.content);
             await nvimClient.setCursor(config.cursor.line, config.cursor.ch);
+            if (config.luaSetup) {
+                await nvimClient.executeLua(config.luaSetup);
+            }
             for (const key of config.keys) {
                 await nvimClient.input(key);
             }

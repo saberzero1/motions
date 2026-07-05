@@ -22,7 +22,7 @@ Pressing `o` or `O` on a list line automatically continues the list marker on th
 - Indented and nested lists
 - Blockquote lists (`> - `)
 
-Works correctly on the first line after YAML frontmatter. Disable for plain Neovim behavior via **Settings → Vim Motions → Smart list continuation on o/O** or `set nolistcontinuation` in vimrc.
+Works correctly on the first line after YAML frontmatter. Disable for plain Neovim behavior via **Settings → Vim Motions → Smart list continuation on o/O**, `vim.opt.listcontinuation = false` in Lua, or `set nolistcontinuation` in vimrc.
 
 ## Neovim defaults
 
@@ -31,11 +31,11 @@ Works correctly on the first line after YAML frontmatter. Disable for plain Neov
 
 ## Vim mode status bar
 
-Shows the current mode (NORMAL / INSERT / VISUAL / REPLACE) in Obsidian's status bar. Customizable per-mode text (including emoji) via **Settings → Vim Motions → Vim mode display prompt** or `let g:mode_prompt_normal = "N"` in vimrc.
+Shows the current mode (NORMAL / INSERT / VISUAL / REPLACE) in Obsidian's status bar. Customizable per-mode text (including emoji) via **Settings → Vim Motions → Vim mode display prompt**, `vim.g.mode_prompt_normal = "N"` in Lua, or `let g:mode_prompt_normal = "N"` in vimrc.
 
 ## Vim chord display
 
-Shows pending keystrokes (e.g., `2d`, `gq`) in the status bar as you type a multi-key command. Toggle via **Settings → Vim Motions → Vim chord display** or `set nochorddisplay` in vimrc.
+Shows pending keystrokes (e.g., `2d`, `gq`) in the status bar as you type a multi-key command. Toggle via **Settings → Vim Motions → Vim chord display**, `vim.opt.chorddisplay = false` in Lua, or `set nochorddisplay` in vimrc.
 
 ## Powerline-style status bar
 
@@ -43,7 +43,7 @@ Optional colored mode indicator with per-mode background colors and a triangular
 
 Override colors via CSS custom properties (`--vim-pl-normal-bg`, `--vim-pl-insert-bg`, `--vim-pl-visual-bg`, `--vim-pl-replace-bg`) or via the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin with separate light/dark mode defaults.
 
-Toggle via **Settings → Vim Motions → Powerline-style status bar** or `set powerline` / `set nopowerline` in vimrc.
+Toggle via **Settings → Vim Motions → Powerline-style status bar**, `vim.opt.powerline = true` in Lua, or `set powerline` / `set nopowerline` in vimrc.
 
 ## Which-key hints
 
@@ -55,25 +55,26 @@ Shows available key continuations in a popup after a short delay. Three modes:
 
 Leader bindings can be grouped by prefix — pressing `<leader>` shows `t → Table (+11)` instead of listing all table commands. Drill into a group by pressing its key.
 
-Configure via **Settings → Vim Motions → Which-key hints** or `set whichkey=leader` in vimrc. See [[which-key]] for detailed setup.
+Configure via **Settings → Vim Motions → Which-key hints**, `vim.opt.whichkey = "leader"` in Lua, or `set whichkey=leader` in vimrc. See [[which-key]] for detailed setup.
 
 ## Scrolloff
 
 Configurable number of lines to keep visible above and below the cursor when scrolling (0–9999, default: 5).
 
 > [!tip] Centered cursor
-> Set `scrolloff=999` in your vimrc to keep the cursor vertically centered while scrolling — the standard Vim pattern for centered scrolling.
+> Set `vim.opt.scrolloff = 999` in your Lua config or `set scrolloff=999` in your vimrc to keep the cursor vertically centered while scrolling — the standard Vim pattern for centered scrolling.
 
-Adapts to your font size automatically via `EditorView.defaultLineHeight`. Configure via **Settings → Vim Motions → Advanced → Scrolloff lines** or `set scrolloff=5` in vimrc.
+Adapts to your font size automatically via `EditorView.defaultLineHeight`. Configure via **Settings → Vim Motions → Advanced → Scrolloff lines**, `vim.opt.scrolloff = 5` in Lua, or `set scrolloff=5` in vimrc.
 
 ## Configurable insert escape
 
 Set a two-key sequence to exit insert mode (e.g., `jk`, `jj`):
 
+- `vim.opt.insertmodeescape = "jk"` in Lua
 - `set insertmodeescape=jk` in vimrc
 - **Settings → Vim Motions → Vim engine → Insert mode escape**
 
-Timeout is configurable via `set insertmodeescapetimeout=1000` (default: 1000ms, matching Neovim's `timeoutlen`).
+Timeout is configurable via `vim.opt.insertmodeescapetimeout = 1000` in Lua or `set insertmodeescapetimeout=1000` in vimrc (default: 1000ms, matching Neovim's `timeoutlen`).
 
 ## Macro recording indicator
 

@@ -15,6 +15,9 @@ async function recordSuite(
         await nvim.input('\x1b\x1b');
         await nvim.setContent(tc.content);
         await nvim.setCursor(tc.cursor.line, tc.cursor.ch);
+        if (tc.luaSetup) {
+            await nvim.executeLua(tc.luaSetup);
+        }
         await nvim.input(tc.keys);
 
         process.stderr.write(' ok\n');

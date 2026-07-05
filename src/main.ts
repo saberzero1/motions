@@ -63,6 +63,11 @@ import {
     createFormattingTransactionFilter,
 } from './vim/formatting-mark-fix';
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
+import { loadInitLua } from './lua/loader';
+import type { LuaLoadResult } from './lua/loader';
+import { createSandboxedState, destroyState, evalLua } from './lua/engine';
+import { injectVimApi } from './lua/api';
+import type { lua_State } from 'fengari';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -97,6 +102,68 @@ export default class VimMotionsPlugin extends Plugin {
     vimrcLoaded = false;
     vimrcRetried = false;
     vimrcCommandCount = 0;
+    private luaLoading = false;
+    private luaMapOperations: LuaLoadResult['mapOperations'] = [];
+    luaOverrides: Map<string, string> = new Map();
+    luaGroupLabels: GroupLabel[] = [];
+    luaCommandLabels: CommandLabel[] = [];
+    luaLoaded = false;
+    luaCommandCount = 0;
+    private luaState: lua_State | null = null;
+    private luaActionNames = new Set<string>();
+    private luaPendingExCommands: string[] = [];
+    private luaActionCounter = 0;
+
+    executeLuaForTest(code: string): void {
+        if (!this.luaState) {
+            const vim = getVimApi();
+            if (!vim) return;
+            this.luaState = createSandboxedState();
+            injectVimApi(this.luaState, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => this.app.vault.getName(),
+                onKeymap: (map) => {
+                    if (map.rhs) {
+                        if (map.noremap) {
+                            vim.noremap(map.lhs, map.rhs, map.mode);
+                        } else {
+                            vim.map(map.lhs, map.rhs, map.mode);
+                        }
+                    }
+                },
+                onKeymapDel: (map) => {
+                    try {
+                        vim.unmap(map.lhs, map.mode);
+                    } catch {
+                        /* intentional: skip missing map */
+                    }
+                },
+                getLeaderKey: () => this.leaderRegistry?.getLeaderKey() ?? '\\',
+                setLeaderKey: (key) => this.leaderRegistry?.setLeaderKey(key),
+            });
+        }
+        evalLua(this.luaState, code);
+    }
+
+    private onLuaSettingOverrideRef:
+        | ((key: string, value: unknown, directive?: string) => void)
+        | null = null;
+    private vimRef: import('./types/vim-api').VimApi | null = null;
+
+    async loadLuaConfigForTest(): Promise<void> {
+        if (!this.vimRef || !this.onLuaSettingOverrideRef) return;
+        this.luaLoaded = false;
+        this.luaLoading = false;
+        if (this.luaState) {
+            destroyState(this.luaState);
+            this.luaState = null;
+        }
+        await this.loadLuaConfigInternal(
+            this.vimRef,
+            this.onLuaSettingOverrideRef,
+        );
+    }
 
     async onload() {
         await this.loadSettings();
@@ -121,13 +188,19 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.vimrcOverrides = new Map();
+        this.luaOverrides = new Map();
         this.preVimrcSettings = { ...this.settings };
         this.vimrcGroupLabels = [];
         this.vimrcCommandLabels = [];
-        const onSettingOverride = (
+        this.luaGroupLabels = [];
+        this.luaCommandLabels = [];
+        const applySettingOverride = (
             key: string,
             value: unknown,
-            directive?: string,
+            directive: string | undefined,
+            overrides: Map<string, string>,
+            groupLabels: GroupLabel[],
+            commandLabels: CommandLabel[],
         ) => {
             let applied = false;
             if (key === 'cursorShapes') {
@@ -135,7 +208,7 @@ export default class VimMotionsPlugin extends Plugin {
                     this.settings.cursorShapes,
                     value as Partial<typeof this.settings.cursorShapes>,
                 );
-                this.vimrcOverrides.set(key, directive ?? 'set guicursor');
+                overrides.set(key, directive ?? 'set guicursor');
                 applied = true;
             } else if (key.startsWith('modePrompts.')) {
                 const mode = key.replace(
@@ -144,7 +217,7 @@ export default class VimMotionsPlugin extends Plugin {
                 ) as keyof VimMotionsSettings['modePrompts'];
                 if (typeof value === 'string') {
                     this.settings.modePrompts[mode] = value;
-                    this.vimrcOverrides.set(
+                    overrides.set(
                         key,
                         directive ?? `let g:mode_prompt_${mode} = ${value}`,
                     );
@@ -153,8 +226,8 @@ export default class VimMotionsPlugin extends Plugin {
             } else if (key === 'whichKeyGroupLabel') {
                 const entry = value as GroupLabel;
                 if (entry?.key && entry.label) {
-                    this.vimrcGroupLabels.push(entry);
-                    this.vimrcOverrides.set(
+                    groupLabels.push(entry);
+                    overrides.set(
                         `whichKeyGroupLabel:${entry.key}`,
                         directive ??
                             `whichkeygroup ${entry.key} ${entry.label}`,
@@ -164,8 +237,8 @@ export default class VimMotionsPlugin extends Plugin {
             } else if (key === 'whichKeyCommandLabel') {
                 const entry = value as CommandLabel;
                 if (entry?.key && entry.label) {
-                    this.vimrcCommandLabels.push(entry);
-                    this.vimrcOverrides.set(
+                    commandLabels.push(entry);
+                    overrides.set(
                         `whichKeyCommandLabel:${entry.key}`,
                         directive ??
                             `whichkeylabel ${entry.key} ${entry.label}`,
@@ -175,14 +248,47 @@ export default class VimMotionsPlugin extends Plugin {
             } else if (key in this.settings) {
                 (this.settings as unknown as Record<string, unknown>)[key] =
                     value;
-                this.vimrcOverrides.set(key, directive ?? `set ${key}`);
+                overrides.set(key, directive ?? `set ${key}`);
                 applied = true;
             }
 
-            if (applied && !this.vimrcLoading) {
+            if (applied && !this.vimrcLoading && !this.luaLoading) {
                 this.reloadFeatures();
             }
         };
+
+        const onSettingOverride = (
+            key: string,
+            value: unknown,
+            directive?: string,
+        ) => {
+            applySettingOverride(
+                key,
+                value,
+                directive,
+                this.vimrcOverrides,
+                this.vimrcGroupLabels,
+                this.vimrcCommandLabels,
+            );
+        };
+
+        const onLuaSettingOverride = (
+            key: string,
+            value: unknown,
+            directive?: string,
+        ) => {
+            applySettingOverride(
+                key,
+                value,
+                directive,
+                this.luaOverrides,
+                this.luaGroupLabels,
+                this.luaCommandLabels,
+            );
+        };
+
+        this.vimRef = vim;
+        this.onLuaSettingOverrideRef = onLuaSettingOverride;
 
         // --- Vim API setup ---
         // resetKeymap() is a fork-only method; guard against the built-in
@@ -202,6 +308,7 @@ export default class VimMotionsPlugin extends Plugin {
 
                     if (this.vimrcLoaded) {
                         applyVimrcMaps(vim, this.vimrcMaps);
+                        this.applyLuaPendingExCommands(vim);
                         return;
                     }
                     if (this.vimrcLoading) return;
@@ -272,6 +379,20 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     this.vimrcLoading = false;
                     this.reloadFeatures();
+                    await this.loadLuaConfigInternal(vim, onLuaSettingOverride);
+                }),
+            );
+        }
+
+        if (!this.settings.enableVimrc) {
+            this.registerEvent(
+                this.app.workspace.on('active-leaf-change', async () => {
+                    if (this.luaLoaded) {
+                        this.applyLuaMaps(vim);
+                        this.applyLuaPendingExCommands(vim);
+                        return;
+                    }
+                    await this.loadLuaConfigInternal(vim, onLuaSettingOverride);
                 }),
             );
         }
@@ -704,6 +825,11 @@ export default class VimMotionsPlugin extends Plugin {
                 groupLabels.set(entry.key, entry.label);
             }
         }
+        for (const entry of this.luaGroupLabels) {
+            if (entry.key && entry.label) {
+                groupLabels.set(entry.key, entry.label);
+            }
+        }
 
         const commandLabels = new Map<string, string>();
         for (const entry of this.settings.whichKeyCommandLabels) {
@@ -715,6 +841,11 @@ export default class VimMotionsPlugin extends Plugin {
             }
         }
         for (const entry of this.vimrcCommandLabels) {
+            if (entry.key && entry.label) {
+                commandLabels.set(entry.key, entry.label);
+            }
+        }
+        for (const entry of this.luaCommandLabels) {
             if (entry.key && entry.label) {
                 commandLabels.set(entry.key, entry.label);
             }
@@ -905,6 +1036,143 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    private async loadLuaConfigInternal(
+        vim: import('./types/vim-api').VimApi,
+        onLuaSettingOverride: (
+            key: string,
+            value: unknown,
+            directive?: string,
+        ) => void,
+    ): Promise<void> {
+        if (!this.settings.enableLuaConfig) return;
+        if (this.luaLoaded || this.luaLoading) return;
+        this.luaLoading = true;
+        this.luaGroupLabels = [];
+        this.luaCommandLabels = [];
+        const customLuaPath = this.settings.luaConfigPath || undefined;
+        const luaResult = await loadInitLua(
+            this.app,
+            vim,
+            this.leaderRegistry ?? undefined,
+            onLuaSettingOverride,
+            customLuaPath,
+        );
+
+        this.luaCommandCount = luaResult.commandCount;
+        if (!luaResult.found) {
+            this.luaLoaded = true;
+            this.luaLoading = false;
+            return;
+        } else if (luaResult.error) {
+            new Notice(
+                `Vim Motions: error loading ${luaResult.path}: ${luaResult.error}`,
+            );
+        } else if (luaResult.commandCount === 0) {
+            new Notice(
+                `Vim Motions: ${luaResult.path} loaded but contained no commands.`,
+            );
+        } else {
+            new Notice(
+                `Vim Motions: loaded ${luaResult.commandCount} command${luaResult.commandCount === 1 ? '' : 's'} from ${luaResult.path}.`,
+            );
+        }
+
+        this.luaMapOperations = luaResult.mapOperations;
+        this.luaPendingExCommands = luaResult.pendingExCommands;
+        this.luaCommandLabels = [
+            ...this.luaCommandLabels,
+            ...luaResult.commandLabels,
+        ];
+        if (luaResult.state) {
+            this.luaState = luaResult.state;
+        }
+
+        this.applyLuaMaps(vim);
+        this.applyLuaPendingExCommands(vim);
+        this.reregisterLeaderFeatures();
+        this.rebuildWhichKey();
+        this.luaLoaded = true;
+        this.luaLoading = false;
+        this.reloadFeatures();
+    }
+
+    private applyLuaPendingExCommands(
+        vim: import('./types/vim-api').VimApi,
+    ): void {
+        if (this.luaPendingExCommands.length === 0) return;
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const cm = getCmAdapter(view);
+        if (!cm) return;
+        for (const command of this.luaPendingExCommands) {
+            try {
+                vim.handleEx(cm, command);
+            } catch {
+                /* intentional: skip invalid ex commands */
+            }
+        }
+        this.luaPendingExCommands = [];
+    }
+
+    private applyLuaMaps(vim: import('./types/vim-api').VimApi): void {
+        for (const op of this.luaMapOperations) {
+            if (op.type === 'unmap') {
+                try {
+                    vim.unmap(op.map.lhs, op.map.mode);
+                } catch {
+                    /* intentional: skip missing map */
+                }
+                continue;
+            }
+
+            const map = op.map;
+            if (map.isFn && map.callback) {
+                const actionName =
+                    (
+                        map as LuaLoadResult['maps'][number] & {
+                            actionName?: string;
+                        }
+                    ).actionName ?? `lua-action-${this.luaActionCounter++}`;
+                (
+                    map as LuaLoadResult['maps'][number] & {
+                        actionName?: string;
+                    }
+                ).actionName = actionName;
+                if (!this.luaActionNames.has(actionName)) {
+                    this.registration?.defineAction(actionName, map.callback);
+                    this.registration?.mapCommand(
+                        map.lhs,
+                        'action',
+                        actionName,
+                        undefined,
+                        map.mode ? { context: map.mode } : undefined,
+                    );
+                    this.luaActionNames.add(actionName);
+                } else {
+                    vim.mapCommand(
+                        map.lhs,
+                        'action',
+                        actionName,
+                        undefined,
+                        map.mode ? { context: map.mode } : undefined,
+                    );
+                }
+                continue;
+            }
+
+            if (!map.rhs) continue;
+            try {
+                if (map.noremap) {
+                    vim.noremap(map.lhs, map.rhs, map.mode);
+                } else {
+                    vim.map(map.lhs, map.rhs, map.mode);
+                }
+            } catch {
+                /* intentional: skip malformed mapping */
+            }
+        }
+    }
+
     private rebuildGlobalWhichKey(): void {
         this.globalWhichKeyOverlay?.destroy();
         this.globalWhichKeyOverlay = null;
@@ -985,6 +1253,10 @@ export default class VimMotionsPlugin extends Plugin {
         this.scrolloffManager = null;
         this.registration?.unregisterAll();
         this.registration = null;
+        if (this.luaState) {
+            destroyState(this.luaState);
+            this.luaState = null;
+        }
         uninstallVimBridge();
         this.app.workspace.trigger('parse-style-settings');
     }
@@ -1020,7 +1292,11 @@ export default class VimMotionsPlugin extends Plugin {
             modePrompts: { ...this.settings.modePrompts },
             cursorShapes: { ...this.settings.cursorShapes },
         };
-        for (const [key] of this.vimrcOverrides) {
+        const overrideKeys = new Set([
+            ...this.vimrcOverrides.keys(),
+            ...this.luaOverrides.keys(),
+        ]);
+        for (const key of overrideKeys) {
             if (key.startsWith('modePrompts.')) {
                 const mode = key.replace(
                     'modePrompts.',
