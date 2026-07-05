@@ -29,10 +29,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 43 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in v0.34.0
+## What's new in v0.35.0
 
-- **Lua configuration (`.obsidian.init.lua`)** — Neovim-style Lua config with sandboxed Fengari runtime, conditional logic, function keymaps, 27 `vim.fn.*` functions, `vim.notify`, and `vim.api.nvim_create_user_command` ([#46](https://github.com/saberzero1/motions/issues/46))
-- **Autocommands (`nvim_create_autocmd`)** — 8 events: InsertEnter/Leave, ModeChanged, BufEnter/Leave, FocusGained/Lost, TextYankPost with augroup support
-- **Consolidated configuration mode** — single dropdown replaces two toggles: Lua + Vimrc (default), Lua only, Vimrc only, or Settings only
+- **Fengari Lua runtime switched to browser-only fork** — strips all Node.js dependencies from the Lua runtime, stripping functionality for filesystem access, shell execution, and system identity. Bundle size reduced by 37KB minified. Browser-safe `os` library functions (`os.date`, `os.time`, `os.clock`) now available in Lua scripts.
 
 See the [[changelog|full changelog]] for details.
