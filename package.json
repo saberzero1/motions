@@ -52,6 +52,6 @@
     },
     "dependencies": {
         "@replit/codemirror-vim": "https://github.com/saberzero1/codemirror-vim.git",
-        "fengari": "^0.1.5"
+        "fengari": "https://github.com/saberzero1/fengari.git"
     }
 }
