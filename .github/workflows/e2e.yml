@@ -8,10 +8,25 @@ on:
     workflow_dispatch:
 
 jobs:
-    build:
+    discover:
         runs-on: ubuntu-latest
         outputs:
             specs: ${{ steps.find.outputs.specs }}
+        steps:
+            - uses: actions/checkout@v6
+            - id: find
+              run: |
+                  specs=$(find test/specs -name '*.e2e.ts' | sort | jq -R -s -c 'split("\n") | map(select(. != ""))')
+                  echo "specs=$specs" >> "$GITHUB_OUTPUT"
+
+    e2e:
+        needs: discover
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                spec: ${{ fromJson(needs.discover.outputs.specs) }}
+
         steps:
             - uses: actions/checkout@v6
 
@@ -26,47 +41,6 @@ jobs:
 
             - name: Build
               run: npm run build
-
-            - name: Discover spec files
-              id: find
-              run: |
-                  specs=$(find test/specs -name '*.e2e.ts' | sort | jq -R -s -c 'split("\n") | map(select(. != ""))')
-                  echo "specs=$specs" >> "$GITHUB_OUTPUT"
-
-            - name: Upload workspace
-              uses: actions/upload-artifact@v4
-              with:
-                  name: build-output
-                  path: |
-                      main.js
-                      manifest.json
-                      styles.css
-                      node_modules
-                      test
-                      test-vault
-                      wdio.conf.mts
-                      package.json
-                      tsconfig.json
-                  retention-days: 1
-
-    e2e:
-        needs: build
-        runs-on: ubuntu-latest
-        strategy:
-            fail-fast: false
-            matrix:
-                spec: ${{ fromJson(needs.build.outputs.specs) }}
-
-        steps:
-            - name: Download workspace
-              uses: actions/download-artifact@v4
-              with:
-                  name: build-output
-
-            - name: Use Node.js 24.x
-              uses: actions/setup-node@v6
-              with:
-                  node-version: 24.x
 
             - name: Cache Obsidian
               uses: actions/cache@v5
