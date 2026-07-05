@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-07-05
+
+### Changed
+
+- **Fengari Lua runtime switched to browser-only fork** — replaced upstream `fengari` (v0.1.5) with a [browser/Obsidian-only fork](https://github.com/saberzero1/fengari) that strips all Node.js dependencies. Eliminates community scanner warnings for "Direct Filesystem Access" (`require('fs')`), "Shell Execution" (`require('child_process')`), and "System Identity Information" (`process.env.USER`/`HOSTNAME`) that originated from fengari's bundled Node.js code paths (never executed at runtime but present in the bundle). ([DIFFERENCES.md](https://github.com/saberzero1/fengari/blob/master/DIFFERENCES.md))
+    - Removed from fork: `liolib.js` (Lua `io` library), `loadlib.js` (Lua `package`/`require()` system), Node.js branches from `loslib.js`/`ldblib.js`/`lauxlib.js`/`lbaselib.js`/`luaconf.js`
+    - Removed npm dependencies: `readline-sync`, `tmp` (kept `sprintf-js` for `string.format`)
+    - Retained browser-safe `os` library functions: `os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`
+    - Retained `debug` library (minus `debug.debug()` interactive REPL): `debug.traceback`, `debug.getinfo`, `debug.sethook`, etc.
+    - Fixed crash-on-mobile bug: upstream's unconditional `process.env.FENGARICONF` access at module load time throws `ReferenceError` on non-Electron platforms
+    - Bundle impact: Fengari runtime reduced from +238KB to +201KB minified (-37KB / -15.5%), +179KB to +165KB gzipped (-14KB / -7.7%)
+    - `print()` now always uses `console.log` (previously used `process.stdout.write` in Electron)
+    - `luaL_loadfilex` stubbed to return error (plugin already disabled `loadfile`/`dofile` at Lua level)
+    - Dependency pattern matches codemirror-vim fork: `"fengari": "https://github.com/saberzero1/fengari.git"` in `package.json`
+
 ## [0.34.0] - 2026-07-05
 
 ### Added

@@ -429,7 +429,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, and `nvim_clear_autocmds` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, and `nvim_clear_autocmds` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `io`, `load`, `dofile`, `loadfile`, and `require` are not available. The `os` library provides a browser-safe subset (`os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`); Node.js-only functions (`os.exit`, `os.getenv`, `os.remove`, `os.rename`, `os.tmpname`, `os.execute`) are not available. The `debug` library is available (minus `debug.debug()`).
 
 ## Error handling
 
