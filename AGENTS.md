@@ -121,9 +121,9 @@ If you encounter ChromeDriver/Chromium mismatch errors, do **not** attempt to in
 
 **Important: e2e test runtime**
 
-The full e2e suite (`npm run test:e2e`) runs 79 spec files and takes approximately **20 minutes**. Each spec launches a fresh Obsidian instance. When running from an agent or script:
+The full e2e suite (`npm run test:e2e`) runs 79 spec files and takes approximately **22 minutes**. Each spec launches a fresh Obsidian instance. When running from an agent or script:
 
-- Use a timeout of at least **1500000 ms** (25 minutes) to avoid premature termination.
+- Use a timeout of at least **1800000 ms** (30 minutes) to avoid premature termination.
 - To run a subset, use `--spec` to target specific files:
     ```bash
     npx wdio run ./wdio.conf.mts --spec test/specs/vim-builtin/operator-combos.e2e.ts

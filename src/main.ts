@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, Platform, Plugin } from 'obsidian';
+import { MarkdownView, Notice, Platform, Plugin, apiVersion } from 'obsidian';
 import {
     DEFAULT_SETTINGS,
     CommandLabel,
@@ -67,6 +67,7 @@ import { loadInitLua } from './lua/loader';
 import type { LuaLoadResult } from './lua/loader';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
 import { injectVimApi } from './lua/api';
+import { injectVimFn } from './lua/fn';
 import type { lua_State } from 'fengari';
 
 export default class VimMotionsPlugin extends Plugin {
@@ -119,10 +120,16 @@ export default class VimMotionsPlugin extends Plugin {
             const vim = getVimApi();
             if (!vim) return;
             this.luaState = createSandboxedState();
-            injectVimApi(this.luaState, {
+            const { globals } = injectVimApi(this.luaState, {
                 onSettingOverride: () => {},
                 handleExCommand: () => {},
                 getVaultName: () => this.app.vault.getName(),
+                showNotice: () => {},
+                defineExCommand: (name, callback) => {
+                    vim.defineEx(name, '', (_cm, params) => {
+                        callback(params.argString?.trim() ?? '');
+                    });
+                },
                 onKeymap: (map) => {
                     if (map.rhs) {
                         if (map.noremap) {
@@ -141,6 +148,35 @@ export default class VimMotionsPlugin extends Plugin {
                 },
                 getLeaderKey: () => this.leaderRegistry?.getLeaderKey() ?? '\\',
                 setLeaderKey: (key) => this.leaderRegistry?.setLeaderKey(key),
+            });
+            injectVimFn(this.luaState, {
+                getActiveFilePath: () =>
+                    this.app.workspace.getActiveFile()?.path ?? null,
+                fileExists: (path) =>
+                    this.app.vault.getAbstractFileByPath(path) !== null,
+                getVaultFiles: () => [],
+                isDirectory: () => false,
+                getMode: () => 'n',
+                getCursorLine: () => 0,
+                getCursorCol: () => 0,
+                getLine: () => null,
+                getPlatform: () => ({
+                    isMacOS: Platform.isMacOS,
+                    isLinux: Platform.isLinux,
+                    isWin: Platform.isWin,
+                    isMobile: Platform.isMobile,
+                    isIosApp: Platform.isIosApp,
+                    isAndroidApp: Platform.isAndroidApp,
+                }),
+                getObsidianVersion: () => apiVersion,
+                getGlobal: (name) => globals.get(name),
+                getOption: (name) => {
+                    try {
+                        return vim.getOption(name);
+                    } catch {
+                        return undefined;
+                    }
+                },
             });
         }
         evalLua(this.luaState, code);

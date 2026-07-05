@@ -16,19 +16,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `vim.keymap.del(mode, lhs)` — remove mappings
     - `vim.cmd(string)` — execute ex commands (deferred until first editor focus)
     - `vim.vault_name()` — returns the current vault name for per-vault conditional config
+    - `vim.notify(msg)` — show an Obsidian notification from Lua
     - `print(...)` — outputs to developer console
-    - Unsupported Neovim APIs (`vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`, `require()`) return clear error messages
     - Sandbox: 6 defense layers — selective library loading (no `io`/`os`/`debug`/`package`), dangerous globals stripped (`load`/`dofile`/`loadfile`), no `fengari-interop`, instruction-count timeout via `lua_sethook` (1M instruction limit), custom environment table
     - Hybrid loading: settings and keymaps load immediately without an active editor; `vim.cmd()` calls are queued and executed on first editor focus
     - Override hierarchy: init.lua loads after vimrc — Lua values override vimrc on conflict
     - Settings: `enableLuaConfig` (toggle, default off), `luaConfigPath` (custom file path)
     - Bundle impact: +238KB minified / +79KB gzipped (Fengari runtime)
     - Plugin: `src/lua/engine.ts` (sandbox + timeout), `src/lua/api.ts` (vim.\* bridge), `src/lua/loader.ts` (hybrid file loading), `src/lua/types.ts` (Fengari type declarations)
-    - 12 Neovim golden comparison test cases (`lua-keymaps` suite), 9 e2e integration tests, 4 known deviations registered
+    - 12 Neovim golden comparison test cases (`lua-keymaps` suite), 17 e2e integration tests, 4 known deviations registered
+- **`vim.fn.*` Neovim function subset** — 27 functions from Neovim's `vim.fn` namespace, scoped for Obsidian's vault-centric environment
+    - **Config/detection** (13): `has`, `expand`, `fnamemodify`, `exists`, `localtime`, `strftime`, `filereadable`, `isdirectory`, `glob`, `mode`, `line`, `col`, `getline`
+    - **String manipulation** (14): `tolower`, `toupper`, `trim`, `strlen`, `strwidth`, `stridx`, `strridx`, `strpart`, `substitute`, `nr2char`, `char2nr`, `split`, `join`
+    - `vim.fn.has(feature)` — platform detection with 12 features: `mac`, `linux`, `win32`, `unix`, `mobile`, `desktop`, `ios`, `android`, `obsidian`, `obsidian-X.Y`, `nvim` (0), `vim` (0)
+    - `vim.fn.expand('%')` — vault-relative file path with modifiers (`:t`, `:e`, `:r`, `:h`, `:p`)
+    - `vim.fn.fnamemodify(path, mods)` — general-purpose path modifier with chainable modifiers (`:t:r`)
+    - `vim.fn.filereadable(path)` / `vim.fn.isdirectory(path)` — vault-scoped, path traversal blocked
+    - `vim.fn.glob(pattern)` — vault-scoped file matching
+    - `vim.fn.line('.')` / `vim.fn.col('.')` / `vim.fn.getline('.')` — context-aware: return cursor position in function callbacks, return 0 at config-load time
+    - `vim.fn.strftime(fmt)` — full C89 strftime implementation (`src/lua/strftime.ts`)
+    - Unsupported `vim.fn.*` functions produce a helpful error listing available functions
+    - `vim.fn.hostname()` / `vim.fn.getenv()` intentionally skipped (system fingerprinting concern)
+    - Plugin: `src/lua/fn.ts` (VimFnCallbacks, function registry, `__index` dispatch), `src/lua/strftime.ts` (pure strftime utility)
+- **`vim.api.nvim_create_user_command`** — define custom ex commands from Lua
+    - String RHS: `vim.api.nvim_create_user_command("W", "w", {})` — simple aliases
+    - Function RHS: `vim.api.nvim_create_user_command("Today", function(opts) ... end, {})` — Lua callback with `opts.args`
+    - `vim.api` changed from error stub to partial namespace — unsupported `vim.api.*` functions give a helpful error listing `nvim_create_user_command` as available
+    - Registered commands are immediately usable from the `:` ex command line
+- **Unit test infrastructure** — Vitest test runner for the Lua config modules
+    - 49 unit tests across 6 files (smoke, sandbox, timeout, api, fn, strftime)
+    - Runs in 250ms without Obsidian or browser
+    - `npm run test:unit` / `npm run test:unit:watch` scripts
+    - Obsidian module mocked via `test/unit/__mocks__/obsidian.ts`
+    - CI: `.github/workflows/lint.yml` now runs unit tests on every push across all branches
 
 ### Documentation
 
-- `docs/configuration/lua-config.md`: full Lua configuration reference with supported APIs, all `vim.opt` options, mapping examples, loading order, and unsupported API documentation
+- `docs/configuration/lua-config.md`: full Lua configuration reference with supported APIs, all `vim.opt` options, `vim.fn.*` function tables (has features, expand modifiers, fnamemodify modifiers, exists expressions), mapping examples, conditional config examples, loading order, unsupported API documentation
 - `docs/configuration/settings.md`: added Lua column to all settings tables, added `enableLuaConfig` and `luaConfigPath` settings
 - `docs/configuration/index.md`: reordered — Lua configuration presented as primary method, vimrc as alternative
 - `docs/configuration/vimrc.md`: added tip pointing to Lua configuration for advanced use cases
@@ -38,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/features/quality-of-life.md`: added Lua examples alongside vimrc
 - `docs/features/workspace-navigation.md`: added Lua examples alongside vimrc
 - `docs/getting-started/quickstart.md`: reordered — Lua shown as recommended configuration path
+- `docs/reference/known-limitations.md`: Lua configuration section with supported/unsupported APIs, hybrid loading, vim.fn subset, bundle size
+- `KNOWN_LIMITATIONS.md`: Lua configuration section with full details
 
 ## [0.33.0] - 2026-07-05
 

@@ -28,6 +28,8 @@ export interface VimApiCallbacks {
     getVaultName: () => string;
     onKeymap: (map: LuaKeymap) => void;
     onKeymapDel: (map: LuaKeymapDelete) => void;
+    showNotice?: (msg: string) => void;
+    defineExCommand?: (name: string, callback: (args: string) => void) => void;
     getLeaderKey?: () => string;
     setLeaderKey?: (key: string) => void;
     getOption?: (name: string) => unknown;
@@ -183,7 +185,14 @@ function createErrorStub(L: lua_State, message: string): void {
     lua.lua_setmetatable(L, -2);
 }
 
-export function injectVimApi(L: lua_State, callbacks: VimApiCallbacks): void {
+export interface VimApiState {
+    globals: Map<string, unknown>;
+}
+
+export function injectVimApi(
+    L: lua_State,
+    callbacks: VimApiCallbacks,
+): VimApiState {
     const globals = new Map<string, unknown>();
     const getLeaderKey = () => callbacks.getLeaderKey?.() ?? '\\';
 
@@ -321,6 +330,15 @@ export function injectVimApi(L: lua_State, callbacks: VimApiCallbacks): void {
     });
     lua.lua_setfield(L, vimTableIndex, to_luastring('vault_name'));
 
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const msg = readLuaString(state, 1);
+        if (msg !== null) {
+            callbacks.showNotice?.(msg);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, vimTableIndex, to_luastring('notify'));
+
     lua.lua_newtable(L);
     const keymapIndex = lua.lua_gettop(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
@@ -432,15 +450,81 @@ export function injectVimApi(L: lua_State, callbacks: VimApiCallbacks): void {
     lua.lua_setfield(L, vimTableIndex, to_luastring('keymap'));
     lua.lua_pop(L, 1);
 
+    lua.lua_newtable(L);
+    const apiIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_create_user_command: expected command name string',
+                ),
+            );
+        }
+        if (!lua.lua_isfunction(state, 2) && !lua.lua_isstring(state, 2)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_create_user_command: expected callback function or command string',
+                ),
+            );
+        }
+        if (lua.lua_isfunction(state, 2)) {
+            lua.lua_pushvalue(state, 2);
+            const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+            callbacks.defineExCommand?.(name, (argString: string) => {
+                lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                lua.lua_newtable(state);
+                lua.lua_pushstring(state, to_luastring(argString));
+                lua.lua_setfield(state, -2, to_luastring('args'));
+                const status = lua.lua_pcall(state, 1, 0, 0);
+                if (status !== lua.LUA_OK) {
+                    const msg = lua.lua_tolstring(state, -1);
+                    console.error(
+                        `Vim Motions: user command ${name}:`,
+                        msg ? to_jsstring(msg) : 'unknown error',
+                    );
+                    lua.lua_pop(state, 1);
+                }
+            });
+        } else {
+            const cmdStr = readLuaString(state, 2) ?? '';
+            callbacks.defineExCommand?.(name, () => {
+                callbacks.handleExCommand(cmdStr);
+            });
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_create_user_command'));
+
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const fnName = readLuaString(state, 2);
+        if (fnName === 'nvim_create_user_command') {
+            lua.lua_getfield(
+                state,
+                1,
+                to_luastring('nvim_create_user_command'),
+            );
+            return 1;
+        }
+        return lauxlib.luaL_error(
+            state,
+            to_luastring(
+                `vim.api.${fnName ?? '?'} is not available in Obsidian. Supported: nvim_create_user_command`,
+            ),
+        );
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_setmetatable(L, apiIndex);
+
+    lua.lua_pushvalue(L, apiIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('api'));
+    lua.lua_pop(L, 1);
+
     for (const [key, message] of [
-        [
-            'api',
-            'vim.api is not available in Obsidian — see docs for supported APIs',
-        ],
-        [
-            'fn',
-            'vim.fn is not available in Obsidian — use vim.cmd() for ex commands',
-        ],
         ['lsp', 'vim.lsp is not available in Obsidian'],
         ['treesitter', 'vim.treesitter is not available in Obsidian'],
         ['ui', 'vim.ui is not available in Obsidian'],
@@ -480,4 +564,6 @@ export function injectVimApi(L: lua_State, callbacks: VimApiCallbacks): void {
         return 0;
     });
     lua.lua_setglobal(L, to_luastring('print'));
+
+    return { globals };
 }

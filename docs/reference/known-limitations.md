@@ -295,11 +295,11 @@ Hint mode works in all other contexts: the main window, workspace popout windows
 
 The Lua config runtime (`init.lua`) supports `vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, and `print()`. See [[lua-config]] for the full reference.
 
-Unsupported Neovim APIs (`require()`, `vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`) return clear error messages. The runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+Unsupported Neovim APIs (`require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`) return clear error messages. `vim.api` is partially supported: `nvim_create_user_command` is available for defining custom ex commands; other `vim.api.*` functions produce a helpful error. `vim.fn` is partially supported (see below) — unsupported `vim.fn.*` functions produce a helpful error listing available functions. The runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
 
 ### `vim.fn.*` subset
 
-`vim.fn.has(feature)` for platform detection and `vim.fn.expand('%')` for file-conditional config are planned. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped to avoid system fingerprinting.
+The following `vim.fn.*` functions are implemented: `has`, `expand`, `fnamemodify`, `exists`, `localtime`, `strftime`, `filereadable`, `isdirectory`, `glob`, `mode`, `line`, `col`. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported functions produce an error listing the available set. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped to avoid system fingerprinting. `vim.fn.line(".")` and `vim.fn.col(".")` return 0 at config-load time and are only meaningful inside function callbacks. See [[lua-config]] for usage and the full feature table.
 
 ### Hybrid loading
 

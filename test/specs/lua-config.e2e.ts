@@ -222,4 +222,165 @@ describe('Lua config support', function () {
         });
         expect(scrolloff).toBe(12);
     });
+
+    it('should support vim.fn.has for platform detection', async function () {
+        await loadLuaConfig(
+            'if vim.fn.has("desktop") == 1 then\n  vim.opt.scrolloff = 21\nend\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(21);
+    });
+
+    it('should support vim.fn.has("obsidian") always returning 1', async function () {
+        await loadLuaConfig(
+            'if vim.fn.has("obsidian") == 1 then\n  vim.opt.scrolloff = 22\nend\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(22);
+    });
+
+    it('should support vim.fn.expand("%") for active file path', async function () {
+        await loadLuaConfig(
+            'if vim.fn.expand("%") ~= "" then\n  vim.opt.scrolloff = 23\nelse\n  vim.opt.scrolloff = 99\nend\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect([23, 99]).toContain(scrolloff);
+    });
+
+    it('should support vim.fn.filereadable() for vault files', async function () {
+        await loadLuaConfig(
+            'if vim.fn.filereadable("Welcome.md") == 1 then\n  vim.opt.scrolloff = 24\nelse\n  vim.opt.scrolloff = 98\nend\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(24);
+    });
+
+    it('should support vim.fn.localtime() returning a reasonable value', async function () {
+        const now = Math.floor(Date.now() / 1000);
+        await loadLuaConfig(
+            `if vim.fn.localtime() >= ${now - 60} then\n  vim.opt.scrolloff = 25\nend\n`,
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(25);
+    });
+
+    it('should support vim.fn.isdirectory()', async function () {
+        await loadLuaConfig(
+            'if vim.fn.isdirectory(".obsidian") == 1 then\n  vim.opt.scrolloff = 26\nend\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(26);
+    });
+
+    it('should support vim.fn.mode() returning a string', async function () {
+        await loadLuaConfig(
+            'if vim.fn.mode() ~= "" then\n  vim.opt.scrolloff = 27\nend\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(27);
+    });
+
+    it('should support vim.notify() without crashing', async function () {
+        await loadLuaConfig(
+            'vim.notify("test notification")\nvim.opt.scrolloff = 28\n',
+        );
+        const scrolloff = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { scrolloffLines: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.scrolloffLines;
+        });
+        expect(scrolloff).toBe(28);
+    });
 });

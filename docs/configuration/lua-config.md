@@ -50,17 +50,31 @@ print("init.lua loaded for vault:", vim.vault_name())
 
 ## Supported APIs
 
-| API                                     | Description                    | Example                              |
-| --------------------------------------- | ------------------------------ | ------------------------------------ |
-| `vim.opt.<name> = value`                | Set a plugin option            | `vim.opt.scrolloff = 8`              |
-| `vim.o.<name> = value`                  | Alias for `vim.opt`            | `vim.o.scrolloff = 8`                |
-| `vim.g.mapleader`                       | Set the leader key             | `vim.g.mapleader = " "`              |
-| `vim.g.<name> = value`                  | Set a user variable            | `vim.g.my_var = true`                |
-| `vim.cmd(string)`                       | Execute an ex command          | `vim.cmd("set nohlsearch")`          |
-| `vim.vault_name()`                      | Returns the current vault name | `if vim.vault_name() == "work" then` |
-| `vim.keymap.set(mode, lhs, rhs, opts?)` | Create a key mapping           | see example above                    |
-| `vim.keymap.del(mode, lhs)`             | Remove a key mapping           | `vim.keymap.del("n", "Q")`           |
-| `print(...)`                            | Print to developer console     | `print("loaded")`                    |
+| API                                                 | Description                        | Example                              |
+| --------------------------------------------------- | ---------------------------------- | ------------------------------------ |
+| `vim.opt.<name> = value`                            | Set a plugin option                | `vim.opt.scrolloff = 8`              |
+| `vim.o.<name> = value`                              | Alias for `vim.opt`                | `vim.o.scrolloff = 8`                |
+| `vim.g.mapleader`                                   | Set the leader key                 | `vim.g.mapleader = " "`              |
+| `vim.g.<name> = value`                              | Set a user variable                | `vim.g.my_var = true`                |
+| `vim.cmd(string)`                                   | Execute an ex command              | `vim.cmd("set nohlsearch")`          |
+| `vim.vault_name()`                                  | Returns the current vault name     | `if vim.vault_name() == "work" then` |
+| `vim.fn.has(feature)`                               | Platform/feature detection         | `vim.fn.has("mac")`                  |
+| `vim.fn.expand(expr)`                               | Active file path (vault-relative)  | `vim.fn.expand("%:t")`               |
+| `vim.fn.fnamemodify(path, mods)`                    | Path manipulation                  | `vim.fn.fnamemodify(path, ":t:r")`   |
+| `vim.fn.exists(expr)`                               | Check variable/option existence    | `vim.fn.exists("g:my_var")`          |
+| `vim.fn.localtime()`                                | Unix timestamp                     | `vim.fn.localtime()`                 |
+| `vim.fn.strftime(fmt)`                              | Format date/time                   | `vim.fn.strftime("%Y-%m-%d")`        |
+| `vim.fn.filereadable(path)`                         | Check vault file exists            | `vim.fn.filereadable("config.md")`   |
+| `vim.fn.isdirectory(path)`                          | Check vault directory exists       | `vim.fn.isdirectory("templates")`    |
+| `vim.fn.glob(pattern)`                              | Find matching vault files          | `vim.fn.glob("*.md")`                |
+| `vim.fn.mode()`                                     | Current vim mode                   | `vim.fn.mode()`                      |
+| `vim.fn.line(expr)`                                 | Cursor line (1-based, callbacks)   | `vim.fn.line(".")`                   |
+| `vim.fn.col(expr)`                                  | Cursor column (1-based, callbacks) | `vim.fn.col(".")`                    |
+| `vim.notify(msg)`                                   | Show Obsidian notification         | `vim.notify("Saved!")`               |
+| `vim.api.nvim_create_user_command(name, cmd, opts)` | Define custom ex command           | see below                            |
+| `vim.keymap.set(mode, lhs, rhs, opts?)`             | Create a key mapping               | see example above                    |
+| `vim.keymap.del(mode, lhs)`                         | Remove a key mapping               | `vim.keymap.del("n", "Q")`           |
+| `print(...)`                                        | Print to developer console         | `print("loaded")`                    |
 
 ## Supported vim.opt options
 
@@ -100,6 +114,114 @@ All plugin options are available via `vim.opt`.
 
 See [[settings]] for the full list of options and their descriptions.
 
+## Supported vim.fn functions
+
+A subset of Neovim's `vim.fn.*` functions is available for conditional configuration and platform detection.
+
+| Function                         | Returns                       | Example                                        |
+| -------------------------------- | ----------------------------- | ---------------------------------------------- |
+| `vim.fn.has(feature)`            | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`               |
+| `vim.fn.expand("%")`             | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`      |
+| `vim.fn.expand("%:t")`           | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`           |
+| `vim.fn.expand("%:e")`           | Extension only                | `vim.fn.expand("%:e")` → `"md"`                |
+| `vim.fn.expand("%:r")`           | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`       |
+| `vim.fn.fnamemodify(path, mods)` | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"` |
+| `vim.fn.exists(expr)`            | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                    |
+| `vim.fn.localtime()`             | Unix timestamp (seconds)      | `vim.fn.localtime()`                           |
+| `vim.fn.strftime(fmt)`           | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                  |
+| `vim.fn.filereadable(path)`      | `1` if vault file exists      | `vim.fn.filereadable("config.md")`             |
+| `vim.fn.isdirectory(path)`       | `1` if vault directory exists | `vim.fn.isdirectory("templates")`              |
+| `vim.fn.glob(pattern)`           | Newline-separated file list   | `vim.fn.glob("*.md")`                          |
+| `vim.fn.mode()`                  | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`          |
+| `vim.fn.line(expr)`              | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)            |
+| `vim.fn.col(expr)`               | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)             |
+
+### vim.fn.has() features
+
+| Feature               | Returns 1 when                 |
+| --------------------- | ------------------------------ |
+| `"mac"` / `"macunix"` | macOS                          |
+| `"linux"`             | Linux desktop                  |
+| `"win32"` / `"win64"` | Windows                        |
+| `"unix"`              | macOS or Linux                 |
+| `"mobile"`            | Mobile device (iOS or Android) |
+| `"desktop"`           | Desktop device                 |
+| `"ios"`               | iOS                            |
+| `"android"`           | Android                        |
+| `"obsidian"`          | Always (running in Obsidian)   |
+| `"obsidian-X.Y"`      | Obsidian version >= X.Y        |
+| `"nvim"`              | Never (not Neovim)             |
+| `"vim"`               | Never (not Vim)                |
+
+### vim.fn.exists() expressions
+
+| Expression    | Checks                                     |
+| ------------- | ------------------------------------------ |
+| `"g:varname"` | Whether `vim.g.varname` has been set       |
+| `"&option"`   | Whether a `vim.opt` option exists          |
+| `"*funcname"` | Whether a `vim.fn` function is implemented |
+
+### vim.fn.fnamemodify() modifiers
+
+| Modifier | Result                         | Example with `"folder/note.md"` |
+| -------- | ------------------------------ | ------------------------------- |
+| `:t`     | Filename with extension        | `"note.md"`                     |
+| `:r`     | Remove last extension          | `"folder/note"`                 |
+| `:e`     | Extension only                 | `"md"`                          |
+| `:h`     | Directory part                 | `"folder"`                      |
+| `:t:r`   | Filename without extension     | `"note"` (chained)              |
+| `:p`     | Vault-relative path (identity) | `"folder/note.md"`              |
+
+### vim.fn.line() and vim.fn.col()
+
+These functions return cursor position (1-based) and are **only meaningful inside function callbacks**. At config-load time they return `0` because no editor is active.
+
+```lua
+vim.keymap.set("n", "<leader>h", function()
+    if vim.fn.line(".") == 1 then
+        vim.notify("Already at top!")
+    else
+        vim.cmd("normal! gg")
+    end
+end, { desc = "Smart go-to-top" })
+```
+
+### Conditional config examples
+
+```lua
+-- Per-platform settings
+if vim.fn.has("mobile") == 1 then
+    vim.opt.easymotion = false
+    vim.opt.hintmode = false
+end
+
+-- Check if a templates directory exists
+if vim.fn.isdirectory("templates") == 1 then
+    vim.g.has_templates = true
+end
+
+-- Per-filetype keymaps (inside function callbacks)
+vim.keymap.set("n", "<leader>p", function()
+    if vim.fn.expand("%:e") == "md" then
+        vim.cmd("obcommand markdown:toggle-preview")
+    end
+end, { desc = "Toggle preview" })
+
+-- User feedback via vim.notify
+vim.keymap.set("n", "<leader>r", function()
+    vim.cmd("obcommand app:reload")
+    vim.notify("Reloaded!")
+end, { desc = "Reload" })
+
+-- Check if a config file exists
+if vim.fn.filereadable("vim-motions-config.md") == 1 then
+    vim.opt.scrolloff = 10
+end
+```
+
+> [!info] File paths are vault-relative
+> `vim.fn.expand("%")`, `vim.fn.filereadable()`, `vim.fn.isdirectory()`, and `vim.fn.glob()` use vault-relative paths. Absolute filesystem paths and `..` path traversal are not supported for security.
+
 ## Mapping examples
 
 ```lua
@@ -120,6 +242,41 @@ end, { desc = "Reveal in explorer" })
 -- Remove default mapping
 vim.keymap.del("n", "Q")
 ```
+
+## Custom ex commands
+
+Define custom commands that are usable from the `:` ex command line.
+
+```lua
+-- Simple alias
+vim.api.nvim_create_user_command("W", "w", {})
+vim.api.nvim_create_user_command("Q", "q", {})
+
+-- Command calling a Lua function
+vim.api.nvim_create_user_command("Today", function()
+    vim.cmd("obcommand daily-notes:open-today")
+    vim.notify("Opened today's note")
+end, {})
+
+-- Command with arguments
+vim.api.nvim_create_user_command("Open", function(opts)
+    vim.cmd("obcommand switcher:open " .. opts.args)
+end, {})
+
+-- Toggle command
+vim.api.nvim_create_user_command("SpellToggle", function()
+    -- Toggle a user variable and notify
+    if vim.g.spell_enabled then
+        vim.g.spell_enabled = false
+        vim.notify("Spell check disabled")
+    else
+        vim.g.spell_enabled = true
+        vim.notify("Spell check enabled")
+    end
+end, {})
+```
+
+Registered commands are immediately available via `:CommandName` in the ex command line. The function callback receives an `opts` table with an `args` field containing the argument string.
 
 ## vim.keymap.set options
 
@@ -155,7 +312,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `require()`, `vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. The Lua runtime is sandboxed — `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command` works, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
 
 ## Error handling
 

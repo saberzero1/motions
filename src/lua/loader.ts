@@ -1,8 +1,11 @@
+import { MarkdownView, Notice, Platform, apiVersion } from 'obsidian';
 import type { App } from 'obsidian';
 import type { VimApi } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
+import { getCmAdapter } from '../vim/vim-api';
 import { createSandboxedState, evalLua } from './engine';
 import { injectVimApi, LuaKeymap, LuaKeymapDelete } from './api';
+import { injectVimFn } from './fn';
 import type { lua_State } from 'fengari';
 
 export interface LuaLoadResult {
@@ -75,7 +78,7 @@ export async function loadInitLua(
     > = [];
 
     const L = createSandboxedState();
-    injectVimApi(L, {
+    const { globals } = injectVimApi(L, {
         onSettingOverride: (key, value, directive) => {
             commandCount++;
             onSettingOverride?.(key, value, directive);
@@ -85,6 +88,9 @@ export async function loadInitLua(
             pendingExCommands.push(command);
         },
         getVaultName: () => app.vault.getName(),
+        showNotice: (msg) => {
+            new Notice(msg);
+        },
         onKeymap: (map) => {
             commandCount++;
             maps.push(map);
@@ -98,8 +104,98 @@ export async function loadInitLua(
             unmaps.push(map);
             mapOperations.push({ type: 'unmap', map });
         },
+        defineExCommand: (name, callback) => {
+            commandCount++;
+            vim.defineEx(name, '', (_cm, params) => {
+                callback(params.argString?.trim() ?? '');
+            });
+        },
         getLeaderKey: () => leaderRegistry?.getLeaderKey() ?? '\\',
         setLeaderKey: (key) => leaderRegistry?.setLeaderKey(key),
+        getOption: (name) => {
+            try {
+                return vim.getOption(name);
+            } catch {
+                return undefined;
+            }
+        },
+    });
+
+    injectVimFn(L, {
+        getActiveFilePath: () => app.workspace.getActiveFile()?.path ?? null,
+        fileExists: (path) => app.vault.getAbstractFileByPath(path) !== null,
+        getVaultFiles: () => app.vault.getFiles().map((file) => file.path),
+        isDirectory: (path) => {
+            const normalized = path.replace(/\/+$/, '');
+            const configDir = app.vault.configDir.replace(/\/+$/, '');
+            if (normalized === configDir) return true;
+            const abstract = app.vault.getAbstractFileByPath(path);
+            return abstract !== null && 'children' in abstract;
+        },
+        getMode: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 'n';
+            const cm = getCmAdapter(view);
+            if (!cm) return 'n';
+            const cmState = (
+                cm as {
+                    state?: {
+                        vim?: {
+                            insertMode?: boolean;
+                            visualMode?: boolean;
+                            visualLine?: boolean;
+                            visualBlock?: boolean;
+                        };
+                    };
+                }
+            ).state;
+            const vimState = cmState?.vim;
+            if (!vimState) return 'n';
+            if (vimState.insertMode) return 'i';
+            if (vimState.visualMode) {
+                if (vimState.visualLine) return 'V';
+                if (vimState.visualBlock) return '\x16';
+                return 'v';
+            }
+            return 'n';
+        },
+        getCursorLine: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 0;
+            const cm = getCmAdapter(view);
+            if (!cm) return 0;
+            const cursor = cm.getCursor();
+            return cursor.line + 1;
+        },
+        getCursorCol: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 0;
+            const cm = getCmAdapter(view);
+            if (!cm) return 0;
+            const cursor = cm.getCursor();
+            return cursor.ch + 1;
+        },
+        getLine: (line: number) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cm = getCmAdapter(view);
+            if (!cm) return null;
+            try {
+                return cm.getLine(line);
+            } catch {
+                return null;
+            }
+        },
+        getPlatform: () => ({
+            isMacOS: Platform.isMacOS,
+            isLinux: Platform.isLinux,
+            isWin: Platform.isWin,
+            isMobile: Platform.isMobile,
+            isIosApp: Platform.isIosApp,
+            isAndroidApp: Platform.isAndroidApp,
+        }),
+        getObsidianVersion: () => apiVersion,
+        getGlobal: (name) => globals.get(name),
         getOption: (name) => {
             try {
                 return vim.getOption(name);

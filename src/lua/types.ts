@@ -9,6 +9,7 @@ declare module 'fengari' {
             fn: (L: lua_State) => number,
         ) => void;
         lua_setglobal: (L: lua_State, name: Uint8Array) => void;
+        lua_getglobal: (L: lua_State, name: Uint8Array) => void;
         lua_getfield: (L: lua_State, index: number, key: Uint8Array) => void;
         lua_setfield: (L: lua_State, index: number, key: Uint8Array) => void;
         lua_newtable: (L: lua_State) => void;
@@ -43,6 +44,7 @@ declare module 'fengari' {
             count: number,
         ) => void;
         lua_rawgeti: (L: lua_State, index: number, n: number) => void;
+        lua_rawseti: (L: lua_State, index: number, n: number) => void;
         LUA_OK: number;
         LUA_ERRRUN: number;
         LUA_ERRSYNTAX: number;
@@ -54,6 +56,13 @@ declare module 'fengari' {
         luaL_newstate: () => lua_State;
         luaL_dostring: (L: lua_State, chunk: Uint8Array) => number;
         luaL_loadstring: (L: lua_State, chunk: Uint8Array) => number;
+        luaL_checkstring: (L: lua_State, index: number) => Uint8Array;
+        luaL_checknumber: (L: lua_State, index: number) => number;
+        luaL_optstring: (
+            L: lua_State,
+            index: number,
+            def: Uint8Array,
+        ) => Uint8Array;
         luaL_requiref: (
             L: lua_State,
             modname: Uint8Array,

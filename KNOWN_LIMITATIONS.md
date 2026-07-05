@@ -703,11 +703,11 @@ The plugin supports `.obsidian.init.lua` as an alternative to `.obsidian.vimrc`.
 
 ### Unsupported Neovim APIs
 
-`require()`, `vim.api`, `vim.fn`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic` — accessing these produces a clear error message. The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+`require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic` — accessing these produces a clear error message. `vim.api` is partially supported: `nvim_create_user_command` is available for defining custom ex commands; other `vim.api.*` functions produce a helpful error. `vim.fn` is partially supported (see below) — unsupported `vim.fn.*` functions produce a helpful error listing available functions. The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
 
-### `vim.fn.*` subset (planned)
+### `vim.fn.*` subset
 
-`vim.fn.has(feature)` for platform detection and `vim.fn.expand('%')` for file-conditional config are planned. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped (system fingerprinting concern). See `.sisyphus/plans/lua-config-integration.md` for the full `vim.fn` catalogue and design decisions.
+The following Neovim `vim.fn.*` functions are implemented: `has`, `expand`, `fnamemodify`, `exists`, `localtime`, `strftime`, `filereadable`, `isdirectory`, `glob`, `mode`, `line`, `col`. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported `vim.fn.*` functions produce an error listing the available set. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped (system fingerprinting concern). `vim.fn.line('.')` and `vim.fn.col('.')` return 0 at config-load time and are only meaningful inside function callbacks. See `docs/configuration/lua-config.md` for usage and the full feature table.
 
 ### Hybrid loading
 
