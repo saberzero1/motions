@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-07-05
+
 ### Added
 
 - **Lua configuration support (`.obsidian.init.lua`)** — optional Neovim-style Lua configuration using a sandboxed Fengari Lua 5.3 runtime. Provides conditional logic, function-based keymaps, and familiar `vim.keymap.set` / `vim.opt` syntax. Disabled by default — enable in **Settings → Vim Motions → Vimrc & key bindings → Enable Lua configuration**. ([#46](https://github.com/saberzero1/motions/issues/46))
