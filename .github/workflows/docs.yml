@@ -7,6 +7,7 @@ on:
             - 'docs/**'
             - 'quartz.config.yaml'
             - 'CHANGELOG.md'
+            - 'KNOWN_LIMITATIONS.md'
             - '.github/workflows/docs.yml'
     workflow_dispatch:
 
@@ -50,6 +51,21 @@ jobs:
                       echo ''
                       cat CHANGELOG.md
                   } > docs/reference/changelog.md
+
+            - name: Generate known limitations docs page
+              run: |
+                  {
+                      echo '---'
+                      echo 'title: Known limitations'
+                      echo 'description: Known limitations, architectural constraints, and intentional design decisions in Vim Motions.'
+                      echo 'tags:'
+                      echo '  - reference'
+                      echo '  - limitations'
+                      echo '  - troubleshooting'
+                      echo '---'
+                      echo ''
+                      cat KNOWN_LIMITATIONS.md
+                  } > docs/reference/known-limitations.md
 
             - name: Inject content and config
               run: |

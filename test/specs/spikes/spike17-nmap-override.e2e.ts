@@ -1157,11 +1157,11 @@ describe('Spike 17 — Diag 6: Deep keymap inspection', function () {
                 vimrcMaps: plugin?.vimrcMaps,
                 vimrcPath,
                 vimrcContent,
-                enableVimrc: (plugin as Record<string, unknown>)?.settings
+                configMode: (plugin as Record<string, unknown>)?.settings
                     ? (
                           (plugin as Record<string, unknown>)
                               .settings as Record<string, unknown>
-                      )?.enableVimrc
+                      )?.configMode
                     : 'no-settings',
             };
         })) as Record<string, unknown>;

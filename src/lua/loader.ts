@@ -5,6 +5,7 @@ import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
 import { createSandboxedState, evalLua } from './engine';
 import { injectVimApi, LuaKeymap, LuaKeymapDelete } from './api';
+import { AutocmdManager } from './autocmd';
 import { injectVimFn } from './fn';
 import type { lua_State } from 'fengari';
 
@@ -23,6 +24,7 @@ export interface LuaLoadResult {
     >;
     commandCount: number;
     state: lua_State | null;
+    autocmdManager: AutocmdManager | null;
 }
 
 function getLuaConfigPath(app: App, customPath?: string): string {
@@ -64,6 +66,7 @@ export async function loadInitLua(
             mapOperations: [],
             commandCount: 0,
             state: null,
+            autocmdManager: null,
         };
     }
 
@@ -78,6 +81,7 @@ export async function loadInitLua(
     > = [];
 
     const L = createSandboxedState();
+    const autocmdManager = new AutocmdManager(L);
     const { globals } = injectVimApi(L, {
         onSettingOverride: (key, value, directive) => {
             commandCount++;
@@ -119,6 +123,7 @@ export async function loadInitLua(
                 return undefined;
             }
         },
+        autocmdManager,
     });
 
     injectVimFn(L, {
@@ -206,6 +211,62 @@ export async function loadInitLua(
     });
 
     const result = evalLua(L, content);
+    autocmdManager.activate({
+        onModeChange: (handler, adapter) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+            if (!resolved) return undefined;
+            resolved.on('vim-mode-change', handler);
+            return () =>
+                resolved.off(
+                    'vim-mode-change',
+                    handler as (...args: unknown[]) => void,
+                );
+        },
+        onYank: (handler, adapter) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+            if (!resolved) return undefined;
+            resolved.on('vim-yank', handler as (...args: unknown[]) => void);
+            return () =>
+                resolved.off(
+                    'vim-yank',
+                    handler as (...args: unknown[]) => void,
+                );
+        },
+        onFileOpen: (handler) => {
+            const ref = app.workspace.on('file-open', handler);
+            return () => app.workspace.offref(ref);
+        },
+        onFocusGained: (handler) => {
+            const doc = app.workspace.containerEl.ownerDocument;
+            const win = doc.defaultView ?? window;
+            const onFocus = () => handler();
+            const onVisible = () => {
+                if (doc.visibilityState === 'visible') handler();
+            };
+            win.addEventListener('focus', onFocus);
+            doc.addEventListener('visibilitychange', onVisible);
+            return () => {
+                win.removeEventListener('focus', onFocus);
+                doc.removeEventListener('visibilitychange', onVisible);
+            };
+        },
+        onFocusLost: (handler) => {
+            const doc = app.workspace.containerEl.ownerDocument;
+            const win = doc.defaultView ?? window;
+            const onBlur = () => handler();
+            const onHidden = () => {
+                if (doc.visibilityState === 'hidden') handler();
+            };
+            win.addEventListener('blur', onBlur);
+            doc.addEventListener('visibilitychange', onHidden);
+            return () => {
+                win.removeEventListener('blur', onBlur);
+                doc.removeEventListener('visibilitychange', onHidden);
+            };
+        },
+    });
     if (!result.ok) {
         return {
             found: true,
@@ -219,6 +280,7 @@ export async function loadInitLua(
             mapOperations: [],
             commandCount: 0,
             state: L,
+            autocmdManager,
         };
     }
 
@@ -233,5 +295,6 @@ export async function loadInitLua(
         mapOperations,
         commandCount,
         state: L,
+        autocmdManager,
     };
 }

@@ -256,8 +256,8 @@ When making a change, update these docs pages:
 | New setting                       | `configuration/settings.md` (add to correct group of 12)                                                                                             |
 | New vimrc option                  | `configuration/vimrc.md` (add to correct options table)                                                                                              |
 | New feature (entire)              | New `features/<name>.md` + `features/index.md` (add link) + `reference/keybindings.md` (add section) + `configuration/settings.md` (if new settings) |
-| Bug fix                           | `KNOWN_LIMITATIONS.md` (mark Fixed if applicable) → `reference/known-limitations.md` (move to collapsed section)                                     |
-| New limitation                    | `KNOWN_LIMITATIONS.md` (add section) → `reference/known-limitations.md` (add under feature area)                                                     |
+| Bug fix                           | `KNOWN_LIMITATIONS.md` (mark Fixed if applicable) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                     |
+| New limitation                    | `KNOWN_LIMITATIONS.md` (add section) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                                  |
 | Setting default changed           | `configuration/settings.md` (update default value)                                                                                                   |
 | Keybinding changed/removed        | `reference/keybindings.md` (update/remove) — feature pages auto-update via transclusion                                                              |
 | Installation requirements changed | `getting-started/installation.md` + `getting-started/recommended-setup.md`                                                                           |

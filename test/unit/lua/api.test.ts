@@ -2,12 +2,20 @@ import { describe, it, expect, vi } from 'vitest';
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
+import { AutocmdManager } from '../../../src/lua/autocmd';
+
+type LuaState = ReturnType<typeof createSandboxedState>;
+
+const injectApi = (
+    L: LuaState,
+    callbacks: Omit<Parameters<typeof injectVimApi>[1], 'autocmdManager'>,
+) => injectVimApi(L, { ...callbacks, autocmdManager: new AutocmdManager(L) });
 
 describe('vim api', () => {
     it('should set vim.opt values via onSettingOverride', () => {
         const L = createSandboxedState();
         const onSettingOverride = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride,
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -30,7 +38,7 @@ describe('vim api', () => {
 
     it('should read vim.opt values via getOption', () => {
         const L = createSandboxedState();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -51,7 +59,7 @@ describe('vim api', () => {
     it('should set vim.g.mapleader via callback', () => {
         const L = createSandboxedState();
         const setLeaderKey = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -72,7 +80,7 @@ describe('vim api', () => {
     it('should register vim.keymap.set string mapping', () => {
         const L = createSandboxedState();
         const onKeymap = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -102,7 +110,7 @@ describe('vim api', () => {
     it('should register vim.keymap.set function mapping', () => {
         const L = createSandboxedState();
         const onKeymap = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -128,7 +136,7 @@ describe('vim api', () => {
     it('should forward vim.cmd calls to handler', () => {
         const L = createSandboxedState();
         const handleExCommand = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand,
             getVaultName: () => 'vault',
@@ -147,7 +155,7 @@ describe('vim api', () => {
 
     it('should report syntax errors with line number', () => {
         const L = createSandboxedState();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -166,7 +174,7 @@ describe('vim api', () => {
 
     it('should report runtime errors', () => {
         const L = createSandboxedState();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -186,7 +194,7 @@ describe('vim api', () => {
     it('should call vim.notify callback', () => {
         const L = createSandboxedState();
         const showNotice = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -208,7 +216,7 @@ describe('vim api', () => {
         const L = createSandboxedState();
         const handleExCommand = vi.fn();
         const defineExCommand = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand,
             getVaultName: () => 'vault',
@@ -229,7 +237,7 @@ describe('vim api', () => {
     it('should register user commands via vim.api.nvim_create_user_command with function callback', () => {
         const L = createSandboxedState();
         const defineExCommand = vi.fn();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',
@@ -254,7 +262,7 @@ describe('vim api', () => {
 
     it('should error on unsupported vim.api functions', () => {
         const L = createSandboxedState();
-        injectVimApi(L, {
+        injectApi(L, {
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'vault',

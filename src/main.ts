@@ -68,6 +68,8 @@ import type { LuaLoadResult } from './lua/loader';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
 import { injectVimApi } from './lua/api';
 import { injectVimFn } from './lua/fn';
+import { AutocmdManager } from './lua/autocmd';
+import { migrateConfigModeSettings } from './settings-migration';
 import type { lua_State } from 'fengari';
 
 export default class VimMotionsPlugin extends Plugin {
@@ -114,12 +116,28 @@ export default class VimMotionsPlugin extends Plugin {
     private luaActionNames = new Set<string>();
     private luaPendingExCommands: string[] = [];
     private luaActionCounter = 0;
+    private autocmdManager: AutocmdManager | null = null;
+
+    get vimrcEnabled(): boolean {
+        return (
+            this.settings.configMode === 'lua-vimrc' ||
+            this.settings.configMode === 'vimrc'
+        );
+    }
+
+    get luaConfigEnabled(): boolean {
+        return (
+            this.settings.configMode === 'lua-vimrc' ||
+            this.settings.configMode === 'lua'
+        );
+    }
 
     executeLuaForTest(code: string): void {
         if (!this.luaState) {
             const vim = getVimApi();
             if (!vim) return;
             this.luaState = createSandboxedState();
+            const autocmdManager = new AutocmdManager(this.luaState);
             const { globals } = injectVimApi(this.luaState, {
                 onSettingOverride: () => {},
                 handleExCommand: () => {},
@@ -148,6 +166,7 @@ export default class VimMotionsPlugin extends Plugin {
                 },
                 getLeaderKey: () => this.leaderRegistry?.getLeaderKey() ?? '\\',
                 setLeaderKey: (key) => this.leaderRegistry?.setLeaderKey(key),
+                autocmdManager,
             });
             injectVimFn(this.luaState, {
                 getActiveFilePath: () =>
@@ -178,6 +197,7 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                 },
             });
+            this.autocmdManager = autocmdManager;
         }
         evalLua(this.luaState, code);
     }
@@ -189,8 +209,12 @@ export default class VimMotionsPlugin extends Plugin {
 
     async loadLuaConfigForTest(): Promise<void> {
         if (!this.vimRef || !this.onLuaSettingOverrideRef) return;
+        this.settings.configMode = 'lua-vimrc';
         this.luaLoaded = false;
         this.luaLoading = false;
+        this.autocmdManager?.clearUngrouped();
+        this.autocmdManager?.clearAll();
+        this.autocmdManager = null;
         if (this.luaState) {
             destroyState(this.luaState);
             this.luaState = null;
@@ -335,9 +359,18 @@ export default class VimMotionsPlugin extends Plugin {
         registerVimOptions(vim, onSettingOverride);
         this.registration = new VimRegistration(vim);
 
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', () => {
+                const view =
+                    this.app.workspace.getActiveViewOfType(MarkdownView);
+                const adapter = view ? getCmAdapter(view) : null;
+                this.autocmdManager?.onActiveLeafChange(adapter);
+            }),
+        );
+
         // --- Leader key resolution ---
         this.leaderRegistry = new LeaderRegistry();
-        if (this.settings.enableVimrc) {
+        if (this.vimrcEnabled) {
             this.registerEvent(
                 this.app.workspace.on('active-leaf-change', async () => {
                     this.resetVimInputStateOnPaneSwitch(vim);
@@ -378,10 +411,9 @@ export default class VimMotionsPlugin extends Plugin {
                         this.vimrcLoading = false;
                         return;
                     }
-                    if (!vimrcResult.found) {
-                        new Notice(
-                            `Vim Motions: ${vimrcResult.path} not found. Create the file in your vault root to use custom key mappings.`,
-                        );
+                    const vimrcFound = vimrcResult.found;
+                    if (!vimrcFound && this.settings.configMode === 'vimrc') {
+                        new Notice('Vimrc not found');
                     } else if (vimrcResult.commandCount === 0) {
                         new Notice(
                             `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
@@ -415,12 +447,22 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     this.vimrcLoading = false;
                     this.reloadFeatures();
-                    await this.loadLuaConfigInternal(vim, onLuaSettingOverride);
+                    const luaResult = await this.loadLuaConfigInternal(
+                        vim,
+                        onLuaSettingOverride,
+                    );
+                    if (
+                        this.settings.configMode === 'lua-vimrc' &&
+                        !vimrcFound &&
+                        !luaResult?.found
+                    ) {
+                        new Notice('No config files found');
+                    }
                 }),
             );
         }
 
-        if (!this.settings.enableVimrc) {
+        if (!this.vimrcEnabled) {
             this.registerEvent(
                 this.app.workspace.on('active-leaf-change', async () => {
                     if (this.luaLoaded) {
@@ -649,6 +691,10 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     reloadFeatures(): void {
+        if (this.autocmdManager?.isFiring()) {
+            this.autocmdManager.deferReload();
+            return;
+        }
         this.modeTracker?.destroy();
         this.modeTracker = null;
         this.hintActions = null;
@@ -1079,9 +1125,9 @@ export default class VimMotionsPlugin extends Plugin {
             value: unknown,
             directive?: string,
         ) => void,
-    ): Promise<void> {
-        if (!this.settings.enableLuaConfig) return;
-        if (this.luaLoaded || this.luaLoading) return;
+    ): Promise<LuaLoadResult | null> {
+        if (!this.luaConfigEnabled) return null;
+        if (this.luaLoaded || this.luaLoading) return null;
         this.luaLoading = true;
         this.luaGroupLabels = [];
         this.luaCommandLabels = [];
@@ -1098,7 +1144,10 @@ export default class VimMotionsPlugin extends Plugin {
         if (!luaResult.found) {
             this.luaLoaded = true;
             this.luaLoading = false;
-            return;
+            if (this.settings.configMode === 'lua') {
+                new Notice('Init.lua not found');
+            }
+            return luaResult;
         } else if (luaResult.error) {
             new Notice(
                 `Vim Motions: error loading ${luaResult.path}: ${luaResult.error}`,
@@ -1122,6 +1171,11 @@ export default class VimMotionsPlugin extends Plugin {
         if (luaResult.state) {
             this.luaState = luaResult.state;
         }
+        this.autocmdManager = luaResult.autocmdManager;
+        this.autocmdManager?.setReloadCallback(() => this.reloadFeatures());
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const adapter = view ? getCmAdapter(view) : null;
+        this.autocmdManager?.onActiveLeafChange(adapter);
 
         this.applyLuaMaps(vim);
         this.applyLuaPendingExCommands(vim);
@@ -1130,6 +1184,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaLoaded = true;
         this.luaLoading = false;
         this.reloadFeatures();
+        return luaResult;
     }
 
     private applyLuaPendingExCommands(
@@ -1289,6 +1344,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.scrolloffManager = null;
         this.registration?.unregisterAll();
         this.registration = null;
+        this.autocmdManager?.destroy();
+        this.autocmdManager = null;
         if (this.luaState) {
             destroyState(this.luaState);
             this.luaState = null;
@@ -1298,13 +1355,15 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async loadSettings() {
-        const raw = (await this.loadData()) as Record<string, unknown> | null;
-        this.settings = Object.assign(
-            {},
-            DEFAULT_SETTINGS,
-            raw as Partial<VimMotionsSettings>,
-        );
-        this.migrateLegacySettings(raw);
+        const data = (await this.loadData()) as
+            | (Partial<VimMotionsSettings> & {
+                  enableVimrc?: boolean;
+                  enableLuaConfig?: boolean;
+              })
+            | null;
+        const migrated = migrateConfigModeSettings(data);
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated ?? {});
+        this.migrateLegacySettings(migrated);
     }
 
     private migrateLegacySettings(raw: Record<string, unknown> | null): void {

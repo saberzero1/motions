@@ -51,7 +51,7 @@ function escapeRegexChar(char: string): string {
     return /[.*+?^${}()|[\]\\]/.test(char) ? `\\${char}` : char;
 }
 
-function simpleGlobMatch(pattern: string, value: string): boolean {
+export function simpleGlobMatch(pattern: string, value: string): boolean {
     let regex = '^';
     for (let i = 0; i < pattern.length; i++) {
         const char = pattern.charAt(i);

@@ -24,6 +24,15 @@ export interface VimModeChange {
         | '';
 }
 
+/** Text yank event emitted from codemirror-vim. */
+export interface VimYankEvent {
+    operator: string;
+    regName: string;
+    regContents: string;
+    regType: string;
+    visual: boolean;
+}
+
 /** Arguments passed to motion functions. */
 export interface MotionArgs {
     repeat: number;
@@ -166,6 +175,7 @@ export interface CmAdapter {
     on(event: 'vim-keypress', handler: (key: string) => void): void;
     on(event: 'vim-command-done', handler: () => void): void;
     on(event: 'dialog', handler: () => void): void;
+    on(event: 'vim-yank', handler: (payload: VimYankEvent) => void): void;
 
     /** Unsubscribe from CM5-compat events. */
     off(event: string, handler: (...args: unknown[]) => void): void;

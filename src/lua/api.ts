@@ -1,6 +1,7 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import type { MapContext } from '../types/vim-api';
+import type { AutocmdEventData, AutocmdManager } from './autocmd';
 import { KNOWN_SET_OPTIONS } from '../vimrc/loader';
 
 export interface LuaKeymap {
@@ -34,6 +35,7 @@ export interface VimApiCallbacks {
     setLeaderKey?: (key: string) => void;
     getOption?: (name: string) => unknown;
     getModePrompt?: (key: string) => string | undefined;
+    autocmdManager: AutocmdManager;
 }
 
 const MODE_PROMPT_MAP: Record<string, string> = {
@@ -87,6 +89,50 @@ function pushLuaValue(L: lua_State, value: unknown): void {
     lua.lua_pushnil(L);
 }
 
+function pushLuaAny(L: lua_State, value: unknown): void {
+    if (Array.isArray(value)) {
+        lua.lua_newtable(L);
+        for (let i = 0; i < value.length; i++) {
+            pushLuaAny(L, value[i]);
+            lua.lua_rawseti(L, -2, i + 1);
+        }
+        return;
+    }
+    if (value && typeof value === 'object') {
+        lua.lua_newtable(L);
+        for (const [key, entry] of Object.entries(
+            value as Record<string, unknown>,
+        )) {
+            pushLuaAny(L, entry);
+            lua.lua_setfield(L, -2, to_luastring(key));
+        }
+        return;
+    }
+    pushLuaValue(L, value);
+}
+
+function pushAutocmdEventData(L: lua_State, data: AutocmdEventData): void {
+    lua.lua_newtable(L);
+    lua.lua_pushstring(L, to_luastring(data.event));
+    lua.lua_setfield(L, -2, to_luastring('event'));
+    lua.lua_pushstring(L, to_luastring(data.file));
+    lua.lua_setfield(L, -2, to_luastring('file'));
+    lua.lua_pushstring(L, to_luastring(data.match));
+    lua.lua_setfield(L, -2, to_luastring('match'));
+    lua.lua_pushnumber(L, data.buf);
+    lua.lua_setfield(L, -2, to_luastring('buf'));
+    lua.lua_pushnumber(L, data.id);
+    lua.lua_setfield(L, -2, to_luastring('id'));
+    if (data.group === null) {
+        lua.lua_pushnil(L);
+    } else {
+        lua.lua_pushnumber(L, data.group);
+    }
+    lua.lua_setfield(L, -2, to_luastring('group'));
+    pushLuaAny(L, data.data);
+    lua.lua_setfield(L, -2, to_luastring('data'));
+}
+
 function formatDirectiveValue(value: unknown): string {
     if (typeof value === 'string') return JSON.stringify(value);
     if (typeof value === 'number') return String(value);
@@ -118,6 +164,35 @@ function getModeList(L: lua_State, index: number): string[] {
         for (const ch of entry.split('')) modes.push(ch);
     }
     return modes.length > 0 ? modes : ['n'];
+}
+
+function getStringList(L: lua_State, index: number): string[] {
+    const str = readLuaString(L, index);
+    if (str !== null) return [str];
+    if (!lua.lua_istable(L, index)) return [];
+    const values: string[] = [];
+    for (let i = 1; i < 1000; i++) {
+        lua.lua_rawgeti(L, index, i);
+        if (lua.lua_isnil(L, -1)) {
+            lua.lua_pop(L, 1);
+            break;
+        }
+        const entry = readLuaString(L, -1);
+        lua.lua_pop(L, 1);
+        if (entry) values.push(entry);
+    }
+    return values;
+}
+
+function readStringListField(
+    L: lua_State,
+    index: number,
+    field: string,
+): string[] {
+    lua.lua_getfield(L, index, to_luastring(field));
+    const values = getStringList(L, -1);
+    lua.lua_pop(L, 1);
+    return values;
 }
 
 function modeToContext(mode: string): MapContext | null {
@@ -164,6 +239,22 @@ function readStringField(
     return value ?? undefined;
 }
 
+function readNumberField(
+    L: lua_State,
+    index: number,
+    field: string,
+): number | undefined {
+    lua.lua_getfield(L, index, to_luastring(field));
+    if (lua.lua_isnil(L, -1)) {
+        lua.lua_pop(L, 1);
+        return undefined;
+    }
+    const value = lua.lua_tonumber(L, -1);
+    lua.lua_pop(L, 1);
+    if (Number.isNaN(value)) return undefined;
+    return value;
+}
+
 function readAnyField(L: lua_State, index: number, field: string): unknown {
     lua.lua_getfield(L, index, to_luastring(field));
     const value = readLuaValue(L, -1);
@@ -195,6 +286,7 @@ export function injectVimApi(
 ): VimApiState {
     const globals = new Map<string, unknown>();
     const getLeaderKey = () => callbacks.getLeaderKey?.() ?? '\\';
+    const autocmdManager = callbacks.autocmdManager;
 
     lua.lua_newtable(L);
     const vimTableIndex = lua.lua_gettop(L);
@@ -499,21 +591,158 @@ export function injectVimApi(
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_create_user_command'));
 
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const events = getStringList(state, 1);
+        if (events.length === 0) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_create_autocmd: expected event name'),
+            );
+        }
+        if (!lua.lua_istable(state, 2)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_create_autocmd: expected opts table'),
+            );
+        }
+        const groupNumber = readNumberField(state, 2, 'group');
+        const groupName = readStringField(state, 2, 'group');
+        const group = groupNumber ?? groupName ?? null;
+        const patternValue = readStringField(state, 2, 'pattern');
+        let pattern: string | null = patternValue ?? null;
+        if (!patternValue) {
+            const patterns = readStringListField(state, 2, 'pattern');
+            pattern = patterns[0] ?? null;
+        }
+        const once = readBooleanField(state, 2, 'once') ?? false;
+        const desc = readStringField(state, 2, 'desc') ?? '';
+
+        lua.lua_getfield(state, 2, to_luastring('callback'));
+        if (!lua.lua_isfunction(state, -1)) {
+            lua.lua_pop(state, 1);
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_create_autocmd: expected callback function'),
+            );
+        }
+        const callbackIndex = lua.lua_gettop(state);
+        let lastId = 0;
+        for (const event of events) {
+            lua.lua_pushvalue(state, callbackIndex);
+            const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+            const callback = (ev: AutocmdEventData) => {
+                lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                pushAutocmdEventData(state, ev);
+                const status = lua.lua_pcall(state, 1, 0, 0);
+                if (status !== lua.LUA_OK) {
+                    const msg = lua.lua_tolstring(state, -1);
+                    const error = msg ? to_jsstring(msg) : 'Lua callback error';
+                    console.error(`Vim Motions: autocmd ${event}: ${error}`);
+                    lua.lua_pop(state, 1);
+                }
+            };
+            lastId = autocmdManager.register(event, {
+                group,
+                pattern,
+                callback,
+                luaRef: ref,
+                once,
+                desc,
+            });
+        }
+        lua.lua_pop(state, 1);
+        lua.lua_pushnumber(state, lastId);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_create_autocmd'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_create_augroup: expected group name'),
+            );
+        }
+        let clear = true;
+        if (lua.lua_istable(state, 2)) {
+            clear = readBooleanField(state, 2, 'clear') ?? true;
+        }
+        const id = autocmdManager.createAugroup(name, { clear });
+        lua.lua_pushnumber(state, id);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_create_augroup'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (!lua.lua_isnumber(state, 1)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_del_autocmd: expected id number'),
+            );
+        }
+        const id = lua.lua_tonumber(state, 1);
+        autocmdManager.deleteAutocmd(id);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_del_autocmd'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_del_augroup_by_name: expected group name'),
+            );
+        }
+        autocmdManager.deleteAugroupByName(name);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_del_augroup_by_name'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (lua.lua_isnil(state, 1)) {
+            autocmdManager.clearAll();
+            return 0;
+        }
+        if (!lua.lua_istable(state, 1)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_clear_autocmds: expected opts table'),
+            );
+        }
+        const groupNumber = readNumberField(state, 1, 'group');
+        const groupName = readStringField(state, 1, 'group');
+        const event = readStringField(state, 1, 'event');
+        const pattern = readStringField(state, 1, 'pattern');
+        autocmdManager.clearAutocmds({
+            group: groupNumber ?? groupName ?? null,
+            event: event ?? null,
+            pattern: pattern ?? null,
+        });
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_clear_autocmds'));
+
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const fnName = readLuaString(state, 2);
-        if (fnName === 'nvim_create_user_command') {
-            lua.lua_getfield(
-                state,
-                1,
-                to_luastring('nvim_create_user_command'),
-            );
+        const supported = new Set([
+            'nvim_create_user_command',
+            'nvim_create_autocmd',
+            'nvim_create_augroup',
+            'nvim_del_autocmd',
+            'nvim_del_augroup_by_name',
+            'nvim_clear_autocmds',
+        ]);
+        if (fnName && supported.has(fnName)) {
+            lua.lua_getfield(state, 1, to_luastring(fnName));
             return 1;
         }
         return lauxlib.luaL_error(
             state,
             to_luastring(
-                `vim.api.${fnName ?? '?'} is not available in Obsidian. Supported: nvim_create_user_command`,
+                `vim.api.${fnName ?? '?'} is not available in Obsidian. Supported: nvim_create_user_command, nvim_create_autocmd, nvim_create_augroup, nvim_del_autocmd, nvim_del_augroup_by_name, nvim_clear_autocmds`,
             ),
         );
     });

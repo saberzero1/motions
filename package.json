@@ -51,7 +51,7 @@
         "yaml": "^2.7.1"
     },
     "dependencies": {
-        "@replit/codemirror-vim": "https://github.com/saberzero1/codemirror-vim.git",
+        "@replit/codemirror-vim": "github:saberzero1/codemirror-vim",
         "fengari": "^0.1.5"
     }
 }

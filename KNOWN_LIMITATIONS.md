@@ -143,11 +143,11 @@ Settings overridden by vimrc appear as disabled controls in the settings tab wit
 
 The following settings are intentionally **not** exposed via vimrc:
 
-| Setting          | Reason                                                       |
-| ---------------- | ------------------------------------------------------------ |
-| `enableVimrc`    | Circular dependency — can't control vimrc loading from vimrc |
-| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)    |
-| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc    |
+| Setting          | Reason                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `configMode`     | Circular dependency — can't control config file loading from vimrc or init.lua            |
+| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)                                 |
+| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc or `vim.keymap.set` in init.lua |
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `relativenumber`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
@@ -699,15 +699,29 @@ The plugin supports `.obsidian.init.lua` as an alternative to `.obsidian.vimrc`.
 
 ### Supported APIs
 
-`vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `print()`. See `docs/configuration/lua-config.md` for the full reference.
+The Lua config runtime (`init.lua`) supports `vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
 
 ### Unsupported Neovim APIs
 
-`require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic` — accessing these produces a clear error message. `vim.api` is partially supported: `nvim_create_user_command` is available for defining custom ex commands; other `vim.api.*` functions produce a helpful error. `vim.fn` is partially supported (see below) — unsupported `vim.fn.*` functions produce a helpful error listing available functions. The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+`require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`: accessing these produces a clear error message. `vim.api` is partially supported: `nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, and `nvim_clear_autocmds` are available; other `vim.fn` is partially supported (see below): unsupported `vim.fn.*` functions produce a helpful error listing available functions. The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+
+### Autocmds
+
+8 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `FocusGained`, `FocusLost`, `TextYankPost`. See `docs/configuration/lua-config.md` for the full reference.
+
+Limitations:
+
+- All autocmds are non-nested (callbacks cannot trigger other autocmds)
+- `buffer` option not supported (Obsidian has no buffer numbers)
+- `command` option not supported (use `callback` only)
+- `nested` option not supported
+- `CursorHold`, `CursorMoved`, `BufWritePre/Post` not yet implemented
+- `buf` field in event data is always 0
+- `TextYankPost` requires bundled fork mode (built-in vim mode OFF)
 
 ### `vim.fn.*` subset
 
-The following Neovim `vim.fn.*` functions are implemented: `has`, `expand`, `fnamemodify`, `exists`, `localtime`, `strftime`, `filereadable`, `isdirectory`, `glob`, `mode`, `line`, `col`. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported `vim.fn.*` functions produce an error listing the available set. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped (system fingerprinting concern). `vim.fn.line('.')` and `vim.fn.col('.')` return 0 at config-load time and are only meaningful inside function callbacks. See `docs/configuration/lua-config.md` for usage and the full feature table.
+27 Neovim `vim.fn.*` functions are implemented: `has`, `expand`, `fnamemodify`, `exists`, `localtime`, `strftime`, `filereadable`, `isdirectory`, `glob`, `mode`, `line`, `col`, `getline`, `tolower`, `toupper`, `trim`, `strlen`, `strwidth`, `stridx`, `strridx`, `strpart`, `substitute`, `nr2char`, `char2nr`, `split`, `join`. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported `vim.fn.*` functions produce an error listing the available set. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped (system fingerprinting concern). `vim.fn.line('.')`, `vim.fn.col('.')`, and `vim.fn.getline('.')` return 0/empty at config-load time and are only meaningful inside function callbacks. See `docs/configuration/lua-config.md` for usage and the full feature table.
 
 ### Hybrid loading
 

@@ -145,19 +145,19 @@ describe('Lua config support', function () {
         expect(scrolloff).toBe(7);
     });
 
-    it('should not load init.lua when enableLuaConfig is false', async function () {
+    it('should not load init.lua when configMode is settings', async function () {
         await obsidianPage.write(
             '.obsidian.init.lua',
             'vim.opt.scrolloff = 99\n',
         );
-        await browser.executeObsidian(({ app }) => {
+        await browser.executeObsidian(async ({ app }) => {
             const plugin = (
                 app as unknown as {
                     plugins: {
                         plugins: Record<
                             string,
                             {
-                                settings: { enableLuaConfig: boolean };
+                                settings: { configMode: string };
                                 saveSettings: () => Promise<void>;
                             }
                         >;
@@ -165,8 +165,8 @@ describe('Lua config support', function () {
                 }
             ).plugins.plugins['vim-motions'];
             if (plugin) {
-                plugin.settings.enableLuaConfig = false;
-                plugin.saveSettings();
+                plugin.settings.configMode = 'settings';
+                await plugin.saveSettings();
             }
         });
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -179,12 +179,12 @@ describe('Lua config support', function () {
                             plugins: {
                                 plugins: Record<
                                     string,
-                                    { vimrcLoaded?: boolean }
+                                    { settings?: { configMode?: string } }
                                 >;
                             };
                         }
                     ).plugins.plugins['vim-motions'];
-                    return plugin?.vimrcLoaded === true;
+                    return typeof plugin?.settings?.scrolloffLines === 'number';
                 })) as boolean,
             { timeout: 5000, interval: 100 },
         );
@@ -382,5 +382,30 @@ describe('Lua config support', function () {
             return plugin?.settings?.scrolloffLines;
         });
         expect(scrolloff).toBe(28);
+    });
+
+    it('should support nvim_create_autocmd for ModeChanged', async function () {
+        await loadLuaConfig(
+            'vim.api.nvim_create_autocmd("ModeChanged", {\n' +
+                '    pattern = "*:*",\n' +
+                '    callback = function(ev)\n' +
+                '        if ev.data and ev.data.new_mode == "i" then\n' +
+                '            vim.opt.scrolloff = 32\n' +
+                '        end\n' +
+                '    end\n' +
+                '})\n',
+        );
+        await assertPluginLoaded();
+    });
+
+    it('should support nvim_create_augroup with clear', async function () {
+        await loadLuaConfig(
+            'local g = vim.api.nvim_create_augroup("test-group", { clear = true })\n' +
+                'vim.api.nvim_create_autocmd("FocusGained", {\n' +
+                '    group = g,\n' +
+                '    callback = function() vim.opt.scrolloff = 33 end\n' +
+                '})\n',
+        );
+        await assertPluginLoaded();
     });
 });

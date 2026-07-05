@@ -201,17 +201,17 @@ These labels appear in the which-key overlay when a partial global key sequence 
 
 ## Override behavior
 
-When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values.
+When configuration mode includes vimrc (Lua + Vimrc or Vimrc only), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values.
 
 Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`").
 
 ## Settings not available via vimrc
 
-| Setting          | Reason                                                        |
-| ---------------- | ------------------------------------------------------------- |
-| `enableVimrc`    | Circular dependency — cannot control vimrc loading from vimrc |
-| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)     |
-| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc     |
+| Setting          | Reason                                                              |
+| ---------------- | ------------------------------------------------------------------- |
+| `configMode`     | Circular dependency — cannot control config file loading from vimrc |
+| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)           |
+| `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc           |
 
 Unknown `set` options are silently ignored.
 

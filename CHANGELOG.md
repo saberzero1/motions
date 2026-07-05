@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Sandbox: 6 defense layers — selective library loading (no `io`/`os`/`debug`/`package`), dangerous globals stripped (`load`/`dofile`/`loadfile`), no `fengari-interop`, instruction-count timeout via `lua_sethook` (1M instruction limit), custom environment table
     - Hybrid loading: settings and keymaps load immediately without an active editor; `vim.cmd()` calls are queued and executed on first editor focus
     - Override hierarchy: init.lua loads after vimrc — Lua values override vimrc on conflict
-    - Settings: `enableLuaConfig` (toggle, default off), `luaConfigPath` (custom file path)
+    - Settings: `configMode` dropdown (Lua + Vimrc / Lua only / Vimrc only / Settings only), `luaConfigPath` (custom file path)
     - Bundle impact: +238KB minified / +79KB gzipped (Fengari runtime)
     - Plugin: `src/lua/engine.ts` (sandbox + timeout), `src/lua/api.ts` (vim.\* bridge), `src/lua/loader.ts` (hybrid file loading), `src/lua/types.ts` (Fengari type declarations)
     - 12 Neovim golden comparison test cases (`lua-keymaps` suite), 17 e2e integration tests, 4 known deviations registered
@@ -38,11 +38,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Unsupported `vim.fn.*` functions produce a helpful error listing available functions
     - `vim.fn.hostname()` / `vim.fn.getenv()` intentionally skipped (system fingerprinting concern)
     - Plugin: `src/lua/fn.ts` (VimFnCallbacks, function registry, `__index` dispatch), `src/lua/strftime.ts` (pure strftime utility)
-- **`vim.api.nvim_create_user_command`** — define custom ex commands from Lua
-    - String RHS: `vim.api.nvim_create_user_command("W", "w", {})` — simple aliases
-    - Function RHS: `vim.api.nvim_create_user_command("Today", function(opts) ... end, {})` — Lua callback with `opts.args`
-    - `vim.api` changed from error stub to partial namespace — unsupported `vim.api.*` functions give a helpful error listing `nvim_create_user_command` as available
+- **`vim.api.nvim_create_user_command`**: define custom ex commands from Lua
+    - String RHS: `vim.api.nvim_create_user_command("W", "w", {})`: simple aliases
+    - Function RHS: `vim.api.nvim_create_user_command("Today", function(opts) ... end, {})`: Lua callback with `opts.args`
+    - `vim.api` changed from error stub to partial namespace: unsupported `vim.api.*` functions give a helpful error listing `nvim_create_user_command` as available
     - Registered commands are immediately usable from the `:` ex command line
+- **`nvim_create_autocmd` / `nvim_create_augroup`**: Neovim-compatible autocommand system with 8 events
+    - Events: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `FocusGained`, `FocusLost`, `TextYankPost`
+    - Augroups with `{ clear = true }` for safe config reloads
+    - `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds` for management
+    - ModeChanged supports `"old:new"` pattern with `*` wildcard
+    - BufEnter/BufLeave support vault-relative path glob patterns
+    - TextYankPost provides structured data: operator, regcontents, regtype, visual
+    - Non-nested guard prevents infinite autocmd loops
+    - Reentrancy protection: settings changes from callbacks defer reloadFeatures()
+    - Plugin: `src/lua/autocmd.ts` (AutocmdManager class)
+    - Fork: `vim-yank` signal added to yank/delete/change operators in `vim.js`
+    - 16 unit tests, 2 e2e tests
 - **Unit test infrastructure** — Vitest test runner for the Lua config modules
     - 49 unit tests across 6 files (smoke, sandbox, timeout, api, fn, strftime)
     - Runs in 250ms without Obsidian or browser
@@ -50,10 +62,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Obsidian module mocked via `test/unit/__mocks__/obsidian.ts`
     - CI: `.github/workflows/lint.yml` now runs unit tests on every push across all branches
 
+### Changed
+
+- **Consolidated configuration settings** — replaced two independent toggles (`enableVimrc` + `enableLuaConfig`) with a single **Configuration mode** dropdown (`configMode`):
+    - **Lua + Vimrc** (default): both loaded, Lua overrides vimrc on conflict
+    - **Lua only**: only init.lua loaded
+    - **Vimrc only**: only .obsidian.vimrc loaded
+    - **Settings only**: neither config file loaded
+    - Notification logic consolidated: in Lua + Vimrc mode, only notifies when NEITHER file is found (no spam about missing vimrc when only using Lua, or vice versa)
+    - Automatic migration from old boolean settings on first load
+    - Custom path fields (init.lua path, vimrc path) remain independent and disable based on active mode
+
 ### Documentation
 
 - `docs/configuration/lua-config.md`: full Lua configuration reference with supported APIs, all `vim.opt` options, `vim.fn.*` function tables (has features, expand modifiers, fnamemodify modifiers, exists expressions), mapping examples, conditional config examples, loading order, unsupported API documentation
-- `docs/configuration/settings.md`: added Lua column to all settings tables, added `enableLuaConfig` and `luaConfigPath` settings
+- `docs/configuration/settings.md`: updated with `configMode` dropdown replacing old toggles, added Lua column to all settings tables
 - `docs/configuration/index.md`: reordered — Lua configuration presented as primary method, vimrc as alternative
 - `docs/configuration/vimrc.md`: added tip pointing to Lua configuration for advanced use cases
 - `docs/configuration/which-key.md`: added Lua `desc` option integration for which-key labels

@@ -1,6 +1,6 @@
 # Vim Motions
 
-A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim Motions adds what's missing from Obsidian's built-in Vim mode: Markdown-aware text objects, structural navigation, hard-wrap formatting, workspace keyboard control, EasyMotion, and a built-in `.obsidian.vimrc` loader.
+A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim Motions adds what's missing from Obsidian's built-in Vim mode: Markdown-aware text objects, structural navigation, hard-wrap formatting, workspace keyboard control, EasyMotion, Lua configuration with `vim.keymap.set` / `vim.opt` / `vim.fn` / autocommands, and a built-in `.obsidian.vimrc` loader.
 
 **[Full documentation →](https://saberzero1.github.io/motions)**
 
@@ -14,6 +14,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, and cursor-aware table widget
 - **60+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:sidebar`, and more
+- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, autocommands, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 

@@ -5,7 +5,7 @@ tags:
     - configuration
 ---
 
-Vim Motions supports `.obsidian.init.lua` files using a sandboxed Lua 5.3 runtime. Enable it in **Settings → Vim Motions → Vimrc & key bindings → Enable Lua configuration**. The key value-add over vimrc is conditional logic and function-based keymaps.
+Vim Motions supports `.obsidian.init.lua` files using a sandboxed Lua 5.3 runtime. Enable it in **Settings → Vim Motions → Vimrc & key bindings → Configuration mode → Lua only** (or **Lua + Vimrc**). The key value-add over vimrc is conditional logic and function-based keymaps.
 
 ## File location
 
@@ -72,6 +72,8 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.fn.col(expr)`                                  | Cursor column (1-based, callbacks) | `vim.fn.col(".")`                    |
 | `vim.notify(msg)`                                   | Show Obsidian notification         | `vim.notify("Saved!")`               |
 | `vim.api.nvim_create_user_command(name, cmd, opts)` | Define custom ex command           | see below                            |
+| `vim.api.nvim_create_autocmd(event, opts)`          | Register autocommand               | see Autocommands section             |
+| `vim.api.nvim_create_augroup(name, opts)`           | Create/get autocommand group       | see Autocommands section             |
 | `vim.keymap.set(mode, lhs, rhs, opts?)`             | Create a key mapping               | see example above                    |
 | `vim.keymap.del(mode, lhs)`                         | Remove a key mapping               | `vim.keymap.del("n", "Q")`           |
 | `print(...)`                                        | Print to developer console         | `print("loaded")`                    |
@@ -118,23 +120,37 @@ See [[settings]] for the full list of options and their descriptions.
 
 A subset of Neovim's `vim.fn.*` functions is available for conditional configuration and platform detection.
 
-| Function                         | Returns                       | Example                                        |
-| -------------------------------- | ----------------------------- | ---------------------------------------------- |
-| `vim.fn.has(feature)`            | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`               |
-| `vim.fn.expand("%")`             | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`      |
-| `vim.fn.expand("%:t")`           | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`           |
-| `vim.fn.expand("%:e")`           | Extension only                | `vim.fn.expand("%:e")` → `"md"`                |
-| `vim.fn.expand("%:r")`           | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`       |
-| `vim.fn.fnamemodify(path, mods)` | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"` |
-| `vim.fn.exists(expr)`            | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                    |
-| `vim.fn.localtime()`             | Unix timestamp (seconds)      | `vim.fn.localtime()`                           |
-| `vim.fn.strftime(fmt)`           | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                  |
-| `vim.fn.filereadable(path)`      | `1` if vault file exists      | `vim.fn.filereadable("config.md")`             |
-| `vim.fn.isdirectory(path)`       | `1` if vault directory exists | `vim.fn.isdirectory("templates")`              |
-| `vim.fn.glob(pattern)`           | Newline-separated file list   | `vim.fn.glob("*.md")`                          |
-| `vim.fn.mode()`                  | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`          |
-| `vim.fn.line(expr)`              | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)            |
-| `vim.fn.col(expr)`               | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)             |
+| Function                                | Returns                       | Example                                          |
+| --------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `vim.fn.has(feature)`                   | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`                 |
+| `vim.fn.expand("%")`                    | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`        |
+| `vim.fn.expand("%:t")`                  | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`             |
+| `vim.fn.expand("%:e")`                  | Extension only                | `vim.fn.expand("%:e")` → `"md"`                  |
+| `vim.fn.expand("%:r")`                  | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`         |
+| `vim.fn.fnamemodify(path, mods)`        | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"`   |
+| `vim.fn.exists(expr)`                   | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                      |
+| `vim.fn.localtime()`                    | Unix timestamp (seconds)      | `vim.fn.localtime()`                             |
+| `vim.fn.strftime(fmt)`                  | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                    |
+| `vim.fn.filereadable(path)`             | `1` if vault file exists      | `vim.fn.filereadable("config.md")`               |
+| `vim.fn.isdirectory(path)`              | `1` if vault directory exists | `vim.fn.isdirectory("templates")`                |
+| `vim.fn.glob(pattern)`                  | Newline-separated file list   | `vim.fn.glob("*.md")`                            |
+| `vim.fn.mode()`                         | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`            |
+| `vim.fn.line(expr)`                     | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)              |
+| `vim.fn.col(expr)`                      | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)               |
+| `vim.fn.getline(expr)`                  | Line content string           | `vim.fn.getline(".")` (callbacks only)           |
+| `vim.fn.tolower(s)`                     | Lowercase string              | `vim.fn.tolower("Hello")` → `"hello"`            |
+| `vim.fn.toupper(s)`                     | Uppercase string              | `vim.fn.toupper("Hello")` → `"HELLO"`            |
+| `vim.fn.trim(s)`                        | Trimmed string                | `vim.fn.trim("  hi  ")` → `"hi"`                 |
+| `vim.fn.strlen(s)`                      | String length                 | `vim.fn.strlen("hello")` → `5`                   |
+| `vim.fn.strwidth(s)`                    | Display width                 | `vim.fn.strwidth("hello")` → `5`                 |
+| `vim.fn.stridx(s, needle)`              | First index of needle         | `vim.fn.stridx("hello", "ll")` → `2`             |
+| `vim.fn.strridx(s, needle)`             | Last index of needle          | `vim.fn.strridx("abab", "ab")` → `2`             |
+| `vim.fn.strpart(s, start, len?)`        | Substring                     | `vim.fn.strpart("hello", 1, 3)` → `"ell"`        |
+| `vim.fn.substitute(s, pat, sub, flags)` | Regex replace                 | `vim.fn.substitute("hi", "h", "H", "")` → `"Hi"` |
+| `vim.fn.nr2char(n)`                     | Character from code point     | `vim.fn.nr2char(65)` → `"A"`                     |
+| `vim.fn.char2nr(c)`                     | Code point from character     | `vim.fn.char2nr("A")` → `65`                     |
+| `vim.fn.split(s, sep?)`                 | List (table) of parts         | `vim.fn.split("a,b", ",")`                       |
+| `vim.fn.join(list, sep?)`               | Joined string                 | `vim.fn.join({"a","b"}, "-")` → `"a-b"`          |
 
 ### vim.fn.has() features
 
@@ -278,6 +294,107 @@ end, {})
 
 Registered commands are immediately available via `:CommandName` in the ex command line. The function callback receives an `opts` table with an `args` field containing the argument string.
 
+## Autocommands
+
+Vim Motions supports a Neovim-compatible autocommand system for reacting to editor events.
+
+### Supported events
+
+| Event          | When it fires                           | Pattern support                                       |
+| -------------- | --------------------------------------- | ----------------------------------------------------- |
+| `InsertEnter`  | Entering insert or replace mode         | No                                                    |
+| `InsertLeave`  | Leaving insert or replace mode          | No                                                    |
+| `ModeChanged`  | Any mode transition                     | `"old:new"` with `*` wildcard                         |
+| `BufEnter`     | A file becomes the active note          | Vault-relative path globs (`"*.md"`, `"projects/**"`) |
+| `BufLeave`     | A file is deactivated (switching away)  | Vault-relative path globs                             |
+| `FocusGained`  | Obsidian window gains focus             | No                                                    |
+| `FocusLost`    | Obsidian window loses focus             | No                                                    |
+| `TextYankPost` | After yank, delete, or change operation | No                                                    |
+
+### Usage examples
+
+```lua
+-- Augroup with clear (recommended for config reloads)
+local g = vim.api.nvim_create_augroup("my-config", { clear = true })
+
+-- Notify on insert mode
+vim.api.nvim_create_autocmd("InsertEnter", {
+    group = g,
+    callback = function()
+        vim.notify("Insert mode")
+    end,
+})
+
+-- Per-folder settings
+vim.api.nvim_create_autocmd("BufEnter", {
+    group = g,
+    pattern = "projects/**",
+    callback = function(ev)
+        vim.opt.shiftwidth = 4
+    end,
+})
+
+-- React to mode changes
+vim.api.nvim_create_autocmd("ModeChanged", {
+    group = g,
+    pattern = "*:i",
+    callback = function(ev)
+        -- ev.data.old_mode and ev.data.new_mode available
+    end,
+})
+
+-- Auto-save on focus lost
+vim.api.nvim_create_autocmd("FocusLost", {
+    group = g,
+    callback = function()
+        vim.cmd("w")
+    end,
+})
+
+-- Track yank operations
+vim.api.nvim_create_autocmd("TextYankPost", {
+    group = g,
+    callback = function(ev)
+        -- ev.data.operator ("y", "d", "c")
+        -- ev.data.regcontents (table of lines)
+        -- ev.data.regtype ("V" linewise, "v" charwise)
+        -- ev.data.visual (boolean)
+    end,
+})
+```
+
+### Callback event data
+
+The callback receives a table with the following fields:
+
+```lua
+{
+    event = "BufEnter",
+    file = "projects/todo.md",  -- vault-relative
+    match = "projects/todo.md",
+    buf = 0,                    -- always 0
+    id = 42,                    -- autocmd ID
+    group = 1,                  -- group ID or nil
+    data = nil,                 -- event-specific (TextYankPost, ModeChanged)
+}
+```
+
+### Augroup management
+
+```lua
+local g = vim.api.nvim_create_augroup("name", { clear = true })
+vim.api.nvim_del_autocmd(id)
+vim.api.nvim_del_augroup_by_name("name")
+vim.api.nvim_clear_autocmds({ group = g, event = "InsertEnter" })
+```
+
+### ModeChanged pattern format
+
+- `"n:i"`: normal to insert
+- `"*:i"`: any mode to insert
+- `"i:*"`: insert to any mode
+- `"*:*"`: any transition
+
 ## vim.keymap.set options
 
 | Option    | Type    | Default | Description                              |
@@ -294,7 +411,7 @@ Registered commands are immediately available via `:CommandName` in the ex comma
 
 - Use **init.lua** (recommended) when you need conditional logic (per-vault config), function-based keymaps, or prefer Neovim-style Lua syntax
 - Use **vimrc** for simple key mappings and option settings if you prefer traditional Vimscript syntax
-- Both can be used together — init.lua loads after vimrc, and Lua values override vimrc values on conflict
+- Both can be used together: init.lua loads after vimrc, and Lua values override vimrc values on conflict
 
 ## Loading order
 
@@ -312,7 +429,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command` works, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
+> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, and `nvim_clear_autocmds` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `os`, `io`, `debug`, `load`, `dofile`, `loadfile`, and `require` are not available.
 
 ## Error handling
 

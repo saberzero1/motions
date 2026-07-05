@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
-import type { lua_State } from 'fengari';
 import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
+import { AutocmdManager } from '../../../src/lua/autocmd';
 import { injectVimFn } from '../../../src/lua/fn';
 
-function runLua(L: lua_State, code: string): number {
+type LuaState = ReturnType<typeof createSandboxedState>;
+
+function runLua(L: LuaState, code: string): number {
     return lauxlib.luaL_dostring(L, to_luastring(code));
 }
 
-function runLuaString(L: lua_State, code: string): string {
+function runLuaString(L: LuaState, code: string): string {
     const status = runLua(L, code);
     expect(status).toBe(lua.LUA_OK);
     const value = lua.lua_tolstring(L, -1);
@@ -18,7 +20,7 @@ function runLuaString(L: lua_State, code: string): string {
     return text;
 }
 
-function runLuaNumber(L: lua_State, code: string): number {
+function runLuaNumber(L: LuaState, code: string): number {
     const status = runLua(L, code);
     expect(status).toBe(lua.LUA_OK);
     const value = lua.lua_tonumber(L, -1);
@@ -26,7 +28,7 @@ function runLuaNumber(L: lua_State, code: string): number {
     return value;
 }
 
-function runLuaError(L: lua_State, code: string): string {
+function runLuaError(L: LuaState, code: string): string {
     const status = runLua(L, code);
     expect(status).not.toBe(lua.LUA_OK);
     const value = lua.lua_tolstring(L, -1);
@@ -46,14 +48,16 @@ function setupState(overrides?: {
     getLine?: (line: number) => string | null;
     getGlobal?: (name: string) => unknown;
     getOption?: (name: string) => unknown;
-}): lua_State {
+}): LuaState {
     const L = createSandboxedState();
+    const autocmdManager = new AutocmdManager(L);
     injectVimApi(L, {
         onSettingOverride: () => {},
         handleExCommand: () => {},
         getVaultName: () => 'vault',
         onKeymap: () => {},
         onKeymapDel: () => {},
+        autocmdManager,
     });
     injectVimFn(L, {
         getActiveFilePath: () =>

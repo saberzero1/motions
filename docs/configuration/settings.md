@@ -88,12 +88,11 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vimrc & key bindings
 
-| Name                     | Type   | Default   | Range/Options | Lua | Vimrc | Description                                          |
-| ------------------------ | ------ | --------- | ------------- | --- | ----- | ---------------------------------------------------- |
-| Load `.obsidian.vimrc`   | toggle | `true`    | —             | —   | —     | Load key mappings and settings from .obsidian.vimrc. |
-| Custom vimrc path        | text   | `(empty)` | —             | —   | —     | Path to a vimrc file in your vault.                  |
-| Enable Lua configuration | toggle | `false`   | (none)        | —   | —     | Load configuration from .obsidian.init.lua.          |
-| Custom Lua config path   | text   | `(empty)` | (none)        | —   | —     | Path to an init.lua file in your vault.              |
+| Name                 | Type     | Default     | Range/Options                           | Lua | Vimrc | Description                                                                  |
+| -------------------- | -------- | ----------- | --------------------------------------- | --- | ----- | ---------------------------------------------------------------------------- |
+| Configuration mode   | dropdown | `lua-vimrc` | `lua-vimrc`, `lua`, `vimrc`, `settings` | —   | —     | How the plugin loads config files. Lua + Vimrc loads both with Lua priority. |
+| Custom vimrc path    | text     | `(empty)`   | —                                       | —   | —     | Path to a vimrc file in your vault.                                          |
+| Custom init.lua path | text     | `(empty)`   | —                                       | —   | —     | Path to an init.lua file in your vault.                                      |
 
 ## Leader key bindings
 
@@ -127,7 +126,6 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 
 ## Settings not available via vimrc
 
-- **Load .obsidian.vimrc** (`enableVimrc`): Cannot be set via vimrc because the setting itself determines whether the vimrc is loaded (circular dependency).
-- **Enable Lua configuration** (`enableLuaConfig`): Cannot be set via vimrc or init.lua (circular dependency).
+- **Configuration mode** (`configMode`): Cannot be set via vimrc or init.lua because it controls which config files are loaded (circular dependency).
 - **Hint mode global hotkey** (`hintModeHotkey`): Requires a specialized recording UI to capture modifier keys and cannot be easily represented as a simple string in a vimrc file.
 - **Leader key bindings** (`leaderBindings`): While the plugin provides a UI for this, the same functionality is already achievable via standard `nmap <leader>...` commands in your vimrc.

@@ -93,7 +93,7 @@ export interface VimMotionsSettings {
     enableTextObjects: boolean;
     enableNavigation: boolean;
     enableWorkspaceNav: boolean;
-    enableVimrc: boolean;
+    configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
     enableChordDisplay: boolean;
     enablePowerline: boolean;
@@ -126,7 +126,6 @@ export interface VimMotionsSettings {
     whichKeyGroupLabels: GroupLabel[];
     whichKeyCommandLabels: CommandLabel[];
     vimrcPath: string;
-    enableLuaConfig: boolean;
     luaConfigPath: string;
     leaderBindings: LeaderBinding[];
 }
@@ -135,7 +134,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableTextObjects: true,
     enableNavigation: true,
     enableWorkspaceNav: true,
-    enableVimrc: true,
+    configMode: 'lua-vimrc',
     enableStatusBar: true,
     enableChordDisplay: true,
     enablePowerline: false,
@@ -168,7 +167,6 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     whichKeyGroupLabels: [],
     whichKeyCommandLabels: [],
     vimrcPath: '',
-    enableLuaConfig: false,
     luaConfigPath: '',
     leaderBindings: [],
 };
@@ -253,8 +251,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'cursorShapes.operatorPending',
         'scrolloffLines',
         'multilineScanLimit',
+        'configMode',
         'vimrcPath',
-        'enableLuaConfig',
         'luaConfigPath',
         'whichKeyMode',
         'whichKeyGrouping',
@@ -924,15 +922,45 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 heading: 'Vimrc & key bindings',
                 items: [
                     {
-                        name: `Load ${this.app.vault.configDir}.vimrc`,
+                        name: 'Configuration mode',
                         desc: this.describeOverride(
-                            'enableVimrc',
-                            `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
+                            'configMode',
+                            'How the plugin loads configuration files. Lua + Vimrc loads both with Lua taking precedence on conflicts.',
                         ),
+                        aliases: [
+                            'vimrc',
+                            'lua',
+                            'init.lua',
+                            'config mode',
+                            'configuration',
+                        ],
                         control: {
-                            type: 'toggle' as const,
-                            key: 'enableVimrc',
-                            disabled: () => this.isOverridden('enableVimrc'),
+                            type: 'dropdown' as const,
+                            key: 'configMode',
+                            options: {
+                                'lua-vimrc': 'Lua + Vimrc (recommended)',
+                                lua: 'Lua only',
+                                vimrc: 'Vimrc only',
+                                settings: 'Settings only',
+                            },
+                            disabled: () => this.isOverridden('configMode'),
+                        },
+                    },
+                    {
+                        name: 'Custom init.lua path',
+                        desc: `Path to an init.lua file in your vault. Leave empty to use the default ${this.app.vault.configDir}.init.lua.`,
+                        aliases: [
+                            'lua path',
+                            'lua config location',
+                            'lua sync',
+                        ],
+                        control: {
+                            type: 'text' as const,
+                            key: 'luaConfigPath',
+                            disabled: () =>
+                                ['vimrc', 'settings'].includes(
+                                    this.plugin.settings.configMode,
+                                ),
                         },
                     },
                     {
@@ -942,7 +970,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         control: {
                             type: 'text' as const,
                             key: 'vimrcPath',
-                            disabled: () => !this.plugin.settings.enableVimrc,
+                            disabled: () =>
+                                ['lua', 'settings'].includes(
+                                    this.plugin.settings.configMode,
+                                ),
                         },
                     },
                 ],
@@ -2024,56 +2055,31 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl).setName('Vimrc & key bindings').setHeading();
 
         new Setting(containerEl)
-            .setName(`Load ${this.app.vault.configDir}.vimrc`)
+            .setName('Configuration mode')
             .setDesc(
                 describeOverride(
-                    'enableVimrc',
-                    `Load key mappings and settings from ${this.app.vault.configDir}.vimrc in your vault root.`,
+                    'configMode',
+                    'How the plugin loads configuration files. Lua + Vimrc loads both with Lua taking precedence on conflicts.',
                 ),
             )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableVimrc)
-                    .setDisabled(isOverridden('enableVimrc'))
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        'lua-vimrc': 'Lua + Vimrc (recommended)',
+                        lua: 'Lua only',
+                        vimrc: 'Vimrc only',
+                        settings: 'Settings only',
+                    })
+                    .setValue(this.plugin.settings.configMode)
+                    .setDisabled(isOverridden('configMode'))
                     .onChange(async (value) => {
-                        this.plugin.settings.enableVimrc = value;
-                        this.plugin.vimrcOverrides?.delete('enableVimrc');
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Custom vimrc path')
-            .setDesc(
-                `Path to a vimrc file in your vault. Leave empty to use the default ${this.app.vault.configDir}.vimrc.`,
-            )
-            .addText((text) => {
-                text.setPlaceholder(`${this.app.vault.configDir}.vimrc`)
-                    .setValue(this.plugin.settings.vimrcPath)
-                    .setDisabled(!this.plugin.settings.enableVimrc)
-                    .onChange(async (value) => {
-                        this.plugin.settings.vimrcPath = value;
-                        await this.plugin.saveSettings();
-                    });
-                new VimrcFileSuggest(this.app, text.inputEl);
-            });
-
-        new Setting(containerEl)
-            .setName(`Load ${this.app.vault.configDir}.init.lua`)
-            .setDesc(
-                describeOverride(
-                    'enableLuaConfig',
-                    `Experimental: load key mappings and settings from ${this.app.vault.configDir}.init.lua in your vault root.`,
-                ),
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableLuaConfig)
-                    .setDisabled(isOverridden('enableLuaConfig'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableLuaConfig = value;
-                        this.plugin.vimrcOverrides?.delete('enableLuaConfig');
-                        this.plugin.luaOverrides?.delete('enableLuaConfig');
+                        this.plugin.settings.configMode = value as
+                            | 'lua-vimrc'
+                            | 'lua'
+                            | 'vimrc'
+                            | 'settings';
+                        this.plugin.vimrcOverrides?.delete('configMode');
+                        this.plugin.luaOverrides?.delete('configMode');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -2086,9 +2092,33 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             .addText((text) => {
                 text.setPlaceholder(`${this.app.vault.configDir}.init.lua`)
                     .setValue(this.plugin.settings.luaConfigPath)
-                    .setDisabled(!this.plugin.settings.enableLuaConfig)
+                    .setDisabled(
+                        ['vimrc', 'settings'].includes(
+                            this.plugin.settings.configMode,
+                        ),
+                    )
                     .onChange(async (value) => {
                         this.plugin.settings.luaConfigPath = value;
+                        await this.plugin.saveSettings();
+                    });
+                new VimrcFileSuggest(this.app, text.inputEl);
+            });
+
+        new Setting(containerEl)
+            .setName('Custom vimrc path')
+            .setDesc(
+                `Path to a vimrc file in your vault. Leave empty to use the default ${this.app.vault.configDir}.vimrc.`,
+            )
+            .addText((text) => {
+                text.setPlaceholder(`${this.app.vault.configDir}.vimrc`)
+                    .setValue(this.plugin.settings.vimrcPath)
+                    .setDisabled(
+                        ['lua', 'settings'].includes(
+                            this.plugin.settings.configMode,
+                        ),
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.vimrcPath = value;
                         await this.plugin.saveSettings();
                     });
                 new VimrcFileSuggest(this.app, text.inputEl);
