@@ -91,6 +91,46 @@ whichkeylabel gO Document outline
 
 Command labels can also be configured in **Settings → Vim Motions → Which-key command labels**. Labels set in vimrc appear as read-only rows in the settings UI.
 
+## Batch labels (`add()`)
+
+Define multiple group and command labels at once with `vim.obsidian.whichkey.add()`, similar to Neovim's [which-key.nvim](https://github.com/folke/which-key.nvim) `wk.add()` syntax:
+
+```lua
+vim.obsidian.whichkey.add({
+    { "<leader>f", group = "Find" },
+    { "<leader>g", group = "Git" },
+    { "<leader>t", group = "Table" },
+    { "<leader>w", desc = "Save file" },
+    { "<leader>q", desc = "Close tab" },
+})
+```
+
+Each entry is a table where the first element is the key sequence. Use `group` to name a prefix group or `desc` to label an individual binding.
+
+The `context` field works the same as in `set_group`/`set_label`:
+
+```lua
+vim.obsidian.whichkey.add({
+    { "<leader>f", group = "Find", context = "global" },
+    { "<leader>e", desc = "Reveal in explorer", context = "global" },
+})
+```
+
+> [!tip] Neovim-style `wk` shorthand
+> Assign `vim.obsidian.whichkey` to a local for a more familiar feel:
+>
+> ```lua
+> local wk = vim.obsidian.whichkey
+> wk.add({
+>     { "<leader>f", group = "Find" },
+>     { "<leader>g", group = "Git" },
+>     { "<leader>t", group = "Table" },
+> })
+> ```
+
+> [!info] Reserved fields
+> The `mode` field is accepted but currently ignored. It is reserved for future mode-scoped label support.
+
 ## Merge behavior
 
 Group and command labels from Lua, vimrc, and Settings are merged. If the same key appears in multiple sources, the hierarchy is: Lua > vimrc > Settings.

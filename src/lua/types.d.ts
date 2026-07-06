@@ -76,6 +76,7 @@ declare module 'fengari' {
         luaL_ref: (L: lua_State, t: number) => number;
         luaL_unref: (L: lua_State, t: number, ref: number) => void;
         luaL_error: (L: lua_State, message: Uint8Array) => number;
+        luaL_len: (L: lua_State, index: number) => number;
     };
 
     export const lualib: {

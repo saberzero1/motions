@@ -88,6 +88,7 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap              | see Obsidian namespace               |
 | `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group              | see Obsidian namespace               |
 | `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding           | see Obsidian namespace               |
+| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels  | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console          | `print("loaded")`                    |
 
 ## Supported vim.opt options
@@ -601,6 +602,7 @@ Set group and command labels for the which-key popup. Labels from `vim.keymap.se
 | ---------------------------------------------------- | ------------------------------------- |
 | `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group by prefix      |
 | `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label an individual which-key binding |
+| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels    |
 
 ```lua
 vim.obsidian.whichkey.set_group("<leader>t", "Table")
@@ -613,6 +615,23 @@ vim.obsidian.whichkey.set_label("<leader>f", "Open file", { context = "global" }
 ```
 
 The `context` option defaults to `"editor"`. Use `{ context = "global" }` for labels in the non-editor which-key overlay.
+
+The `add()` function accepts a table of entries for batch configuration, similar to [which-key.nvim](https://github.com/folke/which-key.nvim)'s `wk.add()`:
+
+```lua
+local wk = vim.obsidian.whichkey
+wk.add({
+    { "<leader>f", group = "Find" },
+    { "<leader>g", group = "Git" },
+    { "<leader>t", group = "Table" },
+    { "<leader>w", desc = "Save file" },
+    { "<leader>q", desc = "Close tab" },
+})
+```
+
+Each entry uses `group` for prefix labels or `desc` for individual binding labels. The `context` and `mode` fields are supported per entry (`mode` is reserved for future use).
+
+See [[which-key#Batch labels (`add()`)]] for details.
 
 ## Environment variables
 

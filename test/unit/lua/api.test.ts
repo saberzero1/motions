@@ -787,6 +787,201 @@ describe('vim api', () => {
             );
             destroyState(L);
         });
+
+        it('should batch-add group and command labels with add()', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            const onWhichKeyCommandLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+                onWhichKeyCommandLabel,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.obsidian.whichkey.add({
+                        { "<leader>f", group = "Find" },
+                        { "<leader>g", group = "Git" },
+                        { "<leader>w", desc = "Save file" },
+                    })
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledTimes(2);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',f',
+                'Find',
+                'editor',
+            );
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',g',
+                'Git',
+                'editor',
+            );
+            expect(onWhichKeyCommandLabel).toHaveBeenCalledTimes(1);
+            expect(onWhichKeyCommandLabel).toHaveBeenCalledWith(
+                ',w',
+                'Save file',
+                'editor',
+            );
+            destroyState(L);
+        });
+
+        it('should support global context in add()', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            const onWhichKeyCommandLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+                onWhichKeyCommandLabel,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.obsidian.whichkey.add({
+                        { "<leader>f", group = "Find", context = "global" },
+                        { "<leader>e", desc = "Explorer", context = "global" },
+                    })
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',f',
+                'Find',
+                'global',
+            );
+            expect(onWhichKeyCommandLabel).toHaveBeenCalledWith(
+                ',e',
+                'Explorer',
+                'global',
+            );
+            destroyState(L);
+        });
+
+        it('should skip entries without a key in add()', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.obsidian.whichkey.add({
+                        { group = "No key" },
+                        { "<leader>t", group = "Table" },
+                    })
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledTimes(1);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',t',
+                'Table',
+                'editor',
+            );
+            destroyState(L);
+        });
+
+        it('should skip entries with neither group nor desc in add()', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            const onWhichKeyCommandLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+                onWhichKeyCommandLabel,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.obsidian.whichkey.add({
+                        { "<leader>x" },
+                        { "<leader>t", group = "Table" },
+                    })
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledTimes(1);
+            expect(onWhichKeyCommandLabel).toHaveBeenCalledTimes(0);
+            destroyState(L);
+        });
+
+        it('should error when add() receives a non-table argument', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.obsidian.whichkey.add("not a table")'),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
+            destroyState(L);
+        });
+
+        it('should ignore reserved mode field in add()', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.obsidian.whichkey.add({
+                        { "<leader>t", group = "Table", mode = { "n", "v" } },
+                    })
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',t',
+                'Table',
+                'editor',
+            );
+            destroyState(L);
+        });
     });
 
     describe('vim.g.mode_prompt', () => {

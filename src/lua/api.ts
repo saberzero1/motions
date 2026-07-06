@@ -809,6 +809,48 @@ export function injectVimApi(
         return 0;
     });
     lua.lua_setfield(L, obsWhichkeyIndex, to_luastring('set_label'));
+    // vim.obsidian.whichkey.add(entries)
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (!lua.lua_istable(state, 1)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.whichkey.add expects a table of entries',
+                ),
+            );
+        }
+        const leaderKey = getLeaderKey();
+        const len = lauxlib.luaL_len(state, 1);
+        for (let i = 1; i <= len; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (!lua.lua_istable(state, -1)) {
+                lua.lua_pop(state, 1);
+                continue;
+            }
+            const entryIndex = lua.lua_gettop(state);
+            lua.lua_rawgeti(state, entryIndex, 1);
+            const keyRaw = readLuaString(state, -1);
+            lua.lua_pop(state, 1);
+            if (!keyRaw) {
+                lua.lua_pop(state, 1);
+                continue;
+            }
+            const key = replaceLeaderKey(keyRaw, leaderKey);
+            let context: 'editor' | 'global' = 'editor';
+            const ctx = readStringField(state, entryIndex, 'context');
+            if (ctx === 'global') context = 'global';
+            const group = readStringField(state, entryIndex, 'group');
+            const desc = readStringField(state, entryIndex, 'desc');
+            if (group) {
+                callbacks.onWhichKeyGroupLabel?.(key, group, context);
+            } else if (desc) {
+                callbacks.onWhichKeyCommandLabel?.(key, desc, context);
+            }
+            lua.lua_pop(state, 1);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, obsWhichkeyIndex, to_luastring('add'));
     lua.lua_setfield(L, obsidianIndex, to_luastring('whichkey'));
 
     lua.lua_pushvalue(L, obsidianIndex);

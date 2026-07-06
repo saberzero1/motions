@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`vim.obsidian.whichkey.add()` — batch which-key label configuration** — define multiple group and command labels in a single call, similar to Neovim's [which-key.nvim](https://github.com/folke/which-key.nvim) `wk.add()` syntax ([#27](https://github.com/saberzero1/motions/issues/27))
+    - `vim.obsidian.whichkey.add({ { "<leader>f", group = "Find" }, { "<leader>w", desc = "Save" } })` — each entry uses `group` for prefix labels or `desc` for individual binding labels
+    - Per-entry `context` field: `"editor"` (default) or `"global"` for non-editor which-key overlay
+    - `mode` field accepted but reserved for future mode-scoped label support
+    - Entries without a key string or without `group`/`desc` are silently skipped
+    - Shorthand: `local wk = vim.obsidian.whichkey; wk.add({ ... })` for Neovim-familiar syntax
+    - Plugin: `src/lua/api.ts` (`vim.obsidian.whichkey.add`), `src/lua/types.d.ts` (`luaL_len` type)
+
 ### Changed
 
 - **Config file fallback chains** — vimrc and Lua config files are now resolved via a fallback chain instead of a single hardcoded path. The plugin searches the vault root for the first matching file. Custom path overrides still take priority.
@@ -21,9 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `docs/configuration/vimrc.md`: file location section rewritten with full fallback chain table
-- `docs/configuration/lua-config.md`: file location section rewritten with full fallback chain table
+- `docs/configuration/lua-config.md`: file location section rewritten with full fallback chain table; added `vim.obsidian.whichkey.add()` to API summary table and Obsidian namespace section with `wk.add()` example
 - `docs/configuration/settings.md`: custom path setting descriptions updated with fallback chain lists
+- `docs/configuration/which-key.md`: added "Batch labels (`add()`)" section with Neovim-style `wk.add()` syntax, `local wk` shorthand tip, and reserved `mode` field callout
 - `docs/guides/migrating-from-vimrc-support.md`: custom vimrc path section updated with fallback chain
+- `KNOWN_LIMITATIONS.md`: updated supported Lua APIs list to include `vim.obsidian.whichkey.add()`
 
 ## [0.36.0] - 2026-07-06
 
