@@ -60,6 +60,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Surround opening bracket semantics (`ds(`/`ds[`/`ds{`/`cs({`)** — `findSurroundingBrackets` received swapped parameters when the target was an opening bracket (`(`, `[`, `{`, `<`), causing the backward search to look for the wrong bracket character. `ds(` on `( hello world )` was a no-op because the search looked for `)` going backward. Fixed by detecting opening bracket targets and swapping parameters so the closing bracket is always passed as the forward-search character. Also fixes `cs({`, `ds(` on nested/multiline content, and `ds<`. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `src/vim.js` — `findSurroundingPair` bracket parameter ordering
+- **Surround cursor position after `ys`/`yss`/visual `S`** — `addSurroundToRange` placed the cursor at `from.ch + pair.open.length` (after the opening delimiter). nvim-surround places it at `from.ch` (on the opening delimiter). Fixed by removing `+ pair.open.length`. The `_surroundSelOffset.chDelta` used for dot-repeat now adds `pair.open.length` at recording time to compensate, preserving correct visual surround replay ranges. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `src/vim.js` — `addSurroundToRange` cursor, `surroundVisual` offset recording
 - **Visual-block cursor displaced rightward at end-of-line** — in visual-block mode (`<C-v>`), selecting to the end of a line (via `$` or `l` to EoL) caused the block cursor to render one position past the last visible character. The `measureCursor()` function in the fork's `block-cursor.ts` had a guard (`!vim.visualBlock`) that prevented the EOL step-back for visual-block mode. This guard was originally correct when `makeCmSelection` produced `toCh + 1` without clamping, but after the per-line clamping fix (issue #38), block selection heads legitimately land on newline positions and need the step-back. Fixed by removing the `!vim.visualBlock` exclusion. ([#41](https://github.com/saberzero1/motions/issues/41))
     - Fork: `src/block-cursor.ts` — `measureCursor()` EOL adjustment guard
 - **Visual-block `A` skips short lines instead of padding** — in visual-block mode, `A` (append) on a block spanning lines shorter than the block column skipped those lines entirely. Neovim pads short lines with spaces to reach the block's right edge before appending. Fixed by adding a `padShortLines` parameter to `selectForInsert` in the fork — `A` pads, `I` still skips (matching Neovim). ([#41](https://github.com/saberzero1/motions/issues/41))
@@ -80,15 +84,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `docs/configuration/lua-config.md`: added `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), editor state functions (5 functions) with API tables and examples
 - `KNOWN_LIMITATIONS.md`: added "Workspace navigation in plugin views" section documenting three-gate interception and the `gg`-in-plugin-leaf trade-off; marked #47 as fixed; added "Neovim golden test coverage gaps" section documenting non-verifiable areas (scroll/viewport, fold, jumplist, cursor rendering); updated visual mode EOL cursor section with visual-block `A` padding and visual `r` off-by-one fixes
-- **Neovim golden test coverage expansion** — 61 new golden comparison test cases across 5 suites, recorded against Neovim 0.12.2:
-    - `surround` (29 cases): `ds`/`cs`/`ys`/`yss`/visual `S` with quotes, parens, brackets, braces, backticks, aliases, nesting, multiline, cursor position — recorded with tpope/vim-surround loaded via per-suite `nvimSetup`
+- **Neovim golden test coverage expansion** — 106 new golden comparison test cases across 6 suites, recorded against Neovim 0.12.2:
+    - `surround` (74 cases): comprehensive nvim-surround parity — `ds`/`cs`/`ys`/`yss`/visual `S` with all delimiter types, count-prefixed operations (`2dsb`, `2csbB`), dot-repeat (`ysiwb..`, `dsb..`, `csba..`), tag surround (`dst`, `cst`), function surround (`dsf`), `ysa` (around surround), empty content, whitespace cascade (`ds{` strips / `ds}` preserves), motion-based (`ys$`, `ysjb`), newline variants (`ySS`, `VSB`), angle brackets, arbitrary delimiters (`|`, `^`), multiline, nesting, and cursor positioning. **Ground truth shifted from tpope/vim-surround to [nvim-surround](https://github.com/kylechui/nvim-surround)** — better maintained, comprehensive test suite, Lua-native, superset of tpope behavior. 54 pass, 20 tracked deviations.
     - `dot-repeat` (17 cases): `.` after `2dw`, `dd`, `3i`, `3o`, `cw`, `R`, `2dl`, `d2w`, `g~2w`, `V>`, `3J`, `3I`, visual block `~`, `o`
     - `select-mode-extended` (6 cases): `gh`/`gH` enter select, type replaces, `<BS>` deletes, `<Esc>` exits, `<C-g>` toggles visual↔select
     - `ex-sort` (6 cases): `:sort`, `:sort!`, `:sort i`, `:sort u`, `:sort n`, `:2,3sort`
     - `ex-global` (3 cases): `:g/pattern/d`, `:v/pattern/d`, `:g/a/s/a/x/`
     - `upstream-gaps` (7 cases): `dip` paragraph, backward block `A`, block `A` short-line padding, visual `r` cross-line, block↔char/line mode switch, macro replay
-    - Test infrastructure: `SuiteDefinition.nvimSetup` field for per-suite Neovim commands (loads vim-surround plugin for surround suite), `NeovimClient.executeCommand()` method
-    - Total golden test coverage: 276 → 337 cases across 28 suites
+    - Test infrastructure: `SuiteDefinition.nvimSetup` field for per-suite Neovim commands (loads nvim-surround for surround suite), `NeovimClient.executeCommand()` method
+    - Total golden test coverage: 276 → 382 cases across 28 suites
 - `docs/configuration/settings.md`: added `Workspace navigation view types` to Vim features table
 - `docs/configuration/vimrc.md`: added `workspacenavviewtypes` (`wnvt` alias) to string options table
 - `docs/configuration/lua-config.md`: added 17 new `vim.ob.*` functions, 3 new autocmd events (`LeafEnter`, `LeafLeave`, `FileType`), `workspacenavviewtypes` option

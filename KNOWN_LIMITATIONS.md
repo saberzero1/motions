@@ -590,18 +590,34 @@ When using `<C-v>` block visual mode with `A` (append) on a block spanning lines
 
 The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode. Since `cm.getRange(from, to)` treats `to` as exclusive, this replaced one fewer character than the visual selection covered when the selection spanned a newline. For example, `vjhr ` from position (0,4) on `wuuuet\nanother` replaced 5 characters instead of 6, producing `wuuu  \n   ther` instead of the correct `wuuu  \n    her`. Fixed by using `new Pos(selEnd.line, selEnd.ch + 1)` for `curEnd`, matching the inclusive-to-exclusive conversion used elsewhere (e.g. `makeCmSelection` char mode). ([#41](https://github.com/saberzero1/motions/issues/41))
 
-## Surround Neovim parity gaps
+## Surround nvim-surround parity gaps
 
-**Status**: 14 deviations from vim-surround behavior detected via golden comparison (Neovim 0.12.2 + tpope/vim-surround). Content is correct for 15/29 test cases.
+**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **54 pass, 20 deviations tracked.** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
 
-Detected deviations (deferred — surround is functional, these are edge-case accuracy gaps):
+**Fixed in this release** (previously 14 deviations, now resolved):
 
-- **Opening bracket `ds(`/`ds[`/`ds{` does not strip inner padding** — vim-surround distinguishes `ds(` (strip delimiters AND inner padding spaces) from `ds)` (strip delimiters only). The fork treats both identically (strip delimiters only). Same issue for `cs({` where the opening bracket as target should strip spaces before changing.
-- **Cursor position after `ys`/`yss`/visual `S`** — the fork places the cursor at `ch:1` (after the opening delimiter); vim-surround places it at `ch:0` (on the opening delimiter). Consistent off-by-one across all surround-add operations.
-- **`ds(` on nested parens at cursor position 0** — the fork doesn't search outward for the enclosing pair when the cursor is on the opening delimiter at position 0.
-- **`ds(` multiline** — the fork doesn't handle `ds(` when the opening and closing parens are on different lines.
+- Opening bracket `ds(`/`ds[`/`ds{` now works — `findSurroundingBrackets` parameter swap fixed
+- Cursor position after `ys`/`yss`/visual `S` now at `ch:0` (on the delimiter) — matching nvim-surround
+- `ds(` on nested parens and multiline content now works
+- `cs({` now correctly finds and changes parens to braces with spaces
 
-**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 29 golden tests, 15 passing.
+**Remaining deviations** (20 cases, deferred — surround is functional for all common operations):
+
+| Category                         | Count | Description                                                                                      |
+| -------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| Count-prefixed `ds`/`cs`         | 4     | `2dsb`, `3dsb`, `2csbB`, `3csbr` — count iteration with bracket aliases doesn't work             |
+| `dsf` (function call delete)     | 3     | Not implemented — nvim-surround extension for deleting surrounding function calls                |
+| Tag `cst`/`yst` (change/add tag) | 3     | Tag input prompt dispatch differs in test infrastructure                                         |
+| `ds}` space preservation         | 1     | `ds}` strips inner spaces; nvim-surround preserves them (only opening bracket form should strip) |
+| `ds<` space stripping            | 1     | Angle bracket opening form doesn't strip spaces                                                  |
+| `ys` with line motions           | 2     | `ysjb`, `ys2jB` — linewise motion range incorrect                                                |
+| `ySS`/`VSB` newline variants     | 2     | Indentation handling differs from nvim-surround                                                  |
+| Multiline `dsb`                  | 1     | Cursor position after multiline bracket deletion                                                 |
+| Visual block `$ S}`              | 1     | Wraps entire block instead of per-line surround                                                  |
+| `cs` chained operations          | 1     | `csbB` then `ysaBb` — cursor position prevents second operation from finding correct text object |
+| `cs` dot-repeat                  | 1     | `csba..` — dot-repeat for `cs` doesn't preserve target+replacement pair correctly                |
+
+**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests, 54 passing, 20 tracked deviations.
 
 ## Test-discovered behavioral discrepancies
 

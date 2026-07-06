@@ -1,7 +1,7 @@
 {
     "suite": "surround",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-06T17:54:55.926Z",
+    "recorded_at": "2026-07-06T19:58:59.428Z",
     "cases": [
         {
             "name": "ds\" removes double quotes",
@@ -546,7 +546,862 @@
             },
             "keys": "ds(",
             "result": {
-                "content": "hello\nworld\n",
+                "content": "\nhello\nworld\n",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2dsb removes 2nd-level parens",
+            "initial": {
+                "content": "((foo) bar (baz))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "2dsb",
+            "result": {
+                "content": "foo bar (baz)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3dsb removes 3 levels of parens",
+            "initial": {
+                "content": "(((foo)))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "3dsb",
+            "result": {
+                "content": "foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2csbB changes 2nd-level parens to braces",
+            "initial": {
+                "content": "((foo) bar (baz))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "2csbB",
+            "result": {
+                "content": "{{foo} bar (baz)}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3csbr changes 3 levels to brackets",
+            "initial": {
+                "content": "(((foo)))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "3csbr",
+            "result": {
+                "content": "[[[foo]]]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2ysiw* adds double-star bold",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2ysiw*",
+            "result": {
+                "content": "**hello** world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2yss* double-star entire line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "2yss*",
+            "result": {
+                "content": "**hello world**",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiwb then . dot-repeat adds layers",
+            "initial": {
+                "content": "test",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiwb..",
+            "result": {
+                "content": "((())test)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsb then . dot-repeat removes layers",
+            "initial": {
+                "content": "(((test)))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dsb..",
+            "result": {
+                "content": "test",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "csba then . dot-repeat changes layers",
+            "initial": {
+                "content": "(((test)))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "csba..",
+            "result": {
+                "content": "<<<test>>>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dst deletes surrounding tag",
+            "initial": {
+                "content": "<div>hello</div>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "dst",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cst<p> changes tag to p",
+            "initial": {
+                "content": "<em>hello</em>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "cst<p>\n",
+            "result": {
+                "content": "<>hello</>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiwtdiv wraps word with div tag",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiwt div\n",
+            "result": {
+                "content": "< div>hello</> world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cst\" changes tag to quotes",
+            "initial": {
+                "content": "<em>hello</em>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "cst\"",
+            "result": {
+                "content": "<em>hello</em>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "c"
+            }
+        },
+        {
+            "name": "dst on nested removes inner tag",
+            "initial": {
+                "content": "<div><em>hello</em></div>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                }
+            },
+            "keys": "dst",
+            "result": {
+                "content": "<div>hello</div>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsf deletes surrounding function call",
+            "initial": {
+                "content": "some_func(some_args)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dsf",
+            "result": {
+                "content": "some_args",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsf on nested removes outer",
+            "initial": {
+                "content": "nested(functions(here))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dsf",
+            "result": {
+                "content": "functions(here)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsf on nested removes inner",
+            "initial": {
+                "content": "nested(functions(here))",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                }
+            },
+            "keys": "dsf",
+            "result": {
+                "content": "nested(here)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysa\"b adds parens around quoted text",
+            "initial": {
+                "content": "\"hello\"",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "ysa\"b",
+            "result": {
+                "content": "(\"hello\")",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsb on empty parens",
+            "initial": {
+                "content": "()",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dsb",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsB on empty multiline braces",
+            "initial": {
+                "content": "{\n\n}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dsB",
+            "result": {
+                "content": "\n\n",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "csba changes parens to angle brackets",
+            "initial": {
+                "content": "(hello)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "csba",
+            "result": {
+                "content": "<hello>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "csBr changes multiline braces to brackets",
+            "initial": {
+                "content": "{\n\n}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "csBr",
+            "result": {
+                "content": "[\n\n]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiw} closing brace no space",
+            "initial": {
+                "content": "sample_text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiw}",
+            "result": {
+                "content": "{sample_text}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiw{ opening brace with space",
+            "initial": {
+                "content": "sample_text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiw{",
+            "result": {
+                "content": "{ sample_text }",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ds{ strips spaces from braces",
+            "initial": {
+                "content": "({ sample_text })",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "ds{",
+            "result": {
+                "content": "(sample_text)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ds} preserves spaces from braces",
+            "initial": {
+                "content": "({ sample_text })",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "ds}",
+            "result": {
+                "content": "( sample_text )",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yssb surrounds line with parens via alias",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yssb",
+            "result": {
+                "content": "(hello world)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ys$ surrounds to end of line",
+            "initial": {
+                "content": "string x = some text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                }
+            },
+            "keys": "ys$\"",
+            "result": {
+                "content": "string x = \"some text\"",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysjb surrounds current and next line",
+            "initial": {
+                "content": "line one\nline two\nline three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysjb",
+            "result": {
+                "content": "(line one\nline two)\nline three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ys2jB surrounds 3 lines with braces",
+            "initial": {
+                "content": "first\nsecond\nthird\nfourth\nfifth",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "ys2jB",
+            "result": {
+                "content": "first\n{second\nthird\nfourth}\nfifth",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ySS] surrounds line on new lines",
+            "initial": {
+                "content": "current line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "ySSr",
+            "result": {
+                "content": "[\ncurrent line\n]",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "VSB linewise visual surround with braces",
+            "initial": {
+                "content": "current line",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "VSB",
+            "result": {
+                "content": "{\ncurrent line\n}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dsb on multiline function",
+            "initial": {
+                "content": "local func = function()\n    local x = 1\nend",
+                "cursor": {
+                    "line": 0,
+                    "ch": 21
+                }
+            },
+            "keys": "dsb",
+            "result": {
+                "content": "local func = function\n    local x = 1\nend",
+                "cursor": {
+                    "line": 0,
+                    "ch": 20
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "visual block $ S} surrounds ragged lines",
+            "initial": {
+                "content": "some more text\nsome lines\nhello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\u0016jj$S}",
+            "result": {
+                "content": "{some more text}\n{some lines}\n{hello world}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ds on Windows line endings",
+            "initial": {
+                "content": "(hello world)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dsb",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiw] then ysa]B wraps layer",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiw]ysa]B",
+            "result": {
+                "content": "{[hello]} world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cs)B changes parens to braces",
+            "initial": {
+                "content": "(hello)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "cs)B",
+            "result": {
+                "content": "{hello}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "csbB then ysaBb chain",
+            "initial": {
+                "content": "(hello)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "csbBysaBb",
+            "result": {
+                "content": "({hello})",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiw> surrounds with angle no space",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiw>",
+            "result": {
+                "content": "<hello> world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ysiw< surrounds with angle with space",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ysiw<\n",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ds> removes angle brackets",
+            "initial": {
+                "content": "<hello>",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "ds>",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ds< removes angle brackets with spaces",
+            "initial": {
+                "content": "< hello >",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "ds<",
+            "result": {
+                "content": "< hello >",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yss| surrounds with pipe",
+            "initial": {
+                "content": "sample text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yss|",
+            "result": {
+                "content": "|sample text|",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cs|^ changes pipe to caret",
+            "initial": {
+                "content": "|sample text|",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "cs|^",
+            "result": {
+                "content": "^sample text^",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ds^ removes carets",
+            "initial": {
+                "content": "^sample text^",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "ds^",
+            "result": {
+                "content": "sample text",
                 "cursor": {
                     "line": 0,
                     "ch": 0

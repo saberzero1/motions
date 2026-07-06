@@ -6,7 +6,7 @@ tags:
     - keybindings
 ---
 
-The surround feature brings the power of `vim-surround` to Obsidian. It allows you to add, change, and delete surrounding delimiters like brackets, quotes, and HTML tags. This implementation includes native support for Markdown formatting marks and function wrapping.
+The surround feature brings the power of [nvim-surround](https://github.com/kylechui/nvim-surround) (the Lua successor to tpope's vim-surround) to Obsidian. It allows you to add, change, and delete surrounding delimiters like brackets, quotes, and HTML tags. This implementation includes native support for Markdown formatting marks, function wrapping, and custom surround pairs.
 
 > [!info]
 > For the best experience, disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings**. This enables the plugin's bundled fork mode, which provides full surround support and Neovim-correct behavior.
@@ -121,4 +121,32 @@ See [[lua-config#Custom surround pairs]] for the full API reference.
 
 All surround commands support the `.` command. You can repeat your last add, change, or delete operation across different parts of your document.
 
-See [[known-limitations#Vim engine]] for surround operator scope details.
+## nvim-surround parity
+
+The surround implementation is verified against [nvim-surround](https://github.com/kylechui/nvim-surround) via 74 Neovim golden comparison tests. 54 tests pass, 20 deviations are tracked for future improvement.
+
+**Working features** (verified against nvim-surround):
+
+- All `ds`/`cs`/`ys`/`yss`/visual `S` with quotes, brackets, parens, braces, backticks, angle brackets
+- Opening vs closing bracket distinction: `ds(` strips inner spaces, `ds)` preserves them; `ysiw(` adds spaces, `ysiw)` doesn't
+- Cursor position after surround-add operations (on the opening delimiter)
+- Tag operations: `dst` (delete tag), `cst"` (change tag to quotes)
+- Count-prefixed Markdown formatting: `2ysiw*` for bold, `2ds*` to delete
+- Dot-repeat for `ys`, `ds`, and visual `S`
+- Nested and multiline bracket operations
+- Empty content surround (`dsb` on `()`, surround empty lines)
+- Aliases: `b`→`)`, `B`→`}`, `r`→`]`, `a`→`>`
+- Custom surround pairs via Lua/vimrc
+- Arbitrary delimiter characters (`|`, `^`, etc.)
+
+**Known gaps** (tracked as deviations):
+
+- Count-prefixed `ds`/`cs` with aliases (`2dsb`, `3csbr`) — count iteration doesn't work correctly
+- `dsf` (delete surrounding function call) — not yet implemented (nvim-surround extension)
+- `cst<tag>` / `ysiwtdiv` — tag input via golden test dispatch
+- `ds}` doesn't preserve inner spaces (strips them like `ds(`)
+- `ys` with line-crossing motions (`ysjb`, `ys2jB`)
+- `ySS`/`VSB` newline/linewise surround variants
+- Visual block `$` surround, chained `cs` operations
+
+See [[known-limitations#Surround nvim-surround parity gaps]] for the full deviation list.
