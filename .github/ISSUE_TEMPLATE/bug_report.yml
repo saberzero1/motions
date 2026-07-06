@@ -75,6 +75,13 @@ body:
           render: vim
 
     - type: textarea
+      id: init-lua
+      attributes:
+          label: init.lua content (if relevant)
+          description: Paste your `init.lua` if the issue involves key mappings or lua settings.
+          render: lua
+
+    - type: textarea
       id: other-plugins
       attributes:
           label: Other Vim-related plugins
