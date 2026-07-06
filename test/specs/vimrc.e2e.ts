@@ -1033,4 +1033,35 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             },
         );
     });
+
+    describe('surroundmap / surroundunmap', function () {
+        it('VimApi should have registerSurroundPair method', async function () {
+            await loadVimrc('');
+            const result = await browser.executeObsidian(() => {
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: Record<string, unknown>;
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                return {
+                    hasVim: !!Vim,
+                    typeofRegister: typeof Vim?.registerSurroundPair,
+                };
+            });
+            expect(result.hasVim).toBe(true);
+            expect(result.typeofRegister).toBe('function');
+        });
+
+        it('surroundmap should parse without crashing', async function () {
+            await loadVimrc('surroundmap l [[ ]]\n');
+            await assertPluginLoaded();
+        });
+
+        it('surroundunmap should parse without crashing', async function () {
+            await loadVimrc('surroundmap l [[ ]]\nsurroundunmap l\n');
+            await assertPluginLoaded();
+        });
+    });
 });

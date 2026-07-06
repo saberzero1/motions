@@ -1,5 +1,12 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
+import {
+    setupEditor,
+    vimKeys,
+    getEditorValue,
+    sendVimEscape,
+    PAUSE,
+} from '../helpers';
 
 async function loadLuaConfig(content: string): Promise<void> {
     await browser.reloadObsidian({ vault: 'test-vault' });
@@ -459,38 +466,87 @@ describe('Lua config support', function () {
         expect(prompts).toHaveProperty('insert', 'INS');
     });
 
-    it('should collect vim.obsidian.surround.set pairs', async function () {
+    it('should apply custom surround pair via vim.obsidian.surround.set (ys)', async function () {
         await loadLuaConfig(
             'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
         );
-        await assertPluginLoaded();
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('y', 's', 'i', 'w', 'l');
+        expect(await getEditorValue()).toBe('[[hello]] world');
     });
 
-    it('should collect vim.obsidian.surround.add batch pairs', async function () {
+    it('should delete custom surround pair via ds', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
+        );
+        await setupEditor('[[hello]] world', { line: 0, ch: 3 });
+        await vimKeys('d', 's', 'l');
+        expect(await getEditorValue()).toBe('hello world');
+    });
+
+    it('should change custom surround pair via cs', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
+        );
+        await setupEditor('[[hello]] world', { line: 0, ch: 3 });
+        await vimKeys('c', 's', 'l', ')');
+        expect(await getEditorValue()).toBe('(hello) world');
+    });
+
+    it('should apply batch surround pairs via vim.obsidian.surround.add', async function () {
         await loadLuaConfig(
             'vim.obsidian.surround.add({\n' +
                 '    { "l", left = "[[", right = "]]" },\n' +
                 '    { "m", left = "$$", right = "$$" },\n' +
                 '})\n',
         );
-        await assertPluginLoaded();
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('y', 's', 'i', 'w', 'm');
+        expect(await getEditorValue()).toBe('$$hello$$ world');
     });
 
-    it('should register vim.obsidian.leader.set binding', async function () {
+    it('should not break builtin surround after custom pair registration', async function () {
         await loadLuaConfig(
-            'vim.g.mapleader = " "\n' +
-                'vim.obsidian.leader.set("e", "file-explorer:reveal-active-file", { desc = "Reveal" })\n',
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
+        );
+        await setupEditor('(hello) world', { line: 0, ch: 3 });
+        await vimKeys('d', 's', ')');
+        expect(await getEditorValue()).toBe('hello world');
+    });
+
+    it('should register leader binding that executes an Obsidian command', async function () {
+        await loadLuaConfig(
+            'vim.g.mapleader = "\\\\"\n' +
+                'vim.obsidian.leader.set("z", "app:reload", { desc = "Reload" })\n',
         );
         await assertPluginLoaded();
     });
 
-    it('should register vim.obsidian.leader.add batch bindings', async function () {
+    it('should register batch leader bindings via vim.obsidian.leader.add', async function () {
         await loadLuaConfig(
-            'vim.g.mapleader = " "\n' +
+            'vim.g.mapleader = "\\\\"\n' +
                 'vim.obsidian.leader.add({\n' +
-                '    { "e", "file-explorer:reveal-active-file", desc = "Reveal" },\n' +
-                '    { "p", "command-palette:open", desc = "Palette" },\n' +
+                '    { "z", "app:reload", desc = "Reload" },\n' +
                 '})\n',
+        );
+        await assertPluginLoaded();
+    });
+
+    it('should survive vim.obsidian.surround.set with reserved char gracefully', async function () {
+        await loadLuaConfig(
+            'local ok, err = pcall(function()\n' +
+                '    vim.obsidian.surround.set("(", { left = "<<", right = ">>" })\n' +
+                'end)\n' +
+                'if not ok then vim.opt.scrolloff = 42 end\n',
+        );
+        await assertPluginLoaded();
+    });
+
+    it('should survive vim.obsidian.leader.del without error', async function () {
+        await loadLuaConfig(
+            'vim.g.mapleader = "\\\\"\n' +
+                'vim.obsidian.leader.set("z", "app:reload", { desc = "Reload" })\n' +
+                'vim.obsidian.leader.del("z")\n',
         );
         await assertPluginLoaded();
     });

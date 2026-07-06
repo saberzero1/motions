@@ -628,21 +628,29 @@ async function loadVimrcFile(
         if (parsed?.type === 'surroundmap' && parsed.lhs && parsed.rhs) {
             const [open, close] = parsed.rhs.split('\x00');
             if (open && close) {
-                try {
-                    vim.registerSurroundPair?.(parsed.lhs, open, close);
-                    applied++;
-                } catch (e) {
+                if (typeof vim.registerSurroundPair !== 'function') {
                     console.warn(
-                        `Vim Motions: surroundmap ${parsed.lhs} error:`,
-                        e instanceof Error ? e.message : e,
+                        'Vim Motions: surroundmap requires fork mode (disable built-in Vim)',
                     );
+                } else {
+                    try {
+                        vim.registerSurroundPair(parsed.lhs, open, close);
+                        applied++;
+                    } catch (e) {
+                        console.warn(
+                            `Vim Motions: surroundmap ${parsed.lhs} error:`,
+                            e instanceof Error ? e.message : e,
+                        );
+                    }
                 }
             }
             continue;
         }
 
         if (parsed?.type === 'surroundunmap' && parsed.lhs) {
-            vim.unregisterSurroundPair?.(parsed.lhs);
+            if (typeof vim.unregisterSurroundPair === 'function') {
+                vim.unregisterSurroundPair(parsed.lhs);
+            }
             applied++;
             continue;
         }

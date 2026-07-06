@@ -1398,6 +1398,13 @@ export default class VimMotionsPlugin extends Plugin {
         vim: import('./types/vim-api').VimApi,
         pairs: Array<{ trigger: string; open: string; close: string }>,
     ): void {
+        if (pairs.length === 0) return;
+        if (typeof vim.registerSurroundPair !== 'function') {
+            new Notice(
+                'Vim Motions: custom surround pairs require fork mode. Disable built-in Vim in settings \u2192 editor \u2192 Vim key bindings.',
+            );
+            return;
+        }
         for (const trigger of this.registeredSurroundTriggers) {
             try {
                 vim.unregisterSurroundPair?.(trigger);
@@ -1408,7 +1415,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registeredSurroundTriggers = [];
         for (const pair of pairs) {
             try {
-                vim.registerSurroundPair?.(pair.trigger, pair.open, pair.close);
+                vim.registerSurroundPair(pair.trigger, pair.open, pair.close);
                 this.registeredSurroundTriggers.push(pair.trigger);
             } catch (e) {
                 new Notice(
