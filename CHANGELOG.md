@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-07-06
+
 ### Added
 
 - **`vim.ob.*` API expansion (47 new functions across 4 sub-namespaces)** — the `vim.obsidian` / `vim.ob` Lua namespace grows from 21 to 68 functions
