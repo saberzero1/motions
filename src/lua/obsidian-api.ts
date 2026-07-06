@@ -732,6 +732,359 @@ export function injectObsidianApi(
     });
     lua.lua_setfield(L, obsidianIndex, to_luastring('get_leaf_for_file'));
 
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const mode = callbacks.getMode?.() ?? 'n';
+        lua.lua_pushstring(state, to_luastring(mode));
+        return 1;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('mode'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const msg = readLuaString(state, 1);
+        if (msg !== null) callbacks.showNotice?.(msg);
+        return 0;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('notice'));
+
+    // vim.obsidian.fs sub-table
+    lua.lua_newtable(L);
+    const obsFsIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const pattern = readLuaString(state, 1) ?? undefined;
+        const files = callbacks.fsFiles?.(pattern) ?? [];
+        pushLuaAny(state, files);
+        return 1;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('files'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const files = callbacks.fsAllFiles?.() ?? [];
+        pushLuaAny(state, files);
+        return 1;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('all_files'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const folders = callbacks.fsFolders?.() ?? [];
+        pushLuaAny(state, folders);
+        return 1;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('folders'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1);
+        if (!path) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.fs.exists expects a path string'),
+            );
+        }
+        const result = callbacks.fsExists?.(path) ?? false;
+        lua.lua_pushboolean(state, result);
+        return 1;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('exists'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const info = callbacks.fsStat?.(path) ?? null;
+        if (!info) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        lua.lua_pushnumber(state, info.ctime);
+        lua.lua_setfield(state, -2, to_luastring('ctime'));
+        lua.lua_pushnumber(state, info.mtime);
+        lua.lua_setfield(state, -2, to_luastring('mtime'));
+        lua.lua_pushnumber(state, info.size);
+        lua.lua_setfield(state, -2, to_luastring('size'));
+        return 1;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('stat'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1);
+        if (!path) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.fs.create expects a path string'),
+            );
+        }
+        const content = readLuaString(state, 2) ?? '';
+        callbacks.fsCreate?.(path, content);
+        return 0;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('create'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const arg1 = readLuaString(state, 1);
+        const arg2 = readLuaString(state, 2);
+        if (arg1 === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.fs.write expects (path, content) or (content)',
+                ),
+            );
+        }
+        if (arg2 !== null) {
+            callbacks.fsWrite?.(arg1, arg2);
+        } else {
+            callbacks.fsWrite?.(undefined, arg1);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('write'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const arg1 = readLuaString(state, 1);
+        const arg2 = readLuaString(state, 2);
+        if (arg1 === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.fs.append expects (path, content) or (content)',
+                ),
+            );
+        }
+        if (arg2 !== null) {
+            callbacks.fsAppend?.(arg1, arg2);
+        } else {
+            callbacks.fsAppend?.(undefined, arg1);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('append'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const arg1 = readLuaString(state, 1);
+        const arg2 = readLuaString(state, 2);
+        if (arg1 === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.fs.rename expects (path, new_path) or (new_path)',
+                ),
+            );
+        }
+        if (arg2 !== null) {
+            callbacks.fsRename?.(arg1, arg2);
+        } else {
+            callbacks.fsRename?.(undefined, arg1);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('rename'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const arg1 = readLuaString(state, 1);
+        const arg2 = readLuaString(state, 2);
+        if (arg1 === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.fs.move expects (path, dest) or (dest)',
+                ),
+            );
+        }
+        if (arg2 !== null) {
+            callbacks.fsMove?.(arg1, arg2);
+        } else {
+            callbacks.fsMove?.(undefined, arg1);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('move'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        callbacks.fsTrash?.(path);
+        return 0;
+    });
+    lua.lua_setfield(L, obsFsIndex, to_luastring('trash'));
+
+    lua.lua_setfield(L, obsidianIndex, to_luastring('fs'));
+
+    // vim.obsidian.meta sub-table
+    lua.lua_newtable(L);
+    const obsMetaIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const fm = callbacks.getFileFrontmatter?.(path) ?? null;
+        if (!fm) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        pushLuaAny(state, fm);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('frontmatter'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const tags = callbacks.getFileTags?.(path) ?? [];
+        pushLuaAny(state, tags);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('tags'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const links = callbacks.getFileLinks?.(path) ?? [];
+        pushLuaAny(state, links);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('links'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const backlinks = callbacks.getFileBacklinks?.(path) ?? [];
+        pushLuaAny(state, backlinks);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('backlinks'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const headings = callbacks.getFileHeadings?.(path) ?? [];
+        pushLuaAny(state, headings);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('headings'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const embeds = callbacks.getFileEmbeds?.(path) ?? [];
+        pushLuaAny(state, embeds);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('embeds'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const aliases = callbacks.getFileAliases?.(path) ?? [];
+        pushLuaAny(state, aliases);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('aliases'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const tasks = callbacks.getFileTasks?.(path) ?? [];
+        pushLuaAny(state, tasks);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('tasks'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? undefined;
+        const lists = callbacks.getFileLists?.(path) ?? [];
+        pushLuaAny(state, lists);
+        return 1;
+    });
+    lua.lua_setfield(L, obsMetaIndex, to_luastring('lists'));
+
+    lua.lua_setfield(L, obsidianIndex, to_luastring('meta'));
+
+    // vim.obsidian.ui sub-table
+    lua.lua_newtable(L);
+    const obsUiIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const side = readLuaString(state, 1);
+        const stateArg = readLuaString(state, 2);
+        if (!side) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.ui.sidebar expects a side string ("left" or "right")',
+                ),
+            );
+        }
+        const validSides = new Set(['left', 'right']);
+        if (!validSides.has(side)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    `vim.obsidian.ui.sidebar: invalid side "${side}". Valid: left, right`,
+                ),
+            );
+        }
+        const command = stateArg
+            ? `:sidebar ${side} ${stateArg}`
+            : `:sidebar ${side}`;
+        callbacks.handleExCommand(command.slice(1));
+        return 0;
+    });
+    lua.lua_setfield(L, obsUiIndex, to_luastring('sidebar'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.executeCommand?.('command-palette:open');
+        return 0;
+    });
+    lua.lua_setfield(L, obsUiIndex, to_luastring('command_palette'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.executeCommand?.('switcher:open');
+        return 0;
+    });
+    lua.lua_setfield(L, obsUiIndex, to_luastring('quickswitch'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const msg = readLuaString(state, 1);
+        if (msg !== null) callbacks.showNotice?.(msg);
+        return 0;
+    });
+    lua.lua_setfield(L, obsUiIndex, to_luastring('notice'));
+
+    lua.lua_setfield(L, obsidianIndex, to_luastring('ui'));
+
+    // vim.obsidian editor state functions
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const sel = callbacks.getSelection?.() ?? null;
+        if (sel === null) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        lua.lua_pushstring(state, to_luastring(sel));
+        return 1;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('get_selection'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const pos = callbacks.getCursorPosition?.() ?? null;
+        if (!pos) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        lua.lua_pushnumber(state, pos.line);
+        lua.lua_setfield(state, -2, to_luastring('line'));
+        lua.lua_pushnumber(state, pos.col);
+        lua.lua_setfield(state, -2, to_luastring('col'));
+        return 1;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('get_cursor'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (!lua.lua_isnumber(state, 1) || !lua.lua_isnumber(state, 2)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.set_cursor expects two number arguments (line, col)',
+                ),
+            );
+        }
+        const line = lua.lua_tonumber(state, 1);
+        const col = lua.lua_tonumber(state, 2);
+        callbacks.setCursorPosition?.(line, col);
+        return 0;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('set_cursor'));
+
     lua.lua_pushvalue(L, obsidianIndex);
     lua.lua_setfield(L, vimTableIndex, to_luastring('obsidian'));
     lua.lua_pop(L, 1);

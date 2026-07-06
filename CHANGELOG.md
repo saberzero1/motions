@@ -9,11 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`vim.ob.*` API expansion (17 new functions)** — the `vim.obsidian` / `vim.ob` Lua namespace grows from 21 to 38 functions, organized in three tiers
+- **`vim.ob.*` API expansion (47 new functions across 4 sub-namespaces)** — the `vim.obsidian` / `vim.ob` Lua namespace grows from 21 to 68 functions
     - **Leaf introspection** (Tier 1): `vim.ob.get_leaf_type()` returns the active view type string, `vim.ob.get_active_leaf()` returns `{id, type, pinned, file_path}` table, `vim.ob.list_leaves()` returns all open tabs, `vim.ob.is_markdown_view()` returns boolean
     - **Command wrappers** (Tier 2): `vim.ob.follow_link()`, `vim.ob.backlinks()`, `vim.ob.daily()`, `vim.ob.search()`, `vim.ob.tags()`, `vim.ob.new_note()`, `vim.ob.rename()`, `vim.ob.toggle_checkbox()`, `vim.ob.template()` — thin wrappers around Obsidian commands, silent no-op if required core plugin is disabled
     - **Leaf management** (Tier 3): `vim.ob.focus(direction)` navigates panes (`"left"`, `"right"`, `"top"`, `"bottom"`), `vim.ob.close_leaf()` closes active tab, `vim.ob.split(direction)` splits vertically/horizontally, `vim.ob.get_leaf_for_file(path)` finds which leaf has a file open
-    - Plugin: `src/lua/obsidian-api.ts` (extracted from `api.ts`), `src/lua/api.ts` (new callbacks), `src/lua/loader.ts` (callback wiring)
+    - **`vim.ob.meta.*` sub-namespace (9 metadata query functions)** — read-only access to note metadata via Obsidian's `MetadataCache`
+        - `vim.ob.meta.frontmatter(path?)` — returns YAML frontmatter as a Lua table, or nil
+        - `vim.ob.meta.tags(path?)` — returns combined body + frontmatter tags as `string[]`
+        - `vim.ob.meta.links(path?)` — returns outgoing links as `{link, display, original}[]`
+        - `vim.ob.meta.backlinks(path?)` — returns source file paths linking to this file as `string[]`
+        - `vim.ob.meta.headings(path?)` — returns headings as `{heading, level}[]`
+        - `vim.ob.meta.embeds(path?)` — returns embedded content as `{link, display}[]`
+        - `vim.ob.meta.aliases(path?)` — returns YAML aliases as `string[]`
+        - `vim.ob.meta.tasks(path?)` — returns checklist items as `{text, status, line}[]`
+        - `vim.ob.meta.lists(path?)` — returns all list items as `{text, line, indent}[]`
+        - All functions default to the current file when `path` is omitted
+        - Plugin: `src/lua/obsidian-api.ts`, `src/lua/api.ts`, `src/lua/loader.ts`
+    - **`vim.ob.fs.*` sub-namespace (11 vault filesystem functions)** — read and write vault files with config-dir guards
+        - Read: `vim.ob.fs.files(pattern?)`, `vim.ob.fs.all_files()`, `vim.ob.fs.folders()`, `vim.ob.fs.exists(path)`, `vim.ob.fs.stat(path?)`
+        - Write: `vim.ob.fs.create(path, content?)`, `vim.ob.fs.write(content)` or `vim.ob.fs.write(path, content)`, `vim.ob.fs.append(content)` or `vim.ob.fs.append(path, content)`
+        - Management: `vim.ob.fs.rename(new_path)` or `vim.ob.fs.rename(path, new_path)`, `vim.ob.fs.move(dest)` or `vim.ob.fs.move(path, dest)` (detects folder dest and appends filename), `vim.ob.fs.trash(path?)`
+        - Write/rename/move/trash operations silently reject paths inside the vault config directory (`app.vault.configDir`)
+        - `rename` uses `fileManager.renameFile()` which updates backlinks; `trash` uses `fileManager.trashFile()` which respects the user's trash preference
+        - Write operations are fire-and-forget (async internally, Lua returns immediately)
+        - All write operations default to the current file when path is omitted
+        - Plugin: `src/lua/obsidian-api.ts`, `src/lua/api.ts`, `src/lua/loader.ts`
+    - **`vim.ob.ui.*` sub-namespace (4 UI control functions)** — control Obsidian UI from Lua
+        - `vim.ob.ui.sidebar(side, state?)` — toggle/open/close sidebar (`"left"`/`"right"`, optional `"open"`/`"close"`/`"toggle"`)
+        - `vim.ob.ui.command_palette()` — open command palette
+        - `vim.ob.ui.quickswitch()` — open quick switcher
+        - `vim.ob.ui.notice(msg)` — alias for `vim.notify` (convenience for staying in `vim.ob` namespace)
+        - Plugin: `src/lua/obsidian-api.ts`
+    - **`vim.ob` editor state and convenience functions** — cursor, selection, mode, and notification access
+        - `vim.ob.get_cursor()` — returns `{line, col}` (1-indexed, Lua/Neovim convention)
+        - `vim.ob.set_cursor(line, col)` — sets cursor position (1-indexed)
+        - `vim.ob.get_selection()` — returns visual selection text or nil
+        - `vim.ob.mode()` — alias for `vim.fn.mode()` (convenience)
+        - `vim.ob.notice(msg)` — alias for `vim.notify` (convenience)
+        - Plugin: `src/lua/obsidian-api.ts`, `src/lua/api.ts`, `src/lua/loader.ts`
 - **3 new autocmd events** — `LeafEnter`, `LeafLeave`, `FileType` (total: 15 events)
     - `LeafEnter` — fires when a new leaf gains focus (debounced 50ms), event data includes `{type, leaf_id}` in `ev.data`
     - `LeafLeave` — fires when a leaf loses focus (immediate, before `LeafEnter`)
@@ -32,10 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`minAppVersion` bumped from 1.4.10 to 1.6.6** — required for `Vault.getAllFolders()` used by `vim.ob.fs.folders()`
 - **`vim.obsidian.*` namespace extracted to dedicated module** — the Obsidian-specific Lua API is now in `src/lua/obsidian-api.ts` (extracted from `api.ts`), following the pattern of `fn.ts`, `stdlib.ts`, `timers.ts`, `highlight.ts`. No behavioral change. `api.ts` shrinks by ~504 lines.
 
 ### Documentation
 
+- `docs/configuration/lua-config.md`: added `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), editor state functions (5 functions) with API tables and examples
 - `KNOWN_LIMITATIONS.md`: added "Workspace navigation in plugin views" section documenting three-gate interception and the `gg`-in-plugin-leaf trade-off; marked #47 as fixed
 - `docs/configuration/settings.md`: added `Workspace navigation view types` to Vim features table
 - `docs/configuration/vimrc.md`: added `workspacenavviewtypes` (`wnvt` alias) to string options table

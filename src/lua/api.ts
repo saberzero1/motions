@@ -105,6 +105,43 @@ export interface VimApiCallbacks {
         pinned: boolean;
         filePath: string | null;
     } | null;
+    // Phase 7 — Metadata queries
+    getFileFrontmatter?: (path?: string) => Record<string, unknown> | null;
+    getFileTags?: (path?: string) => string[];
+    getFileLinks?: (
+        path?: string,
+    ) => Array<{ link: string; display: string; original: string }>;
+    getFileBacklinks?: (path?: string) => string[];
+    getFileHeadings?: (
+        path?: string,
+    ) => Array<{ heading: string; level: number }>;
+    getFileEmbeds?: (path?: string) => Array<{ link: string; display: string }>;
+    getFileAliases?: (path?: string) => string[];
+    getFileTasks?: (
+        path?: string,
+    ) => Array<{ text: string; status: string; line: number }>;
+    getFileLists?: (
+        path?: string,
+    ) => Array<{ text: string; line: number; indent: number }>;
+    // Phase 7 — Editor state
+    getSelection?: () => string | null;
+    getCursorPosition?: () => { line: number; col: number } | null;
+    setCursorPosition?: (line: number, col: number) => void;
+    getMode?: () => string;
+    // Phase 7 — Vault filesystem
+    fsFiles?: (pattern?: string) => string[];
+    fsAllFiles?: () => string[];
+    fsFolders?: () => string[];
+    fsExists?: (path: string) => boolean;
+    fsStat?: (
+        path?: string,
+    ) => { ctime: number; mtime: number; size: number } | null;
+    fsCreate?: (path: string, content?: string) => void;
+    fsWrite?: (path: string | undefined, content: string) => void;
+    fsAppend?: (path: string | undefined, content: string) => void;
+    fsRename?: (path: string | undefined, newPath: string) => void;
+    fsMove?: (path: string | undefined, dest: string) => void;
+    fsTrash?: (path?: string) => void;
     autocmdManager: AutocmdManager;
     highlightManager?: HighlightManager;
 }

@@ -1,4 +1,12 @@
-import { MarkdownView, Notice, Platform, apiVersion } from 'obsidian';
+import {
+    MarkdownView,
+    Notice,
+    Platform,
+    apiVersion,
+    getAllTags,
+    parseFrontMatterAliases,
+    TFile,
+} from 'obsidian';
 import type { App } from 'obsidian';
 import type { VimApi } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
@@ -504,6 +512,244 @@ export async function loadInitLua(
                 }
             });
             return found;
+        },
+        fsFiles: (pattern?: string) => {
+            const files = app.vault.getMarkdownFiles().map((f) => f.path);
+            if (!pattern) return files;
+            const regex = new RegExp(
+                pattern
+                    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                    .replace(/\*/g, '.*')
+                    .replace(/\?/g, '.'),
+            );
+            return files.filter((f) => regex.test(f));
+        },
+        fsAllFiles: () => {
+            return app.vault.getFiles().map((f) => f.path);
+        },
+        fsFolders: () => {
+            return app.vault.getAllFolders().map((f) => f.path);
+        },
+        fsExists: (path: string) => {
+            return app.vault.getAbstractFileByPath(path) !== null;
+        },
+        fsStat: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return null;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return null;
+            return {
+                ctime: file.stat.ctime,
+                mtime: file.stat.mtime,
+                size: file.stat.size,
+            };
+        },
+        fsCreate: (path: string, content?: string) => {
+            const configDir = app.vault.configDir;
+            if (path.startsWith(configDir)) return;
+            void app.vault.create(path, content ?? '');
+        },
+        fsWrite: (path: string | undefined, content: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return;
+            const configDir = app.vault.configDir;
+            if (filePath.startsWith(configDir)) return;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return;
+            void app.vault.modify(file, content);
+        },
+        fsAppend: (path: string | undefined, content: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return;
+            const configDir = app.vault.configDir;
+            if (filePath.startsWith(configDir)) return;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return;
+            void app.vault.append(file, content);
+        },
+        fsRename: (path: string | undefined, newPath: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return;
+            const configDir = app.vault.configDir;
+            if (filePath.startsWith(configDir)) return;
+            if (newPath.startsWith(configDir)) return;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return;
+            void app.fileManager.renameFile(file, newPath);
+        },
+        fsMove: (path: string | undefined, dest: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return;
+            const configDir = app.vault.configDir;
+            if (filePath.startsWith(configDir)) return;
+            if (dest.startsWith(configDir)) return;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return;
+            const destAbstract = app.vault.getAbstractFileByPath(dest);
+            let newPath = dest;
+            if (destAbstract && 'children' in destAbstract) {
+                newPath = dest.replace(/\/+$/, '') + '/' + file.name;
+            }
+            void app.fileManager.renameFile(file, newPath);
+        },
+        fsTrash: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return;
+            const configDir = app.vault.configDir;
+            if (filePath.startsWith(configDir)) return;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return;
+            void app.fileManager.trashFile(file);
+        },
+        getFileFrontmatter: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return null;
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return null;
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.frontmatter) return null;
+            const fm = { ...cache.frontmatter };
+            delete fm.position;
+            return fm;
+        },
+        getFileTags: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache) return [];
+            return getAllTags(cache) ?? [];
+        },
+        getFileLinks: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.links) return [];
+            return cache.links.map((l) => ({
+                link: l.link,
+                display: l.displayText ?? l.link,
+                original: l.original,
+            }));
+        },
+        getFileBacklinks: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const resolved = app.metadataCache.resolvedLinks;
+            const sources: string[] = [];
+            for (const [source, targets] of Object.entries(resolved)) {
+                if (filePath in targets) {
+                    sources.push(source);
+                }
+            }
+            return sources;
+        },
+        getFileHeadings: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.headings) return [];
+            return cache.headings.map((h) => ({
+                heading: h.heading,
+                level: h.level,
+            }));
+        },
+        getFileEmbeds: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.embeds) return [];
+            return cache.embeds.map((e) => ({
+                link: e.link,
+                display: e.displayText ?? e.link,
+            }));
+        },
+        getFileAliases: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.frontmatter) return [];
+            return parseFrontMatterAliases(cache.frontmatter) ?? [];
+        },
+        getFileTasks: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.listItems) return [];
+            return cache.listItems
+                .filter((item) => item.task !== undefined)
+                .map((item) => ({
+                    text: '',
+                    status: item.task ?? ' ',
+                    line: item.position.start.line + 1,
+                }));
+        },
+        getFileLists: (path?: string) => {
+            const filePath = path ?? app.workspace.getActiveFile()?.path;
+            if (!filePath) return [];
+            const file = app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) return [];
+            const cache = app.metadataCache.getFileCache(file);
+            if (!cache?.listItems) return [];
+            return cache.listItems.map((item) => ({
+                text: '',
+                line: item.position.start.line + 1,
+                indent: item.position.start.col,
+            }));
+        },
+        getSelection: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const sel = view.editor.getSelection();
+            return sel || null;
+        },
+        getCursorPosition: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cursor = view.editor.getCursor();
+            return { line: cursor.line + 1, col: cursor.ch + 1 };
+        },
+        setCursorPosition: (line: number, col: number) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            view.editor.setCursor(line - 1, col - 1);
+        },
+        getMode: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 'n';
+            const cm = getCmAdapter(view);
+            if (!cm) return 'n';
+            const cmState = (
+                cm as {
+                    state?: {
+                        vim?: {
+                            insertMode?: boolean;
+                            visualMode?: boolean;
+                            visualLine?: boolean;
+                            visualBlock?: boolean;
+                        };
+                    };
+                }
+            ).state;
+            const vimState = cmState?.vim;
+            if (!vimState) return 'n';
+            if (vimState.insertMode) return 'i';
+            if (vimState.visualMode) {
+                if (vimState.visualLine) return 'V';
+                if (vimState.visualBlock) return '\x16';
+                return 'v';
+            }
+            return 'n';
         },
     });
 

@@ -612,6 +612,59 @@ Obsidian-specific APIs that don't exist in Neovim. Available as `vim.obsidian` o
 | `vim.ob.toggle_checkbox()` | Toggle checkbox on current line | `vim.ob.toggle_checkbox()` |
 | `vim.ob.template()`        | Open template picker            | `vim.ob.template()`        |
 
+### vim.ob.meta — Note metadata
+
+| Function                         | Returns                       | Description                            |
+| -------------------------------- | ----------------------------- | -------------------------------------- |
+| `vim.ob.meta.frontmatter(path?)` | table or nil                  | YAML frontmatter as key-value pairs    |
+| `vim.ob.meta.tags(path?)`        | `string[]`                    | Combined body + frontmatter tags       |
+| `vim.ob.meta.links(path?)`       | `{link, display, original}[]` | Outgoing wikilinks and markdown links  |
+| `vim.ob.meta.backlinks(path?)`   | `string[]`                    | Source file paths linking to this note |
+| `vim.ob.meta.headings(path?)`    | `{heading, level}[]`          | Headings with H1-H6 level              |
+| `vim.ob.meta.embeds(path?)`      | `{link, display}[]`           | Embedded content (`![[...]]`)          |
+| `vim.ob.meta.aliases(path?)`     | `string[]`                    | YAML aliases                           |
+| `vim.ob.meta.tasks(path?)`       | `{text, status, line}[]`      | Checklist items with status char       |
+| `vim.ob.meta.lists(path?)`       | `{text, line, indent}[]`      | All list items                         |
+
+> All `meta.*` functions default to the current file when `path` is omitted.
+
+### vim.ob.fs — Vault filesystem
+
+| Function                                                 | Description                           |
+| -------------------------------------------------------- | ------------------------------------- |
+| `vim.ob.fs.files(pattern?)`                              | Markdown files matching optional glob |
+| `vim.ob.fs.all_files()`                                  | All files in vault                    |
+| `vim.ob.fs.folders()`                                    | All folders                           |
+| `vim.ob.fs.exists(path)`                                 | Check if file exists                  |
+| `vim.ob.fs.stat(path?)`                                  | File stats `{ctime, mtime, size}`     |
+| `vim.ob.fs.create(path, content?)`                       | Create new file                       |
+| `vim.ob.fs.write(content)` or `write(path, content)`     | Overwrite file content                |
+| `vim.ob.fs.append(content)` or `append(path, content)`   | Append to file                        |
+| `vim.ob.fs.rename(new_path)` or `rename(path, new_path)` | Rename (updates backlinks)            |
+| `vim.ob.fs.move(dest)` or `move(path, dest)`             | Move to folder or new path            |
+| `vim.ob.fs.trash(path?)`                                 | Move to trash (user preference)       |
+
+> Write operations silently reject paths inside `.obsidian/`. Write/append/rename/move/trash default to the current file when path is omitted.
+
+### vim.ob.ui — UI control
+
+| Function                          | Description                                |
+| --------------------------------- | ------------------------------------------ |
+| `vim.ob.ui.sidebar(side, state?)` | Toggle sidebar (`"left"`, `"right"`)       |
+| `vim.ob.ui.command_palette()`     | Open command palette                       |
+| `vim.ob.ui.quickswitch()`         | Open quick switcher                        |
+| `vim.ob.ui.notice(msg)`           | Show notification (alias for `vim.notify`) |
+
+### Editor state
+
+| Function                       | Description                                  |
+| ------------------------------ | -------------------------------------------- |
+| `vim.ob.get_cursor()`          | Cursor position `{line, col}` (1-indexed)    |
+| `vim.ob.set_cursor(line, col)` | Set cursor (1-indexed)                       |
+| `vim.ob.get_selection()`       | Visual selection text or nil                 |
+| `vim.ob.mode()`                | Current vim mode (alias for `vim.fn.mode()`) |
+| `vim.ob.notice(msg)`           | Show notification (alias for `vim.notify`)   |
+
 ### Global keymaps (`vim.obsidian.keymap`)
 
 Define key bindings for non-editor contexts (graph view, canvas, PDF viewer, file explorer, reading mode). These bindings work when no editor is focused.
