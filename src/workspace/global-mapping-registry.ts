@@ -84,6 +84,18 @@ export class GlobalMappingRegistry {
     }
 }
 
+/**
+ * Normalize a key string so stored keys match `normalizeKeyEvent` output.
+ * Converts raw special characters to their `<...>` notation:
+ *   `" "` → `"<Space>"`, `"\n"` → `"<CR>"`, `"\t"` → `"<Tab>"`
+ * This ensures keys registered from vimrc/Lua (which use raw characters
+ * after leader replacement) match the accumulated key sequence from
+ * keyboard events.
+ */
+export function normalizeKeyString(input: string): string {
+    return input.replace(/ /g, '<Space>');
+}
+
 export function normalizeKeyEvent(e: KeyboardEvent): string {
     const key = e.key;
 

@@ -35,12 +35,14 @@ Vim Motions supports per-mode cursor shapes, letting you visually distinguish be
 
 **Settings → Vim Motions → Cursor shapes** — select a shape for each mode from the dropdown.
 
-### Lua configuration
+### Lua
 
-Cursor shapes use `set guicursor` syntax which doesn't have a clean `vim.opt` equivalent.
+```lua
+vim.opt.guicursor = "n:block,i:bar,v:block,r:underline,o:underline"
+```
 
-> [!info] Cursor shapes via guicursor
-> Cursor shapes are configured via the `set guicursor` vimrc syntax. A direct `vim.opt.guicursor` is not yet supported in Lua config — use `vim.cmd("set guicursor=n:block,i:bar,v:block")` as a workaround, or configure via the Settings UI or vimrc.
+Mode codes: `n` (normal), `i` (insert), `v` (visual), `r` (replace), `o` (operator-pending), `a` (all).
+Shapes: `block`, `bar`, `underline`, `hollow`.
 
 ### Vimrc
 
@@ -55,8 +57,7 @@ Mode codes: `n` (normal), `i` (insert), `v` (visual), `r` (replace), `o` (operat
 ### Examples
 
 ```lua
--- Via Lua workaround
-vim.cmd("set guicursor=n:hollow,i:bar,v:block,r:underline,o:underline")
+vim.opt.guicursor = "n:hollow,i:bar,v:block,r:underline,o:underline"
 ```
 
 ```vim

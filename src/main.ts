@@ -24,7 +24,10 @@ import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { GlobalKeyHandler } from './workspace/global-key-handler';
-import { GlobalMappingRegistry } from './workspace/global-mapping-registry';
+import {
+    GlobalMappingRegistry,
+    normalizeKeyString,
+} from './workspace/global-mapping-registry';
 import type { DeferredGlobalMap } from './vimrc/loader';
 import { registerDefaultGlobalMappings } from './workspace/global-defaults';
 import { GlobalWhichKeyOverlay } from './ui/global-which-key';
@@ -95,6 +98,10 @@ export default class VimMotionsPlugin extends Plugin {
         [];
     private vimrcGlobalWhichKeyGroups: Array<{ key: string; label: string }> =
         [];
+    private luaGlobalMaps: import('./lua/api').LuaGlobalKeymap[] = [];
+    private luaGlobalUnmaps: string[] = [];
+    private luaGlobalWhichKeyLabels: Array<{ key: string; label: string }> = [];
+    private luaGlobalWhichKeyGroups: Array<{ key: string; label: string }> = [];
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
     private vimrcLoading = false;
@@ -1161,6 +1168,7 @@ export default class VimMotionsPlugin extends Plugin {
     private applyGlobalMaps(): void {
         if (!this.globalRegistry) return;
         for (const gm of this.vimrcGlobalMaps) {
+            const lhs = normalizeKeyString(gm.lhs);
             let action: import('./workspace/global-mapping-registry').GlobalMapAction;
             if (gm.rhs.startsWith(':obcommand ')) {
                 action = {
@@ -1173,19 +1181,61 @@ export default class VimMotionsPlugin extends Plugin {
                 console.warn(`Vim Motions: invalid gmap rhs: ${gm.rhs}`);
                 continue;
             }
-            this.globalRegistry.addMapping(gm.lhs, action, {
+            this.globalRegistry.addMapping(lhs, action, {
                 source: 'user',
                 gate: 'standard',
             });
         }
         for (const key of this.vimrcGlobalUnmaps) {
-            this.globalRegistry.removeMapping(key);
+            this.globalRegistry.removeMapping(normalizeKeyString(key));
         }
         for (const entry of this.vimrcGlobalWhichKeyLabels) {
-            this.globalRegistry.setLabel(entry.key, entry.label);
+            this.globalRegistry.setLabel(
+                normalizeKeyString(entry.key),
+                entry.label,
+            );
         }
         for (const entry of this.vimrcGlobalWhichKeyGroups) {
-            this.globalRegistry.setGroupLabel(entry.key, entry.label);
+            this.globalRegistry.setGroupLabel(
+                normalizeKeyString(entry.key),
+                entry.label,
+            );
+        }
+        for (const gm of this.luaGlobalMaps) {
+            const lhs = normalizeKeyString(gm.lhs);
+            let action: import('./workspace/global-mapping-registry').GlobalMapAction;
+            if (gm.rhs.startsWith(':obcommand ')) {
+                action = {
+                    type: 'obcommand',
+                    commandId: gm.rhs.slice(':obcommand '.length).trim(),
+                };
+            } else if (gm.rhs.startsWith(':')) {
+                action = { type: 'ex', command: gm.rhs.slice(1).trim() };
+            } else {
+                continue;
+            }
+            this.globalRegistry.addMapping(lhs, action, {
+                source: 'user',
+                gate: 'standard',
+            });
+            if (gm.desc) {
+                this.globalRegistry.setLabel(lhs, gm.desc);
+            }
+        }
+        for (const key of this.luaGlobalUnmaps) {
+            this.globalRegistry.removeMapping(normalizeKeyString(key));
+        }
+        for (const entry of this.luaGlobalWhichKeyLabels) {
+            this.globalRegistry.setLabel(
+                normalizeKeyString(entry.key),
+                entry.label,
+            );
+        }
+        for (const entry of this.luaGlobalWhichKeyGroups) {
+            this.globalRegistry.setGroupLabel(
+                normalizeKeyString(entry.key),
+                entry.label,
+            );
         }
     }
 
@@ -1202,6 +1252,10 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaLoading = true;
         this.luaGroupLabels = [];
         this.luaCommandLabels = [];
+        this.luaGlobalMaps = [];
+        this.luaGlobalUnmaps = [];
+        this.luaGlobalWhichKeyLabels = [];
+        this.luaGlobalWhichKeyGroups = [];
         if (!this.bufferKeymapManager) {
             this.bufferKeymapManager = new BufferKeymapManager();
         }
@@ -1290,6 +1344,10 @@ export default class VimMotionsPlugin extends Plugin {
             ...this.luaCommandLabels,
             ...luaResult.commandLabels,
         ];
+        this.luaGlobalMaps = luaResult.globalMaps;
+        this.luaGlobalUnmaps = luaResult.globalUnmaps;
+        this.luaGlobalWhichKeyLabels = luaResult.globalWhichKeyLabels;
+        this.luaGlobalWhichKeyGroups = luaResult.globalWhichKeyGroups;
         if (luaResult.state) {
             this.luaState = luaResult.state;
         }
@@ -1406,12 +1464,18 @@ export default class VimMotionsPlugin extends Plugin {
 
         const commandLabels = new Map<string, string>();
         for (const entry of this.vimrcGlobalWhichKeyLabels) {
-            commandLabels.set(entry.key, entry.label);
+            commandLabels.set(normalizeKeyString(entry.key), entry.label);
+        }
+        for (const entry of this.luaGlobalWhichKeyLabels) {
+            commandLabels.set(normalizeKeyString(entry.key), entry.label);
         }
 
         const groupLabels = new Map<string, string>();
         for (const entry of this.vimrcGlobalWhichKeyGroups) {
-            groupLabels.set(entry.key, entry.label);
+            groupLabels.set(normalizeKeyString(entry.key), entry.label);
+        }
+        for (const entry of this.luaGlobalWhichKeyGroups) {
+            groupLabels.set(normalizeKeyString(entry.key), entry.label);
         }
         for (const [prefix, label] of this.globalRegistry.getGroupLabels()) {
             groupLabels.set(prefix, label);

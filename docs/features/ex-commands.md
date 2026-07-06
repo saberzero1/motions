@@ -18,9 +18,17 @@ Vim Motions provides 60+ ex commands accessible via `:` in Normal mode. Commands
 
 `:ob {command-id}` executes any Obsidian command by its internal ID. Run `:ob` without arguments to list all available command IDs in a modal.
 
-This is the bridge between Vim's ex command line and Obsidian's command palette. Use it with `exmap` in your vimrc to create custom key bindings for any Obsidian command:
+This is the bridge between Vim's ex command line and Obsidian's command palette. Use it to create custom key bindings for any Obsidian command:
+
+```lua
+vim.api.nvim_create_user_command("ToggleDarkMode", function()
+    vim.obsidian.run_command("theme:use-dark")
+end, {})
+vim.keymap.set("n", "<leader>d", ":ToggleDarkMode<CR>", { desc = "Toggle dark mode" })
+```
 
 ```vim
+" Or via vimrc:
 exmap toggleDarkMode obcommand theme:use-dark
 nmap <leader>d :toggleDarkMode<CR>
 ```

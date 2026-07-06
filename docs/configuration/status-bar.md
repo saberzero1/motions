@@ -18,6 +18,15 @@ Customize the text shown for each mode via **Settings → Vim Motions → Vim mo
 ```lua
 vim.g.mode_prompt_normal = "N"
 vim.g.mode_prompt_insert = "I"
+vim.g.mode_prompt_visual = "V"
+vim.g.mode_prompt_replace = "R"
+vim.g.mode_prompt_visual_line = "VL"
+vim.g.mode_prompt_visual_block = "VB"
+vim.g.mode_prompt_select = "S"
+vim.g.mode_prompt_vreplace = "VR"
+vim.g.mode_prompt_command = "CMD"
+vim.g.mode_prompt_search = "/"
+vim.g.mode_prompt_insert_normal = "(i)"
 ```
 
 ```vim

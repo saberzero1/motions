@@ -4,7 +4,12 @@ import type { VimApi } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
 import { createSandboxedState, evalLua } from './engine';
-import { injectVimApi, LuaKeymap, LuaKeymapDelete } from './api';
+import {
+    injectVimApi,
+    LuaKeymap,
+    LuaKeymapDelete,
+    LuaGlobalKeymap,
+} from './api';
 import type { BufferKeymapManager } from './buffer';
 import { AutocmdManager } from './autocmd';
 import { injectVimFn } from './fn';
@@ -26,6 +31,10 @@ export interface LuaLoadResult {
         | { type: 'map'; map: LuaKeymap }
         | { type: 'unmap'; map: LuaKeymapDelete }
     >;
+    globalMaps: LuaGlobalKeymap[];
+    globalUnmaps: string[];
+    globalWhichKeyLabels: Array<{ key: string; label: string }>;
+    globalWhichKeyGroups: Array<{ key: string; label: string }>;
     commandCount: number;
     state: lua_State | null;
     autocmdManager: AutocmdManager | null;
@@ -73,6 +82,10 @@ export async function loadInitLua(
             commandLabels: [],
             pendingExCommands: [],
             mapOperations: [],
+            globalMaps: [],
+            globalUnmaps: [],
+            globalWhichKeyLabels: [],
+            globalWhichKeyGroups: [],
             commandCount: 0,
             state: null,
             autocmdManager: null,
@@ -90,6 +103,10 @@ export async function loadInitLua(
         | { type: 'map'; map: LuaKeymap }
         | { type: 'unmap'; map: LuaKeymapDelete }
     > = [];
+    const globalMaps: LuaGlobalKeymap[] = [];
+    const globalUnmaps: string[] = [];
+    const globalWhichKeyLabels: Array<{ key: string; label: string }> = [];
+    const globalWhichKeyGroups: Array<{ key: string; label: string }> = [];
 
     const L = createSandboxedState();
     const autocmdManager = new AutocmdManager(L);
@@ -263,6 +280,30 @@ export async function loadInitLua(
             editor.replaceRange(text, from, to);
         },
         autocmdManager,
+        onGlobalKeymap: (map) => {
+            commandCount++;
+            globalMaps.push(map);
+        },
+        onGlobalKeymapDel: (lhs) => {
+            commandCount++;
+            globalUnmaps.push(lhs);
+        },
+        onWhichKeyGroupLabel: (key, label, context) => {
+            commandCount++;
+            if (context === 'global') {
+                globalWhichKeyGroups.push({ key, label });
+            } else {
+                onSettingOverride?.('whichKeyGroupLabel', { key, label });
+            }
+        },
+        onWhichKeyCommandLabel: (key, label, context) => {
+            commandCount++;
+            if (context === 'global') {
+                globalWhichKeyLabels.push({ key, label });
+            } else {
+                onSettingOverride?.('whichKeyCommandLabel', { key, label });
+            }
+        },
     });
 
     injectVimFn(L, {
@@ -472,6 +513,10 @@ export async function loadInitLua(
             commandLabels: [],
             pendingExCommands: [],
             mapOperations: [],
+            globalMaps: [],
+            globalUnmaps: [],
+            globalWhichKeyLabels: [],
+            globalWhichKeyGroups: [],
             commandCount: 0,
             state: L,
             autocmdManager,
@@ -489,6 +534,10 @@ export async function loadInitLua(
         commandLabels,
         pendingExCommands,
         mapOperations,
+        globalMaps,
+        globalUnmaps,
+        globalWhichKeyLabels,
+        globalWhichKeyGroups,
         commandCount,
         state: L,
         autocmdManager,

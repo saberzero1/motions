@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`vim.obsidian.keymap` — global (non-editor) keymaps from Lua** — define key bindings for non-editor contexts (graph view, canvas, PDF viewer, file explorer) using a Neovim-style API
+    - `vim.obsidian.keymap.set(lhs, rhs, opts?)` — create a global keymap with `:obcommand <id>` or `:<ex-command>` as RHS
+    - `vim.obsidian.keymap.del(lhs)` — remove a global keymap
+    - `desc` option auto-creates a label in the global which-key popup
+    - Lua global keymaps override vimrc `gmap` on conflict (last-write-wins)
+    - Survives settings changes and feature reloads via `luaGlobalMaps` persistence arrays
+    - Plugin: `src/lua/api.ts` (`LuaGlobalKeymap` type, `onGlobalKeymap`/`onGlobalKeymapDel` callbacks)
+- **`vim.obsidian.whichkey` — which-key labels from Lua** — set group and command labels for the which-key popup
+    - `vim.obsidian.whichkey.set_group(key, label, opts?)` — name a which-key group by prefix
+    - `vim.obsidian.whichkey.set_label(key, label, opts?)` — label an individual which-key binding
+    - `context` option defaults to `"editor"`; use `{ context = "global" }` for non-editor which-key overlay
+    - Previously only available via vimrc `whichkeygroup`/`whichkeylabel` and Settings UI
+    - Plugin: `src/lua/api.ts` (`onWhichKeyGroupLabel`/`onWhichKeyCommandLabel` callbacks)
+- **`vim.opt.guicursor` — cursor shapes from Lua** — set per-mode cursor shapes without `vim.cmd` passthrough
+    - `vim.opt.guicursor = "n:block,i:bar,v:block,r:underline,o:underline"` — mode codes: `n`, `i`, `v`, `r`, `o`, `a` (all); shapes: `block`, `bar`, `underline`, `hollow`
+    - Write-only (reading returns nil); invalid strings log a warning
+    - Previously only available via vimrc `set guicursor=...`
 - **Lua standard library utilities (`vim.tbl_*`, `vim.split`, `vim.inspect`, `vim.json`)** — 22 Neovim-compatible utility functions for table manipulation, string operations, debugging, and JSON serialization
     - Table utilities (12): `vim.tbl_deep_extend`, `vim.tbl_extend`, `vim.tbl_contains` (with predicate support), `vim.tbl_keys`, `vim.tbl_values`, `vim.tbl_map`, `vim.tbl_filter`, `vim.tbl_count`, `vim.tbl_isempty`, `vim.tbl_get`, `vim.list_extend`, `vim.deepcopy`
     - String utilities (6): `vim.split` (with `{plain, trimempty}` options), `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.pesc`, `vim.stricmp`
@@ -68,16 +85,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `ERROR`/`WARN` → Obsidian Notice + console; `INFO` → Notice; `DEBUG`/`TRACE` → console.debug only
     - `vim.notify_once(msg, level)` — deduplicates by message content
 
+### Fixed
+
+- **Space-leader global keymaps not matching keyboard input** — `replaceLeaderKey` converted `<leader>` to raw `" "` (space character), but `normalizeKeyEvent` in `GlobalKeyHandler` converted spacebar to `"<Space>"`. The key sequences never matched in `GlobalMappingRegistry.resolve()`. Fixed by adding `normalizeKeyString()` to convert raw special characters to angle-bracket notation (`" "` → `"<Space>"`) before storing keys in the registry. Affects both vimrc `gmap` and Lua `vim.obsidian.keymap.set` with space leader.
+    - Plugin: `src/workspace/global-mapping-registry.ts` (`normalizeKeyString`), `src/main.ts` (`applyGlobalMaps`, `rebuildGlobalWhichKey`)
+- **`vim.g.mode_prompt_*` reads returned nil after write** — the `__newindex` handler for mode_prompt keys called `onSettingOverride` but did not store the value in the `globals` Map. The `__index` handler's fallback to `globals.get(key)` returned `undefined`. Fixed by also storing in `globals` on write.
+    - Plugin: `src/lua/api.ts` (vim.g `__newindex` handler)
+
 ### Changed
 
 - **`vim.api` expanded from 6 to 16 functions** — `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, `nvim_buf_del_keymap` added alongside existing autocmd/augroup/user command functions
 - **Autocmd events expanded from 8 to 12** — added `CursorMoved`, `CursorHold`, `BufWritePre`, `BufWritePost`
+- **`vim.obsidian` namespace expanded** — added `keymap` and `whichkey` sub-namespaces for global keymaps and which-key labels. `vim.ob` alias includes the new sub-namespaces.
 
 ### Documentation
 
-- `docs/configuration/lua-config.md`: added sections for table/string utilities, JSON, notifications, async/timers, buffer-local keymaps, buffer content, Obsidian namespace, environment variables, highlight groups; updated supported events table and unsupported APIs callout
-- `KNOWN_LIMITATIONS.md`: updated supported APIs list, autocmd event count (8 → 12), removed "not yet implemented" note for CursorHold/CursorMoved/BufWritePre/Post, updated intentionally skipped features table
-- `AGENTS.md`: added Plugin-side Lua API summary to fengari fork section
+- `docs/configuration/lua-config.md`: comprehensive Lua API reference expansion — added vim.opt table with defaults and valid ranges, keymapping mode reference, autocmd event data reference (per-event `ev.data` fields), highlight group CSS variable mapping, Lua sandbox reference (available/unavailable libraries, instruction limits), `vim.fn.has()` completeness statement, mode prompt customization section, global keymaps section (`vim.obsidian.keymap`), which-key labels section (`vim.obsidian.whichkey`), `vim.opt.guicursor` option; fixed `buffer` option row (was "Not supported", now correctly documents `buffer = 0/true`); fixed `os`/`debug` library availability claims (not loaded by plugin); added `vim.stricmp`, `vim.env.MYVIMRC`, `underdouble`/`underdotted`/`underdashed` highlight attributes, TextYankPost `regname` field, highlight group case-sensitivity callout, buffer-local keymap accumulation warning, underline style limitation callout
+- `docs/configuration/which-key.md`: added Lua examples for group labels (`vim.obsidian.whichkey.set_group`) and global which-key labels
+- `docs/configuration/cursor-shapes.md`: added `vim.opt.guicursor` Lua section, removed "not supported" workaround note
+- `docs/configuration/status-bar.md`: expanded Lua mode prompt examples to all 11 modes
+- `docs/features/ex-commands.md`: added Lua example for custom commands via `nvim_create_user_command`
+- `KNOWN_LIMITATIONS.md`: updated supported APIs list (added `vim.obsidian.keymap`, `vim.obsidian.whichkey`, `vim.opt.guicursor`), corrected `os`/`debug` library availability (not loaded by plugin sandbox)
+- `AGENTS.md`: clarified fengari fork vs plugin library loading distinction (fork keeps `os`/`debug`, plugin does not load them)
 - `README.md`: updated tagline and Lua configuration feature bullet with expanded API surface
 
 ## [0.35.0] - 2026-07-05

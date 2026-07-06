@@ -52,9 +52,14 @@ Configure via **Settings → Vim Motions → Which-key leader grouping**, `vim.o
 
 Name groups by their key prefix to give the collapsed group a descriptive label.
 
-In Lua, use the `desc` option in `vim.keymap.set` for individual bindings. Group labels are currently configured via the Settings UI or vimrc:
+```lua
+vim.obsidian.whichkey.set_group("<leader>t", "Table")
+vim.obsidian.whichkey.set_group("<leader>g", "Git")
+vim.obsidian.whichkey.set_group("<leader>f", "Find")
+```
 
 ```vim
+" Or via vimrc:
 whichkeygroup <leader>t Table
 whichkeygroup <leader>g Git
 whichkeygroup <leader>f Find
@@ -100,15 +105,18 @@ Group and command labels from Lua, vimrc, and Settings are merged. If the same k
 
 ## Global (non-editor) labels
 
-Label global bindings separately from editor bindings. Global bindings in Lua use the same `desc` option:
+Label global bindings separately from editor bindings:
 
 ```lua
-vim.keymap.set("n", "<leader>f", ":obcommand switcher:open", { desc = "Open file" })
+vim.obsidian.keymap.set("<leader>f", ":obcommand switcher:open", { desc = "Open file" })
+vim.obsidian.whichkey.set_group("<leader>", "+leader", { context = "global" })
+vim.obsidian.whichkey.set_label("<leader>e", "Reveal in explorer", { context = "global" })
 ```
 
-In vimrc, use `gwhichkeylabel` and `gwhichkeygroup`:
+The `desc` option in `vim.obsidian.keymap.set` automatically creates a global which-key label. Use `vim.obsidian.whichkey.set_group/set_label` with `{ context = "global" }` for additional labels.
 
 ```vim
+" Or via vimrc:
 gwhichkeygroup <leader> +leader bindings
 gwhichkeylabel <leader>f Open file
 gwhichkeylabel <leader>e Reveal in explorer
@@ -116,4 +124,4 @@ gwhichkeylabel <leader>e Reveal in explorer
 
 These labels appear in the non-editor which-key overlay. They are independent from editor which-key labels — the same key prefix can have different labels in each context.
 
-See [[vimrc#Global key mappings]] for how to define global bindings with `gmap`.
+See [[vimrc#Global key mappings]] for how to define global bindings with `gmap`, or [[lua-config#Global keymaps]] for the Lua equivalent.

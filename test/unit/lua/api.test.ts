@@ -36,6 +36,30 @@ describe('vim api', () => {
         destroyState(L);
     });
 
+    it('should handle vim.opt.guicursor', () => {
+        const L = createSandboxedState();
+        const onSettingOverride = vi.fn();
+        injectApi(L, {
+            onSettingOverride,
+            handleExCommand: () => {},
+            getVaultName: () => 'vault',
+            onKeymap: () => {},
+            onKeymapDel: () => {},
+        });
+
+        const status = lauxlib.luaL_dostring(
+            L,
+            to_luastring('vim.opt.guicursor = "n:bar,i:block"'),
+        );
+        expect(status).toBe(lua.LUA_OK);
+        expect(onSettingOverride).toHaveBeenCalledWith(
+            'cursorShapes',
+            { normal: 'bar', insert: 'block' },
+            'vim.opt.guicursor = "n:bar,i:block"',
+        );
+        destroyState(L);
+    });
+
     it('should read vim.opt values via getOption', () => {
         const L = createSandboxedState();
         injectApi(L, {
@@ -581,6 +605,216 @@ describe('vim api', () => {
             expect(status).toBe(lua.LUA_OK);
             const value = lua.lua_tolstring(L, -1);
             expect(value ? to_jsstring(value) : '').toBe('obsidian');
+            destroyState(L);
+        });
+    });
+
+    describe('vim.obsidian.keymap', () => {
+        it('should call onGlobalKeymap with set', () => {
+            const L = createSandboxedState();
+            const onGlobalKeymap = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onGlobalKeymap,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.obsidian.keymap.set(",f", ":obcommand switcher:open", { desc = "Open file" })',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onGlobalKeymap).toHaveBeenCalledWith({
+                lhs: ',f',
+                rhs: ':obcommand switcher:open',
+                desc: 'Open file',
+            });
+            destroyState(L);
+        });
+
+        it('should call onGlobalKeymapDel with del', () => {
+            const L = createSandboxedState();
+            const onGlobalKeymapDel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onGlobalKeymapDel,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.obsidian.keymap.del(",f")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onGlobalKeymapDel).toHaveBeenCalledWith(',f');
+            destroyState(L);
+        });
+
+        it('should error if rhs does not start with colon', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.obsidian.keymap.set(",f", "invalid")'),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
+            destroyState(L);
+        });
+
+        it('should replace leader key in lhs', () => {
+            const L = createSandboxedState();
+            const onGlobalKeymap = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onGlobalKeymap,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.obsidian.keymap.set("<leader>f", ":obcommand app:reload")',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onGlobalKeymap).toHaveBeenCalledWith({
+                lhs: ',f',
+                rhs: ':obcommand app:reload',
+                desc: undefined,
+            });
+            destroyState(L);
+        });
+    });
+
+    describe('vim.obsidian.whichkey', () => {
+        it('should call onWhichKeyGroupLabel with set_group', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+                getLeaderKey: () => ',',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_group("<leader>t", "Table")',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',t',
+                'Table',
+                'editor',
+            );
+            destroyState(L);
+        });
+
+        it('should call onWhichKeyCommandLabel with set_label', () => {
+            const L = createSandboxedState();
+            const onWhichKeyCommandLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyCommandLabel,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_label(",w", "Save file")',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyCommandLabel).toHaveBeenCalledWith(
+                ',w',
+                'Save file',
+                'editor',
+            );
+            destroyState(L);
+        });
+
+        it('should support global context option', () => {
+            const L = createSandboxedState();
+            const onWhichKeyGroupLabel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                onWhichKeyGroupLabel,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_group(",", "+leader", { context = "global" })',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
+                ',',
+                '+leader',
+                'global',
+            );
+            destroyState(L);
+        });
+    });
+
+    describe('vim.g.mode_prompt', () => {
+        it('should round-trip mode_prompt values', () => {
+            const L = createSandboxedState();
+            const onSettingOverride = vi.fn();
+            injectApi(L, {
+                onSettingOverride,
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.g.mode_prompt_normal = "N"\nreturn vim.g.mode_prompt_normal',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('N');
+            expect(onSettingOverride).toHaveBeenCalledWith(
+                'modePrompts.normal',
+                'N',
+                'vim.g.mode_prompt_normal = "N"',
+            );
             destroyState(L);
         });
     });

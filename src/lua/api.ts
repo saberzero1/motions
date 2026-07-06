@@ -3,6 +3,7 @@ import type { lua_State } from 'fengari';
 import type { MapContext } from '../types/vim-api';
 import type { AutocmdEventData, AutocmdManager } from './autocmd';
 import { KNOWN_SET_OPTIONS } from '../vimrc/loader';
+import { parseGuicursor } from '../vim/options';
 import type { HighlightAttrs, HighlightManager } from './highlight';
 
 export interface LuaKeymap {
@@ -18,6 +19,12 @@ export interface LuaKeymap {
 export interface LuaKeymapDelete {
     mode: MapContext;
     lhs: string;
+}
+
+export interface LuaGlobalKeymap {
+    lhs: string;
+    rhs: string;
+    desc?: string;
 }
 
 export interface VimApiCallbacks {
@@ -54,6 +61,18 @@ export interface VimApiCallbacks {
     getLines?: (start: number, end: number) => string[];
     setLines?: (start: number, end: number, lines: string[]) => void;
     getModePrompt?: (key: string) => string | undefined;
+    onGlobalKeymap?: (map: LuaGlobalKeymap) => void;
+    onGlobalKeymapDel?: (lhs: string) => void;
+    onWhichKeyGroupLabel?: (
+        key: string,
+        label: string,
+        context: 'editor' | 'global',
+    ) => void;
+    onWhichKeyCommandLabel?: (
+        key: string,
+        label: string,
+        context: 'editor' | 'global',
+    ) => void;
     autocmdManager: AutocmdManager;
     highlightManager?: HighlightManager;
 }
@@ -451,6 +470,22 @@ export function injectVimApi(
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const key = readLuaString(state, 2);
         if (!key) return 0;
+        if (key === 'guicursor') {
+            const val = readLuaString(state, 3) ?? '';
+            const partial = parseGuicursor(val);
+            if (Object.keys(partial).length > 0) {
+                callbacks.onSettingOverride(
+                    'cursorShapes',
+                    partial,
+                    `vim.opt.guicursor = ${JSON.stringify(val)}`,
+                );
+            } else if (val.length > 0) {
+                console.warn(
+                    `Vim Motions: vim.opt.guicursor: no valid mode:shape segments in "${val}"`,
+                );
+            }
+            return 0;
+        }
         const spec = KNOWN_SET_OPTIONS[key];
         if (!spec) {
             console.warn(`Vim Motions: unknown vim.opt option ${key}`);
@@ -523,6 +558,7 @@ export function injectVimApi(
             const mapped = MODE_PROMPT_MAP[modeKey];
             const value = readLuaString(state, 3);
             if (mapped && value !== null) {
+                globals.set(key, value);
                 callbacks.onSettingOverride(
                     `modePrompts.${mapped}`,
                     value,
@@ -653,6 +689,128 @@ export function injectVimApi(
         return 1;
     });
     lua.lua_setfield(L, obsidianIndex, to_luastring('vault_path'));
+
+    // vim.obsidian.keymap sub-table
+    lua.lua_newtable(L);
+    const obsKeymapIndex = lua.lua_gettop(L);
+    // vim.obsidian.keymap.set(lhs, rhs, opts?)
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const lhsRaw = readLuaString(state, 1);
+        if (!lhsRaw) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.keymap.set expects a lhs string'),
+            );
+        }
+        const rhs = readLuaString(state, 2);
+        if (!rhs) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.keymap.set expects a rhs string'),
+            );
+        }
+        if (!rhs.startsWith(':')) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    "vim.obsidian.keymap.set: rhs must start with ':' (e.g., ':obcommand app:reload' or ':sidebar left')",
+                ),
+            );
+        }
+        let desc: string | undefined;
+        if (lua.lua_istable(state, 3)) {
+            desc = readStringField(state, 3, 'desc');
+        }
+        const leaderKey = getLeaderKey();
+        const lhs = replaceLeaderKey(lhsRaw, leaderKey);
+        callbacks.onGlobalKeymap?.({ lhs, rhs, desc });
+        return 0;
+    });
+    lua.lua_setfield(L, obsKeymapIndex, to_luastring('set'));
+    // vim.obsidian.keymap.del(lhs)
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const lhsRaw = readLuaString(state, 1);
+        if (!lhsRaw) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.keymap.del expects a lhs string'),
+            );
+        }
+        const leaderKey = getLeaderKey();
+        const lhs = replaceLeaderKey(lhsRaw, leaderKey);
+        callbacks.onGlobalKeymapDel?.(lhs);
+        return 0;
+    });
+    lua.lua_setfield(L, obsKeymapIndex, to_luastring('del'));
+    lua.lua_setfield(L, obsidianIndex, to_luastring('keymap'));
+
+    // vim.obsidian.whichkey sub-table
+    lua.lua_newtable(L);
+    const obsWhichkeyIndex = lua.lua_gettop(L);
+    // vim.obsidian.whichkey.set_group(key, label, opts?)
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const keyRaw = readLuaString(state, 1);
+        if (!keyRaw) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_group expects a key string',
+                ),
+            );
+        }
+        const label = readLuaString(state, 2);
+        if (!label) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_group expects a label string',
+                ),
+            );
+        }
+        let context: 'editor' | 'global' = 'editor';
+        if (lua.lua_istable(state, 3)) {
+            const ctx = readStringField(state, 3, 'context');
+            if (ctx === 'global') context = 'global';
+        }
+        const leaderKey = getLeaderKey();
+        const key = replaceLeaderKey(keyRaw, leaderKey);
+        callbacks.onWhichKeyGroupLabel?.(key, label, context);
+        return 0;
+    });
+    lua.lua_setfield(L, obsWhichkeyIndex, to_luastring('set_group'));
+    // vim.obsidian.whichkey.set_label(key, label, opts?)
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const keyRaw = readLuaString(state, 1);
+        if (!keyRaw) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_label expects a key string',
+                ),
+            );
+        }
+        const label = readLuaString(state, 2);
+        if (!label) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.obsidian.whichkey.set_label expects a label string',
+                ),
+            );
+        }
+        let context: 'editor' | 'global' = 'editor';
+        if (lua.lua_istable(state, 3)) {
+            const ctx = readStringField(state, 3, 'context');
+            if (ctx === 'global') context = 'global';
+        }
+        const leaderKey = getLeaderKey();
+        const key = replaceLeaderKey(keyRaw, leaderKey);
+        callbacks.onWhichKeyCommandLabel?.(key, label, context);
+        return 0;
+    });
+    lua.lua_setfield(L, obsWhichkeyIndex, to_luastring('set_label'));
+    lua.lua_setfield(L, obsidianIndex, to_luastring('whichkey'));
+
     lua.lua_pushvalue(L, obsidianIndex);
     lua.lua_setfield(L, vimTableIndex, to_luastring('obsidian'));
     lua.lua_pop(L, 1);
