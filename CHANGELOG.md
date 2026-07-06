@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-07-06
+
 ### Added
 
 - **Custom surround pairs (`vim.obsidian.surround` / `surroundmap`)** — define custom single-character triggers that map to arbitrary delimiter strings, with full `ys`/`ds`/`cs` support including multi-character delimiters ([#36](https://github.com/saberzero1/motions/issues/36))
