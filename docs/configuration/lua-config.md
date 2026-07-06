@@ -5,14 +5,22 @@ tags:
     - configuration
 ---
 
-Vim Motions supports `.obsidian.init.lua` files using a sandboxed Lua 5.3 runtime. Enable it in **Settings → Vim Motions → Vimrc & key bindings → Configuration mode → Lua only** (or **Lua + Vimrc**). The key value-add over vimrc is conditional logic and function-based keymaps.
+Vim Motions supports Lua configuration files using a sandboxed Lua 5.3 runtime. Enable it in **Settings → Vim Motions → Vimrc & key bindings → Configuration mode → Lua only** (or **Lua + Vimrc**). The key value-add over vimrc is conditional logic and function-based keymaps.
 
 ## File location
 
-By default, place an `.obsidian.init.lua` file in your vault root. For **Obsidian Sync** users (which skips dotfiles), configure a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom Lua config path**, for example, `init.lua` or `config/my.lua`.
+The plugin searches the vault root for the first matching file in this order:
+
+1. `init.lua`
+2. `.init.lua`
+3. `obsidian.init.lua`
+4. `.obsidian.init.lua`
+5. `obsidian.lua`
+
+The first file found is used. Override this with a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom init.lua path**. The settings UI shows which file is currently active.
 
 > [!tip] Obsidian Sync
-> Dotfiles are not synced by Obsidian Sync. Use a non-dotfile path like `init.lua` and configure it in settings to ensure your Lua config syncs across devices.
+> Obsidian Sync skips dotfiles. Use a non-dotfile name like `init.lua` (the first candidate in the fallback chain) to ensure your Lua config syncs across devices.
 
 ## Example init.lua
 

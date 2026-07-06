@@ -1,21 +1,32 @@
 ---
 title: Vimrc
-description: Built-in .obsidian.vimrc support — key mappings, set options, leader bindings, and which-key labels.
+description: Built-in vimrc support — key mappings, set options, leader bindings, and which-key labels with fallback file resolution.
 tags:
     - configuration
 ---
 
-Vim Motions has built-in support for `.obsidian.vimrc` files, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. When both plugins are installed, they coexist — Vim Motions registers its own `:ob` command independently.
+Vim Motions has built-in vimrc support, compatible with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support) syntax. When both plugins are installed, they coexist — Vim Motions registers its own `:ob` command independently.
 
 > [!tip] Lua configuration available
-> Vim Motions also supports `.obsidian.init.lua` with Neovim-compatible Lua syntax. Lua config provides conditional logic and function-based keymaps. See [[lua-config]] for details.
+> Vim Motions also supports Lua configuration with Neovim-compatible syntax. Lua config provides conditional logic and function-based keymaps. See [[lua-config]] for details.
 
 ## File location
 
-By default, place a `.obsidian.vimrc` file in your vault root. For **Obsidian Sync** users (which skips dotfiles), configure a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path** — e.g., `vimrc.md` or `config/my.vimrc`.
+The plugin searches the vault root for the first matching file in this order:
+
+1. `vimrc`
+2. `.vimrc`
+3. `init.vim`
+4. `.init.vim`
+5. `obsidian.vimrc`
+6. `obsidian.vim`
+7. `.obsidian.vimrc`
+8. `.obsidian.vim`
+
+The first file found is used. Override this with a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path**. The settings UI shows which file is currently active.
 
 > [!tip] Obsidian Sync
-> Dotfiles are not synced by Obsidian Sync. Use a non-dotfile path like `vimrc.md` and configure it in settings to ensure your vimrc syncs across devices.
+> Obsidian Sync skips dotfiles. Use a non-dotfile name like `vimrc` (the first candidate in the fallback chain) to ensure your config syncs across devices.
 
 ## Example vimrc
 

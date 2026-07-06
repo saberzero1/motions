@@ -201,9 +201,56 @@ function applyKnownSetOption(
     return true;
 }
 
-function getVimrcPath(app: App, customPath?: string): string {
-    if (customPath) return customPath;
-    return `${app.vault.configDir}.vimrc`;
+/**
+ * Fallback chain for vimrc file resolution (first match wins).
+ * The `.obsidian.*` variants are last because they rely on a linter
+ * workaround (`app.vault.configDir` concatenation) and Obsidian Sync
+ * skips dotfiles.
+ */
+const VIMRC_FALLBACK_PATHS: readonly string[] = [
+    'vimrc',
+    '.vimrc',
+    'init.vim',
+    '.init.vim',
+    'obsidian.vimrc',
+    'obsidian.vim',
+];
+
+/**
+ * Fallback paths that depend on `app.vault.configDir` (e.g. `.obsidian`).
+ * Kept separate because the value is only available at runtime.
+ */
+function getVimrcFallbackPaths(app: App): readonly string[] {
+    const dir = app.vault.configDir;
+    return [...VIMRC_FALLBACK_PATHS, `${dir}.vimrc`, `${dir}.vim`];
+}
+
+async function resolveVimrcPath(
+    app: App,
+    customPath?: string,
+): Promise<{ path: string; found: boolean }> {
+    if (customPath) {
+        const exists = await fileExists(app, customPath);
+        return { path: customPath, found: exists };
+    }
+    for (const candidate of getVimrcFallbackPaths(app)) {
+        if (await fileExists(app, candidate)) {
+            return { path: candidate, found: true };
+        }
+    }
+    // No file found — return the first fallback as the canonical default
+    return { path: VIMRC_FALLBACK_PATHS[0]!, found: false };
+}
+
+export { VIMRC_FALLBACK_PATHS, getVimrcFallbackPaths, resolveVimrcPath };
+
+async function fileExists(app: App, path: string): Promise<boolean> {
+    try {
+        await app.vault.adapter.read(path);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 async function readVimrcFile(app: App, path: string): Promise<string | null> {
@@ -268,8 +315,10 @@ export async function resolveLeaderKey(
     leaderRegistry: LeaderRegistry,
     customPath?: string,
 ): Promise<void> {
-    const path = getVimrcPath(app, customPath);
-    await resolveLeaderFromFile(app, path, leaderRegistry);
+    const { path, found } = await resolveVimrcPath(app, customPath);
+    if (found) {
+        await resolveLeaderFromFile(app, path, leaderRegistry);
+    }
 }
 
 async function resolveLeaderFromFile(
@@ -338,13 +387,13 @@ export async function loadVimrc(
     ) => void,
     customPath?: string,
 ): Promise<VimrcLoadResult> {
-    const path = getVimrcPath(app, customPath);
+    const { path, found } = await resolveVimrcPath(app, customPath);
 
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     const cm = view ? getCmAdapter(view) : null;
     if (!cm) {
         return {
-            found: true,
+            found,
             ready: false,
             commandCount: 0,
             path,
@@ -369,7 +418,7 @@ export async function loadVimrc(
     );
 
     return {
-        found: result.found,
+        found: found && result.found,
         ready: true,
         commandCount: result.commandCount,
         path,

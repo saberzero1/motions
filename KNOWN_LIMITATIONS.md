@@ -115,11 +115,17 @@ The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping t
 
 Changing the vimrc file requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
 
-### Custom vimrc path
+### Config file resolution
 
-The vimrc file path is configurable via **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path**. By default (empty), the plugin loads `.obsidian.vimrc` from the vault root. Setting a custom path (e.g. `config/my.vimrc` or `vimrc.md`) loads the vimrc from that vault-relative path instead. The setting provides file-suggest autocompletion filtered to `*.vimrc` files in the vault. ([#34](https://github.com/saberzero1/motions/issues/34))
+The plugin searches the vault root for config files using a fallback chain (first match wins):
 
-This is primarily useful for **Obsidian Sync**, which does not sync dotfiles (files starting with `.`). Users can place their vimrc at a non-dotfile path (e.g. `vimrc.md`, `config/vimrc`) and point the setting to it.
+**Vimrc**: `vimrc`, `.vimrc`, `init.vim`, `.init.vim`, `obsidian.vimrc`, `obsidian.vim`, `.obsidian.vimrc`, `.obsidian.vim`
+
+**Lua**: `init.lua`, `.init.lua`, `obsidian.init.lua`, `.obsidian.init.lua`, `obsidian.lua`
+
+Non-dotfile names are preferred because Obsidian Sync skips dotfiles. The `.obsidian.*` variants are last in the chain for backward compatibility.
+
+A custom path can be set via **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path** (or Custom init.lua path). When set, the custom path is used directly and the fallback chain is skipped. The setting provides file-suggest autocompletion. The settings UI shows which file is currently in use ("Currently using: {path}") or a not-found warning for invalid custom paths. ([#34](https://github.com/saberzero1/motions/issues/34))
 
 Changing the custom path in settings triggers `reloadFeatures()` (the path is in `RELOAD_KEYS`), but a full vimrc re-parse requires reloading the plugin — the same limitation as editing the vimrc file itself.
 
@@ -695,7 +701,7 @@ Block visual operations that were already working: delete (`d`), yank (`y`), pas
 
 **Status**: Working. Sandboxed Lua 5.3 runtime via [Fengari fork](https://github.com/saberzero1/fengari) (pure JS, browser-only — all Node.js dependencies stripped). ([#46](https://github.com/saberzero1/motions/issues/46))
 
-The plugin supports `.obsidian.init.lua` as an alternative to `.obsidian.vimrc`. Enable in **Settings → Vim Motions → Vimrc & key bindings → Enable Lua configuration**.
+The plugin supports Lua config files (`init.lua`, `.init.lua`, etc. — see [Config file resolution](#config-file-resolution)) as an alternative to vimrc. Enable in **Settings → Vim Motions → Vimrc & key bindings → Configuration mode**.
 
 ### Supported APIs
 

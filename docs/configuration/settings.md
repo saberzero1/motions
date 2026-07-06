@@ -88,11 +88,11 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vimrc & key bindings
 
-| Name                 | Type     | Default     | Range/Options                           | Lua | Vimrc | Description                                                                  |
-| -------------------- | -------- | ----------- | --------------------------------------- | --- | ----- | ---------------------------------------------------------------------------- |
-| Configuration mode   | dropdown | `lua-vimrc` | `lua-vimrc`, `lua`, `vimrc`, `settings` | —   | —     | How the plugin loads config files. Lua + Vimrc loads both with Lua priority. |
-| Custom vimrc path    | text     | `(empty)`   | —                                       | —   | —     | Path to a vimrc file in your vault.                                          |
-| Custom init.lua path | text     | `(empty)`   | —                                       | —   | —     | Path to an init.lua file in your vault.                                      |
+| Name                 | Type     | Default     | Range/Options                           | Lua | Vimrc | Description                                                                                                                                                             |
+| -------------------- | -------- | ----------- | --------------------------------------- | --- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Configuration mode   | dropdown | `lua-vimrc` | `lua-vimrc`, `lua`, `vimrc`, `settings` | —   | —     | How the plugin loads config files. Lua + Vimrc loads both with Lua priority.                                                                                            |
+| Custom vimrc path    | text     | `(empty)`   | —                                       | —   | —     | Override path to a vimrc file. Leave empty to search: `vimrc`, `.vimrc`, `init.vim`, `.init.vim`, `obsidian.vimrc`, `obsidian.vim`, `.obsidian.vimrc`, `.obsidian.vim`. |
+| Custom init.lua path | text     | `(empty)`   | —                                       | —   | —     | Override path to an init.lua file. Leave empty to search: `init.lua`, `.init.lua`, `obsidian.init.lua`, `.obsidian.init.lua`, `obsidian.lua`.                           |
 
 ## Leader key bindings
 

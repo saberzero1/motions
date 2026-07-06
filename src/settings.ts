@@ -12,6 +12,16 @@ import { isBundledVimActive } from './vim/bundled-vim';
 import { VimrcFileSuggest } from './ui/vimrc-file-suggest';
 import { getVimApi } from './vim/vim-api';
 import { setClipboardOption, setTextwidth } from './vim/options';
+import {
+    VIMRC_FALLBACK_PATHS,
+    getVimrcFallbackPaths,
+    resolveVimrcPath,
+} from './vimrc/loader';
+import {
+    LUA_FALLBACK_PATHS,
+    getLuaFallbackPaths,
+    resolveLuaConfigPath,
+} from './lua/loader';
 
 export function formatHotkey(serialized: string): string {
     if (!serialized) return '';
@@ -948,7 +958,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                     {
                         name: 'Custom init.lua path',
-                        desc: `Path to an init.lua file in your vault. Leave empty to use the default ${this.app.vault.configDir}.init.lua.`,
+                        desc: `Path to an init.lua file in your vault. Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
                         aliases: [
                             'lua path',
                             'lua config location',
@@ -965,7 +975,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                     {
                         name: 'Custom vimrc path',
-                        desc: `Path to a vimrc file in your vault. Leave empty to use the default ${this.app.vault.configDir}.vimrc. Useful when Obsidian Sync skips dotfiles.`,
+                        desc: `Path to a vimrc file in your vault. Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
                         aliases: ['vimrc location', 'vimrc sync'],
                         control: {
                             type: 'text' as const,
@@ -985,7 +995,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 heading: 'Leader key bindings',
                 items: [
                     {
-                        name: `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
+                        name: 'Map leader key sequences to Obsidian commands. Applied in addition to vimrc bindings.',
                         searchable: false,
                     },
                     {
@@ -2084,13 +2094,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        const luaSetting = new Setting(containerEl)
             .setName('Custom init.lua path')
             .setDesc(
-                `Path to an init.lua file in your vault. Leave empty to use the default ${this.app.vault.configDir}.init.lua.`,
+                `Path to an init.lua file in your vault. Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
             )
             .addText((text) => {
-                text.setPlaceholder(`${this.app.vault.configDir}.init.lua`)
+                text.setPlaceholder(LUA_FALLBACK_PATHS[0]!)
                     .setValue(this.plugin.settings.luaConfigPath)
                     .setDisabled(
                         ['vimrc', 'settings'].includes(
@@ -2103,14 +2113,29 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     });
                 new VimrcFileSuggest(this.app, text.inputEl);
             });
+        void resolveLuaConfigPath(
+            this.app,
+            this.plugin.settings.luaConfigPath || undefined,
+        ).then(({ path, found }) => {
+            const statusEl = luaSetting.descEl.createSpan();
+            if (found) {
+                statusEl.setText(` Currently using: ${path}`);
+                statusEl.addClass('vim-motions-config-path-active');
+            } else if (this.plugin.settings.luaConfigPath) {
+                statusEl.setText(
+                    ` File not found: ${this.plugin.settings.luaConfigPath}`,
+                );
+                statusEl.addClass('vim-motions-config-path-error');
+            }
+        });
 
-        new Setting(containerEl)
+        const vimrcSetting = new Setting(containerEl)
             .setName('Custom vimrc path')
             .setDesc(
-                `Path to a vimrc file in your vault. Leave empty to use the default ${this.app.vault.configDir}.vimrc.`,
+                `Path to a vimrc file in your vault. Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
             )
             .addText((text) => {
-                text.setPlaceholder(`${this.app.vault.configDir}.vimrc`)
+                text.setPlaceholder(VIMRC_FALLBACK_PATHS[0]!)
                     .setValue(this.plugin.settings.vimrcPath)
                     .setDisabled(
                         ['lua', 'settings'].includes(
@@ -2123,10 +2148,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     });
                 new VimrcFileSuggest(this.app, text.inputEl);
             });
+        void resolveVimrcPath(
+            this.app,
+            this.plugin.settings.vimrcPath || undefined,
+        ).then(({ path, found }) => {
+            const statusEl = vimrcSetting.descEl.createSpan();
+            if (found) {
+                statusEl.setText(` Currently using: ${path}`);
+                statusEl.addClass('vim-motions-config-path-active');
+            } else if (this.plugin.settings.vimrcPath) {
+                statusEl.setText(
+                    ` File not found: ${this.plugin.settings.vimrcPath}`,
+                );
+                statusEl.addClass('vim-motions-config-path-error');
+            }
+        });
 
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(
-            `Map leader key sequences to Obsidian commands. Applied in addition to ${this.app.vault.configDir}.vimrc bindings.`,
+            'Map leader key sequences to Obsidian commands. Applied in addition to vimrc bindings.',
         );
 
         const bindingsContainer = containerEl.createDiv({

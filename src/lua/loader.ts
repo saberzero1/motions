@@ -42,10 +42,49 @@ export interface LuaLoadResult {
     highlightManager: HighlightManager | null;
 }
 
-function getLuaConfigPath(app: App, customPath?: string): string {
-    if (customPath) return customPath;
-    return `${app.vault.configDir}.init.lua`;
+/**
+ * Fallback chain for lua config file resolution (first match wins).
+ * The `.obsidian.*` variants are last because they rely on a linter
+ * workaround (`app.vault.configDir` concatenation) and Obsidian Sync
+ * skips dotfiles.
+ */
+const LUA_FALLBACK_PATHS: readonly string[] = [
+    'init.lua',
+    '.init.lua',
+    'obsidian.init.lua',
+];
+
+function getLuaFallbackPaths(app: App): readonly string[] {
+    const dir = app.vault.configDir;
+    return [...LUA_FALLBACK_PATHS, `${dir}.init.lua`, 'obsidian.lua'];
 }
+
+async function fileExists(app: App, path: string): Promise<boolean> {
+    try {
+        await app.vault.adapter.read(path);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function resolveLuaConfigPath(
+    app: App,
+    customPath?: string,
+): Promise<{ path: string; found: boolean }> {
+    if (customPath) {
+        const exists = await fileExists(app, customPath);
+        return { path: customPath, found: exists };
+    }
+    for (const candidate of getLuaFallbackPaths(app)) {
+        if (await fileExists(app, candidate)) {
+            return { path: candidate, found: true };
+        }
+    }
+    return { path: LUA_FALLBACK_PATHS[0]!, found: false };
+}
+
+export { LUA_FALLBACK_PATHS, getLuaFallbackPaths, resolveLuaConfigPath };
 
 async function readLuaFile(app: App, path: string): Promise<string | null> {
     try {
@@ -67,11 +106,11 @@ export async function loadInitLua(
     customPath?: string,
     bufferKeymapManager?: BufferKeymapManager,
 ): Promise<LuaLoadResult> {
-    const path = getLuaConfigPath(app, customPath);
+    const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
     const highlightManager = new HighlightManager(doc);
 
-    const content = await readLuaFile(app, path);
+    const content = found ? await readLuaFile(app, path) : null;
     if (content === null) {
         return {
             found: false,

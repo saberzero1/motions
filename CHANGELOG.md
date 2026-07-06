@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Config file fallback chains** — vimrc and Lua config files are now resolved via a fallback chain instead of a single hardcoded path. The plugin searches the vault root for the first matching file. Custom path overrides still take priority.
+    - **Vimrc chain** (8 candidates): `vimrc`, `.vimrc`, `init.vim`, `.init.vim`, `obsidian.vimrc`, `obsidian.vim`, `.obsidian.vimrc`, `.obsidian.vim`
+    - **Lua chain** (5 candidates): `init.lua`, `.init.lua`, `obsidian.init.lua`, `.obsidian.init.lua`, `obsidian.lua`
+    - Non-dotfile names (`vimrc`, `init.lua`) are preferred — Obsidian Sync skips dotfiles, and the `.obsidian.*` naming relied on a linter workaround
+    - Settings UI now shows "Currently using: {path}" (resolved path) or "File not found" for invalid custom paths
+    - Settings descriptions list the full fallback chain
+    - Backward compatible: existing `.obsidian.vimrc` and `.obsidian.init.lua` files still work (they appear later in the chain)
+    - Plugin: `src/vimrc/loader.ts` (`resolveVimrcPath`, `VIMRC_FALLBACK_PATHS`), `src/lua/loader.ts` (`resolveLuaConfigPath`, `LUA_FALLBACK_PATHS`), `src/settings.ts` (async path resolution display), `styles.css` (`.vim-motions-config-path-active`/`.vim-motions-config-path-error` classes)
+
+### Documentation
+
+- `docs/configuration/vimrc.md`: file location section rewritten with full fallback chain table
+- `docs/configuration/lua-config.md`: file location section rewritten with full fallback chain table
+- `docs/configuration/settings.md`: custom path setting descriptions updated with fallback chain lists
+- `docs/guides/migrating-from-vimrc-support.md`: custom vimrc path section updated with fallback chain
+
 ## [0.36.0] - 2026-07-06
 
 ### Added

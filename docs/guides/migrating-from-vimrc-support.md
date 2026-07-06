@@ -43,7 +43,7 @@ To switch entirely to Vim Motions' vimrc loader:
 
 ## Custom vimrc path
 
-If you use Obsidian Sync, dotfiles are not synced. Vim Motions lets you configure a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path** — e.g., `vimrc.md` or `config/my.vimrc`.
+The plugin automatically searches for vimrc files in the vault root (`vimrc`, `.vimrc`, `init.vim`, `.init.vim`, `obsidian.vimrc`, `obsidian.vim`, `.obsidian.vimrc`, `.obsidian.vim`). The first match is used. You can also set a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path**.
 
 ## Troubleshooting
 

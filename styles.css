@@ -24,6 +24,14 @@
     display: none;
 }
 
+.vim-motions-config-path-active {
+    color: var(--text-success);
+}
+
+.vim-motions-config-path-error {
+    color: var(--text-error);
+}
+
 .vim-motions-settings-notice {
     background-color: color-mix(in oklch, var(--color-orange) 10%, transparent);
     border: 1px solid color-mix(in oklch, var(--color-orange) 25%, transparent);
