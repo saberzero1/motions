@@ -469,39 +469,39 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
     });
 
     describe('cursor position after surround — #22', function () {
-        it('S] should place cursor on inner text, not bracket', async function () {
+        it('S] should place cursor on opening delimiter', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('v', 'e', 'S', 'r');
             expect(await getEditorValue()).toBe('[hello] world');
-            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 0 });
         });
 
-        it('S" should place cursor on inner text', async function () {
+        it('S" should place cursor on opening delimiter', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('v', 'e', 'S', '"');
             expect(await getEditorValue()).toBe('"hello" world');
-            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 0 });
         });
 
-        it('S( should place cursor on inner text after spaced open', async function () {
+        it('S( should place cursor on opening delimiter', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('v', 'e', 'S', '(');
             expect(await getEditorValue()).toBe('( hello ) world');
-            expect(await getCursorPos()).toEqual({ line: 0, ch: 2 });
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 0 });
         });
 
-        it('ysiw] should place cursor on inner text', async function () {
+        it('ysiw] should place cursor on opening delimiter', async function () {
             await setupEditor('hello world', { line: 0, ch: 3 });
             await vimKeys('y', 's', 'i', 'w', ']');
             expect(await getEditorValue()).toBe('[hello] world');
-            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 0 });
         });
 
-        it('yss" should place cursor on inner text', async function () {
+        it('yss" should place cursor on opening delimiter', async function () {
             await setupEditor('hello world', { line: 0, ch: 3 });
             await vimKeys('y', 's', 's', '"');
             expect(await getEditorValue()).toBe('"hello world"');
-            expect(await getCursorPos()).toEqual({ line: 0, ch: 1 });
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 0 });
         });
     });
 
