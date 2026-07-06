@@ -154,6 +154,15 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}workspacenav`,
         );
     });
+    vim.defineOption('workspacenavviewtypes', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify(
+            'workspaceNavViewTypes',
+            str,
+            `set workspacenavviewtypes=${str}`,
+        );
+    });
     vim.defineOption('easymotion', true, 'boolean', ['em'], (value) => {
         if (value === undefined) return;
         const enabled = !!value;

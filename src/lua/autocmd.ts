@@ -77,6 +77,25 @@ interface AutocmdFireOptions {
     data?: unknown;
 }
 
+const EXT_TO_FILETYPE: Record<string, string> = {
+    md: 'markdown',
+    js: 'javascript',
+    ts: 'typescript',
+    jsx: 'javascript',
+    tsx: 'typescript',
+    py: 'python',
+    lua: 'lua',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml',
+    css: 'css',
+    html: 'html',
+    xml: 'xml',
+    txt: 'text',
+    csv: 'csv',
+    svg: 'svg',
+};
+
 const INSERT_MODES = new Set(['i', 'R']);
 
 export class AutocmdManager {
@@ -97,6 +116,10 @@ export class AutocmdManager {
     private reloadCallback: (() => void) | null = null;
     private cursorHoldTimer: number | null = null;
     private cursorHoldTimeout = 4000;
+    private previousLeafType: string | null = null;
+    private previousLeafId: string | null = null;
+    private previousLeafFilePath: string | null = null;
+    private leafEnterDebounceTimer: number | null = null;
 
     constructor(private L: lua_State | null) {}
 
@@ -261,7 +284,49 @@ export class AutocmdManager {
         if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
     }
 
-    onActiveLeafChange(adapter: CmAdapter | null): void {
+    onActiveLeafChange(
+        adapter: CmAdapter | null,
+        leafInfo?: { type: string; id: string; filePath: string | null },
+    ): void {
+        // Fire LeafLeave for previous leaf (immediate, not debounced)
+        if (this.previousLeafType !== null) {
+            this.fire('LeafLeave', {
+                file: this.previousLeafFilePath ?? '',
+                match: this.previousLeafType,
+                data: {
+                    type: this.previousLeafType,
+                    leaf_id: this.previousLeafId,
+                },
+            });
+        }
+
+        // Fire LeafEnter for new leaf (debounced)
+        if (leafInfo) {
+            if (this.leafEnterDebounceTimer !== null) {
+                window.clearTimeout(this.leafEnterDebounceTimer);
+            }
+            const enterInfo = { ...leafInfo };
+            this.leafEnterDebounceTimer = window.setTimeout(() => {
+                this.leafEnterDebounceTimer = null;
+                this.fire('LeafEnter', {
+                    file: enterInfo.filePath ?? '',
+                    match: enterInfo.type,
+                    data: {
+                        type: enterInfo.type,
+                        leaf_id: enterInfo.id,
+                    },
+                });
+            }, 50);
+            this.previousLeafType = leafInfo.type;
+            this.previousLeafId = leafInfo.id;
+            this.previousLeafFilePath = leafInfo.filePath;
+        } else {
+            this.previousLeafType = null;
+            this.previousLeafId = null;
+            this.previousLeafFilePath = null;
+        }
+
+        // Existing adapter logic (unchanged)
         if (adapter === this.currentAdapter) return;
         this.detachAdapter();
         if (!adapter) return;
@@ -294,10 +359,28 @@ export class AutocmdManager {
             window.clearTimeout(this.cursorHoldTimer);
             this.cursorHoldTimer = null;
         }
+        if (this.leafEnterDebounceTimer) {
+            window.clearTimeout(this.leafEnterDebounceTimer);
+            this.leafEnterDebounceTimer = null;
+        }
         for (const cleanup of this.globalCleanups) cleanup();
         this.globalCleanups = [];
         this.callbacks = null;
         this.clearAll();
+    }
+
+    fireFileType(filePath: string): void {
+        if (!filePath) return;
+        const lastDot = filePath.lastIndexOf('.');
+        if (lastDot === -1) return;
+        const ext = filePath.substring(lastDot + 1).toLowerCase();
+        const filetype = EXT_TO_FILETYPE[ext];
+        if (filetype) {
+            this.fire('FileType', {
+                file: filePath,
+                match: filetype,
+            });
+        }
     }
 
     private bindAdapter(adapter: CmAdapter | null): void {

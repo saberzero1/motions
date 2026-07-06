@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`vim.ob.*` API expansion (17 new functions)** — the `vim.obsidian` / `vim.ob` Lua namespace grows from 21 to 38 functions, organized in three tiers
+    - **Leaf introspection** (Tier 1): `vim.ob.get_leaf_type()` returns the active view type string, `vim.ob.get_active_leaf()` returns `{id, type, pinned, file_path}` table, `vim.ob.list_leaves()` returns all open tabs, `vim.ob.is_markdown_view()` returns boolean
+    - **Command wrappers** (Tier 2): `vim.ob.follow_link()`, `vim.ob.backlinks()`, `vim.ob.daily()`, `vim.ob.search()`, `vim.ob.tags()`, `vim.ob.new_note()`, `vim.ob.rename()`, `vim.ob.toggle_checkbox()`, `vim.ob.template()` — thin wrappers around Obsidian commands, silent no-op if required core plugin is disabled
+    - **Leaf management** (Tier 3): `vim.ob.focus(direction)` navigates panes (`"left"`, `"right"`, `"top"`, `"bottom"`), `vim.ob.close_leaf()` closes active tab, `vim.ob.split(direction)` splits vertically/horizontally, `vim.ob.get_leaf_for_file(path)` finds which leaf has a file open
+    - Plugin: `src/lua/obsidian-api.ts` (extracted from `api.ts`), `src/lua/api.ts` (new callbacks), `src/lua/loader.ts` (callback wiring)
+- **3 new autocmd events** — `LeafEnter`, `LeafLeave`, `FileType` (total: 15 events)
+    - `LeafEnter` — fires when a new leaf gains focus (debounced 50ms), event data includes `{type, leaf_id}` in `ev.data`
+    - `LeafLeave` — fires when a leaf loses focus (immediate, before `LeafEnter`)
+    - `FileType` — fires after `BufEnter` with `ev.match` set to detected filetype from file extension (`.md` → `"markdown"`, `.ts` → `"typescript"`, etc.)
+    - Enables Neovim-style per-filetype keymaps: `vim.api.nvim_create_autocmd("FileType", { pattern = "markdown", callback = function() ... end })`
+    - Plugin: `src/lua/autocmd.ts` (`fireFileType`, `onActiveLeafChange` extension), `src/main.ts` (leaf info passthrough)
+- **`workspaceNavViewTypes` setting** — comma-separated list of view types where scroll and count keys are intercepted. Defaults to `markdown,graph,pdf,canvas,empty,image`. Plugin views not in this list receive their own keystrokes. Configurable via **Settings → Vim Motions → Workspace navigation view types**, vimrc (`set workspacenavviewtypes=...`), or Lua (`vim.opt.workspacenavviewtypes = "..."` or `vim.opt.workspacenavviewtypes = {"markdown", "graph", "pdf"}`)
+    - Plugin: `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+- **`vim.opt` table (array) support for string options** — string-type options can now be set using Lua tables: `vim.opt.workspacenavviewtypes = {"markdown", "graph", "pdf"}` is equivalent to `vim.opt.workspacenavviewtypes = "markdown,graph,pdf"`. Elements are joined with commas. Applies to all string-type options.
+    - Plugin: `src/lua/api.ts` (`vim.opt.__newindex` table handling)
+
+### Fixed
+
+- **Workspace navigation intercepting keystrokes in plugin leaves** — when workspace navigation was enabled, the global key handler consumed keystrokes (`1`, `2`, `3`, `0`, `j`, `k`, etc.) in non-editor plugin views (Spaced Repetition, Excalidraw, etc.) before the plugin could process them. Fixed with a three-gate interception system: structural keys (`<C-w>*`, `gt`/`gT`, `<C-o>`/`<C-i>`, `:`) always work in non-editor views, content keys (scroll, digits, tab shortcuts) only intercept in whitelisted view types, and plugin views receive their own keystrokes. ([#47](https://github.com/saberzero1/motions/issues/47))
+    - Plugin: `src/workspace/global-mapping-registry.ts` (`GlobalMapGate` → `'standard' | 'hint' | 'structural'`), `src/workspace/global-defaults.ts` (gate assignments), `src/workspace/global-key-handler.ts` (three-gate `onKeydown` rewrite, `GLOBAL_NAV_VIEW_TYPES` whitelist, `shouldInterceptContent`/`shouldInterceptStructural` methods)
+
+### Changed
+
+- **`vim.obsidian.*` namespace extracted to dedicated module** — the Obsidian-specific Lua API is now in `src/lua/obsidian-api.ts` (extracted from `api.ts`), following the pattern of `fn.ts`, `stdlib.ts`, `timers.ts`, `highlight.ts`. No behavioral change. `api.ts` shrinks by ~504 lines.
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: added "Workspace navigation in plugin views" section documenting three-gate interception and the `gg`-in-plugin-leaf trade-off; marked #47 as fixed
+- `docs/configuration/settings.md`: added `Workspace navigation view types` to Vim features table
+- `docs/configuration/vimrc.md`: added `workspacenavviewtypes` (`wnvt` alias) to string options table
+- `docs/configuration/lua-config.md`: added 17 new `vim.ob.*` functions, 3 new autocmd events (`LeafEnter`, `LeafLeave`, `FileType`), `workspacenavviewtypes` option
+- `docs/features/workspace-navigation.md`: added "Plugin view compatibility" section with key passthrough table and whitelist customization
+- `docs/guides/ecosystem-compatibility.md`: added "Plugin leaf key passthrough" section
+- `docs/configuration/lua-config.md`: added table (array) syntax tip for string options with example
+
 ## [0.38.0] - 2026-07-06
 
 ### Added

@@ -984,6 +984,108 @@ describe('vim api', () => {
         });
     });
 
+    describe('vim.opt table (array) support', () => {
+        it('should join table values with commas for string options', () => {
+            const L = createSandboxedState();
+            const onSettingOverride = vi.fn();
+            injectApi(L, {
+                onSettingOverride,
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.opt.workspacenavviewtypes = {"markdown", "graph", "pdf"}',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onSettingOverride).toHaveBeenCalledWith(
+                'workspaceNavViewTypes',
+                'markdown,graph,pdf',
+                expect.any(String),
+            );
+            destroyState(L);
+        });
+
+        it('should still accept string values for string options', () => {
+            const L = createSandboxedState();
+            const onSettingOverride = vi.fn();
+            injectApi(L, {
+                onSettingOverride,
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.opt.workspacenavviewtypes = "markdown,graph"',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onSettingOverride).toHaveBeenCalledWith(
+                'workspaceNavViewTypes',
+                'markdown,graph',
+                expect.any(String),
+            );
+            destroyState(L);
+        });
+
+        it('should handle empty table as empty string', () => {
+            const L = createSandboxedState();
+            const onSettingOverride = vi.fn();
+            injectApi(L, {
+                onSettingOverride,
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.opt.workspacenavviewtypes = {}'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onSettingOverride).toHaveBeenCalledWith(
+                'workspaceNavViewTypes',
+                '',
+                expect.any(String),
+            );
+            destroyState(L);
+        });
+
+        it('should not apply table conversion to non-string options', () => {
+            const L = createSandboxedState();
+            const onSettingOverride = vi.fn();
+            injectApi(L, {
+                onSettingOverride,
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.opt.scrolloff = 5'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onSettingOverride).toHaveBeenCalledWith(
+                'scrolloffLines',
+                5,
+                'vim.opt.scrolloff = 5',
+            );
+            destroyState(L);
+        });
+    });
+
     describe('vim.g.mode_prompt', () => {
         it('should round-trip mode_prompt values', () => {
             const L = createSandboxedState();

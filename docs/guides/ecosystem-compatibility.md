@@ -36,3 +36,9 @@ These scroll keys require unbinding Obsidian's default hotkeys for them in **Set
 ### Other Vim plugins
 
 If another plugin registers its own Vim motions, operators, or keymaps, conflicts are possible. Vim Motions' `reloadFeatures()` mechanism uses `resetKeymap()` to restore defaults during hot-reload, which may clear mappings from other plugins. Reload Obsidian if mappings from other plugins stop working after changing Vim Motions settings.
+
+## Plugin leaf key passthrough
+
+Third-party plugins that open their own views (Spaced Repetition, Excalidraw, Kanban, etc.) receive their own keystrokes when their view is active. Vim Motions only intercepts structural navigation keys (`<C-w>*`, `gt`/`gT`, `:`, `<C-o>`/`<C-i>`) — all other keys pass through to the plugin.
+
+If a specific plugin's view type should also support Vim Motions' scroll/count keys, add it to the whitelist in **Settings → Vim Motions → Workspace navigation view types**. Use `vim.ob.get_leaf_type()` in your `init.lua` to discover a plugin's view type string.

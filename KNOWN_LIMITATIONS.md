@@ -304,9 +304,23 @@ In standard Vim, `H`/`L` move the cursor to the top/bottom of the visible screen
 
 In editor context, codemirror-vim uses `<C-o>`/`<C-i>` for the within-file jumplist. In non-editor views, the global handler maps them to `app:go-back`/`app:go-forward` (Obsidian's history navigation). There is no conflict because the global handler only fires when no editor is focused.
 
-### Editor-only ex commands
+### `Editor-only ex commands`
 
 The standalone ex command modal (`:` in non-editor views) supports 34 commands that don't require a CmAdapter. The following editor-dependent commands show "Not a global command" when invoked from the modal: `:e!`, `:saveas`, `:read`, `:marks`, `:delmarks`, `:changes`.
+
+## Workspace navigation in plugin views
+
+**Status**: Fixed. Two-level interception implemented. ([#47](https://github.com/saberzero1/motions/issues/47))
+
+When workspace navigation is enabled, the global key handler uses a three-gate interception system:
+
+- **Structural keys** (`<C-w>*`, `gt`/`gT`, `<C-o>`/`<C-i>`, `:`) — always intercepted in non-editor views, regardless of view type. These let you navigate between panes/tabs even in plugin views.
+- **Content keys** (`j`/`k` scroll, count-prefix digits, `H`/`L`, scroll commands) — only intercepted in whitelisted view types (markdown, graph, pdf, canvas, empty, image). In plugin views (Spaced Repetition, Excalidraw, etc.), these keys pass through to the plugin.
+- **Hint keys** (`f`, `F`, `yf`, `df`) — intercepted unless an editor or input is focused.
+
+**Trade-off**: In plugin views, pressing `g` followed by a standard-gated key (e.g., `gg` for scroll-to-top) will consume the keystrokes without effect, because the `g` prefix enters the handler due to structural completions (`gt`/`gT`). Use `<C-w>` sequences for workspace navigation in plugin views.
+
+**Customization**: The view type whitelist can be overridden via **Settings → Vim Motions → Workspace navigation view types** or `set workspacenavviewtypes=markdown,graph,pdf,canvas,empty,image` in vimrc.
 
 ## Hint mode actions
 

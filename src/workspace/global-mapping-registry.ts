@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 
-export type GlobalMapGate = 'standard' | 'hint';
+export type GlobalMapGate = 'standard' | 'hint' | 'structural';
 
 export type GlobalMapAction =
     | { type: 'obcommand'; commandId: string }

@@ -200,6 +200,53 @@ export async function loadInitLua(
                 }
             ).commands.executeCommandById(id);
         },
+        getActiveLeafInfo: () => {
+            const leaf = app.workspace.getMostRecentLeaf();
+            if (!leaf?.view) return null;
+            return {
+                id: (leaf as unknown as { id?: string }).id ?? '',
+                type:
+                    (
+                        leaf.view as unknown as { getViewType?: () => string }
+                    ).getViewType?.() ?? 'empty',
+                pinned:
+                    (leaf as unknown as { pinned?: boolean }).pinned ?? false,
+                filePath: app.workspace.getActiveFile()?.path ?? null,
+            };
+        },
+        listLeaves: () => {
+            const result: Array<{
+                id: string;
+                type: string;
+                pinned: boolean;
+                filePath: string | null;
+            }> = [];
+            const rootSplit = app.workspace.rootSplit;
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.getRoot() === rootSplit) {
+                    const view = leaf.view;
+                    result.push({
+                        id: (leaf as unknown as { id?: string }).id ?? '',
+                        type:
+                            (
+                                view as unknown as {
+                                    getViewType?: () => string;
+                                }
+                            ).getViewType?.() ?? 'empty',
+                        pinned:
+                            (leaf as unknown as { pinned?: boolean }).pinned ??
+                            false,
+                        filePath:
+                            (view as unknown as { file?: { path?: string } })
+                                .file?.path ?? null,
+                    });
+                }
+            });
+            return result;
+        },
+        isMarkdownView: () => {
+            return app.workspace.getActiveViewOfType(MarkdownView) !== null;
+        },
         listCommands: () => {
             const commands = (
                 app as unknown as {
@@ -361,7 +408,7 @@ export async function loadInitLua(
                 onSettingOverride?.('whichKeyCommandLabel', { key, label });
             }
         },
-        getModePrompt: (key) => {
+        getModePrompt: (_key) => {
             return undefined;
         },
         onCursorConfig: (shapes) => {
@@ -395,6 +442,68 @@ export async function loadInitLua(
             commandCount++;
             const idx = leaderBindings.findIndex((b) => b.key === key);
             if (idx !== -1) leaderBindings.splice(idx, 1);
+        },
+        focusDirection: (direction: string) => {
+            const commandMap: Record<string, string> = {
+                left: 'editor:focus-left',
+                right: 'editor:focus-right',
+                top: 'editor:focus-top',
+                bottom: 'editor:focus-bottom',
+            };
+            const commandId = commandMap[direction];
+            if (commandId) {
+                (
+                    app as unknown as {
+                        commands: { executeCommandById: (id: string) => void };
+                    }
+                ).commands.executeCommandById(commandId);
+            }
+        },
+        closeActiveLeaf: () => {
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (id: string) => void };
+                }
+            ).commands.executeCommandById('workspace:close');
+        },
+        splitDirection: (direction: string) => {
+            const commandId = `workspace:split-${direction}`;
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (id: string) => void };
+                }
+            ).commands.executeCommandById(commandId);
+        },
+        getLeafForFile: (path: string) => {
+            let found: {
+                id: string;
+                type: string;
+                pinned: boolean;
+                filePath: string | null;
+            } | null = null;
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (found) return;
+                const view = leaf.view;
+                const viewFile = (
+                    view as unknown as { file?: { path?: string } }
+                ).file?.path;
+                if (viewFile === path) {
+                    found = {
+                        id: (leaf as unknown as { id?: string }).id ?? '',
+                        type:
+                            (
+                                view as unknown as {
+                                    getViewType?: () => string;
+                                }
+                            ).getViewType?.() ?? 'empty',
+                        pinned:
+                            (leaf as unknown as { pinned?: boolean }).pinned ??
+                            false,
+                        filePath: viewFile ?? null,
+                    };
+                }
+            });
+            return found;
         },
     });
 

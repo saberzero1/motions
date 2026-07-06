@@ -50,6 +50,10 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     tn: { type: 'boolean', settingsKey: 'enableTableNav' },
     workspacenav: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
     wn: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
+    workspacenavviewtypes: {
+        type: 'string',
+        settingsKey: 'workspaceNavViewTypes',
+    },
     easymotion: { type: 'boolean', settingsKey: 'enableEasyMotion' },
     em: { type: 'boolean', settingsKey: 'enableEasyMotion' },
     easymotiondimming: { type: 'boolean', settingsKey: 'easyMotionDimming' },

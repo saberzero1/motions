@@ -11,16 +11,17 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vim features
 
-| Name                             | Type     | Default  | Range/Options             | Lua                          | Vimrc                  | Description                                                                              |
-| -------------------------------- | -------- | -------- | ------------------------- | ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- | ----- | --------------- |
-| Text objects                     | toggle   | `true`   | —                         | `vim.opt.textobjects`        | `set textobjects`      | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                             |
-| Structural navigation            | toggle   | `true`   | —                         | `vim.opt.navigation`         | `set navigation`       | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).              |
-| Hard-wrap operator (gq)          | toggle   | `true`   | —                         | `vim.opt.hardwrap`           | `set hardwrap`         | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.             |
-| Smart list continuation on o/O   | toggle   | `true`   | —                         | `vim.opt.listcontinuation`   | `set listcontinuation` | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O. |
-| Table navigation                 | toggle   | `true`   | —                         | `vim.opt.tablenav`           | `set tablenav`         | Enable table cell navigation motions (`]                                                 | `, `[ | `, `]c`, `[c`). |
-| Table widget in live preview     | dropdown | `cursor` | `always`, `cursor`, `off` | `vim.opt.tablewidget`        | `set tablewidget`      | Controls how tables display in Live Preview.                                             |
-| Formatting marks in Live Preview | dropdown | `cursor` | `cursor`, `off`           | `vim.opt.formattingmarkmode` | —                      | Corrects cursor positioning near formatting marks in Live Preview.                       |
-| Workspace navigation             | toggle   | `true`   | —                         | `vim.opt.workspacenav`       | `set workspacenav`     | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.).                      |
+| Name                             | Type     | Default   | Range/Options             | Lua                             | Vimrc                       | Description                                                                                  |
+| -------------------------------- | -------- | --------- | ------------------------- | ------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------- | ----- | --------------- |
+| Text objects                     | toggle   | `true`    | —                         | `vim.opt.textobjects`           | `set textobjects`           | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                                 |
+| Structural navigation            | toggle   | `true`    | —                         | `vim.opt.navigation`            | `set navigation`            | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).                  |
+| Hard-wrap operator (gq)          | toggle   | `true`    | —                         | `vim.opt.hardwrap`              | `set hardwrap`              | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.                 |
+| Smart list continuation on o/O   | toggle   | `true`    | —                         | `vim.opt.listcontinuation`      | `set listcontinuation`      | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O.     |
+| Table navigation                 | toggle   | `true`    | —                         | `vim.opt.tablenav`              | `set tablenav`              | Enable table cell navigation motions (`]                                                     | `, `[ | `, `]c`, `[c`). |
+| Table widget in live preview     | dropdown | `cursor`  | `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                 |
+| Formatting marks in Live Preview | dropdown | `cursor`  | `cursor`, `off`           | `vim.opt.formattingmarkmode`    | —                           | Corrects cursor positioning near formatting marks in Live Preview.                           |
+| Workspace navigation             | toggle   | `true`    | —                         | `vim.opt.workspacenav`          | `set workspacenav`          | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.).                          |
+| Workspace navigation view types  | text     | `(empty)` | —                         | `vim.opt.workspacenavviewtypes` | `set workspacenavviewtypes` | Comma-separated view types where scroll and count keys are intercepted. Empty uses defaults. |
 
 > [!warning]
 > **Workspace navigation**: `<C-w>` may conflict with Obsidian's "Close current tab" hotkey. Rebind it in **Settings → Hotkeys**.

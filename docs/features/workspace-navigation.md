@@ -102,6 +102,35 @@ Use `:gmap` in the ex command line to list all active global bindings with their
 
 The non-editor which-key overlay shows available completions when a partial key sequence is pending (e.g., pressing `<C-w>` shows all window commands). Label your bindings with the `desc` option in Lua or `gwhichkeylabel` and `gwhichkeygroup` in vimrc. See [[lua-config]] or [[vimrc#Global key mappings]] for full syntax.
 
+## Plugin view compatibility
+
+When a plugin view (such as Spaced Repetition flashcard review, Excalidraw, or any third-party plugin leaf) is active, Vim Motions automatically passes most keystrokes through to the plugin. Only structural navigation keys are intercepted:
+
+| Keys               | Behavior in plugin views      |
+| ------------------ | ----------------------------- |
+| `<C-w>h/j/k/l`     | Navigate between panes        |
+| `<C-w>v`, `<C-w>s` | Split vertically/horizontally |
+| `<C-w>c`, `<C-w>q` | Close tab                     |
+| `gt`, `gT`         | Next/previous tab             |
+| `<C-o>`, `<C-i>`   | History back/forward          |
+| `:`                | Open command line             |
+
+Keys like `j`, `k`, `1`–`9`, `H`, `L`, and scroll commands pass through to the plugin view, allowing the plugin to handle them natively.
+
+### Customizing the view type whitelist
+
+By default, content-interaction keys (scrolling, count prefix, tab shortcuts) are intercepted in these view types: `markdown`, `graph`, `pdf`, `canvas`, `empty`, `image`. All other view types are treated as plugin views.
+
+Override this in **Settings → Vim Motions → Workspace navigation view types** or via vimrc/Lua:
+
+```vim
+set workspacenavviewtypes=markdown,graph,pdf,canvas,empty,image,excalidraw
+```
+
+```lua
+vim.opt.workspacenavviewtypes = "markdown,graph,pdf,canvas,empty,image,excalidraw"
+```
+
 ## Configuration
 
 Workspace navigation is enabled by default. You can toggle it or configure it through the following methods:

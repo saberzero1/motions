@@ -433,14 +433,30 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration = new VimRegistration(vim);
 
         this.registerEvent(
-            this.app.workspace.on('active-leaf-change', () => {
+            this.app.workspace.on('active-leaf-change', (leaf) => {
                 const view =
                     this.app.workspace.getActiveViewOfType(MarkdownView);
                 const adapter = view ? getCmAdapter(view) : null;
-                this.autocmdManager?.onActiveLeafChange(adapter);
+                const leafInfo = leaf
+                    ? {
+                          type:
+                              (
+                                  leaf.view as unknown as {
+                                      getViewType?: () => string;
+                                  }
+                              ).getViewType?.() ?? 'empty',
+                          id: (leaf as unknown as { id?: string }).id ?? '',
+                          filePath:
+                              this.app.workspace.getActiveFile()?.path ?? null,
+                      }
+                    : undefined;
+                this.autocmdManager?.onActiveLeafChange(adapter, leafInfo);
                 const filePath =
                     this.app.workspace.getActiveFile()?.path ?? null;
                 this.bufferKeymapManager?.switchBuffer(filePath);
+                if (filePath) {
+                    this.autocmdManager?.fireFileType(filePath);
+                }
             }),
         );
 

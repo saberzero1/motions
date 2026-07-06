@@ -12,6 +12,15 @@ import { normalizeKeyEvent } from './global-mapping-registry';
 
 const SEQUENCE_TIMEOUT = 1000;
 
+const GLOBAL_NAV_VIEW_TYPES = new Set([
+    'markdown',
+    'graph',
+    'pdf',
+    'canvas',
+    'empty',
+    'image',
+]);
+
 function isEditorOrInputFocused(doc: Document): boolean {
     const el = doc.activeElement;
     if (!el) return false;
@@ -135,11 +144,12 @@ export class GlobalKeyHandler {
         }
     }
 
-    private shouldIntercept(e: KeyboardEvent, doc: Document): boolean {
+    private shouldInterceptContent(e: KeyboardEvent, doc: Document): boolean {
         if (!this.settings.enableWorkspaceNav) return false;
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
         if (isModalOpen(doc)) return false;
+        if (this.isPluginLeafActive()) return false;
         return true;
     }
 
@@ -148,6 +158,38 @@ export class GlobalKeyHandler {
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
         return true;
+    }
+
+    private shouldInterceptStructural(
+        e: KeyboardEvent,
+        doc: Document,
+    ): boolean {
+        if (!this.settings.enableWorkspaceNav) return false;
+        if (e.isComposing) return false;
+        if (isEditorOrInputFocused(doc)) return false;
+        if (isModalOpen(doc)) return false;
+        return true;
+    }
+
+    private isPluginLeafActive(): boolean {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        if (!leaf?.view) return false;
+        const viewType =
+            (leaf.view as { getViewType?: () => string }).getViewType?.() ?? '';
+        return !this.getNavViewTypes().has(viewType);
+    }
+
+    private getNavViewTypes(): Set<string> {
+        const custom = this.settings.workspaceNavViewTypes;
+        if (custom && custom.trim()) {
+            return new Set(
+                custom
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+            );
+        }
+        return GLOBAL_NAV_VIEW_TYPES;
     }
 
     private dispatch(entry: GlobalMapEntry): void {
@@ -182,24 +224,35 @@ export class GlobalKeyHandler {
         const prospectiveSeq = [...this.keyBuffer, key].join('');
 
         const matchResult = this.registry.resolve(prospectiveSeq);
-        let gateApplies: 'hint' | 'standard' | null = null;
+        let gateApplies: 'hint' | 'standard' | 'structural' | null = null;
 
         if (matchResult.type === 'exact') {
             gateApplies = matchResult.entry.gate;
         } else if (matchResult.type === 'partial') {
             const completions = this.registry.getCompletions(prospectiveSeq);
-            const hasHint = completions.some((entry) => entry.gate === 'hint');
+            const hasStructural = completions.some(
+                (entry) => entry.gate === 'structural',
+            );
             const hasStandard = completions.some(
                 (entry) => entry.gate === 'standard',
             );
-            gateApplies = hasHint && !hasStandard ? 'hint' : 'standard';
+            const hasHint = completions.some((entry) => entry.gate === 'hint');
+            if (hasStructural) {
+                gateApplies = 'structural';
+            } else if (hasStandard) {
+                gateApplies = 'standard';
+            } else if (hasHint) {
+                gateApplies = 'hint';
+            }
         }
 
         if (this.keyBuffer.length === 0) {
-            if (gateApplies === 'hint') {
+            if (gateApplies === 'structural') {
+                if (!this.shouldInterceptStructural(e, doc)) return;
+            } else if (gateApplies === 'hint') {
                 if (!this.shouldInterceptHints(e, doc)) return;
             } else if (gateApplies === 'standard') {
-                if (!this.shouldIntercept(e, doc)) return;
+                if (!this.shouldInterceptContent(e, doc)) return;
             } else {
                 if (
                     !e.ctrlKey &&
@@ -210,7 +263,7 @@ export class GlobalKeyHandler {
                     e.key <= '9' &&
                     !this.countActive
                 ) {
-                    if (!this.shouldIntercept(e, doc)) return;
+                    if (!this.shouldInterceptContent(e, doc)) return;
                     e.preventDefault();
                     e.stopPropagation();
                     this.count = parseInt(e.key, 10);
@@ -252,6 +305,10 @@ export class GlobalKeyHandler {
         const result = this.registry.resolve(seq);
 
         if (result.type === 'exact') {
+            if (result.entry.gate === 'standard' && this.isPluginLeafActive()) {
+                this.resetSequence();
+                return;
+            }
             this.dispatch(result.entry);
             this.resetSequence();
         } else if (result.type === 'partial') {

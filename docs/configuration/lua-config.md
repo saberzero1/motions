@@ -58,76 +58,86 @@ print("init.lua loaded for vault:", vim.vault_name())
 
 ## Supported APIs
 
-| API                                                  | Description                         | Example                              |
-| ---------------------------------------------------- | ----------------------------------- | ------------------------------------ |
-| `vim.opt.<name> = value`                             | Set a plugin option                 | `vim.opt.scrolloff = 8`              |
-| `vim.o.<name> = value`                               | Alias for `vim.opt`                 | `vim.o.scrolloff = 8`                |
-| `vim.g.mapleader`                                    | Set the leader key                  | `vim.g.mapleader = " "`              |
-| `vim.g.<name> = value`                               | Set a user variable                 | `vim.g.my_var = true`                |
-| `vim.cmd(string)`                                    | Execute an ex command               | `vim.cmd("set nohlsearch")`          |
-| `vim.vault_name()`                                   | Returns the current vault name      | `if vim.vault_name() == "work" then` |
-| `vim.fn.has(feature)`                                | Platform/feature detection          | `vim.fn.has("mac")`                  |
-| `vim.fn.expand(expr)`                                | Active file path (vault-relative)   | `vim.fn.expand("%:t")`               |
-| `vim.fn.fnamemodify(path, mods)`                     | Path manipulation                   | `vim.fn.fnamemodify(path, ":t:r")`   |
-| `vim.fn.exists(expr)`                                | Check variable/option existence     | `vim.fn.exists("g:my_var")`          |
-| `vim.fn.localtime()`                                 | Unix timestamp                      | `vim.fn.localtime()`                 |
-| `vim.fn.strftime(fmt)`                               | Format date/time                    | `vim.fn.strftime("%Y-%m-%d")`        |
-| `vim.fn.filereadable(path)`                          | Check vault file exists             | `vim.fn.filereadable("config.md")`   |
-| `vim.fn.isdirectory(path)`                           | Check vault directory exists        | `vim.fn.isdirectory("templates")`    |
-| `vim.fn.glob(pattern)`                               | Find matching vault files           | `vim.fn.glob("*.md")`                |
-| `vim.fn.mode()`                                      | Current vim mode                    | `vim.fn.mode()`                      |
-| `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)    | `vim.fn.line(".")`                   |
-| `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)  | `vim.fn.col(".")`                    |
-| `vim.notify(msg)`                                    | Show Obsidian notification          | `vim.notify("Saved!")`               |
-| `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command            | see below                            |
-| `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                | see Autocommands section             |
-| `vim.api.nvim_create_augroup(name, opts)`            | Create/get autocommand group        | see Autocommands section             |
-| `vim.keymap.set(mode, lhs, rhs, opts?)`              | Create a key mapping                | see example above                    |
-| `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                | `vim.keymap.del("n", "Q")`           |
-| `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap | see Obsidian namespace               |
-| `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap              | see Obsidian namespace               |
-| `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group              | see Obsidian namespace               |
-| `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding           | see Obsidian namespace               |
-| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels  | see Obsidian namespace               |
-| `print(...)`                                         | Print to developer console          | `print("loaded")`                    |
+| API                                                  | Description                                        | Example                              |
+| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------ |
+| `vim.opt.<name> = value`                             | Set a plugin option (string options accept tables) | `vim.opt.scrolloff = 8`              |
+| `vim.o.<name> = value`                               | Alias for `vim.opt`                                | `vim.o.scrolloff = 8`                |
+| `vim.g.mapleader`                                    | Set the leader key                                 | `vim.g.mapleader = " "`              |
+| `vim.g.<name> = value`                               | Set a user variable                                | `vim.g.my_var = true`                |
+| `vim.cmd(string)`                                    | Execute an ex command                              | `vim.cmd("set nohlsearch")`          |
+| `vim.vault_name()`                                   | Returns the current vault name                     | `if vim.vault_name() == "work" then` |
+| `vim.fn.has(feature)`                                | Platform/feature detection                         | `vim.fn.has("mac")`                  |
+| `vim.fn.expand(expr)`                                | Active file path (vault-relative)                  | `vim.fn.expand("%:t")`               |
+| `vim.fn.fnamemodify(path, mods)`                     | Path manipulation                                  | `vim.fn.fnamemodify(path, ":t:r")`   |
+| `vim.fn.exists(expr)`                                | Check variable/option existence                    | `vim.fn.exists("g:my_var")`          |
+| `vim.fn.localtime()`                                 | Unix timestamp                                     | `vim.fn.localtime()`                 |
+| `vim.fn.strftime(fmt)`                               | Format date/time                                   | `vim.fn.strftime("%Y-%m-%d")`        |
+| `vim.fn.filereadable(path)`                          | Check vault file exists                            | `vim.fn.filereadable("config.md")`   |
+| `vim.fn.isdirectory(path)`                           | Check vault directory exists                       | `vim.fn.isdirectory("templates")`    |
+| `vim.fn.glob(pattern)`                               | Find matching vault files                          | `vim.fn.glob("*.md")`                |
+| `vim.fn.mode()`                                      | Current vim mode                                   | `vim.fn.mode()`                      |
+| `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                   | `vim.fn.line(".")`                   |
+| `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                 | `vim.fn.col(".")`                    |
+| `vim.notify(msg)`                                    | Show Obsidian notification                         | `vim.notify("Saved!")`               |
+| `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command                           | see below                            |
+| `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                               | see Autocommands section             |
+| `vim.api.nvim_create_augroup(name, opts)`            | Create/get autocommand group                       | see Autocommands section             |
+| `vim.keymap.set(mode, lhs, rhs, opts?)`              | Create a key mapping                               | see example above                    |
+| `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                               | `vim.keymap.del("n", "Q")`           |
+| `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap                | see Obsidian namespace               |
+| `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap                             | see Obsidian namespace               |
+| `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                             | see Obsidian namespace               |
+| `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                          | see Obsidian namespace               |
+| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace               |
+| `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
 
 ## Supported vim.opt options
 
 All plugin options are available via `vim.opt`. `vim.o` is an alias.
 
-| Option                    | Type    | Default                                           | Valid range / values               | Example                                  |
-| ------------------------- | ------- | ------------------------------------------------- | ---------------------------------- | ---------------------------------------- |
-| `textobjects`             | boolean | `true`                                            |                                    | `vim.opt.textobjects = true`             |
-| `navigation`              | boolean | `true`                                            |                                    | `vim.opt.navigation = true`              |
-| `hardwrap`                | boolean | `true`                                            |                                    | `vim.opt.hardwrap = true`                |
-| `listcontinuation`        | boolean | `true`                                            |                                    | `vim.opt.listcontinuation = true`        |
-| `tablenav`                | boolean | `true`                                            |                                    | `vim.opt.tablenav = true`                |
-| `workspacenav`            | boolean | `true`                                            |                                    | `vim.opt.workspacenav = true`            |
-| `easymotion`              | boolean | `true`                                            |                                    | `vim.opt.easymotion = true`              |
-| `easymotiondimming`       | boolean | `true`                                            |                                    | `vim.opt.easymotiondimming = true`       |
-| `hintmode`                | boolean | `true`                                            |                                    | `vim.opt.hintmode = true`                |
-| `statusbar`               | boolean | `true`                                            |                                    | `vim.opt.statusbar = true`               |
-| `chorddisplay`            | boolean | `true`                                            |                                    | `vim.opt.chorddisplay = true`            |
-| `powerline`               | boolean | `false`                                           |                                    | `vim.opt.powerline = true`               |
-| `expandtab`               | boolean | `true`                                            |                                    | `vim.opt.expandtab = true`               |
-| `scrolloff`               | number  | `5`                                               | 0–9999                             | `vim.opt.scrolloff = 8`                  |
-| `scanlimit`               | number  | `20`                                              | 5–200                              | `vim.opt.scanlimit = 20`                 |
-| `labelfontsize`           | number  | `14`                                              | 10–20                              | `vim.opt.labelfontsize = 14`             |
-| `tabstop`                 | number  | `4`                                               |                                    | `vim.opt.tabstop = 4`                    |
-| `shiftwidth`              | number  | `4`                                               |                                    | `vim.opt.shiftwidth = 4`                 |
-| `textwidth`               | number  | `80`                                              |                                    | `vim.opt.textwidth = 80`                 |
-| `insertmodeescapetimeout` | number  | `1000`                                            | 100–5000 ms                        | `vim.opt.insertmodeescapetimeout = 1000` |
-| `clipboard`               | string  | `""`                                              | `""`, `"unnamed"`, `"unnamedplus"` | `vim.opt.clipboard = "unnamedplus"`      |
-| `insertmodeescape`        | string  | `""`                                              |                                    | `vim.opt.insertmodeescape = "jk"`        |
-| `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"`                    |                                    | `vim.opt.easymotionlabels = "asdf"`      |
-| `hintlabels`              | string  | `"asdfghjkl"`                                     |                                    | `vim.opt.hintlabels = "asdf"`            |
-| `tablewidget`             | string  | `"cursor"`                                        | `"off"`, `"cursor"`, `"always"`    | `vim.opt.tablewidget = "cursor"`         |
-| `formattingmarkmode`      | string  | `"cursor"`                                        | `"off"`, `"cursor"`                | `vim.opt.formattingmarkmode = "cursor"`  |
-| `whichkey`                | string  | `"off"`                                           | `"off"`, `"leader"`, `"all"`       | `vim.opt.whichkey = "leader"`            |
-| `whichkeygrouping`        | string  | `"grouped"`                                       | `"flat"`, `"grouped"`              | `vim.opt.whichkeygrouping = "grouped"`   |
-| `whichkeydelay`           | number  | `500`                                             | 0–2000 ms                          | `vim.opt.whichkeydelay = 300`            |
-| `guicursor`               | string  | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes                  | `vim.opt.guicursor = "n:bar,i:block"`    |
-| `updatetime`              | number  | `4000`                                            | ms (CursorHold delay)              | `vim.opt.updatetime = 4000`              |
+| Option                    | Type    | Default                                           | Valid range / values               | Example                                            |
+| ------------------------- | ------- | ------------------------------------------------- | ---------------------------------- | -------------------------------------------------- |
+| `textobjects`             | boolean | `true`                                            |                                    | `vim.opt.textobjects = true`                       |
+| `navigation`              | boolean | `true`                                            |                                    | `vim.opt.navigation = true`                        |
+| `hardwrap`                | boolean | `true`                                            |                                    | `vim.opt.hardwrap = true`                          |
+| `listcontinuation`        | boolean | `true`                                            |                                    | `vim.opt.listcontinuation = true`                  |
+| `tablenav`                | boolean | `true`                                            |                                    | `vim.opt.tablenav = true`                          |
+| `workspacenav`            | boolean | `true`                                            |                                    | `vim.opt.workspacenav = true`                      |
+| `easymotion`              | boolean | `true`                                            |                                    | `vim.opt.easymotion = true`                        |
+| `easymotiondimming`       | boolean | `true`                                            |                                    | `vim.opt.easymotiondimming = true`                 |
+| `hintmode`                | boolean | `true`                                            |                                    | `vim.opt.hintmode = true`                          |
+| `statusbar`               | boolean | `true`                                            |                                    | `vim.opt.statusbar = true`                         |
+| `chorddisplay`            | boolean | `true`                                            |                                    | `vim.opt.chorddisplay = true`                      |
+| `powerline`               | boolean | `false`                                           |                                    | `vim.opt.powerline = true`                         |
+| `expandtab`               | boolean | `true`                                            |                                    | `vim.opt.expandtab = true`                         |
+| `scrolloff`               | number  | `5`                                               | 0–9999                             | `vim.opt.scrolloff = 8`                            |
+| `scanlimit`               | number  | `20`                                              | 5–200                              | `vim.opt.scanlimit = 20`                           |
+| `labelfontsize`           | number  | `14`                                              | 10–20                              | `vim.opt.labelfontsize = 14`                       |
+| `tabstop`                 | number  | `4`                                               |                                    | `vim.opt.tabstop = 4`                              |
+| `shiftwidth`              | number  | `4`                                               |                                    | `vim.opt.shiftwidth = 4`                           |
+| `textwidth`               | number  | `80`                                              |                                    | `vim.opt.textwidth = 80`                           |
+| `insertmodeescapetimeout` | number  | `1000`                                            | 100–5000 ms                        | `vim.opt.insertmodeescapetimeout = 1000`           |
+| `clipboard`               | string  | `""`                                              | `""`, `"unnamed"`, `"unnamedplus"` | `vim.opt.clipboard = "unnamedplus"`                |
+| `insertmodeescape`        | string  | `""`                                              |                                    | `vim.opt.insertmodeescape = "jk"`                  |
+| `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"`                    |                                    | `vim.opt.easymotionlabels = "asdf"`                |
+| `hintlabels`              | string  | `"asdfghjkl"`                                     |                                    | `vim.opt.hintlabels = "asdf"`                      |
+| `tablewidget`             | string  | `"cursor"`                                        | `"off"`, `"cursor"`, `"always"`    | `vim.opt.tablewidget = "cursor"`                   |
+| `formattingmarkmode`      | string  | `"cursor"`                                        | `"off"`, `"cursor"`                | `vim.opt.formattingmarkmode = "cursor"`            |
+| `whichkey`                | string  | `"off"`                                           | `"off"`, `"leader"`, `"all"`       | `vim.opt.whichkey = "leader"`                      |
+| `whichkeygrouping`        | string  | `"grouped"`                                       | `"flat"`, `"grouped"`              | `vim.opt.whichkeygrouping = "grouped"`             |
+| `whichkeydelay`           | number  | `500`                                             | 0–2000 ms                          | `vim.opt.whichkeydelay = 300`                      |
+| `workspacenavviewtypes`   | string  | `""`                                              | Comma-separated view types         | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
+| `guicursor`               | string  | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes                  | `vim.opt.guicursor = "n:bar,i:block"`              |
+| `updatetime`              | number  | `4000`                                            | ms (CursorHold delay)              | `vim.opt.updatetime = 4000`                        |
+
+> [!tip] Table syntax for string options
+> String options that accept comma-separated values can also be set using Lua tables. The elements are joined with commas automatically.
+>
+> ```lua
+> -- These are equivalent:
+> vim.opt.workspacenavviewtypes = "markdown,graph,pdf,canvas"
+> vim.opt.workspacenavviewtypes = {"markdown", "graph", "pdf", "canvas"}
+> ```
 
 See [[settings]] for the full list of options and their descriptions.
 
@@ -448,12 +458,18 @@ Vim Motions supports a Neovim-compatible autocommand system for reacting to edit
 | `BufLeave`     | A file is deactivated (switching away)                  | Vault-relative path globs                             |
 | `BufWritePre`  | Before saving a file                                    | Vault-relative path globs                             |
 | `BufWritePost` | After saving a file                                     | Vault-relative path globs                             |
+| `LeafEnter`    | A leaf (tab/pane) gains focus (debounced 50ms)          | No                                                    |
+| `LeafLeave`    | A leaf (tab/pane) loses focus                           | No                                                    |
+| `FileType`     | After `BufEnter` when filetype is detected              | No                                                    |
 | `FocusGained`  | Obsidian window gains focus                             | No                                                    |
 | `FocusLost`    | Obsidian window loses focus                             | No                                                    |
 | `TextYankPost` | After yank, delete, or change operation                 | No                                                    |
 
 > [!tip] CursorHold timing
 > Configure the idle timeout with `vim.opt.updatetime = 1000` (milliseconds). Default is 4000ms, matching Neovim.
+
+> [!info] FileType detection
+> FileType detection is based on file extension (e.g. `md` → `markdown`, `ts` → `typescript`, `py` → `python`). If a filetype is unknown, the `FileType` event does not fire.
 
 ### Usage examples
 
@@ -524,6 +540,8 @@ The callback receives a table with the following fields:
 }
 ```
 
+For `LeafEnter` and `LeafLeave`, `data` includes `{ type = "markdown", leaf_id = "..." }` and `match` is set to the leaf type. For `FileType`, `match` is the detected filetype (for example, `markdown`).
+
 ### Augroup management
 
 ```lua
@@ -566,6 +584,33 @@ Obsidian-specific APIs that don't exist in Neovim. Available as `vim.obsidian` o
 | `vim.obsidian.open_file(path)`  | Open a vault file                                | `vim.obsidian.open_file("notes/todo.md")` |
 | `vim.obsidian.current_file()`   | Table `{path, name, extension, basename}` or nil | `vim.obsidian.current_file().path`        |
 | `vim.obsidian.vault_path()`     | Vault absolute path (desktop only)               | `vim.obsidian.vault_path()`               |
+
+### Workspace and leaf management
+
+| Function                         | Returns                               | Example                                       |
+| -------------------------------- | ------------------------------------- | --------------------------------------------- |
+| `vim.ob.get_active_leaf()`       | Table `{id, type, pinned}`            | `local leaf = vim.ob.get_active_leaf()`       |
+| `vim.ob.get_leaf_type()`         | View type string (e.g., `"markdown"`) | `if vim.ob.get_leaf_type() == "pdf" then`     |
+| `vim.ob.list_leaves()`           | Table of leaf info tables             | `for _, leaf in ipairs(vim.ob.list_leaves())` |
+| `vim.ob.is_markdown_view()`      | Boolean                               | `if vim.ob.is_markdown_view() then`           |
+| `vim.ob.get_leaf_for_file(path)` | Leaf info table or nil                | `vim.ob.get_leaf_for_file("note.md")`         |
+| `vim.ob.focus(direction)`        | Boolean (success)                     | `vim.ob.focus("right")`                       |
+| `vim.ob.split(direction)`        | Boolean (success)                     | `vim.ob.split("vertical")`                    |
+| `vim.ob.close_leaf()`            | Boolean (success)                     | `vim.ob.close_leaf()`                         |
+
+### Note operations
+
+| Function                   | Description                     | Example                    |
+| -------------------------- | ------------------------------- | -------------------------- |
+| `vim.ob.follow_link()`     | Follow link under cursor        | `vim.ob.follow_link()`     |
+| `vim.ob.backlinks()`       | Open backlinks for current note | `vim.ob.backlinks()`       |
+| `vim.ob.daily()`           | Open today's daily note         | `vim.ob.daily()`           |
+| `vim.ob.search()`          | Open global search              | `vim.ob.search()`          |
+| `vim.ob.tags()`            | Open tags view                  | `vim.ob.tags()`            |
+| `vim.ob.new_note()`        | Create new note                 | `vim.ob.new_note()`        |
+| `vim.ob.rename()`          | Rename current note             | `vim.ob.rename()`          |
+| `vim.ob.toggle_checkbox()` | Toggle checkbox on current line | `vim.ob.toggle_checkbox()` |
+| `vim.ob.template()`        | Open template picker            | `vim.ob.template()`        |
 
 ### Global keymaps (`vim.obsidian.keymap`)
 

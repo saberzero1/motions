@@ -103,6 +103,7 @@ export interface VimMotionsSettings {
     enableTextObjects: boolean;
     enableNavigation: boolean;
     enableWorkspaceNav: boolean;
+    workspaceNavViewTypes: string;
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
     enableChordDisplay: boolean;
@@ -144,6 +145,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableTextObjects: true,
     enableNavigation: true,
     enableWorkspaceNav: true,
+    workspaceNavViewTypes: '',
     configMode: 'lua-vimrc',
     enableStatusBar: true,
     enableChordDisplay: true,
@@ -1485,6 +1487,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Workspace navigation view types')
+            .setDesc(
+                'Comma-separated view types where scroll and count keys are intercepted. ' +
+                    'Leave empty for defaults (markdown, graph, pdf, canvas, empty, image). ' +
+                    'Plugin views not in this list receive their own keystrokes.',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('')
+                    .setValue(this.plugin.settings.workspaceNavViewTypes)
+                    .onChange(async (value) => {
+                        this.plugin.settings.workspaceNavViewTypes = value;
+                        await this.plugin.saveSettings();
                     }),
             );
 

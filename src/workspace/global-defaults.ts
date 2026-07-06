@@ -1,6 +1,9 @@
 import { MarkdownView } from 'obsidian';
 import type { App } from 'obsidian';
-import type { GlobalMappingRegistry } from './global-mapping-registry';
+import type {
+    GlobalMappingRegistry,
+    GlobalMapGate,
+} from './global-mapping-registry';
 import { executeCommand } from './navigation';
 import { GlobalExCommandModal } from '../ui/global-ex-command';
 
@@ -131,7 +134,7 @@ export function registerDefaultGlobalMappings(
     const add = (
         keys: string,
         action: Parameters<GlobalMappingRegistry['addMapping']>[1],
-        gate: 'standard' | 'hint',
+        gate: GlobalMapGate,
     ): void => {
         registry.addMapping(keys, action, { source: 'default', gate });
     };
@@ -180,12 +183,12 @@ export function registerDefaultGlobalMappings(
                 }
             },
         },
-        'standard',
+        'structural',
     );
     add(
         'gT',
         { type: 'obcommand', commandId: 'workspace:previous-tab' },
-        'standard',
+        'structural',
     );
     add(
         '<C-d>',
@@ -207,56 +210,56 @@ export function registerDefaultGlobalMappings(
         { type: 'builtin', fn: (app2) => scrollFullPage(app2, -1) },
         'standard',
     );
-    add('<C-o>', { type: 'obcommand', commandId: 'app:go-back' }, 'standard');
+    add('<C-o>', { type: 'obcommand', commandId: 'app:go-back' }, 'structural');
     add(
         '<C-i>',
         { type: 'obcommand', commandId: 'app:go-forward' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>h',
         { type: 'obcommand', commandId: 'editor:focus-left' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>j',
         { type: 'obcommand', commandId: 'editor:focus-bottom' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>k',
         { type: 'obcommand', commandId: 'editor:focus-top' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>l',
         { type: 'obcommand', commandId: 'editor:focus-right' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>v',
         { type: 'obcommand', commandId: 'workspace:split-vertical' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>s',
         { type: 'obcommand', commandId: 'workspace:split-horizontal' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>c',
         { type: 'obcommand', commandId: 'workspace:close' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>q',
         { type: 'obcommand', commandId: 'workspace:close' },
-        'standard',
+        'structural',
     );
     add(
         '<C-w>o',
         { type: 'builtin', fn: (app2) => closeOtherTabs(app2) },
-        'standard',
+        'structural',
     );
     add(
         ':',
@@ -266,10 +269,10 @@ export function registerDefaultGlobalMappings(
                 new GlobalExCommandModal(app2, registry).open();
             },
         },
-        'standard',
+        'structural',
     );
     add('z', { type: 'builtin', fn: noop }, 'standard');
-    add('<C-w>g', { type: 'builtin', fn: noop }, 'standard');
+    add('<C-w>g', { type: 'builtin', fn: noop }, 'structural');
 
     if (hintActions !== null) {
         add(
