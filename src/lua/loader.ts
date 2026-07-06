@@ -35,6 +35,12 @@ export interface LuaLoadResult {
     globalUnmaps: string[];
     globalWhichKeyLabels: Array<{ key: string; label: string }>;
     globalWhichKeyGroups: Array<{ key: string; label: string }>;
+    surroundPairs: Array<{ trigger: string; open: string; close: string }>;
+    leaderBindings: Array<{
+        key: string;
+        commandId: string;
+        desc?: string;
+    }>;
     commandCount: number;
     state: lua_State | null;
     autocmdManager: AutocmdManager | null;
@@ -125,6 +131,8 @@ export async function loadInitLua(
             globalUnmaps: [],
             globalWhichKeyLabels: [],
             globalWhichKeyGroups: [],
+            surroundPairs: [],
+            leaderBindings: [],
             commandCount: 0,
             state: null,
             autocmdManager: null,
@@ -146,6 +154,16 @@ export async function loadInitLua(
     const globalUnmaps: string[] = [];
     const globalWhichKeyLabels: Array<{ key: string; label: string }> = [];
     const globalWhichKeyGroups: Array<{ key: string; label: string }> = [];
+    const surroundPairs: Array<{
+        trigger: string;
+        open: string;
+        close: string;
+    }> = [];
+    const leaderBindings: Array<{
+        key: string;
+        commandId: string;
+        desc?: string;
+    }> = [];
 
     const L = createSandboxedState();
     const autocmdManager = new AutocmdManager(L);
@@ -342,6 +360,41 @@ export async function loadInitLua(
             } else {
                 onSettingOverride?.('whichKeyCommandLabel', { key, label });
             }
+        },
+        getModePrompt: (key) => {
+            return undefined;
+        },
+        onCursorConfig: (shapes) => {
+            commandCount++;
+            onSettingOverride?.('cursorShapes', shapes);
+        },
+        onModePromptConfig: (prompts) => {
+            commandCount++;
+            for (const [mode, value] of Object.entries(prompts)) {
+                onSettingOverride?.(
+                    `modePrompts.${mode}`,
+                    value,
+                    `vim.obsidian.modeprompt.set({${mode} = ${JSON.stringify(value)}})`,
+                );
+            }
+        },
+        onSurroundPair: (trigger, open, close) => {
+            commandCount++;
+            surroundPairs.push({ trigger, open, close });
+        },
+        onSurroundPairDel: (trigger) => {
+            commandCount++;
+            const idx = surroundPairs.findIndex((p) => p.trigger === trigger);
+            if (idx !== -1) surroundPairs.splice(idx, 1);
+        },
+        onLeaderBinding: (key, commandId, desc) => {
+            commandCount++;
+            leaderBindings.push({ key, commandId, desc });
+        },
+        onLeaderBindingDel: (key) => {
+            commandCount++;
+            const idx = leaderBindings.findIndex((b) => b.key === key);
+            if (idx !== -1) leaderBindings.splice(idx, 1);
         },
     });
 
@@ -556,6 +609,8 @@ export async function loadInitLua(
             globalUnmaps: [],
             globalWhichKeyLabels: [],
             globalWhichKeyGroups: [],
+            surroundPairs: [],
+            leaderBindings: [],
             commandCount: 0,
             state: L,
             autocmdManager,
@@ -577,6 +632,8 @@ export async function loadInitLua(
         globalUnmaps,
         globalWhichKeyLabels,
         globalWhichKeyGroups,
+        surroundPairs,
+        leaderBindings,
         commandCount,
         state: L,
         autocmdManager,

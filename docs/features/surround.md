@@ -74,6 +74,49 @@ Several commands allow you to place delimiters on their own lines.
 
 You can add surroundings while typing in insert mode using `<C-G>s{char}`. This inserts the pair and places the cursor inside. Pressing `Esc` moves the cursor past the closing delimiter.
 
+## Custom surround pairs
+
+Define your own single-character triggers that map to arbitrary delimiters — including multi-character ones like `[[wikilinks]]` or `$$math$$`.
+
+### Lua
+
+```lua
+vim.obsidian.surround.set("l", { left = "[[", right = "]]" })
+vim.obsidian.surround.set("m", { left = "$$", right = "$$" })
+
+-- Or batch:
+vim.obsidian.surround.add({
+    { "l", left = "[[", right = "]]" },
+    { "m", left = "$$", right = "$$" },
+    { "e", left = "\\begin{equation}", right = "\\end{equation}" },
+})
+
+-- Remove:
+vim.obsidian.surround.del("l")
+```
+
+### Vimrc
+
+```vim
+surroundmap l [[ ]]
+surroundmap m $$ $$
+surroundunmap l
+```
+
+After registration, all surround operations work with the custom pair:
+
+- `ysiw l` wraps a word → `[[word]]`
+- `ds l` deletes surrounding `[[...]]`
+- `cs l m` changes `[[...]]` to `$$...$$`
+- Visual `S l` wraps the selection
+
+Built-in surround characters (`(`, `)`, `[`, `]`, `{`, `}`, `<`, `>`, `b`, `B`, `r`, `a`, `t`, `T`, `f`, `F`, `"`, `'`, `` ` ``) are reserved and cannot be overridden.
+
+> [!info] Fork mode required
+> Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings** for full support.
+
+See [[lua-config#Custom surround pairs]] for the full API reference.
+
 ## Dot-repeat
 
 All surround commands support the `.` command. You can repeat your last add, change, or delete operation across different parts of your document.

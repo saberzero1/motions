@@ -408,4 +408,90 @@ describe('Lua config support', function () {
         );
         await assertPluginLoaded();
     });
+
+    it('should apply vim.obsidian.cursor.set for cursor shapes', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.cursor.set({ normal = "bar", insert = "block" })\n',
+        );
+        const shapes = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: {
+                                    cursorShapes: Record<string, string>;
+                                };
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.cursorShapes;
+        });
+        expect(shapes).toHaveProperty('normal', 'bar');
+        expect(shapes).toHaveProperty('insert', 'block');
+    });
+
+    it('should apply vim.obsidian.modeprompt.set for mode prompts', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.modeprompt.set({ normal = "NOR", insert = "INS" })\n',
+        );
+        const prompts = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: {
+                                    modePrompts: Record<string, string>;
+                                };
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.modePrompts;
+        });
+        expect(prompts).toHaveProperty('normal', 'NOR');
+        expect(prompts).toHaveProperty('insert', 'INS');
+    });
+
+    it('should collect vim.obsidian.surround.set pairs', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
+        );
+        await assertPluginLoaded();
+    });
+
+    it('should collect vim.obsidian.surround.add batch pairs', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.add({\n' +
+                '    { "l", left = "[[", right = "]]" },\n' +
+                '    { "m", left = "$$", right = "$$" },\n' +
+                '})\n',
+        );
+        await assertPluginLoaded();
+    });
+
+    it('should register vim.obsidian.leader.set binding', async function () {
+        await loadLuaConfig(
+            'vim.g.mapleader = " "\n' +
+                'vim.obsidian.leader.set("e", "file-explorer:reveal-active-file", { desc = "Reveal" })\n',
+        );
+        await assertPluginLoaded();
+    });
+
+    it('should register vim.obsidian.leader.add batch bindings', async function () {
+        await loadLuaConfig(
+            'vim.g.mapleader = " "\n' +
+                'vim.obsidian.leader.add({\n' +
+                '    { "e", "file-explorer:reveal-active-file", desc = "Reveal" },\n' +
+                '    { "p", "command-palette:open", desc = "Palette" },\n' +
+                '})\n',
+        );
+        await assertPluginLoaded();
+    });
 });

@@ -633,6 +633,103 @@ Each entry uses `group` for prefix labels or `desc` for individual binding label
 
 See [[which-key#Batch labels (`add()`)]] for details.
 
+### Cursor shapes (`vim.obsidian.cursor`)
+
+Set cursor shapes for each vim mode using a structured table instead of the `guicursor` format string.
+
+| Function                         | Description                                |
+| -------------------------------- | ------------------------------------------ |
+| `vim.obsidian.cursor.set(table)` | Set cursor shapes (partial tables allowed) |
+
+```lua
+vim.obsidian.cursor.set({
+    normal = "block",
+    insert = "bar",
+    visual = "block",
+    replace = "underline",
+    operator_pending = "underline",
+})
+```
+
+Valid shapes: `"block"`, `"bar"`, `"underline"`, `"hollow"`. Modes not specified keep their current value. This is equivalent to `vim.opt.guicursor` but uses a table instead of Neovim's format string.
+
+See [[cursor-shapes]] for the full list of modes and shapes.
+
+### Mode prompts (`vim.obsidian.modeprompt`)
+
+Set the status bar mode text for multiple modes in a single call.
+
+| Function                             | Description                               |
+| ------------------------------------ | ----------------------------------------- |
+| `vim.obsidian.modeprompt.set(table)` | Set mode prompts (partial tables allowed) |
+
+```lua
+vim.obsidian.modeprompt.set({
+    normal = "NOR",
+    insert = "INS",
+    visual = "VIS",
+    visual_line = "V-LN",
+    visual_block = "V-BLK",
+})
+```
+
+Valid mode keys: `normal`, `insert`, `visual`, `replace`, `visual_line`, `visual_block`, `select`, `vreplace`, `command`, `search`, `insert_normal`. This is equivalent to setting individual `vim.g.mode_prompt_*` variables but allows batch configuration.
+
+See [[status-bar]] for details on status bar customization.
+
+### Custom surround pairs (`vim.obsidian.surround`)
+
+Define custom character-to-delimiter mappings for surround operations (`ys`, `ds`, `cs`).
+
+| Function                                   | Description                          |
+| ------------------------------------------ | ------------------------------------ |
+| `vim.obsidian.surround.set(trigger, opts)` | Register a custom surround pair      |
+| `vim.obsidian.surround.del(trigger)`       | Remove a custom surround pair        |
+| `vim.obsidian.surround.add(entries)`       | Batch-register custom surround pairs |
+
+```lua
+vim.obsidian.surround.set("l", { left = "[[", right = "]]" })
+vim.obsidian.surround.set("m", { left = "$$", right = "$$" })
+
+vim.obsidian.surround.add({
+    { "l", left = "[[", right = "]]" },
+    { "m", left = "$$", right = "$$" },
+    { "e", left = "\\begin{equation}", right = "\\end{equation}" },
+})
+```
+
+After registration, `ysiw l` wraps a word in `[[word]]`, `ds l` removes surrounding `[[...]]`, and `cs l m` changes `[[...]]` to `$$...$$`.
+
+The trigger must be a single character. Built-in surround characters (`(`, `)`, `[`, `]`, `{`, `}`, `<`, `>`, `b`, `B`, `r`, `a`, `t`, `T`, `f`, `F`, `"`, `'`, `` ` ``) are reserved and cannot be overridden.
+
+> [!info] Fork mode required
+> Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings** for full support.
+
+### Leader bindings (`vim.obsidian.leader`)
+
+Convenience API for binding leader key sequences to Obsidian commands. Automatically prepends the leader key, adds the `:ob` command prefix, and registers a which-key label from the `desc` option.
+
+| Function                                         | Description                    |
+| ------------------------------------------------ | ------------------------------ |
+| `vim.obsidian.leader.set(key, commandId, opts?)` | Bind leader+key to a command   |
+| `vim.obsidian.leader.del(key)`                   | Remove a leader binding        |
+| `vim.obsidian.leader.add(entries)`               | Batch-register leader bindings |
+
+```lua
+vim.g.mapleader = " "
+
+vim.obsidian.leader.set("e", "file-explorer:reveal-active-file", { desc = "Reveal in explorer" })
+vim.obsidian.leader.set("p", "command-palette:open", { desc = "Command palette" })
+
+vim.obsidian.leader.add({
+    { "ff", "switcher:open", desc = "Find file" },
+    { "fg", "global-search:open", desc = "Grep" },
+    { "t", "daily-notes:open-today", desc = "Today" },
+})
+```
+
+The second argument is an Obsidian command ID (the same IDs shown by `:ob` with no arguments). For general-purpose keymaps or Lua function callbacks, use `vim.keymap.set` instead.
+
 ## Environment variables
 
 `vim.env` provides a sandboxed environment variable proxy:

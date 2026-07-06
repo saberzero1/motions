@@ -670,7 +670,7 @@ The per-mode cursor shape settings (block, bar, underline, hollow) only take eff
 
 **Status**: Complete. All vim-surround features implemented.
 
-The surround operator implements the full vim-surround command set: `ds`/`cs`/`ys`/`yss`/visual `S` with all bracket/quote/tag targets, function wrapping (`f`/`F`), newline variants (`cS`/`yS`/`ySS`/`gS`), count support (bracket depth and quote char repeat), insert mode (`<C-G>s`/`<C-G>S`), and dot-repeat. Markdown-specific pairs use count-prefix: `2ysiw*` → `**word**`.
+The surround operator implements the full vim-surround command set: `ds`/`cs`/`ys`/`yss`/visual `S` with all bracket/quote/tag targets, function wrapping (`f`/`F`), newline variants (`cS`/`yS`/`ySS`/`gS`), count support (bracket depth and quote char repeat), insert mode (`<C-G>s`/`<C-G>S`), and dot-repeat. Markdown-specific pairs use count-prefix: `2ysiw*` → `**word**`. Custom surround pairs can be defined via Lua (`vim.obsidian.surround.set/add`) or vimrc (`surroundmap`), supporting multi-character delimiters with full `ys`/`ds`/`cs` support ([#36](https://github.com/saberzero1/motions/issues/36)).
 
 **Breaking changes from CM Vim defaults**:
 
@@ -705,7 +705,7 @@ The plugin supports Lua config files (`init.lua`, `.init.lua`, etc. — see [Con
 
 ### Supported APIs
 
-The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), `vim.o`, `vim.g` (including `mode_prompt_*`), `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.stricmp`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob` (including `vim.obsidian.keymap.set/del` for global keymaps and `vim.obsidian.whichkey.set_group/set_label/add` for which-key labels), `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
+The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), `vim.o`, `vim.g` (including `mode_prompt_*`), `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.stricmp`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob` (including `vim.obsidian.keymap.set/del` for global keymaps, `vim.obsidian.whichkey.set_group/set_label/add` for which-key labels, `vim.obsidian.cursor.set` for cursor shapes, `vim.obsidian.modeprompt.set` for mode prompts, `vim.obsidian.surround.set/del/add` for custom surround pairs, and `vim.obsidian.leader.set/del/add` for leader bindings), `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
 
 ### Unsupported Neovim APIs
 

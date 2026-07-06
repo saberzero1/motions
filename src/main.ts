@@ -1363,6 +1363,7 @@ export default class VimMotionsPlugin extends Plugin {
         const filePath = this.app.workspace.getActiveFile()?.path ?? null;
         this.bufferKeymapManager?.switchBuffer(filePath);
 
+        this.applyLuaSurroundPairs(vim, luaResult.surroundPairs);
         this.applyLuaMaps(vim);
         this.applyLuaPendingExCommands(vim);
         this.reregisterLeaderFeatures();
@@ -1389,6 +1390,32 @@ export default class VimMotionsPlugin extends Plugin {
             }
         }
         this.luaPendingExCommands = [];
+    }
+
+    private registeredSurroundTriggers: string[] = [];
+
+    private applyLuaSurroundPairs(
+        vim: import('./types/vim-api').VimApi,
+        pairs: Array<{ trigger: string; open: string; close: string }>,
+    ): void {
+        for (const trigger of this.registeredSurroundTriggers) {
+            try {
+                vim.unregisterSurroundPair?.(trigger);
+            } catch {
+                /* intentional: skip if not registered */
+            }
+        }
+        this.registeredSurroundTriggers = [];
+        for (const pair of pairs) {
+            try {
+                vim.registerSurroundPair?.(pair.trigger, pair.open, pair.close);
+                this.registeredSurroundTriggers.push(pair.trigger);
+            } catch (e) {
+                new Notice(
+                    `Vim Motions: surround pair "${pair.trigger}" error: ${e instanceof Error ? e.message : String(e)}`,
+                );
+            }
+        }
     }
 
     private applyLuaMaps(vim: import('./types/vim-api').VimApi): void {

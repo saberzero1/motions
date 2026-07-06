@@ -625,6 +625,28 @@ async function loadVimrcFile(
             continue;
         }
 
+        if (parsed?.type === 'surroundmap' && parsed.lhs && parsed.rhs) {
+            const [open, close] = parsed.rhs.split('\x00');
+            if (open && close) {
+                try {
+                    vim.registerSurroundPair?.(parsed.lhs, open, close);
+                    applied++;
+                } catch (e) {
+                    console.warn(
+                        `Vim Motions: surroundmap ${parsed.lhs} error:`,
+                        e instanceof Error ? e.message : e,
+                    );
+                }
+            }
+            continue;
+        }
+
+        if (parsed?.type === 'surroundunmap' && parsed.lhs) {
+            vim.unregisterSurroundPair?.(parsed.lhs);
+            applied++;
+            continue;
+        }
+
         if (parsed?.type === 'set') {
             let optName = parsed.key ?? '';
             let optValue: string | boolean | number | undefined = parsed.value;

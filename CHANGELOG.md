@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Custom surround pairs (`vim.obsidian.surround` / `surroundmap`)** — define custom single-character triggers that map to arbitrary delimiter strings, with full `ys`/`ds`/`cs` support including multi-character delimiters ([#36](https://github.com/saberzero1/motions/issues/36))
+    - `vim.obsidian.surround.set("l", { left = "[[", right = "]]" })` — register a custom pair
+    - `vim.obsidian.surround.del("l")` — remove a custom pair
+    - `vim.obsidian.surround.add({ { "l", left = "[[", right = "]]" }, { "m", left = "$$", right = "$$" } })` — batch registration
+    - Vimrc: `surroundmap l [[ ]]` / `surroundunmap l`
+    - Reserved characters (`( ) [ ] { } < > b B r a t T f F " ' \``) are rejected with a descriptive error
+    - Requires fork mode (bundled vim engine) — custom pairs are registered via `Vim.registerSurroundPair()` on the codemirror-vim fork
+    - Fork: `customSurroundPairs` registry, `findSurroundingMultiChar()` algorithm for multi-char delimiter matching, `openWidth`/`closeWidth` support in `deleteSurroundPair`/`changeSurroundPair`
+    - Plugin: `src/lua/api.ts` (`vim.obsidian.surround` sub-table), `src/vimrc/parser.ts` + `src/vimrc/loader.ts` (`surroundmap`/`surroundunmap` commands), `src/main.ts` (`applyLuaSurroundPairs` lifecycle)
+- **`vim.obsidian.cursor.set()` — structured cursor shape configuration** — set per-mode cursor shapes via a Lua table instead of the `guicursor` format string
+    - `vim.obsidian.cursor.set({ normal = "block", insert = "bar", operator_pending = "underline" })` — partial tables allowed
+    - Valid shapes: `block`, `bar`, `underline`, `hollow`
+    - Equivalent to `vim.opt.guicursor` but uses a table API
+    - Plugin: `src/lua/api.ts` (`onCursorConfig` callback, `vim.obsidian.cursor` sub-table)
+- **`vim.obsidian.modeprompt.set()` — batch mode prompt configuration** — set status bar mode text for multiple modes in a single call
+    - `vim.obsidian.modeprompt.set({ normal = "NOR", insert = "INS", visual_line = "V-LN" })` — partial tables allowed
+    - 11 mode keys supported with snake_case Lua names mapped to camelCase settings keys
+    - Equivalent to setting individual `vim.g.mode_prompt_*` variables
+    - Plugin: `src/lua/api.ts` (`onModePromptConfig` callback, `vim.obsidian.modeprompt` sub-table)
+- **`vim.obsidian.leader.set()` — leader binding convenience API** — bind leader key sequences to Obsidian commands with automatic `:ob` prefix, leader key prepend, and which-key label registration
+    - `vim.obsidian.leader.set("e", "file-explorer:reveal-active-file", { desc = "Reveal" })` — single binding
+    - `vim.obsidian.leader.add({ { "ff", "switcher:open", desc = "Find file" } })` — batch registration
+    - `desc` option auto-registers a which-key command label
+    - For general-purpose keymaps or Lua callbacks, use `vim.keymap.set` instead
+    - Plugin: `src/lua/api.ts` (`onLeaderBinding`/`onLeaderBindingDel` callbacks, `vim.obsidian.leader` sub-table)
+
+### Fixed
+
+- **`vim.g.mode_prompt_*` read returns nil for settings-UI-set values** — the `getModePrompt` callback was defined in the `VimApiCallbacks` interface but not wired up in `loader.ts`. Reading `vim.g.mode_prompt_normal` returned nil unless the value was also set via `vim.g` in the same init.lua session. Fixed by implementing the callback in the loader.
+    - Plugin: `src/lua/loader.ts` (`getModePrompt` callback)
+
+### Documentation
+
+- `docs/configuration/lua-config.md`: added 4 new Obsidian namespace sections — cursor shapes (`vim.obsidian.cursor`), mode prompts (`vim.obsidian.modeprompt`), custom surround pairs (`vim.obsidian.surround`), leader bindings (`vim.obsidian.leader`) — with API tables, examples, and cross-references
+- `KNOWN_LIMITATIONS.md`: updated Lua supported APIs list to include `vim.obsidian.cursor.set`, `vim.obsidian.modeprompt.set`, `vim.obsidian.surround.set/del/add`, `vim.obsidian.leader.set/del/add`; updated surround section with custom pairs documentation and issue #36 reference
+
 ## [0.37.0] - 2026-07-06
 
 ### Added

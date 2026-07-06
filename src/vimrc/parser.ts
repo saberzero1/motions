@@ -6,6 +6,8 @@ export interface VimrcCommand {
         | 'gunmap'
         | 'gwhichkeylabel'
         | 'gwhichkeygroup'
+        | 'surroundmap'
+        | 'surroundunmap'
         | 'set'
         | 'let'
         | 'exmap'
@@ -128,6 +130,25 @@ export function parseLine(line: string): VimrcCommand | null {
         const rhs = parts.slice(2).join(' ');
         if (!lhs || !rhs) return null;
         return { type: 'gwhichkeygroup', raw: trimmed, lhs, rhs };
+    }
+
+    if (cmd === 'surroundmap') {
+        const trigger = parts[1];
+        const open = parts[2];
+        const close = parts[3];
+        if (!trigger || !open || !close) return null;
+        return {
+            type: 'surroundmap',
+            raw: trimmed,
+            lhs: trigger,
+            rhs: open + '\x00' + close,
+        };
+    }
+
+    if (cmd === 'surroundunmap') {
+        const trigger = parts[1];
+        if (!trigger) return null;
+        return { type: 'surroundunmap', raw: trimmed, lhs: trigger };
     }
 
     if (cmd === 'set') {

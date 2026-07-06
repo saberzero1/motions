@@ -317,6 +317,8 @@ export interface VimApi {
         searchArgs?: Record<string, unknown>;
         operatorPending?: boolean;
     }>;
+    registerSurroundPair?(trigger: string, open: string, close: string): void;
+    unregisterSurroundPair?(trigger: string): void;
 }
 
 /**

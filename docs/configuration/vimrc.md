@@ -75,6 +75,10 @@ gunmap H
 " Global which-key labels
 gwhichkeygroup <leader> +leader
 gwhichkeylabel <leader>f Open file
+
+" Custom surround pairs
+surroundmap l [[ ]]
+surroundmap m $$ $$
 ```
 
 ## Supported commands
@@ -95,6 +99,8 @@ gwhichkeylabel <leader>f Open file
 | `whichkeylabel`                                  | Label an individual binding in which-key        |
 | `gwhichkeygroup`                                 | Name a global which-key group by prefix         |
 | `gwhichkeylabel`                                 | Label a global binding in which-key             |
+| `surroundmap`                                    | Register a custom surround pair                 |
+| `surroundunmap`                                  | Remove a custom surround pair                   |
 
 ## Leader key
 

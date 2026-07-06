@@ -165,3 +165,25 @@ gwhichkeylabel <leader>e Reveal in explorer
 These labels appear in the non-editor which-key overlay. They are independent from editor which-key labels — the same key prefix can have different labels in each context.
 
 See [[vimrc#Global key mappings]] for how to define global bindings with `gmap`, or [[lua-config#Global keymaps]] for the Lua equivalent.
+
+## Automatic labels from leader bindings
+
+The `vim.obsidian.leader` convenience API automatically registers which-key labels when you provide a `desc` option:
+
+```lua
+vim.g.mapleader = " "
+
+-- desc automatically becomes a which-key command label
+vim.obsidian.leader.set("e", "file-explorer:reveal-active-file", { desc = "Reveal in explorer" })
+vim.obsidian.leader.set("p", "command-palette:open", { desc = "Command palette" })
+
+-- Batch registration:
+vim.obsidian.leader.add({
+    { "ff", "switcher:open", desc = "Find file" },
+    { "fg", "global-search:open", desc = "Grep" },
+})
+```
+
+Each binding's `desc` is registered as a which-key command label for the resolved leader key sequence (e.g., `<Space>e` → "Reveal in explorer"). No separate `whichkeylabel` or `vim.obsidian.whichkey.set_label` call is needed.
+
+See [[lua-config#Leader bindings]] for the full API reference.

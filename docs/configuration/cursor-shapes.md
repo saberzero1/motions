@@ -37,12 +37,28 @@ Vim Motions supports per-mode cursor shapes, letting you visually distinguish be
 
 ### Lua
 
+Using the Neovim-style format string:
+
 ```lua
 vim.opt.guicursor = "n:block,i:bar,v:block,r:underline,o:underline"
 ```
 
 Mode codes: `n` (normal), `i` (insert), `v` (visual), `r` (replace), `o` (operator-pending), `a` (all).
 Shapes: `block`, `bar`, `underline`, `hollow`.
+
+Or using the structured table API (partial tables allowed — unspecified modes keep their current value):
+
+```lua
+vim.obsidian.cursor.set({
+    normal = "block",
+    insert = "bar",
+    visual = "block",
+    replace = "underline",
+    operator_pending = "underline",
+})
+```
+
+See [[lua-config#Cursor shapes]] for the full API reference.
 
 ### Vimrc
 

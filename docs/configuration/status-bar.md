@@ -16,6 +16,32 @@ Shows `NORMAL`, `INSERT`, `VISUAL`, `V-LINE`, `V-BLOCK`, `REPLACE`, `SELECT`, `V
 Customize the text shown for each mode via **Settings → Vim Motions → Vim mode display prompt**, in Lua, or in vimrc:
 
 ```lua
+-- Batch configuration (partial tables allowed):
+vim.obsidian.modeprompt.set({
+    normal = "N",
+    insert = "I",
+    visual = "V",
+    replace = "R",
+    visual_line = "VL",
+    visual_block = "VB",
+    select = "S",
+    vreplace = "VR",
+    command = "CMD",
+    search = "/",
+    insert_normal = "(i)",
+})
+
+-- Or set individually:
+vim.g.mode_prompt_normal = "N"
+vim.g.mode_prompt_insert = "I"
+vim.g.mode_prompt_visual = "V"
+```
+
+See [[lua-config#Mode prompts]] for the full API reference.
+
+Individual `vim.g.mode_prompt_*` variables:
+
+```lua
 vim.g.mode_prompt_normal = "N"
 vim.g.mode_prompt_insert = "I"
 vim.g.mode_prompt_visual = "V"
