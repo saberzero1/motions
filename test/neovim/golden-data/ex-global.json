@@ -1,0 +1,64 @@
+{
+    "suite": "ex-global",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-06T17:54:57.057Z",
+    "cases": [
+        {
+            "name": ":g/pattern/d deletes matching lines",
+            "initial": {
+                "content": "keep\ndelete_me\nkeep\ndelete_me\nkeep",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":g/delete/d\n",
+            "result": {
+                "content": "keep\nkeep\nkeep",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":v/pattern/d deletes non-matching lines",
+            "initial": {
+                "content": "keep\nremove\nkeep\nremove\nkeep",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":v/keep/d\n",
+            "result": {
+                "content": "keep\nkeep\nkeep",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":g/a/s/a/x/ substitutes on matching lines",
+            "initial": {
+                "content": "abc\ndef\nabc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":g/a/s/a/x/\n",
+            "result": {
+                "content": "xbc\ndef\nxbc",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

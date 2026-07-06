@@ -1,0 +1,140 @@
+{
+    "suite": "upstream-gaps",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-06T17:28:06.948Z",
+    "cases": [
+        {
+            "name": "dip inside empty lines deletes empty paragraph block",
+            "initial": {
+                "content": "a\na\n\n\n\nb\nc\n\n\n\n\n\n\nd\n\ne\nf",
+                "cursor": {
+                    "line": 10,
+                    "ch": 0
+                }
+            },
+            "keys": "dip",
+            "result": {
+                "content": "a\na\n\n\n\nb\nc\nd\n\ne\nf",
+                "cursor": {
+                    "line": 7,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V backward block A appends at right edge",
+            "initial": {
+                "content": "01234 line 1\n56789 line 2\nabcdefg line 3\nline 4",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "\u00162j2hAhello\u001b",
+            "result": {
+                "content": "0123hello4 line 1\n5678hello9 line 2\nabcdhelloefg line 3\nline 4",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V block A pads short lines",
+            "initial": {
+                "content": "test\nme\nplease",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "\u00162jllAhello\u001b",
+            "result": {
+                "content": "testhello\nme  hello\npleahellose",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "visual r Space across line boundary",
+            "initial": {
+                "content": "wordet\nanother",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "3rulvjhr ",
+            "result": {
+                "content": "wuuu  \n    her",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V to v switch then delete",
+            "initial": {
+                "content": "12345\n67891\nabcde",
+                "cursor": {
+                    "line": 1,
+                    "ch": 1
+                }
+            },
+            "keys": "\u0016jlvd",
+            "result": {
+                "content": "12345\n6de",
+                "cursor": {
+                    "line": 1,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "CTRL-V to V switch then delete",
+            "initial": {
+                "content": "12345\n67891\nabcde",
+                "cursor": {
+                    "line": 1,
+                    "ch": 1
+                }
+            },
+            "keys": "\u0016jlVd",
+            "result": {
+                "content": "12345",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "macro insert repeat with dot",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "qa$alarry.\u001bacurly.\u001bqamoe.\u001b@a.",
+            "result": {
+                "content": "larry.curly.moe.larry.curly.curly.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 33
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

@@ -1,0 +1,121 @@
+{
+    "suite": "select-mode-extended",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-06T17:54:56.498Z",
+    "cases": [
+        {
+            "name": "gh then type replaces selection",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ghllx\u001b",
+            "result": {
+                "content": "llxello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gH linewise then type replaces",
+            "initial": {
+                "content": "first\nsecond\nthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "gHjx\u001b",
+            "result": {
+                "content": "first\njxthird",
+                "cursor": {
+                    "line": 1,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gh then Esc exits to normal",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                }
+            },
+            "keys": "ghl\u001b",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v then Ctrl-G toggles to select then type",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "vll\u0007x\u001b",
+            "result": {
+                "content": "xlo world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gh BS deletes selection",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "ghll\b",
+            "result": {
+                "content": "hlllo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "insert"
+            }
+        },
+        {
+            "name": "Ctrl-G in select toggles back to visual",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ghll\u0007d",
+            "result": {
+                "content": "llello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "insert"
+            }
+        }
+    ]
+}

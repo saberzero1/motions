@@ -60,6 +60,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Visual-block cursor displaced rightward at end-of-line** — in visual-block mode (`<C-v>`), selecting to the end of a line (via `$` or `l` to EoL) caused the block cursor to render one position past the last visible character. The `measureCursor()` function in the fork's `block-cursor.ts` had a guard (`!vim.visualBlock`) that prevented the EOL step-back for visual-block mode. This guard was originally correct when `makeCmSelection` produced `toCh + 1` without clamping, but after the per-line clamping fix (issue #38), block selection heads legitimately land on newline positions and need the step-back. Fixed by removing the `!vim.visualBlock` exclusion. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `src/block-cursor.ts` — `measureCursor()` EOL adjustment guard
+- **Visual-block `A` skips short lines instead of padding** — in visual-block mode, `A` (append) on a block spanning lines shorter than the block column skipped those lines entirely. Neovim pads short lines with spaces to reach the block's right edge before appending. Fixed by adding a `padShortLines` parameter to `selectForInsert` in the fork — `A` pads, `I` still skips (matching Neovim). ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `src/vim.js` — `selectForInsert()` padding, `enterInsertMode` passes flag for `endOfSelectedArea`
+- **Visual charwise `r` replaces one fewer character across line boundary** — the `replace` action in the fork used `curEnd = selEnd` (the inclusive head position) for charwise visual mode, but `cm.getRange()` treats the end as exclusive. This caused `r <Space>` across a line boundary to replace one fewer character than the visual selection covered. Fixed by using `selEnd.ch + 1` for the exclusive end. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - Fork: `src/vim.js` — `actions.replace` charwise visual branch
 - **`set insertmodeescape=jk` leaves `j` in buffer after escaping insert mode** — the `InsertEscapeHandler` sent `vim.handleKey(adapter, '<BS>')` to delete typed characters before sending `<Esc>`, but codemirror-vim does not handle `<BS>` in insert mode (returns false, expecting the browser default action). Since `handleKey` is called programmatically with no DOM event, the backspace had no effect and the first character(s) of the escape sequence remained in the buffer. Fixed by replacing the `handleKey('<BS>')` loop with a direct `adapter.replaceRange()` call that deletes exactly `escapeSeq.length - 1` characters before the cursor (the last key in the sequence is already intercepted by `preventDefault` and never enters the document). The native `imap jk <Esc>` mapping (via vimrc or `vim.map()`) was unaffected — codemirror-vim's `changeQueue` cleanup handles that path correctly.
     - Plugin: `src/vim/insert-escape.ts` (`onKeyDown` method)
 - **Workspace navigation intercepting keystrokes in plugin leaves** — when workspace navigation was enabled, the global key handler consumed keystrokes (`1`, `2`, `3`, `0`, `j`, `k`, etc.) in non-editor plugin views (Spaced Repetition, Excalidraw, etc.) before the plugin could process them. Fixed with a three-gate interception system: structural keys (`<C-w>*`, `gt`/`gT`, `<C-o>`/`<C-i>`, `:`) always work in non-editor views, content keys (scroll, digits, tab shortcuts) only intercept in whitelisted view types, and plugin views receive their own keystrokes. ([#47](https://github.com/saberzero1/motions/issues/47))
@@ -73,7 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `docs/configuration/lua-config.md`: added `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), editor state functions (5 functions) with API tables and examples
-- `KNOWN_LIMITATIONS.md`: added "Workspace navigation in plugin views" section documenting three-gate interception and the `gg`-in-plugin-leaf trade-off; marked #47 as fixed
+- `KNOWN_LIMITATIONS.md`: added "Workspace navigation in plugin views" section documenting three-gate interception and the `gg`-in-plugin-leaf trade-off; marked #47 as fixed; added "Neovim golden test coverage gaps" section documenting non-verifiable areas (scroll/viewport, fold, jumplist, cursor rendering); updated visual mode EOL cursor section with visual-block `A` padding and visual `r` off-by-one fixes
+- **Neovim golden test coverage expansion** — 61 new golden comparison test cases across 5 suites, recorded against Neovim 0.12.2:
+    - `surround` (29 cases): `ds`/`cs`/`ys`/`yss`/visual `S` with quotes, parens, brackets, braces, backticks, aliases, nesting, multiline, cursor position — recorded with tpope/vim-surround loaded via per-suite `nvimSetup`
+    - `dot-repeat` (17 cases): `.` after `2dw`, `dd`, `3i`, `3o`, `cw`, `R`, `2dl`, `d2w`, `g~2w`, `V>`, `3J`, `3I`, visual block `~`, `o`
+    - `select-mode-extended` (6 cases): `gh`/`gH` enter select, type replaces, `<BS>` deletes, `<Esc>` exits, `<C-g>` toggles visual↔select
+    - `ex-sort` (6 cases): `:sort`, `:sort!`, `:sort i`, `:sort u`, `:sort n`, `:2,3sort`
+    - `ex-global` (3 cases): `:g/pattern/d`, `:v/pattern/d`, `:g/a/s/a/x/`
+    - `upstream-gaps` (7 cases): `dip` paragraph, backward block `A`, block `A` short-line padding, visual `r` cross-line, block↔char/line mode switch, macro replay
+    - Test infrastructure: `SuiteDefinition.nvimSetup` field for per-suite Neovim commands (loads vim-surround plugin for surround suite), `NeovimClient.executeCommand()` method
+    - Total golden test coverage: 276 → 337 cases across 28 suites
 - `docs/configuration/settings.md`: added `Workspace navigation view types` to Vim features table
 - `docs/configuration/vimrc.md`: added `workspacenavviewtypes` (`wnvt` alias) to string options table
 - `docs/configuration/lua-config.md`: added 17 new `vim.ob.*` functions, 3 new autocmd events (`LeafEnter`, `LeafLeave`, `FileType`), `workspacenavviewtypes` option

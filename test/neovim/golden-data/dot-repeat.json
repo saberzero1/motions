@@ -1,0 +1,330 @@
+{
+    "suite": "dot-repeat",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-06T17:54:56.221Z",
+    "cases": [
+        {
+            "name": "2dw then . repeats",
+            "initial": {
+                "content": "1 2 3 4 5 6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2dw.",
+            "result": {
+                "content": "5 6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2dw then 3. repeats 3x",
+            "initial": {
+                "content": "1 2 3 4 5 6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2dw3.",
+            "result": {
+                "content": "6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dd then . repeats",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dd.",
+            "result": {
+                "content": "three\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3i types text 3x then . repeats",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3itest\u001b.",
+            "result": {
+                "content": "testtesttestesttesttestt",
+                "cursor": {
+                    "line": 0,
+                    "ch": 22
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3o opens 3 lines with text",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3otest\u001b",
+            "result": {
+                "content": "\ntest\ntest\ntest",
+                "cursor": {
+                    "line": 3,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cw then . repeats on next word",
+            "initial": {
+                "content": "word1 word2 word3",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "cwtest\u001bw.",
+            "result": {
+                "content": "test test word3",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "R then . repeats on next line",
+            "initial": {
+                "content": "hello\nworld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Rab\u001bj0.",
+            "result": {
+                "content": "abllo\nabrld",
+                "cursor": {
+                    "line": 1,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2dl deletes 2 chars",
+            "initial": {
+                "content": " word1 ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2dl",
+            "result": {
+                "content": "ord1 ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d2w deletes 2 words across lines",
+            "initial": {
+                "content": " word1\nword2",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "d2w",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "g~2w toggles case of 2 words",
+            "initial": {
+                "content": " word1\nWORD2",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "g~2w",
+            "result": {
+                "content": " WORD1\nword2",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3J joins 3 lines",
+            "initial": {
+                "content": "word1\n word2\n word3\n word4",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "3J",
+            "result": {
+                "content": "word1 word2 word3\n word4",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3I inserts text 3 times at bol",
+            "initial": {
+                "content": "blah",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "3Itest\u001b",
+            "result": {
+                "content": "testtesttestblah",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V > then . indents again",
+            "initial": {
+                "content": "1\n2\n3\n4",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vj>jj.",
+            "result": {
+                "content": "\t1\n\t2\n\t3\n\t4",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ". after dd with count",
+            "initial": {
+                "content": "1\n2\n3\n4\n5\n6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2dd.",
+            "result": {
+                "content": "5\n6",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ". after visual block ~ toggles case",
+            "initial": {
+                "content": "Hello\nWorld\nAbcdE",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\u0016jjl~ll.",
+            "result": {
+                "content": "hELLo\nwORLd\naBCDE",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ". after o inserts line below",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "oz\u001b.",
+            "result": {
+                "content": "\nz\nz",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "replace dot repeat R ab then .",
+            "initial": {
+                "content": "hello\nhello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Rab\u001bj0.",
+            "result": {
+                "content": "abllo\nabllo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

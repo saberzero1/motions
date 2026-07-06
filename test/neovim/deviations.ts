@@ -95,6 +95,13 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'Leader key set via leaderRegistry during test does not propagate to the vim engine keymap resolver within the same evaluation',
         fields: ['content'],
     },
+    {
+        testPattern: 'macro insert repeat with dot',
+        description:
+            'Macro replay of $a inserts truncated text (missing leading chars)',
+        reason: 'codemirror-vim macro replay of $a sequence loses characters at the append position',
+        fields: ['content'],
+    },
 ];
 
 export function isKnownDeviation(testName: string): boolean {

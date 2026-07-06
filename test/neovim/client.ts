@@ -45,6 +45,10 @@ export class NeovimClient {
         await this.nvim.command(`lua ${code}`);
     }
 
+    async executeCommand(cmd: string): Promise<void> {
+        await this.nvim.command(cmd);
+    }
+
     async getContent(): Promise<string> {
         const buf = await this.nvim.buffer;
         const lines = await buf.getLines({

@@ -1,0 +1,121 @@
+{
+    "suite": "ex-sort",
+    "neovim_version": "0.12.2",
+    "recorded_at": "2026-07-06T17:54:56.777Z",
+    "cases": [
+        {
+            "name": ":sort alphabetically",
+            "initial": {
+                "content": "b\na\nd\nc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort\n",
+            "result": {
+                "content": "a\nb\nc\nd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":sort! reverse",
+            "initial": {
+                "content": "a\nb\nc\nd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort!\n",
+            "result": {
+                "content": "d\nc\nb\na",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":sort i case-insensitive",
+            "initial": {
+                "content": "B\na\nD\nc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort i\n",
+            "result": {
+                "content": "a\nB\nc\nD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":sort u unique",
+            "initial": {
+                "content": "a\nb\na\nc\nb",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort u\n",
+            "result": {
+                "content": "a\nb\nc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":sort n numeric",
+            "initial": {
+                "content": "b10\na2\nc1\na20",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort n\n",
+            "result": {
+                "content": "c1\na2\nb10\na20",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":2,3sort range",
+            "initial": {
+                "content": "c\nb\na\nd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":2,3sort\n",
+            "result": {
+                "content": "c\na\nb\nd",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        }
+    ]
+}

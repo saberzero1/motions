@@ -574,7 +574,34 @@ In charwise visual mode (`v`), selecting the last character on a line caused the
 
 1. **`exitVisualMode` cursor clipping** (`src/vim.js`): `exitVisualMode()` called `clipCursorToContent()` while `vim.visualMode` was still `true`. In visual mode, `clipCursorToContent` allows `ch = text.length` (the linebreak position). After clearing `vim.visualMode` on the next line, the cursor was already set one position past the last character. Reproducible as: `vlll<Esc>` on "abc" — `l` past the last char is allowed in visual mode, but Escape should clip back to normal-mode bounds (`ch = text.length - 1`). Fixed by clearing visual flags before `setCursor`, while preserving the `updateLastSelection` call order. ([#15](https://github.com/saberzero1/motions/issues/15))
 
-2. **`measureCursor` EOL adjustment** (`src/block-cursor.ts`): The `letter != "\n"` comparison used loose equality (`!=`). When `head >= doc.length` (cursor past document end), the short-circuit `head < doc.length && sliceDoc(...)` produced `false`, and `false != "\n"` evaluated to `false` due to JS type coercion (both coerce to `0`). This caused the wrong branch to execute at document end. Fixed by producing `""` instead of `false` and using strict inequality (`!==`). The original charwise visual mode fix (using `vim.visualLine`/`vim.visualBlock` to scope the EOL decrement) remains in place.
+2. **`measureCursor` EOL adjustment** (`src/block-cursor.ts`): The `letter != "\n"` comparison used loose equality (`!=`). When `head >= doc.length` (cursor past document end), the short-circuit `head < doc.length && sliceDoc(...)` produced `false`, and `false != "\n"` evaluated to `false` due to JS type coercion (both coerce to `0`). This caused the wrong branch to execute at document end. Fixed by producing `""` instead of `false` and using strict inequality (`!==`).
+
+3. **`measureCursor` visual-block EOL step-back** (`src/block-cursor.ts`): After the `makeCmSelection` per-line clamping fix (issue #38), block selection heads legitimately land on newline positions (`head = lineLen`). The `else if (!vim.visualLine && !vim.visualBlock)` guard prevented the `head--` step-back in visual-block mode, causing the cursor to render one position past the last visible character. Fixed by removing `&& !vim.visualBlock` — visual-block now applies the same EOL step-back as charwise visual. The `!vim.visualLine` guard remains because visual-line mode manages cursor positioning independently via cursor-only CM6 selection. ([#41](https://github.com/saberzero1/motions/issues/41))
+
+## ~~Visual-block `A` skips short lines~~ (Fixed)
+
+**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison (`upstream-gaps` suite).
+
+When using `<C-v>` block visual mode with `A` (append) on a block spanning lines shorter than the block column, the fork's `selectForInsert` skipped those lines entirely. Neovim pads short lines with spaces to reach the block's right edge before appending. Fixed by adding a `padShortLines` parameter to `selectForInsert` — the `A` (`endOfSelectedArea`) path passes `true` to pad, while the `I` (`startOfSelectedArea`) path passes `false` to skip (matching Neovim, which also skips short lines for `I`). ([#41](https://github.com/saberzero1/motions/issues/41))
+
+## ~~Visual charwise `r` off-by-one across line boundary~~ (Fixed)
+
+**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison (`upstream-gaps` suite).
+
+The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode. Since `cm.getRange(from, to)` treats `to` as exclusive, this replaced one fewer character than the visual selection covered when the selection spanned a newline. For example, `vjhr ` from position (0,4) on `wuuuet\nanother` replaced 5 characters instead of 6, producing `wuuu  \n   ther` instead of the correct `wuuu  \n    her`. Fixed by using `new Pos(selEnd.line, selEnd.ch + 1)` for `curEnd`, matching the inclusive-to-exclusive conversion used elsewhere (e.g. `makeCmSelection` char mode). ([#41](https://github.com/saberzero1/motions/issues/41))
+
+## Surround Neovim parity gaps
+
+**Status**: 14 deviations from vim-surround behavior detected via golden comparison (Neovim 0.12.2 + tpope/vim-surround). Content is correct for 15/29 test cases.
+
+Detected deviations (deferred — surround is functional, these are edge-case accuracy gaps):
+
+- **Opening bracket `ds(`/`ds[`/`ds{` does not strip inner padding** — vim-surround distinguishes `ds(` (strip delimiters AND inner padding spaces) from `ds)` (strip delimiters only). The fork treats both identically (strip delimiters only). Same issue for `cs({` where the opening bracket as target should strip spaces before changing.
+- **Cursor position after `ys`/`yss`/visual `S`** — the fork places the cursor at `ch:1` (after the opening delimiter); vim-surround places it at `ch:0` (on the opening delimiter). Consistent off-by-one across all surround-add operations.
+- **`ds(` on nested parens at cursor position 0** — the fork doesn't search outward for the enclosing pair when the cursor is on the opening delimiter at position 0.
+- **`ds(` multiline** — the fork doesn't handle `ds(` when the opening and closing parens are on different lines.
+
+**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 29 golden tests, 15 passing.
 
 ## Test-discovered behavioral discrepancies
 
@@ -782,6 +809,19 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 `vim.ob.fs.read(path)` is not available — Obsidian's `vault.cachedRead()` is asynchronous and the Lua runtime cannot block on Promises. To read the current file's content, use `vim.api.nvim_buf_get_lines(0, 0, -1, false)`. Reading other files from Lua requires a future async/coroutine extension.
 
 **Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 9 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, and disabled state.
+
+## Neovim golden test coverage gaps
+
+The plugin verifies Vim behavior against headless Neovim via golden comparison tests (`test/neovim/`). The following areas of the fork's test suite are **not** covered by golden comparison because they cannot be meaningfully verified in a headless Neovim session:
+
+| Area                                               | Fork tests | Reason not golden-verifiable                                                                                                                  |
+| -------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scroll/viewport (`zz`, `zt`, `zb`, `Ctrl-d/u/f/b`) | 9          | Depend on viewport dimensions and `scrollInfo` — headless Neovim has no viewport geometry                                                     |
+| Fold (`zo`, `zc`, `za`, `zf`)                      | 5          | CM6 fold API is fundamentally different from Neovim; already registered as known deviations (`zO`/`zC`/`zA` map to non-recursive equivalents) |
+| Jumplist (stale marker edge case)                  | 1          | Single test for cross-document marker invalidation — Neovim doesn't share the CM6 `Marker`/`posFromIndex` infrastructure                      |
+| Cursor rendering (`rendered_cursor_position_*`)    | 2          | Test `.cm-fat-cursor` DOM element pixel position via `getBoundingClientRect()` — no Neovim equivalent                                         |
+
+These areas are covered by the fork's own browser test suite (1806 tests) but rely on the fork's test expectations being correct rather than Neovim-verified ground truth.
 
 ## Intentionally not supported
 

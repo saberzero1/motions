@@ -7,7 +7,13 @@ async function recordSuite(
     suiteName: string,
     cases: TestCaseDefinition[],
     nvimVersion: string,
+    nvimSetup?: string[],
 ): Promise<void> {
+    if (nvimSetup) {
+        for (const cmd of nvimSetup) {
+            await nvim.executeCommand(cmd);
+        }
+    }
     const goldenCases: GoldenCase[] = [];
 
     for (const tc of cases) {
@@ -57,7 +63,13 @@ async function main() {
 
     for (const suite of SUITES) {
         if (filterSuite && suite.name !== filterSuite) continue;
-        await recordSuite(nvim, suite.name, suite.cases, nvimVersion);
+        await recordSuite(
+            nvim,
+            suite.name,
+            suite.cases,
+            nvimVersion,
+            suite.nvimSetup,
+        );
     }
 
     await nvim.stop();
