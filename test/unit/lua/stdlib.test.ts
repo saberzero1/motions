@@ -305,4 +305,14 @@ describe('vim stdlib', () => {
         expect(error).toBe(4);
         destroyState(L);
     });
+
+    it('should implement stricmp', () => {
+        const L = setupState();
+        expect(runLuaNumber(L, 'return vim.stricmp("ABC", "abc")')).toBe(0);
+        expect(runLuaNumber(L, 'return vim.stricmp("a", "b")')).toBe(-1);
+        expect(runLuaNumber(L, 'return vim.stricmp("b", "a")')).toBe(1);
+        expect(runLuaNumber(L, 'return vim.stricmp("", "")')).toBe(0);
+        expect(runLuaNumber(L, 'return vim.stricmp("Hello", "HELLO")')).toBe(0);
+        destroyState(L);
+    });
 });

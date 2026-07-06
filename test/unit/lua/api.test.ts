@@ -392,6 +392,113 @@ describe('vim api', () => {
             expect(lua.lua_toboolean(L, -1)).toBe(true);
             destroyState(L);
         });
+
+        it('should return plugin version', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getPluginVersion: () => '2.5.0',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.obsidian.plugin_version()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('2.5.0');
+            destroyState(L);
+        });
+
+        it('should return vault path', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getVaultPath: () => '/home/user/vault',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.obsidian.vault_path()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('/home/user/vault');
+            destroyState(L);
+        });
+
+        it('should call run_command with command id', () => {
+            const L = createSandboxedState();
+            const executeCommand = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                executeCommand,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.obsidian.run_command("app:reload")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(executeCommand).toHaveBeenCalledWith('app:reload');
+            destroyState(L);
+        });
+
+        it('should return list of commands', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                listCommands: () => [{ id: 'app:reload', name: 'Reload' }],
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'local cmds = vim.obsidian.list_commands()\nreturn cmds[1].id .. "|" .. cmds[1].name',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('app:reload|Reload');
+            destroyState(L);
+        });
+
+        it('should call open_file with path', () => {
+            const L = createSandboxedState();
+            const openFile = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                openFile,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.obsidian.open_file("notes/test.md")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(openFile).toHaveBeenCalledWith('notes/test.md');
+            destroyState(L);
+        });
     });
 
     describe('vim.env', () => {

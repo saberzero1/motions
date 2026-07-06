@@ -80,39 +80,40 @@ print("init.lua loaded for vault:", vim.vault_name())
 
 ## Supported vim.opt options
 
-All plugin options are available via `vim.opt`.
+All plugin options are available via `vim.opt`. `vim.o` is an alias.
 
-| Option                    | Type    | Example                                  |
-| ------------------------- | ------- | ---------------------------------------- |
-| `textobjects`             | boolean | `vim.opt.textobjects = true`             |
-| `navigation`              | boolean | `vim.opt.navigation = true`              |
-| `hardwrap`                | boolean | `vim.opt.hardwrap = true`                |
-| `listcontinuation`        | boolean | `vim.opt.listcontinuation = true`        |
-| `tablenav`                | boolean | `vim.opt.tablenav = true`                |
-| `workspacenav`            | boolean | `vim.opt.workspacenav = true`            |
-| `easymotion`              | boolean | `vim.opt.easymotion = true`              |
-| `easymotiondimming`       | boolean | `vim.opt.easymotiondimming = true`       |
-| `hintmode`                | boolean | `vim.opt.hintmode = true`                |
-| `statusbar`               | boolean | `vim.opt.statusbar = true`               |
-| `chorddisplay`            | boolean | `vim.opt.chorddisplay = true`            |
-| `powerline`               | boolean | `vim.opt.powerline = true`               |
-| `expandtab`               | boolean | `vim.opt.expandtab = true`               |
-| `scrolloff`               | number  | `vim.opt.scrolloff = 8`                  |
-| `scanlimit`               | number  | `vim.opt.scanlimit = 20`                 |
-| `labelfontsize`           | number  | `vim.opt.labelfontsize = 14`             |
-| `tabstop`                 | number  | `vim.opt.tabstop = 4`                    |
-| `shiftwidth`              | number  | `vim.opt.shiftwidth = 4`                 |
-| `textwidth`               | number  | `vim.opt.textwidth = 80`                 |
-| `insertmodeescapetimeout` | number  | `vim.opt.insertmodeescapetimeout = 1000` |
-| `clipboard`               | string  | `vim.opt.clipboard = "unnamedplus"`      |
-| `insertmodeescape`        | string  | `vim.opt.insertmodeescape = "jk"`        |
-| `easymotionlabels`        | string  | `vim.opt.easymotionlabels = "asdf"`      |
-| `hintlabels`              | string  | `vim.opt.hintlabels = "asdf"`            |
-| `tablewidget`             | string  | `vim.opt.tablewidget = "cursor"`         |
-| `formattingmarkmode`      | string  | `vim.opt.formattingmarkmode = "cursor"`  |
-| `whichkey`                | string  | `vim.opt.whichkey = "leader"`            |
-| `whichkeygrouping`        | string  | `vim.opt.whichkeygrouping = "grouped"`   |
-| `whichkeydelay`           | number  | `vim.opt.whichkeydelay = 300`            |
+| Option                    | Type    | Default                        | Valid range / values               | Example                                  |
+| ------------------------- | ------- | ------------------------------ | ---------------------------------- | ---------------------------------------- |
+| `textobjects`             | boolean | `true`                         |                                    | `vim.opt.textobjects = true`             |
+| `navigation`              | boolean | `true`                         |                                    | `vim.opt.navigation = true`              |
+| `hardwrap`                | boolean | `true`                         |                                    | `vim.opt.hardwrap = true`                |
+| `listcontinuation`        | boolean | `true`                         |                                    | `vim.opt.listcontinuation = true`        |
+| `tablenav`                | boolean | `true`                         |                                    | `vim.opt.tablenav = true`                |
+| `workspacenav`            | boolean | `true`                         |                                    | `vim.opt.workspacenav = true`            |
+| `easymotion`              | boolean | `true`                         |                                    | `vim.opt.easymotion = true`              |
+| `easymotiondimming`       | boolean | `true`                         |                                    | `vim.opt.easymotiondimming = true`       |
+| `hintmode`                | boolean | `true`                         |                                    | `vim.opt.hintmode = true`                |
+| `statusbar`               | boolean | `true`                         |                                    | `vim.opt.statusbar = true`               |
+| `chorddisplay`            | boolean | `true`                         |                                    | `vim.opt.chorddisplay = true`            |
+| `powerline`               | boolean | `false`                        |                                    | `vim.opt.powerline = true`               |
+| `expandtab`               | boolean | `true`                         |                                    | `vim.opt.expandtab = true`               |
+| `scrolloff`               | number  | `5`                            | 0–9999                             | `vim.opt.scrolloff = 8`                  |
+| `scanlimit`               | number  | `20`                           | 5–200                              | `vim.opt.scanlimit = 20`                 |
+| `labelfontsize`           | number  | `14`                           | 10–20                              | `vim.opt.labelfontsize = 14`             |
+| `tabstop`                 | number  | `4`                            |                                    | `vim.opt.tabstop = 4`                    |
+| `shiftwidth`              | number  | `4`                            |                                    | `vim.opt.shiftwidth = 4`                 |
+| `textwidth`               | number  | `80`                           |                                    | `vim.opt.textwidth = 80`                 |
+| `insertmodeescapetimeout` | number  | `1000`                         | 100–5000 ms                        | `vim.opt.insertmodeescapetimeout = 1000` |
+| `updatetime`              | number  | `4000`                         | ms (CursorHold delay)              | `vim.opt.updatetime = 4000`              |
+| `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"` | `vim.opt.clipboard = "unnamedplus"`      |
+| `insertmodeescape`        | string  | `""`                           |                                    | `vim.opt.insertmodeescape = "jk"`        |
+| `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                    | `vim.opt.easymotionlabels = "asdf"`      |
+| `hintlabels`              | string  | `"asdfghjkl"`                  |                                    | `vim.opt.hintlabels = "asdf"`            |
+| `tablewidget`             | string  | `"cursor"`                     | `"off"`, `"cursor"`, `"always"`    | `vim.opt.tablewidget = "cursor"`         |
+| `formattingmarkmode`      | string  | `"cursor"`                     | `"off"`, `"cursor"`                | `vim.opt.formattingmarkmode = "cursor"`  |
+| `whichkey`                | string  | `"off"`                        | `"off"`, `"leader"`, `"all"`       | `vim.opt.whichkey = "leader"`            |
+| `whichkeygrouping`        | string  | `"grouped"`                    | `"flat"`, `"grouped"`              | `vim.opt.whichkeygrouping = "grouped"`   |
+| `whichkeydelay`           | number  | `500`                          | 0–2000 ms                          | `vim.opt.whichkeydelay = 300`            |
 
 See [[settings]] for the full list of options and their descriptions.
 
@@ -168,6 +169,8 @@ A subset of Neovim's `vim.fn.*` functions is available for conditional configura
 | `"obsidian-X.Y"`      | Obsidian version >= X.Y        |
 | `"nvim"`              | Never (not Neovim)             |
 | `"vim"`               | Never (not Vim)                |
+
+All other feature strings return `0`. Use `vim.fn.has("obsidian-1.7")` to check for a minimum Obsidian version.
 
 ### vim.fn.exists() expressions
 
@@ -262,6 +265,7 @@ A subset of Neovim's `vim.*` utility functions is available for table manipulati
 | `vim.endswith(s, suffix)`            | Check if string ends with suffix                                                                                                                     | `vim.endswith("hello", "lo")` → `true`                  |
 | `vim.pesc(s)`                        | Escape Lua pattern special characters                                                                                                                | `vim.pesc("a.b")` → `"a%.b"`                            |
 | `vim.inspect(value)`                 | Human-readable string representation of any value. Useful for debugging.                                                                             | `print(vim.inspect({1,2,{nested=true}}))`               |
+| `vim.stricmp(a, b)`                  | Case-insensitive string comparison. Returns `-1` (a < b), `0` (equal), or `1` (a > b).                                                               | `vim.stricmp("Hello", "hello")` → `0`                   |
 
 ## JSON
 
@@ -359,6 +363,9 @@ Use `buffer = 0` for the current file. Buffer-local keymaps are automatically sw
 
 > [!info] Buffer numbers
 > Obsidian does not use Neovim-style buffer numbers. Only `buffer = 0` (current file) is supported. Positive buffer numbers produce an error.
+
+> [!warning] Keymap accumulation
+> When setting buffer-local keymaps inside a `BufEnter` autocmd, always use `nvim_create_augroup` with `{ clear = true }` (as shown above). Without an augroup, each file switch adds another copy of the keymap.
 
 ## Buffer content
 
@@ -481,6 +488,7 @@ vim.api.nvim_create_autocmd("TextYankPost", {
         -- ev.data.operator ("y", "d", "c")
         -- ev.data.regcontents (table of lines)
         -- ev.data.regtype ("V" linewise, "v" charwise)
+        -- ev.data.regname (register name, e.g. "a", "" for default)
         -- ev.data.visual (boolean)
     end,
 })
@@ -520,15 +528,15 @@ vim.api.nvim_clear_autocmds({ group = g, event = "InsertEnter" })
 
 ## vim.keymap.set options
 
-| Option    | Type    | Default | Description                              |
-| --------- | ------- | ------- | ---------------------------------------- |
-| `desc`    | string  | (none)  | Description shown in which-key popup     |
-| `noremap` | boolean | `true`  | Non-recursive mapping                    |
-| `remap`   | boolean | `false` | Recursive mapping (inverse of `noremap`) |
-| `silent`  | boolean | (none)  | Accepted but no effect in Obsidian       |
-| `nowait`  | boolean | (none)  | Accepted but no effect in Obsidian       |
-| `buffer`  | (none)  | (none)  | Not supported (console warning)          |
-| `expr`    | (none)  | (none)  | Not supported (throws error)             |
+| Option    | Type           | Default | Description                                                                                                 |
+| --------- | -------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `desc`    | string         | (none)  | Description shown in which-key popup                                                                        |
+| `noremap` | boolean        | `true`  | Non-recursive mapping                                                                                       |
+| `remap`   | boolean        | `false` | Recursive mapping (inverse of `noremap`)                                                                    |
+| `silent`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                          |
+| `nowait`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                          |
+| `buffer`  | number/boolean | (none)  | Buffer-local keymap (`0` or `true` = current file). See Buffer-local keymaps above. Non-zero numbers error. |
+| `expr`    | (none)         | (none)  | Not supported (throws error)                                                                                |
 
 ## Obsidian namespace
 
@@ -556,6 +564,7 @@ Obsidian-specific APIs that don't exist in Neovim. Available as `vim.obsidian` o
 | `vim.env.VIM`              | `"motions"`                   |
 | `vim.env.TERM`             | `"obsidian"`                  |
 | `vim.env.OBSIDIAN_VERSION` | Obsidian version string       |
+| `vim.env.MYVIMRC`          | `"init.lua"`                  |
 
 Custom variables can be set: `vim.env.MY_VAR = "value"`. Unknown keys return `nil`.
 
@@ -592,6 +601,9 @@ These map directly to plugin UI elements via CSS custom properties:
 | `StatusLineSelect`   | Select mode status bar    |
 | `StatusLineVReplace` | V-Replace mode status bar |
 
+> [!info] Case-sensitive group names
+> Highlight group names are case-sensitive. Use the exact casing shown in the table above (e.g., `EasyMotionTarget`, not `easymotiontarget`). This differs from Neovim, where highlight group names are case-insensitive.
+
 ### User-defined highlight groups
 
 Custom groups generate CSS classes (`.vim-hl-GroupName`) that can be used in CSS snippets:
@@ -611,6 +623,9 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 | `italic`            | boolean        | `font-style: italic`                    |
 | `underline`         | boolean        | `text-decoration-line: underline`       |
 | `undercurl`         | boolean        | `text-decoration: underline wavy`       |
+| `underdouble`       | boolean        | `text-decoration: underline double`     |
+| `underdotted`       | boolean        | `text-decoration: underline dotted`     |
+| `underdashed`       | boolean        | `text-decoration: underline dashed`     |
 | `strikethrough`     | boolean        | `text-decoration-line: line-through`    |
 | `reverse`           | boolean        | Swaps fg/bg                             |
 | `blend`             | number (0-100) | `opacity`                               |
@@ -620,6 +635,9 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 
 > [!info] Namespace
 > Only `ns_id = 0` (global namespace) is supported. `vim.api.nvim_create_namespace()` always returns `0`.
+
+> [!info] Underline styles
+> Only one underline style can be active per highlight group. If multiple underline attributes (`undercurl`, `underdouble`, `underdotted`, `underdashed`) are set, only the first one takes effect.
 
 ## When to use Lua vs Vimrc
 
@@ -643,7 +661,153 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `io`, `load`, `dofile`, `loadfile`, and `require` are not available. The `os` library provides a browser-safe subset (`os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`); Node.js-only functions (`os.exit`, `os.getenv`, `os.remove`, `os.rename`, `os.tmpname`, `os.execute`) are not available. The `debug` library is available (minus `debug.debug()`).
+> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 6 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`). The `io`, `os`, `debug`, and `package` libraries are not available. Global functions `load`, `dofile`, `loadfile`, `require`, `rawget`, `rawset`, and `rawequal` are disabled.
+
+## Keymapping mode reference
+
+| Mode string | Context          | Description                    |
+| ----------- | ---------------- | ------------------------------ |
+| `'n'`       | Normal           | Normal mode mappings           |
+| `'i'`       | Insert           | Insert mode mappings           |
+| `'v'`       | Visual           | Visual mode (same as `'x'`)    |
+| `'x'`       | Visual           | Visual mode (alias for `'v'`)  |
+| `'s'`       | Select           | Select mode only               |
+| `'o'`       | Operator-pending | Maps to normal mode internally |
+
+> [!info] Difference from Neovim
+> In Neovim, `'v'` maps to both visual and select mode. In Vim Motions, `'v'` maps to visual mode only. Use `{"v", "s"}` to map in both visual and select modes.
+
+> [!info] Unsupported modes
+> Command-line (`'c'`), terminal (`'t'`), and insert+command (`'!'`) modes are not supported.
+
+Multiple modes can be specified as a table: `vim.keymap.set({"n", "v"}, ...)`.
+
+## Autocmd event data reference
+
+Every autocmd callback receives an event table with these common fields:
+
+| Field   | Type          | Description                     |
+| ------- | ------------- | ------------------------------- |
+| `event` | string        | Event name (e.g., `"BufEnter"`) |
+| `file`  | string        | Vault-relative file path        |
+| `match` | string        | Pattern match string            |
+| `buf`   | number        | Buffer number (always `0`)      |
+| `id`    | number        | Autocmd ID                      |
+| `group` | number or nil | Augroup ID (nil if no group)    |
+| `data`  | table or nil  | Event-specific data (see below) |
+
+### Per-event data fields
+
+Most events set `data = nil`. Only these events provide event-specific data:
+
+**TextYankPost**:
+
+| Field         | Type    | Description                                   |
+| ------------- | ------- | --------------------------------------------- |
+| `operator`    | string  | Operator used (`"y"`, `"d"`, `"c"`)           |
+| `regcontents` | table   | Table of yanked lines                         |
+| `regtype`     | string  | `"V"` (linewise), `"v"` (charwise)            |
+| `regname`     | string  | Register name (e.g., `"a"`, `""` for default) |
+| `visual`      | boolean | Whether the yank was from visual mode         |
+
+**ModeChanged**:
+
+| Field      | Type   | Description            |
+| ---------- | ------ | ---------------------- |
+| `old_mode` | string | Mode before transition |
+| `new_mode` | string | Mode after transition  |
+
+All other events (`InsertEnter`, `InsertLeave`, `CursorMoved`, `CursorHold`, `BufEnter`, `BufLeave`, `BufWritePre`, `BufWritePost`, `FocusGained`, `FocusLost`): `data = nil`.
+
+## Highlight group CSS reference
+
+Plugin-defined highlight groups map to CSS custom properties. User-defined groups generate CSS classes.
+
+### Plugin groups → CSS variables
+
+| Group                | CSS variable             | Controls                  |
+| -------------------- | ------------------------ | ------------------------- |
+| `EasyMotionTarget`   | `--vim-motions-em`       | EasyMotion jump labels    |
+| `EasyMotionShade`    | `--vim-motions-em-shade` | EasyMotion dimmed text    |
+| `HintTarget`         | `--vim-motions-hint`     | Hint mode labels          |
+| `StatusLineNormal`   | `--vim-pl-normal`        | Normal mode status bar    |
+| `StatusLineInsert`   | `--vim-pl-insert`        | Insert mode status bar    |
+| `StatusLineVisual`   | `--vim-pl-visual`        | Visual mode status bar    |
+| `StatusLineReplace`  | `--vim-pl-replace`       | Replace mode status bar   |
+| `StatusLineVLine`    | `--vim-pl-v-line`        | V-Line mode status bar    |
+| `StatusLineVBlock`   | `--vim-pl-v-block`       | V-Block mode status bar   |
+| `StatusLineCommand`  | `--vim-pl-command`       | Command mode status bar   |
+| `StatusLineSearch`   | `--vim-pl-search`        | Search mode status bar    |
+| `StatusLineSelect`   | `--vim-pl-select`        | Select mode status bar    |
+| `StatusLineVReplace` | `--vim-pl-vreplace`      | V-Replace mode status bar |
+
+Plugin groups update CSS custom properties on the document root (`:root`). For example, setting `fg` on `StatusLineNormal` updates `--vim-pl-normal-fg`.
+
+### User-defined groups
+
+Custom highlight groups generate a CSS class `.vim-hl-{GroupName}`. Use these in CSS snippets to style custom elements:
+
+```lua
+vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
+-- Generates: .vim-hl-MyHighlight { color: #00ff00; font-weight: bold }
+```
+
+### Attribute → CSS property mapping
+
+| Attribute       | CSS property                         |
+| --------------- | ------------------------------------ |
+| `fg`            | `color`                              |
+| `bg`            | `background-color`                   |
+| `sp`            | `text-decoration-color`              |
+| `bold`          | `font-weight: bold`                  |
+| `italic`        | `font-style: italic`                 |
+| `underline`     | `text-decoration-line: underline`    |
+| `undercurl`     | `text-decoration: underline wavy`    |
+| `underdouble`   | `text-decoration: underline double`  |
+| `underdotted`   | `text-decoration: underline dotted`  |
+| `underdashed`   | `text-decoration: underline dashed`  |
+| `strikethrough` | `text-decoration-line: line-through` |
+| `reverse`       | Swaps fg/bg values                   |
+| `blend`         | `opacity` (0–100 → 0.0–1.0)          |
+| `link`          | Inherit from another group           |
+| `default`       | Only apply if group not defined      |
+| `update`        | Merge with existing (don't replace)  |
+
+## Lua sandbox reference
+
+The Lua runtime runs in a sandboxed Lua 5.3 environment ([fengari](https://github.com/saberzero1/fengari)).
+
+### Available standard libraries
+
+Only 6 standard libraries are loaded:
+
+| Library     | Description                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `_G` (base) | Core functions (`type`, `tostring`, `tonumber`, `pcall`, `xpcall`, `error`, `select`, `pairs`, `ipairs`, `next`, `unpack`, `assert`) |
+| `string`    | String manipulation (`format`, `find`, `gsub`, `sub`, `rep`, `byte`, `char`, `len`, `lower`, `upper`, `match`, `gmatch`, `reverse`)  |
+| `table`     | Table manipulation (`insert`, `remove`, `sort`, `concat`, `move`, `pack`, `unpack`)                                                  |
+| `math`      | Math functions (`floor`, `ceil`, `abs`, `max`, `min`, `random`, `sqrt`, `sin`, `cos`, `pi`, `huge`, etc.)                            |
+| `coroutine` | Coroutine support (`create`, `resume`, `yield`, `wrap`, `status`)                                                                    |
+| `utf8`      | UTF-8 support (`char`, `codepoint`, `codes`, `len`, `offset`, `charpattern`)                                                         |
+
+### Not available
+
+| Library/function               | Reason                                  |
+| ------------------------------ | --------------------------------------- |
+| `io`                           | Stripped from fork (file system access) |
+| `os`                           | Not loaded by plugin (security)         |
+| `debug`                        | Not loaded by plugin (security)         |
+| `package` / `require()`        | Stripped from fork (no module system)   |
+| `load`, `dofile`, `loadfile`   | Disabled (no code loading)              |
+| `rawget`, `rawset`, `rawequal` | Disabled (sandbox integrity)            |
+
+> [!info] Fork vs plugin
+> The [fengari fork](https://github.com/saberzero1/fengari) retains browser-safe `os` functions (`os.date`, `os.time`, etc.) and the `debug` library in its compiled VM. However, the plugin's sandbox deliberately does not load these libraries. Only the 6 libraries listed above are available to Lua scripts.
+
+### Execution limits
+
+- **Instruction limit**: 1,000,000 Lua VM instructions per execution. Scripts exceeding this limit are terminated with a timeout error.
+- **Error handling**: Syntax errors and runtime errors are caught and displayed as an Obsidian Notice. The plugin continues to load normally.
 
 ## Error handling
 
