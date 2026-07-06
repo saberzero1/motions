@@ -34,6 +34,22 @@ The `src/` directory is organized into focused modules:
 - `ui/`: UI components including WhichKey, hint mode, and command suggestions.
 - `vimrc/`: Logic for loading and parsing `.obsidian.vimrc` files.
 
+## Lua runtime (`src/lua/`)
+
+The plugin includes a sandboxed Lua 5.3 runtime via a browser-only fork of [fengari](https://github.com/saberzero1/fengari). The `src/lua/` directory is organized into focused modules:
+
+- `engine.ts`: Lua VM lifecycle — sandboxed state creation, instruction-limit timeout, code evaluation.
+- `api.ts`: Registers the `vim.*` API surface — `vim.opt`, `vim.g`, `vim.cmd`, `vim.keymap`, `vim.api` (16 `nvim_*` functions), `vim.notify`, `vim.obsidian`/`vim.ob`, `vim.env`, `vim.log.levels`.
+- `fn.ts`: Registers `vim.fn.*` functions (27 functions) with callbacks bridging to Obsidian's vault and editor APIs.
+- `stdlib.ts`: Pure-Lua standard library utilities — `vim.tbl_*` (12 table functions), `vim.split`/`vim.trim`/`vim.startswith`/`vim.endswith`/`vim.inspect`, and `vim.json` (JS-bridged encode/decode).
+- `timers.ts`: Async primitives — `vim.schedule`, `vim.defer_fn`, `vim.uv`/`vim.loop` timer subset. Managed by `TimerManager` for cleanup on plugin unload.
+- `autocmd.ts`: Autocommand system — `AutocmdManager` handles 12 events (`InsertEnter`, `CursorMoved`, `BufWritePre`, etc.) with augroup management and pattern matching.
+- `buffer.ts`: Buffer-local keymaps — `BufferKeymapManager` stores per-file keymaps and swaps them on active leaf change.
+- `highlight.ts`: Highlight group → CSS bridge — `HighlightManager` maps `nvim_set_hl` calls to CSS custom properties (plugin-defined groups) or dynamic CSS classes (user-defined groups).
+- `loader.ts`: Orchestrates Lua config loading — reads `.obsidian.init.lua`, creates the sandboxed state, injects all API modules, evaluates user code, and returns collected keymaps/commands/settings.
+
+The injection order matters: `createSandboxedState()` → `injectVimApi()` → `injectVimFn()` → `injectStdlib()` → `injectTimers()` → `evalLua(userCode)`.
+
 ## Feature registration pattern
 
 Features are registered using the `VimRegistration` class. This provides a unified interface for defining motions, actions, operators, and Ex commands:

@@ -29,4 +29,5 @@ After enabling the plugin:
 
 ## Next steps
 
-See [[recommended-setup]] to configure Obsidian for the best experience, including whether to use the built-in vim engine or the enhanced bundled fork.
+- See [[recommended-setup]] to configure Obsidian for the best experience, including whether to use the built-in vim engine or the enhanced bundled fork.
+- See [[quickstart]] for a 5-minute hands-on guide, including setting up `.obsidian.init.lua` for Lua configuration.

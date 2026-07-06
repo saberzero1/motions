@@ -4,6 +4,7 @@ import type { ExCommandFn, VimApi } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import { VimInfoModal } from '../ui/vim-info-modal';
 import type { GlobalMappingRegistry } from './global-mapping-registry';
+import type { AutocmdManager } from '../lua/autocmd';
 
 function createObCommand(app: App): ExCommandFn {
     return (_cm, params) => {
@@ -128,9 +129,20 @@ function executeCommand(app: App, commandId: string): void {
     ).commands.executeCommandById(commandId);
 }
 
-function createWriteQuitCommand(app: App): ExCommandFn {
+function saveWithEvents(app: App, autocmdManager?: AutocmdManager): void {
+    const file = app.workspace.getActiveFile();
+    const path = file?.path ?? '';
+    autocmdManager?.fire('BufWritePre', { file: path });
+    executeCommand(app, 'editor:save-file');
+    autocmdManager?.fire('BufWritePost', { file: path });
+}
+
+function createWriteQuitCommand(
+    app: App,
+    autocmdManager?: AutocmdManager,
+): ExCommandFn {
     return () => {
-        executeCommand(app, 'editor:save-file');
+        saveWithEvents(app, autocmdManager);
         executeCommand(app, 'workspace:close');
     };
 }
@@ -275,16 +287,22 @@ function createSaveAsCommand(app: App): ExCommandFn {
     };
 }
 
-function createXitCommand(app: App): ExCommandFn {
+function createXitCommand(
+    app: App,
+    autocmdManager?: AutocmdManager,
+): ExCommandFn {
     return () => {
-        executeCommand(app, 'editor:save-file');
+        saveWithEvents(app, autocmdManager);
         executeCommand(app, 'workspace:close');
     };
 }
 
-function createXallCommand(app: App): ExCommandFn {
+function createXallCommand(
+    app: App,
+    autocmdManager?: AutocmdManager,
+): ExCommandFn {
     return () => {
-        executeCommand(app, 'editor:save-file');
+        saveWithEvents(app, autocmdManager);
         app.workspace.iterateAllLeaves((leaf) => {
             leaf.detach();
         });
@@ -448,13 +466,14 @@ export function registerExCommands(
     app: App,
     vim?: VimApi,
     globalRegistry?: GlobalMappingRegistry,
+    autocmdManager?: AutocmdManager,
 ): void {
     reg.defineEx('sidebar', 'sid', createSidebarCommand(app));
     reg.defineEx('explorer', 'exp', createExplorerCommand(app));
 
-    reg.defineEx('write', 'w', () => executeCommand(app, 'editor:save-file'));
+    reg.defineEx('write', 'w', () => saveWithEvents(app, autocmdManager));
     reg.defineEx('quit', 'q', () => executeCommand(app, 'workspace:close'));
-    reg.defineEx('wq', '', createWriteQuitCommand(app));
+    reg.defineEx('wq', '', createWriteQuitCommand(app, autocmdManager));
     reg.defineEx('bdelete', 'bd', () => executeCommand(app, 'workspace:close'));
     reg.defineEx('bclose', 'bc', () => executeCommand(app, 'workspace:close'));
     reg.defineEx('bnext', 'bn', () =>
@@ -466,8 +485,8 @@ export function registerExCommands(
     reg.defineEx('only', 'on', createCloseOthersExCommand(app));
     reg.defineEx('quitall', 'quita', createCloseAllCommand(app));
     reg.defineEx('qa', '', createCloseAllCommand(app));
-    reg.defineEx('wall', 'wal', () => executeCommand(app, 'editor:save-file'));
-    reg.defineEx('wa', '', () => executeCommand(app, 'editor:save-file'));
+    reg.defineEx('wall', 'wal', () => saveWithEvents(app, autocmdManager));
+    reg.defineEx('wa', '', () => saveWithEvents(app, autocmdManager));
 
     reg.defineEx('buffers', 'buf', createBufferListCommand(app));
     reg.defineEx('ls', '', createBufferListCommand(app));
@@ -485,9 +504,9 @@ export function registerExCommands(
     reg.defineEx('edit!', '', createEditForceCommand(app));
     reg.defineEx('enew', 'ene', createEnewCommand(app));
     reg.defineEx('saveas', 'sav', createSaveAsCommand(app));
-    reg.defineEx('update', 'up', () => executeCommand(app, 'editor:save-file'));
-    reg.defineEx('xit', 'x', createXitCommand(app));
-    reg.defineEx('xall', 'xa', createXallCommand(app));
+    reg.defineEx('update', 'up', () => saveWithEvents(app, autocmdManager));
+    reg.defineEx('xit', 'x', createXitCommand(app, autocmdManager));
+    reg.defineEx('xall', 'xa', createXallCommand(app, autocmdManager));
     reg.defineEx('find', 'fin', createFindCommand(app));
     reg.defineEx('read', 'r', createReadCommand(app));
 

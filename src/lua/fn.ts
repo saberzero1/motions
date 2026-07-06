@@ -11,6 +11,9 @@ export interface VimFnCallbacks {
     getCursorLine: () => number;
     getCursorCol: () => number;
     getLine: (line: number) => string | null;
+    getLineCount: () => number;
+    getLines: (start: number, end: number) => string[];
+    setLines: (start: number, end: number, lines: string[]) => void;
     getPlatform: () => {
         isMacOS: boolean;
         isLinux: boolean;

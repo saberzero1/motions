@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Lua standard library utilities (`vim.tbl_*`, `vim.split`, `vim.inspect`, `vim.json`)** — 22 Neovim-compatible utility functions for table manipulation, string operations, debugging, and JSON serialization
+    - Table utilities (12): `vim.tbl_deep_extend`, `vim.tbl_extend`, `vim.tbl_contains` (with predicate support), `vim.tbl_keys`, `vim.tbl_values`, `vim.tbl_map`, `vim.tbl_filter`, `vim.tbl_count`, `vim.tbl_isempty`, `vim.tbl_get`, `vim.list_extend`, `vim.deepcopy`
+    - String utilities (6): `vim.split` (with `{plain, trimempty}` options), `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.pesc`, `vim.stricmp`
+    - `vim.inspect(value)` — human-readable table/value serialization for debugging init.lua configs
+    - `vim.json.encode(value)` / `vim.json.decode(str)` — JSON serialization bridged to JavaScript's `JSON.stringify`/`JSON.parse`
+    - Plugin: `src/lua/stdlib.ts`
+- **Async primitives (`vim.schedule`, `vim.defer_fn`, `vim.uv` timers)** — Neovim-compatible async APIs for deferred execution and timer management
+    - `vim.schedule(fn)` — defer function to next event loop iteration (useful for breaking recursive autocmd loops)
+    - `vim.schedule_wrap(fn)` — returns a function that wraps `fn` with `vim.schedule`, passing all arguments
+    - `vim.defer_fn(fn, timeout)` — defer function by `timeout` milliseconds, returns cancellable handle with `stop()`/`close()`/`is_closing()`
+    - `vim.uv.new_timer()` — create timer with `start(delay, repeat, callback)`, `stop()`, `close()`, `is_closing()`, `is_active()`
+    - `vim.uv.hrtime()` — high-resolution time in nanoseconds
+    - `vim.uv.now()` — current time in milliseconds
+    - `vim.loop` alias for `vim.uv` (Neovim backward compatibility)
+    - All timers cleaned up on plugin unload (no leaked timeouts)
+    - Plugin: `src/lua/timers.ts`
+- **Buffer-local keymaps (`vim.keymap.set({ buffer = 0 })`)** — keymaps scoped to specific files, automatically swapped on editor/tab switch
+    - `vim.keymap.set("n", "gd", handler, { buffer = 0 })` — keymap active only in the current file
+    - `vim.api.nvim_buf_set_keymap(0, mode, lhs, rhs, opts)` / `nvim_buf_del_keymap(0, mode, lhs)` — low-level buffer keymap APIs
+    - Combined with `BufEnter` autocmd for per-filetype keymaps (e.g., markdown-only bindings)
+    - Buffer identity uses vault-relative file path; only `buffer = 0` (current file) is supported
+    - Plugin: `src/lua/buffer.ts` (`BufferKeymapManager`)
+- **Buffer content APIs (`nvim_buf_get_lines`, `nvim_buf_set_lines`)** — read and modify editor content from Lua callbacks
+    - `vim.api.nvim_buf_get_lines(0, start, end, strict_indexing)` — 0-based, end-exclusive, `-1` for EOF
+    - `vim.api.nvim_buf_set_lines(0, start, end, strict_indexing, replacement)` — empty table deletes lines
+    - `vim.api.nvim_get_current_buf()` — returns `0` (current buffer)
+    - `vim.api.nvim_buf_get_name(0)` — vault-relative file path
+    - `vim.api.nvim_buf_line_count(0)` — total line count
+    - `strict_indexing = true` errors on out-of-bounds; `false` clamps silently
+- **4 new autocmd events** — `CursorMoved`, `CursorHold`, `BufWritePre`, `BufWritePost` (total: 12 events)
+    - `CursorMoved` — fires after cursor moves (throttled via `vim-command-done` event)
+    - `CursorHold` — fires after cursor is idle for `updatetime` ms (default 4000, configurable via `vim.opt.updatetime`)
+    - `BufWritePre` / `BufWritePost` — fire before/after `:w`, `:wq`, `:x`, `:wall`, `:update` with vault-relative glob pattern support
+    - `updatetime` option added to `KNOWN_SET_OPTIONS` for vimrc and `vim.opt` configuration
+- **`vim.obsidian` namespace (`vim.ob` alias)** — Obsidian-specific APIs that don't exist in Neovim
+    - `vim.obsidian.vault_name()`, `vim.obsidian.app_version()`, `vim.obsidian.plugin_version()`
+    - `vim.obsidian.run_command(id)` — execute any Obsidian command by ID
+    - `vim.obsidian.list_commands()` — table of `{id, name}` for all available commands
+    - `vim.obsidian.open_file(path)` — open a vault file
+    - `vim.obsidian.current_file()` — table `{path, name, extension, basename}` or nil
+    - `vim.obsidian.vault_path()` — vault absolute path (desktop only)
+- **Sandboxed `vim.env`** — environment variable proxy with curated values and user-defined storage
+    - `vim.env.HOME` (vault path), `vim.env.VIM` (`"motions"`), `vim.env.TERM` (`"obsidian"`), `vim.env.OBSIDIAN_VERSION`
+    - Custom variables: `vim.env.MY_VAR = "value"` — stored in memory, not in `process.env`
+    - Unknown keys return nil
+- **`vim.api.nvim_set_hl` — highlight group → CSS bridge** — customize plugin styling from Lua using Neovim's highlight API
+    - `vim.api.nvim_set_hl(0, "EasyMotionTarget", { fg = "#ff5555", bold = true })` — change EasyMotion label colors
+    - `vim.api.nvim_set_hl(0, "StatusLineNormal", { bg = "#282a36" })` — change status bar mode colors
+    - 13 plugin-defined highlight groups: `EasyMotionTarget`, `EasyMotionShade`, `HintTarget`, `StatusLineNormal`/`Insert`/`Visual`/`Replace`/`VLine`/`VBlock`/`Command`/`Search`/`Select`/`VReplace`
+    - User-defined groups generate `.vim-hl-GroupName` CSS classes
+    - Supports: `fg`, `bg`, `sp`, `bold`, `italic`, `underline`, `undercurl`, `strikethrough`, `reverse`, `blend`, `link` (group inheritance), `default` (don't override), `update` (merge)
+    - `vim.api.nvim_get_hl(0, { name = "group" })` — query highlight attrs
+    - `vim.api.nvim_create_namespace(name)` — returns `0` (only global namespace supported)
+    - Plugin: `src/lua/highlight.ts` (`HighlightManager`)
+- **Enhanced `vim.notify` with log levels** — `vim.notify(msg, level)` routes messages by severity
+    - `vim.log.levels`: `TRACE` (0), `DEBUG` (1), `INFO` (2), `WARN` (3), `ERROR` (4), `OFF` (5)
+    - `ERROR`/`WARN` → Obsidian Notice + console; `INFO` → Notice; `DEBUG`/`TRACE` → console.debug only
+    - `vim.notify_once(msg, level)` — deduplicates by message content
+
+### Changed
+
+- **`vim.api` expanded from 6 to 16 functions** — `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, `nvim_buf_del_keymap` added alongside existing autocmd/augroup/user command functions
+- **Autocmd events expanded from 8 to 12** — added `CursorMoved`, `CursorHold`, `BufWritePre`, `BufWritePost`
+
+### Documentation
+
+- `docs/configuration/lua-config.md`: added sections for table/string utilities, JSON, notifications, async/timers, buffer-local keymaps, buffer content, Obsidian namespace, environment variables, highlight groups; updated supported events table and unsupported APIs callout
+- `KNOWN_LIMITATIONS.md`: updated supported APIs list, autocmd event count (8 → 12), removed "not yet implemented" note for CursorHold/CursorMoved/BufWritePre/Post, updated intentionally skipped features table
+- `AGENTS.md`: added Plugin-side Lua API summary to fengari fork section
+- `README.md`: updated tagline and Lua configuration feature bullet with expanded API surface
+
 ## [0.35.0] - 2026-07-05
 
 ### Changed

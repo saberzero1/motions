@@ -46,6 +46,9 @@ function setupState(overrides?: {
     getCursorLine?: () => number;
     getCursorCol?: () => number;
     getLine?: (line: number) => string | null;
+    getLineCount?: () => number;
+    getLines?: (start: number, end: number) => string[];
+    setLines?: (start: number, end: number, lines: string[]) => void;
     getGlobal?: (name: string) => unknown;
     getOption?: (name: string) => unknown;
 }): LuaState {
@@ -77,6 +80,14 @@ function setupState(overrides?: {
             overrides?.getLine ??
             ((line) =>
                 line === 0 ? 'hello world' : line === 1 ? 'second line' : null),
+        getLineCount: overrides?.getLineCount ?? (() => 2),
+        getLines:
+            overrides?.getLines ??
+            ((start, end) => {
+                const lines = ['hello world', 'second line'];
+                return lines.slice(start, end);
+            }),
+        setLines: overrides?.setLines ?? (() => {}),
         getPlatform: () => ({
             isMacOS: false,
             isLinux: true,

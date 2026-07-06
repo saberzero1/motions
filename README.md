@@ -1,6 +1,6 @@
 # Vim Motions
 
-A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim Motions adds what's missing from Obsidian's built-in Vim mode: Markdown-aware text objects, structural navigation, hard-wrap formatting, workspace keyboard control, EasyMotion, Lua configuration with `vim.keymap.set` / `vim.opt` / `vim.fn` / autocommands, and a built-in `.obsidian.vimrc` loader.
+A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim Motions adds what's missing from Obsidian's built-in Vim mode: Markdown-aware text objects, structural navigation, hard-wrap formatting, workspace keyboard control, EasyMotion, Lua configuration with `vim.keymap.set` / `vim.opt` / `vim.fn` / `vim.api` / `vim.tbl_*` / autocommands / timers / highlight groups, and a built-in `.obsidian.vimrc` loader.
 
 **[Full documentation →](https://saberzero1.github.io/motions)**
 
@@ -8,7 +8,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, and table cells with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
-- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, autocommands, and Neovim-compatible syntax
+- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (12 events), `vim.obsidian` namespace, buffer-local keymaps, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)

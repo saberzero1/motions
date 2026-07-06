@@ -272,7 +272,7 @@ describe('vim api', () => {
 
         const status = lauxlib.luaL_dostring(
             L,
-            to_luastring('return vim.api.nvim_buf_get_lines(0, 0, -1, false)'),
+            to_luastring('return vim.api.nvim_buf_get_mark(0, "a")'),
         );
         expect(status).not.toBe(lua.LUA_OK);
         const err = lua.lua_tolstring(L, -1);
@@ -280,5 +280,201 @@ describe('vim api', () => {
             'nvim_create_user_command',
         );
         destroyState(L);
+    });
+
+    describe('vim.obsidian', () => {
+        it('should return vault name', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.obsidian.vault_name()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('vault');
+            destroyState(L);
+        });
+
+        it('should return app version', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getAppVersion: () => '1.2.3',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.obsidian.app_version()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('1.2.3');
+            destroyState(L);
+        });
+
+        it('should alias as vim.ob', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.ob == vim.obsidian'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should return current file info', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getCurrentFile: () => ({
+                    path: 'notes/test.md',
+                    name: 'test.md',
+                    extension: 'md',
+                    basename: 'test',
+                }),
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'local file = vim.obsidian.current_file()\nreturn file.path .. "|" .. file.name .. "|" .. file.extension .. "|" .. file.basename',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe(
+                'notes/test.md|test.md|md|test',
+            );
+            destroyState(L);
+        });
+
+        it('should return nil for current_file when no file', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getCurrentFile: () => null,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.obsidian.current_file() == nil'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+    });
+
+    describe('vim.env', () => {
+        it('should return HOME as vault path', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getVaultPath: () => '/vault',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.env.HOME'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('/vault');
+            destroyState(L);
+        });
+
+        it('should return nil for unknown keys', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.env.DOES_NOT_EXIST == nil'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should allow setting custom env vars', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.env.MY_CUSTOM = "value"\nreturn vim.env.MY_CUSTOM',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('value');
+            destroyState(L);
+        });
+
+        it('should return TERM as obsidian', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.env.TERM'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('obsidian');
+            destroyState(L);
+        });
     });
 });

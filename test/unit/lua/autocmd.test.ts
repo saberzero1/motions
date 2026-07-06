@@ -10,12 +10,14 @@ import {
 function createCallbacks() {
     let modeHandler: ((mode: VimModeChange) => void) | null = null;
     let yankHandler: ((payload: AutocmdYankEvent) => void) | null = null;
+    let cursorMovedHandler: ((filePath: string) => void) | null = null;
     let fileHandler: ((file: TFile | null) => void) | null = null;
     let focusGainedHandler: (() => void) | null = null;
     let focusLostHandler: (() => void) | null = null;
     const counts = {
         mode: 0,
         yank: 0,
+        cursorMoved: 0,
         file: 0,
         focusGained: 0,
         focusLost: 0,
@@ -34,6 +36,13 @@ function createCallbacks() {
             yankHandler = handler;
             return () => {
                 yankHandler = null;
+            };
+        },
+        onCursorMoved: (handler) => {
+            counts.cursorMoved++;
+            cursorMovedHandler = handler;
+            return () => {
+                cursorMovedHandler = null;
             };
         },
         onFileOpen: (handler) => {
@@ -67,6 +76,9 @@ function createCallbacks() {
         },
         triggerYank(payload: AutocmdYankEvent) {
             yankHandler?.(payload);
+        },
+        triggerCursorMoved(path: string) {
+            cursorMovedHandler?.(path);
         },
         triggerFile(path: string | null) {
             const file = path ? ({ path } as TFile) : null;
@@ -230,6 +242,7 @@ describe('AutocmdManager', () => {
         manager.activate(harness.callbacks);
         expect(harness.counts.mode).toBe(1);
         expect(harness.counts.yank).toBe(1);
+        expect(harness.counts.cursorMoved).toBe(1);
         expect(harness.counts.file).toBe(1);
         expect(harness.counts.focusGained).toBe(1);
         expect(harness.counts.focusLost).toBe(1);
@@ -322,6 +335,20 @@ describe('AutocmdManager', () => {
                     return () =>
                         target.off(
                             'vim-yank',
+                            _handler as (...args: unknown[]) => void,
+                        );
+                }
+                return undefined;
+            },
+            onCursorMoved: (_handler, target) => {
+                if (target) {
+                    target.on(
+                        'vim-command-done',
+                        _handler as (...args: unknown[]) => void,
+                    );
+                    return () =>
+                        target.off(
+                            'vim-command-done',
                             _handler as (...args: unknown[]) => void,
                         );
                 }

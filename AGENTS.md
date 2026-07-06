@@ -18,6 +18,7 @@
     - **IMPORTANT: dependency URL in `package.json`**: The `fengari` dependency MUST point to `https://github.com/saberzero1/fengari.git` (the remote URL) before committing. During local development, use `npm install ~/Repos/fengari` for fast iteration, but **always switch back to the HTTPS URL before committing** — same rules as the codemirror-vim fork.
     - **What's stripped**: Lua `io` library (entire file), Lua `package`/`require()` system (entire file), Node.js-only `os` functions (`exit`, `getenv`, `remove`, `rename`, `tmpname`, `execute`), `debug.debug()` interactive REPL, file loading (`luaL_loadfilex`), `process.stdout`/`process.stderr`/`process.env` references
     - **What's kept**: Core VM, all safe standard libraries (base, string, table, math, coroutine, utf8), browser-safe `os` functions (date, time, difftime, clock, setlocale), debug library (minus `debug.debug()`), `sprintf-js`
+    - **Plugin-side Lua API** (built on top of fengari, implemented in `src/lua/`): `vim.opt`, `vim.g`, `vim.cmd`, `vim.keymap.set`/`del` (including buffer-local), `vim.api` (16 `nvim_*` functions: user commands, autocmds, augroups, buffer lines, buffer keymaps, highlights, namespaces), `vim.fn` (27 functions), `vim.tbl_*` (12 table utilities), `vim.split`/`vim.trim`/`vim.startswith`/`vim.endswith`/`vim.inspect`/`vim.json`/`vim.deepcopy`, `vim.schedule`/`vim.defer_fn`/`vim.uv` (timers), `vim.notify` (with log levels), `vim.obsidian`/`vim.ob` (Obsidian-specific namespace), `vim.env` (sandboxed), 12 autocmd events. See `docs/configuration/lua-config.md` for the full reference.
 
 ### Dual-vim architecture
 
@@ -259,6 +260,7 @@ When making a change, update these docs pages:
 | New ex command                    | `reference/keybindings.md` § "Ex commands" + `features/ex-commands.md`                                                                               |
 | New setting                       | `configuration/settings.md` (add to correct group of 12)                                                                                             |
 | New vimrc option                  | `configuration/vimrc.md` (add to correct options table)                                                                                              |
+| New Lua API function/namespace    | `configuration/lua-config.md` (add to appropriate API section) + `KNOWN_LIMITATIONS.md` (update supported function count/list)                       |
 | New feature (entire)              | New `features/<name>.md` + `features/index.md` (add link) + `reference/keybindings.md` (add section) + `configuration/settings.md` (if new settings) |
 | Bug fix                           | `KNOWN_LIMITATIONS.md` (mark Fixed if applicable) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                     |
 | New limitation                    | `KNOWN_LIMITATIONS.md` (add section) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                                  |
@@ -281,6 +283,7 @@ When making a change, update these docs pages:
 | Surround              | `features/surround.md`              | (no settings — fork feature)                                  |
 | Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                |
 | Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.) |
+| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath)              |
 | Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                          |
 | Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                 |
 | Cursor shapes         | `configuration/cursor-shapes.md`    | Cursor shapes                                                 |

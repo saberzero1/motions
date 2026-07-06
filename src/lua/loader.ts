@@ -5,8 +5,12 @@ import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
 import { createSandboxedState, evalLua } from './engine';
 import { injectVimApi, LuaKeymap, LuaKeymapDelete } from './api';
+import type { BufferKeymapManager } from './buffer';
 import { AutocmdManager } from './autocmd';
 import { injectVimFn } from './fn';
+import { injectStdlib } from './stdlib';
+import { injectTimers, TimerManager } from './timers';
+import { HighlightManager } from './highlight';
 import type { lua_State } from 'fengari';
 
 export interface LuaLoadResult {
@@ -25,6 +29,8 @@ export interface LuaLoadResult {
     commandCount: number;
     state: lua_State | null;
     autocmdManager: AutocmdManager | null;
+    timerManager: TimerManager | null;
+    highlightManager: HighlightManager | null;
 }
 
 function getLuaConfigPath(app: App, customPath?: string): string {
@@ -50,8 +56,11 @@ export async function loadInitLua(
         directive?: string,
     ) => void,
     customPath?: string,
+    bufferKeymapManager?: BufferKeymapManager,
 ): Promise<LuaLoadResult> {
     const path = getLuaConfigPath(app, customPath);
+    const doc = app.workspace.containerEl.ownerDocument;
+    const highlightManager = new HighlightManager(doc);
 
     const content = await readLuaFile(app, path);
     if (content === null) {
@@ -67,6 +76,8 @@ export async function loadInitLua(
             commandCount: 0,
             state: null,
             autocmdManager: null,
+            timerManager: null,
+            highlightManager,
         };
     }
 
@@ -83,15 +94,75 @@ export async function loadInitLua(
     const L = createSandboxedState();
     const autocmdManager = new AutocmdManager(L);
     const { globals } = injectVimApi(L, {
+        highlightManager,
         onSettingOverride: (key, value, directive) => {
             commandCount++;
             onSettingOverride?.(key, value, directive);
+            if (key === 'updatetime' && typeof value === 'number') {
+                autocmdManager.setUpdateTime(value);
+            }
         },
         handleExCommand: (command: string) => {
             commandCount++;
             pendingExCommands.push(command);
         },
         getVaultName: () => app.vault.getName(),
+        getAppVersion: () => apiVersion,
+        getPluginVersion: () => {
+            return (
+                (
+                    app as unknown as {
+                        plugins?: {
+                            manifests?: Record<string, { version?: string }>;
+                        };
+                    }
+                ).plugins?.manifests?.['vim-motions']?.version ?? ''
+            );
+        },
+        executeCommand: (id: string) => {
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (id: string) => void };
+                }
+            ).commands.executeCommandById(id);
+        },
+        listCommands: () => {
+            const commands = (
+                app as unknown as {
+                    commands: {
+                        commands: Record<string, { id: string; name: string }>;
+                    };
+                }
+            ).commands.commands;
+            return Object.values(commands).map((cmd) => ({
+                id: cmd.id,
+                name: cmd.name,
+            }));
+        },
+        openFile: (path: string) => {
+            void app.workspace.openLinkText(path, '');
+        },
+        getCurrentFile: () => {
+            const file = app.workspace.getActiveFile();
+            if (!file) return null;
+            return {
+                path: file.path,
+                name: file.name,
+                extension: file.extension,
+                basename: file.basename,
+            };
+        },
+        getVaultPath: () => {
+            try {
+                const adapter = app.vault.adapter as {
+                    getBasePath?: () => string;
+                };
+                return adapter.getBasePath?.() ?? null;
+            } catch {
+                return null;
+            }
+        },
+        getActiveFilePath: () => app.workspace.getActiveFile()?.path ?? null,
         showNotice: (msg) => {
             new Notice(msg);
         },
@@ -103,10 +174,37 @@ export async function loadInitLua(
                 commandLabels.push({ key: map.lhs, label: map.desc });
             }
         },
+        onBufferKeymap: (filePath, map) => {
+            commandCount++;
+            if (!bufferKeymapManager) {
+                console.warn(
+                    'Vim Motions: buffer-local keymaps are not available without a buffer manager',
+                );
+                return;
+            }
+            bufferKeymapManager.register(filePath, map);
+            if (map.desc) {
+                commandLabels.push({ key: map.lhs, label: map.desc });
+            }
+        },
         onKeymapDel: (map) => {
             commandCount++;
             unmaps.push(map);
             mapOperations.push({ type: 'unmap', map });
+        },
+        onBufferKeymapDel: (filePath, mode, lhs) => {
+            commandCount++;
+            if (!bufferKeymapManager) {
+                console.warn(
+                    'Vim Motions: buffer-local keymap deletes are not available without a buffer manager',
+                );
+                return;
+            }
+            bufferKeymapManager.unregister(
+                filePath,
+                mode as LuaKeymap['mode'],
+                lhs,
+            );
         },
         defineExCommand: (name, callback) => {
             commandCount++;
@@ -122,6 +220,47 @@ export async function loadInitLua(
             } catch {
                 return undefined;
             }
+        },
+        getLineCount: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 0;
+            return view.editor.lineCount();
+        },
+        getLines: (start, end) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return [];
+            const editor = view.editor;
+            const lineCount = editor.lineCount();
+            const actualEnd = end === -1 ? lineCount : Math.min(end, lineCount);
+            const result: string[] = [];
+            for (let i = start; i < actualEnd; i++) {
+                result.push(editor.getLine(i));
+            }
+            return result;
+        },
+        setLines: (start, end, lines) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const editor = view.editor;
+            const lineCount = editor.lineCount();
+            const actualEnd = end === -1 ? lineCount : Math.min(end, lineCount);
+            if (lineCount === 0 && actualEnd === 0) {
+                editor.replaceRange(lines.join('\n'), { line: 0, ch: 0 });
+                return;
+            }
+            const from = { line: start, ch: 0 };
+            const to =
+                actualEnd >= lineCount
+                    ? {
+                          line: lineCount - 1,
+                          ch: editor.getLine(lineCount - 1).length,
+                      }
+                    : { line: actualEnd, ch: 0 };
+            const text =
+                lines.length === 0
+                    ? ''
+                    : lines.join('\n') + (actualEnd < lineCount ? '\n' : '');
+            editor.replaceRange(text, from, to);
         },
         autocmdManager,
     });
@@ -191,6 +330,47 @@ export async function loadInitLua(
                 return null;
             }
         },
+        getLineCount: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 0;
+            return view.editor.lineCount();
+        },
+        getLines: (start: number, end: number) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return [];
+            const editor = view.editor;
+            const lineCount = editor.lineCount();
+            const actualEnd = end === -1 ? lineCount : Math.min(end, lineCount);
+            const result: string[] = [];
+            for (let i = start; i < actualEnd; i++) {
+                result.push(editor.getLine(i));
+            }
+            return result;
+        },
+        setLines: (start: number, end: number, lines: string[]) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const editor = view.editor;
+            const lineCount = editor.lineCount();
+            const actualEnd = end === -1 ? lineCount : Math.min(end, lineCount);
+            if (lineCount === 0 && actualEnd === 0) {
+                editor.replaceRange(lines.join('\n'), { line: 0, ch: 0 });
+                return;
+            }
+            const from = { line: start, ch: 0 };
+            const to =
+                actualEnd >= lineCount
+                    ? {
+                          line: lineCount - 1,
+                          ch: editor.getLine(lineCount - 1).length,
+                      }
+                    : { line: actualEnd, ch: 0 };
+            const text =
+                lines.length === 0
+                    ? ''
+                    : lines.join('\n') + (actualEnd < lineCount ? '\n' : '');
+            editor.replaceRange(text, from, to);
+        },
         getPlatform: () => ({
             isMacOS: Platform.isMacOS,
             isLinux: Platform.isLinux,
@@ -209,6 +389,9 @@ export async function loadInitLua(
             }
         },
     });
+
+    injectStdlib(L);
+    const timerManager = injectTimers(L);
 
     const result = evalLua(L, content);
     autocmdManager.activate({
@@ -233,6 +416,17 @@ export async function loadInitLua(
                     'vim-yank',
                     handler as (...args: unknown[]) => void,
                 );
+        },
+        onCursorMoved: (handler, adapter) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+            if (!resolved) return undefined;
+            const wrappedHandler = () => {
+                const currentFile = app.workspace.getActiveFile();
+                handler(currentFile?.path ?? '');
+            };
+            resolved.on('vim-command-done', wrappedHandler);
+            return () => resolved.off('vim-command-done', wrappedHandler);
         },
         onFileOpen: (handler) => {
             const ref = app.workspace.on('file-open', handler);
@@ -281,6 +475,8 @@ export async function loadInitLua(
             commandCount: 0,
             state: L,
             autocmdManager,
+            timerManager,
+            highlightManager,
         };
     }
 
@@ -296,5 +492,7 @@ export async function loadInitLua(
         commandCount,
         state: L,
         autocmdManager,
+        timerManager,
+        highlightManager,
     };
 }

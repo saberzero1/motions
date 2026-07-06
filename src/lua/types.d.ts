@@ -29,6 +29,8 @@ declare module 'fengari' {
         lua_isfunction: (L: lua_State, index: number) => boolean;
         lua_isnil: (L: lua_State, index: number) => boolean;
         lua_type: (L: lua_State, index: number) => number;
+        lua_absindex: (L: lua_State, index: number) => number;
+        lua_next: (L: lua_State, index: number) => number;
         lua_gettop: (L: lua_State) => number;
         lua_pop: (L: lua_State, count: number) => void;
         lua_pcall: (
@@ -49,6 +51,8 @@ declare module 'fengari' {
         LUA_ERRRUN: number;
         LUA_ERRSYNTAX: number;
         LUA_MASKCOUNT: number;
+        LUA_TNUMBER: number;
+        LUA_TSTRING: number;
         LUA_REGISTRYINDEX: number;
     };
 

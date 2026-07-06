@@ -699,15 +699,15 @@ The plugin supports `.obsidian.init.lua` as an alternative to `.obsidian.vimrc`.
 
 ### Supported APIs
 
-The Lua config runtime (`init.lua`) supports `vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
+The Lua config runtime (`init.lua`) supports `vim.opt`, `vim.o`, `vim.g`, `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob`, `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
 
 ### Unsupported Neovim APIs
 
-`require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`: accessing these produces a clear error message. `vim.api` is partially supported: `nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, and `nvim_clear_autocmds` are available; other `vim.fn` is partially supported (see below): unsupported `vim.fn.*` functions produce a helpful error listing available functions. The Lua runtime is sandboxed: `io`, `load`, `dofile`, `loadfile`, and `require` are not available. The `os` library is available with a browser-safe subset (`os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`); Node.js-only functions (`os.exit`, `os.getenv`, `os.remove`, `os.rename`, `os.tmpname`, `os.execute`) are stripped in the fork. The `debug` library is available (minus `debug.debug()` interactive REPL). The `package` library is not available.
+`require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`: accessing these produces a clear error message. `vim.api` is partially supported: `nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` are available; other `vim.fn` is partially supported (see below): unsupported `vim.fn.*` functions produce a helpful error listing available functions. The Lua runtime is sandboxed: `io`, `load`, `dofile`, `loadfile`, and `require` are not available. The `os` library is available with a browser-safe subset (`os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`); Node.js-only functions (`os.exit`, `os.getenv`, `os.remove`, `os.rename`, `os.tmpname`, `os.execute`) are stripped in the fork. The `debug` library is available (minus `debug.debug()` interactive REPL). The `package` library is not available.
 
 ### Autocmds
 
-8 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `FocusGained`, `FocusLost`, `TextYankPost`. See `docs/configuration/lua-config.md` for the full reference.
+12 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `FocusGained`, `FocusLost`, `TextYankPost`, `CursorMoved`, `CursorHold`, `BufWritePre`, `BufWritePost`. See `docs/configuration/lua-config.md` for the full reference.
 
 Limitations:
 
@@ -715,7 +715,6 @@ Limitations:
 - `buffer` option not supported (Obsidian has no buffer numbers)
 - `command` option not supported (use `callback` only)
 - `nested` option not supported
-- `CursorHold`, `CursorMoved`, `BufWritePre/Post` not yet implemented
 - `buf` field in event data is always 0
 - `TextYankPost` requires bundled fork mode (built-in vim mode OFF)
 
@@ -750,13 +749,13 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 
 ### Intentionally skipped Lua features
 
-| Feature                                 | Reason                                                                                      |
-| --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `require()` / plugin loading            | Security — sandboxed environment, no module system (Lua `package` library stripped in fork) |
-| `vim.api.nvim_*`                        | 100+ Neovim-internal functions, not portable                                                |
-| `vim.fn.hostname()` / `vim.fn.getenv()` | System fingerprinting concern                                                               |
-| `vim.lsp.*` / `vim.treesitter.*`        | Not applicable to Obsidian                                                                  |
-| Async Lua (coroutine ↔ Promise bridge) | Deferred — synchronous callbacks cover the primary use case                                 |
+| Feature                                 | Reason                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `require()` / plugin loading            | Security — sandboxed environment, no module system (Lua `package` library stripped in fork)                                                                                                                                                                                                                                                                                                                              |
+| `vim.api.nvim_*`                        | 16 functions supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, `nvim_buf_del_keymap`); others remain unavailable |
+| `vim.fn.hostname()` / `vim.fn.getenv()` | System fingerprinting concern                                                                                                                                                                                                                                                                                                                                                                                            |
+| `vim.lsp.*` / `vim.treesitter.*`        | Not applicable to Obsidian                                                                                                                                                                                                                                                                                                                                                                                               |
+| Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred                                                                                                                                                                                                                                                                                               |
 
 **Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 9 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, and disabled state.
 

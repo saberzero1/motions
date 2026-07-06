@@ -31,4 +31,4 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 ## Configuration
 
-All features are configurable via the [[settings|Settings UI]] or [[vimrc|.obsidian.vimrc]]. See the [[keybindings|keybinding cheat sheet]] for a complete reference of all motions and commands.
+All features are configurable via the [[settings|Settings UI]], [[lua-config|.obsidian.init.lua]], or [[vimrc|.obsidian.vimrc]]. See the [[keybindings|keybinding cheat sheet]] for a complete reference of all motions and commands.

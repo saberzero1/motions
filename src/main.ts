@@ -64,6 +64,7 @@ import {
 } from './vim/formatting-mark-fix';
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 import { loadInitLua } from './lua/loader';
+import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
 import { injectVimApi } from './lua/api';
@@ -116,7 +117,12 @@ export default class VimMotionsPlugin extends Plugin {
     private luaActionNames = new Set<string>();
     private luaPendingExCommands: string[] = [];
     private luaActionCounter = 0;
+    private bufferKeymapManager: BufferKeymapManager | null = null;
     private autocmdManager: AutocmdManager | null = null;
+    private timerManager: import('./lua/timers').TimerManager | null = null;
+    private highlightManager:
+        | import('./lua/highlight').HighlightManager
+        | null = null;
 
     get vimrcEnabled(): boolean {
         return (
@@ -179,6 +185,56 @@ export default class VimMotionsPlugin extends Plugin {
                 getCursorLine: () => 0,
                 getCursorCol: () => 0,
                 getLine: () => null,
+                getLineCount: () => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!view) return 0;
+                    return view.editor.lineCount();
+                },
+                getLines: (start: number, end: number) => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!view) return [];
+                    const editor = view.editor;
+                    const lineCount = editor.lineCount();
+                    const actualEnd =
+                        end === -1 ? lineCount : Math.min(end, lineCount);
+                    const result: string[] = [];
+                    for (let i = start; i < actualEnd; i++) {
+                        result.push(editor.getLine(i));
+                    }
+                    return result;
+                },
+                setLines: (start: number, end: number, lines: string[]) => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!view) return;
+                    const editor = view.editor;
+                    const lineCount = editor.lineCount();
+                    const actualEnd =
+                        end === -1 ? lineCount : Math.min(end, lineCount);
+                    if (lineCount === 0 && actualEnd === 0) {
+                        editor.replaceRange(lines.join('\n'), {
+                            line: 0,
+                            ch: 0,
+                        });
+                        return;
+                    }
+                    const from = { line: start, ch: 0 };
+                    const to =
+                        actualEnd >= lineCount
+                            ? {
+                                  line: lineCount - 1,
+                                  ch: editor.getLine(lineCount - 1).length,
+                              }
+                            : { line: actualEnd, ch: 0 };
+                    const text =
+                        lines.length === 0
+                            ? ''
+                            : lines.join('\n') +
+                              (actualEnd < lineCount ? '\n' : '');
+                    editor.replaceRange(text, from, to);
+                },
                 getPlatform: () => ({
                     isMacOS: Platform.isMacOS,
                     isLinux: Platform.isLinux,
@@ -212,9 +268,13 @@ export default class VimMotionsPlugin extends Plugin {
         this.settings.configMode = 'lua-vimrc';
         this.luaLoaded = false;
         this.luaLoading = false;
+        this.timerManager?.destroyAll();
+        this.timerManager = null;
         this.autocmdManager?.clearUngrouped();
         this.autocmdManager?.clearAll();
         this.autocmdManager = null;
+        this.highlightManager?.destroy();
+        this.highlightManager = null;
         if (this.luaState) {
             destroyState(this.luaState);
             this.luaState = null;
@@ -270,6 +330,12 @@ export default class VimMotionsPlugin extends Plugin {
                 );
                 overrides.set(key, directive ?? 'set guicursor');
                 applied = true;
+            } else if (key === 'updatetime') {
+                if (typeof value === 'number') {
+                    this.autocmdManager?.setUpdateTime(value);
+                    overrides.set(key, directive ?? `set updatetime=${value}`);
+                    applied = true;
+                }
             } else if (key.startsWith('modePrompts.')) {
                 const mode = key.replace(
                     'modePrompts.',
@@ -365,6 +431,9 @@ export default class VimMotionsPlugin extends Plugin {
                     this.app.workspace.getActiveViewOfType(MarkdownView);
                 const adapter = view ? getCmAdapter(view) : null;
                 this.autocmdManager?.onActiveLeafChange(adapter);
+                const filePath =
+                    this.app.workspace.getActiveFile()?.path ?? null;
+                this.bufferKeymapManager?.switchBuffer(filePath);
             }),
         );
 
@@ -523,6 +592,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 vim,
                 this.globalRegistry ?? undefined,
+                this.autocmdManager ?? undefined,
             );
         }
         this.registration.beginLeaderScope();
@@ -761,6 +831,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 vim,
                 this.globalRegistry ?? undefined,
+                this.autocmdManager ?? undefined,
             );
         }
         this.registration.beginLeaderScope();
@@ -1131,6 +1202,56 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaLoading = true;
         this.luaGroupLabels = [];
         this.luaCommandLabels = [];
+        if (!this.bufferKeymapManager) {
+            this.bufferKeymapManager = new BufferKeymapManager();
+        }
+        const vimEngine: VimMapUnmap = {
+            map: (mode, lhs, rhs, options) => {
+                if (options?.noremap) {
+                    vim.noremap(lhs, rhs, mode);
+                } else {
+                    vim.map(lhs, rhs, mode);
+                }
+            },
+            unmap: (lhs, mode) => {
+                vim.unmap(lhs, mode);
+            },
+        };
+        this.bufferKeymapManager.setVimEngine(vimEngine);
+        this.bufferKeymapManager.setFnMapper((map) => {
+            if (!map.callback) return false;
+            const actionName =
+                (
+                    map as LuaLoadResult['maps'][number] & {
+                        actionName?: string;
+                    }
+                ).actionName ?? `lua-buffer-action-${this.luaActionCounter++}`;
+            (
+                map as LuaLoadResult['maps'][number] & {
+                    actionName?: string;
+                }
+            ).actionName = actionName;
+            if (!this.luaActionNames.has(actionName)) {
+                this.registration?.defineAction(actionName, map.callback);
+                this.registration?.mapCommand(
+                    map.lhs,
+                    'action',
+                    actionName,
+                    undefined,
+                    map.mode ? { context: map.mode } : undefined,
+                );
+                this.luaActionNames.add(actionName);
+            } else {
+                vim.mapCommand(
+                    map.lhs,
+                    'action',
+                    actionName,
+                    undefined,
+                    map.mode ? { context: map.mode } : undefined,
+                );
+            }
+            return true;
+        });
         const customLuaPath = this.settings.luaConfigPath || undefined;
         const luaResult = await loadInitLua(
             this.app,
@@ -1138,6 +1259,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.leaderRegistry ?? undefined,
             onLuaSettingOverride,
             customLuaPath,
+            this.bufferKeymapManager,
         );
 
         this.luaCommandCount = luaResult.commandCount;
@@ -1171,11 +1293,17 @@ export default class VimMotionsPlugin extends Plugin {
         if (luaResult.state) {
             this.luaState = luaResult.state;
         }
+        this.timerManager?.destroyAll();
+        this.timerManager = luaResult.timerManager;
         this.autocmdManager = luaResult.autocmdManager;
+        this.highlightManager?.destroy();
+        this.highlightManager = luaResult.highlightManager;
         this.autocmdManager?.setReloadCallback(() => this.reloadFeatures());
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         const adapter = view ? getCmAdapter(view) : null;
         this.autocmdManager?.onActiveLeafChange(adapter);
+        const filePath = this.app.workspace.getActiveFile()?.path ?? null;
+        this.bufferKeymapManager?.switchBuffer(filePath);
 
         this.applyLuaMaps(vim);
         this.applyLuaPendingExCommands(vim);
@@ -1344,8 +1472,14 @@ export default class VimMotionsPlugin extends Plugin {
         this.scrolloffManager = null;
         this.registration?.unregisterAll();
         this.registration = null;
+        this.timerManager?.destroyAll();
+        this.timerManager = null;
         this.autocmdManager?.destroy();
         this.autocmdManager = null;
+        this.highlightManager?.destroy();
+        this.highlightManager = null;
+        this.bufferKeymapManager?.destroy();
+        this.bufferKeymapManager = null;
         if (this.luaState) {
             destroyState(this.luaState);
             this.luaState = null;

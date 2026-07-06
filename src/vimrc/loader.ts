@@ -149,6 +149,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         min: 0,
         max: 2000,
     },
+    updatetime: { type: 'number', settingsKey: 'updatetime' },
 };
 
 function applyKnownSetOption(

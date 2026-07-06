@@ -54,6 +54,10 @@ export interface AutocmdCallbacks {
         handler: (payload: AutocmdYankEvent) => void,
         adapter?: CmAdapter | null,
     ) => (() => void) | void;
+    onCursorMoved: (
+        handler: (filePath: string) => void,
+        adapter?: CmAdapter | null,
+    ) => (() => void) | void;
     onFileOpen: (handler: (file: TFile | null) => void) => (() => void) | void;
     onFocusGained: (handler: () => void) => (() => void) | void;
     onFocusLost: (handler: () => void) => (() => void) | void;
@@ -91,11 +95,18 @@ export class AutocmdManager {
     private currentAdapter: CmAdapter | null = null;
     private callbacks: AutocmdCallbacks | null = null;
     private reloadCallback: (() => void) | null = null;
+    private cursorHoldTimer: number | null = null;
+    private cursorHoldTimeout = 4000;
 
     constructor(private L: lua_State | null) {}
 
     setReloadCallback(callback: (() => void) | null): void {
         this.reloadCallback = callback;
+    }
+
+    setUpdateTime(ms: number): void {
+        if (!Number.isFinite(ms) || ms < 0) return;
+        this.cursorHoldTimeout = ms;
     }
 
     register(event: string, opts: AutocmdRegisterOptions): number {
@@ -178,7 +189,12 @@ export class AutocmdManager {
         const file = data?.file ?? '';
         const match =
             data?.match ??
-            (event === 'BufEnter' || event === 'BufLeave' ? file : '');
+            (event === 'BufEnter' ||
+            event === 'BufLeave' ||
+            event === 'BufWritePre' ||
+            event === 'BufWritePost'
+                ? file
+                : '');
         const payload = data?.data ?? null;
         const toDelete: number[] = [];
         for (const entry of this.registry.values()) {
@@ -240,6 +256,9 @@ export class AutocmdManager {
 
         const yankCleanup = callbacks.onYank(this.handleYank);
         if (yankCleanup) this.adapterCleanups.push(yankCleanup);
+
+        const cursorCleanup = callbacks.onCursorMoved(this.handleCursorMoved);
+        if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
     }
 
     onActiveLeafChange(adapter: CmAdapter | null): void {
@@ -271,6 +290,10 @@ export class AutocmdManager {
 
     destroy(): void {
         this.detachAdapter();
+        if (this.cursorHoldTimer) {
+            window.clearTimeout(this.cursorHoldTimer);
+            this.cursorHoldTimer = null;
+        }
         for (const cleanup of this.globalCleanups) cleanup();
         this.globalCleanups = [];
         this.callbacks = null;
@@ -286,6 +309,11 @@ export class AutocmdManager {
         if (modeCleanup) this.adapterCleanups.push(modeCleanup);
         const yankCleanup = this.callbacks.onYank(this.handleYank, adapter);
         if (yankCleanup) this.adapterCleanups.push(yankCleanup);
+        const cursorCleanup = this.callbacks.onCursorMoved(
+            this.handleCursorMoved,
+            adapter,
+        );
+        if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
     }
 
     private detachAdapter(): void {
@@ -325,6 +353,16 @@ export class AutocmdManager {
         });
     };
 
+    private handleCursorMoved = (filePath: string): void => {
+        this.fire('CursorMoved', { file: filePath });
+        if (this.cursorHoldTimer) {
+            window.clearTimeout(this.cursorHoldTimer);
+        }
+        this.cursorHoldTimer = window.setTimeout(() => {
+            this.fire('CursorHold', { file: filePath });
+        }, this.cursorHoldTimeout);
+    };
+
     private modeToChar(mode: VimModeChange): string {
         if (mode.mode === 'insert') return 'i';
         if (mode.mode === 'replace') return 'R';
@@ -351,7 +389,12 @@ export class AutocmdManager {
         file: string,
     ): boolean {
         if (!entry.pattern) return true;
-        if (entry.event === 'BufEnter' || entry.event === 'BufLeave') {
+        if (
+            entry.event === 'BufEnter' ||
+            entry.event === 'BufLeave' ||
+            entry.event === 'BufWritePre' ||
+            entry.event === 'BufWritePost'
+        ) {
             if (!file) return false;
             return simpleGlobMatch(entry.pattern, file);
         }

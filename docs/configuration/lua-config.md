@@ -238,6 +238,87 @@ end
 > [!info] File paths are vault-relative
 > `vim.fn.expand("%")`, `vim.fn.filereadable()`, `vim.fn.isdirectory()`, and `vim.fn.glob()` use vault-relative paths. Absolute filesystem paths and `..` path traversal are not supported for security.
 
+## Table and string utilities
+
+A subset of Neovim's `vim.*` utility functions is available for table manipulation, string operations, and debugging.
+
+| Function                             | Description                                                                                                                                          | Example                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `vim.tbl_deep_extend(behavior, ...)` | Recursive table merge. `"force"` = rightmost wins, `"keep"` = leftmost wins, `"error"` = throw on conflict. Lists are atomic (replaced, not merged). | `vim.tbl_deep_extend("force", {a=1}, {a=2, b=3})`       |
+| `vim.tbl_extend(behavior, ...)`      | Shallow table merge (same behaviors as above)                                                                                                        | `vim.tbl_extend("force", defaults, opts)`               |
+| `vim.tbl_contains(t, value, opts?)`  | Check if table contains value. With `{predicate=true}`, value is called as a function.                                                               | `vim.tbl_contains({1,2,3}, 2)`                          |
+| `vim.tbl_keys(t)`                    | Returns list of all keys                                                                                                                             | `vim.tbl_keys({a=1, b=2})`                              |
+| `vim.tbl_values(t)`                  | Returns list of all values                                                                                                                           | `vim.tbl_values({a=1, b=2})`                            |
+| `vim.tbl_map(fn, t)`                 | Map function over table values                                                                                                                       | `vim.tbl_map(function(v) return v*2 end, {1,2,3})`      |
+| `vim.tbl_filter(fn, t)`              | Filter table by predicate                                                                                                                            | `vim.tbl_filter(function(v) return v > 1 end, {1,2,3})` |
+| `vim.tbl_count(t)`                   | Count entries in table                                                                                                                               | `vim.tbl_count({a=1, b=2})` → `2`                       |
+| `vim.tbl_isempty(t)`                 | Check if table is empty                                                                                                                              | `vim.tbl_isempty({})` → `true`                          |
+| `vim.tbl_get(t, ...)`                | Safe nested access                                                                                                                                   | `vim.tbl_get({a={b=42}}, "a", "b")` → `42`              |
+| `vim.list_extend(dst, src)`          | Append elements from src to dst                                                                                                                      | `vim.list_extend({1,2}, {3,4})`                         |
+| `vim.deepcopy(t)`                    | Deep copy a table                                                                                                                                    | `local copy = vim.deepcopy(original)`                   |
+| `vim.split(s, sep, opts?)`           | Split string. `{plain=true}` for literal sep, `{trimempty=true}` to trim empty parts.                                                                | `vim.split("a,b,c", ",")`                               |
+| `vim.trim(s)`                        | Strip whitespace from both ends                                                                                                                      | `vim.trim("  hi  ")` → `"hi"`                           |
+| `vim.startswith(s, prefix)`          | Check if string starts with prefix                                                                                                                   | `vim.startswith("hello", "hel")` → `true`               |
+| `vim.endswith(s, suffix)`            | Check if string ends with suffix                                                                                                                     | `vim.endswith("hello", "lo")` → `true`                  |
+| `vim.pesc(s)`                        | Escape Lua pattern special characters                                                                                                                | `vim.pesc("a.b")` → `"a%.b"`                            |
+| `vim.inspect(value)`                 | Human-readable string representation of any value. Useful for debugging.                                                                             | `print(vim.inspect({1,2,{nested=true}}))`               |
+
+## JSON
+
+| Function                 | Description                     | Example                                |
+| ------------------------ | ------------------------------- | -------------------------------------- |
+| `vim.json.encode(value)` | Encode Lua value to JSON string | `vim.json.encode({a=1})` → `'{"a":1}'` |
+| `vim.json.decode(str)`   | Decode JSON string to Lua value | `vim.json.decode('{"x":42}').x` → `42` |
+
+## Notifications
+
+| Function                       | Description                                                                                       | Example                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `vim.notify(msg, level?)`      | Show notification. Level from `vim.log.levels` (default: INFO). ERROR/WARN show Notice + console. | `vim.notify("Saved!", vim.log.levels.INFO)` |
+| `vim.notify_once(msg, level?)` | Same as `vim.notify` but only shows once per message                                              | `vim.notify_once("Migration complete")`     |
+
+### vim.log.levels
+
+| Level                  | Value | Behavior                        |
+| ---------------------- | ----- | ------------------------------- |
+| `vim.log.levels.TRACE` | 0     | Console only                    |
+| `vim.log.levels.DEBUG` | 1     | Console only                    |
+| `vim.log.levels.INFO`  | 2     | Obsidian Notice + console       |
+| `vim.log.levels.WARN`  | 3     | Obsidian Notice + console.warn  |
+| `vim.log.levels.ERROR` | 4     | Obsidian Notice + console.error |
+| `vim.log.levels.OFF`   | 5     | No output                       |
+
+## Async and timers
+
+| Function                    | Description                                                                                | Example                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `vim.schedule(fn)`          | Defer function to next event loop iteration. Useful for breaking recursive autocmd loops.  | `vim.schedule(function() vim.g.x = true end)`           |
+| `vim.schedule_wrap(fn)`     | Returns a function that wraps `fn` with `vim.schedule`, passing all arguments through.     | `timer:start(100, 0, vim.schedule_wrap(callback))`      |
+| `vim.defer_fn(fn, timeout)` | Defer function by `timeout` ms. Returns a handle with `stop()`, `close()`, `is_closing()`. | `vim.defer_fn(function() vim.notify("Done") end, 1000)` |
+
+### vim.uv (timers)
+
+A subset of Neovim's `vim.uv` (libuv bindings) is available for timer operations. `vim.loop` is an alias.
+
+| Function             | Description                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `vim.uv.new_timer()` | Create a timer with `start(delay, repeat, callback)`, `stop()`, `close()`, `is_closing()`, `is_active()` |
+| `vim.uv.hrtime()`    | High-resolution time in nanoseconds                                                                      |
+| `vim.uv.now()`       | Current time in milliseconds                                                                             |
+
+```lua
+-- Debounced autosave
+local timer = vim.uv.new_timer()
+vim.api.nvim_create_autocmd("FocusLost", {
+    callback = function()
+        timer:stop()
+        timer:start(500, 0, vim.schedule_wrap(function()
+            vim.cmd("w")
+        end))
+    end,
+})
+```
+
 ## Mapping examples
 
 ```lua
@@ -258,6 +339,41 @@ end, { desc = "Reveal in explorer" })
 -- Remove default mapping
 vim.keymap.del("n", "Q")
 ```
+
+## Buffer-local keymaps
+
+Keymaps can be scoped to specific files using the `buffer` option:
+
+```lua
+vim.api.nvim_create_autocmd("BufEnter", {
+    pattern = "*.md",
+    callback = function()
+        vim.keymap.set("n", "gd", function()
+            vim.cmd("obcommand editor:follow-link")
+        end, { buffer = 0, desc = "Follow link" })
+    end,
+})
+```
+
+Use `buffer = 0` for the current file. Buffer-local keymaps are automatically swapped when switching between files.
+
+> [!info] Buffer numbers
+> Obsidian does not use Neovim-style buffer numbers. Only `buffer = 0` (current file) is supported. Positive buffer numbers produce an error.
+
+## Buffer content
+
+Read and modify editor content from Lua callbacks:
+
+| Function                                                   | Description                                  | Example                                              |
+| ---------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------- |
+| `vim.api.nvim_buf_get_lines(0, start, end, strict)`        | Get lines (0-based, end-exclusive, -1 = EOF) | `vim.api.nvim_buf_get_lines(0, 0, -1, true)`         |
+| `vim.api.nvim_buf_set_lines(0, start, end, strict, lines)` | Set lines (empty table = delete)             | `vim.api.nvim_buf_set_lines(0, 0, 0, true, {"new"})` |
+| `vim.api.nvim_get_current_buf()`                           | Returns 0 (current buffer)                   | `local buf = vim.api.nvim_get_current_buf()`         |
+| `vim.api.nvim_buf_get_name(0)`                             | Vault-relative file path                     | `vim.api.nvim_buf_get_name(0)`                       |
+| `vim.api.nvim_buf_line_count(0)`                           | Total line count                             | `vim.api.nvim_buf_line_count(0)`                     |
+
+> [!info] Buffer argument
+> Only `buffer = 0` (current buffer) is supported. These functions operate on the active editor.
 
 ## Custom ex commands
 
@@ -300,16 +416,23 @@ Vim Motions supports a Neovim-compatible autocommand system for reacting to edit
 
 ### Supported events
 
-| Event          | When it fires                           | Pattern support                                       |
-| -------------- | --------------------------------------- | ----------------------------------------------------- |
-| `InsertEnter`  | Entering insert or replace mode         | No                                                    |
-| `InsertLeave`  | Leaving insert or replace mode          | No                                                    |
-| `ModeChanged`  | Any mode transition                     | `"old:new"` with `*` wildcard                         |
-| `BufEnter`     | A file becomes the active note          | Vault-relative path globs (`"*.md"`, `"projects/**"`) |
-| `BufLeave`     | A file is deactivated (switching away)  | Vault-relative path globs                             |
-| `FocusGained`  | Obsidian window gains focus             | No                                                    |
-| `FocusLost`    | Obsidian window loses focus             | No                                                    |
-| `TextYankPost` | After yank, delete, or change operation | No                                                    |
+| Event          | When it fires                                           | Pattern support                                       |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------------- |
+| `InsertEnter`  | Entering insert or replace mode                         | No                                                    |
+| `InsertLeave`  | Leaving insert or replace mode                          | No                                                    |
+| `CursorMoved`  | After cursor moves in normal mode                       | No                                                    |
+| `CursorHold`   | After cursor is idle for `updatetime` ms (default 4000) | No                                                    |
+| `ModeChanged`  | Any mode transition                                     | `"old:new"` with `*` wildcard                         |
+| `BufEnter`     | A file becomes the active note                          | Vault-relative path globs (`"*.md"`, `"projects/**"`) |
+| `BufLeave`     | A file is deactivated (switching away)                  | Vault-relative path globs                             |
+| `BufWritePre`  | Before saving a file                                    | Vault-relative path globs                             |
+| `BufWritePost` | After saving a file                                     | Vault-relative path globs                             |
+| `FocusGained`  | Obsidian window gains focus                             | No                                                    |
+| `FocusLost`    | Obsidian window loses focus                             | No                                                    |
+| `TextYankPost` | After yank, delete, or change operation                 | No                                                    |
+
+> [!tip] CursorHold timing
+> Configure the idle timeout with `vim.opt.updatetime = 1000` (milliseconds). Default is 4000ms, matching Neovim.
 
 ### Usage examples
 
@@ -407,6 +530,97 @@ vim.api.nvim_clear_autocmds({ group = g, event = "InsertEnter" })
 | `buffer`  | (none)  | (none)  | Not supported (console warning)          |
 | `expr`    | (none)  | (none)  | Not supported (throws error)             |
 
+## Obsidian namespace
+
+Obsidian-specific APIs that don't exist in Neovim. Available as `vim.obsidian` or `vim.ob`.
+
+| Function                        | Returns                                          | Example                                   |
+| ------------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| `vim.obsidian.vault_name()`     | Vault name                                       | `vim.obsidian.vault_name()`               |
+| `vim.obsidian.app_version()`    | Obsidian version string                          | `vim.obsidian.app_version()`              |
+| `vim.obsidian.plugin_version()` | Plugin version string                            | `vim.obsidian.plugin_version()`           |
+| `vim.obsidian.run_command(id)`  | Execute Obsidian command by ID                   | `vim.obsidian.run_command("app:reload")`  |
+| `vim.obsidian.list_commands()`  | Table of `{id, name}`                            | `vim.obsidian.list_commands()`            |
+| `vim.obsidian.open_file(path)`  | Open a vault file                                | `vim.obsidian.open_file("notes/todo.md")` |
+| `vim.obsidian.current_file()`   | Table `{path, name, extension, basename}` or nil | `vim.obsidian.current_file().path`        |
+| `vim.obsidian.vault_path()`     | Vault absolute path (desktop only)               | `vim.obsidian.vault_path()`               |
+
+## Environment variables
+
+`vim.env` provides a sandboxed environment variable proxy:
+
+| Key                        | Value                         |
+| -------------------------- | ----------------------------- |
+| `vim.env.HOME`             | Vault absolute path (desktop) |
+| `vim.env.VIMRUNTIME`       | `"obsidian"`                  |
+| `vim.env.VIM`              | `"motions"`                   |
+| `vim.env.TERM`             | `"obsidian"`                  |
+| `vim.env.OBSIDIAN_VERSION` | Obsidian version string       |
+
+Custom variables can be set: `vim.env.MY_VAR = "value"`. Unknown keys return `nil`.
+
+## Highlight groups
+
+Customize plugin styling from Lua using Neovim's `nvim_set_hl` API:
+
+```lua
+-- Change EasyMotion label colors
+vim.api.nvim_set_hl(0, "EasyMotionTarget", { fg = "#ff5555", bg = "#282a36", bold = true })
+
+-- Change status bar mode colors
+vim.api.nvim_set_hl(0, "StatusLineNormal", { bg = "#282a36", fg = "#f8f8f2" })
+vim.api.nvim_set_hl(0, "StatusLineInsert", { bg = "#50fa7b", fg = "#282a36" })
+```
+
+### Plugin-defined highlight groups
+
+These map directly to plugin UI elements via CSS custom properties:
+
+| Group                | Controls                  |
+| -------------------- | ------------------------- |
+| `EasyMotionTarget`   | EasyMotion jump labels    |
+| `EasyMotionShade`    | EasyMotion dimmed text    |
+| `HintTarget`         | Hint mode labels          |
+| `StatusLineNormal`   | Normal mode status bar    |
+| `StatusLineInsert`   | Insert mode status bar    |
+| `StatusLineVisual`   | Visual mode status bar    |
+| `StatusLineReplace`  | Replace mode status bar   |
+| `StatusLineVLine`    | V-Line mode status bar    |
+| `StatusLineVBlock`   | V-Block mode status bar   |
+| `StatusLineCommand`  | Command mode status bar   |
+| `StatusLineSearch`   | Search mode status bar    |
+| `StatusLineSelect`   | Select mode status bar    |
+| `StatusLineVReplace` | V-Replace mode status bar |
+
+### User-defined highlight groups
+
+Custom groups generate CSS classes (`.vim-hl-GroupName`) that can be used in CSS snippets:
+
+```lua
+vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
+```
+
+### Supported attributes
+
+| Attribute           | Type           | CSS mapping                             |
+| ------------------- | -------------- | --------------------------------------- |
+| `fg` / `foreground` | string         | `color`                                 |
+| `bg` / `background` | string         | `background-color`                      |
+| `sp` / `special`    | string         | `text-decoration-color`                 |
+| `bold`              | boolean        | `font-weight: bold`                     |
+| `italic`            | boolean        | `font-style: italic`                    |
+| `underline`         | boolean        | `text-decoration-line: underline`       |
+| `undercurl`         | boolean        | `text-decoration: underline wavy`       |
+| `strikethrough`     | boolean        | `text-decoration-line: line-through`    |
+| `reverse`           | boolean        | Swaps fg/bg                             |
+| `blend`             | number (0-100) | `opacity`                               |
+| `link`              | string         | Inherit from another group              |
+| `default`           | boolean        | Only apply if group not already defined |
+| `update`            | boolean        | Merge with existing (don't replace)     |
+
+> [!info] Namespace
+> Only `ns_id = 0` (global namespace) is supported. `vim.api.nvim_create_namespace()` always returns `0`.
+
 ## When to use Lua vs Vimrc
 
 - Use **init.lua** (recommended) when you need conditional logic (per-vault config), function-based keymaps, or prefer Neovim-style Lua syntax
@@ -429,7 +643,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, and `nvim_clear_autocmds` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `io`, `load`, `dofile`, `loadfile`, and `require` are not available. The `os` library provides a browser-safe subset (`os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`); Node.js-only functions (`os.exit`, `os.getenv`, `os.remove`, `os.rename`, `os.tmpname`, `os.execute`) are not available. The `debug` library is available (minus `debug.debug()`).
+> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: `io`, `load`, `dofile`, `loadfile`, and `require` are not available. The `os` library provides a browser-safe subset (`os.date`, `os.time`, `os.difftime`, `os.clock`, `os.setlocale`); Node.js-only functions (`os.exit`, `os.getenv`, `os.remove`, `os.rename`, `os.tmpname`, `os.execute`) are not available. The `debug` library is available (minus `debug.debug()`).
 
 ## Error handling
 
