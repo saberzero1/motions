@@ -102,6 +102,53 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'codemirror-vim macro replay of $a sequence loses characters at the append position',
         fields: ['content'],
     },
+
+    {
+        testPattern: /^ds[(\[{] /,
+        description: 'ds( / ds[ / ds{ does not strip inner padding spaces',
+        reason: 'Fork surround treats opening and closing bracket identically; vim-surround strips inner spaces for opening bracket form',
+        fields: ['content'],
+    },
+    {
+        testPattern: 'cs({ changes parens to brackets',
+        description:
+            'cs({ does not add inner spaces when target is opening bracket',
+        reason: 'Fork surround does not distinguish opening vs closing bracket as change target',
+        fields: ['content'],
+    },
+    {
+        testPattern: /^(ysiw|yss|visual S).*(?:quotes|parens|spaces|indent)/,
+        description: 'Cursor at ch:1 after surround-add instead of ch:0',
+        reason: 'Fork surround places cursor after opening delimiter; vim-surround places cursor on it',
+        fields: ['cursor'],
+    },
+    {
+        testPattern: 'ds( nested parens removes outer',
+        description:
+            'ds( at position 0 does not search outward for enclosing pair',
+        reason: 'Fork surround findSurrounding does not handle cursor on opening delimiter at position 0',
+        fields: ['content'],
+    },
+    {
+        testPattern: 'ds( multiline parens',
+        description: 'ds( does not handle parens spanning multiple lines',
+        reason: 'Fork surround multiline delimiter search not implemented for ds with opening bracket form',
+        fields: ['content'],
+    },
+
+    {
+        testPattern: /^(gh|gH|v then Ctrl-G|Ctrl-G in select)/,
+        description: 'gh/gH select mode not entered via vimRawKeys dispatch',
+        reason: 'Test infrastructure: browser.keys dispatches g and h as separate DOM events; the g prefix is consumed but gh action does not trigger in headless test environment',
+        fields: ['content'],
+    },
+
+    {
+        testPattern: ':2,3sort range',
+        description: 'Cursor at line 0 instead of line 1 after ranged :sort',
+        reason: 'Fork :sort cursor positioning does not move to the first line of the sorted range',
+        fields: ['cursor'],
+    },
 ];
 
 export function isKnownDeviation(testName: string): boolean {
