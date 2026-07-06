@@ -9,7 +9,13 @@ export function createScrolloffExtension(): Extension {
         if (scrolloffLines <= 0) return null;
         const lineHeight = view.defaultLineHeight || 22;
         const margin = scrolloffLines * lineHeight;
-        return { top: margin, bottom: margin };
+        // Clamp to half the viewport height so that high scrolloff values
+        // (e.g. `set scrolloff=999`) center the cursor instead of pinning
+        // the view at the top or bottom. This mirrors Vim's behavior of
+        // silently capping scrolloff to (window_height - 1) / 2.
+        const halfViewport = Math.floor(view.scrollDOM.clientHeight / 2);
+        const clampedMargin = Math.min(margin, halfViewport);
+        return { top: clampedMargin, bottom: clampedMargin };
     });
 }
 

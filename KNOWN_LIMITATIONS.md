@@ -137,7 +137,7 @@ Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape
 
 Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height. Note: `defaultLineHeight` returns an average line height — documents with mixed-height lines (e.g., headings with larger fonts) may not have pixel-perfect scrolloff distances.
 
-The scrolloff value accepts 0–9999 (previously capped at 20). Setting `set scrolloff=999` in your vimrc keeps the cursor vertically centered while scrolling, matching standard Vim behavior. The Settings UI uses a validated number input field instead of a slider. When the scrolloff value exceeds half the viewport height, the cursor naturally stays centered — no special viewport-relative calculation is needed. ([#40](https://github.com/saberzero1/motions/issues/40))
+The scrolloff value accepts 0–9999 (previously capped at 20). Setting `set scrolloff=999` in your vimrc keeps the cursor vertically centered while scrolling, matching standard Vim behavior. The Settings UI uses a validated number input field instead of a slider. The scroll margin is clamped to half the viewport height at runtime, mirroring Vim's silent cap of `scrolloff` to `(window_height - 1) / 2`. ([#40](https://github.com/saberzero1/motions/issues/40), [#48](https://github.com/saberzero1/motions/issues/48))
 
 ## `set` option scope
 
