@@ -913,26 +913,62 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
     describe('set insertmodeescape (custom insert escape)', function () {
         before(async function () {
             await loadVimrc('set insertmodeescape=jk\n');
+            await browser.executeObsidian(() => {
+                const w = window as unknown as Record<string, unknown>;
+                const cma = w.CodeMirrorAdapter as
+                    | Record<string, unknown>
+                    | undefined;
+                const vimApi = cma?.Vim as
+                    | {
+                          setOption?: (n: string, v: unknown) => void;
+                      }
+                    | undefined;
+                vimApi?.setOption?.('insertmodeescape', 'jk');
+            });
         });
 
-        it('jk should exit insert mode', async function () {
-            await setupEditor('hello', { line: 0, ch: 0 });
+        after(async function () {
+            await browser.executeObsidian(() => {
+                const w = window as unknown as Record<string, unknown>;
+                const cma = w.CodeMirrorAdapter as
+                    | Record<string, unknown>
+                    | undefined;
+                const vimApi = cma?.Vim as
+                    | {
+                          setOption?: (n: string, v: unknown) => void;
+                      }
+                    | undefined;
+                vimApi?.setOption?.('insertmodeescape', '');
+            });
+        });
+
+        it('jk should exit insert mode without leaving j in buffer', async function () {
+            await setupEditor('hello', { line: 0, ch: 5 });
             await vimKeys('i');
-            await browser.keys(['j', 'k']);
+            await browser.keys(['j']);
+            await browser.pause(30);
+            await browser.keys(['k']);
             await browser.pause(300);
-            const mode = (await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return 'unknown';
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const state = cm?.state as Record<string, unknown> | undefined;
-                const vim = state?.vim as Record<string, unknown> | undefined;
-                if (vim?.insertMode) return 'insert';
-                return 'normal';
-            })) as string;
-            expect(mode).toBe('normal');
+            expect(await getVimMode()).toBe('normal');
+            expect(await getEditorValue()).toBe('hello');
+        });
+
+        it('jk after typing text should leave only the typed text', async function () {
+            await setupEditor('', { line: 0, ch: 0 });
+            await vimKeys('i');
+            await browser.keys('hello'.split(''));
+            await browser.pause(50);
+            await browser.keys(['j']);
+            await browser.pause(30);
+            await browser.keys(['k']);
+            await browser.pause(300);
+            expect(await getVimMode()).toBe('normal');
+            expect(await getEditorValue()).toBe('hello');
+            await vimKeys('A');
+            await browser.keys('world'.split(''));
+            await sendVimEscape();
+            await browser.pause(200);
+            expect(await getEditorValue()).toBe('helloworld');
         });
     });
 

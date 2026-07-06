@@ -107,8 +107,17 @@ export class InsertEscapeHandler {
             if (tail === escapeSeq) {
                 e.preventDefault();
                 e.stopPropagation();
-                for (let i = 0; i < escapeSeq.length; i++) {
-                    this.vim.handleKey(adapter, '<BS>');
+                const cursor = adapter.getCursor();
+                const charsToDelete = escapeSeq.length - 1;
+                if (charsToDelete > 0) {
+                    adapter.replaceRange(
+                        '',
+                        {
+                            line: cursor.line,
+                            ch: Math.max(0, cursor.ch - charsToDelete),
+                        },
+                        cursor,
+                    );
                 }
                 this.vim.handleKey(adapter, '<Esc>');
                 this.sequence = '';
