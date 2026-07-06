@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-07-06
+
 ### Added
 
 - **`vim.obsidian.whichkey.add()` — batch which-key label configuration** — define multiple group and command labels in a single call, similar to Neovim's [which-key.nvim](https://github.com/folke/which-key.nvim) `wk.add()` syntax ([#27](https://github.com/saberzero1/motions/issues/27))

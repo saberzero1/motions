@@ -29,13 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 43 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.36.0
+## What's new in 0.37.0
 
-- **Global keymaps from Lua** — `vim.obsidian.keymap.set("<leader>f", ":obcommand switcher:open", { desc = "Open file" })` defines key bindings for non-editor contexts (graph, canvas, PDF, explorer). Previously vimrc-only.
-- **Which-key labels from Lua** — `vim.obsidian.whichkey.set_group("<leader>t", "Table")` and `vim.obsidian.whichkey.set_label` for both editor and global which-key overlays. Previously vimrc-only.
-- **Cursor shapes from Lua** — `vim.opt.guicursor = "n:block,i:bar"` sets per-mode cursor shapes without `vim.cmd` passthrough.
-- **Mode prompts from Lua** — `vim.g.mode_prompt_normal = "N"` customizes status bar text for all 11 modes.
-- **Space-leader fix** — global keymaps with space as leader key now work correctly.
-- **Lua API documentation expansion** — comprehensive reference sections for keymapping modes, autocmd event data, highlight group CSS mappings, sandbox details, vim.opt defaults/ranges, and more.
+- **Batch which-key labels** — `vim.obsidian.whichkey.add({ { "<leader>f", group = "Find" }, { "<leader>w", desc = "Save" } })` defines multiple group and command labels in a single call, matching [which-key.nvim](https://github.com/folke/which-key.nvim) `wk.add()` syntax.
+- **Config file fallback chains** — vimrc and Lua config files are now resolved via a fallback chain instead of a single hardcoded path. The plugin searches the vault root for `vimrc`, `.vimrc`, `init.vim`, `init.lua`, `.init.lua`, and more — non-dotfile names are preferred since Obsidian Sync skips dotfiles. Existing `.obsidian.vimrc` and `.obsidian.init.lua` files still work.
 
 See the [[changelog|full changelog]] for details.
