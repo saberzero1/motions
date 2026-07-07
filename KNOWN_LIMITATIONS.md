@@ -592,7 +592,7 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 
 ## Surround nvim-surround parity gaps
 
-**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **73 pass, 1 remaining deviation (chained `csbBysaBb` — key dispatch timing in e2e test infrastructure).** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
+**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **73 pass, 1 remaining deviation (chained `csbBysaBb` — fork logic bug in cs→ys chain).** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
 
 **Fixed in this release**:
 
@@ -610,13 +610,14 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 - Visual block `$ S}` — now surrounds each line individually instead of wrapping entire block
 - `dsf` (delete surrounding function call) — implemented with regex-based function name detection
 
-**Remaining deviations** (4 cases):
+**Remaining deviations** (5 cases):
 
-| Category                         | Count | Description                                                                                  |
-| -------------------------------- | ----- | -------------------------------------------------------------------------------------------- |
-| Tag `cst`/`yst` (change/add tag) | 2     | Golden recording infrastructure updated to nvim_feedkeys; needs re-recording to verify       |
-| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op) |
-| `csf` (function call rename)     | 1     | Deferred — uses same `findSurroundingFunction` infrastructure as `dsf`                       |
+| Category                         | Count | Description                                                                                                                                         |
+| -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `csbBysaBb` chain                | 1     | Fork logic bug: `ysaBb` (add parens around braces) silently fails after `csbB` (change parens to braces). Confirmed not timing (fails at 200ms gap) |
+| Tag `cst`/`yst` (change/add tag) | 2     | Golden recording infrastructure updated to nvim_feedkeys; needs re-recording to verify                                                              |
+| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                        |
+| `csf` (function call rename)     | 1     | Deferred — uses same `findSurroundingFunction` infrastructure as `dsf`                                                                              |
 
 **Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 81 plugin-level tests including `dsf`.
 

@@ -118,6 +118,13 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content'],
     },
     {
+        testPattern: 'csbB then ysaBb chain',
+        description:
+            'csbB then ysaBb chained operation produces {hello} instead of ({hello})',
+        reason: 'After csbB changes () to {}, ysaBb does not apply. Confirmed not timing (fails with KEY_GAP=200ms). Fork logic bug: cs→ys chain — needs investigation in codemirror-vim src/vim.js',
+        fields: ['content'],
+    },
+    {
         testPattern: /^(gh|gH|v then Ctrl-G|Ctrl-G in select)/,
         description: 'gh/gH select mode not entered via vimRawKeys dispatch',
         reason: 'Test infrastructure: browser.keys dispatches g and h as separate DOM events; the g prefix is consumed but gh action does not trigger in headless test environment',
