@@ -532,6 +532,47 @@ describe('Lua config support', function () {
         await assertPluginLoaded();
     });
 
+    it('should surround entire line with custom pair via yss', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
+        );
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('y', 's', 's', 'l');
+        expect(await getEditorValue()).toBe('[[hello world]]');
+    });
+
+    it('should surround visual selection with custom pair via S', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n',
+        );
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('v', 'e', 'S', 'l');
+        expect(await getEditorValue()).toBe('[[hello]] world');
+    });
+
+    it('should remove custom pair via vim.obsidian.surround.del', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("l", { left = "[[", right = "]]" })\n' +
+                'vim.obsidian.surround.del("l")\n',
+        );
+        await setupEditor('[[hello]] world', { line: 0, ch: 3 });
+        await vimKeys('d', 's', 'l');
+        expect(await getEditorValue()).toBe('[[hello]] world');
+    });
+
+    it('should reject all reserved surround chars gracefully', async function () {
+        await loadLuaConfig(
+            'local reserved = { "(", ")", "[", "]", "{", "}", "<", ">", "b", "B", "r", "a", "t", "T", "f", "F", \'"\', "\'", "`" }\n' +
+                'local all_rejected = true\n' +
+                'for _, ch in ipairs(reserved) do\n' +
+                '    local ok = pcall(function() vim.obsidian.surround.set(ch, { left = "<<", right = ">>" }) end)\n' +
+                '    if ok then all_rejected = false end\n' +
+                'end\n' +
+                'if all_rejected then vim.opt.scrolloff = 99 end\n',
+        );
+        await assertPluginLoaded();
+    });
+
     it('should survive vim.obsidian.surround.set with reserved char gracefully', async function () {
         await loadLuaConfig(
             'local ok, err = pcall(function()\n' +

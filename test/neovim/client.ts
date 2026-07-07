@@ -37,7 +37,14 @@ export class NeovimClient {
     }
 
     async input(keys: string): Promise<void> {
-        await this.nvim.input(keys);
+        var escaped = keys.replace(/\n/g, '<CR>');
+        var termcodes = (await this.nvim.call('nvim_replace_termcodes', [
+            escaped,
+            true,
+            true,
+            true,
+        ])) as string;
+        await this.nvim.call('nvim_feedkeys', [termcodes, 'tx', false]);
         await this.nvim.command('redraw');
     }
 

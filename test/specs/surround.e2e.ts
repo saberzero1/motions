@@ -57,10 +57,16 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
             expect(await getEditorValue()).toBe('hello world');
         });
 
-        it('ds) should remove inner spaces from opening bracket', async function () {
+        it('ds( should remove inner spaces (opening bracket form)', async function () {
+            await setupEditor('( hello ) world', { line: 0, ch: 4 });
+            await vimKeys('d', 's', '(');
+            expect(await getEditorValue()).toBe('hello world');
+        });
+
+        it('ds) should preserve inner spaces (closing bracket form)', async function () {
             await setupEditor('( hello ) world', { line: 0, ch: 4 });
             await vimKeys('d', 's', ')');
-            expect(await getEditorValue()).toBe('hello world');
+            expect(await getEditorValue()).toBe(' hello  world');
         });
 
         it('ds on nested parens should delete inner pair', async function () {
@@ -342,43 +348,81 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
         });
     });
 
+    describe('dsf — delete surrounding function call', function () {
+        it('dsf should delete function name and parens', async function () {
+            await setupEditor('some_func(some_args)', { line: 0, ch: 0 });
+            await vimKeys('d', 's', 'f');
+            expect(await getEditorValue()).toBe('some_args');
+        });
+
+        it('dsf on nested should delete outer when cursor on name', async function () {
+            await setupEditor('nested(functions(here))', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 's', 'f');
+            expect(await getEditorValue()).toBe('functions(here)');
+        });
+
+        it('dsf on nested should delete inner when cursor inside', async function () {
+            await setupEditor('nested(functions(here))', {
+                line: 0,
+                ch: 7,
+            });
+            await vimKeys('d', 's', 'f');
+            expect(await getEditorValue()).toBe('nested(here)');
+        });
+
+        it('dsf on empty function should leave empty string', async function () {
+            await setupEditor('func()', { line: 0, ch: 0 });
+            await vimKeys('d', 's', 'f');
+            expect(await getEditorValue()).toBe('');
+        });
+
+        it('dsf with no function should be no-op', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('d', 's', 'f');
+            expect(await getEditorValue()).toBe('hello world');
+        });
+    });
+
     describe('newline variants (cS/yS/ySS/gS)', function () {
         it('cS should change surround with newlines', async function () {
             await setupEditor('"hello"', { line: 0, ch: 1 });
             await vimKeys('c', 'S', '"', '(');
-            expect(await getEditorValue()).toBe('(\n  hello\n)');
+            expect(await getEditorValue()).toBe('(\nhello\n)');
         });
 
         it('ySS should surround line with newlines', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('y', 'S', 'S', ')');
-            expect(await getEditorValue()).toBe('(\n  hello world\n)');
+            expect(await getEditorValue()).toBe('(\nhello world\n)');
         });
 
         it('gS should surround visual selection with newlines', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('v', 'e', 'g', 'S', '"');
-            expect(await getEditorValue()).toBe('"\n  hello\n" world');
+            expect(await getEditorValue()).toBe('"\nhello\n" world');
         });
 
         it('yS$ should surround to eol with newlines', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('y', 'S', '$', '"');
-            expect(await getEditorValue()).toBe('"\n  hello world\n"');
+            expect(await getEditorValue()).toBe('"\nhello world\n"');
         });
     });
 
     describe('count support', function () {
-        it('2ds) should delete 2nd-level surrounding parens', async function () {
+        it('2ds) should delete both levels of surrounding parens', async function () {
             await setupEditor('(a (b) c)', { line: 0, ch: 4 });
             await vimKeys('2', 'd', 's', ')');
-            expect(await getEditorValue()).toBe('a (b) c');
+            expect(await getEditorValue()).toBe('a b c');
         });
 
-        it('2cs)] should change 2nd-level surrounding parens', async function () {
+        it('2cs)] should change both levels of surrounding parens', async function () {
             await setupEditor('(a (b) c)', { line: 0, ch: 4 });
             await vimKeys('2', 'c', 's', ')', ']');
-            expect(await getEditorValue()).toBe('[a (b) c]');
+            expect(await getEditorValue()).toBe('[a [b] c]');
         });
     });
 
@@ -642,13 +686,13 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
         it('ySS with indented content should indent one level deeper', async function () {
             await setupEditor('  hello', { line: 0, ch: 4 });
             await vimKeys('y', 'S', 'S', ')');
-            expect(await getEditorValue()).toBe('  (\n    hello\n  )');
+            expect(await getEditorValue()).toBe('  (\n  hello\n  )');
         });
 
         it('yS iw on indented line should use line indent as base', async function () {
             await setupEditor('  hello world', { line: 0, ch: 2 });
             await vimKeys('y', 'S', 'i', 'w', ')');
-            expect(await getEditorValue()).toBe('  (\n    hello\n  ) world');
+            expect(await getEditorValue()).toBe('  (\n  hello\n  ) world');
         });
     });
 });

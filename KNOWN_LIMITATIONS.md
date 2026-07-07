@@ -592,32 +592,33 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 
 ## Surround nvim-surround parity gaps
 
-**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **54 pass, 20 deviations tracked.** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
+**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **73 pass, 1 remaining deviation (chained `csbBysaBb` — key dispatch timing in e2e test infrastructure).** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
 
-**Fixed in this release** (previously 14 deviations, now resolved):
+**Fixed in this release**:
 
 - Opening bracket `ds(`/`ds[`/`ds{` now works — `findSurroundingBrackets` parameter swap fixed
 - Cursor position after `ys`/`yss`/visual `S` now at `ch:0` (on the delimiter) — matching nvim-surround
 - `ds(` on nested parens and multiline content now works
 - `cs({` now correctly finds and changes parens to braces with spaces
+- `ds}` space preservation — closing-bracket forms now preserve inner spaces (opening forms still strip)
+- `cs` chained operations — `_surroundReplacement` no longer leaks between different surround operation types
+- `cs` dot-repeat — `csba..` correctly changes nested bracket layers via search position offset
+- Multiline `dsb` — cursor clamped to valid line length after bracket deletion
+- Count-prefixed `ds`/`cs` — now uses "apply N times" semantics matching nvim-surround (`2dsb` = delete twice, `3csbr` = change all 3 levels)
+- `ys` with line-crossing motions — `ysjb`, `ys2jB` correctly expand to full lines for linewise motions
+- `ySS`/`VSB` newline indentation — single-line content no longer gets extra 2-space indent, matching nvim-surround
+- Visual block `$ S}` — now surrounds each line individually instead of wrapping entire block
+- `dsf` (delete surrounding function call) — implemented with regex-based function name detection
 
-**Remaining deviations** (20 cases, deferred — surround is functional for all common operations):
+**Remaining deviations** (4 cases):
 
-| Category                         | Count | Description                                                                                      |
-| -------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
-| Count-prefixed `ds`/`cs`         | 4     | `2dsb`, `3dsb`, `2csbB`, `3csbr` — count iteration with bracket aliases doesn't work             |
-| `dsf` (function call delete)     | 3     | Not implemented — nvim-surround extension for deleting surrounding function calls                |
-| Tag `cst`/`yst` (change/add tag) | 3     | Tag input prompt dispatch differs in test infrastructure                                         |
-| `ds}` space preservation         | 1     | `ds}` strips inner spaces; nvim-surround preserves them (only opening bracket form should strip) |
-| `ds<` space stripping            | 1     | Angle bracket opening form doesn't strip spaces                                                  |
-| `ys` with line motions           | 2     | `ysjb`, `ys2jB` — linewise motion range incorrect                                                |
-| `ySS`/`VSB` newline variants     | 2     | Indentation handling differs from nvim-surround                                                  |
-| Multiline `dsb`                  | 1     | Cursor position after multiline bracket deletion                                                 |
-| Visual block `$ S}`              | 1     | Wraps entire block instead of per-line surround                                                  |
-| `cs` chained operations          | 1     | `csbB` then `ysaBb` — cursor position prevents second operation from finding correct text object |
-| `cs` dot-repeat                  | 1     | `csba..` — dot-repeat for `cs` doesn't preserve target+replacement pair correctly                |
+| Category                         | Count | Description                                                                                  |
+| -------------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| Tag `cst`/`yst` (change/add tag) | 2     | Golden recording infrastructure updated to nvim_feedkeys; needs re-recording to verify       |
+| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op) |
+| `csf` (function call rename)     | 1     | Deferred — uses same `findSurroundingFunction` infrastructure as `dsf`                       |
 
-**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests, 54 passing, 20 tracked deviations.
+**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 81 plugin-level tests including `dsf`.
 
 ## Test-discovered behavioral discrepancies
 

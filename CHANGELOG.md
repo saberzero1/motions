@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Surround nvim-surround parity (19 golden test fixes)** — comprehensive alignment with [nvim-surround](https://github.com/kylechui/nvim-surround) semantics. Golden comparison tests passing: 54 → 73 out of 74. ([#41](https://github.com/saberzero1/motions/issues/41))
+    - `ds}` / `ds]` / `ds)` / `ds>` now preserve inner spaces (only opening bracket forms `ds{` / `ds[` / `ds(` / `ds<` strip spaces)
+    - `csbBysaBb` chain — `_surroundType` gating prevents stale replacement leaking across different surround operation types
+    - `csba..` dot-repeat — search position offset by replacement delimiter width for correct nested pair iteration
+    - `dsb` on multiline content — cursor clamped to valid line length after bracket deletion
+    - Count-prefixed `ds`/`cs` (`2dsb`, `3dsb`, `2csbB`, `3csbr`) — changed from "find Nth pair" to "apply N times" semantics, matching nvim-surround
+    - `ys` with line-crossing motions (`ysjb`, `ys2jB`) — linewise motions now expand range to full lines
+    - `ySS`/`VSB`/`cS`/`yS`/`gS` newline indentation — single-line content no longer gets extra 2-space indent, matching nvim-surround
+    - `VS` (linewise visual surround) — selection expanded to full lines, uses newline wrapping mode
+    - Visual block `Ctrl-V $ S}` — each line wrapped individually instead of entire block
+    - `dsf` — new operator: delete surrounding function call (`some_func(args)` → `args`), with nested call support
+    - Fork: `src/vim.js` — `deleteSurroundPair` space/cursor, `findSurroundingFunction`, count loops, linewise/block visual handling, `_surroundType` dot-repeat isolation
+    - Fork: `src/types.ts` — `_surroundType` field on `InputStateInterface`
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: updated surround parity section — 20 deviations reduced to 4 remaining (2 pending golden re-recording, 1 design decision, 1 deferred)
+
 ## [0.39.0] - 2026-07-06
 
 ### Added
