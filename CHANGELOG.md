@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+[0.40.0] - 2026-07-07
+
 ### Added
 
 - **`vim.keymap.set` leader bindings appear in which-key** — leader-prefixed keymaps registered via `vim.keymap.set` with a `desc` option now automatically appear in the which-key overlay, matching `vim.obsidian.leader.add` behavior. Group labels from `vim.obsidian.whichkey.add()` work with both `vim.keymap.set` and `vim.obsidian.leader.add` bindings. Buffer-local keymaps (`buffer = 0`) are excluded from global which-key. ([#27](https://github.com/saberzero1/motions/issues/27))
