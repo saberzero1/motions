@@ -91,6 +91,20 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
 
+### Leader key
+
+Set the leader key with `vim.g.mapleader`. Common choices:
+
+```lua
+vim.g.mapleader = " "   -- Space (recommended, matches most Neovim configs)
+vim.g.mapleader = ","   -- Comma
+vim.g.mapleader = "\\"  -- Backslash (default)
+```
+
+> [!warning] Set mapleader before keymaps
+> Always set `vim.g.mapleader` before any `vim.keymap.set` or `vim.obsidian.leader.add` calls.
+> The leader key is substituted at registration time — changing it later won't update existing mappings.
+
 ## Supported vim.opt options
 
 All plugin options are available via `vim.opt`. `vim.o` is an alias.
@@ -367,6 +381,9 @@ end, { desc = "Reveal in explorer" })
 -- Remove default mapping
 vim.keymap.del("n", "Q")
 ```
+
+> [!tip] Choosing between `vim.cmd()` and `vim.obsidian.leader.add()`
+> For leader-prefixed commands that execute Obsidian commands, `vim.obsidian.leader.add()` is the simplest approach — it automatically registers which-key labels. `vim.keymap.set` with function callbacks gives you more flexibility (conditional logic, `vim.fn` checks, `vim.notify`) but requires an explicit `desc` option for which-key labels.
 
 ## Buffer-local keymaps
 

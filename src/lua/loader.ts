@@ -50,6 +50,8 @@ export interface LuaLoadResult {
         desc?: string;
     }>;
     commandCount: number;
+    activateRuntimeExHandler?: (handler: (command: string) => void) => void;
+    deactivateRuntimeExHandler?: () => void;
     state: lua_State | null;
     autocmdManager: AutocmdManager | null;
     timerManager: TimerManager | null;
@@ -173,6 +175,8 @@ export async function loadInitLua(
         desc?: string;
     }> = [];
 
+    let runtimeExHandler: ((command: string) => void) | null = null;
+
     const L = createSandboxedState();
     const autocmdManager = new AutocmdManager(L);
     const { globals } = injectVimApi(L, {
@@ -186,7 +190,11 @@ export async function loadInitLua(
         },
         handleExCommand: (command: string) => {
             commandCount++;
-            pendingExCommands.push(command);
+            if (runtimeExHandler) {
+                runtimeExHandler(command);
+            } else {
+                pendingExCommands.push(command);
+            }
         },
         getVaultName: () => app.vault.getName(),
         getAppVersion: () => apiVersion,
@@ -882,73 +890,80 @@ export async function loadInitLua(
     const timerManager = injectTimers(L);
 
     const result = evalLua(L, content);
-    autocmdManager.activate({
-        onModeChange: (handler, adapter) => {
-            const view = app.workspace.getActiveViewOfType(MarkdownView);
-            const resolved = adapter ?? (view ? getCmAdapter(view) : null);
-            if (!resolved) return undefined;
-            resolved.on('vim-mode-change', handler);
-            return () =>
-                resolved.off(
-                    'vim-mode-change',
-                    handler as (...args: unknown[]) => void,
-                );
-        },
-        onYank: (handler, adapter) => {
-            const view = app.workspace.getActiveViewOfType(MarkdownView);
-            const resolved = adapter ?? (view ? getCmAdapter(view) : null);
-            if (!resolved) return undefined;
-            resolved.on('vim-yank', handler as (...args: unknown[]) => void);
-            return () =>
-                resolved.off(
+    const initialFilePath = app.workspace.getActiveFile()?.path ?? null;
+    autocmdManager.activate(
+        {
+            onModeChange: (handler, adapter) => {
+                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+                if (!resolved) return undefined;
+                resolved.on('vim-mode-change', handler);
+                return () =>
+                    resolved.off(
+                        'vim-mode-change',
+                        handler as (...args: unknown[]) => void,
+                    );
+            },
+            onYank: (handler, adapter) => {
+                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+                if (!resolved) return undefined;
+                resolved.on(
                     'vim-yank',
                     handler as (...args: unknown[]) => void,
                 );
+                return () =>
+                    resolved.off(
+                        'vim-yank',
+                        handler as (...args: unknown[]) => void,
+                    );
+            },
+            onCursorMoved: (handler, adapter) => {
+                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+                if (!resolved) return undefined;
+                const wrappedHandler = () => {
+                    const currentFile = app.workspace.getActiveFile();
+                    handler(currentFile?.path ?? '');
+                };
+                resolved.on('vim-command-done', wrappedHandler);
+                return () => resolved.off('vim-command-done', wrappedHandler);
+            },
+            onFileOpen: (handler) => {
+                const ref = app.workspace.on('file-open', handler);
+                return () => app.workspace.offref(ref);
+            },
+            onFocusGained: (handler) => {
+                const doc = app.workspace.containerEl.ownerDocument;
+                const win = doc.defaultView ?? window;
+                const onFocus = () => handler();
+                const onVisible = () => {
+                    if (doc.visibilityState === 'visible') handler();
+                };
+                win.addEventListener('focus', onFocus);
+                doc.addEventListener('visibilitychange', onVisible);
+                return () => {
+                    win.removeEventListener('focus', onFocus);
+                    doc.removeEventListener('visibilitychange', onVisible);
+                };
+            },
+            onFocusLost: (handler) => {
+                const doc = app.workspace.containerEl.ownerDocument;
+                const win = doc.defaultView ?? window;
+                const onBlur = () => handler();
+                const onHidden = () => {
+                    if (doc.visibilityState === 'hidden') handler();
+                };
+                win.addEventListener('blur', onBlur);
+                doc.addEventListener('visibilitychange', onHidden);
+                return () => {
+                    win.removeEventListener('blur', onBlur);
+                    doc.removeEventListener('visibilitychange', onHidden);
+                };
+            },
         },
-        onCursorMoved: (handler, adapter) => {
-            const view = app.workspace.getActiveViewOfType(MarkdownView);
-            const resolved = adapter ?? (view ? getCmAdapter(view) : null);
-            if (!resolved) return undefined;
-            const wrappedHandler = () => {
-                const currentFile = app.workspace.getActiveFile();
-                handler(currentFile?.path ?? '');
-            };
-            resolved.on('vim-command-done', wrappedHandler);
-            return () => resolved.off('vim-command-done', wrappedHandler);
-        },
-        onFileOpen: (handler) => {
-            const ref = app.workspace.on('file-open', handler);
-            return () => app.workspace.offref(ref);
-        },
-        onFocusGained: (handler) => {
-            const doc = app.workspace.containerEl.ownerDocument;
-            const win = doc.defaultView ?? window;
-            const onFocus = () => handler();
-            const onVisible = () => {
-                if (doc.visibilityState === 'visible') handler();
-            };
-            win.addEventListener('focus', onFocus);
-            doc.addEventListener('visibilitychange', onVisible);
-            return () => {
-                win.removeEventListener('focus', onFocus);
-                doc.removeEventListener('visibilitychange', onVisible);
-            };
-        },
-        onFocusLost: (handler) => {
-            const doc = app.workspace.containerEl.ownerDocument;
-            const win = doc.defaultView ?? window;
-            const onBlur = () => handler();
-            const onHidden = () => {
-                if (doc.visibilityState === 'hidden') handler();
-            };
-            win.addEventListener('blur', onBlur);
-            doc.addEventListener('visibilitychange', onHidden);
-            return () => {
-                win.removeEventListener('blur', onBlur);
-                doc.removeEventListener('visibilitychange', onHidden);
-            };
-        },
-    });
+        initialFilePath,
+    );
     if (!result.ok) {
         return {
             found: true,
@@ -971,6 +986,12 @@ export async function loadInitLua(
             autocmdManager,
             timerManager,
             highlightManager,
+            activateRuntimeExHandler: (handler) => {
+                runtimeExHandler = handler;
+            },
+            deactivateRuntimeExHandler: () => {
+                runtimeExHandler = null;
+            },
         };
     }
 
@@ -994,5 +1015,11 @@ export async function loadInitLua(
         autocmdManager,
         timerManager,
         highlightManager,
+        activateRuntimeExHandler: (handler) => {
+            runtimeExHandler = handler;
+        },
+        deactivateRuntimeExHandler: () => {
+            runtimeExHandler = null;
+        },
     };
 }

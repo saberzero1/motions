@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`vim.keymap.set` leader bindings appear in which-key** — leader-prefixed keymaps registered via `vim.keymap.set` with a `desc` option now automatically appear in the which-key overlay, matching `vim.obsidian.leader.add` behavior. Group labels from `vim.obsidian.whichkey.add()` work with both `vim.keymap.set` and `vim.obsidian.leader.add` bindings. Buffer-local keymaps (`buffer = 0`) are excluded from global which-key. ([#27](https://github.com/saberzero1/motions/issues/27))
+    - Plugin: `src/lua/api.ts` (leader prefix auto-detection in `vim.keymap.set`), `src/main.ts` (consume `luaResult.leaderBindings` in LeaderRegistry)
+- **Synthetic `BufEnter` for initial file** — `BufEnter` autocmds now fire for the file already open when the plugin loads, matching Neovim behavior. Previously, `BufEnter` only fired on subsequent file opens.
+    - Plugin: `src/lua/autocmd.ts` (`activate()` accepts `initialFilePath`), `src/lua/loader.ts` (passes current file path)
+
 ### Fixed
 
+- **`vim.cmd()` broken at runtime** — `vim.cmd()` called from function-mapped keymaps, autocmd callbacks, timer callbacks, and user commands silently failed because commands were queued but never executed after initial load. Fixed with a `runtimeExHandler` that executes commands immediately via `vim.handleEx()`. Cleanup on plugin unload prevents stale callbacks. ([#49](https://github.com/saberzero1/motions/issues/49), [#27](https://github.com/saberzero1/motions/issues/27))
+    - Plugin: `src/lua/loader.ts` (`runtimeExHandler`, `activateRuntimeExHandler`, `deactivateRuntimeExHandler`), `src/main.ts` (wire runtime handler, cleanup in `onunload`)
+- **Function-callback keymaps lost after feature reload** — `vim.keymap.set` with function callbacks registered keymaps that were silently destroyed when `reloadFeatures()` called `vim.resetKeymap()`. String-RHS keymaps survived but function callbacks did not. Fixed by moving `applyLuaMaps()` to run after `reloadFeatures()` and clearing `luaActionNames` in `loadLuaConfigForTest()`.
+    - Plugin: `src/main.ts` (`applyLuaMaps` ordering, `loadLuaConfigForTest` cleanup)
+- **Space as leader key breaks which-key** — `vim.g.mapleader = " "` with which-key in "all" mode now works correctly: space doesn't move the cursor, bindings execute, and grouped which-key displays. The "leader-only" mode still has a known limitation (see KNOWN_LIMITATIONS.md). ([#49](https://github.com/saberzero1/motions/issues/49))
 - **Surround nvim-surround parity (19 golden test fixes)** — comprehensive alignment with [nvim-surround](https://github.com/kylechui/nvim-surround) semantics. Golden comparison tests passing: 54 → 73 out of 74. ([#41](https://github.com/saberzero1/motions/issues/41))
     - `ds}` / `ds]` / `ds)` / `ds>` now preserve inner spaces (only opening bracket forms `ds{` / `ds[` / `ds(` / `ds<` strip spaces)
     - `csbBysaBb` chain — `_surroundType` gating prevents stale replacement leaking across different surround operation types
@@ -25,7 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: updated surround parity section — 20 deviations reduced to 4 remaining (2 pending golden re-recording, 1 design decision, 1 deferred)
+- `docs/configuration/lua-config.md`: added leader key subsection with `vim.g.mapleader` examples and ordering warning; added tip callout comparing `vim.cmd()` vs `vim.obsidian.leader.add()` for leader bindings
+- `docs/configuration/which-key.md`: added "Automatic labels from vim.keymap.set" section documenting `desc` option integration with which-key and group label composition with `wk.add()`
+- `KNOWN_LIMITATIONS.md`: added 7 Lua runtime entries (4 fixed, 3 open); updated test coverage (9 → 43 e2e tests); updated surround parity section
+- **34 new e2e tests across 4 suites** — `lua-runtime.e2e.ts` (8 tests: runtime vim.cmd execution from all callback contexts), `lua-leader-whichkey.e2e.ts` (9 tests: leader binding registration and which-key integration), `lua-space-leader.e2e.ts` (7 tests: space as leader key with regression coverage), `lua-doc-examples.e2e.ts` (10 tests: every documented Lua runtime callback example)
+- **Shared test helpers extracted** — `loadLuaConfig`, `focusEditor`, `setWhichKeyMode`, `hasWhichKeyOverlay`, `waitForWhichKey`, `getWhichKeyKeys`, `getWhichKeyDescriptions`, `getWhichKeyGroups`, `getLeaderBindings`, `getLeaderKey`, `getPluginSetting` moved to `test/helpers.ts` from local definitions
 
 ## [0.39.0] - 2026-07-06
 

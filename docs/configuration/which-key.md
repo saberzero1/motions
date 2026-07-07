@@ -186,4 +186,34 @@ vim.obsidian.leader.add({
 
 Each binding's `desc` is registered as a which-key command label for the resolved leader key sequence (e.g., `<Space>e` → "Reveal in explorer"). No separate `whichkeylabel` or `vim.obsidian.whichkey.set_label` call is needed.
 
+### Automatic labels from vim.keymap.set
+
+Leader-prefixed keymaps registered via `vim.keymap.set` with a `desc` option automatically appear in the which-key overlay:
+
+```lua
+vim.keymap.set("n", "<leader>ff", function()
+    vim.cmd("obcommand switcher:open")
+end, { desc = "Find file" })
+-- "ff → Find file" appears in which-key when leader is pressed
+```
+
+Group labels set via `vim.obsidian.whichkey.add()` work with both `vim.keymap.set` and `vim.obsidian.leader.add` bindings:
+
+```lua
+local wk = vim.obsidian.whichkey
+wk.add({
+    { "<leader>f", group = "Find" },
+})
+
+vim.keymap.set("n", "<leader>ff", function()
+    vim.cmd("obcommand switcher:open")
+end, { desc = "Find file" })
+
+vim.keymap.set("n", "<leader>fg", function()
+    vim.cmd("obcommand global-search:open")
+end, { desc = "Grep" })
+-- Pressing leader shows: f → Find (+2)
+-- Pressing leader then f shows: f → Find file, g → Grep
+```
+
 See [[lua-config#Leader bindings]] for the full API reference.

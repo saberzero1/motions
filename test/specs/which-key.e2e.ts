@@ -1,6 +1,14 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { sendVimEscape } from '../helpers';
+import {
+    sendVimEscape,
+    focusEditor,
+    setWhichKeyMode,
+    hasWhichKeyOverlay,
+    getWhichKeyTitle,
+    getWhichKeyEntryCount,
+    getWhichKeyKeys,
+} from '../helpers';
 
 type PluginRef = {
     settings: Record<string, unknown>;
@@ -26,71 +34,9 @@ type VimRef = {
     getKeymap: (context?: string) => Array<{ keys: string; type: string }>;
 };
 
-function getPlugin(): string {
-    return `(app as unknown as {
-        plugins: { plugins: Record<string, unknown> };
-    }).plugins.plugins['vim-motions']`;
-}
-
-async function setWhichKeyMode(mode: 'off' | 'leader' | 'all'): Promise<void> {
-    await browser.executeObsidian(({ app }, whichKeyMode: string) => {
-        const plugin = (
-            app as unknown as {
-                plugins: {
-                    plugins: Record<string, PluginRef>;
-                };
-            }
-        ).plugins.plugins['vim-motions'];
-        if (!plugin) return;
-        plugin.settings.whichKeyMode = whichKeyMode;
-        plugin.reloadFeatures();
-    }, mode);
-    await browser.pause(500);
-}
-
 async function sendRealKey(key: string): Promise<void> {
     await browser.keys([key]);
     await browser.pause(30);
-}
-
-async function hasWhichKeyOverlay(): Promise<boolean> {
-    return (await browser.executeObsidian(() => {
-        return !!document.querySelector('.vim-motions-which-key');
-    })) as boolean;
-}
-
-async function getWhichKeyTitle(): Promise<string> {
-    return (await browser.executeObsidian(() => {
-        const el = document.querySelector('.vim-motions-which-key-title');
-        return el?.textContent ?? '';
-    })) as string;
-}
-
-async function getWhichKeyEntryCount(): Promise<number> {
-    return (await browser.executeObsidian(() => {
-        return document.querySelectorAll('.vim-motions-which-key-row').length;
-    })) as number;
-}
-
-async function getWhichKeyKeys(): Promise<string[]> {
-    return (await browser.executeObsidian(() => {
-        const els = document.querySelectorAll('.vim-motions-which-key-key');
-        return Array.from(els).map((el) => el.textContent ?? '');
-    })) as string[];
-}
-
-async function focusEditor(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
-        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        if (view) {
-            view.editor.setValue('Hello world\nSecond line\nThird line');
-            view.editor.setCursor(0, 0);
-            view.editor.focus();
-        }
-    });
-    await browser.pause(300);
-    await sendVimEscape();
-    await browser.pause(100);
 }
 
 describe('Which-key overlay', function () {

@@ -247,7 +247,10 @@ export class AutocmdManager {
         }
     }
 
-    activate(callbacks: AutocmdCallbacks): void {
+    activate(
+        callbacks: AutocmdCallbacks,
+        initialFilePath?: string | null,
+    ): void {
         if (this.activated) return;
         this.activated = true;
         this.callbacks = callbacks;
@@ -263,6 +266,11 @@ export class AutocmdManager {
             }
         });
         if (fileCleanup) this.globalCleanups.push(fileCleanup);
+
+        if (initialFilePath) {
+            this.lastFilePath = initialFilePath;
+            this.fire('BufEnter', { file: initialFilePath });
+        }
 
         const focusGainedCleanup = callbacks.onFocusGained(() => {
             this.fire('FocusGained');

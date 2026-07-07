@@ -856,6 +856,19 @@ export function injectVimApi(
                 callbacks.onBufferKeymap?.(bufferFilePath, keymap);
             } else {
                 callbacks.onKeymap(keymap);
+                if (
+                    context === 'normal' &&
+                    leaderKey.length > 0 &&
+                    lhs.startsWith(leaderKey) &&
+                    lhs.length > leaderKey.length
+                ) {
+                    const bindingKey = lhs.slice(leaderKey.length);
+                    const displayId = rhsValue ?? desc ?? lhsRaw;
+                    callbacks.onLeaderBinding?.(bindingKey, displayId, desc);
+                    if (desc) {
+                        callbacks.onWhichKeyCommandLabel?.(lhs, desc, 'editor');
+                    }
+                }
             }
         }
         return 0;

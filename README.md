@@ -52,7 +52,7 @@ Full documentation: **https://saberzero1.github.io/motions**
 
 ## Requirements
 
-- Obsidian v1.4.10 or later
+- Obsidian v1.6.6 or later
 - Desktop and mobile (physical keyboard recommended on mobile)
 
 ## Development

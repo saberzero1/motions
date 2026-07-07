@@ -788,7 +788,7 @@ Limitations:
 
 ### Hybrid loading
 
-Settings (`vim.opt`) and keymaps (`vim.keymap.set`) load immediately without an active editor. `vim.cmd()` calls are queued and executed when the first editor receives focus. If no init.lua file exists, the loader silently skips (no notice).
+Settings (`vim.opt`) and keymaps (`vim.keymap.set`) load immediately without an active editor. `vim.cmd()` calls at load time are queued and executed when the first editor receives focus. `vim.cmd()` calls from runtime contexts (function-mapped keymaps, autocmd callbacks, timer callbacks, user commands) execute immediately against the active editor. If no editor is active when a runtime `vim.cmd()` fires, the command is skipped with a console warning. If no init.lua file exists, the loader silently skips (no notice).
 
 ### Loading order
 
@@ -796,7 +796,41 @@ init.lua loads after vimrc. Both can be used simultaneously — Lua values overr
 
 ### Function callbacks and Tier 3 functions
 
-Lua function callbacks (`vim.keymap.set('n', 'key', function() ... end)`) execute at keypress time, not config-load time. Editor-state-dependent functions (e.g., `vim.fn.line('.')`) are planned to work inside callbacks but error at config-load time (context-aware execution).
+Lua function callbacks (`vim.keymap.set('n', 'key', function() ... end)`) execute at keypress time, not config-load time. `vim.cmd()`, `vim.fn.line('.')`, `vim.fn.col('.')`, and other editor-state-dependent functions work correctly inside callbacks. They error at config-load time because no editor is active (context-aware execution). Leader-prefixed keymaps registered via `vim.keymap.set` with a `desc` option automatically appear in the which-key overlay.
+
+### ~~`vim.cmd()` broken at runtime~~ (Fixed)
+
+`vim.cmd()` called from runtime contexts (function-mapped keymaps, autocmd callbacks, timer callbacks, user commands) silently failed. The `handleExCommand` callback pushed commands to a `pendingExCommands` queue that was drained once after initial load — runtime calls pushed to an orphaned array. Fixed by adding a `runtimeExHandler` that executes commands immediately via `vim.handleEx()` after load completes. Cleanup on plugin unload prevents stale callbacks. ([#49](https://github.com/saberzero1/motions/issues/49), [#27](https://github.com/saberzero1/motions/issues/27))
+
+### ~~`vim.keymap.set` leader bindings not in which-key~~ (Fixed)
+
+`vim.keymap.set("n", "<leader>x", ...)` registered in the vim engine but not in `LeaderRegistry`, so bindings didn't appear in the which-key overlay. Additionally, `luaResult.leaderBindings` was returned by the loader but never consumed in `main.ts`. Fixed by auto-detecting leader prefix in `vim.keymap.set` and calling `onLeaderBinding` + `onWhichKeyCommandLabel`. Buffer-local keymaps (`buffer = 0`) are excluded from global registration. ([#27](https://github.com/saberzero1/motions/issues/27))
+
+### `BufEnter` for initial file
+
+`BufEnter` autocmds set in init.lua now fire for the file already open when the plugin loads, via a synthetic `BufEnter` during `activate()`. Previously, `BufEnter` only fired on subsequent file opens.
+
+**Limitation**: Buffer-local keymaps with function callbacks registered inside a `BufEnter` autocmd during the initial synthetic fire may be destroyed by the subsequent `reloadFeatures()` call, which resets the vim keymap. Keymaps registered from `BufEnter` events triggered by actual file switches (after initial load) work correctly. Workaround: use `vim.obsidian.leader.add` with string command IDs for buffer-local-like behavior, or use `ModeChanged` events for per-buffer setup during initial load.
+
+### ~~Function-callback keymaps lost after feature reload~~ (Fixed)
+
+Function-callback keymaps from `vim.keymap.set` were silently destroyed when `reloadFeatures()` called `vim.resetKeymap()`. String-RHS keymaps survived because `vim.noremap`/`vim.map` entries are stored separately from `mapCommand` entries. Fixed by moving `applyLuaMaps()` to run after `reloadFeatures()`. Additionally, `loadLuaConfigForTest()` now clears `luaActionNames` to prevent stale callback references after Lua state destruction.
+
+### `vim.schedule_wrap` + `vim.cmd()` in timer callbacks
+
+`vim.schedule_wrap` inside a `vim.uv.new_timer` callback creates a double-deferred execution chain (timer → setTimeout(0) → callback). `vim.cmd()` called from this innermost callback may fail silently because the active editor context is lost between the two async boundaries. Workaround: call `vim.cmd()` directly in the timer callback without `vim.schedule_wrap`, or use `vim.defer_fn` instead.
+
+### Which-key "leader-only" mode does not detect space as leader
+
+When `vim.g.mapleader = " "` and `vim.opt.whichkey = "leader"`, the which-key overlay doesn't appear after pressing space. This works correctly in "all" mode (`vim.opt.whichkey = "all"`). The issue is a key format mismatch: the codemirror-vim fork's `vimKeyFromEvent` emits `'<Space>'` (angle-bracket notation) but `onKeyPressLeaderOnly` compares against `this.leaderKey` which is the literal `' '` character. Fix requires changes in the codemirror-vim fork's event emission.
+
+### `executeLuaForTest` does not support runtime `vim.cmd()`
+
+The test-only Lua executor (`executeLuaForTest` in main.ts) has `handleExCommand: () => {}` (no-op). `vim.cmd()` calls through this path silently do nothing. It also lacks `onLeaderBinding` and runtime handler activation. Use `loadLuaConfig()` (via `loadLuaConfigForTest`) for tests that need runtime Lua behavior.
+
+### No Lua instruction-count hook on runtime callbacks
+
+The initial Lua load has instruction-count protection (preventing infinite loops). However, runtime `lua_pcall` in callback closures (function keymaps, autocmd handlers, timer callbacks) does not set a `lua_sethook`. An infinite loop in a function-callback keymap would freeze Obsidian permanently with no timeout protection.
 
 ### Known deviations from Neovim
 
@@ -825,7 +859,7 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 
 `vim.ob.fs.read(path)` is not available — Obsidian's `vault.cachedRead()` is asynchronous and the Lua runtime cannot block on Promises. To read the current file's content, use `vim.api.nvim_buf_get_lines(0, 0, -1, false)`. Reading other files from Lua requires a future async/coroutine extension.
 
-**Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 9 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, and disabled state.
+**Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 43 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, disabled state, runtime `vim.cmd()` execution (8 tests), leader binding + which-key integration (9 tests), space-as-leader (7 tests), and documentation example validation (10 tests).
 
 ## Neovim golden test coverage gaps
 

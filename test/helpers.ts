@@ -273,3 +273,198 @@ export function deviation(
 ): void {
     it(`[DEVIATION] ${description} (Neovim: ${neovimBehavior})`, fn);
 }
+
+type PluginRef = {
+    settings: Record<string, unknown>;
+    reloadFeatures: () => void;
+    vimrcLoaded?: boolean;
+    luaLoaded?: boolean;
+    leaderRegistry?: {
+        getBindings: () => Array<{
+            key: string;
+            command: string;
+            source: string;
+        }>;
+        getLeaderKey: () => string;
+    };
+    whichKeyOverlay?: unknown;
+    loadLuaConfigForTest?: () => Promise<void>;
+};
+
+function getPluginRef(): string {
+    return `(app as unknown as {
+        plugins: { plugins: Record<string, unknown> };
+    }).plugins.plugins['vim-motions']`;
+}
+
+export async function loadLuaConfig(content: string): Promise<void> {
+    await browser.reloadObsidian({ vault: 'test-vault' });
+    await obsidianPage.openFile('Welcome.md');
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<string, PluginRef>;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.vimrcLoaded === true;
+            })) as boolean,
+        { timeout: 10000, interval: 200 },
+    );
+    await browser.executeObsidian(async ({ app }, luaContent: string) => {
+        const configPath = `${app.vault.configDir}.init.lua`;
+        await app.vault.adapter.write(configPath, luaContent);
+    }, content);
+    await browser.executeObsidian(async ({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<string, PluginRef>;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        await plugin?.loadLuaConfigForTest?.();
+    });
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<string, PluginRef>;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.luaLoaded === true;
+            })) as boolean,
+        { timeout: 10000, interval: 200 },
+    );
+}
+
+export async function focusEditor(): Promise<void> {
+    await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (view) {
+            view.editor.setValue('Hello world\nSecond line\nThird line');
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+        }
+    });
+    await browser.pause(PAUSE.EDITOR_SETTLE);
+    await sendVimEscape();
+    await browser.pause(PAUSE.MODE_SWITCH * 2);
+}
+
+export async function setWhichKeyMode(
+    mode: 'off' | 'leader' | 'all',
+): Promise<void> {
+    await browser.executeObsidian(({ app }, whichKeyMode: string) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<string, PluginRef>;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        if (!plugin) return;
+        plugin.settings.whichKeyMode = whichKeyMode;
+        plugin.reloadFeatures();
+    }, mode);
+    await browser.pause(PAUSE.OBSIDIAN_LOAD);
+}
+
+export async function hasWhichKeyOverlay(): Promise<boolean> {
+    return (await browser.executeObsidian(() => {
+        return !!document.querySelector('.vim-motions-which-key');
+    })) as boolean;
+}
+
+export async function waitForWhichKey(timeout = 2000): Promise<void> {
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(
+                () => !!document.querySelector('.vim-motions-which-key'),
+            )) as boolean,
+        { timeout, interval: 100 },
+    );
+}
+
+export async function getWhichKeyTitle(): Promise<string> {
+    return (await browser.executeObsidian(() => {
+        const el = document.querySelector('.vim-motions-which-key-title');
+        return el?.textContent ?? '';
+    })) as string;
+}
+
+export async function getWhichKeyEntryCount(): Promise<number> {
+    return (await browser.executeObsidian(() => {
+        return document.querySelectorAll('.vim-motions-which-key-row').length;
+    })) as number;
+}
+
+export async function getWhichKeyKeys(): Promise<string[]> {
+    return (await browser.executeObsidian(() => {
+        const els = document.querySelectorAll('.vim-motions-which-key-key');
+        return Array.from(els).map((el) => el.textContent ?? '');
+    })) as string[];
+}
+
+export async function getWhichKeyDescriptions(): Promise<string[]> {
+    return (await browser.executeObsidian(() => {
+        const els = document.querySelectorAll('.vim-motions-which-key-cmd');
+        return Array.from(els).map((el) => el.textContent ?? '');
+    })) as string[];
+}
+
+export async function getWhichKeyGroups(): Promise<string[]> {
+    return (await browser.executeObsidian(() => {
+        const els = document.querySelectorAll(
+            '.vim-motions-which-key-group .vim-motions-which-key-key',
+        );
+        return Array.from(els).map((el) => el.textContent ?? '');
+    })) as string[];
+}
+
+export async function getLeaderBindings(): Promise<
+    Array<{ key: string; command: string; source: string }>
+> {
+    return (await browser.executeObsidian(({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<string, PluginRef>;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        return plugin?.leaderRegistry?.getBindings() ?? [];
+    })) as Array<{ key: string; command: string; source: string }>;
+}
+
+export async function getLeaderKey(): Promise<string> {
+    return (await browser.executeObsidian(({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<string, PluginRef>;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        return plugin?.leaderRegistry?.getLeaderKey() ?? '\\';
+    })) as string;
+}
+
+export async function getPluginSetting(key: string): Promise<unknown> {
+    return browser.executeObsidian(({ app }, settingKey: string) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<string, PluginRef>;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        return (plugin?.settings as Record<string, unknown>)?.[settingKey];
+    }, key);
+}

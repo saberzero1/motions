@@ -124,6 +124,7 @@ export default class VimMotionsPlugin extends Plugin {
     private luaActionNames = new Set<string>();
     private luaPendingExCommands: string[] = [];
     private luaActionCounter = 0;
+    private luaDeactivateRuntimeEx: (() => void) | null = null;
     private bufferKeymapManager: BufferKeymapManager | null = null;
     private autocmdManager: AutocmdManager | null = null;
     private timerManager: import('./lua/timers').TimerManager | null = null;
@@ -286,6 +287,8 @@ export default class VimMotionsPlugin extends Plugin {
             destroyState(this.luaState);
             this.luaState = null;
         }
+        this.luaActionNames.clear();
+        this.luaActionCounter = 0;
         await this.loadLuaConfigInternal(
             this.vimRef,
             this.onLuaSettingOverrideRef,
@@ -1380,13 +1383,49 @@ export default class VimMotionsPlugin extends Plugin {
         this.bufferKeymapManager?.switchBuffer(filePath);
 
         this.applyLuaSurroundPairs(vim, luaResult.surroundPairs);
-        this.applyLuaMaps(vim);
         this.applyLuaPendingExCommands(vim);
+
+        // Activate runtime vim.cmd() execution — after this point,
+        // vim.cmd() from Lua callbacks (keymaps, autocmds, timers)
+        // executes immediately instead of queuing.
+        this.luaDeactivateRuntimeEx?.();
+        luaResult.activateRuntimeExHandler?.((command: string) => {
+            const rtView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (!rtView) {
+                console.warn(
+                    'Vim Motions: vim.cmd() called with no active editor — command skipped:',
+                    command,
+                );
+                return;
+            }
+            const rtCm = getCmAdapter(rtView);
+            if (!rtCm) return;
+            try {
+                vim.handleEx(rtCm, command);
+            } catch (e) {
+                console.error('Vim Motions: vim.cmd() runtime error:', e);
+            }
+        });
+        this.luaDeactivateRuntimeEx =
+            luaResult.deactivateRuntimeExHandler ?? null;
+
+        // Register Lua leader bindings in LeaderRegistry
+        if (this.leaderRegistry && luaResult.leaderBindings.length > 0) {
+            const leaderKey = this.leaderRegistry.getLeaderKey();
+            for (const b of luaResult.leaderBindings) {
+                this.leaderRegistry.addBinding(
+                    leaderKey + b.key,
+                    b.desc ?? b.commandId,
+                );
+            }
+        }
+
         this.reregisterLeaderFeatures();
         this.rebuildWhichKey();
         this.luaLoaded = true;
         this.luaLoading = false;
         this.reloadFeatures();
+        this.applyLuaMaps(vim);
         return luaResult;
     }
 
@@ -1592,6 +1631,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.autocmdManager = null;
         this.highlightManager?.destroy();
         this.highlightManager = null;
+        this.luaDeactivateRuntimeEx?.();
+        this.luaDeactivateRuntimeEx = null;
         this.bufferKeymapManager?.destroy();
         this.bufferKeymapManager = null;
         if (this.luaState) {

@@ -29,7 +29,7 @@ Obsidian's built-in Vim mode provides basic motions and operators, but lacks Mar
 
 ## Requirements
 
-- Obsidian v1.4.10 or later
+- Obsidian v1.6.6 or later
 - Desktop and mobile (physical keyboard recommended on mobile — see [[known-limitations#Mobile support|mobile limitations]])
 
 ## Next steps
