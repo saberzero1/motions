@@ -6,6 +6,12 @@ import {
     type Range,
 } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
+import {
+    type App,
+    Component,
+    editorInfoField,
+    MarkdownRenderer,
+} from 'obsidian';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -91,7 +97,41 @@ function parseTable(lines: string[]): {
     return { headers, alignments, rows };
 }
 
+function renderCell(
+    cellWrapper: HTMLElement,
+    markdown: string,
+    sourcePath: string,
+    app: App,
+    component: Component,
+): void {
+    cellWrapper.textContent = markdown;
+    if (!markdown) return;
+
+    MarkdownRenderer.render(app, markdown, cellWrapper, sourcePath, component)
+        .then(() => {
+            // MarkdownRenderer wraps inline content in <p> — unwrap it to
+            // avoid block-level spacing inside table cells.
+            const p = cellWrapper.querySelector(':scope > p');
+            if (cellWrapper.children.length === 1 && p) {
+                while (p.firstChild) {
+                    cellWrapper.appendChild(p.firstChild);
+                }
+                p.remove();
+            }
+            const first = cellWrapper.firstChild;
+            if (
+                first?.nodeType === Node.TEXT_NODE &&
+                first.textContent === markdown
+            ) {
+                first.remove();
+            }
+        })
+        .catch(() => {});
+}
+
 class TableRenderWidget extends WidgetType {
+    private component: Component | null = null;
+
     constructor(
         private readonly tableText: string,
         private readonly lines: string[],
@@ -108,6 +148,13 @@ class TableRenderWidget extends WidgetType {
     }
 
     toDOM(view: EditorView): HTMLElement {
+        const info = view.state.field(editorInfoField);
+        const app = (info as { app: App }).app;
+        const sourcePath = info.file?.path ?? '';
+
+        this.component = new Component();
+        this.component.load();
+
         const doc = view.dom.ownerDocument;
         const container = doc.createElement('div');
         container.className =
@@ -132,7 +179,13 @@ class TableRenderWidget extends WidgetType {
             if (align) th.setAttribute('align', align);
             const cellWrapper = doc.createElement('div');
             cellWrapper.className = 'table-cell-wrapper';
-            cellWrapper.textContent = headers[i] ?? '';
+            renderCell(
+                cellWrapper,
+                headers[i] ?? '',
+                sourcePath,
+                app,
+                this.component,
+            );
             th.appendChild(cellWrapper);
             headerRow.appendChild(th);
         }
@@ -147,7 +200,13 @@ class TableRenderWidget extends WidgetType {
                 if (align) td.setAttribute('align', align);
                 const cellWrapper = doc.createElement('div');
                 cellWrapper.className = 'table-cell-wrapper';
-                cellWrapper.textContent = row[i] ?? '';
+                renderCell(
+                    cellWrapper,
+                    row[i] ?? '',
+                    sourcePath,
+                    app,
+                    this.component,
+                );
                 td.appendChild(cellWrapper);
                 tr.appendChild(td);
             }
@@ -155,6 +214,11 @@ class TableRenderWidget extends WidgetType {
         }
 
         return container;
+    }
+
+    destroy(): void {
+        this.component?.unload();
+        this.component = null;
     }
 
     ignoreEvent(): boolean {

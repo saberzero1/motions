@@ -99,9 +99,11 @@ The following are intentionally not implemented:
 
 ## Table widget suppression in Live Preview
 
-By default (cursor-aware mode), tables display as themed HTML when the cursor is outside and switch to raw Markdown when the cursor enters the table. The rendered table is a read-only `TableRenderWidget` produced by the plugin (not Obsidian's interactive table editor), using Obsidian's CSS classes (`cm-embed-block`, `markdown-rendered`, `table-wrapper`, `table-cell-wrapper`) for theme compatibility. When the cursor enters the table range, the widget is removed and raw Markdown is editable with full vim support.
+By default (cursor-aware mode), tables display as themed HTML when the cursor is outside and switch to raw Markdown when the cursor enters the table. The rendered table is a read-only `TableRenderWidget` produced by the plugin (not Obsidian's interactive table editor), using Obsidian's CSS classes (`cm-embed-block`, `markdown-rendered`, `table-wrapper`, `table-cell-wrapper`) for theme compatibility. Cell content is rendered through `MarkdownRenderer.render()`, so inline formatting (bold, italic, code), images, links, and math expressions display correctly in the rendered widget. When the cursor enters the table range, the widget is removed and raw Markdown is editable with full vim support.
 
 The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping the replace-decoration that would create Obsidian's table widget. Detection uses the `cm-table-widget` class on the widget's container element. Non-table widgets (math, code blocks, embeds) are not affected. In cursor-aware mode, the plugin provides its own `Decoration.replace` via a `StateField` for tables the cursor is NOT in.
+
+`MarkdownRenderer.render()` is asynchronous — cell content initially appears as plain text and is replaced by the rendered output when the promise resolves. In practice this is near-instantaneous. A `Component` is created per widget instance and unloaded in `destroy()` to prevent leaked event listeners. The `editorInfoField` provides the `App` instance and the active file's `sourcePath` for correct relative image path resolution.
 
 **Always raw mode**: Set to "Always raw" to keep tables as plain Markdown at all times. Useful when cursor-aware rendering causes issues or when you prefer to always see the raw table syntax.
 

@@ -71,6 +71,8 @@ To provide a seamless editing experience, Vim Motions manages how tables are ren
 - **Always raw**: Tables always display as plain Markdown.
 - **Off**: Restores Obsidian's default interactive table editor.
 
+The rendered table widget processes cell content through Obsidian's markdown renderer. Inline formatting (bold, italic, code), images, links, and math expressions display correctly in the rendered view.
+
 > [!info]
 > You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**.
 
