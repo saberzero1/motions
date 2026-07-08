@@ -58,6 +58,8 @@ export const Platform = {
     isLinux: true,
     isWin: false,
     isMobile: false,
+    isDesktop: true,
+    isDesktopApp: true,
     isIosApp: false,
     isAndroidApp: false,
 };
