@@ -127,6 +127,8 @@ Non-dotfile names are preferred because Obsidian Sync skips dotfiles. The `.obsi
 
 A custom path can be set via **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path** (or Custom init.lua path). When set, the custom path is used directly and the fallback chain is skipped. The setting provides file-suggest autocompletion. The settings UI shows which file is currently in use ("Currently using: {path}") or a not-found warning for invalid custom paths. ([#34](https://github.com/saberzero1/motions/issues/34))
 
+**External paths (desktop only)**: Custom paths can be absolute filesystem paths (e.g. `~/.config/obsidian/init.lua`, `C:\Users\<you>\.config\obsidian\vimrc`). Paths starting with `/`, `~`, or a Windows drive letter are read directly from the filesystem via `window.require('fs/promises')` instead of `app.vault.adapter.read()`. Tilde (`~`) is expanded to `os.homedir()`. This enables sharing a single config file across multiple vaults. On mobile, absolute paths are not supported — the plugin falls back to vault-relative paths only. ([#51](https://github.com/saberzero1/motions/issues/51))
+
 Changing the custom path in settings triggers `reloadFeatures()` (the path is in `RELOAD_KEYS`), but a full vimrc re-parse requires reloading the plugin — the same limitation as editing the vimrc file itself.
 
 ### Vim engine settings

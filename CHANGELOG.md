@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **External config file paths (desktop only)** — custom vimrc and init.lua paths now accept absolute filesystem paths (e.g. `~/.config/obsidian/init.lua`, `C:\Users\<you>\.config\obsidian\vimrc`), enabling shared config across multiple vaults. Paths starting with `/`, `~`, or a drive letter are read directly from the filesystem via `window.require` instead of the vault adapter. Tilde (`~`) is expanded to the user's home directory. Mobile gracefully falls back to vault-only paths. ([#51](https://github.com/saberzero1/motions/issues/51))
+    - Plugin: `src/util/external-fs.ts` (new module: `isAbsolutePath`, `readExternalFile`, `externalFileExists`, `expandTilde`, `getObsidianUserDataDir`), `src/lua/loader.ts` (`fileExists`/`readLuaFile` external path fallback), `src/vimrc/loader.ts` (`fileExists`/`readVimrcFile` external path fallback), `src/settings.ts` (updated descriptions)
 - **Unified picker / fuzzy finder** — telescope.nvim-inspired fuzzy picker with 11 sources, preview pane, live grep, frecency scoring, and split-open support
     - **10 built-in sources**: files (`:files`), buffers (`:buffers`), commands (`:commands`), headings (`:headings`), outline (`:outline`), backlinks (`:backlinks`), tags (`:tags`), recent files (`:recent`), marks (`:marks`), registers (`:registers`)
     - **Live grep** (`:livegrep`): real-time vault content search with 200ms debounce, generation-based cancellation, and minimum 2-character query
@@ -43,9 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `docs/features/ex-commands.md`: added picker commands section
 - `docs/reference/keybindings.md`: added picker ex commands and `<leader>f*` mappings
-- `docs/configuration/lua-config.md`: added `vim.obsidian.pick()` API documentation
-- `docs/configuration/settings.md`: added `picker` and `pickerLeaderMappings` settings
-- `KNOWN_LIMITATIONS.md`: added picker section with limitations
+- `docs/configuration/lua-config.md`: added `vim.obsidian.pick()` API documentation; added "Shared config across vaults" subsection documenting external path support
+- `docs/configuration/vimrc.md`: added "Shared config across vaults" subsection documenting external path support
+- `docs/configuration/settings.md`: updated custom path descriptions to mention absolute path support
+- `KNOWN_LIMITATIONS.md`: added picker section with limitations; updated config file resolution section with external path support
 
 ## [0.40.0] - 2026-07-07
 

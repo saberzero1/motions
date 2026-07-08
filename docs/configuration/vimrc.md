@@ -25,6 +25,16 @@ The plugin searches the vault root for the first matching file in this order:
 
 The first file found is used. Override this with a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path**. The settings UI shows which file is currently active.
 
+### Shared config across vaults (desktop only)
+
+On desktop, the custom path can be an absolute filesystem path — useful for sharing one vimrc across multiple vaults:
+
+- `~/.config/obsidian/vimrc` (Linux)
+- `~/Library/Application Support/obsidian/vimrc` (macOS)
+- `C:\Users\<you>\.config\obsidian\vimrc` (Windows)
+
+Any absolute path (starting with `/`, `~`, or a drive letter) is read directly from the filesystem instead of through the vault. This is not available on mobile.
+
 > [!tip] Obsidian Sync
 > Obsidian Sync skips dotfiles. Use a non-dotfile name like `vimrc` (the first candidate in the fallback chain) to ensure your config syncs across devices.
 

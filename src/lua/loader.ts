@@ -25,6 +25,11 @@ import { injectStdlib } from './stdlib';
 import { injectTimers, TimerManager } from './timers';
 import { HighlightManager } from './highlight';
 import type { lua_State } from 'fengari';
+import {
+    isAbsolutePath,
+    readExternalFile,
+    externalFileExists,
+} from '../util/external-fs';
 
 export interface LuaLoadResult {
     found: boolean;
@@ -76,6 +81,9 @@ function getLuaFallbackPaths(app: App): readonly string[] {
 }
 
 async function fileExists(app: App, path: string): Promise<boolean> {
+    if (isAbsolutePath(path)) {
+        return externalFileExists(path);
+    }
     try {
         await app.vault.adapter.read(path);
         return true;
@@ -103,6 +111,9 @@ async function resolveLuaConfigPath(
 export { LUA_FALLBACK_PATHS, getLuaFallbackPaths, resolveLuaConfigPath };
 
 async function readLuaFile(app: App, path: string): Promise<string | null> {
+    if (isAbsolutePath(path)) {
+        return readExternalFile(path);
+    }
     try {
         return await app.vault.adapter.read(path);
     } catch {

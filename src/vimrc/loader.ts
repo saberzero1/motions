@@ -9,6 +9,11 @@ import {
     parseGuicursor,
 } from '../vim/options';
 import { parseLine } from './parser';
+import {
+    isAbsolutePath,
+    readExternalFile,
+    externalFileExists,
+} from '../util/external-fs';
 
 type SettingOverrideFn = (
     key: string,
@@ -249,6 +254,9 @@ async function resolveVimrcPath(
 export { VIMRC_FALLBACK_PATHS, getVimrcFallbackPaths, resolveVimrcPath };
 
 async function fileExists(app: App, path: string): Promise<boolean> {
+    if (isAbsolutePath(path)) {
+        return externalFileExists(path);
+    }
     try {
         await app.vault.adapter.read(path);
         return true;
@@ -258,6 +266,9 @@ async function fileExists(app: App, path: string): Promise<boolean> {
 }
 
 async function readVimrcFile(app: App, path: string): Promise<string | null> {
+    if (isAbsolutePath(path)) {
+        return readExternalFile(path);
+    }
     try {
         return await app.vault.adapter.read(path);
     } catch {

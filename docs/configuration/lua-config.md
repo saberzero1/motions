@@ -19,6 +19,16 @@ The plugin searches the vault root for the first matching file in this order:
 
 The first file found is used. Override this with a custom path in **Settings → Vim Motions → Vimrc & key bindings → Custom init.lua path**. The settings UI shows which file is currently active.
 
+### Shared config across vaults (desktop only)
+
+On desktop, the custom path can be an absolute filesystem path — useful for sharing one `init.lua` across multiple vaults:
+
+- `~/.config/obsidian/init.lua` (Linux)
+- `~/Library/Application Support/obsidian/init.lua` (macOS)
+- `C:\Users\<you>\.config\obsidian\init.lua` (Windows)
+
+Any absolute path (starting with `/`, `~`, or a drive letter) is read directly from the filesystem instead of through the vault. This is not available on mobile.
+
 > [!tip] Obsidian Sync
 > Obsidian Sync skips dotfiles. Use a non-dotfile name like `init.lua` (the first candidate in the fallback chain) to ensure your Lua config syncs across devices.
 

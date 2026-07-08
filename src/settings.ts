@@ -986,7 +986,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                     {
                         name: 'Custom init.lua path',
-                        desc: `Path to an init.lua file in your vault. Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
+                        desc: `Path to an init.lua file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/init.lua). Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
                         aliases: [
                             'lua path',
                             'lua config location',
@@ -1003,7 +1003,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                     {
                         name: 'Custom vimrc path',
-                        desc: `Path to a vimrc file in your vault. Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
+                        desc: `Path to a vimrc file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/vimrc). Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
                         aliases: ['vimrc location', 'vimrc sync'],
                         control: {
                             type: 'text' as const,
@@ -2142,7 +2142,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         const luaSetting = new Setting(containerEl)
             .setName('Custom init.lua path')
             .setDesc(
-                `Path to an init.lua file in your vault. Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
+                `Path to an init.lua file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/init.lua). Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
             )
             .addText((text) => {
                 text.setPlaceholder(LUA_FALLBACK_PATHS[0]!)
@@ -2177,7 +2177,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         const vimrcSetting = new Setting(containerEl)
             .setName('Custom vimrc path')
             .setDesc(
-                `Path to a vimrc file in your vault. Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
+                `Path to a vimrc file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/vimrc). Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
             )
             .addText((text) => {
                 text.setPlaceholder(VIMRC_FALLBACK_PATHS[0]!)
