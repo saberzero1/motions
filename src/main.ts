@@ -687,15 +687,23 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     const vimrcFound = vimrcResult.found;
                     if (!vimrcFound && this.settings.configMode === 'vimrc') {
-                        new Notice('Vimrc not found');
-                    } else if (vimrcResult.commandCount === 0) {
+                        // Error-like: user chose vimrc-only but file is missing — always show.
                         new Notice(
-                            `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                            `Vim Motions: vimrc not found (searched ${vimrcResult.path}).`,
                         );
-                    } else {
-                        new Notice(
-                            `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
-                        );
+                    } else if (
+                        vimrcFound &&
+                        this.settings.showConfigNotifications
+                    ) {
+                        if (vimrcResult.commandCount === 0) {
+                            new Notice(
+                                `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                            );
+                        } else {
+                            new Notice(
+                                `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
+                            );
+                        }
                     }
                     this.vimrcMaps = vimrcResult.maps;
                     this.vimrcGlobalMaps = vimrcResult.globalMaps;
@@ -728,9 +736,12 @@ export default class VimMotionsPlugin extends Plugin {
                     if (
                         this.settings.configMode === 'lua-vimrc' &&
                         !vimrcFound &&
-                        !luaResult?.found
+                        !luaResult?.found &&
+                        this.settings.showConfigNotifications
                     ) {
-                        new Notice('No config files found');
+                        new Notice(
+                            `Vim Motions: no config files found (searched ${vimrcResult.path}, ${luaResult?.path ?? 'init.lua'}).`,
+                        );
                     }
                 }),
             );
@@ -1650,21 +1661,27 @@ export default class VimMotionsPlugin extends Plugin {
             this.luaLoaded = true;
             this.luaLoading = false;
             if (this.settings.configMode === 'lua') {
-                new Notice('Init.lua not found');
+                // Error-like: user chose lua-only but file is missing — always show.
+                new Notice(
+                    `Vim Motions: init.lua not found (searched ${luaResult.path}).`,
+                );
             }
             return luaResult;
         } else if (luaResult.error) {
+            // Errors always show regardless of suppress setting.
             new Notice(
                 `Vim Motions: error loading ${luaResult.path}: ${luaResult.error}`,
             );
-        } else if (luaResult.commandCount === 0) {
-            new Notice(
-                `Vim Motions: ${luaResult.path} loaded but contained no commands.`,
-            );
-        } else {
-            new Notice(
-                `Vim Motions: loaded ${luaResult.commandCount} command${luaResult.commandCount === 1 ? '' : 's'} from ${luaResult.path}.`,
-            );
+        } else if (this.settings.showConfigNotifications) {
+            if (luaResult.commandCount === 0) {
+                new Notice(
+                    `Vim Motions: ${luaResult.path} loaded but contained no commands.`,
+                );
+            } else {
+                new Notice(
+                    `Vim Motions: loaded ${luaResult.commandCount} command${luaResult.commandCount === 1 ? '' : 's'} from ${luaResult.path}.`,
+                );
+            }
         }
 
         this.luaMapOperations = luaResult.mapOperations;

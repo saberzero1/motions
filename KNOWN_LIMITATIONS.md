@@ -133,6 +133,22 @@ A custom path can be set via **Settings → Vim Motions → Vimrc & key bindings
 
 Changing the custom path in settings triggers `reloadFeatures()` (the path is in `RELOAD_KEYS`), but a full vimrc re-parse requires reloading the plugin — the same limitation as editing the vimrc file itself.
 
+### Config load notifications
+
+On startup, the plugin shows an Obsidian Notice when vimrc or init.lua files are loaded. The notification behavior depends on the configuration mode and file state:
+
+| Condition                                        | Notification                                                | Suppressible |
+| ------------------------------------------------ | ----------------------------------------------------------- | ------------ |
+| File loaded successfully (N commands)            | `"loaded N command(s) from {path}"`                         | Yes          |
+| File loaded but empty (0 commands)               | `"{path} loaded but contained no commands"`                 | Yes          |
+| File not found in single mode (`lua` or `vimrc`) | `"not found (searched {path})"`                             | No           |
+| Both files missing in dual mode (`lua-vimrc`)    | `"no config files found (searched {vimrcPath}, {luaPath})"` | Yes          |
+| Lua syntax/runtime error                         | `"error loading {path}: {error}"`                           | No           |
+
+"Not found" in single mode (`configMode` is `lua` or `vimrc`) always shows because the user explicitly chose that mode but has no matching file — this indicates a misconfiguration. "Not found" in dual mode (`lua-vimrc`) is suppressible because having neither file is a valid default state.
+
+Notifications can be suppressed via **Settings → Vim Motions → Vimrc & key bindings → Show config load notifications** (default: on). Error notifications and single-mode "not found" warnings always show regardless of this setting.
+
 ### Vim engine settings
 
 Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, textwidth) changed via **Settings → Vim Motions → Vim engine** now take effect immediately — each setting's `onChange` handler calls `vim.setOption()` to push the value to the vim engine in addition to persisting it to disk. Previously, these settings only saved to disk and required an Obsidian reload to take effect (the vimrc code path always worked because it called `vim.setOption()` directly). ([#39](https://github.com/saberzero1/motions/issues/39))

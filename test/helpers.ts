@@ -468,3 +468,51 @@ export async function getPluginSetting(key: string): Promise<unknown> {
         return (plugin?.settings as Record<string, unknown>)?.[settingKey];
     }, key);
 }
+
+export async function setPluginSetting(
+    key: string,
+    value: unknown,
+): Promise<void> {
+    await browser.executeObsidian(
+        ({ app }, k: string, v: unknown) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings[k] = v;
+            plugin.saveSettings();
+        },
+        key,
+        value,
+    );
+}
+
+export async function getNotices(): Promise<string[]> {
+    return (await browser.executeObsidian(() => {
+        const els = document.querySelectorAll('.notice');
+        return Array.from(els).map((el) => el.textContent?.trim() ?? '');
+    })) as string[];
+}
+
+export async function getVimMotionsNotices(): Promise<string[]> {
+    const all = await getNotices();
+    return all.filter(
+        (n) => n.startsWith('Vim Motions:') || n.includes('not found'),
+    );
+}
+
+export async function dismissNotices(): Promise<void> {
+    await browser.executeObsidian(() => {
+        document.querySelectorAll('.notice').forEach((el) => el.remove());
+    });
+}

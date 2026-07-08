@@ -11,9 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Mobile opt-in setting and toggle command** — the plugin is now disabled by default on mobile devices. A new `enableOnMobile` setting (default: off) controls whether the plugin activates on mobile. When disabled, the plugin skips all Vim engine initialization — no editor extensions, event listeners, commands, or status bar elements are registered — leaving Obsidian's editor in its default state. The settings tab and a toggle command (`Vim Motions: Toggle enable on mobile`) remain accessible even when the plugin is disabled, so users can re-enable without needing a desktop device. Changing the setting requires an Obsidian reload. Hardware keyboard users on tablets can opt in; soft-keyboard-only users are no longer stuck in Normal mode with no way to escape. ([#52](https://github.com/saberzero1/motions/issues/52))
     - Plugin: `src/settings.ts` (`enableOnMobile` in `VimMotionsSettings` interface, `DEFAULT_SETTINGS`, `getSettingDefinitions()` Mobile group, `display()` Mobile toggle), `src/main.ts` (early return in `onload()` when `Platform.isMobile && !enableOnMobile`, `toggle-enable-on-mobile` command registered before the gate)
+- **`showConfigNotifications` setting** — a new toggle in **Settings → Vim Motions → Vimrc & key bindings → Show config load notifications** (default: on) controls whether the plugin shows Obsidian Notice popups when vimrc or init.lua files are loaded on startup. When disabled, success and informational notifications ("loaded N commands from …", "loaded but contained no commands", "no config files found") are suppressed. Error notifications (lua syntax/runtime errors) and single-mode "not found" warnings (e.g. configMode is `lua` but no init.lua exists) always show regardless of this setting.
+    - Plugin: `src/settings.ts` (`showConfigNotifications` in `VimMotionsSettings` interface, `DEFAULT_SETTINGS`, toggle in Vimrc & key bindings group), `src/main.ts` (notification gating in vimrc loading, lua loading, and dual-mode fallback)
 
 ### Changed
 
+- **Config load notifications scoped and improved** — startup notifications for vimrc and init.lua loading are now better scoped. "Not found" messages only appear when the specific config type is the sole configured mode (e.g. configMode is `vimrc` but no vimrc exists) and now include the searched path. In dual-mode (`lua-vimrc`), "no config files found" lists both searched paths. Success and empty-file notifications respect the new `showConfigNotifications` setting. Error notifications (lua parse/runtime errors) always show.
+    - Plugin: `src/main.ts` (vimrc notification block, lua notification block, dual-mode fallback notification)
 - **Picker preview pane renders markdown** — picker preview windows now render file content through Obsidian's `MarkdownRenderer.render()` instead of displaying raw markdown text in `<pre><code>` blocks. Headings, bold, italic, code blocks, images, links, callouts, and other markdown formatting are fully rendered. Links inside the preview are non-interactive (click-through disabled via `pointer-events: none`). For positional previews (grep, live grep, headings, marks), the rendered markdown is displayed alongside a line-number gutter that highlights the target line. `Component` lifecycle is managed per preview update (`load()` on render, `unload()` on preview change and modal close) to prevent memory leaks. Plain-string previews (commands, registers) remain unchanged. The picker modal now uses a fixed height (50vh) to prevent layout shifts when switching between files, and the result count element reserves its line height when empty.
     - Plugin: `src/picker/picker.ts` (`renderMarkdownPreview` method, `Component` lifecycle, `PreviewResult` dispatch), `src/picker/types.ts` (`PreviewResult` interface, `PreviewReturn` union type), `src/picker/sources/preview-utils.ts` (returns `PreviewResult` with `sourcePath` and optional `lineRange`), `styles.css` (rendered preview content, positional gutter, fixed modal height)
 
@@ -26,9 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `docs/configuration/settings.md`: added Mobile section with `enableOnMobile` setting
+- `docs/configuration/settings.md`: added Mobile section with `enableOnMobile` setting; added `showConfigNotifications` toggle to Vimrc & key bindings table
 - `docs/getting-started/installation.md`: added Mobile section with enable instructions
-- `KNOWN_LIMITATIONS.md`: updated Mobile support section with opt-in setting, toggle command, and revised platform feature table
+- `KNOWN_LIMITATIONS.md`: updated Mobile support section with opt-in setting, toggle command, and revised platform feature table; added config load notification scoping section under Config file resolution
+- **7 new e2e tests** — `config-notifications.e2e.ts` covering: lua loaded notification shown/suppressed, lua error notification always shown even when suppressed, lua empty-file notification shown/suppressed, notification includes config file path, setting default verification
+- **Shared test helpers** — `setPluginSetting`, `getNotices`, `getVimMotionsNotices`, `dismissNotices` added to `test/helpers.ts`
 
 ## [0.41.0] - 2026-07-08
 

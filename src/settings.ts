@@ -143,6 +143,7 @@ export interface VimMotionsSettings {
     whichKeyCommandLabels: CommandLabel[];
     vimrcPath: string;
     luaConfigPath: string;
+    showConfigNotifications: boolean;
     leaderBindings: LeaderBinding[];
 }
 
@@ -189,6 +190,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     whichKeyCommandLabels: [],
     vimrcPath: '',
     luaConfigPath: '',
+    showConfigNotifications: true,
     leaderBindings: [],
 };
 
@@ -1031,6 +1033,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 ['lua', 'settings'].includes(
                                     this.plugin.settings.configMode,
                                 ),
+                        },
+                    },
+                    {
+                        name: 'Show config load notifications',
+                        desc: 'Show a notification when vimrc or init.lua is loaded on startup. Error notifications are always shown regardless of this setting.',
+                        aliases: [
+                            'suppress notifications',
+                            'quiet',
+                            'startup notice',
+                            'config notification',
+                        ],
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'showConfigNotifications',
+                            disabled: () =>
+                                this.plugin.settings.configMode === 'settings',
                         },
                     },
                 ],
