@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Picker modal Telescope-style presentation** — the unified fuzzy picker now uses a terminal-inspired visual style matching the which-key overlay aesthetic. All text elements use `var(--font-monospace)` at compact sizes (11–13px). Items are denser (3px vertical padding, no minimum height). The selected item uses an accent-tinted background (`hsla(var(--interactive-accent-hsl), 0.15)`) instead of the generic hover color. The modal itself has minimal border-radius (2px), a subtle box-shadow, and an accent-colored border on the input and results panels. The result count bar uses `var(--text-faint)` at 11px with a border separator. Preview pane font sizes are unified at 12px. All colors use Obsidian CSS variables for full theme compatibility. ([telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)-inspired)
+    - Plugin: `styles.css` (picker CSS section rewritten)
+- **Picker floating border titles** — each picker section (prompt, results, preview) now displays a centered title label that overlays the top border, matching telescope.nvim's `─── Files ───` presentation. The prompt shows the source name (e.g. "Files", "Buffers", "Commands", "Livegrep"), the results list shows "Results", and the preview pane shows "Preview". Titles use monospace font at 11px with `var(--text-muted)` color and a `var(--modal-background)` background to mask the border behind them.
+    - Plugin: `src/picker/picker.ts` (`formatTitle` helper, `.vim-motions-picker-section` wrapper divs with `.vim-motions-picker-title` spans for input, results, and preview sections), `styles.css` (`.vim-motions-picker-section`, `.vim-motions-picker-title` rules, updated flex layout for preview body wrappers)
+
 ## [0.43.0] - 2026-07-08
 
 ### Fixed

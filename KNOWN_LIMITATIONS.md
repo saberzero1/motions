@@ -886,6 +886,8 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 
 **Status**: Working. Unified picker with 11 sources, preview pane, live grep, and frecency scoring.
 
+The picker uses a telescope.nvim-inspired visual presentation: monospace fonts, compact item density, accent-tinted selection, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables (`--font-monospace`, `--text-muted`, `--text-accent`, `--interactive-accent-hsl`, `--modal-background`, `--color-accent`) for full light/dark theme compatibility. The presentation matches the which-key overlay's terminal aesthetic.
+
 The picker uses uFuzzy for fuzzy matching (7.5KB, unicode mode). Matching is `prepareSimpleSearch`-based for grep (fuzzy, not regex). Live grep debounces at 200ms with generation-based cancellation.
 
 ### Limitations

@@ -422,8 +422,35 @@
 
 /* --- Picker modal --- */
 
+.vim-motions-picker.modal {
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: none;
+    margin: 0;
+    padding: 0;
+    width: min(var(--dialog-max-width), calc(var(--dialog-width) * 2));
+    max-width: var(--dialog-max-width);
+}
+
+.modal-container.mod-dim .vim-motions-picker.modal {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
 .vim-motions-picker .modal-content {
     padding: 0;
+    width: 100%;
+    max-width: var(--dialog-max-width);
+}
+
+.vim-motions-picker .modal-header {
+    margin: 0;
+}
+
+.vim-motions-picker .modal-header-button.clickable-icon {
+    display: none;
 }
 
 .vim-motions-picker-container {
@@ -432,40 +459,74 @@
     max-height: 60vh;
 }
 
+.vim-motions-picker-section {
+    position: relative;
+    margin-top: 10px;
+}
+
+.vim-motions-picker-title {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-monospace);
+    font-size: 14px;
+    color: var(--color-accent);
+    background: var(--modal-background);
+    padding: 0 8px;
+    z-index: 1;
+    white-space: nowrap;
+}
+
 .vim-motions-picker-input {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 12px;
     border: none;
     border-bottom: 1px solid var(--background-modifier-border);
     background: var(--background-primary);
     color: var(--text-normal);
-    font-size: var(--font-ui-medium);
+    font-size: 13px;
     outline: none;
-    font-family: var(--font-interface);
+    font-family: var(--font-monospace);
+}
+
+input.vim-motions-picker-input {
+    background-color: var(--modal-background);
+    border: 1px solid var(--color-accent);
+    border-radius: 0;
+}
+
+input.vim-motions-picker-input:active,
+input.vim-motions-picker-input:focus {
+    background-color: var(--modal-background);
+    border: 1px solid var(--color-accent);
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
 }
 
 .vim-motions-picker-count {
-    padding: 4px 12px;
-    font-size: var(--font-ui-smaller);
-    color: var(--text-muted);
-    min-height: calc(
-        var(--font-ui-smaller) * var(--line-height-tight, 0) + 8px
-    );
+    padding: 2px 12px;
+    font-size: 11px;
+    font-family: var(--font-monospace);
+    color: var(--text-faint);
+    border: none;
+    min-height: 20px;
 }
 
 .vim-motions-picker-results {
     overflow-y: auto;
     max-height: 50vh;
+    border: 1px solid var(--color-accent);
+    background-color: var(--modal-background);
 }
 
 .vim-motions-picker-item {
-    padding: 6px 12px;
+    padding: 3px 12px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    min-height: 44px;
-    justify-content: center;
+    gap: 1px;
 }
 
 .vim-motions-picker-item:hover {
@@ -473,15 +534,28 @@
 }
 
 .vim-motions-picker-item.is-selected {
-    background: var(--background-modifier-hover);
+    background: hsla(var(--interactive-accent-hsl), 0.15);
+}
+
+.vim-motions-picker-item .vim-motions-picker-item-label:before {
+    content: '>';
+    opacity: 0;
+}
+
+.vim-motions-picker-item.is-selected .vim-motions-picker-item-label:before {
+    content: '>';
+    opacity: 1;
 }
 
 .vim-motions-picker-item-label {
+    font-family: var(--font-monospace);
+    font-size: 13px;
     color: var(--text-normal);
 }
 
 .vim-motions-picker-item-description {
-    font-size: var(--font-ui-smaller);
+    font-family: var(--font-monospace);
+    font-size: 12px;
     color: var(--text-muted);
 }
 
@@ -492,12 +566,16 @@
 }
 
 .vim-motions-picker-error {
-    padding: 12px;
+    padding: 8px 12px;
+    font-family: var(--font-monospace);
+    font-size: 12px;
     color: var(--text-error);
 }
 
 .vim-motions-picker-empty {
-    padding: 12px;
+    padding: 8px 12px;
+    font-family: var(--font-monospace);
+    font-size: 12px;
     color: var(--text-muted);
     text-align: center;
 }
@@ -505,7 +583,7 @@
 /* --- Picker with preview --- */
 
 .vim-motions-picker-with-preview .modal-content {
-    max-width: min(900px, 90vw);
+    max-width: 100%;
 }
 
 .vim-motions-picker-body {
@@ -513,20 +591,35 @@
     flex-direction: row;
     overflow: hidden;
     height: 50vh;
+    gap: 12px;
+}
+
+.vim-motions-picker-body > .vim-motions-picker-section {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 .vim-motions-picker-with-preview .vim-motions-picker-results {
-    flex: 1;
-    min-width: 200px;
     height: 50vh;
 }
 
-.vim-motions-picker-preview {
+.vim-motions-picker-body > .vim-motions-picker-section:first-child {
+    flex: 0 1 auto;
+    min-width: 200px;
+    max-width: max(30%, 200px);
+}
+
+.vim-motions-picker-body > .vim-motions-picker-section:last-child {
     flex: 1;
     min-width: 200px;
+}
+
+.vim-motions-picker-preview {
     height: 50vh;
     overflow-y: auto;
-    border-left: 1px solid var(--background-modifier-border);
+    border: 1px solid var(--color-accent);
+    border-radius: 0;
     background: var(--background-secondary);
     display: none;
 }
@@ -539,7 +632,7 @@
     margin: 0;
     padding: 8px 12px;
     font-family: var(--font-monospace);
-    font-size: var(--font-ui-smaller);
+    font-size: 12px;
     color: var(--text-muted);
     white-space: pre-wrap;
     word-break: break-word;
@@ -547,7 +640,7 @@
 
 .vim-motions-picker-preview-content {
     padding: 8px 12px;
-    font-size: var(--font-ui-smaller);
+    font-size: 12px;
 }
 
 .vim-motions-picker-preview-content.markdown-rendered {
@@ -575,8 +668,8 @@
 .vim-motions-picker-preview-line-number {
     padding: 0 8px;
     font-family: var(--font-monospace);
-    font-size: var(--font-ui-smaller);
-    line-height: var(--line-height-normal);
+    font-size: 12px;
+    line-height: 1.5;
     color: var(--text-faint);
     text-align: right;
     white-space: nowrap;
@@ -595,14 +688,18 @@
 }
 
 .vim-motions-picker-preview-empty {
-    padding: 12px;
+    padding: 8px 12px;
+    font-family: var(--font-monospace);
+    font-size: 12px;
     color: var(--text-faint);
     text-align: center;
     font-style: italic;
 }
 
 .vim-motions-picker-preview-loading {
-    padding: 12px;
+    padding: 8px 12px;
+    font-family: var(--font-monospace);
+    font-size: 12px;
     color: var(--text-faint);
     text-align: center;
 }

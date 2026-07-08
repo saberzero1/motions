@@ -35,7 +35,7 @@ nmap <leader>d :toggleDarkMode<CR>
 
 ## Picker commands
 
-The unified fuzzy picker provides telescope.nvim-style search across vault content. All picker commands are available in both editor and non-editor views.
+The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)-style search across vault content. The picker uses a terminal-inspired visual presentation with monospace fonts, compact item density, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables for full theme compatibility. All picker commands are available in both editor and non-editor views.
 
 | Command         | Short    | Description                                     |
 | --------------- | -------- | ----------------------------------------------- |

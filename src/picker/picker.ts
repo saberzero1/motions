@@ -94,13 +94,26 @@ export class PickerModal extends Modal {
         modal.open();
     }
 
+    private static formatTitle(name: string): string {
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+
     onOpen(): void {
         this.modalEl.addClass('vim-motions-picker');
         const container = this.contentEl.createDiv({
             cls: 'vim-motions-picker-container',
         });
 
-        this.inputEl = container.createEl('input', {
+        const sourceTitle = PickerModal.formatTitle(this.source.name);
+
+        const inputWrapper = container.createDiv({
+            cls: 'vim-motions-picker-section',
+        });
+        inputWrapper.createSpan({
+            cls: 'vim-motions-picker-title',
+            text: sourceTitle,
+        });
+        this.inputEl = inputWrapper.createEl('input', {
             cls: 'vim-motions-picker-input',
             type: 'text',
         });
@@ -121,14 +134,35 @@ export class PickerModal extends Modal {
             const bodyEl = container.createDiv({
                 cls: 'vim-motions-picker-body',
             });
-            this.resultsEl = bodyEl.createDiv({
+            const resultsWrapper = bodyEl.createDiv({
+                cls: 'vim-motions-picker-section',
+            });
+            resultsWrapper.createSpan({
+                cls: 'vim-motions-picker-title',
+                text: 'Results',
+            });
+            this.resultsEl = resultsWrapper.createDiv({
                 cls: 'vim-motions-picker-results',
             });
-            this.previewEl = bodyEl.createDiv({
+            const previewWrapper = bodyEl.createDiv({
+                cls: 'vim-motions-picker-section',
+            });
+            previewWrapper.createSpan({
+                cls: 'vim-motions-picker-title',
+                text: 'Preview',
+            });
+            this.previewEl = previewWrapper.createDiv({
                 cls: 'vim-motions-picker-preview',
             });
         } else {
-            this.resultsEl = container.createDiv({
+            const resultsWrapper = container.createDiv({
+                cls: 'vim-motions-picker-section',
+            });
+            resultsWrapper.createSpan({
+                cls: 'vim-motions-picker-title',
+                text: 'Results',
+            });
+            this.resultsEl = resultsWrapper.createDiv({
                 cls: 'vim-motions-picker-results',
             });
         }
