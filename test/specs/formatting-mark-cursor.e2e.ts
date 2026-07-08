@@ -11,7 +11,7 @@ import {
     PAUSE,
 } from '../helpers';
 
-describe('Formatting mark cursor fix (transaction filter)', function () {
+describe('Formatting mark cursor behavior', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
@@ -104,6 +104,75 @@ describe('Formatting mark cursor fix (transaction filter)', function () {
             const pos2 = await getCursorPos();
             expect(pos2.ch).toBe(pos1.ch);
             expect(await getEditorValue()).toBe('**he** ');
+        });
+    });
+
+    describe('double-char marks should not skip positions', function () {
+        it('l through a**hi**z should visit every position', async function () {
+            await setupEditor('a**hi**z', { line: 0, ch: 0 });
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await vimKeys('l');
+                positions.push((await getCursorPos()).ch);
+            }
+            expect(positions).toEqual([1, 2, 3, 4, 5, 6, 7]);
+            expect(await getEditorValue()).toBe('a**hi**z');
+        });
+
+        it('h through a**hi**z should visit every position', async function () {
+            await setupEditor('a**hi**z', { line: 0, ch: 7 });
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await vimKeys('h');
+                positions.push((await getCursorPos()).ch);
+            }
+            expect(positions).toEqual([6, 5, 4, 3, 2, 1, 0]);
+            expect(await getEditorValue()).toBe('a**hi**z');
+        });
+
+        it('l through __hi__ should visit every position', async function () {
+            await setupEditor('a__hi__z', { line: 0, ch: 0 });
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await vimKeys('l');
+                positions.push((await getCursorPos()).ch);
+            }
+            expect(positions).toEqual([1, 2, 3, 4, 5, 6, 7]);
+        });
+
+        it('l through ~~hi~~ should visit every position', async function () {
+            await setupEditor('a~~hi~~z', { line: 0, ch: 0 });
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await vimKeys('l');
+                positions.push((await getCursorPos()).ch);
+            }
+            expect(positions).toEqual([1, 2, 3, 4, 5, 6, 7]);
+        });
+
+        it('l through ==hi== should visit every position', async function () {
+            await setupEditor('a==hi==z', { line: 0, ch: 0 });
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await vimKeys('l');
+                positions.push((await getCursorPos()).ch);
+            }
+            expect(positions).toEqual([1, 2, 3, 4, 5, 6, 7]);
+        });
+
+        it('l through **hi** at end of line should visit every position', async function () {
+            await setupEditor('**hi**', { line: 0, ch: 0 });
+            const positions: number[] = [];
+            for (let i = 0; i < 8; i++) {
+                await vimKeys('l');
+                positions.push((await getCursorPos()).ch);
+            }
+            expect(positions[0]).toBe(1);
+            expect(positions[1]).toBe(2);
+            expect(positions[2]).toBe(3);
+            expect(positions[3]).toBe(4);
+            expect(positions[4]).toBe(5);
+            expect(await getEditorValue()).toBe('**hi**');
         });
     });
 

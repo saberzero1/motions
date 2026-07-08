@@ -549,27 +549,20 @@ These commands exist but behave differently from Neovim:
 
 ## ~~Visual mode on single-character text objects~~ (Fixed)
 
-**Status**: Fixed via formatting mark cursor correction.
+**Status**: Fixed. The formatting mark transaction filter that caused cursor snapping has been removed.
 
-`vi*` on `*x*` previously selected `*` (the delimiter) instead of `x` (the content). The root cause was Live Preview cursor snapping: Obsidian uses `Decoration.replace({})` to hide formatting marks (`*`, `**`, `_`, `~~`, etc.) on inactive lines, creating zero-width gaps. When the cursor was placed inside formatted text, CM6's position mapping snapped to the delimiter boundary instead of the intended content position.
+`vi*` on `*x*` previously selected `*` (the delimiter) instead of `x` (the content). The root cause was believed to be Live Preview cursor snapping from Obsidian's `Decoration.replace({})` hiding formatting marks. An `EditorState.transactionFilter` was introduced to compensate by snapping cursor positions away from formatting mark ranges.
 
-Fixed via an `EditorState.transactionFilter` that detects when a cursor endpoint lands strictly inside a formatting mark range and snaps it to the nearest boundary based on motion direction. The filter walks the Lezer syntax tree to identify formatting mark nodes (`formatting-strong`, `formatting-em`, `formatting-code`, `formatting-strikethrough`, `formatting-highlight`) and only activates in Live Preview mode.
+Investigation (issue [#33](https://github.com/saberzero1/motions/issues/33)) found that the transaction filter was the **sole cause** of cursor snapping for double-character marks (`**`, `__`, `~~`, `==`). Empirical testing confirmed:
 
-## Formatting mark cursor correction in Live Preview
+- On the active line, Obsidian uses `Decoration.mark` (not `Decoration.replace`) — formatting marks are real text nodes with full width in the DOM
+- With the filter disabled, `h`/`l` movement through `**hi**` visits every position without skipping
+- Mark visibility in Live Preview is controlled entirely by Obsidian based on cursor proximity, unaffected by the filter
+- `vi*`, `di*`, `da*` and other text objects work correctly without the filter
 
-The plugin uses an `EditorState.transactionFilter` to correct cursor positioning near markdown formatting marks (`*`, `**`, `_`, `__`, `` ` ``, `~~`, `==`) in Live Preview mode.
+The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed.
 
-Obsidian's Live Preview hides formatting marks on inactive lines via `Decoration.replace({})`. This creates zero-width gaps in the DOM that cause CM6 to snap the cursor to delimiter boundaries when vim motions place the cursor inside formatted text. The transaction filter intercepts selection-only transactions and snaps cursor endpoints that land strictly inside a formatting mark range to the nearest boundary.
-
-The filter walks the Lezer syntax tree (`syntaxTree(state).iterate()`) to identify formatting mark nodes by their node type names. It only activates in Live Preview mode (checked via `editorLivePreviewField`) and only on the active line (cursor mode).
-
-When a formatting mark extends to the end of a line (e.g. `**he**` with no trailing content), the filter does not snap rightward past the mark — there is no valid cursor position beyond it on that line. The cursor stabilizes at the mark boundary instead of oscillating. When the cursor did not actually move (e.g. `l` at end of line is a no-op), the filter skips adjustment entirely.
-
-The filter only applies to empty (cursor) selections. Non-empty selections (visual mode) are skipped entirely — the `range.empty` guard ensures that `v`, `V`, and `<C-v>` selections across formatted text are not corrupted by formatting mark snapping. ([#38](https://github.com/saberzero1/motions/issues/38))
-
-**Known limitation: `ci*` in Live Preview** — the `c` (change) operator deletes text and enters insert mode at the deletion point. If the deletion point falls inside a collapsed formatting mark region, the insert cursor may land at the wrong position. `di*` (delete without entering insert mode) works correctly. This limitation is deferred to a future widget-based approach.
-
-The previous approach (v0.22.0) used `RangeSetBuilder.prototype.add` monkey-patching to suppress Obsidian's replace decorations globally, with CSS `color: transparent` to hide the now-visible marks. This was replaced because the monkey-patching conflicted with obsidian-latex-suite (issue #32, causing phantom text insertion) and the CSS workaround didn't fully cover all formatting mark types (issue #33). The `'always'` mode (show marks on all lines) was removed because it required monkey-patching to implement.
+**Known limitation: `ci*` in Live Preview** — the `c` (change) operator deletes text and enters insert mode at the deletion point. If the deletion point falls inside a collapsed formatting mark region, the insert cursor may land at the wrong position. `di*` (delete without entering insert mode) works correctly.
 
 ## ~~Visual line selection overlap in Live Preview~~ (Fixed)
 

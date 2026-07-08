@@ -120,7 +120,7 @@ export interface VimMotionsSettings {
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'off' | 'cursor' | 'always';
-    formattingMarkMode: 'off' | 'cursor';
+
     enableHintMode: boolean;
     hintModeLabels: string;
     hintModeHotkey: string;
@@ -167,7 +167,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     listContinuationOnOpen: true,
     enableTableNav: true,
     tableWidgetMode: 'cursor',
-    formattingMarkMode: 'cursor' as const,
+
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',
@@ -249,7 +249,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'listContinuationOnOpen',
         'enableTableNav',
         'tableWidgetMode',
-        'formattingMarkMode',
         'enableWorkspaceNav',
         'enableEasyMotion',
         'enableHintMode',
@@ -445,25 +444,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                             disabled: () =>
                                 this.isOverridden('tableWidgetMode'),
-                        },
-                    },
-                    {
-                        name: 'Formatting marks in Live Preview',
-                        desc: this.describeOverride(
-                            'formattingMarkMode',
-                            'Controls how markdown formatting marks (*, **, _, __, `, ~~, ==) are handled in Live Preview. ' +
-                                '"Cursor-aware" corrects cursor positioning on the active line (prevents cursor snapping inside formatted text). ' +
-                                '"Always hidden" uses default Obsidian behavior (may cause cursor snapping).',
-                        ),
-                        control: {
-                            type: 'dropdown' as const,
-                            key: 'formattingMarkMode',
-                            options: {
-                                cursor: 'Cursor-aware',
-                                off: 'Always hidden',
-                            },
-                            disabled: () =>
-                                this.isOverridden('formattingMarkMode'),
                         },
                     },
                     {
@@ -1518,33 +1498,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.tableWidgetMode =
                             value as VimMotionsSettings['tableWidgetMode'];
                         this.plugin.vimrcOverrides?.delete('tableWidgetMode');
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Formatting marks in Live Preview')
-            .setDesc(
-                describeOverride(
-                    'formattingMarkMode',
-                    'Controls how markdown formatting marks (* ** _ __ ` ~~ ==) are handled in Live Preview. ' +
-                        '"Cursor-aware" corrects cursor positioning on the active line (prevents cursor snapping). ' +
-                        '"Always hidden" uses default Obsidian behavior (may cause cursor snapping).',
-                ),
-            )
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOption('cursor', 'Cursor-aware')
-                    .addOption('off', 'Always hidden')
-                    .setValue(this.plugin.settings.formattingMarkMode)
-                    .setDisabled(isOverridden('formattingMarkMode'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.formattingMarkMode =
-                            value as VimMotionsSettings['formattingMarkMode'];
-                        this.plugin.vimrcOverrides?.delete(
-                            'formattingMarkMode',
-                        );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),

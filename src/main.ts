@@ -61,10 +61,7 @@ import {
     createTableCursorFixExtension,
 } from './vim/table-cursor-fix';
 import { EditorView } from '@codemirror/view';
-import {
-    setFormattingMarkMode,
-    createFormattingTransactionFilter,
-} from './vim/formatting-mark-fix';
+
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 import { loadInitLua } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
@@ -1041,9 +1038,6 @@ export default class VimMotionsPlugin extends Plugin {
             this.uninstallTableCursorFix = installTableCursorFix();
         }
 
-        setFormattingMarkMode(this.settings.formattingMarkMode ?? 'cursor');
-        this.registerEditorExtension(createFormattingTransactionFilter());
-
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
 
         this.app.workspace.trigger('parse-style-settings');
@@ -1231,7 +1225,6 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableTableNav) {
             this.uninstallTableCursorFix = installTableCursorFix();
         }
-        setFormattingMarkMode(this.settings.formattingMarkMode ?? 'cursor');
     }
 
     private rebuildExSuggest(): void {
@@ -2000,9 +1993,8 @@ export default class VimMotionsPlugin extends Plugin {
                 ? 'always'
                 : 'off';
         }
-        if (this.settings.formattingMarkMode === ('always' as string)) {
-            this.settings.formattingMarkMode = 'cursor';
-        }
+        delete (this.settings as unknown as Record<string, unknown>)
+            .formattingMarkMode;
     }
 
     async saveSettings() {
