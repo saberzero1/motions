@@ -1,5 +1,6 @@
 import {
     App,
+    Notice,
     PluginSettingTab,
     setIcon,
     Setting,
@@ -100,6 +101,7 @@ export const DEFAULT_CURSOR_SHAPES: CursorShapes = {
 };
 
 export interface VimMotionsSettings {
+    enableOnMobile: boolean;
     enableTextObjects: boolean;
     enableNavigation: boolean;
     enableWorkspaceNav: boolean;
@@ -145,6 +147,7 @@ export interface VimMotionsSettings {
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
+    enableOnMobile: false,
     enableTextObjects: true,
     enableNavigation: true,
     enableWorkspaceNav: true,
@@ -335,6 +338,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                       } satisfies SettingDefinitionItem,
                   ]
                 : []),
+
+            // ── Mobile ───────────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Mobile',
+                items: [
+                    {
+                        name: 'Enable on mobile',
+                        desc: 'Activate the plugin on mobile devices. Disabled by default because most mobile users lack a hardware keyboard. Reload Obsidian after changing.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableOnMobile',
+                        },
+                    },
+                ],
+            },
 
             // ── Vim features ────────────────────────────────────────
             {
@@ -1332,6 +1351,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 text: 'Go to settings \u2192 editor \u2192 Vim key bindings and turn it off, then reload Obsidian.',
             });
         }
+
+        // ── Mobile ──────────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Mobile').setHeading();
+
+        new Setting(containerEl)
+            .setName('Enable on mobile')
+            .setDesc(
+                'Activate the plugin on mobile devices. Disabled by default because most mobile users lack a hardware keyboard. Reload Obsidian after changing.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableOnMobile)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableOnMobile = value;
+                        await this.plugin.saveSettings();
+                        new Notice('Reload Obsidian to apply this change.');
+                    }),
+            );
 
         // ── Vim features ───────────────────────────────────────────
 

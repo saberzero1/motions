@@ -412,24 +412,31 @@ Standard Vim's `gf` opens the file whose path is under the cursor. In Obsidian, 
 
 ## Mobile support
 
-The plugin works on mobile with limitations. EasyMotion and hint mode are disabled on mobile because they depend on desktop-only Obsidian globals (`activeDocument`, `activeWindow`) that are unavailable on mobile. All other features work, though on-screen keyboard users are further limited by Obsidian's soft keyboard, which does not support `:` and `/` command entry.
+The plugin is **disabled by default on mobile** (`enableOnMobile: false`). Most mobile users sync the plugin to their vault without a hardware keyboard attached, and the Vim engine puts the editor into Normal mode with no obvious way to return to typing (soft keyboards lack `Escape` and `:`). ([#52](https://github.com/saberzero1/motions/issues/52))
+
+To enable: toggle **Settings → Vim Motions → Mobile → Enable on mobile**, or use the command palette: **Vim Motions: Toggle enable on mobile**. Both are accessible even when the plugin is disabled on mobile. A reload is required after changing the setting.
+
+When disabled on mobile, the plugin's `onload()` returns early after registering only the settings tab and the toggle command. No editor extensions, event listeners, Vim engine initialization, or status bar elements are registered.
+
+When enabled on mobile, EasyMotion and hint mode remain disabled because they depend on desktop-only Obsidian globals (`activeDocument`, `activeWindow`). All other features work, though on-screen keyboard users are further limited by Obsidian's soft keyboard, which does not support `:` and `/` command entry.
 
 Features by platform:
 
-| Feature                  | Desktop | Mobile + physical keyboard | Mobile + soft keyboard |
-| ------------------------ | ------- | -------------------------- | ---------------------- |
-| Core Vim motions         | ✅      | ✅                         | ⚠️ Limited             |
-| Text objects             | ✅      | ✅                         | ⚠️ Limited             |
-| EasyMotion               | ✅      | ❌ Disabled                | ❌ Disabled            |
-| Hint mode                | ✅      | ❌ Disabled                | ❌ Disabled            |
-| Ex commands (`:w`, `:q`) | ✅      | ✅                         | ❌ No `:` entry        |
-| Search (`/`, `?`)        | ✅      | ✅                         | ❌ No `/` entry        |
-| Workspace nav (`<C-w>`)  | ✅      | ✅                         | ❌ No modifier keys    |
-| Global workspace nav     | ✅      | ❌ Disabled                | ❌ Disabled            |
-| Status bar               | ✅      | ✅                         | ✅                     |
-| Vimrc                    | ✅      | ✅                         | ✅                     |
-| Settings                 | ✅      | ✅                         | ✅                     |
-| Popout windows           | ✅      | N/A                        | N/A                    |
+| Feature                  | Desktop | Mobile (enabled) + physical keyboard | Mobile (enabled) + soft keyboard | Mobile (disabled) |
+| ------------------------ | ------- | ------------------------------------ | -------------------------------- | ----------------- |
+| Core Vim motions         | ✅      | ✅                                   | ⚠️ Limited                       | ❌ Off            |
+| Text objects             | ✅      | ✅                                   | ⚠️ Limited                       | ❌ Off            |
+| EasyMotion               | ✅      | ❌ Disabled                          | ❌ Disabled                      | ❌ Off            |
+| Hint mode                | ✅      | ❌ Disabled                          | ❌ Disabled                      | ❌ Off            |
+| Ex commands (`:w`, `:q`) | ✅      | ✅                                   | ❌ No `:` entry                  | ❌ Off            |
+| Search (`/`, `?`)        | ✅      | ✅                                   | ❌ No `/` entry                  | ❌ Off            |
+| Workspace nav (`<C-w>`)  | ✅      | ✅                                   | ❌ No modifier keys              | ❌ Off            |
+| Global workspace nav     | ✅      | ❌ Disabled                          | ❌ Disabled                      | ❌ Off            |
+| Status bar               | ✅      | ✅                                   | ✅                               | ❌ Off            |
+| Vimrc                    | ✅      | ✅                                   | ✅                               | ❌ Off            |
+| Settings                 | ✅      | ✅                                   | ✅                               | ✅                |
+| Toggle command           | ✅      | ✅                                   | ✅                               | ✅                |
+| Popout windows           | ✅      | N/A                                  | N/A                              | N/A               |
 
 ## Neovim Ex commands not applicable in Obsidian
 

@@ -19,9 +19,15 @@ tags:
 3. Copy the downloaded files into that folder
 4. Restart Obsidian and enable the plugin in **Settings → Community plugins**
 
+## Mobile
+
+The plugin is **disabled by default on mobile**. If you're using a hardware keyboard on a tablet or phone, enable it in **Settings → Vim Motions → Mobile → Enable on mobile** (reload required). You can also toggle it from the command palette: **Vim Motions: Toggle enable on mobile**.
+
+See [[settings#Mobile]] for details and [[known-limitations#Mobile support]] for platform-specific feature availability.
+
 ## Verify installation
 
-After enabling the plugin:
+After enabling the plugin (on desktop, or on mobile with the setting enabled):
 
 1. Open any Markdown file
 2. Press `Esc` to enter Normal mode — the status bar should show **NORMAL**

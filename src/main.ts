@@ -324,6 +324,25 @@ export default class VimMotionsPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
+        // --- Mobile gate ---
+        // Always register settings tab and toggle command so users can
+        // enable/disable the plugin on mobile without a desktop round-trip.
+        this.addSettingTab(new VimMotionsSettingTab(this.app, this));
+        this.addCommand({
+            id: 'toggle-enable-on-mobile',
+            name: 'Toggle enable on mobile',
+            callback: async () => {
+                this.settings.enableOnMobile = !this.settings.enableOnMobile;
+                await this.saveSettings();
+                new Notice(
+                    `Vim Motions on mobile: ${this.settings.enableOnMobile ? 'enabled' : 'disabled'}. Reload Obsidian to apply.`,
+                );
+            },
+        });
+        if (Platform.isMobile && !this.settings.enableOnMobile) {
+            return;
+        }
+
         const builtinVimOn = isVimEnabled(
             this.app as unknown as {
                 vault: { getConfig: (key: string) => unknown };
@@ -974,9 +993,6 @@ export default class VimMotionsPlugin extends Plugin {
             this.globalKeyHandler.install();
             this.rebuildGlobalWhichKey();
         }
-
-        // --- Settings tab ---
-        this.addSettingTab(new VimMotionsSettingTab(this.app, this));
 
         // --- Leader bindings from settings UI ---
         this.registration.beginLeaderScope();

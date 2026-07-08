@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Mobile opt-in setting and toggle command** — the plugin is now disabled by default on mobile devices. A new `enableOnMobile` setting (default: off) controls whether the plugin activates on mobile. When disabled, the plugin skips all Vim engine initialization — no editor extensions, event listeners, commands, or status bar elements are registered — leaving Obsidian's editor in its default state. The settings tab and a toggle command (`Vim Motions: Toggle enable on mobile`) remain accessible even when the plugin is disabled, so users can re-enable without needing a desktop device. Changing the setting requires an Obsidian reload. Hardware keyboard users on tablets can opt in; soft-keyboard-only users are no longer stuck in Normal mode with no way to escape. ([#52](https://github.com/saberzero1/motions/issues/52))
+    - Plugin: `src/settings.ts` (`enableOnMobile` in `VimMotionsSettings` interface, `DEFAULT_SETTINGS`, `getSettingDefinitions()` Mobile group, `display()` Mobile toggle), `src/main.ts` (early return in `onload()` when `Platform.isMobile && !enableOnMobile`, `toggle-enable-on-mobile` command registered before the gate)
+
 ### Changed
 
 - **Picker preview pane renders markdown** — picker preview windows now render file content through Obsidian's `MarkdownRenderer.render()` instead of displaying raw markdown text in `<pre><code>` blocks. Headings, bold, italic, code blocks, images, links, callouts, and other markdown formatting are fully rendered. Links inside the preview are non-interactive (click-through disabled via `pointer-events: none`). For positional previews (grep, live grep, headings, marks), the rendered markdown is displayed alongside a line-number gutter that highlights the target line. `Component` lifecycle is managed per preview update (`load()` on render, `unload()` on preview change and modal close) to prevent memory leaks. Plain-string previews (commands, registers) remain unchanged. The picker modal now uses a fixed height (50vh) to prevent layout shifts when switching between files, and the result count element reserves its line height when empty.
@@ -18,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/table-render-widget.ts` (`renderCell` function, `MarkdownRenderer.render()` integration, `Component` lifecycle, `editorInfoField` for app/sourcePath access)
 - **`:obcommand` unavailable in Lua-only config mode** — `vim.cmd('obcommand ...')` failed with "Not an editor command" when `configMode` was set to `lua` (without vimrc). The `obcommand` ex command was only registered inside `registerVimrcExCommands()`, which only runs when vimrc loading is enabled. Moved `obcommand` registration to `registerObCommand()` alongside `ob`, sharing the same handler. Both commands are now available in all config modes (lua, vimrc, lua-vimrc, settings-only). Additionally, `:obcommand` with no arguments now opens the command picker (matching `:ob` behavior) instead of silently doing nothing.
     - Plugin: `src/workspace/commands.ts` (`registerObCommand` registers both `ob` and `obcommand`), `src/vimrc/loader.ts` (removed duplicate `obcommand` registration and unused `executeCommandById` helper)
+
+### Documentation
+
+- `docs/configuration/settings.md`: added Mobile section with `enableOnMobile` setting
+- `docs/getting-started/installation.md`: added Mobile section with enable instructions
+- `KNOWN_LIMITATIONS.md`: updated Mobile support section with opt-in setting, toggle command, and revised platform feature table
 
 ## [0.41.0] - 2026-07-08
 

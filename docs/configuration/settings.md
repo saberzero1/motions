@@ -9,6 +9,15 @@ tags:
 
 All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. On Obsidian 1.13.0+, all settings are indexed by Obsidian's global settings search.
 
+## Mobile
+
+| Name             | Type   | Default | Range/Options | Lua | Vimrc | Description                                                                                                    |
+| ---------------- | ------ | ------- | ------------- | --- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| Enable on mobile | toggle | `false` | —             | —   | —     | Activate the plugin on mobile devices. Disabled by default because most mobile users lack a hardware keyboard. |
+
+> [!tip]
+> Changing this setting requires an Obsidian reload. You can also toggle it from the command palette: **Vim Motions: Toggle enable on mobile**.
+
 ## Vim features
 
 | Name                             | Type     | Default   | Range/Options             | Lua                             | Vimrc                       | Description                                                                                  |
