@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-07-08
+
 ### Fixed
 
 - **Cursor snapping over double-character formatting marks in Live Preview** — moving through `**bold**`, `__underline__`, `~~strikethrough~~`, or `==highlight==` with `h`/`l` skipped positions inside the `**`/`__`/`~~`/`==` delimiters instead of visiting each character. The cursor would jump from the first delimiter character to the content, skipping the second delimiter character. Investigation found that the `EditorState.transactionFilter` introduced to correct cursor positioning near formatting marks was the sole cause of the snapping — Obsidian's Live Preview natively handles mark visibility based on cursor proximity, and all formatting marks are full-width DOM elements on the active line. The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed. ([#33](https://github.com/saberzero1/motions/issues/33))

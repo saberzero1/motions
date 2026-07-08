@@ -26,25 +26,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 54 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 53 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.42.0
+## What's new in 0.43.0
 
-- **Mobile opt-in setting** — the plugin is now disabled by default on mobile. A new `enableOnMobile` toggle and command (`Vim Motions: Toggle enable on mobile`) let hardware-keyboard users opt in without affecting soft-keyboard-only users. ([#52](https://github.com/saberzero1/motions/issues/52))
-- **Config load notification control** — new `showConfigNotifications` toggle suppresses vimrc/init.lua success notifications on startup. Error notifications always show.
-- **Rendered markdown in picker previews** — the fuzzy picker preview pane now renders headings, bold, images, code blocks, and other markdown formatting instead of raw text.
-- **Rendered markdown in table widget** — inline formatting (images, bold, math, links) inside table cells now renders correctly in the cursor-aware table widget. ([#50](https://github.com/saberzero1/motions/issues/50))
-- **`:obcommand` available in all config modes** — `vim.cmd('obcommand ...')` now works in Lua-only mode; `:obcommand` with no arguments opens the command picker.
-
-### Recent highlights (0.38–0.41)
-
-- **Telescope-style fuzzy picker** (0.41) — 11 sources (files, buffers, commands, headings, live grep, marks, registers, …), preview pane, frecency scoring, `<C-x>`/`<C-v>`/`<C-t>` split-open, `<leader>f*` mappings, `vim.obsidian.pick()` Lua API
-- **External config file paths** (0.41) — absolute paths (`~/.config/obsidian/init.lua`) for shared config across vaults ([#51](https://github.com/saberzero1/motions/issues/51))
-- **`vim.ob.*` API expansion** (0.39) — 68 Obsidian-specific functions across `vim.ob.meta.*`, `vim.ob.fs.*`, `vim.ob.ui.*`, and editor state
-- **Custom surround pairs** (0.38) — `vim.obsidian.surround.set("l", { left = "[[", right = "]]" })` for user-defined delimiters ([#36](https://github.com/saberzero1/motions/issues/36))
-- **Surround nvim-surround parity** (0.40) — 73/74 golden tests passing against nvim-surround ([#41](https://github.com/saberzero1/motions/issues/41))
-- **Leader key bindings in which-key** (0.40) — `vim.keymap.set` with `desc` auto-populates which-key; space-as-leader fixed ([#27](https://github.com/saberzero1/motions/issues/27))
-- **3 new autocmd events** (0.39) — `LeafEnter`, `LeafLeave`, `FileType` (total: 15 events)
+- **Fixed cursor snapping over formatting marks in Live Preview** — moving through `**bold**`, `__underline__`, `~~strikethrough~~`, or `==highlight==` with `h`/`l` no longer skips positions inside the delimiters. The `formattingMarkMode` setting has been removed — Obsidian's Live Preview natively handles mark visibility. ([#33](https://github.com/saberzero1/motions/issues/33))
+- **Fixed `gk`/`gj` skipping lines over mixed headings** — `gk` no longer jumps over multiple document lines when navigating through headings of varying sizes (`###`, `####`) separated by empty lines. All multi-line jumps are now clamped to ±1 regardless of decoration type. ([#26](https://github.com/saberzero1/motions/issues/26))
 
 See the [[changelog|full changelog]] for details.
