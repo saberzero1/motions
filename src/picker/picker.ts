@@ -1,4 +1,11 @@
-import { App, MarkdownView, Modal, Notice } from 'obsidian';
+import {
+    App,
+    Component,
+    MarkdownRenderer,
+    MarkdownView,
+    Modal,
+    Notice,
+} from 'obsidian';
 import { isEasyMotionActive } from '../easymotion/register';
 import { isHintModeActive } from '../ui/hint-mode';
 import type { FrecencyStore } from './frecency';
@@ -8,6 +15,8 @@ import type {
     PickerMatcher,
     PickerOptions,
     PickerSource,
+    PreviewResult,
+    PreviewReturn,
 } from './types';
 
 const MAX_RENDERED = 200;
@@ -41,6 +50,7 @@ export class PickerModal extends Modal {
     private previewEl: HTMLElement | null = null;
     private itemElements: HTMLElement[] = [];
     private previewFrame: number | null = null;
+    private previewComponent: Component | null = null;
     private isDynamic = false;
     private searchGeneration = 0;
     private searchTimer: number | null = null;
@@ -513,7 +523,7 @@ export class PickerModal extends Modal {
         this.previewFrame = window.requestAnimationFrame(() => {
             this.previewFrame = null;
             Promise.resolve(this.source.preview?.(item, this.app))
-                .then((result) => {
+                .then((raw: PreviewReturn | undefined) => {
                     if (
                         this.currentMatches[this.selectedIndex]?.item.id !==
                         currentId
@@ -521,16 +531,22 @@ export class PickerModal extends Modal {
                         return;
                     }
                     if (!this.previewEl) return;
-                    if (result == null) {
+                    if (raw == null) {
                         this.showPreviewMessage(
                             'No preview',
                             'vim-motions-picker-preview-empty',
                         );
                         return;
                     }
-                    this.previewEl.empty();
-                    const pre = this.previewEl.createEl('pre');
-                    pre.createEl('code', { text: result });
+
+                    if (typeof raw === 'string') {
+                        this.previewEl.empty();
+                        const pre = this.previewEl.createEl('pre');
+                        pre.createEl('code', { text: raw });
+                        return;
+                    }
+
+                    this.renderMarkdownPreview(raw);
                 })
                 .catch((error: unknown) => {
                     if (!this.previewEl) return;
@@ -542,6 +558,61 @@ export class PickerModal extends Modal {
                     );
                 });
         });
+    }
+
+    private renderMarkdownPreview(result: PreviewResult): void {
+        if (!this.previewEl) return;
+
+        this.previewComponent?.unload();
+        this.previewComponent = new Component();
+        this.previewComponent.load();
+
+        this.previewEl.empty();
+
+        const { lineRange } = result;
+
+        if (lineRange) {
+            const wrapper = this.previewEl.createDiv({
+                cls: 'vim-motions-picker-preview-positional',
+            });
+
+            const gutter = wrapper.createDiv({
+                cls: 'vim-motions-picker-preview-gutter',
+            });
+            for (let n = lineRange.lineStart; n <= lineRange.lineEnd; n++) {
+                const lineEl = gutter.createDiv({
+                    cls: 'vim-motions-picker-preview-line-number',
+                    text: String(n),
+                });
+                if (n === lineRange.targetLine) {
+                    lineEl.addClass('is-target');
+                }
+            }
+
+            const content = wrapper.createDiv({
+                cls: 'vim-motions-picker-preview-content markdown-rendered',
+            });
+
+            MarkdownRenderer.render(
+                this.app,
+                result.markdown,
+                content,
+                result.sourcePath,
+                this.previewComponent,
+            ).catch(() => {});
+        } else {
+            const content = this.previewEl.createDiv({
+                cls: 'vim-motions-picker-preview-content markdown-rendered',
+            });
+
+            MarkdownRenderer.render(
+                this.app,
+                result.markdown,
+                content,
+                result.sourcePath,
+                this.previewComponent,
+            ).catch(() => {});
+        }
     }
 
     private showPreviewMessage(text: string, className: string): void {
@@ -578,6 +649,8 @@ export class PickerModal extends Modal {
             window.cancelAnimationFrame(this.previewFrame);
             this.previewFrame = null;
         }
+        this.previewComponent?.unload();
+        this.previewComponent = null;
         this.previewEl = null;
         this.modalEl.removeClass('vim-motions-picker-with-preview');
         this.contentEl.empty();

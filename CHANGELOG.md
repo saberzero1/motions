@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Picker preview pane renders markdown** — picker preview windows now render file content through Obsidian's `MarkdownRenderer.render()` instead of displaying raw markdown text in `<pre><code>` blocks. Headings, bold, italic, code blocks, images, links, callouts, and other markdown formatting are fully rendered. Links inside the preview are non-interactive (click-through disabled via `pointer-events: none`). For positional previews (grep, live grep, headings, marks), the rendered markdown is displayed alongside a line-number gutter that highlights the target line. `Component` lifecycle is managed per preview update (`load()` on render, `unload()` on preview change and modal close) to prevent memory leaks. Plain-string previews (commands, registers) remain unchanged. The picker modal now uses a fixed height (50vh) to prevent layout shifts when switching between files, and the result count element reserves its line height when empty.
+    - Plugin: `src/picker/picker.ts` (`renderMarkdownPreview` method, `Component` lifecycle, `PreviewResult` dispatch), `src/picker/types.ts` (`PreviewResult` interface, `PreviewReturn` union type), `src/picker/sources/preview-utils.ts` (returns `PreviewResult` with `sourcePath` and optional `lineRange`), `styles.css` (rendered preview content, positional gutter, fixed modal height)
+
 ### Fixed
 
 - **Cursor-aware table widget does not render inline markdown** — images, bold, italic, math, links, and other inline formatting inside table cells were displayed as plain text when the cursor-aware table widget was active. The `TableRenderWidget` used `textContent` to populate cells, which strips all markup. Replaced with `MarkdownRenderer.render()` to process cell content through Obsidian's markdown pipeline. Plain text is shown instantly as a fallback while the async render completes. The `<p>` wrapper added by `MarkdownRenderer` is unwrapped to avoid block-level spacing in cells. `Component` lifecycle is managed per widget (`load()` in `toDOM`, `unload()` in `destroy`) to prevent memory leaks. `editorInfoField` provides `app` and `sourcePath` from the editor state for correct relative image path resolution. ([#50](https://github.com/saberzero1/motions/issues/50))

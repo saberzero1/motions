@@ -12,6 +12,26 @@ export interface PickerItem {
 
 export type SplitDirection = 'horizontal' | 'vertical' | 'tab';
 
+/** Rendered markdown preview of a file (or file excerpt). */
+export interface PreviewResult {
+    /** Raw markdown content to render via MarkdownRenderer. */
+    markdown: string;
+    /** Vault-relative path for resolving relative links/images. */
+    sourcePath: string;
+    /**
+     * When set, a line-number gutter is shown alongside the rendered
+     * markdown.  The gutter spans `lineStart` through `lineEnd`
+     * (1-indexed, inclusive) and highlights `targetLine`.
+     */
+    lineRange?: {
+        lineStart: number;
+        lineEnd: number;
+        targetLine: number;
+    };
+}
+
+export type PreviewReturn = PreviewResult | string | null;
+
 export interface PickerSource {
     name: string;
     placeholder: string;
@@ -24,7 +44,7 @@ export interface PickerSource {
     preview?(
         item: PickerItem,
         app: App,
-    ): string | null | Promise<string | null>;
+    ): PreviewReturn | Promise<PreviewReturn>;
 }
 
 export interface PickerOptions {
