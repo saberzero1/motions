@@ -48,6 +48,7 @@ export interface VimApiCallbacks {
     executeCommand?: (id: string) => void;
     listCommands?: () => Array<{ id: string; name: string }>;
     openFile?: (path: string) => void;
+    openPicker?: (source: string, opts?: { query?: string }) => void;
     getCurrentFile?: () => {
         path: string;
         name: string;

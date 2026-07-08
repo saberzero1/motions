@@ -66,6 +66,22 @@ export function injectObsidianApi(
     });
     lua.lua_setfield(L, obsidianIndex, to_luastring('open_file'));
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const source = readLuaString(state, 1);
+        if (!source) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.pick expects a source string'),
+            );
+        }
+        let query: string | undefined;
+        if (lua.lua_istable(state, 2)) {
+            query = readStringField(state, 2, 'query');
+        }
+        callbacks.openPicker?.(source, query ? { query } : undefined);
+        return 0;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('pick'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
         const file = callbacks.getCurrentFile?.() ?? null;
         if (!file) {
             lua.lua_pushnil(state);

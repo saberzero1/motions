@@ -21,6 +21,12 @@ import { waitForKey, waitForLabel } from './keypress';
 
 const DEFAULT_LABELS = 'asdghklqwertyuiopzxcvbnmfj';
 
+let easyMotionActive = false;
+
+export function isEasyMotionActive(): boolean {
+    return easyMotionActive;
+}
+
 interface OverlayOptions {
     shade: () => boolean;
     fontSize: () => number;
@@ -38,23 +44,28 @@ function createMotionTrigger(
     findTargets: (cm: CmAdapter) => Target[],
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
-        const targets = filterVisibleTargets(cm, findTargets(cm));
-        if (targets.length === 0) return null;
-
-        const labeled = assignLabels(targets, labels);
-        const overlay = showOverlay(cm, labeled, {
-            shade: opts.shade(),
-            fontSize: opts.fontSize(),
-        });
-        if (!overlay) return null;
-
+        easyMotionActive = true;
         try {
-            const match = await waitForLabel(labeled, (remaining) => {
-                overlay.updateLabels(remaining);
+            const targets = filterVisibleTargets(cm, findTargets(cm));
+            if (targets.length === 0) return null;
+
+            const labeled = assignLabels(targets, labels);
+            const overlay = showOverlay(cm, labeled, {
+                shade: opts.shade(),
+                fontSize: opts.fontSize(),
             });
-            return match ? { line: match.line, ch: match.ch } : null;
+            if (!overlay) return null;
+
+            try {
+                const match = await waitForLabel(labeled, (remaining) => {
+                    overlay.updateLabels(remaining);
+                });
+                return match ? { line: match.line, ch: match.ch } : null;
+            } finally {
+                overlay.cleanup();
+            }
         } finally {
-            overlay.cleanup();
+            easyMotionActive = false;
         }
     };
 }
@@ -65,26 +76,31 @@ function createCharMotionTrigger(
     findTargets: (cm: CmAdapter, char: string) => Target[],
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
-        const charKey = await waitForKey();
-        if (!charKey || charKey.length !== 1) return null;
-
-        const targets = filterVisibleTargets(cm, findTargets(cm, charKey));
-        if (targets.length === 0) return null;
-
-        const labeled = assignLabels(targets, labels);
-        const overlay = showOverlay(cm, labeled, {
-            shade: opts.shade(),
-            fontSize: opts.fontSize(),
-        });
-        if (!overlay) return null;
-
+        easyMotionActive = true;
         try {
-            const match = await waitForLabel(labeled, (remaining) => {
-                overlay.updateLabels(remaining);
+            const charKey = await waitForKey();
+            if (!charKey || charKey.length !== 1) return null;
+
+            const targets = filterVisibleTargets(cm, findTargets(cm, charKey));
+            if (targets.length === 0) return null;
+
+            const labeled = assignLabels(targets, labels);
+            const overlay = showOverlay(cm, labeled, {
+                shade: opts.shade(),
+                fontSize: opts.fontSize(),
             });
-            return match ? { line: match.line, ch: match.ch } : null;
+            if (!overlay) return null;
+
+            try {
+                const match = await waitForLabel(labeled, (remaining) => {
+                    overlay.updateLabels(remaining);
+                });
+                return match ? { line: match.line, ch: match.ch } : null;
+            } finally {
+                overlay.cleanup();
+            }
         } finally {
-            overlay.cleanup();
+            easyMotionActive = false;
         }
     };
 }

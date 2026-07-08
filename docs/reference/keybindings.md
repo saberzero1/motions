@@ -77,6 +77,38 @@ Manage table structure using the `<leader>t` prefix.
 | `<leader>tdc` | Delete column           |
 | `<leader>tr`  | Realign table columns   |
 
+## Picker shortcuts
+
+Open picker sources with the `<leader>f` prefix.
+
+| Keybinding   | Description              |
+| ------------ | ------------------------ |
+| `<leader>ff` | Find files               |
+| `<leader>fg` | Live grep (vault search) |
+| `<leader>fb` | Switch buffers           |
+| `<leader>fh` | Search headings          |
+| `<leader>fo` | Document outline         |
+| `<leader>fk` | Backlinks                |
+| `<leader>ft` | Search tags              |
+| `<leader>fr` | Recent files             |
+| `<leader>fm` | Jump to mark             |
+| `<leader>fR` | Registers                |
+| `<leader>fp` | Resume last picker       |
+
+### Keyboard shortcuts inside picker
+
+| Key                  | Action                   |
+| -------------------- | ------------------------ |
+| `<C-n>` / `<C-p>`    | Navigate down/up         |
+| `<C-j>` / `<C-k>`    | Navigate down/up         |
+| `<Up>` / `<Down>`    | Navigate down/up         |
+| `<Enter>`            | Select item              |
+| `<Escape>` / `<C-c>` | Close picker             |
+| `<C-x>`              | Open in horizontal split |
+| `<C-v>`              | Open in vertical split   |
+| `<C-t>`              | Open in new tab          |
+| `<C-d>` / `<C-u>`    | Scroll preview down/up   |
+
 ## Hard-wrap operators
 
 Reformat paragraphs with Markdown-aware line wrapping.
@@ -288,27 +320,37 @@ Execute commands via the `:` command line, grouped by function.
 
 ### Navigation and search
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `:explorer`          | Reveal active file in file explorer            |
-| `:buffers` / `:ls`   | Show all open buffers in a modal               |
-| `:backlinks`         | Show backlinks to the current note in a modal  |
-| `:grep {pattern}`    | Search vault for text, show results in a modal |
-| `:back` / `:forward` | Navigate back / forward in history             |
-| `:marks`             | Show marks and their positions in a modal      |
-| `:changes`           | Show change list in modal                      |
+| Command         | Short    | Description                                 |
+| --------------- | -------- | ------------------------------------------- |
+| `:explorer`     |          | Reveal active file in file explorer         |
+| `:files`        |          | Find files by name                          |
+| `:buffers`      | `:buf`   | Switch between open buffers                 |
+| `:ls`           |          | Alias for `:buffers`                        |
+| `:headings`     |          | Search all headings across vault            |
+| `:outline`      |          | Jump to heading in current file             |
+| `:backlinks`    | `:backl` | Show files linking to current file          |
+| `:tags`         |          | Browse vault tags (opens sub-picker)        |
+| `:recent`       |          | Recently opened files                       |
+| `:marks`        |          | Jump to vim marks (editor context only)     |
+| `:grep {query}` | `:gre`   | Search vault content (pre-computed results) |
+| `:livegrep`     | `:liveg` | Real-time vault content search              |
+| `:resume`       | `:res`   | Reopen last picker with same query          |
+| `:back`         |          | Navigate back in history                    |
+| `:forward`      |          | Navigate forward in history                 |
+| `:changes`      |          | Show change list in modal                   |
 
 ### Utility
 
-| Command                            | Description                        |
-| ---------------------------------- | ---------------------------------- |
-| `:ob {command-id}`                 | Execute any Obsidian command by ID |
-| `:ob`                              | List all available command IDs     |
-| `:sidebar left` / `:sidebar right` | Toggle left/right sidebar          |
-| `:reg` / `:registers`              | Show register contents in a modal  |
-| `:delmarks {marks}`                | Delete specified marks             |
-| `:version` / `:ve`                 | Show plugin version                |
-| `:gmap`                            | List all active global bindings    |
+| Command                            | Description                            |
+| ---------------------------------- | -------------------------------------- |
+| `:ob {command-id}`                 | Execute any Obsidian command by ID     |
+| `:ob`                              | List all available command IDs         |
+| `:commands`                        | Search and execute Obsidian commands   |
+| `:sidebar left` / `:sidebar right` | Toggle left/right sidebar              |
+| `:reg` / `:registers`              | Browse vim registers (paste on select) |
+| `:delmarks {marks}`                | Delete specified marks                 |
+| `:version` / `:ve`                 | Show plugin version                    |
+| `:gmap`                            | List all active global bindings        |
 
 ## Quality of life
 

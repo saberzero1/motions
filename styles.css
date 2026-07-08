@@ -420,6 +420,153 @@
     opacity: 0.7;
 }
 
+/* --- Picker modal --- */
+
+.vim-motions-picker .modal-content {
+    padding: 0;
+}
+
+.vim-motions-picker-container {
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+}
+
+.vim-motions-picker-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    font-size: var(--font-ui-medium);
+    outline: none;
+    font-family: var(--font-interface);
+}
+
+.vim-motions-picker-count {
+    padding: 4px 12px;
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+}
+
+.vim-motions-picker-results {
+    overflow-y: auto;
+    max-height: 50vh;
+}
+
+.vim-motions-picker-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 44px;
+    justify-content: center;
+}
+
+.vim-motions-picker-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.vim-motions-picker-item.is-selected {
+    background: var(--background-modifier-hover);
+}
+
+.vim-motions-picker-item-label {
+    color: var(--text-normal);
+}
+
+.vim-motions-picker-item-description {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+}
+
+.vim-motions-picker-item mark {
+    color: var(--text-accent);
+    background: transparent;
+    font-weight: var(--font-semibold);
+}
+
+.vim-motions-picker-error {
+    padding: 12px;
+    color: var(--text-error);
+}
+
+.vim-motions-picker-empty {
+    padding: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* --- Picker with preview --- */
+
+.vim-motions-picker-with-preview .modal-content {
+    max-width: min(900px, 90vw);
+}
+
+.vim-motions-picker-body {
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    max-height: 50vh;
+}
+
+.vim-motions-picker-with-preview .vim-motions-picker-results {
+    flex: 1;
+    min-width: 200px;
+    max-height: 50vh;
+}
+
+.vim-motions-picker-preview {
+    flex: 1;
+    min-width: 200px;
+    max-height: 50vh;
+    overflow-y: auto;
+    border-left: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+    display: none;
+}
+
+.vim-motions-picker-with-preview .vim-motions-picker-preview {
+    display: block;
+}
+
+.vim-motions-picker-preview pre {
+    margin: 0;
+    padding: 8px 12px;
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.vim-motions-picker-preview-empty {
+    padding: 12px;
+    color: var(--text-faint);
+    text-align: center;
+    font-style: italic;
+}
+
+.vim-motions-picker-preview-loading {
+    padding: 12px;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .vim-motions-picker-preview {
+        display: none;
+    }
+    .vim-motions-picker-with-preview .vim-motions-picker-preview {
+        display: none;
+    }
+    .vim-motions-picker-with-preview .modal-content {
+        max-width: none;
+    }
+}
+
 /* @settings
 
 name: Vim Motions

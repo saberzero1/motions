@@ -1,7 +1,7 @@
 ---
 test: test
 ---
-This is your new _vault_.
+his is your new _vaut_.
 
 Make a note of something, [[create a link]], or try [the Importer](https://help.obsidian.md/Plugins/Importer)!
 

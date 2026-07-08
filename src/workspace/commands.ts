@@ -6,6 +6,16 @@ import { VimInfoModal } from '../ui/vim-info-modal';
 import type { GlobalMappingRegistry } from './global-mapping-registry';
 import type { AutocmdManager } from '../lua/autocmd';
 
+type OpenPicker = (
+    source: string,
+    opts?: { query?: string; resumeSelectedId?: string },
+) => void;
+
+interface PickerConfig {
+    openPicker?: OpenPicker;
+    isPickerEnabled?: () => boolean;
+}
+
 function createObCommand(app: App): ExCommandFn {
     return (_cm, params) => {
         const commands = (
@@ -166,8 +176,12 @@ function createCloseOthersExCommand(app: App): ExCommandFn {
     };
 }
 
-function createBufferListCommand(app: App): ExCommandFn {
+function createBufferListCommand(app: App, picker?: PickerConfig): ExCommandFn {
     return () => {
+        if (picker?.openPicker && picker.isPickerEnabled?.()) {
+            picker.openPicker('buffers');
+            return;
+        }
         const rows: string[][] = [];
         let idx = 1;
         const activeLeaf = app.workspace.getLeaf(false);
@@ -191,6 +205,19 @@ function createBufferListCommand(app: App): ExCommandFn {
             ],
             rows,
         ).open();
+    };
+}
+
+function createPickerCommand(
+    source: string,
+    openPicker?: OpenPicker,
+): ExCommandFn {
+    return () => {
+        if (!openPicker) {
+            new Notice('Picker is unavailable');
+            return;
+        }
+        openPicker(source);
     };
 }
 
@@ -226,8 +253,23 @@ function createBacklinksCommand(app: App): ExCommandFn {
     };
 }
 
-export function registerObCommand(reg: VimRegistration, app: App): void {
-    reg.defineEx('ob', '', createObCommand(app));
+export function registerObCommand(
+    reg: VimRegistration,
+    app: App,
+    picker?: PickerConfig,
+): void {
+    const obCommand = createObCommand(app);
+    reg.defineEx('ob', '', (cm, params) => {
+        if (
+            !params.argString?.trim() &&
+            picker?.openPicker &&
+            picker.isPickerEnabled?.()
+        ) {
+            picker.openPicker('commands');
+            return;
+        }
+        obCommand(cm, params);
+    });
 }
 
 function createEditCommand(app: App): ExCommandFn {
@@ -467,7 +509,10 @@ export function registerExCommands(
     vim?: VimApi,
     globalRegistry?: GlobalMappingRegistry,
     autocmdManager?: AutocmdManager,
+    picker?: PickerConfig,
 ): void {
+    const backlinksCommand = createBacklinksCommand(app);
+    const grepCommand = createGrepCommand(app);
     reg.defineEx('sidebar', 'sid', createSidebarCommand(app));
     reg.defineEx('explorer', 'exp', createExplorerCommand(app));
 
@@ -488,16 +533,85 @@ export function registerExCommands(
     reg.defineEx('wall', 'wal', () => saveWithEvents(app, autocmdManager));
     reg.defineEx('wa', '', () => saveWithEvents(app, autocmdManager));
 
-    reg.defineEx('buffers', 'buf', createBufferListCommand(app));
-    reg.defineEx('ls', '', createBufferListCommand(app));
-    reg.defineEx('backlinks', 'backl', createBacklinksCommand(app));
-    reg.defineEx('grep', 'gre', createGrepCommand(app));
+    reg.defineEx('buffers', 'buf', createBufferListCommand(app, picker));
+    reg.defineEx('ls', '', createBufferListCommand(app, picker));
+    reg.defineEx('files', '', createPickerCommand('files', picker?.openPicker));
+    reg.defineEx(
+        'commands',
+        '',
+        createPickerCommand('commands', picker?.openPicker),
+    );
+    reg.defineEx(
+        'headings',
+        '',
+        createPickerCommand('headings', picker?.openPicker),
+    );
+    reg.defineEx(
+        'outline',
+        '',
+        createPickerCommand('outline', picker?.openPicker),
+    );
+    reg.defineEx('tags', '', createPickerCommand('tags', picker?.openPicker));
+    reg.defineEx(
+        'recent',
+        '',
+        createPickerCommand('recent', picker?.openPicker),
+    );
+    reg.defineEx(
+        'resume',
+        'res',
+        createPickerCommand('resume', picker?.openPicker),
+    );
+    reg.defineEx(
+        'livegrep',
+        'liveg',
+        createPickerCommand('livegrep', picker?.openPicker),
+    );
+    reg.defineEx('backlinks', 'backl', () => {
+        if (picker?.openPicker && picker.isPickerEnabled?.()) {
+            picker.openPicker('backlinks');
+            return;
+        }
+        backlinksCommand({} as never, {
+            args: [],
+            argString: '',
+            commandName: 'backlinks',
+            input: 'backlinks',
+        });
+    });
+    reg.defineEx('grep', 'gre', (cm, params) => {
+        const query = params.argString?.trim();
+        if (picker?.openPicker && picker.isPickerEnabled?.()) {
+            if (query) {
+                picker.openPicker('grep', { query });
+            } else {
+                picker.openPicker('livegrep');
+            }
+            return;
+        }
+        grepCommand(cm, params);
+    });
     reg.defineEx('back', 'bac', () => executeCommand(app, 'app:go-back'));
     reg.defineEx('forward', 'fo', () => executeCommand(app, 'app:go-forward'));
 
     if (vim) {
-        reg.defineEx('registers', 'reg', createRegCommand(app, vim));
-        reg.defineEx('marks', '', createMarksCommand(app));
+        const regCommand = createRegCommand(app, vim);
+        reg.defineEx('registers', 'reg', (cm, params) => {
+            if (picker?.openPicker && picker.isPickerEnabled?.()) {
+                picker.openPicker('registers');
+                return;
+            }
+            regCommand(cm, params);
+        });
+
+        const marksCommand = createMarksCommand(app);
+        reg.defineEx('marks', '', (cm, params) => {
+            if (picker?.openPicker && picker.isPickerEnabled?.()) {
+                picker.openPicker('marks');
+                return;
+            }
+            marksCommand(cm, params);
+        });
     }
 
     reg.defineEx('edit', 'e', createEditCommand(app));

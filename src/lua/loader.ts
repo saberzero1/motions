@@ -121,6 +121,7 @@ export async function loadInitLua(
     ) => void,
     customPath?: string,
     bufferKeymapManager?: BufferKeymapManager,
+    openPicker?: (source: string, opts?: { query?: string }) => void,
 ): Promise<LuaLoadResult> {
     const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
@@ -208,6 +209,9 @@ export async function loadInitLua(
                     }
                 ).plugins?.manifests?.['vim-motions']?.version ?? ''
             );
+        },
+        openPicker: (source, opts) => {
+            openPicker?.(source, opts);
         },
         executeCommand: (id: string) => {
             (

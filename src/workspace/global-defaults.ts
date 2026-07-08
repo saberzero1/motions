@@ -129,6 +129,7 @@ export function registerDefaultGlobalMappings(
         yank: (count?: number) => void;
         close: (count?: number) => void;
     } | null,
+    openPicker?: (source: string, opts?: { query?: string }) => void,
 ): void {
     void app;
     const add = (
@@ -266,7 +267,7 @@ export function registerDefaultGlobalMappings(
         {
             type: 'builtin',
             fn: (app2) => {
-                new GlobalExCommandModal(app2, registry).open();
+                new GlobalExCommandModal(app2, registry, openPicker).open();
             },
         },
         'structural',

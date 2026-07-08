@@ -59,6 +59,7 @@ export class GlobalKeyHandler {
         completions: GlobalMapEntry[],
         doc: Document,
     ) => void;
+    openPicker?: (source: string, opts?: { query?: string }) => void;
 
     constructor(
         app: App,
@@ -200,7 +201,12 @@ export class GlobalKeyHandler {
                 executeCommand(this.app, action.commandId);
             }
         } else if (action.type === 'ex') {
-            executeGlobalExCommand(this.app, action.command);
+            executeGlobalExCommand(
+                this.app,
+                action.command,
+                undefined,
+                this.openPicker,
+            );
         } else if (action.type === 'builtin') {
             action.fn(this.app, count);
         }

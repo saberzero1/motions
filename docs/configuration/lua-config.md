@@ -86,6 +86,7 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                               | `vim.keymap.del("n", "Q")`           |
 | `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap                | see Obsidian namespace               |
 | `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap                             | see Obsidian namespace               |
+| `vim.obsidian.pick(source, opts?)`                   | Open the unified picker                            | `vim.obsidian.pick("files")`         |
 | `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                             | see Obsidian namespace               |
 | `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                          | see Obsidian namespace               |
 | `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace               |
@@ -591,16 +592,30 @@ vim.api.nvim_clear_autocmds({ group = g, event = "InsertEnter" })
 
 Obsidian-specific APIs that don't exist in Neovim. Available as `vim.obsidian` or `vim.ob`.
 
-| Function                        | Returns                                          | Example                                   |
-| ------------------------------- | ------------------------------------------------ | ----------------------------------------- |
-| `vim.obsidian.vault_name()`     | Vault name                                       | `vim.obsidian.vault_name()`               |
-| `vim.obsidian.app_version()`    | Obsidian version string                          | `vim.obsidian.app_version()`              |
-| `vim.obsidian.plugin_version()` | Plugin version string                            | `vim.obsidian.plugin_version()`           |
-| `vim.obsidian.run_command(id)`  | Execute Obsidian command by ID                   | `vim.obsidian.run_command("app:reload")`  |
-| `vim.obsidian.list_commands()`  | Table of `{id, name}`                            | `vim.obsidian.list_commands()`            |
-| `vim.obsidian.open_file(path)`  | Open a vault file                                | `vim.obsidian.open_file("notes/todo.md")` |
-| `vim.obsidian.current_file()`   | Table `{path, name, extension, basename}` or nil | `vim.obsidian.current_file().path`        |
-| `vim.obsidian.vault_path()`     | Vault absolute path (desktop only)               | `vim.obsidian.vault_path()`               |
+| Function                           | Returns                                          | Example                                   |
+| ---------------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| `vim.obsidian.vault_name()`        | Vault name                                       | `vim.obsidian.vault_name()`               |
+| `vim.obsidian.app_version()`       | Obsidian version string                          | `vim.obsidian.app_version()`              |
+| `vim.obsidian.plugin_version()`    | Plugin version string                            | `vim.obsidian.plugin_version()`           |
+| `vim.obsidian.run_command(id)`     | Execute Obsidian command by ID                   | `vim.obsidian.run_command("app:reload")`  |
+| `vim.obsidian.list_commands()`     | Table of `{id, name}`                            | `vim.obsidian.list_commands()`            |
+| `vim.obsidian.open_file(path)`     | Open a vault file                                | `vim.obsidian.open_file("notes/todo.md")` |
+| `vim.obsidian.pick(source, opts?)` | Open a picker source                             | `vim.obsidian.pick("files")`              |
+| `vim.obsidian.current_file()`      | Table `{path, name, extension, basename}` or nil | `vim.obsidian.current_file().path`        |
+| `vim.obsidian.vault_path()`        | Vault absolute path (desktop only)               | `vim.obsidian.vault_path()`               |
+
+Picker sources include `files`, `buffers`, `commands`, `headings`, `outline`, `backlinks`, `tags`, `recent`, `marks`, `registers`, `grep`, and `resume` (reopen the last picker session).
+
+```lua
+-- Open files picker
+vim.obsidian.pick('files')
+
+-- Open grep with pre-filled query
+vim.obsidian.pick('grep', { query = 'todo' })
+
+-- Resume last session
+vim.obsidian.pick('resume')
+```
 
 ### Workspace and leaf management
 

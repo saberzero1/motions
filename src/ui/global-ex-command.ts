@@ -11,9 +11,15 @@ export interface GlobalExEntry {
     fn: GlobalExFn;
 }
 
+type OpenPicker = (
+    source: string,
+    opts?: { query?: string; resumeSelectedId?: string },
+) => void;
+
 export function buildGlobalExCommands(
     app: App,
     globalRegistry?: GlobalMappingRegistry,
+    openPicker?: OpenPicker,
 ): GlobalExEntry[] {
     const cmd =
         (commandId: string): GlobalExFn =>
@@ -134,7 +140,11 @@ export function buildGlobalExCommands(
 
     const ob: GlobalExFn = (_app, args) => {
         const commandId = args.trim();
-        if (commandId) executeCommand(app, commandId);
+        if (commandId) {
+            executeCommand(app, commandId);
+        } else if (openPicker) {
+            openPicker('commands');
+        }
     };
 
     const version: GlobalExFn = () => {
@@ -219,6 +229,73 @@ export function buildGlobalExCommands(
                 ).open();
             },
         },
+        ...(openPicker
+            ? ([
+                  {
+                      name: 'files',
+                      shortName: '',
+                      fn: () => openPicker('files'),
+                  },
+                  {
+                      name: 'commands',
+                      shortName: '',
+                      fn: () => openPicker('commands'),
+                  },
+                  {
+                      name: 'buffers',
+                      shortName: 'buf',
+                      fn: () => openPicker('buffers'),
+                  },
+                  {
+                      name: 'headings',
+                      shortName: '',
+                      fn: () => openPicker('headings'),
+                  },
+                  {
+                      name: 'outline',
+                      shortName: '',
+                      fn: () => openPicker('outline'),
+                  },
+                  {
+                      name: 'backlinks',
+                      shortName: 'backl',
+                      fn: () => openPicker('backlinks'),
+                  },
+                  {
+                      name: 'tags',
+                      shortName: '',
+                      fn: () => openPicker('tags'),
+                  },
+                  {
+                      name: 'recent',
+                      shortName: '',
+                      fn: () => openPicker('recent'),
+                  },
+                  {
+                      name: 'resume',
+                      shortName: 'res',
+                      fn: () => openPicker('resume'),
+                  },
+                  {
+                      name: 'grep',
+                      shortName: 'gre',
+                      fn: (_app, args) => {
+                          const query = args.trim();
+                          if (query) openPicker('grep', { query });
+                      },
+                  },
+                  {
+                      name: 'livegrep',
+                      shortName: 'liveg',
+                      fn: () => openPicker('livegrep'),
+                  },
+                  {
+                      name: 'registers',
+                      shortName: 'reg',
+                      fn: () => openPicker('registers'),
+                  },
+              ] satisfies GlobalExEntry[])
+            : []),
     ];
 }
 
@@ -254,8 +331,9 @@ export function executeGlobalExCommand(
     app: App,
     command: string,
     globalRegistry?: GlobalMappingRegistry,
+    openPicker?: OpenPicker,
 ): void {
-    const entries = buildGlobalExCommands(app, globalRegistry);
+    const entries = buildGlobalExCommands(app, globalRegistry, openPicker);
     const result = matchCommand(command, entries);
     if (result) {
         result.entry.fn(app, result.args);
@@ -265,9 +343,13 @@ export function executeGlobalExCommand(
 export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
     private entries: GlobalExEntry[];
 
-    constructor(app: App, globalRegistry?: GlobalMappingRegistry) {
+    constructor(
+        app: App,
+        globalRegistry?: GlobalMappingRegistry,
+        openPicker?: OpenPicker,
+    ) {
         super(app);
-        this.entries = buildGlobalExCommands(app, globalRegistry);
+        this.entries = buildGlobalExCommands(app, globalRegistry, openPicker);
         this.setPlaceholder('Ex command');
         this.setInstructions([
             { command: 'Enter', purpose: 'execute' },

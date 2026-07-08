@@ -764,7 +764,7 @@ The plugin supports Lua config files (`init.lua`, `.init.lua`, etc. — see [Con
 
 ### Supported APIs
 
-The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), `vim.o`, `vim.g` (including `mode_prompt_*`), `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.stricmp`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob` (including `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), `vim.ob.get_cursor`, `vim.ob.set_cursor`, `vim.ob.get_selection`, `vim.ob.mode`, `vim.ob.notice`, `vim.obsidian.keymap.set/del` for global keymaps, `vim.obsidian.whichkey.set_group/set_label/add` for which-key labels, `vim.obsidian.cursor.set` for cursor shapes, `vim.obsidian.modeprompt.set` for mode prompts, `vim.obsidian.surround.set/del/add` for custom surround pairs, and `vim.obsidian.leader.set/del/add` for leader bindings), `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
+The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), `vim.o`, `vim.g` (including `mode_prompt_*`), `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.stricmp`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob` (including `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), `vim.ob.get_cursor`, `vim.ob.set_cursor`, `vim.ob.get_selection`, `vim.ob.mode`, `vim.ob.notice`, `vim.obsidian.keymap.set/del` for global keymaps, `vim.obsidian.whichkey.set_group/set_label/add` for which-key labels, `vim.obsidian.cursor.set` for cursor shapes, `vim.obsidian.modeprompt.set` for mode prompts, `vim.obsidian.surround.set/del/add` for custom surround pairs, `vim.obsidian.leader.set/del/add` for leader bindings, and `vim.obsidian.pick(source, opts?)` for the fuzzy picker), `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
 
 ### Unsupported Neovim APIs
 
@@ -844,7 +844,7 @@ The initial Lua load has instruction-count protection (preventing infinite loops
 
 ### Bundle size
 
-Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB after stripping Node.js dependencies). Total plugin size: 563KB minified (11.3% of the 5000KB soft limit).
+Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB after stripping Node.js dependencies). Total plugin size: ~671KB minified (13.4% of the 5000KB soft limit).
 
 ### Intentionally skipped Lua features
 
@@ -861,6 +861,27 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 `vim.ob.fs.read(path)` is not available — Obsidian's `vault.cachedRead()` is asynchronous and the Lua runtime cannot block on Promises. To read the current file's content, use `vim.api.nvim_buf_get_lines(0, 0, -1, false)`. Reading other files from Lua requires a future async/coroutine extension.
 
 **Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 43 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, disabled state, runtime `vim.cmd()` execution (8 tests), leader binding + which-key integration (9 tests), space-as-leader (7 tests), and documentation example validation (10 tests).
+
+## Picker / Fuzzy finder
+
+**Status**: Working. Unified picker with 11 sources, preview pane, live grep, and frecency scoring.
+
+The picker uses uFuzzy for fuzzy matching (7.5KB, unicode mode). Matching is `prepareSimpleSearch`-based for grep (fuzzy, not regex). Live grep debounces at 200ms with generation-based cancellation.
+
+### Limitations
+
+- **`:grep` is fuzzy, not regex** — `prepareSimpleSearch` from Obsidian is used for vault content search. `:grep n.v` will not match "nav" — the `.` is not treated as a regex wildcard. Regex grep is a future consideration.
+- **`:marks` is editor-scoped** — marks are stored per CmAdapter (buffer-local). `:marks` in a non-editor view returns empty results. This matches vim's mark behavior.
+- **Live grep iterates all files synchronously** — `cachedRead()` is fast but iterating 10K+ files on each keystroke (debounced) may cause brief UI pauses on very large vaults. MAX_RESULTS=100 cap limits result set size.
+- **Frecency persistence** — frecency data is stored in plugin settings via `saveData()`, debounced to 30 seconds. Data loss on crash is possible for the last 30 seconds of interactions.
+- **Preview pane uses plain text** — no syntax highlighting in the preview. Uses `<pre><code>` elements with monospace font.
+- **Preview hidden on mobile** — `@media (max-width: 600px)` hides the preview pane entirely.
+- **Tags picker has no preview** — selecting a tag opens a sub-picker showing files with that tag.
+- **uFuzzy unicode mode** — adds ~2.5KB over the base library size for broader language support (CJK, Cyrillic, accented characters).
+
+### Bundle size impact
+
+uFuzzy adds +17.5KB to the production bundle (unicode mode). Total plugin size with picker: ~671KB minified.
 
 ## Neovim golden test coverage gaps
 

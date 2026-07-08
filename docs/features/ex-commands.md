@@ -33,6 +33,67 @@ exmap toggleDarkMode obcommand theme:use-dark
 nmap <leader>d :toggleDarkMode<CR>
 ```
 
+## Picker commands
+
+The unified fuzzy picker provides telescope.nvim-style search across vault content. All picker commands are available in both editor and non-editor views.
+
+| Command         | Short    | Description                                     |
+| --------------- | -------- | ----------------------------------------------- |
+| `:files`        |          | Find files by name                              |
+| `:buffers`      | `:buf`   | Switch between open buffers                     |
+| `:commands`     |          | Search and execute Obsidian commands            |
+| `:headings`     |          | Search all headings across vault                |
+| `:outline`      |          | Jump to heading in current file                 |
+| `:backlinks`    | `:backl` | Show files linking to current file              |
+| `:tags`         |          | Browse vault tags (opens sub-picker with files) |
+| `:recent`       |          | Recently opened files                           |
+| `:marks`        |          | Jump to vim marks (editor context only)         |
+| `:registers`    | `:reg`   | Browse vim registers (paste on select)          |
+| `:grep <query>` | `:gre`   | Search vault content (pre-computed results)     |
+| `:livegrep`     | `:liveg` | Real-time vault content search                  |
+| `:resume`       | `:res`   | Reopen last picker with same query              |
+
+### Keyboard shortcuts inside picker
+
+| Key                  | Action                   |
+| -------------------- | ------------------------ |
+| `<C-n>` / `<C-p>`    | Navigate down/up         |
+| `<C-j>` / `<C-k>`    | Navigate down/up         |
+| `<Up>` / `<Down>`    | Navigate down/up         |
+| `<Enter>`            | Select item              |
+| `<Escape>` / `<C-c>` | Close picker             |
+| `<C-x>`              | Open in horizontal split |
+| `<C-v>`              | Open in vertical split   |
+| `<C-t>`              | Open in new tab          |
+| `<C-d>` / `<C-u>`    | Scroll preview down/up   |
+
+### Lua API
+
+```lua
+vim.obsidian.pick('files')
+vim.obsidian.pick('livegrep')
+vim.obsidian.pick('grep', { query = 'search term' })
+vim.obsidian.pick('resume')
+```
+
+### Leader mappings
+
+When `pickerLeaderMappings` is enabled (default: on), the following bindings are registered under `<leader>f`:
+
+| Key          | Picker    |
+| ------------ | --------- |
+| `<leader>ff` | Files     |
+| `<leader>fg` | Live grep |
+| `<leader>fb` | Buffers   |
+| `<leader>fh` | Headings  |
+| `<leader>fo` | Outline   |
+| `<leader>fk` | Backlinks |
+| `<leader>ft` | Tags      |
+| `<leader>fr` | Recent    |
+| `<leader>fm` | Marks     |
+| `<leader>fR` | Registers |
+| `<leader>fp` | Resume    |
+
 ### `:sidebar` — toggle sidebars
 
 `:sidebar left` and `:sidebar right` toggle the left and right sidebars respectively.
@@ -48,6 +109,18 @@ nmap <leader>d :toggleDarkMode<CR>
 ### `:backlinks` — show backlinks
 
 `:backlinks` shows all backlinks to the current note in a modal.
+
+### `:files` — find files
+
+`:files` opens the fuzzy picker for vault files.
+
+### `:commands` — run commands
+
+`:commands` opens the fuzzy picker for Obsidian commands. Use `:ob` for a raw command list by ID.
+
+### `:resume` — resume last picker
+
+`:resume` reopens the most recent picker session with the same source and query.
 
 ## Non-editor ex command line
 

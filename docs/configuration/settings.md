@@ -21,6 +21,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Table widget in live preview     | dropdown | `cursor`  | `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                 |
 | Formatting marks in Live Preview | dropdown | `cursor`  | `cursor`, `off`           | `vim.opt.formattingmarkmode`    | —                           | Corrects cursor positioning near formatting marks in Live Preview.                           |
 | Workspace navigation             | toggle   | `true`    | —                         | `vim.opt.workspacenav`          | `set workspacenav`          | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.).                          |
+| Fuzzy picker for buffers         | toggle   | `true`    | —                         | —                               | —                           | Use the unified fuzzy picker for `:buffers`, `:ls`, `:marks`, `:registers`, and `:grep`.     |
+| Picker leader mappings           | toggle   | `true`    | —                         | —                               | —                           | Enable default `<leader>f*` picker mappings and which-key labels.                            |
 | Workspace navigation view types  | text     | `(empty)` | —                         | `vim.opt.workspacenavviewtypes` | `set workspacenavviewtypes` | Comma-separated view types where scroll and count keys are intercepted. Empty uses defaults. |
 
 > [!warning]
@@ -130,3 +132,5 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 - **Configuration mode** (`configMode`): Cannot be set via vimrc or init.lua because it controls which config files are loaded (circular dependency).
 - **Hint mode global hotkey** (`hintModeHotkey`): Requires a specialized recording UI to capture modifier keys and cannot be easily represented as a simple string in a vimrc file.
 - **Leader key bindings** (`leaderBindings`): While the plugin provides a UI for this, the same functionality is already achievable via standard `nmap <leader>...` commands in your vimrc.
+- **Fuzzy picker for buffers** (`picker`): Currently only configurable in settings.
+- **Picker leader mappings** (`pickerLeaderMappings`): Currently only configurable in settings.

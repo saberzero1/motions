@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Unified picker / fuzzy finder** — telescope.nvim-inspired fuzzy picker with 11 sources, preview pane, live grep, frecency scoring, and split-open support
+    - **10 built-in sources**: files (`:files`), buffers (`:buffers`), commands (`:commands`), headings (`:headings`), outline (`:outline`), backlinks (`:backlinks`), tags (`:tags`), recent files (`:recent`), marks (`:marks`), registers (`:registers`)
+    - **Live grep** (`:livegrep`): real-time vault content search with 200ms debounce, generation-based cancellation, and minimum 2-character query
+    - **Preview pane**: side-by-side file content preview with per-source content (file content, surrounding lines for headings/grep/marks, command info, register content), responsive collapse on narrow screens (<600px), `<C-d>`/`<C-u>` preview scrolling
+    - **Frecency scoring**: recently/frequently accessed items rank higher. Time-bucket weights (1h–30d), 1000-entry cap, persists across restarts via plugin data. Applies to files, buffers, commands, headings, backlinks, grep, recent.
+    - **Picker resume**: `:resume` / `<leader>fp` / `vim.obsidian.pick('resume')` reopens the last picker with the same query and selection
+    - **Split-open**: `<C-x>` (horizontal split), `<C-v>` (vertical split), `<C-t>` (new tab) from any file-based picker
+    - **Leader mappings**: 11 `<leader>f*` bindings with which-key "Find" group (opt-out via `pickerLeaderMappings` setting, default: on)
+    - **Keyboard navigation**: `<C-n>`/`<C-p>`, `<C-j>`/`<C-k>`, arrows, `<Enter>`, `<Escape>`, `<C-c>`
+    - **Matching engine**: uFuzzy (7.5KB, unicode support) with match highlighting
+    - **Fallback setting**: `picker` boolean (default: true) — when disabled, migrated commands (`:buffers`, `:marks`, `:registers`, `:grep`, `:backlinks`, `:ob`) fall back to previous VimInfoModal/SuggestModal behavior
+    - **Lua API**: `vim.obsidian.pick(source, opts?)` — invoke any picker source from Lua
+    - **Obsidian command palette**: 12 picker commands registered via `addCommand` for discoverability
+    - **Global ex command support**: all picker commands available in non-editor views via `:` global ex command modal
+    - **200-item render cap** with `requestAnimationFrame`-free synchronous rendering for flicker-free updates
+    - Plugin: `src/picker/` (picker.ts, matcher.ts, registry.ts, frecency.ts, types.ts, sources/\*.ts), `src/picker/sources/` (files, buffers, commands, grep, live-grep, headings, backlinks, tags, recent, marks, registers, split-open, preview-utils)
+- **`isEasyMotionActive()` guard** — exported from `src/easymotion/register.ts` to prevent picker from opening during EasyMotion label selection
+    - Plugin: `src/easymotion/register.ts`
+
+### Changed
+
+- **`:buffers` / `:ls`** now opens fuzzy picker instead of VimInfoModal table (when `picker` setting enabled)
+- **`:marks`** now opens fuzzy picker with jump-to-mark action (when `picker` setting enabled)
+- **`:registers`** now opens fuzzy picker with paste-at-cursor action (when `picker` setting enabled)
+- **`:ob` (no args)** now opens commands picker instead of VimInfoModal command list (when `picker` setting enabled)
+- **`:grep` (no args)** now opens live grep picker instead of showing "Usage" notice (when `picker` setting enabled)
+- **`:grep <query>`** now opens picker with pre-computed results instead of SuggestModal (when `picker` setting enabled)
+- **`:backlinks`** now opens fuzzy picker instead of VimInfoModal table (when `picker` setting enabled)
+- **Bundle size**: +17.5KB from uFuzzy dependency (unicode mode)
+
+### Documentation
+
+- `docs/features/ex-commands.md`: added picker commands section
+- `docs/reference/keybindings.md`: added picker ex commands and `<leader>f*` mappings
+- `docs/configuration/lua-config.md`: added `vim.obsidian.pick()` API documentation
+- `docs/configuration/settings.md`: added `picker` and `pickerLeaderMappings` settings
+- `KNOWN_LIMITATIONS.md`: added picker section with limitations
+
 ## [0.40.0] - 2026-07-07
 
 ### Added

@@ -104,6 +104,9 @@ export interface VimMotionsSettings {
     enableNavigation: boolean;
     enableWorkspaceNav: boolean;
     workspaceNavViewTypes: string;
+    picker: boolean;
+    pickerLeaderMappings: boolean;
+    frecencyData?: Record<string, { count: number; timestamps: number[] }>;
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
     enableChordDisplay: boolean;
@@ -146,6 +149,9 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableNavigation: true,
     enableWorkspaceNav: true,
     workspaceNavViewTypes: '',
+    picker: true,
+    pickerLeaderMappings: true,
+    frecencyData: undefined,
     configMode: 'lua-vimrc',
     enableStatusBar: true,
     enableChordDisplay: true,
@@ -450,6 +456,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             key: 'enableWorkspaceNav',
                             disabled: () =>
                                 this.isOverridden('enableWorkspaceNav'),
+                        },
+                    },
+                    {
+                        name: 'Fuzzy picker for buffers',
+                        desc: this.describeOverride(
+                            'picker',
+                            'Use the unified fuzzy picker for :buffers/:ls (files and commands always use the picker).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'picker',
+                            disabled: () => this.isOverridden('picker'),
+                        },
+                    },
+                    {
+                        name: 'Picker leader mappings',
+                        desc: 'Enable default <leader>f* picker mappings and which-key labels.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'pickerLeaderMappings',
                         },
                     },
                 ],

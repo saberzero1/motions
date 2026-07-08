@@ -75,6 +75,24 @@ import { injectVimFn } from './lua/fn';
 import { AutocmdManager } from './lua/autocmd';
 import { migrateConfigModeSettings } from './settings-migration';
 import type { lua_State } from 'fengari';
+import { pickerRegistry } from './picker/registry';
+import { createMatcher } from './picker/matcher';
+import { FrecencyStore } from './picker/frecency';
+import { getLastSession, PickerModal } from './picker/picker';
+import { createFilesSource } from './picker/sources/files';
+import { createBuffersSource } from './picker/sources/buffers';
+import { createCommandsSource } from './picker/sources/commands';
+import { createGrepSource } from './picker/sources/grep';
+import { createLiveGrepSource } from './picker/sources/live-grep';
+import {
+    createHeadingsSource,
+    createOutlineSource,
+} from './picker/sources/headings';
+import { createBacklinksSource } from './picker/sources/backlinks';
+import { createTagsSource } from './picker/sources/tags';
+import { createRecentSource, trackRecentFile } from './picker/sources/recent';
+import { createMarksSource } from './picker/sources/marks';
+import { createRegistersSource } from './picker/sources/registers';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -127,10 +145,18 @@ export default class VimMotionsPlugin extends Plugin {
     private luaDeactivateRuntimeEx: (() => void) | null = null;
     private bufferKeymapManager: BufferKeymapManager | null = null;
     private autocmdManager: AutocmdManager | null = null;
+    private openPicker:
+        | ((
+              source: string,
+              opts?: { query?: string; resumeSelectedId?: string },
+          ) => void)
+        | null = null;
     private timerManager: import('./lua/timers').TimerManager | null = null;
     private highlightManager:
         | import('./lua/highlight').HighlightManager
         | null = null;
+    private frecencyStore: FrecencyStore | null = null;
+    private frecencySaveTimer: number | null = null;
 
     get vimrcEnabled(): boolean {
         return (
@@ -435,6 +461,137 @@ export default class VimMotionsPlugin extends Plugin {
         registerVimOptions(vim, onSettingOverride);
         this.registration = new VimRegistration(vim);
 
+        const matcher = createMatcher();
+        pickerRegistry.register(createFilesSource());
+        pickerRegistry.register(createBuffersSource());
+        pickerRegistry.register(createCommandsSource());
+        pickerRegistry.register(createHeadingsSource());
+        pickerRegistry.register(createOutlineSource());
+        pickerRegistry.register(createBacklinksSource());
+        pickerRegistry.register(createTagsSource());
+        pickerRegistry.register(createRecentSource());
+        pickerRegistry.register(createMarksSource());
+        pickerRegistry.register(createRegistersSource(vim));
+        pickerRegistry.register(createLiveGrepSource());
+        const frecencyStore = new FrecencyStore();
+        if (this.settings.frecencyData) {
+            try {
+                frecencyStore.deserialize(this.settings.frecencyData);
+            } catch {
+                frecencyStore.clear();
+            }
+        }
+        this.frecencyStore = frecencyStore;
+        const scheduleFrecencySave = () => {
+            if (this.frecencySaveTimer) {
+                window.clearTimeout(this.frecencySaveTimer);
+            }
+            this.frecencySaveTimer = window.setTimeout(() => {
+                this.frecencySaveTimer = null;
+                this.settings.frecencyData = frecencyStore.serialize();
+                void this.saveSettings();
+            }, 30000);
+        };
+        this.openPicker = (source, opts) => {
+            if (source === 'resume') {
+                const lastSession = getLastSession();
+                if (!lastSession) {
+                    new Notice('No previous picker to resume');
+                    return;
+                }
+                if (lastSession.source === 'grep') {
+                    const query = lastSession.query.trim();
+                    if (!query) {
+                        new Notice('No previous picker to resume');
+                        return;
+                    }
+                    const grepSource = createGrepSource(query);
+                    PickerModal.open(
+                        this.app,
+                        grepSource,
+                        matcher,
+                        {
+                            source: lastSession.source,
+                            query,
+                            resumeSelectedId: lastSession.selectedId,
+                            onFrecencyUpdate: scheduleFrecencySave,
+                        },
+                        frecencyStore,
+                    );
+                    return;
+                }
+                const pickerSource = pickerRegistry.get(lastSession.source);
+                if (!pickerSource) {
+                    new Notice(
+                        `Picker source not found: ${lastSession.source}`,
+                    );
+                    return;
+                }
+                PickerModal.open(
+                    this.app,
+                    pickerSource,
+                    matcher,
+                    {
+                        source: lastSession.source,
+                        query: lastSession.query,
+                        resumeSelectedId: lastSession.selectedId,
+                        onFrecencyUpdate: scheduleFrecencySave,
+                    },
+                    frecencyStore,
+                );
+                return;
+            }
+            if (source === 'grep') {
+                const query = opts?.query?.trim();
+                if (!query) {
+                    const liveSource = pickerRegistry.get('livegrep');
+                    if (liveSource) {
+                        PickerModal.open(
+                            this.app,
+                            liveSource,
+                            matcher,
+                            {
+                                source: 'livegrep',
+                                onFrecencyUpdate: scheduleFrecencySave,
+                            },
+                            frecencyStore,
+                        );
+                    }
+                    return;
+                }
+                const grepSource = createGrepSource(query);
+                PickerModal.open(
+                    this.app,
+                    grepSource,
+                    matcher,
+                    {
+                        source,
+                        query,
+                        onFrecencyUpdate: scheduleFrecencySave,
+                    },
+                    frecencyStore,
+                );
+                return;
+            }
+            const pickerSource = pickerRegistry.get(source);
+            if (!pickerSource) {
+                new Notice(`Picker source not found: ${source}`);
+                return;
+            }
+            PickerModal.open(
+                this.app,
+                pickerSource,
+                matcher,
+                {
+                    source,
+                    query: opts?.query,
+                    resumeSelectedId: opts?.resumeSelectedId,
+                    onFrecencyUpdate: scheduleFrecencySave,
+                },
+                frecencyStore,
+            );
+        };
+
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf) => {
                 const view =
@@ -454,8 +611,11 @@ export default class VimMotionsPlugin extends Plugin {
                       }
                     : undefined;
                 this.autocmdManager?.onActiveLeafChange(adapter, leafInfo);
-                const filePath =
-                    this.app.workspace.getActiveFile()?.path ?? null;
+                const activeFile = this.app.workspace.getActiveFile();
+                const filePath = activeFile?.path ?? null;
+                if (activeFile?.extension === 'md') {
+                    trackRecentFile(activeFile.path);
+                }
                 this.bufferKeymapManager?.switchBuffer(filePath);
                 if (filePath) {
                     this.autocmdManager?.fireFileType(filePath);
@@ -571,7 +731,10 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         // --- Core ex command (needed by leader bindings) ---
-        registerObCommand(this.registration, this.app);
+        registerObCommand(this.registration, this.app, {
+            openPicker: this.openPicker ?? undefined,
+            isPickerEnabled: () => this.settings.picker,
+        });
 
         // --- Action overrides (unconditional, setting checked at runtime) ---
         this.registration.defineActionOverride(
@@ -619,8 +782,73 @@ export default class VimMotionsPlugin extends Plugin {
                 vim,
                 this.globalRegistry ?? undefined,
                 this.autocmdManager ?? undefined,
+                {
+                    openPicker: this.openPicker ?? undefined,
+                    isPickerEnabled: () => this.settings.picker,
+                },
             );
         }
+
+        this.addCommand({
+            id: 'picker-files',
+            name: 'Picker: Find files',
+            callback: () => this.openPicker?.('files'),
+        });
+        this.addCommand({
+            id: 'picker-buffers',
+            name: 'Picker: Switch buffer',
+            callback: () => this.openPicker?.('buffers'),
+        });
+        this.addCommand({
+            id: 'picker-actions',
+            name: 'Picker: Run action',
+            callback: () => this.openPicker?.('commands'),
+        });
+        this.addCommand({
+            id: 'picker-headings',
+            name: 'Picker: Search headings',
+            callback: () => this.openPicker?.('headings'),
+        });
+        this.addCommand({
+            id: 'picker-outline',
+            name: 'Picker: Document outline',
+            callback: () => this.openPicker?.('outline'),
+        });
+        this.addCommand({
+            id: 'picker-backlinks',
+            name: 'Picker: Backlinks',
+            callback: () => this.openPicker?.('backlinks'),
+        });
+        this.addCommand({
+            id: 'picker-tags',
+            name: 'Picker: Search tags',
+            callback: () => this.openPicker?.('tags'),
+        });
+        this.addCommand({
+            id: 'picker-recent',
+            name: 'Picker: Recent files',
+            callback: () => this.openPicker?.('recent'),
+        });
+        this.addCommand({
+            id: 'picker-marks',
+            name: 'Picker: Jump to mark',
+            callback: () => this.openPicker?.('marks'),
+        });
+        this.addCommand({
+            id: 'picker-registers',
+            name: 'Picker: Registers',
+            callback: () => this.openPicker?.('registers'),
+        });
+        this.addCommand({
+            id: 'picker-resume',
+            name: 'Picker: Resume last picker',
+            callback: () => this.openPicker?.('resume'),
+        });
+        this.addCommand({
+            id: 'picker-livegrep',
+            name: 'Picker: Live grep',
+            callback: () => this.openPicker?.('livegrep'),
+        });
         this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && !Platform.isMobile) {
             registerEasyMotion(
@@ -655,6 +883,12 @@ export default class VimMotionsPlugin extends Plugin {
                 callback: () => this.hintActions?.close(),
             });
             this.setupHintModeWindows();
+        }
+        this.registration.endLeaderScope();
+
+        this.registration.beginLeaderScope();
+        if (this.settings.pickerLeaderMappings && this.leaderRegistry) {
+            this.registerPickerLeaderMappings();
         }
         this.registration.endLeaderScope();
 
@@ -728,6 +962,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.globalRegistry,
                 this.app,
                 this.hintActions,
+                this.openPicker ?? undefined,
             );
             this.globalKeyHandler = new GlobalKeyHandler(
                 this.app,
@@ -735,6 +970,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.modeTracker,
                 this.globalRegistry,
             );
+            this.globalKeyHandler.openPicker = this.openPicker ?? undefined;
             this.globalKeyHandler.install();
             this.rebuildGlobalWhichKey();
         }
@@ -806,7 +1042,10 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration = new VimRegistration(vim);
 
         // :ob must be re-registered unconditionally (unregisterAll noops it)
-        registerObCommand(this.registration, this.app);
+        registerObCommand(this.registration, this.app, {
+            openPicker: this.openPicker ?? undefined,
+            isPickerEnabled: () => this.settings.picker,
+        });
 
         this.registration.defineActionOverride(
             'newLineAndEnterInsertMode',
@@ -858,6 +1097,10 @@ export default class VimMotionsPlugin extends Plugin {
                 vim,
                 this.globalRegistry ?? undefined,
                 this.autocmdManager ?? undefined,
+                {
+                    openPicker: this.openPicker ?? undefined,
+                    isPickerEnabled: () => this.settings.picker,
+                },
             );
         }
         this.registration.beginLeaderScope();
@@ -883,6 +1126,11 @@ export default class VimMotionsPlugin extends Plugin {
             this.registerHintActions(this.registration, this.leaderRegistry);
         }
         this.registration.endLeaderScope();
+        this.registration.beginLeaderScope();
+        if (this.settings.pickerLeaderMappings && this.leaderRegistry) {
+            this.registerPickerLeaderMappings();
+        }
+        this.registration.endLeaderScope();
         this.registration.map('Y', 'y$', 'normal');
         this.registration.map('Q', '@@', 'normal');
 
@@ -906,6 +1154,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.globalRegistry,
                 this.app,
                 this.hintActions,
+                this.openPicker ?? undefined,
             );
             this.applyGlobalMaps();
             this.globalKeyHandler = new GlobalKeyHandler(
@@ -914,6 +1163,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.modeTracker,
                 this.globalRegistry,
             );
+            this.globalKeyHandler.openPicker = this.openPicker ?? undefined;
             this.globalKeyHandler.install();
             this.rebuildGlobalWhichKey();
         }
@@ -1101,6 +1351,49 @@ export default class VimMotionsPlugin extends Plugin {
         const hintKeys = leader + leader + 'h';
         reg.mapCommand(hintKeys, 'action', 'hintMode', {});
         leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
+    }
+
+    private registerPickerLeaderMappings(): void {
+        if (!this.registration || !this.leaderRegistry) return;
+        const leader = this.leaderRegistry.getLeaderKey();
+        this.registration.unmapDefaultBinding(leader);
+
+        this.registration.defineAction('pickerGrep', () => {
+            this.openPicker?.('livegrep');
+        });
+        this.registration.mapCommand(leader + 'fg', 'action', 'pickerGrep', {});
+        this.leaderRegistry.addBinding(leader + 'fg', 'grep', 'builtin');
+
+        const sources = [
+            ['ff', 'pickerFiles', 'files'],
+            ['fb', 'pickerBuffers', 'buffers'],
+            ['fh', 'pickerHeadings', 'headings'],
+            ['fo', 'pickerOutline', 'outline'],
+            ['fk', 'pickerBacklinks', 'backlinks'],
+            ['ft', 'pickerTags', 'tags'],
+            ['fr', 'pickerRecent', 'recent'],
+            ['fm', 'pickerMarks', 'marks'],
+            ['fR', 'pickerRegisters', 'registers'],
+            ['fp', 'pickerResume', 'resume'],
+        ] as const;
+
+        for (const [suffix, actionName, sourceName] of sources) {
+            this.registration.defineAction(actionName, () => {
+                this.openPicker?.(sourceName);
+            });
+            this.registration.mapCommand(
+                leader + suffix,
+                'action',
+                actionName,
+                {},
+            );
+            this.leaderRegistry.addBinding(
+                leader + suffix,
+                sourceName,
+                'builtin',
+            );
+        }
+        this.leaderRegistry.addGroupLabel('f', 'Find', true);
     }
 
     private parseHotkey(serialized: string): {
@@ -1333,6 +1626,7 @@ export default class VimMotionsPlugin extends Plugin {
             onLuaSettingOverride,
             customLuaPath,
             this.bufferKeymapManager,
+            this.openPicker ?? undefined,
         );
 
         this.luaCommandCount = luaResult.commandCount;
@@ -1601,6 +1895,14 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        if (this.frecencySaveTimer) {
+            window.clearTimeout(this.frecencySaveTimer);
+            this.frecencySaveTimer = null;
+            if (this.frecencyStore) {
+                this.settings.frecencyData = this.frecencyStore.serialize();
+                void this.saveSettings();
+            }
+        }
         this.globalWhichKeyOverlay?.destroy();
         this.globalWhichKeyOverlay = null;
         this.globalKeyHandler?.destroy();
