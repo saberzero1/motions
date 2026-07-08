@@ -613,7 +613,12 @@ export class PickerModal extends Modal {
             const gutter = wrapper.createDiv({
                 cls: 'vim-motions-picker-preview-gutter',
             });
-            for (let n = lineRange.lineStart; n <= lineRange.lineEnd; n++) {
+
+            const contentLines = result.markdown.split('\n');
+            const lineCount = lineRange.lineEnd - lineRange.lineStart + 1;
+
+            for (let i = 0; i < lineCount; i++) {
+                const n = lineRange.lineStart + i;
                 const lineEl = gutter.createDiv({
                     cls: 'vim-motions-picker-preview-line-number',
                     text: String(n),
@@ -623,17 +628,20 @@ export class PickerModal extends Modal {
                 }
             }
 
-            const content = wrapper.createDiv({
-                cls: 'vim-motions-picker-preview-content markdown-rendered',
+            const pre = wrapper.createEl('pre', {
+                cls: 'vim-motions-picker-preview-code',
             });
-
-            MarkdownRenderer.render(
-                this.app,
-                result.markdown,
-                content,
-                result.sourcePath,
-                this.previewComponent,
-            ).catch(() => {});
+            for (let i = 0; i < lineCount; i++) {
+                const n = lineRange.lineStart + i;
+                const line = contentLines[i] ?? '';
+                const lineEl = pre.createEl('div', {
+                    cls: 'vim-motions-picker-preview-code-line',
+                    text: line || '\u00A0',
+                });
+                if (n === lineRange.targetLine) {
+                    lineEl.addClass('is-target');
+                }
+            }
         } else {
             const content = this.previewEl.createDiv({
                 cls: 'vim-motions-picker-preview-content markdown-rendered',
