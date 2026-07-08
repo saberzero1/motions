@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-07-08
+
 ### Added
 
 - **Mobile opt-in setting and toggle command** — the plugin is now disabled by default on mobile devices. A new `enableOnMobile` setting (default: off) controls whether the plugin activates on mobile. When disabled, the plugin skips all Vim engine initialization — no editor extensions, event listeners, commands, or status bar elements are registered — leaving Obsidian's editor in its default state. The settings tab and a toggle command (`Vim Motions: Toggle enable on mobile`) remain accessible even when the plugin is disabled, so users can re-enable without needing a desktop device. Changing the setting requires an Obsidian reload. Hardware keyboard users on tablets can opt in; soft-keyboard-only users are no longer stuck in Normal mode with no way to escape. ([#52](https://github.com/saberzero1/motions/issues/52))
