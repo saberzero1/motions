@@ -259,7 +259,7 @@ export function registerObCommand(
     picker?: PickerConfig,
 ): void {
     const obCommand = createObCommand(app);
-    reg.defineEx('ob', '', (cm, params) => {
+    const handler: ExCommandFn = (cm, params) => {
         if (
             !params.argString?.trim() &&
             picker?.openPicker &&
@@ -269,7 +269,9 @@ export function registerObCommand(
             return;
         }
         obCommand(cm, params);
-    });
+    };
+    reg.defineEx('ob', '', handler);
+    reg.defineEx('obcommand', '', handler);
 }
 
 function createEditCommand(app: App): ExCommandFn {

@@ -93,24 +93,24 @@ surroundmap m $$ $$
 
 ## Supported commands
 
-| Command                                          | Description                                     |
-| ------------------------------------------------ | ----------------------------------------------- |
-| `map` / `nmap` / `imap` / `vmap`                 | Mode-specific key mappings                      |
-| `noremap` / `nnoremap` / `inoremap` / `vnoremap` | Non-recursive mappings                          |
-| `unmap` / `nunmap` / `iunmap` / `vunmap`         | Remove mappings                                 |
-| `set`                                            | Set plugin options (see tables below)           |
-| `let mapleader`                                  | Set the leader key                              |
-| `exmap`                                          | Define a named command from an Obsidian command |
-| `obcommand`                                      | Execute an Obsidian command by ID               |
-| `source`                                         | Source another vimrc file                       |
-| `gmap` / `gnoremap`                              | Global key mapping for non-editor contexts      |
-| `gunmap`                                         | Remove a global mapping                         |
-| `whichkeygroup`                                  | Name a which-key group by prefix                |
-| `whichkeylabel`                                  | Label an individual binding in which-key        |
-| `gwhichkeygroup`                                 | Name a global which-key group by prefix         |
-| `gwhichkeylabel`                                 | Label a global binding in which-key             |
-| `surroundmap`                                    | Register a custom surround pair                 |
-| `surroundunmap`                                  | Remove a custom surround pair                   |
+| Command                                          | Description                                        |
+| ------------------------------------------------ | -------------------------------------------------- |
+| `map` / `nmap` / `imap` / `vmap`                 | Mode-specific key mappings                         |
+| `noremap` / `nnoremap` / `inoremap` / `vnoremap` | Non-recursive mappings                             |
+| `unmap` / `nunmap` / `iunmap` / `vunmap`         | Remove mappings                                    |
+| `set`                                            | Set plugin options (see tables below)              |
+| `let mapleader`                                  | Set the leader key                                 |
+| `exmap`                                          | Define a named command from an Obsidian command    |
+| `obcommand`                                      | Execute an Obsidian command by ID (alias of `:ob`) |
+| `source`                                         | Source another vimrc file                          |
+| `gmap` / `gnoremap`                              | Global key mapping for non-editor contexts         |
+| `gunmap`                                         | Remove a global mapping                            |
+| `whichkeygroup`                                  | Name a which-key group by prefix                   |
+| `whichkeylabel`                                  | Label an individual binding in which-key           |
+| `gwhichkeygroup`                                 | Name a global which-key group by prefix            |
+| `gwhichkeylabel`                                 | Label a global binding in which-key                |
+| `surroundmap`                                    | Register a custom surround pair                    |
+| `surroundunmap`                                  | Remove a custom surround pair                      |
 
 ## Leader key
 

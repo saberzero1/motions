@@ -276,15 +276,7 @@ async function readVimrcFile(app: App, path: string): Promise<string | null> {
     }
 }
 
-function executeCommandById(app: App, commandId: string): void {
-    (
-        app as unknown as {
-            commands: { executeCommandById: (id: string) => void };
-        }
-    ).commands.executeCommandById(commandId);
-}
-
-export function registerVimrcExCommands(vim: VimApi, app: App): void {
+export function registerVimrcExCommands(vim: VimApi): void {
     vim.defineEx('noremap', '', (_cm, params) => {
         if (params.args?.length >= 2) {
             vim.noremap(params.args[0]!, params.args.slice(1).join(' '));
@@ -316,12 +308,6 @@ export function registerVimrcExCommands(vim: VimApi, app: App): void {
         vim.defineEx(name, '', (cm2) => {
             vim.handleEx(cm2, rest);
         });
-    });
-
-    vim.defineEx('obcommand', '', (_cm, params) => {
-        if (params.args?.[0]) {
-            executeCommandById(app, params.args[0]);
-        }
     });
 }
 
@@ -420,7 +406,7 @@ export async function loadVimrc(
         };
     }
 
-    registerVimrcExCommands(vim, app);
+    registerVimrcExCommands(vim);
 
     const result = await loadVimrcFile(
         app,

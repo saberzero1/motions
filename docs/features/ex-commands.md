@@ -14,9 +14,9 @@ Vim Motions provides 60+ ex commands accessible via `:` in Normal mode. Commands
 
 ## Obsidian integration
 
-### `:ob` — execute Obsidian commands
+### `:ob` / `:obcommand` — execute Obsidian commands
 
-`:ob {command-id}` executes any Obsidian command by its internal ID. Run `:ob` without arguments to list all available command IDs in a modal.
+`:ob {command-id}` (or `:obcommand {command-id}`) executes any Obsidian command by its internal ID. Both commands are identical — `obcommand` is provided for compatibility with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support). Run either command without arguments to list all available command IDs in a modal (or open the command picker when enabled).
 
 This is the bridge between Vim's ex command line and Obsidian's command palette. Use it to create custom key bindings for any Obsidian command:
 

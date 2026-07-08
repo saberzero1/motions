@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`:obcommand` unavailable in Lua-only config mode** — `vim.cmd('obcommand ...')` failed with "Not an editor command" when `configMode` was set to `lua` (without vimrc). The `obcommand` ex command was only registered inside `registerVimrcExCommands()`, which only runs when vimrc loading is enabled. Moved `obcommand` registration to `registerObCommand()` alongside `ob`, sharing the same handler. Both commands are now available in all config modes (lua, vimrc, lua-vimrc, settings-only). Additionally, `:obcommand` with no arguments now opens the command picker (matching `:ob` behavior) instead of silently doing nothing.
+    - Plugin: `src/workspace/commands.ts` (`registerObCommand` registers both `ob` and `obcommand`), `src/vimrc/loader.ts` (removed duplicate `obcommand` registration and unused `executeCommandById` helper)
+
 ## [0.41.0] - 2026-07-08
 
 ### Added
