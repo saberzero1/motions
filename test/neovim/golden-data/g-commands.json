@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.406Z",
+    "recorded_at": "2026-07-08T20:51:30.469Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -284,6 +284,63 @@
                 "cursor": {
                     "line": 0,
                     "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gk over heading preserves column",
+            "initial": {
+                "content": "abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz",
+                "cursor": {
+                    "line": 2,
+                    "ch": 15
+                }
+            },
+            "keys": "lgk",
+            "result": {
+                "content": "abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz",
+                "cursor": {
+                    "line": 1,
+                    "ch": 16
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gk over heading then above preserves column",
+            "initial": {
+                "content": "abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz",
+                "cursor": {
+                    "line": 2,
+                    "ch": 15
+                }
+            },
+            "keys": "lgkgk",
+            "result": {
+                "content": "abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 16
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gk gj round-trip preserves column",
+            "initial": {
+                "content": "abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz",
+                "cursor": {
+                    "line": 2,
+                    "ch": 15
+                }
+            },
+            "keys": "lgkgkgjgj",
+            "result": {
+                "content": "abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz",
+                "cursor": {
+                    "line": 2,
+                    "ch": 16
                 },
                 "mode": "normal"
             }

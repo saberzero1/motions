@@ -137,6 +137,21 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         reason: 'Fork :sort cursor positioning does not move to the first line of the sorted range',
         fields: ['cursor'],
     },
+
+    {
+        testPattern: /gk over heading.*preserves column/,
+        description:
+            'gk across heading lines drifts cursor column due to proportional font',
+        reason: 'CM6 moveVertically operates in pixel space; headings have wider characters than body text, so posAtCoords maps the same pixel X to a different character index. Neovim preserves curswant (character column) because all terminal chars are monospace.',
+        fields: ['cursor'],
+    },
+    {
+        testPattern: 'gk gj round-trip preserves column',
+        description:
+            'gk/gj round-trip restores column but intermediate positions differ from Neovim',
+        reason: 'Same pixel-vs-character column deviation as above; round-trip works because goalColumn (pixel X) is preserved throughout',
+        fields: ['cursor'],
+    },
 ];
 
 export function isKnownDeviation(testName: string): boolean {

@@ -1,7 +1,7 @@
 {
     "suite": "normal-marks-jumps",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.304Z",
+    "recorded_at": "2026-07-08T20:46:19.307Z",
     "cases": [
         {
             "name": "} should move to next empty line",

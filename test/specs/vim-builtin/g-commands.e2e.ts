@@ -161,6 +161,33 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             }
         });
 
+        it('gk over h3 between long wrapped lines should not skip lines (#26)', async function () {
+            const longLine =
+                'This is a long line of text that should wrap in the editor because it exceeds the typical viewport width and forces the display to use multiple visual lines for a single document line.';
+            const content = [longLine, '### Heading', longLine].join('\n');
+            await setupEditor(content, { line: 2, ch: 10 });
+            await vimKeys('l');
+            let prevLine = 2;
+            const visited = new Set<number>([2]);
+            for (let i = 0; i < 40; i++) {
+                await vimKeys('g', 'k');
+                const pos = await getCursorPos();
+                visited.add(pos.line);
+                expect(pos.line).toBeGreaterThanOrEqual(prevLine - 1);
+                if (
+                    pos.line < prevLine &&
+                    content.split('\n')[pos.line].length > 0
+                ) {
+                    expect(pos.ch).toBeGreaterThan(0);
+                }
+                prevLine = pos.line;
+                if (pos.line === 0) break;
+            }
+            for (let line = 0; line <= 2; line++) {
+                expect(visited.has(line)).toBe(true);
+            }
+        });
+
         it('gk on wrapped line after frontmatter should navigate display lines first (#25)', async function () {
             const wrappedLine = 'word '.repeat(30).trim();
             const content = [

@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Picker preview gutter misaligned on files with frontmatter** — positional previews (grep, live grep, headings, marks) showed line numbers for YAML frontmatter lines, but `MarkdownRenderer.render()` silently strips frontmatter from the output. This caused the rendered text to shift up relative to the gutter by the number of frontmatter lines. Fixed by detecting `---`-delimited frontmatter in `readLinesAroundPosition` and clamping the preview slice to start after the frontmatter block, so both the gutter and content exclude frontmatter lines.
     - Plugin: `src/picker/sources/preview-utils.ts` (`getFrontmatterEnd` helper, `effectiveStart` clamping in `readLinesAroundPosition`)
 
+### Added
+
+- 3 Neovim golden comparison cases for `gk` column preservation across headings (`gk over heading preserves column`, `gk over heading then above preserves column`, `gk gj round-trip preserves column`), recorded against Neovim 0.12.2
+- 2 spike test suites: `spike-gk-font-variations.e2e.ts` (11 tests: CSS theme stress-testing with varying font sizes, line heights, heading sizes, editor widths, padding/margins), `spike-gk-column-drift.e2e.ts` (4 tests: column drift measurement per heading level with Neovim comparison data)
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: added "`gk`/`gj` column drift on heading lines" section documenting the pixel-vs-character column deviation from Neovim with measurement data table; added `gj`/`gk` column row to behavioral deviations table with "Pixel drift" status; updated golden test coverage note (7 → 10 heading tests, 3 golden comparison cases)
+- `test/neovim/deviations.ts`: registered 2 known deviations for `gk` column preservation across heading lines (pixel-based `posAtCoords` vs Neovim's character-based `curswant`)
+- Fork `DIFFERENCES.md`: updated "Widget-aware vertical navigation" section with clamp-all-jumps approach and `posAtCoords` column fixup relaxation
+
 ## [0.43.0] - 2026-07-08
 
 ### Fixed

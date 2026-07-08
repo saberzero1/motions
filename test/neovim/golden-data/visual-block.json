@@ -1,7 +1,7 @@
 {
     "suite": "visual-block",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.437Z",
+    "recorded_at": "2026-07-08T20:46:19.436Z",
     "cases": [
         {
             "name": "CTRL-V block insert at left column",
@@ -14,9 +14,9 @@
             },
             "keys": "\u0016jjIX\u001b",
             "result": {
-                "content": "Xabc\nXdef\nXghi",
+                "content": "abc\ndef\nXghi",
                 "cursor": {
-                    "line": 0,
+                    "line": 2,
                     "ch": 0
                 },
                 "mode": "normal"
@@ -33,10 +33,10 @@
             },
             "keys": "\u0016jjAX\u001b",
             "result": {
-                "content": "aXbc\ndXef\ngXhi",
+                "content": "abc\ndef\nghiX",
                 "cursor": {
-                    "line": 0,
-                    "ch": 0
+                    "line": 2,
+                    "ch": 3
                 },
                 "mode": "normal"
             }
@@ -52,9 +52,9 @@
             },
             "keys": "\u0016jjlcXY\u001b",
             "result": {
-                "content": "aXYd\neXYh\niXYl",
+                "content": "abcd\nefgh\nijkl",
                 "cursor": {
-                    "line": 0,
+                    "line": 2,
                     "ch": 2
                 },
                 "mode": "normal"
@@ -71,10 +71,10 @@
             },
             "keys": "\u0016jjlCXY\u001b",
             "result": {
-                "content": "abXY\nghXY\nmnXY",
+                "content": "abcdef\nghijkl\nmnoXY",
                 "cursor": {
-                    "line": 0,
-                    "ch": 3
+                    "line": 2,
+                    "ch": 4
                 },
                 "mode": "normal"
             }
@@ -90,9 +90,9 @@
             },
             "keys": "\u0016jjx",
             "result": {
-                "content": "bc\nef\nhi",
+                "content": "abc\ndef\nhi",
                 "cursor": {
-                    "line": 0,
+                    "line": 2,
                     "ch": 0
                 },
                 "mode": "normal"
@@ -109,10 +109,10 @@
             },
             "keys": "\u0016jjll~",
             "result": {
-                "content": "ABCDEF\nGHIJKL\nMNOPQR",
+                "content": "abcDEF\nghiJKL\nmnOPQR",
                 "cursor": {
-                    "line": 0,
-                    "ch": 0
+                    "line": 2,
+                    "ch": 3
                 },
                 "mode": "normal"
             }
@@ -128,10 +128,10 @@
             },
             "keys": "\u0016jjllrX",
             "result": {
-                "content": "aXXX\neXXX\niXXX",
+                "content": "abcd\nefgh\nijkX",
                 "cursor": {
-                    "line": 0,
-                    "ch": 1
+                    "line": 2,
+                    "ch": 3
                 },
                 "mode": "normal"
             }
@@ -147,10 +147,10 @@
             },
             "keys": "\u0016jjIX\u001b",
             "result": {
-                "content": "abcdeXfgh\nab\nabcdeX",
+                "content": "abcdefgh\nab\nXabcde",
                 "cursor": {
-                    "line": 0,
-                    "ch": 5
+                    "line": 2,
+                    "ch": 0
                 },
                 "mode": "normal"
             }
@@ -166,10 +166,10 @@
             },
             "keys": "\u0016jjlyGp",
             "result": {
-                "content": "abc\ndef\nghi\n-ab--\n de\n gh",
+                "content": "abc\ndef\nghi\nghi\n---\n---",
                 "cursor": {
                     "line": 3,
-                    "ch": 1
+                    "ch": 0
                 },
                 "mode": "normal"
             }
@@ -185,9 +185,9 @@
             },
             "keys": "\u0016jjCXY\u001b",
             "result": {
-                "content": "abXY\nghXY\nmnXY",
+                "content": "abcdef\nghijkl\nmnXY",
                 "cursor": {
-                    "line": 0,
+                    "line": 2,
                     "ch": 3
                 },
                 "mode": "normal"
@@ -204,10 +204,10 @@
             },
             "keys": "\u0016jjIX\u001b",
             "result": {
-                "content": "abXcdef\nghXijkl\nmnXopqr",
+                "content": "abcdef\nghijkl\nXmnopqr",
                 "cursor": {
-                    "line": 0,
-                    "ch": 2
+                    "line": 2,
+                    "ch": 0
                 },
                 "mode": "normal"
             }
@@ -223,10 +223,10 @@
             },
             "keys": "\u0016jjAX\u001b",
             "result": {
-                "content": "abXc\ndeXf\nghXi",
+                "content": "abc\ndef\nghiX",
                 "cursor": {
-                    "line": 0,
-                    "ch": 1
+                    "line": 2,
+                    "ch": 3
                 },
                 "mode": "normal"
             }
@@ -242,7 +242,7 @@
             },
             "keys": "\u0016kkIX\u001b",
             "result": {
-                "content": "Xabc\nXdef\nXghi",
+                "content": "Xabc\ndef\nghi",
                 "cursor": {
                     "line": 0,
                     "ch": 0
@@ -280,10 +280,10 @@
             },
             "keys": "\u0016jj$d",
             "result": {
-                "content": "a\nd\nf",
+                "content": "abc\nde\nfghij",
                 "cursor": {
-                    "line": 0,
-                    "ch": 0
+                    "line": 2,
+                    "ch": 4
                 },
                 "mode": "normal"
             }

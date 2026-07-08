@@ -1262,6 +1262,27 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'gqj',
             },
+            {
+                name: 'gk over heading preserves column',
+                content:
+                    'abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz',
+                cursor: { line: 2, ch: 15 },
+                keys: 'lgk',
+            },
+            {
+                name: 'gk over heading then above preserves column',
+                content:
+                    'abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz',
+                cursor: { line: 2, ch: 15 },
+                keys: 'lgkgk',
+            },
+            {
+                name: 'gk gj round-trip preserves column',
+                content:
+                    'abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz',
+                cursor: { line: 2, ch: 15 },
+                keys: 'lgkgkgjgj',
+            },
         ],
     },
     {

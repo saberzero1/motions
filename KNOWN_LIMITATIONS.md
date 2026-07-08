@@ -545,6 +545,7 @@ These commands exist but behave differently from Neovim:
 | `:global` cursor | Cursor at last matched line after `:g/pattern/d` | Fixed in fork | Fork sets cursor to last matched line (clamped to document end) after line-deleting `:g` commands. Non-destructive `:g` leaves cursor where the last sub-command placed it. |
 | `:s` empty | Repeats last pattern with default flags (no `/g`) | Fixed in fork | Fork's `:s` without arguments no longer preserves the `/g` flag from the previous substitution. |
 | `gj`/`gk` widgets | Navigates into replaced decorations | Fixed in fork | Fork's `findPosV` clamps any multi-document-line jump to ±1 when no fold is present. This handles both replaced widgets (MathJax) and variable-height lines (headings with larger fonts). `posAtCoords` resolves the horizontal position on the clamped target line. |
+| `gj`/`gk` column | Preserves character column across lines | Pixel drift | Neovim preserves the character column (`curswant`) because all terminal characters are monospace. The fork preserves the pixel X coordinate (`goalColumn`) via `posAtCoords`, which maps to a different character index on heading lines (wider font). The round-trip (`gk gk gj gj`) returns to the exact starting column because the pixel X is preserved throughout. See "gk/gj column drift on heading lines" below. |
 | `gk` frontmatter | Navigates into frontmatter like `k` | Fixed in fork | Fork's `moveByDisplayLines` now checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`. The `stuckAtBoundary` condition uses `range.head === startOffset` to avoid false positives on wrapped lines — `gk` navigates wrapped display lines first and only enters properties from the topmost display line. Users who remap `k` to `gk` can now enter frontmatter navigation. |
 
 ## ~~Visual mode on single-character text objects~~ (Fixed)
@@ -740,6 +741,28 @@ The bundled vim extension is now registered at `Prec.highest` so its keydown han
 The fork's `findPosV` now clamps any multi-document-line jump from `moveVertically` to a single document-line step when the skipped range contains no folds. CM6's `moveVertically` is coordinate/pixel-based and can overshoot when line heights vary — replaced widgets (MathJax), headings with larger fonts, and other variable-height content all cause multi-line jumps. The clamp ensures `gk`/`gj` never skip document lines unless content is actually folded/hidden. Wrapped lines are unaffected (`lineJump === 0`). On the clamped target line, `posAtCoords` resolves the horizontal cursor position from the goalColumn (pixel X coordinate) to preserve column alignment. When `posAtCoords` is unavailable or out of range, the character offset from the previous line is used as fallback. ([#26](https://github.com/saberzero1/motions/issues/26))
 
 **Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents).
+
+## `gk`/`gj` column drift on heading lines
+
+**Status**: Known deviation from Neovim. Pixel-preserving behavior is correct for GUI editors.
+
+When `gk`/`gj` crosses a heading line (which Obsidian renders with a larger font), the character column shifts. For example, starting at ch:16 on a body text line and pressing `gk` to move onto a `### heading` line lands at ch:15 instead of ch:16. Neovim preserves the character column exactly (ch:16 → ch:16) because all terminal characters are monospace.
+
+The difference: Neovim's `gk` preserves `curswant` — the desired **character column**. The fork's `findPosV` uses CM6's `posAtCoords` to resolve position from `goalColumn` — the desired **pixel X coordinate**. In a monospace terminal, these are equivalent. In a proportional-font GUI editor like Obsidian, heading characters are wider, so the same pixel X maps to a smaller character index.
+
+| Start ch | Neovim heading ch | Obsidian heading ch | Δ (Obsidian) |
+| -------- | ----------------- | ------------------- | ------------ |
+| 6        | 6                 | 8                   | −2           |
+| 11       | 11                | 11                  | 0            |
+| 16       | 16                | 15                  | 1            |
+| 21       | 21                | 18                  | 3            |
+| 26       | 22 (clamped)      | 22 (clamped)        | 0            |
+
+The round-trip is lossless: `gk gk gj gj` always returns to the exact starting column (Δ:0) because the pixel X coordinate is preserved throughout the navigation.
+
+This is inherent to CM6's coordinate-based `moveVertically` and cannot be fixed without reimplementing vertical navigation in character-column space — which would break correct display-line behavior for wrapped lines (where pixel-based resolution is the only correct approach). The current behavior is consistent with how other GUI vim implementations (VS Code vim, IntelliJ IdeaVim) handle proportional-font vertical navigation.
+
+**Golden test coverage**: 3 golden comparison cases in `test/neovim/golden-data/g-commands.json` (`gk over heading preserves column`, `gk over heading then above preserves column`, `gk gj round-trip preserves column`), registered as known deviations in `test/neovim/deviations.ts`.
 
 ## Per-mode cursor shapes require bundled fork mode
 
