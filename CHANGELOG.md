@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`gk`/`gj` still skips lines in documents with mixed headings and lists** — `gk` could jump over multiple document lines when navigating upward through a document containing headings of varying sizes (`###`, `####`) separated by empty lines. The previous fix (v0.18.0) only clamped multi-line jumps when a replaced widget decoration (`dec.point`) was present in the skipped range, so headings — which use mark decorations with larger fonts, not replaced widgets — still triggered overshooting from CM6's pixel-based `moveVertically`. The fork's `findPosV` now clamps all multi-document-line jumps to ±1 when no fold is present, regardless of decoration type. `posAtCoords` resolves horizontal position on the clamped target line; the `goalColumn > 0` guard is relaxed to `goalColumn != null` so the column fixup also fires at column 0. ([#26](https://github.com/saberzero1/motions/issues/26))
+    - Fork: `src/cm_adapter.ts` (`findPosV` line-jump clamp, `posAtCoords` resolution on clamped target)
+
+### Added
+
+- E2E tests for `gk` over h4/h5/h6 headings: cursor horizontal position preserved across all heading levels
+- E2E test for `gk` through mixed headings, text, and lists: verifies no document lines are skipped and horizontal position is preserved on non-empty lines
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: updated "Visual line navigation and replaced widget decorations" section with clamp-all-jumps approach; updated `gj`/`gk` widgets behavioral deviation entry; updated test coverage count (3 → 7 heading tests)
+
 ## [0.42.0] - 2026-07-08
 
 ### Added

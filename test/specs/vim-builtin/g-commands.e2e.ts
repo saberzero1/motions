@@ -82,6 +82,85 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             expect(pos.ch).toBeGreaterThan(0);
         });
 
+        it('gk over h4 heading should preserve horizontal position (#26)', async function () {
+            const content =
+                'above the heading\n#### Heading\nbelow the heading';
+            await setupEditor(content, { line: 2, ch: 5 });
+            await vimKeys('l');
+            await vimKeys('g', 'k');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+            expect(pos.ch).toBeGreaterThan(0);
+        });
+
+        it('gk over h5 heading should preserve horizontal position (#26)', async function () {
+            const content =
+                'above the heading\n##### Heading\nbelow the heading';
+            await setupEditor(content, { line: 2, ch: 5 });
+            await vimKeys('l');
+            await vimKeys('g', 'k');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+            expect(pos.ch).toBeGreaterThan(0);
+        });
+
+        it('gk over h6 heading should preserve horizontal position (#26)', async function () {
+            const content =
+                'above the heading\n###### Heading\nbelow the heading';
+            await setupEditor(content, { line: 2, ch: 5 });
+            await vimKeys('l');
+            await vimKeys('g', 'k');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+            expect(pos.ch).toBeGreaterThan(0);
+        });
+
+        it('gk through mixed headings, text, and lists should not skip lines (#26)', async function () {
+            const content = [
+                '### heading', // 0
+                'text here.', // 1
+                '- list 1', // 2
+                '- list 2', // 3
+                '- list 3', // 4
+                '', // 5
+                '### heading 1', // 6
+                '', // 7
+                '#### heading 2', // 8
+                '', // 9
+                '#### heading 3', // 10
+                '', // 11
+                '#### heading 4', // 12
+            ].join('\n');
+            await setupEditor(content, { line: 12, ch: 5 });
+            await vimKeys('l');
+            // gk is a display-line motion: tall headings may span multiple
+            // visual lines, so a single gk might stay on the same doc line.
+            // The invariant is: gk must never SKIP a doc line — the cursor
+            // must pass through every line on the way up.
+            let prevLine = 12;
+            const visited = new Set<number>([12]);
+            for (let i = 0; i < 30; i++) {
+                await vimKeys('g', 'k');
+                const pos = await getCursorPos();
+                visited.add(pos.line);
+                // Must never jump backward by more than 1 doc line
+                expect(pos.line).toBeGreaterThanOrEqual(prevLine - 1);
+                // On non-empty lines, horizontal position must be preserved
+                if (
+                    content.split('\n')[pos.line].length > 0 &&
+                    pos.line < prevLine
+                ) {
+                    expect(pos.ch).toBeGreaterThan(0);
+                }
+                prevLine = pos.line;
+                if (pos.line === 0) break;
+            }
+            // Every doc line must have been visited
+            for (let line = 0; line <= 12; line++) {
+                expect(visited.has(line)).toBe(true);
+            }
+        });
+
         it('gk on wrapped line after frontmatter should navigate display lines first (#25)', async function () {
             const wrappedLine = 'word '.repeat(30).trim();
             const content = [
