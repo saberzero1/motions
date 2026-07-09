@@ -27,11 +27,11 @@ export function createMatcher(engine: MatcherEngine = 'auto'): ManagedMatcher {
 
     if (resolvedEngine === 'nucleo') {
         try {
-            /* eslint-disable @typescript-eslint/no-require-imports, no-undef -- dynamic import: nucleo is only loaded when selected */
-            const { createNucleoMatcher } = require('./matcher-nucleo') as {
+            /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-undef -- dynamic import: nucleo is only loaded when selected */
+            const { createNucleoMatcher }: {
                 createNucleoMatcher: () => DisposableMatcher | null;
-            };
-            /* eslint-enable @typescript-eslint/no-require-imports, no-undef -- end dynamic import */
+            } = require('./matcher-nucleo');
+            /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-undef -- end dynamic import */
             const nucleo = createNucleoMatcher();
             if (nucleo) return nucleo;
         } catch {
