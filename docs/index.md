@@ -29,9 +29,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 53 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.43.0
+## What's new in 0.44.0
 
-- **Fixed cursor snapping over formatting marks in Live Preview** — moving through `**bold**`, `__underline__`, `~~strikethrough~~`, or `==highlight==` with `h`/`l` no longer skips positions inside the delimiters. The `formattingMarkMode` setting has been removed — Obsidian's Live Preview natively handles mark visibility. ([#33](https://github.com/saberzero1/motions/issues/33))
-- **Fixed `gk`/`gj` skipping lines over mixed headings** — `gk` no longer jumps over multiple document lines when navigating through headings of varying sizes (`###`, `####`) separated by empty lines. All multi-line jumps are now clamped to ±1 regardless of decoration type. ([#26](https://github.com/saberzero1/motions/issues/26))
+- **Picker matching engine setting** — choose between four fuzzy matching engines for the picker: `ufuzzy` (default, filename-aware ranking), `nucleo` (WASM-compiled, fzf-compatible scoring from the [Helix editor](https://github.com/helix-editor/nucleo)), `obsidian` (built-in API), or `auto` (nucleo on desktop, uFuzzy on mobile). Configurable via **Settings → Vim Motions → Picker matching engine**.
+- **Telescope-style picker presentation** — the fuzzy picker now uses a terminal-inspired visual style with monospace text, compact item density, accent-tinted selection, and floating border titles ("Files", "Results", "Preview") matching [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)'s aesthetic.
+- **Picker positional previews use raw text** — grep, live grep, headings, and marks previews now render as monospace plain text, keeping the line-number gutter perfectly aligned with content.
+- **Fixed picker preview gutter misaligned on files with frontmatter** — positional previews no longer show line numbers for YAML frontmatter lines that get stripped by the renderer.
+- **Fixed Neovim golden recorder for visual-block operations** — block-insert (`<C-v>I`/`A`) and mode-switch operations now produce correct golden data.
 
 See the [[changelog|full changelog]] for details.

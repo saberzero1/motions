@@ -634,7 +634,7 @@ export class PickerModal extends Modal {
             for (let i = 0; i < lineCount; i++) {
                 const n = lineRange.lineStart + i;
                 const line = contentLines[i] ?? '';
-                const lineEl = pre.createEl('div', {
+                const lineEl = pre.createDiv({
                     cls: 'vim-motions-picker-preview-code-line',
                     text: line || '\u00A0',
                 });
