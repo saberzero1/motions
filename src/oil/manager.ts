@@ -35,6 +35,7 @@ export class OilManager {
     ) {}
 
     install(plugin: Plugin): void {
+        this.cleanupStaleFiles();
         plugin.registerEvent(
             this.app.vault.on('create', (file) => {
                 if (this.isOilFile(file.path)) return;
@@ -98,8 +99,8 @@ export class OilManager {
             await this.app.vault.modify(existing as import('obsidian').TFile, content);
         } else {
             await this.app.vault.create(tempPath, content);
-            this.addToIgnoreFilters(tempPath);
         }
+        this.addToIgnoreFilters(tempPath);
         this.tempToDir.set(tempPath, dirPath);
         await this.app.workspace.openLinkText(tempPath, '');
         await this.forceSourceMode();
@@ -280,6 +281,15 @@ export class OilManager {
         if (viewState.state?.mode !== 'source') {
             viewState.state = { ...viewState.state, mode: 'source', source: true };
             await leaf.setViewState(viewState);
+        }
+    }
+
+    private cleanupStaleFiles(): void {
+        for (const file of this.app.vault.getFiles()) {
+            if (this.isOilFile(file.path)) {
+                this.removeFromIgnoreFilters(file.path);
+                void this.app.vault.adapter.remove(file.path);
+            }
         }
     }
 
