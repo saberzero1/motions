@@ -91,6 +91,9 @@ import { createTagsSource } from './picker/sources/tags';
 import { createRecentSource, trackRecentFile } from './picker/sources/recent';
 import { createMarksSource } from './picker/sources/marks';
 import { createRegistersSource } from './picker/sources/registers';
+import { OilView, OIL_VIEW_TYPE } from './oil/view';
+import { OilCache } from './oil/cache';
+import { OilKeybindingManager } from './oil/keybindings';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -156,6 +159,7 @@ export default class VimMotionsPlugin extends Plugin {
     private frecencyStore: FrecencyStore | null = null;
     private frecencySaveTimer: number | null = null;
     private matcher: ManagedMatcher | null = null;
+    private oilKeybindingManager: OilKeybindingManager | null = null;
 
     get vimrcEnabled(): boolean {
         return (
@@ -341,6 +345,14 @@ export default class VimMotionsPlugin extends Plugin {
         if (Platform.isMobile && !this.settings.enableOnMobile) {
             return;
         }
+
+        const oilCache = new OilCache();
+        this.registerView(
+            OIL_VIEW_TYPE,
+            (leaf) =>
+                new OilView(leaf, this.app, oilCache, this.settings),
+        );
+        this.oilKeybindingManager = new OilKeybindingManager(this.app);
 
         const builtinVimOn = isVimEnabled(
             this.app as unknown as {
@@ -637,6 +649,7 @@ export default class VimMotionsPlugin extends Plugin {
                     trackRecentFile(activeFile.path);
                 }
                 this.bufferKeymapManager?.switchBuffer(filePath);
+                this.oilKeybindingManager?.onActiveLeafChange();
                 if (filePath) {
                     this.autocmdManager?.fireFileType(filePath);
                 }
@@ -1969,6 +1982,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaDeactivateRuntimeEx = null;
         this.bufferKeymapManager?.destroy();
         this.bufferKeymapManager = null;
+        this.oilKeybindingManager?.destroy();
+        this.oilKeybindingManager = null;
         if (this.luaState) {
             destroyState(this.luaState);
             this.luaState = null;

@@ -146,6 +146,10 @@ export interface VimMotionsSettings {
     luaConfigPath: string;
     showConfigNotifications: boolean;
     leaderBindings: LeaderBinding[];
+    oilExplorer: boolean;
+    oilShowHiddenFiles: boolean;
+    oilConfirmDeleteThreshold: number;
+    oilDefaultSort: 'name' | 'mtime' | 'size';
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -194,6 +198,10 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     luaConfigPath: '',
     showConfigNotifications: true,
     leaderBindings: [],
+    oilExplorer: true,
+    oilShowHiddenFiles: false,
+    oilConfirmDeleteThreshold: 1,
+    oilDefaultSort: 'name',
 };
 
 interface ObsidianCommand {
@@ -1913,6 +1921,75 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.labelFontSize = value;
                         this.plugin.vimrcOverrides?.delete('labelFontSize');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        // ── File explorer ────────────────────────────────────────────
+
+        new Setting(containerEl).setName('File explorer').setHeading();
+
+        new Setting(containerEl)
+            .setName('Oil explorer')
+            .setDesc(
+                'Enable the oil-style file explorer (:oil command).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.oilExplorer)
+                    .onChange(async (value) => {
+                        this.plugin.settings.oilExplorer = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Show hidden files')
+            .setDesc(
+                'Show dotfiles and hidden folders in oil views.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.oilShowHiddenFiles)
+                    .onChange(async (value) => {
+                        this.plugin.settings.oilShowHiddenFiles = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Confirm delete threshold')
+            .setDesc(
+                'Show confirmation dialog when deleting this many files or more.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(1, 20, 1)
+                    .setValue(this.plugin.settings.oilConfirmDeleteThreshold)
+                    .onChange(async (value) => {
+                        this.plugin.settings.oilConfirmDeleteThreshold = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Default sort order')
+            .setDesc(
+                'Default sort order for oil directory listings.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        name: 'Name',
+                        mtime: 'Modified time',
+                        size: 'Size',
+                    })
+                    .setValue(this.plugin.settings.oilDefaultSort)
+                    .onChange(async (value) => {
+                        this.plugin.settings.oilDefaultSort = value as
+                            | 'name'
+                            | 'mtime'
+                            | 'size';
                         await this.plugin.saveSettings();
                     }),
             );

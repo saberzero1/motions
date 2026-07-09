@@ -19,6 +19,7 @@ const GLOBAL_NAV_VIEW_TYPES = new Set([
     'canvas',
     'empty',
     'image',
+    'vim-motions-oil',
 ]);
 
 function isEditorOrInputFocused(doc: Document): boolean {

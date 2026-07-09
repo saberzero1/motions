@@ -1,4 +1,5 @@
 import { App, MarkdownView, Notice, TFile } from 'obsidian';
+import { OilView, OIL_VIEW_TYPE } from '../oil/view';
 import { createGrepCommand } from './vault-search';
 import type { ExCommandFn, VimApi } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
@@ -139,7 +140,20 @@ function executeCommand(app: App, commandId: string): void {
     ).commands.executeCommandById(commandId);
 }
 
+function getActiveOilView(app: App): OilView | null {
+    const leaf = app.workspace.getMostRecentLeaf();
+    if (leaf?.view?.getViewType() === OIL_VIEW_TYPE) {
+        return leaf.view as OilView;
+    }
+    return null;
+}
+
 function saveWithEvents(app: App, autocmdManager?: AutocmdManager): void {
+    const oilView = getActiveOilView(app);
+    if (oilView) {
+        void oilView.commit();
+        return;
+    }
     const file = app.workspace.getActiveFile();
     const path = file?.path ?? '';
     autocmdManager?.fire('BufWritePre', { file: path });
@@ -152,6 +166,13 @@ function createWriteQuitCommand(
     autocmdManager?: AutocmdManager,
 ): ExCommandFn {
     return () => {
+        const oilView = getActiveOilView(app);
+        if (oilView) {
+            void oilView.commit().then(() => {
+                executeCommand(app, 'workspace:close');
+            });
+            return;
+        }
         saveWithEvents(app, autocmdManager);
         executeCommand(app, 'workspace:close');
     };
@@ -336,6 +357,13 @@ function createXitCommand(
     autocmdManager?: AutocmdManager,
 ): ExCommandFn {
     return () => {
+        const oilView = getActiveOilView(app);
+        if (oilView) {
+            void oilView.commit().then(() => {
+                executeCommand(app, 'workspace:close');
+            });
+            return;
+        }
         saveWithEvents(app, autocmdManager);
         executeCommand(app, 'workspace:close');
     };
@@ -667,5 +695,29 @@ export function registerExCommands(
             [{ header: 'Keys' }, { header: 'Action' }, { header: 'Source' }],
             rows,
         ).open();
+    });
+
+    reg.defineEx('Oil', '', (_cm, params) => {
+        const argPath = (params.argString ?? '').trim();
+        let dirPath = argPath;
+        if (!dirPath || dirPath === '.' || dirPath === '/') {
+            const activeFile = app.workspace.getActiveFile();
+            if (activeFile) {
+                dirPath = activeFile.path.includes('/')
+                    ? activeFile.path.substring(
+                          0,
+                          activeFile.path.lastIndexOf('/'),
+                      )
+                    : '';
+            } else {
+                dirPath = '';
+            }
+        }
+        const leaf = app.workspace.getLeaf('tab');
+        void leaf.setViewState({
+            type: OIL_VIEW_TYPE,
+            state: { path: dirPath },
+        });
+        app.workspace.setActiveLeaf(leaf, { focus: true });
     });
 }
