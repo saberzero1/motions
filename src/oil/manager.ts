@@ -37,18 +37,21 @@ export class OilManager {
     install(plugin: Plugin): void {
         plugin.registerEvent(
             this.app.vault.on('create', (file) => {
+                if (this.isOilFile(file.path)) return;
                 const dirPath = this.getParentDirPath(file.path);
                 this.refreshDirIfOpen(dirPath);
             }),
         );
         plugin.registerEvent(
             this.app.vault.on('delete', (file) => {
+                if (this.isOilFile(file.path)) return;
                 const dirPath = this.getParentDirPath(file.path);
                 this.refreshDirIfOpen(dirPath);
             }),
         );
         plugin.registerEvent(
             this.app.vault.on('rename', (file, oldPath) => {
+                if (this.isOilFile(file.path)) return;
                 const oldDir = this.getParentDirPath(oldPath);
                 const newDir = this.getParentDirPath(file.path);
                 this.refreshDirIfOpen(oldDir);
@@ -57,6 +60,28 @@ export class OilManager {
                 }
             }),
         );
+    }
+
+    cleanupOrphanedTempFiles(): void {
+        const openPaths = new Set<string>();
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            const filePath = (
+                leaf.view as unknown as { file?: { path?: string } }
+            ).file?.path;
+            if (filePath) openPaths.add(filePath);
+        });
+
+        const orphaned: string[] = [];
+        for (const tempPath of this.tempToDir.keys()) {
+            if (!openPaths.has(tempPath)) {
+                orphaned.push(tempPath);
+            }
+        }
+
+        for (const tempPath of orphaned) {
+            this.tempToDir.delete(tempPath);
+            void this.app.vault.adapter.remove(tempPath).catch(() => {});
+        }
     }
 
     isOilFile(path: string): boolean {
@@ -242,6 +267,8 @@ export class OilManager {
             await leaf.setViewState(viewState);
         }
     }
+
+
 
     private getDeleteThreshold(): number {
         return this.settings?.oilConfirmDeleteThreshold ?? 1;

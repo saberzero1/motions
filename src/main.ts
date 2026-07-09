@@ -653,6 +653,7 @@ export default class VimMotionsPlugin extends Plugin {
                 }
                 this.bufferKeymapManager?.switchBuffer(filePath);
                 this.oilKeybindingManager?.onActiveLeafChange();
+                this.oilManager?.cleanupOrphanedTempFiles();
                 if (filePath) {
                     this.autocmdManager?.fireFileType(filePath);
                 }

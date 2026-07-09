@@ -289,7 +289,7 @@ describe('Oil explorer', function () {
         it('oil temp files are not listed in oil buffer', async function () {
             await openOilAndWait();
             const content = await getEditorValue();
-            expect(content).not.toMatch(/oil~/);
+            expect(content).not.toContain('oil~');
         });
     });
 
