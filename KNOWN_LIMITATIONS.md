@@ -259,6 +259,8 @@ In "all" mode, the overlay reads the fork's `getInputState()` to detect operator
 
 The overlay attaches to the active editor pane's `contentEl` with `position: absolute`, so it stays within the editor bounds and doesn't cover other panes. Maximum height is 40% of the pane. The multi-column grid layout uses `auto-fill` with `minmax(200px, 1fr)` columns.
 
+The overlay adds `padding-bottom` equal to Obsidian's status bar height so that keybinding rows are not hidden behind the status bar. In horizontal split views, the padding is only applied when the editor pane's bottom edge is adjacent to the status bar — top panes (whose bottom edge doesn't reach the status bar) show no extra padding. The global which-key (workspace navigation) always applies the padding since it spans the full workspace.
+
 ### Grouping
 
 When **Which-key leader grouping** is set to "Grouped" (default), bindings sharing a common prefix key are collapsed into a single group entry (e.g. `t` → `Table (+11)`). Pressing the group key drills down to show only the bindings within that group. Groups are sorted before ungrouped entries. Setting the mode to "Flat" restores the original behavior of listing all bindings individually.

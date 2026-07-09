@@ -133,6 +133,11 @@ export class GlobalWhichKeyOverlay {
         overlay.appendChild(grid);
         container.appendChild(overlay);
         this.overlay = overlay;
+
+        const statusBar = doc.querySelector<HTMLElement>('.status-bar');
+        if (statusBar && statusBar.offsetHeight > 0) {
+            overlay.style.paddingBottom = `${statusBar.offsetHeight}px`;
+        }
     }
 
     private buildEntries(

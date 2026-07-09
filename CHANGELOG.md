@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Which-key overlay hidden behind status bar** — the which-key popup (both editor-level and global workspace) was positioned at `bottom: 0` of its container, causing the bottom rows to be obscured by Obsidian's status bar. The overlay now detects the status bar height and adds `padding-bottom` to keep content above it. In split views, padding is only applied when the editor pane's bottom edge is adjacent to the status bar (top splits are unaffected).
+    - Plugin: `src/ui/which-key.ts` (status bar height detection with `getBoundingClientRect` adjacency check), `src/ui/global-which-key.ts` (same padding for global which-key)
+
 ### Added
 
 - **Remappable keybindings** — every plugin keybinding is now user-remappable across all contexts (editor, oil explorer, picker, global workspace navigation). See the [remapping guide](https://saberzero1.github.io/motions/configuration/remapping) for details.

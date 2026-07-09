@@ -569,6 +569,16 @@ export class WhichKeyOverlay {
         }
 
         container.appendChild(this.overlay);
+
+        const statusBar =
+            container.doc.querySelector<HTMLElement>('.status-bar');
+        if (statusBar) {
+            const containerRect = container.getBoundingClientRect();
+            const statusBarRect = statusBar.getBoundingClientRect();
+            if (containerRect.bottom >= statusBarRect.top) {
+                this.overlay.style.paddingBottom = `${statusBar.offsetHeight}px`;
+            }
+        }
     }
 
     private clearTimer(): void {
