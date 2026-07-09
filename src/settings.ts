@@ -150,6 +150,17 @@ export interface VimMotionsSettings {
     oilShowHiddenFiles: boolean;
     oilConfirmDeleteThreshold: number;
     oilDefaultSort: 'name' | 'mtime' | 'size';
+    pickerKeymap: {
+        moveDown: string[];
+        moveUp: string[];
+        confirm: string[];
+        splitH: string[];
+        splitV: string[];
+        openTab: string[];
+        scrollDown: string[];
+        scrollUp: string[];
+        close: string[];
+    };
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -202,6 +213,17 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     oilShowHiddenFiles: false,
     oilConfirmDeleteThreshold: 1,
     oilDefaultSort: 'name',
+    pickerKeymap: {
+        moveDown: ['ArrowDown', 'C-n', 'C-j'],
+        moveUp: ['ArrowUp', 'C-p', 'C-k'],
+        confirm: ['Enter'],
+        splitH: ['C-x'],
+        splitV: ['C-v'],
+        openTab: ['C-t'],
+        scrollDown: ['C-d'],
+        scrollUp: ['C-u'],
+        close: ['Escape', 'C-c'],
+    },
 };
 
 interface ObsidianCommand {

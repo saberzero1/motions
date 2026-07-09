@@ -1,6 +1,11 @@
 import { App, getAllTags } from 'obsidian';
 import { PickerModal } from '../picker';
-import type { PickerItem, PickerMatcher, PickerSource } from '../types';
+import type {
+    PickerItem,
+    PickerKeymap,
+    PickerMatcher,
+    PickerSource,
+} from '../types';
 
 function normalizeTag(tag: string): string {
     const trimmed = tag.trim();
@@ -70,7 +75,10 @@ function buildFileItems(paths: string[]): PickerItem[] {
     );
 }
 
-export function createTagsSource(matcher: PickerMatcher): PickerSource {
+export function createTagsSource(
+    matcher: PickerMatcher,
+    getKeymap?: () => PickerKeymap | undefined,
+): PickerSource {
     return {
         name: 'tags',
         placeholder: 'Search tags…',
@@ -102,9 +110,14 @@ export function createTagsSource(matcher: PickerMatcher): PickerSource {
                     void app.workspace.openLinkText(fileData.path, '');
                 },
             };
-            PickerModal.open(app, source, matcher, {
-                source: `tag:${data.tag}`,
-            });
+            PickerModal.open(
+                app,
+                source,
+                matcher,
+                { source: `tag:${data.tag}` },
+                undefined,
+                getKeymap?.(),
+            );
         },
     };
 }

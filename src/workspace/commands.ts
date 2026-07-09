@@ -693,7 +693,7 @@ export function registerExCommands(
     reg.defineEx('version', 've', createVersionCommand(app));
     reg.defineEx('delmarks', 'delm', createDelmarksCommand());
 
-    reg.defineEx('gmap', '', () => {
+    reg.defineEx('gmaps', '', () => {
         if (!globalRegistry) return;
         const entries = globalRegistry.getAllEntries();
         const rows = entries.map((e) => {
@@ -710,6 +710,50 @@ export function registerExCommands(
             [{ header: 'Keys' }, { header: 'Action' }, { header: 'Source' }],
             rows,
         ).open();
+    });
+    reg.defineEx('gmap', '', (_cm, params) => {
+        if (!globalRegistry) return;
+        const args = (params.argString ?? '').trim();
+        if (!args) {
+            executeCommand(app, 'vim-motions:show-hint-labels');
+            return;
+        }
+        const parts = args.split(/\s+/);
+        if (parts.length < 2 || !parts[0] || !parts[1]) {
+            new Notice('Usage: :gmap <key> <:command>');
+            return;
+        }
+        const lhs = parts[0].replace(/ /g, '<Space>');
+        const rhs = parts.slice(1).join(' ');
+        let action: import('../workspace/global-mapping-registry').GlobalMapAction;
+        if (rhs.startsWith(':obcommand ')) {
+            action = {
+                type: 'obcommand',
+                commandId: rhs.slice(':obcommand '.length).trim(),
+            };
+        } else if (rhs.startsWith(':')) {
+            action = { type: 'ex', command: rhs.slice(1).trim() };
+        } else {
+            new Notice(
+                'Gmap rhs must start with : (e.g., :files, :obcommand app:reload)',
+            );
+            return;
+        }
+        globalRegistry.addMapping(lhs, action, {
+            source: 'user',
+            gate: 'standard',
+        });
+    });
+    reg.defineEx('gunmap', 'gunm', (_cm, params) => {
+        if (!globalRegistry) return;
+        const key = (params.argString ?? '').trim().replace(/ /g, '<Space>');
+        if (!key) {
+            new Notice('Usage: :gunmap <key>');
+            return;
+        }
+        if (!globalRegistry.removeMapping(key)) {
+            new Notice(`No global mapping for: ${key}`);
+        }
     });
 
     if (oilManager) {

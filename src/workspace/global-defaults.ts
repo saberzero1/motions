@@ -138,8 +138,9 @@ export function registerDefaultGlobalMappings(
         keys: string,
         action: Parameters<GlobalMappingRegistry['addMapping']>[1],
         gate: GlobalMapGate,
+        name?: string,
     ): void => {
-        registry.addMapping(keys, action, { source: 'default', gate });
+        registry.addMapping(keys, action, { source: 'default', gate, name });
     };
 
     const noop = (_app: App, _count: number): void => {
@@ -153,6 +154,7 @@ export function registerDefaultGlobalMappings(
             fn: (app2, count) => scrollBy(app2, LINE_HEIGHT * count),
         },
         'standard',
+        'scrollDown',
     );
     add(
         'k',
@@ -161,19 +163,32 @@ export function registerDefaultGlobalMappings(
             fn: (app2, count) => scrollBy(app2, -LINE_HEIGHT * count),
         },
         'standard',
+        'scrollUp',
     );
     add(
         'H',
         { type: 'obcommand', commandId: 'workspace:previous-tab' },
         'standard',
+        'previousTab',
     );
     add(
         'L',
         { type: 'obcommand', commandId: 'workspace:next-tab' },
         'standard',
+        'nextTab',
     );
-    add('G', { type: 'builtin', fn: (app2) => scrollToEnd(app2) }, 'standard');
-    add('gg', { type: 'builtin', fn: (app2) => scrollTo(app2, 0) }, 'standard');
+    add(
+        'G',
+        { type: 'builtin', fn: (app2) => scrollToEnd(app2) },
+        'standard',
+        'scrollToEnd',
+    );
+    add(
+        'gg',
+        { type: 'builtin', fn: (app2) => scrollTo(app2, 0) },
+        'standard',
+        'scrollToTop',
+    );
     add(
         'gt',
         {
@@ -187,82 +202,103 @@ export function registerDefaultGlobalMappings(
             },
         },
         'structural',
+        'gotoTab',
     );
     add(
         'gT',
         { type: 'obcommand', commandId: 'workspace:previous-tab' },
         'structural',
+        'gotoPrevTab',
     );
     add(
         '<C-d>',
         { type: 'builtin', fn: (app2) => scrollHalfPage(app2, 1) },
         'standard',
+        'scrollHalfPageDown',
     );
     add(
         '<C-u>',
         { type: 'builtin', fn: (app2) => scrollHalfPage(app2, -1) },
         'standard',
+        'scrollHalfPageUp',
     );
     add(
         '<C-f>',
         { type: 'builtin', fn: (app2) => scrollFullPage(app2, 1) },
         'standard',
+        'scrollFullPageDown',
     );
     add(
         '<C-b>',
         { type: 'builtin', fn: (app2) => scrollFullPage(app2, -1) },
         'standard',
+        'scrollFullPageUp',
     );
-    add('<C-o>', { type: 'obcommand', commandId: 'app:go-back' }, 'structural');
+    add(
+        '<C-o>',
+        { type: 'obcommand', commandId: 'app:go-back' },
+        'structural',
+        'goBack',
+    );
     add(
         '<C-i>',
         { type: 'obcommand', commandId: 'app:go-forward' },
         'structural',
+        'goForward',
     );
     add(
         '<C-w>h',
         { type: 'obcommand', commandId: 'editor:focus-left' },
         'structural',
+        'focusPaneLeft',
     );
     add(
         '<C-w>j',
         { type: 'obcommand', commandId: 'editor:focus-bottom' },
         'structural',
+        'focusPaneDown',
     );
     add(
         '<C-w>k',
         { type: 'obcommand', commandId: 'editor:focus-top' },
         'structural',
+        'focusPaneUp',
     );
     add(
         '<C-w>l',
         { type: 'obcommand', commandId: 'editor:focus-right' },
         'structural',
+        'focusPaneRight',
     );
     add(
         '<C-w>v',
         { type: 'obcommand', commandId: 'workspace:split-vertical' },
         'structural',
+        'splitVertical',
     );
     add(
         '<C-w>s',
         { type: 'obcommand', commandId: 'workspace:split-horizontal' },
         'structural',
+        'splitHorizontal',
     );
     add(
         '<C-w>c',
         { type: 'obcommand', commandId: 'workspace:close' },
         'structural',
+        'closeTab',
     );
     add(
         '<C-w>q',
         { type: 'obcommand', commandId: 'workspace:close' },
         'structural',
+        'closeTabAlt',
     );
     add(
         '<C-w>o',
         { type: 'builtin', fn: (app2) => closeOtherTabs(app2) },
         'structural',
+        'closeOtherTabs',
     );
     add(
         ':',
@@ -278,6 +314,7 @@ export function registerDefaultGlobalMappings(
             },
         },
         'structural',
+        'exCommandLine',
     );
     add('z', { type: 'builtin', fn: noop }, 'standard');
     add('<C-w>g', { type: 'builtin', fn: noop }, 'structural');

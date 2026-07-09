@@ -1,6 +1,9 @@
 import { App, Notice, SuggestModal } from 'obsidian';
 import { executeCommand } from '../workspace/navigation';
-import type { GlobalMappingRegistry } from '../workspace/global-mapping-registry';
+import type {
+    GlobalMapAction,
+    GlobalMappingRegistry,
+} from '../workspace/global-mapping-registry';
 import { VimInfoModal } from './vim-info-modal';
 import type { OilManager } from '../oil/manager';
 
@@ -205,7 +208,7 @@ export function buildGlobalExCommands(
         { name: 'forward', shortName: 'fo', fn: cmd('app:go-forward') },
         { name: 'version', shortName: 've', fn: version },
         {
-            name: 'gmap',
+            name: 'gmaps',
             shortName: '',
             fn: () => {
                 if (!globalRegistry) return;
@@ -229,6 +232,53 @@ export function buildGlobalExCommands(
                     ],
                     rows,
                 ).open();
+            },
+        },
+        {
+            name: 'gmap',
+            shortName: '',
+            fn: (_app, args) => {
+                if (!globalRegistry) return;
+                const parts = args.trim().split(/\s+/);
+                if (parts.length < 2 || !parts[0] || !parts[1]) {
+                    new Notice('Usage: :gmap <key> <:command>');
+                    return;
+                }
+                const lhs = parts[0].replace(/ /g, '<Space>');
+                const rhs = parts.slice(1).join(' ');
+                let action: GlobalMapAction;
+                if (rhs.startsWith(':obcommand ')) {
+                    action = {
+                        type: 'obcommand',
+                        commandId: rhs.slice(':obcommand '.length).trim(),
+                    };
+                } else if (rhs.startsWith(':')) {
+                    action = { type: 'ex', command: rhs.slice(1).trim() };
+                } else {
+                    new Notice(
+                        'Gmap rhs must start with : (e.g., :files, :obcommand app:reload)',
+                    );
+                    return;
+                }
+                globalRegistry.addMapping(lhs, action, {
+                    source: 'user',
+                    gate: 'standard',
+                });
+            },
+        },
+        {
+            name: 'gunmap',
+            shortName: 'gunm',
+            fn: (_app, args) => {
+                if (!globalRegistry) return;
+                const key = args.trim().replace(/ /g, '<Space>');
+                if (!key) {
+                    new Notice('Usage: :gunmap <key>');
+                    return;
+                }
+                if (!globalRegistry.removeMapping(key)) {
+                    new Notice(`No global mapping for: ${key}`);
+                }
             },
         },
         ...(openPicker

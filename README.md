@@ -8,15 +8,16 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, and table cells with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
-- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (12 events), `vim.obsidian` namespace, buffer-local keymaps, and Neovim-compatible syntax
+- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (17 events), `vim.obsidian` namespace, buffer-local keymaps, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)
 - **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support)
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, and cursor-aware table widget
-- **60+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:sidebar`, and more
+- **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:sidebar`, navigation/action aliases, and more
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
+- **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
 - **Quality of life**: Neovim defaults (`Y`/`Q`), smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation
@@ -47,6 +48,7 @@ Full documentation: **https://saberzero1.github.io/motions**
 - [Lua configuration](https://saberzero1.github.io/motions/configuration/lua-config)
 - [Settings reference](https://saberzero1.github.io/motions/configuration/settings)
 - [Keybinding cheat sheet](https://saberzero1.github.io/motions/reference/keybindings)
+- [Remapping guide](https://saberzero1.github.io/motions/configuration/remapping)
 - [Known limitations](https://saberzero1.github.io/motions/reference/known-limitations)
 - [Changelog](https://saberzero1.github.io/motions/reference/changelog)
 

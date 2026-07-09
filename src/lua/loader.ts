@@ -134,7 +134,34 @@ export async function loadInitLua(
     customPath?: string,
     bufferKeymapManager?: BufferKeymapManager,
     openPicker?: (source: string, opts?: { query?: string }) => void,
-    oilCallbacks?: Pick<VimApiCallbacks, 'oilOpen' | 'oilClose'>,
+    oilCallbacks?: Pick<
+        VimApiCallbacks,
+        | 'oilOpen'
+        | 'oilClose'
+        | 'oilParent'
+        | 'oilRoot'
+        | 'oilRefresh'
+        | 'oilToggleHidden'
+        | 'oilCycleSort'
+        | 'oilYankPath'
+        | 'oilReveal'
+        | 'oilOpenEntry'
+    >,
+    onPickerKeymapChange?: (keymap: Record<string, string[]>) => void,
+    globalRegistry?: {
+        addMapping: (
+            keys: string,
+            action:
+                | { type: 'obcommand'; commandId: string }
+                | { type: 'ex'; command: string },
+            opts: {
+                source: 'default' | 'user';
+                gate: 'standard' | 'hint' | 'structural';
+            },
+        ) => void;
+        removeMapping: (keys: string) => boolean;
+        setLabel: (keys: string, label: string) => void;
+    },
 ): Promise<LuaLoadResult> {
     const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
@@ -321,6 +348,7 @@ export async function loadInitLua(
             new Notice(msg);
         },
         ...oilCallbacks,
+        onPickerKeymapChange,
         onKeymap: (map) => {
             commandCount++;
             maps.push(map);
@@ -421,10 +449,34 @@ export async function loadInitLua(
         onGlobalKeymap: (map) => {
             commandCount++;
             globalMaps.push(map);
+            if (globalRegistry) {
+                const normalized = map.lhs.replace(/ /g, '<Space>');
+                let action:
+                    | { type: 'obcommand'; commandId: string }
+                    | { type: 'ex'; command: string };
+                if (map.rhs.startsWith(':obcommand ')) {
+                    action = {
+                        type: 'obcommand',
+                        commandId: map.rhs.slice(':obcommand '.length).trim(),
+                    };
+                } else if (map.rhs.startsWith(':')) {
+                    action = { type: 'ex', command: map.rhs.slice(1).trim() };
+                } else {
+                    return;
+                }
+                globalRegistry.addMapping(normalized, action, {
+                    source: 'user',
+                    gate: 'standard',
+                });
+                if (map.desc) globalRegistry.setLabel(normalized, map.desc);
+            }
         },
         onGlobalKeymapDel: (lhs) => {
             commandCount++;
             globalUnmaps.push(lhs);
+            if (globalRegistry) {
+                globalRegistry.removeMapping(lhs.replace(/ /g, '<Space>'));
+            }
         },
         onWhichKeyGroupLabel: (key, label, context) => {
             commandCount++;

@@ -81,6 +81,49 @@ export function injectObsidianApi(
         return 0;
     });
     lua.lua_setfield(L, obsidianIndex, to_luastring('pick'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (!lua.lua_istable(state, 1)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('vim.obsidian.pick_keymap expects a table'),
+            );
+        }
+        const keymap: Record<string, string[]> = {};
+        const fields = [
+            'move_down',
+            'move_up',
+            'confirm',
+            'split_h',
+            'split_v',
+            'open_tab',
+            'scroll_down',
+            'scroll_up',
+            'close',
+        ];
+        for (const field of fields) {
+            lua.lua_getfield(state, 1, to_luastring(field));
+            if (lua.lua_istable(state, -1)) {
+                const arr: string[] = [];
+                const len = lauxlib.luaL_len(state, -1);
+                for (let i = 1; i <= len; i++) {
+                    lua.lua_rawgeti(state, -1, i);
+                    const val = readLuaString(state, -1);
+                    if (val) arr.push(val);
+                    lua.lua_pop(state, 1);
+                }
+                const camelField = field.replace(/_([a-z])/g, (_, c: string) =>
+                    c.toUpperCase(),
+                );
+                keymap[camelField] = arr;
+            }
+            lua.lua_pop(state, 1);
+        }
+        callbacks.onPickerKeymapChange?.(keymap);
+        return 0;
+    });
+    lua.lua_setfield(L, obsidianIndex, to_luastring('pick_keymap'));
+
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const file = callbacks.getCurrentFile?.() ?? null;
         if (!file) {
@@ -1116,6 +1159,54 @@ export function injectObsidianApi(
         return 0;
     });
     lua.lua_setfield(L, obsOilIndex, to_luastring('close'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilParent?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('parent'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilRoot?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('root'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilRefresh?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('refresh'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilToggleHidden?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('toggle_hidden'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilCycleSort?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('cycle_sort'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilYankPath?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('yank_path'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilReveal?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('reveal'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilOpenEntry?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('open_entry'));
 
     lua.lua_setfield(L, obsidianIndex, to_luastring('oil'));
 

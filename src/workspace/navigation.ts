@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import { foldCode, unfoldCode, toggleFold } from '@codemirror/language';
 import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
+import { exCommandFromAction } from '../keybindings/action-registry';
 import {
     createGotoDefinitionAction,
     createGotoDefinitionNewTabAction,
@@ -172,162 +173,185 @@ export function registerWorkspaceNavigation(
     app: App,
     leaderRegistry: LeaderRegistry,
 ): void {
-    reg.defineAction(
-        'focusPaneLeft',
-        createCommandAction(app, 'editor:focus-left'),
-    );
+    const focusLeft = createCommandAction(app, 'editor:focus-left');
+    reg.defineAction('focusPaneLeft', focusLeft);
     reg.mapCommand('<C-w>h', 'action', 'focusPaneLeft', {});
+    exCommandFromAction(reg, 'focuspaneleft', 'focuspanel', focusLeft);
 
-    reg.defineAction(
-        'focusPaneDown',
-        createCommandAction(app, 'editor:focus-bottom'),
-    );
+    const focusDown = createCommandAction(app, 'editor:focus-bottom');
+    reg.defineAction('focusPaneDown', focusDown);
     reg.mapCommand('<C-w>j', 'action', 'focusPaneDown', {});
+    exCommandFromAction(reg, 'focuspanedown', 'focuspaned', focusDown);
 
-    reg.defineAction(
-        'focusPaneUp',
-        createCommandAction(app, 'editor:focus-top'),
-    );
+    const focusUp = createCommandAction(app, 'editor:focus-top');
+    reg.defineAction('focusPaneUp', focusUp);
     reg.mapCommand('<C-w>k', 'action', 'focusPaneUp', {});
+    exCommandFromAction(reg, 'focuspaneup', '', focusUp);
 
-    reg.defineAction(
-        'focusPaneRight',
-        createCommandAction(app, 'editor:focus-right'),
-    );
+    const focusRight = createCommandAction(app, 'editor:focus-right');
+    reg.defineAction('focusPaneRight', focusRight);
     reg.mapCommand('<C-w>l', 'action', 'focusPaneRight', {});
+    exCommandFromAction(reg, 'focuspaneright', 'focuspaner', focusRight);
 
-    reg.defineAction(
-        'splitVertical',
-        createCommandAction(app, 'workspace:split-vertical'),
-    );
+    const splitV = createCommandAction(app, 'workspace:split-vertical');
+    reg.defineAction('splitVertical', splitV);
     reg.mapCommand('<C-w>v', 'action', 'splitVertical', {});
+    exCommandFromAction(reg, 'splitvertical', 'splitv', splitV);
 
-    reg.defineAction(
-        'splitHorizontal',
-        createCommandAction(app, 'workspace:split-horizontal'),
-    );
+    const splitH = createCommandAction(app, 'workspace:split-horizontal');
+    reg.defineAction('splitHorizontal', splitH);
     reg.mapCommand('<C-w>s', 'action', 'splitHorizontal', {});
+    exCommandFromAction(reg, 'splithorizontal', 'splith', splitH);
 
-    reg.defineAction('closeTab', createCommandAction(app, 'workspace:close'));
+    const closeTabAction = createCommandAction(app, 'workspace:close');
+    reg.defineAction('closeTab', closeTabAction);
     reg.mapCommand('<C-w>c', 'action', 'closeTab', {});
     reg.mapCommand('<C-w>q', 'action', 'closeTab', {});
+    exCommandFromAction(reg, 'closetab', 'closet', closeTabAction);
 
-    reg.defineAction('closeOtherTabs', createCloseOthersAction(app));
+    const closeOthers = createCloseOthersAction(app);
+    reg.defineAction('closeOtherTabs', closeOthers);
     reg.mapCommand('<C-w>o', 'action', 'closeOtherTabs', {});
+    exCommandFromAction(reg, 'closeothertabs', 'closeo', closeOthers);
 
-    reg.defineAction('nextTab', createCommandAction(app, 'workspace:next-tab'));
+    const nextTabAction = createCommandAction(app, 'workspace:next-tab');
+    reg.defineAction('nextTab', nextTabAction);
     reg.mapCommand('gt', 'action', 'nextTab', {});
+    exCommandFromAction(reg, 'nexttab', '', nextTabAction);
 
-    reg.defineAction(
-        'prevTab',
-        createCommandAction(app, 'workspace:previous-tab'),
-    );
+    const prevTabAction = createCommandAction(app, 'workspace:previous-tab');
+    reg.defineAction('prevTab', prevTabAction);
     reg.mapCommand('gT', 'action', 'prevTab', {});
+    exCommandFromAction(reg, 'prevtab', '', prevTabAction);
 
-    reg.defineAction('gotoTab', createGotoTabAction(app));
+    const gotoTabAction = createGotoTabAction(app);
+    reg.defineAction('gotoTab', gotoTabAction);
     reg.mapCommand('g<C-t>', 'action', 'gotoTab', {});
+    exCommandFromAction(reg, 'gototab', 'gotot', gotoTabAction);
 
-    reg.defineAction('gotoDefinition', createGotoDefinitionAction(app));
+    const gotoDef = createGotoDefinitionAction(app);
+    reg.defineAction('gotoDefinition', gotoDef);
     reg.mapCommand('gd', 'action', 'gotoDefinition', {});
+    exCommandFromAction(reg, 'gotodefinition', '', gotoDef);
 
-    reg.defineAction(
-        'gotoDefinitionNewTab',
-        createGotoDefinitionNewTabAction(app),
-    );
+    const gotoDefNewTab = createGotoDefinitionNewTabAction(app);
+    reg.defineAction('gotoDefinitionNewTab', gotoDefNewTab);
     reg.mapCommand('gD', 'action', 'gotoDefinitionNewTab', {});
-
-    reg.defineAction(
-        'gotoDefinitionSplitH',
-        createGotoDefinitionSplitAction(app, 'horizontal'),
+    exCommandFromAction(
+        reg,
+        'gotodefinitionnewtab',
+        'gotodefinitionn',
+        gotoDefNewTab,
     );
+
+    const gotoDefSplitH = createGotoDefinitionSplitAction(app, 'horizontal');
+    reg.defineAction('gotoDefinitionSplitH', gotoDefSplitH);
     reg.mapCommand('<C-w>gd', 'action', 'gotoDefinitionSplitH', {});
+    exCommandFromAction(reg, 'gotodefinitionsplith', '', gotoDefSplitH);
 
-    reg.defineAction(
-        'gotoDefinitionSplitV',
-        createGotoDefinitionSplitAction(app, 'vertical'),
-    );
+    const gotoDefSplitV = createGotoDefinitionSplitAction(app, 'vertical');
+    reg.defineAction('gotoDefinitionSplitV', gotoDefSplitV);
     reg.mapCommand('<C-w>gD', 'action', 'gotoDefinitionSplitV', {});
+    exCommandFromAction(reg, 'gotodefinitionsplitv', '', gotoDefSplitV);
 
     // Fold commands use CM6's fold API directly instead of Obsidian's
     // editor:fold-more/fold-less commands, which are incremental (fold one
     // heading level at a time across the whole document) rather than
     // cursor-based like Vim's zc/zo.
-    reg.defineAction('foldClose', (cm: CmAdapter) => {
+    const foldCloseAction: ActionFn = (cm: CmAdapter) => {
         const view = cm.cm6;
         if (view) foldCode(view);
-    });
+    };
+    reg.defineAction('foldClose', foldCloseAction);
     reg.mapCommand('zc', 'action', 'foldClose', {});
+    exCommandFromAction(reg, 'foldclose', 'foldc', foldCloseAction);
 
-    reg.defineAction('foldOpen', (cm: CmAdapter) => {
+    const foldOpenAction: ActionFn = (cm: CmAdapter) => {
         const view = cm.cm6;
         if (view) unfoldCode(view);
-    });
+    };
+    reg.defineAction('foldOpen', foldOpenAction);
     reg.mapCommand('zo', 'action', 'foldOpen', {});
+    exCommandFromAction(reg, 'foldopen', 'foldo', foldOpenAction);
 
-    reg.defineAction('foldToggle', (cm: CmAdapter) => {
+    const foldToggleAction: ActionFn = (cm: CmAdapter) => {
         const view = cm.cm6;
         if (view) toggleFold(view);
-    });
+    };
+    reg.defineAction('foldToggle', foldToggleAction);
     reg.mapCommand('za', 'action', 'foldToggle', {});
+    exCommandFromAction(reg, 'foldtoggle', 'foldt', foldToggleAction);
 
-    reg.defineAction('foldAll', createCommandAction(app, 'editor:fold-all'));
+    const foldAllAction = createCommandAction(app, 'editor:fold-all');
+    reg.defineAction('foldAll', foldAllAction);
     reg.mapCommand('zM', 'action', 'foldAll', {});
+    exCommandFromAction(reg, 'foldall', 'folda', foldAllAction);
 
-    reg.defineAction(
-        'unfoldAll',
-        createCommandAction(app, 'editor:unfold-all'),
-    );
+    const unfoldAllAction = createCommandAction(app, 'editor:unfold-all');
+    reg.defineAction('unfoldAll', unfoldAllAction);
     reg.mapCommand('zR', 'action', 'unfoldAll', {});
+    exCommandFromAction(reg, 'unfoldall', 'unf', unfoldAllAction);
 
-    reg.defineAction('documentOutline', () => {
+    const outlineAction: ActionFn = () => {
         const headings = getDocumentHeadings(app);
         new OutlineModal(app, headings).open();
-    });
+    };
+    reg.defineAction('documentOutline', outlineAction);
     reg.mapCommand('gO', 'action', 'documentOutline', {});
+    exCommandFromAction(reg, 'documentoutline', 'docu', outlineAction);
 
-    reg.defineAction('openUrl', createOpenUrlAction(app));
+    const openUrlAction = createOpenUrlAction(app);
+    reg.defineAction('openUrl', openUrlAction);
     reg.mapCommand('gx', 'action', 'openUrl', {});
+    exCommandFromAction(reg, 'openurl', 'openu', openUrlAction);
 
-    reg.defineAction('docStats', createDocStatsAction(app));
+    const docStatsAction = createDocStatsAction(app);
+    reg.defineAction('docStats', docStatsAction);
     reg.mapCommand('g<C-g>', 'action', 'docStats', {});
+    exCommandFromAction(reg, 'docstats', 'docs', docStatsAction);
 
-    reg.defineAction(
-        'renameNote',
-        createCommandAction(app, 'workspace:edit-file-title'),
+    const renameNoteAction = createCommandAction(
+        app,
+        'workspace:edit-file-title',
     );
+    reg.defineAction('renameNote', renameNoteAction);
     reg.mapCommand('grn', 'action', 'renameNote', {});
+    exCommandFromAction(reg, 'renamenote', 'ren', renameNoteAction);
 
-    reg.defineAction(
-        'showBacklinks',
-        createCommandAction(app, 'backlink:open'),
-    );
+    const showBacklinksAction = createCommandAction(app, 'backlink:open');
+    reg.defineAction('showBacklinks', showBacklinksAction);
     reg.mapCommand('grr', 'action', 'showBacklinks', {});
+    exCommandFromAction(reg, 'showbacklinks', '', showBacklinksAction);
 
-    reg.defineAction('openGotoFile', createCommandAction(app, 'switcher:open'));
+    const openGotoFileAction = createCommandAction(app, 'switcher:open');
+    reg.defineAction('openGotoFile', openGotoFileAction);
     reg.mapCommand('gf', 'action', 'openGotoFile', {});
+    exCommandFromAction(reg, 'opengotofile', 'openg', openGotoFileAction);
 
-    reg.defineAction('contextActions', createContextActionsAction(app));
+    const contextActionsAction = createContextActionsAction(app);
+    reg.defineAction('contextActions', contextActionsAction);
     reg.mapCommand('gra', 'action', 'contextActions', {});
+    exCommandFromAction(reg, 'contextactions', 'con', contextActionsAction);
 
-    reg.defineAction('pasteBefore', (cm, actionArgs) =>
-        pasteFromRegister(cm, actionArgs, true, false),
-    );
+    const pasteBeforeAction: ActionFn = (cm, actionArgs) =>
+        pasteFromRegister(cm, actionArgs, true, false);
+    reg.defineAction('pasteBefore', pasteBeforeAction);
     reg.mapCommand('P', 'action', 'pasteBefore', {});
-    reg.defineAction('pasteAfterMove', (cm, actionArgs) =>
-        pasteFromRegister(cm, actionArgs, false, true),
-    );
+    const pasteAfterMoveAction: ActionFn = (cm, actionArgs) =>
+        pasteFromRegister(cm, actionArgs, false, true);
+    reg.defineAction('pasteAfterMove', pasteAfterMoveAction);
     reg.mapCommand('gp', 'action', 'pasteAfterMove', {});
-    reg.defineAction('pasteBeforeMove', (cm, actionArgs) =>
-        pasteFromRegister(cm, actionArgs, true, true),
-    );
+    const pasteBeforeMoveAction: ActionFn = (cm, actionArgs) =>
+        pasteFromRegister(cm, actionArgs, true, true);
+    reg.defineAction('pasteBeforeMove', pasteBeforeMoveAction);
     reg.mapCommand('gP', 'action', 'pasteBeforeMove', {});
 
-    // Recursive fold variants (reuse existing fold actions)
     reg.mapCommand('zO', 'action', 'foldOpen', {});
     reg.mapCommand('zC', 'action', 'foldClose', {});
     reg.mapCommand('zA', 'action', 'foldToggle', {});
 
-    // Character info (ga)
-    reg.defineAction('charInfo', createCharInfoAction(app));
+    const charInfoAction = createCharInfoAction(app);
+    reg.defineAction('charInfo', charInfoAction);
     reg.mapCommand('ga', 'action', 'charInfo', {});
+    exCommandFromAction(reg, 'charinfo', 'char', charInfoAction);
 }

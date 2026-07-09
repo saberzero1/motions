@@ -35,6 +35,68 @@ All changes in an Oil buffer are staged and only applied to the filesystem when 
 - `~` navigates to the vault root.
 - `q` closes the Oil buffer.
 
+## Remapping keybindings
+
+All oil keybindings can be remapped via Lua or vimrc. Each keybinding maps to an ex command that you can target from your own bindings.
+
+### Oil ex commands
+
+| Ex command         | Short     | Default key | Description                      |
+| ------------------ | --------- | ----------- | -------------------------------- |
+| `:oilopen`         | `:oilo`   | `<CR>`      | Open file / enter directory      |
+| `:oilparent`       | `:oilp`   | `-`         | Navigate to parent directory     |
+| `:oilroot`         | `:oilro`  | `~`         | Navigate to vault root           |
+| `:oilrefresh`      | `:oilref` | `<C-l>`     | Refresh directory listing        |
+| `:oilclose`        | `:oilcl`  | `q`         | Close oil buffer                 |
+| `:oiltogglehidden` | `:oilt`   | `g.`        | Toggle hidden files              |
+| `:oilcyclesort`    | `:oilcy`  | `gs`        | Cycle sort order                 |
+| `:oilyankpath`     | `:oily`   | `y.`        | Yank file path to clipboard      |
+| `:oilreveal`       | `:oilrev` | `gf`        | Reveal in Obsidian file explorer |
+
+### Remap via Lua (recommended)
+
+Use the `OilEnter` autocmd to set buffer-local keymaps that only apply in oil buffers:
+
+```lua
+vim.api.nvim_create_autocmd('OilEnter', {
+    callback = function()
+        vim.keymap.set('n', '<C-h>', function()
+            vim.obsidian.oil.parent()
+        end, { buffer = 0 })
+        vim.keymap.set('n', 'l', function()
+            vim.obsidian.oil.open_entry()
+        end, { buffer = 0 })
+    end
+})
+```
+
+### Remap via vimrc
+
+```vim
+nmap <C-h> :oilparent<CR>
+nmap l :oilopen<CR>
+```
+
+> [!info] Vimrc oil mappings are global
+> Vimrc `nmap` cannot scope to oil buffers only. Mappings apply everywhere. Use Lua with `{ buffer = 0 }` for oil-only bindings.
+
+### Lua functions
+
+All oil actions are available as Lua functions under `vim.obsidian.oil`:
+
+```lua
+vim.obsidian.oil.open(path)       -- open oil for a directory
+vim.obsidian.oil.close()          -- close oil buffer
+vim.obsidian.oil.parent()         -- navigate to parent directory
+vim.obsidian.oil.root()           -- navigate to vault root
+vim.obsidian.oil.refresh()        -- refresh current listing
+vim.obsidian.oil.toggle_hidden()  -- toggle dotfile visibility
+vim.obsidian.oil.cycle_sort()     -- cycle sort order
+vim.obsidian.oil.yank_path()      -- copy path to clipboard
+vim.obsidian.oil.reveal()         -- reveal in Obsidian file explorer
+vim.obsidian.oil.open_entry()     -- open file/directory under cursor
+```
+
 ## Configuration
 
 You can customize Oil explorer behavior in **Settings → Vim Motions → File explorer**:

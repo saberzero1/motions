@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Remappable keybindings** — every plugin keybinding is now user-remappable across all contexts (editor, oil explorer, picker, global workspace navigation). See the [remapping guide](https://saberzero1.github.io/motions/configuration/remapping) for details.
+    - **46 new ex command aliases** for editor-context actions: structural navigation (`:nextheading`, `:prevheading`, `:nextheading1`–`6`, `:prevheading1`–`6`, `:nextlistitem`, `:prevlistitem`, `:nextlink`, `:prevlink`, `:nextbuffer`, `:prevbuffer`), table navigation (`:tablenextcell`, `:tableprevcell`, `:tablenextrow`, `:tableprevrow`), workspace navigation (`:focuspaneleft`/`right`/`up`/`down`, `:splitvertical`, `:splithorizontal`, `:closetab`, `:closeothertabs`, `:nexttab`, `:prevtab`, `:gototab`, `:gotodefinition`, `:foldclose`/`open`/`toggle`/`all`, `:unfoldall`, `:documentoutline`, `:openurl`, `:docstats`, `:renamenote`, `:showbacklinks`, `:opengotofile`, `:contextactions`, `:charinfo`), and hint mode (`:hintactivate`, `:hintopennew`, `:hintyank`, `:hintclose`). Users can remap any keybinding via `nmap key :excommand<CR>` in vimrc or `vim.keymap.set('n', 'key', ':excommand<CR>')` in Lua.
+    - Plugin: `src/keybindings/action-registry.ts` (new: `exCommandFromMotion`/`exCommandFromAction` helpers), `src/motions/register.ts`, `src/workspace/navigation.ts`, `src/main.ts`
+- **Oil explorer remappable keybindings** — all 9 oil keybindings are now user-remappable via Lua autocmds or vimrc
+    - **9 oil ex commands**: `:oilopen`, `:oilparent`, `:oilroot`, `:oilrefresh`, `:oilclose`, `:oiltogglehidden`, `:oilcyclesort`, `:oilyankpath`, `:oilreveal`
+    - **8 new Lua functions** in `vim.obsidian.oil`: `parent()`, `root()`, `refresh()`, `toggle_hidden()`, `cycle_sort()`, `yank_path()`, `reveal()`, `open_entry()`
+    - **`OilEnter`/`OilLeave` autocmd events** — fire when entering/leaving an oil buffer, enabling Neovim-style buffer-local keymaps
+    - Oil defaults now registered as `vim.noremap` mappings pointing to ex commands (previously `mapCommand`), making them visible in `:map` output and overridable by user mappings
+    - Plugin: `src/oil/keybindings.ts` (refactored), `src/lua/api.ts`, `src/lua/obsidian-api.ts`, `src/lua/loader.ts`, `src/main.ts`
+- **Picker keybinding configurability** — picker modal keybindings (`<C-n>`, `<C-p>`, `<C-x>`, `<C-v>`, `<C-t>`, `<C-d>`, `<C-u>`) are now configurable via Lua
+    - `vim.obsidian.pick_keymap()` accepts a table of action→key arrays with snake_case field names
+    - Custom keymap persisted in settings and applied to all picker instances including tag sub-pickers
+    - Plugin: `src/picker/types.ts` (`PickerKeymap`, `matchesPickerKey`), `src/picker/picker.ts` (refactored keydown handler), `src/picker/sources/tags.ts`, `src/settings.ts`, `src/lua/api.ts`, `src/lua/obsidian-api.ts`, `src/lua/loader.ts`, `src/main.ts`
+- **Global workspace navigation remappable keybindings** — non-editor keybindings (`<C-w>*`, `gt`/`gT`, `j`/`k` scroll, `H`/`L`, `:`) are now remappable
+    - `vim.obsidian.keymap.set`/`del` now operate on the live `GlobalMappingRegistry` at runtime (previously only at config-load time)
+    - **`:gmap key :command`** — new ex command to add global keybindings from the editor command line or non-editor `:` modal
+    - **`:gunmap key`** — new ex command to remove global keybindings
+    - **`:gmaps`** — renamed from `:gmap` (display-only) to avoid collision with the new mapping command
+    - All 26 default global mappings tagged with stable `name` fields for documentation
+    - Plugin: `src/workspace/global-mapping-registry.ts`, `src/workspace/global-defaults.ts`, `src/ui/global-ex-command.ts`, `src/workspace/commands.ts`, `src/lua/loader.ts`, `src/main.ts`
+- **Remapping guide** — new documentation page `docs/configuration/remapping.md` with examples for all 4 remapping contexts (editor, oil, picker, global)
+
+### Changed
+
+- **`:gmap` (display)** renamed to **`:gmaps`** — the `:gmap` command now creates global keybindings instead of displaying them. Use `:gmaps` to list all active global mappings.
+- **Autocmd events** — 15 → 17 supported events (added `OilEnter`, `OilLeave`)
+
+### Documentation
+
+- `docs/configuration/remapping.md`: new unified remapping guide
+- `docs/features/oil-explorer.md`: added remapping section with ex commands table, Lua examples, vimrc examples, and `vim.obsidian.oil` function reference
+- `docs/features/ex-commands.md`: added navigation/action/oil/hint/global mapping ex command tables; updated command count to 100+
+- `docs/reference/keybindings.md`: added ex command column to oil table; added remapping section link
+- `docs/configuration/lua-config.md`: added `vim.obsidian.oil` namespace (10 functions), `OilEnter`/`OilLeave` autocmd events, `vim.obsidian.pick_keymap()` API
+- `docs/configuration/vimrc.md`: updated `:gmap`/`:gunmap`/`:gmaps` documentation
+- `docs/configuration/index.md`: added remapping guide to quick links
+- `KNOWN_LIMITATIONS.md`: updated keybinding remappability section to "Implemented" across all contexts; updated autocmd event count to 16
+- `AGENTS.md`: updated change-to-page routing table with `configuration/remapping.md`
+
 ## [0.45.0] - 2026-07-09
 
 ### Fixed

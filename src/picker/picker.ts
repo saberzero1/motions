@@ -9,14 +9,17 @@ import {
 import { isEasyMotionActive } from '../easymotion/register';
 import { isHintModeActive } from '../ui/hint-mode';
 import type { FrecencyStore } from './frecency';
-import type {
-    PickerItem,
-    PickerMatch,
-    PickerMatcher,
-    PickerOptions,
-    PickerSource,
-    PreviewResult,
-    PreviewReturn,
+import {
+    DEFAULT_PICKER_KEYMAP,
+    matchesPickerKey,
+    type PickerItem,
+    type PickerKeymap,
+    type PickerMatch,
+    type PickerMatcher,
+    type PickerOptions,
+    type PickerSource,
+    type PreviewResult,
+    type PreviewReturn,
 } from './types';
 
 const MAX_RENDERED = 200;
@@ -56,6 +59,7 @@ export class PickerModal extends Modal {
     private searchTimer: number | null = null;
     private frecencyStore?: FrecencyStore;
     private resumeSelectedId: string | null = null;
+    private keymap: PickerKeymap;
 
     constructor(
         app: App,
@@ -63,6 +67,7 @@ export class PickerModal extends Modal {
         matcher: PickerMatcher,
         options?: PickerOptions,
         frecencyStore?: FrecencyStore,
+        keymap?: PickerKeymap,
     ) {
         super(app);
         this.source = source;
@@ -70,6 +75,7 @@ export class PickerModal extends Modal {
         this.options = options;
         this.frecencyStore = frecencyStore;
         this.resumeSelectedId = options?.resumeSelectedId ?? null;
+        this.keymap = keymap ?? DEFAULT_PICKER_KEYMAP;
     }
 
     static open(
@@ -78,6 +84,7 @@ export class PickerModal extends Modal {
         matcher: PickerMatcher,
         options?: PickerOptions,
         frecencyStore?: FrecencyStore,
+        keymap?: PickerKeymap,
     ): void {
         if (isHintModeActive() || isEasyMotionActive()) return;
         if (PickerModal.activeInstance) {
@@ -89,6 +96,7 @@ export class PickerModal extends Modal {
             matcher,
             options,
             frecencyStore,
+            keymap,
         );
         PickerModal.activeInstance = modal;
         modal.open();
@@ -179,51 +187,50 @@ export class PickerModal extends Modal {
         });
 
         this.inputEl.addEventListener('keydown', (event) => {
-            const key = event.key;
-            const ctrl = event.ctrlKey || event.metaKey;
-            if (key === 'ArrowDown' || (ctrl && (key === 'n' || key === 'j'))) {
+            const km = this.keymap;
+            if (matchesPickerKey(event, km.moveDown)) {
                 event.preventDefault();
                 this.moveSelection(1);
                 return;
             }
-            if (key === 'ArrowUp' || (ctrl && (key === 'p' || key === 'k'))) {
+            if (matchesPickerKey(event, km.moveUp)) {
                 event.preventDefault();
                 this.moveSelection(-1);
                 return;
             }
-            if (key === 'Enter') {
+            if (matchesPickerKey(event, km.confirm)) {
                 event.preventDefault();
                 this.confirmSelection();
                 return;
             }
-            if (ctrl && key === 'x') {
+            if (matchesPickerKey(event, km.splitH)) {
                 event.preventDefault();
                 this.confirmSelection('horizontal');
                 return;
             }
-            if (ctrl && key === 'v') {
+            if (matchesPickerKey(event, km.splitV)) {
                 event.preventDefault();
                 this.confirmSelection('vertical');
                 return;
             }
-            if (ctrl && key === 't') {
+            if (matchesPickerKey(event, km.openTab)) {
                 event.preventDefault();
                 this.confirmSelection('tab');
                 return;
             }
-            if (ctrl && key === 'd') {
+            if (matchesPickerKey(event, km.scrollDown)) {
                 if (this.scrollPreview(1)) {
                     event.preventDefault();
                     return;
                 }
             }
-            if (ctrl && key === 'u') {
+            if (matchesPickerKey(event, km.scrollUp)) {
                 if (this.scrollPreview(-1)) {
                     event.preventDefault();
                     return;
                 }
             }
-            if (key === 'Escape' || (ctrl && key === 'c')) {
+            if (matchesPickerKey(event, km.close)) {
                 event.preventDefault();
                 this.close();
             }

@@ -1,12 +1,12 @@
 ---
 title: Ex commands
-description: 60+ ex commands for file management, buffer navigation, window management, table manipulation, and Obsidian integration.
+description: 100+ ex commands for file management, navigation, window management, table manipulation, oil explorer, and Obsidian integration.
 tags:
     - features
     - keybindings
 ---
 
-Vim Motions provides 60+ ex commands accessible via `:` in Normal mode. Commands cover file operations, buffer management, window splits, table manipulation, and Obsidian-specific integration.
+Vim Motions provides 100+ ex commands accessible via `:` in Normal mode. Commands cover file operations, buffer management, window splits, table manipulation, navigation actions, oil explorer, and Obsidian-specific integration.
 
 ## Command reference
 
@@ -55,17 +55,35 @@ The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-teles
 
 ### Keyboard shortcuts inside picker
 
-| Key                  | Action                   |
-| -------------------- | ------------------------ |
-| `<C-n>` / `<C-p>`    | Navigate down/up         |
-| `<C-j>` / `<C-k>`    | Navigate down/up         |
-| `<Up>` / `<Down>`    | Navigate down/up         |
-| `<Enter>`            | Select item              |
-| `<Escape>` / `<C-c>` | Close picker             |
-| `<C-x>`              | Open in horizontal split |
-| `<C-v>`              | Open in vertical split   |
-| `<C-t>`              | Open in new tab          |
-| `<C-d>` / `<C-u>`    | Scroll preview down/up   |
+| Key                  | Action                   | Remappable via             |
+| -------------------- | ------------------------ | -------------------------- |
+| `<C-n>` / `<C-j>`    | Navigate down            | `vim.obsidian.pick_keymap` |
+| `<C-p>` / `<C-k>`    | Navigate up              | `vim.obsidian.pick_keymap` |
+| `<Up>` / `<Down>`    | Navigate down/up         | `vim.obsidian.pick_keymap` |
+| `<Enter>`            | Select item              | `vim.obsidian.pick_keymap` |
+| `<Escape>` / `<C-c>` | Close picker             | `vim.obsidian.pick_keymap` |
+| `<C-x>`              | Open in horizontal split | `vim.obsidian.pick_keymap` |
+| `<C-v>`              | Open in vertical split   | `vim.obsidian.pick_keymap` |
+| `<C-t>`              | Open in new tab          | `vim.obsidian.pick_keymap` |
+| `<C-d>` / `<C-u>`    | Scroll preview down/up   | `vim.obsidian.pick_keymap` |
+
+Picker keybindings can be customized via Lua:
+
+```lua
+vim.obsidian.pick_keymap({
+    move_down = { 'ArrowDown', 'C-n' },
+    move_up = { 'ArrowUp', 'C-p' },
+    confirm = { 'Enter' },
+    split_h = { 'C-s' },       -- changed from C-x
+    split_v = { 'C-v' },
+    open_tab = { 'C-t' },
+    scroll_down = { 'C-d' },
+    scroll_up = { 'C-u' },
+    close = { 'Escape', 'C-c' },
+})
+```
+
+Key format: `ArrowDown`, `ArrowUp`, `Enter`, `Escape` for special keys; `C-x` for Ctrl+x combinations. Only specified fields are updated — omitted fields keep their defaults.
 
 ### Lua API
 
@@ -121,6 +139,110 @@ When `pickerLeaderMappings` is enabled (default: on), the following bindings are
 ### `:resume` — resume last picker
 
 `:resume` reopens the most recent picker session with the same source and query.
+
+## Navigation and action commands
+
+Every navigation motion and workspace action has an ex command alias, enabling user remapping via `:nmap key :excommand<CR>` in vimrc or `vim.keymap.set('n', 'key', ':excommand<CR>')` in Lua.
+
+### Structural navigation
+
+| Command             | Default key | Description                |
+| ------------------- | ----------- | -------------------------- |
+| `:nextheading`      | `]h`        | Jump to next heading       |
+| `:prevheading`      | `[h`        | Jump to previous heading   |
+| `:nextheading1`–`6` | `]1`–`]6`   | Jump to next H1–H6         |
+| `:prevheading1`–`6` | `[1`–`[6`   | Jump to previous H1–H6     |
+| `:nextlistitem`     | `]l`        | Jump to next list item     |
+| `:prevlistitem`     | `[l`        | Jump to previous list item |
+| `:nextlink`         | `]n`        | Jump to next link          |
+| `:prevlink`         | `[n`        | Jump to previous link      |
+| `:nextbuffer`       | `]b`        | Switch to next buffer      |
+| `:prevbuffer`       | `[b`        | Switch to previous buffer  |
+
+### Table navigation
+
+| Command          | Default key | Description             |
+| ---------------- | ----------- | ----------------------- |
+| `:tablenextcell` | `]c`        | Jump to next table cell |
+| `:tableprevcell` | `[c`        | Jump to previous cell   |
+| `:tablenextrow`  | `]r`        | Jump to next table row  |
+| `:tableprevrow`  | `[r`        | Jump to previous row    |
+
+### Workspace navigation
+
+| Command                 | Default key | Description                     |
+| ----------------------- | ----------- | ------------------------------- |
+| `:focuspaneleft`        | `<C-w>h`    | Focus left pane                 |
+| `:focuspanedown`        | `<C-w>j`    | Focus pane below                |
+| `:focuspaneup`          | `<C-w>k`    | Focus pane above                |
+| `:focuspaneright`       | `<C-w>l`    | Focus right pane                |
+| `:splitvertical`        | `<C-w>v`    | Split vertically                |
+| `:splithorizontal`      | `<C-w>s`    | Split horizontally              |
+| `:closetab`             | `<C-w>c`    | Close current tab               |
+| `:closeothertabs`       | `<C-w>o`    | Close all other tabs            |
+| `:nexttab`              | `gt`        | Next tab                        |
+| `:prevtab`              | `gT`        | Previous tab                    |
+| `:gototab`              | `g<C-t>`    | Go to Nth tab                   |
+| `:gotodefinition`       | `gd`        | Follow link under cursor        |
+| `:gotodefinitionnewtab` | `gD`        | Follow link in new tab          |
+| `:gotodefinitionsplith` | `<C-w>gd`   | Follow link in horizontal split |
+| `:gotodefinitionsplitv` | `<C-w>gD`   | Follow link in vertical split   |
+| `:foldclose`            | `zc`        | Close fold                      |
+| `:foldopen`             | `zo`        | Open fold                       |
+| `:foldtoggle`           | `za`        | Toggle fold                     |
+| `:foldall`              | `zM`        | Close all folds                 |
+| `:unfoldall`            | `zR`        | Open all folds                  |
+| `:documentoutline`      | `gO`        | Open document outline           |
+| `:openurl`              | `gx`        | Open URL under cursor           |
+| `:docstats`             | `g<C-g>`    | Show document statistics        |
+| `:renamenote`           | `grn`       | Rename current note             |
+| `:showbacklinks`        | `grr`       | Show backlinks                  |
+| `:opengotofile`         | `gf`        | Open file switcher              |
+| `:contextactions`       | `gra`       | Show context actions            |
+| `:charinfo`             | `ga`        | Show character info             |
+
+### Hint mode
+
+| Command         | Description             |
+| --------------- | ----------------------- |
+| `:hintactivate` | Activate hint labels    |
+| `:hintopennew`  | Hint: open in new pane  |
+| `:hintyank`     | Hint: yank link or text |
+| `:hintclose`    | Hint: close tab or pane |
+
+### Oil explorer
+
+| Command            | Default key | Description                  |
+| ------------------ | ----------- | ---------------------------- |
+| `:oilopen`         | `<CR>`      | Open file / enter directory  |
+| `:oilparent`       | `-`         | Navigate to parent directory |
+| `:oilroot`         | `~`         | Navigate to vault root       |
+| `:oilrefresh`      | `<C-l>`     | Refresh directory listing    |
+| `:oilclose`        | `q`         | Close oil buffer             |
+| `:oiltogglehidden` | `g.`        | Toggle hidden files          |
+| `:oilcyclesort`    | `gs`        | Cycle sort order             |
+| `:oilyankpath`     | `y.`        | Yank file path to clipboard  |
+| `:oilreveal`       | `gf`        | Reveal in file explorer      |
+
+## Global mapping commands
+
+| Command              | Description                          |
+| -------------------- | ------------------------------------ |
+| `:gmap key :command` | Add a global (non-editor) keybinding |
+| `:gunmap key`        | Remove a global keybinding           |
+| `:gmaps`             | List all active global keybindings   |
+
+`:gmap` binds a key sequence to an ex command or Obsidian command in non-editor views (graph, PDF, canvas, etc.):
+
+```vim
+:gmap H :files
+:gmap <C-w>p :obcommand workspace:previous-tab
+:gunmap L
+```
+
+The rhs must start with `:` — either `:command` (ex command) or `:obcommand command-id` (Obsidian command). These commands work from both the editor `:` command line and the standalone non-editor `:` modal.
+
+See [[vimrc#Global key mappings]] for configuring global mappings in `.obsidian.vimrc`, or [[lua-config#Global keymaps]] for Lua configuration via `vim.obsidian.keymap.set`.
 
 ## Non-editor ex command line
 

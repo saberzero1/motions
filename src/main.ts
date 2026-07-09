@@ -503,7 +503,9 @@ export default class VimMotionsPlugin extends Plugin {
         pickerRegistry.register(createHeadingsSource());
         pickerRegistry.register(createOutlineSource());
         pickerRegistry.register(createBacklinksSource());
-        pickerRegistry.register(createTagsSource(matcher));
+        pickerRegistry.register(
+            createTagsSource(matcher, () => this.settings.pickerKeymap),
+        );
         pickerRegistry.register(createRecentSource());
         pickerRegistry.register(createMarksSource());
         pickerRegistry.register(createRegistersSource(vim));
@@ -528,6 +530,7 @@ export default class VimMotionsPlugin extends Plugin {
             }, 30000);
         };
         this.openPicker = (source, opts) => {
+            const km = this.settings.pickerKeymap;
             if (source === 'resume') {
                 const lastSession = getLastSession();
                 if (!lastSession) {
@@ -552,6 +555,7 @@ export default class VimMotionsPlugin extends Plugin {
                             onFrecencyUpdate: scheduleFrecencySave,
                         },
                         frecencyStore,
+                        km,
                     );
                     return;
                 }
@@ -573,6 +577,7 @@ export default class VimMotionsPlugin extends Plugin {
                         onFrecencyUpdate: scheduleFrecencySave,
                     },
                     frecencyStore,
+                    km,
                 );
                 return;
             }
@@ -590,6 +595,7 @@ export default class VimMotionsPlugin extends Plugin {
                                 onFrecencyUpdate: scheduleFrecencySave,
                             },
                             frecencyStore,
+                            km,
                         );
                     }
                     return;
@@ -605,6 +611,7 @@ export default class VimMotionsPlugin extends Plugin {
                         onFrecencyUpdate: scheduleFrecencySave,
                     },
                     frecencyStore,
+                    km,
                 );
                 return;
             }
@@ -624,6 +631,7 @@ export default class VimMotionsPlugin extends Plugin {
                     onFrecencyUpdate: scheduleFrecencySave,
                 },
                 frecencyStore,
+                km,
             );
         };
 
@@ -1400,6 +1408,18 @@ export default class VimMotionsPlugin extends Plugin {
         reg.defineAction('hintMode', () => {
             this.hintActions?.activate();
         });
+        reg.defineEx('hintactivate', 'hinta', () => {
+            this.hintActions?.activate();
+        });
+        reg.defineEx('hintopennew', 'hinto', () => {
+            this.hintActions?.openNew();
+        });
+        reg.defineEx('hintyank', 'hinty', () => {
+            this.hintActions?.yank();
+        });
+        reg.defineEx('hintclose', 'hintc', () => {
+            this.hintActions?.close();
+        });
         const leader = leaderRegistry.getLeaderKey();
         const hintKeys = leader + leader + 'h';
         reg.mapCommand(hintKeys, 'action', 'hintMode', {});
@@ -1672,6 +1692,17 @@ export default class VimMotionsPlugin extends Plugin {
             return true;
         });
         const customLuaPath = this.settings.luaConfigPath || undefined;
+        const execOilEx = (cmd: string) => {
+            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cm = getCmAdapter(view);
+            if (!cm) return;
+            try {
+                vim.handleEx(cm, cmd);
+            } catch {
+                /* ex command may not be registered yet */
+            }
+        };
         const oilCallbacks = {
             oilOpen: (path: string) => {
                 if (!this.oilManager) return;
@@ -1688,6 +1719,14 @@ export default class VimMotionsPlugin extends Plugin {
                     oilManager.forgetTempPath(file.path);
                 });
             },
+            oilParent: () => execOilEx('oilparent'),
+            oilRoot: () => execOilEx('oilroot'),
+            oilRefresh: () => execOilEx('oilrefresh'),
+            oilToggleHidden: () => execOilEx('oiltogglehidden'),
+            oilCycleSort: () => execOilEx('oilcyclesort'),
+            oilYankPath: () => execOilEx('oilyankpath'),
+            oilReveal: () => execOilEx('oilreveal'),
+            oilOpenEntry: () => execOilEx('oilopen'),
         };
         const luaResult = await loadInitLua(
             this.app,
@@ -1698,6 +1737,11 @@ export default class VimMotionsPlugin extends Plugin {
             this.bufferKeymapManager,
             this.openPicker ?? undefined,
             oilCallbacks,
+            (keymap) => {
+                const s = this.settings.pickerKeymap;
+                Object.assign(s, keymap);
+            },
+            this.globalRegistry ?? undefined,
         );
 
         this.luaCommandCount = luaResult.commandCount;
@@ -1744,6 +1788,9 @@ export default class VimMotionsPlugin extends Plugin {
         this.timerManager?.destroyAll();
         this.timerManager = luaResult.timerManager;
         this.autocmdManager = luaResult.autocmdManager;
+        this.oilKeybindingManager?.setAutocmdManager(
+            this.autocmdManager ?? null,
+        );
         this.highlightManager?.destroy();
         this.highlightManager = luaResult.highlightManager;
         this.autocmdManager?.setReloadCallback(() => this.reloadFeatures());

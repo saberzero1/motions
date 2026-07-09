@@ -37,6 +37,7 @@ When Settings UI, vimrc, and init.lua configure the same option:
 ## Quick links
 
 - **[[lua-config]]**, Lua configuration with conditional logic and function keymaps
+- **[[remapping]]**, how to remap any keybinding (editor, oil, picker, global)
 - **[[settings]]**, complete settings reference (all items across 12 groups)
 - **[[which-key]]**, which-key hints setup and configuration
 - **[[cursor-shapes]]**, per-mode cursor shape configuration

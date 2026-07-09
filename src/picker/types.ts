@@ -64,3 +64,42 @@ export interface PickerMatch {
     highlights: [number, number][];
     descHighlights?: [number, number][];
 }
+
+export interface PickerKeymap {
+    moveDown: string[];
+    moveUp: string[];
+    confirm: string[];
+    splitH: string[];
+    splitV: string[];
+    openTab: string[];
+    scrollDown: string[];
+    scrollUp: string[];
+    close: string[];
+}
+
+export const DEFAULT_PICKER_KEYMAP: PickerKeymap = {
+    moveDown: ['ArrowDown', 'C-n', 'C-j'],
+    moveUp: ['ArrowUp', 'C-p', 'C-k'],
+    confirm: ['Enter'],
+    splitH: ['C-x'],
+    splitV: ['C-v'],
+    openTab: ['C-t'],
+    scrollDown: ['C-d'],
+    scrollUp: ['C-u'],
+    close: ['Escape', 'C-c'],
+};
+
+export function matchesPickerKey(
+    event: KeyboardEvent,
+    keys: string[],
+): boolean {
+    const ctrl = event.ctrlKey || event.metaKey;
+    for (const spec of keys) {
+        if (spec.startsWith('C-')) {
+            if (ctrl && event.key === spec.slice(2)) return true;
+        } else {
+            if (!ctrl && event.key === spec) return true;
+        }
+    }
+    return false;
+}

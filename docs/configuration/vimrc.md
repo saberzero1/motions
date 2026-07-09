@@ -213,7 +213,13 @@ The right-hand side must be either `:obcommand <command-id>` (to execute an Obsi
 
 Use `gunmap` to remove any global binding, including built-in defaults like `H` (previous tab) or `L` (next tab). After `gunmap`, the key is no longer intercepted and propagates to Obsidian's native handlers.
 
-Use `:gmap` in the ex command line to list all active global bindings.
+`:gmap` and `:gunmap` also work from the editor's `:` command line:
+
+```vim
+:gmap H :files
+:gunmap L
+:gmaps          " list all active global bindings
+```
 
 ### Global which-key labels
 

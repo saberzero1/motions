@@ -9,6 +9,7 @@ export type GlobalMapAction =
 
 export interface GlobalMapEntry {
     keys: string;
+    name?: string;
     action: GlobalMapAction;
     source: 'default' | 'user';
     gate: GlobalMapGate;
@@ -27,7 +28,11 @@ export class GlobalMappingRegistry {
     addMapping(
         keys: string,
         action: GlobalMapAction,
-        opts: { source: 'default' | 'user'; gate: GlobalMapGate },
+        opts: {
+            source: 'default' | 'user';
+            gate: GlobalMapGate;
+            name?: string;
+        },
     ): void {
         this.entries.set(keys, { keys, action, ...opts });
     }

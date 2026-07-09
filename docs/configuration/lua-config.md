@@ -100,6 +100,9 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                             | see Obsidian namespace               |
 | `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                          | see Obsidian namespace               |
 | `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace               |
+| `vim.obsidian.oil.parent()`                          | Oil: navigate to parent directory                  | see Obsidian namespace               |
+| `vim.obsidian.oil.open_entry()`                      | Oil: open file/directory under cursor              | see Obsidian namespace               |
+| `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
 
 ### Leader key
@@ -492,6 +495,8 @@ Vim Motions supports a Neovim-compatible autocommand system for reacting to edit
 | `FocusGained`  | Obsidian window gains focus                             | No                                                    |
 | `FocusLost`    | Obsidian window loses focus                             | No                                                    |
 | `TextYankPost` | After yank, delete, or change operation                 | No                                                    |
+| `OilEnter`     | An oil explorer buffer becomes active                   | No                                                    |
+| `OilLeave`     | Leaving an oil explorer buffer                          | No                                                    |
 
 > [!tip] CursorHold timing
 > Configure the idle timeout with `vim.opt.updatetime = 1000` (milliseconds). Default is 4000ms, matching Neovim.
@@ -696,6 +701,35 @@ vim.obsidian.pick('resume')
 | `vim.ob.ui.command_palette()`     | Open command palette                       |
 | `vim.ob.ui.quickswitch()`         | Open quick switcher                        |
 | `vim.ob.ui.notice(msg)`           | Show notification (alias for `vim.notify`) |
+
+### vim.obsidian.oil — Oil explorer
+
+Functions for controlling the [[oil-explorer|oil explorer]]. All functions are also available as ex commands (e.g., `:oilparent`).
+
+| Function                           | Description                      |
+| ---------------------------------- | -------------------------------- |
+| `vim.obsidian.oil.open(path)`      | Open oil for a directory         |
+| `vim.obsidian.oil.close()`         | Close oil buffer                 |
+| `vim.obsidian.oil.parent()`        | Navigate to parent directory     |
+| `vim.obsidian.oil.root()`          | Navigate to vault root           |
+| `vim.obsidian.oil.refresh()`       | Refresh current listing          |
+| `vim.obsidian.oil.toggle_hidden()` | Toggle dotfile visibility        |
+| `vim.obsidian.oil.cycle_sort()`    | Cycle sort order                 |
+| `vim.obsidian.oil.yank_path()`     | Copy file path to clipboard      |
+| `vim.obsidian.oil.reveal()`        | Reveal in Obsidian file explorer |
+| `vim.obsidian.oil.open_entry()`    | Open file/directory under cursor |
+
+Use `OilEnter` / `OilLeave` autocmd events to set buffer-local keymaps:
+
+```lua
+vim.api.nvim_create_autocmd('OilEnter', {
+    callback = function()
+        vim.keymap.set('n', 'l', function()
+            vim.obsidian.oil.open_entry()
+        end, { buffer = 0 })
+    end
+})
+```
 
 ### Editor state
 

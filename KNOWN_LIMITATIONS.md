@@ -823,7 +823,7 @@ The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), 
 
 ### Autocmds
 
-12 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `FocusGained`, `FocusLost`, `TextYankPost`, `CursorMoved`, `CursorHold`, `BufWritePre`, `BufWritePost`. See `docs/configuration/lua-config.md` for the full reference.
+17 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `BufWritePre`, `BufWritePost`, `FocusGained`, `FocusLost`, `TextYankPost`, `CursorMoved`, `CursorHold`, `LeafEnter`, `LeafLeave`, `FileType`, `OilEnter`, `OilLeave`. See `docs/configuration/lua-config.md` for the full reference.
 
 Limitations:
 
@@ -921,31 +921,23 @@ Oil creates temporary markdown files (e.g., `oil~_root.md`) to render directory 
 
 Obsidian's `vault.create()` does not support files starting with `.` (they are created on disk but not indexed, making them unopenable as markdown views). The `oil~` prefix is used instead.
 
-### Keybindings are not user-remappable
+### ~~Keybindings are not user-remappable~~ (Implemented)
 
-**Status**: Planned for a future release. Affects oil explorer and picker.
+**Status**: Implemented. All keybindings across all contexts are user-remappable.
 
-Oil keybindings (`<CR>`, `-`, `~`, `q`, `g.`, `gs`, `y.`, `gf`, `<C-l>`) are hardcoded in `OIL_MAPPINGS` and registered via `Vim.mapCommand`. Users cannot remap them via vimrc (`nmap - :OilParent`) or Lua (`vim.keymap.set('n', '-', function() vim.obsidian.oil.parent() end)`). The same limitation applies to the picker's keybindings.
+Every keybinding is remappable through one of four mechanisms depending on context:
 
-**Recommended architecture for remappable keybindings** (for the planning agent):
+- **Editor keybindings** (motions, actions, operators): All have ex command aliases (e.g., `:nextheading`, `:focuspaneleft`, `:tablenextcell`, `:hintactivate`). Remap via `vim.keymap.set('n', 'key', ':excommand<CR>')` in Lua or `nmap key :excommand<CR>` in vimrc.
+- **Oil explorer keybindings**: Exposed as ex commands (`:oilparent`, `:oilroot`, etc.) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys registered as `vim.noremap` mappings. Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
+- **Picker keybindings**: Configurable via `vim.obsidian.pick_keymap()` in Lua. Not available via vimrc (picker operates outside the vim keymap system).
+- **Global workspace navigation**: Remappable via `vim.obsidian.keymap.set`/`del` (Lua) and `:gmap`/`:gunmap`/`:gmaps` (vimrc and ex command line). Each default is tagged with a stable name.
 
-The goal is to match how Neovim plugins handle keybindings: expose _actions_ as callable functions/commands, register _default keybindings_ as regular vim mappings that users can `unmap` and remap.
+See `docs/configuration/remapping.md` for the full remapping guide with examples for each context.
 
-1. **Expose actions as ex commands and Lua functions**: Each oil action becomes both an ex command (`:OilParent`, `:OilRoot`, `:OilToggleHidden`, `:OilRevealInExplorer`, etc.) and a Lua function (`vim.obsidian.oil.parent()`, `vim.obsidian.oil.root()`, `vim.obsidian.oil.toggle_hidden()`, `vim.obsidian.oil.reveal()`). The picker follows the same pattern (`:PickerFiles`, `vim.obsidian.pick('files')`).
+**Remaining limitations**:
 
-2. **Register default keybindings as normal vim mappings**: Instead of `Vim.mapCommand('-', 'action', 'oilParent')`, register as `vim.noremap('-', ':OilParent')` or equivalent. These appear in `:map` output and can be overridden by user mappings.
-
-3. **User remapping via vimrc**: `nmap <C-h> :OilParent` or `nunmap -` + `nmap <C-h> :OilParent`.
-
-4. **User remapping via Lua**: `vim.keymap.set('n', '<C-h>', function() vim.obsidian.oil.parent() end)` with buffer-scoping possible via `{ buffer = 0 }` in oil files.
-
-5. **Context scoping**: Oil and picker keybindings should only be active in their respective contexts (oil buffer for oil, picker modal for picker). The current `OilKeybindingManager` apply/remove-on-leaf-change pattern handles this for oil. The picker handles its own keybindings internally via the modal's keyboard handler.
-
-6. **Which-key integration**: Oil keybindings should appear in which-key when `g` or `y` is pressed, with descriptions (e.g., `g. → Toggle hidden files`). This requires the keybindings to be registered through the standard vim keymap path so which-key's `getCompletions()` can discover them.
-
-7. **Help command (`g?`)**: Rather than a hardcoded help popup, `g?` in oil could show a which-key-style overlay listing all available oil keybindings. This would require which-key to support context-filtered displays (show only oil bindings when in oil, only picker bindings when in picker).
-
-**Scope**: This is a cross-cutting architectural change that affects oil, picker, EasyMotion leader bindings, hint mode, and table manipulation — any feature with custom keybindings. A dedicated design pass is recommended rather than bolting it onto individual features.
+- Which-key integration for oil keybindings (showing oil bindings in the which-key popup) is planned but not yet implemented
+- Help command (`g?` in oil context) is planned but not yet implemented
 
 | `vim.lsp.*` / `vim.treesitter.*` | Not applicable to Obsidian |
 | Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred |

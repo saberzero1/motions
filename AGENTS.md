@@ -254,21 +254,21 @@ The documentation site at `saberzero1.github.io/motions` is built from `docs/` u
 
 When making a change, update these docs pages:
 
-| Change type                       | Docs pages to update                                                                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| New keybinding/motion             | `reference/keybindings.md` (canonical table) — feature pages transclude via `![[keybindings#Section]]`                                               |
-| New text object                   | `reference/keybindings.md` § "Markdown text objects" + `features/text-objects.md`                                                                    |
-| New ex command                    | `reference/keybindings.md` § "Ex commands" + `features/ex-commands.md`                                                                               |
-| New setting                       | `configuration/settings.md` (add to correct group of 12)                                                                                             |
-| New vimrc option                  | `configuration/vimrc.md` (add to correct options table)                                                                                              |
-| New Lua API function/namespace    | `configuration/lua-config.md` (add to appropriate API section) + `KNOWN_LIMITATIONS.md` (update supported function count/list)                       |
-| New feature (entire)              | New `features/<name>.md` + `features/index.md` (add link) + `reference/keybindings.md` (add section) + `configuration/settings.md` (if new settings) |
-| Bug fix                           | `KNOWN_LIMITATIONS.md` (mark Fixed if applicable) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                     |
-| New limitation                    | `KNOWN_LIMITATIONS.md` (add section) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                                  |
-| Setting default changed           | `configuration/settings.md` (update default value)                                                                                                   |
-| Keybinding changed/removed        | `reference/keybindings.md` (update/remove) — feature pages auto-update via transclusion                                                              |
-| Installation requirements changed | `getting-started/installation.md` + `getting-started/recommended-setup.md`                                                                           |
-| CHANGELOG.md updated              | Nothing — auto-generated at build time by the docs workflow                                                                                          |
+| Change type                       | Docs pages to update                                                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New keybinding/motion             | `reference/keybindings.md` (canonical table) — feature pages transclude via `![[keybindings#Section]]` + `configuration/remapping.md` (if new ex command alias needed) |
+| New text object                   | `reference/keybindings.md` § "Markdown text objects" + `features/text-objects.md`                                                                                      |
+| New ex command                    | `reference/keybindings.md` § "Ex commands" + `features/ex-commands.md`                                                                                                 |
+| New setting                       | `configuration/settings.md` (add to correct group of 12)                                                                                                               |
+| New vimrc option                  | `configuration/vimrc.md` (add to correct options table)                                                                                                                |
+| New Lua API function/namespace    | `configuration/lua-config.md` (add to appropriate API section) + `KNOWN_LIMITATIONS.md` (update supported function count/list)                                         |
+| New feature (entire)              | New `features/<name>.md` + `features/index.md` (add link) + `reference/keybindings.md` (add section) + `configuration/settings.md` (if new settings)                   |
+| Bug fix                           | `KNOWN_LIMITATIONS.md` (mark Fixed if applicable) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                                       |
+| New limitation                    | `KNOWN_LIMITATIONS.md` (add section) — `docs/reference/known-limitations.md` is auto-generated from this file in CI                                                    |
+| Setting default changed           | `configuration/settings.md` (update default value)                                                                                                                     |
+| Keybinding changed/removed        | `reference/keybindings.md` (update/remove) — feature pages auto-update via transclusion                                                                                |
+| Installation requirements changed | `getting-started/installation.md` + `getting-started/recommended-setup.md`                                                                                             |
+| CHANGELOG.md updated              | Nothing — auto-generated at build time by the docs workflow                                                                                                            |
 
 ### Page ownership by feature area
 
