@@ -896,6 +896,22 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 | `require()` / plugin loading            | Security — sandboxed environment, no module system (Lua `package` library stripped in fork)                                                                                                                                                                                                                                                                                                                              |
 | `vim.api.nvim_*`                        | 16 functions supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, `nvim_buf_del_keymap`); others remain unavailable |
 | `vim.fn.hostname()` / `vim.fn.getenv()` | System fingerprinting concern                                                                                                                                                                                                                                                                                                                                                                                            |
+
+## Oil explorer
+
+**Status**: Initial release. Single-directory operations fully functional.
+
+### Cross-directory file moves require both directories open
+
+Moving a file from directory A to directory B requires opening both directories in separate oil buffers (`dd` in one, `p` in the other, then `:w`). The diff engine detects cross-buffer moves by matching entry IDs across buffers.
+
+### Oil temp files visible with `oil~` prefix
+
+Oil creates temporary markdown files (e.g., `oil~_root.md`) to render directory listings. These files are hidden from the file explorer via CSS and from search/graph via Obsidian's `userIgnoreFilters`, but the tab title shows the `oil~` prefix. The file is automatically deleted when the tab is closed or the plugin unloads.
+
+### Dotfiles cannot be used for temp files
+
+Obsidian's `vault.create()` does not support files starting with `.` (they are created on disk but not indexed, making them unopenable as markdown views). The `oil~` prefix is used instead.
 | `vim.lsp.*` / `vim.treesitter.*`        | Not applicable to Obsidian                                                                                                                                                                                                                                                                                                                                                                                               |
 | Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred                                                                                                                                                                                                                                                                                               |
 
