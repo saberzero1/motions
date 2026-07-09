@@ -29,9 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 57 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.45.0
+## What's new in 0.46.0
 
-- **[[oil-explorer|Oil explorer]]** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file explorer that renders vault directories as editable buffers. Create, rename, delete, and move files with standard vim commands, then commit all changes with `:w`. Navigate with `<CR>`, `-`, `~`, toggle hidden files with `g.`, and cycle sort with `gs`. Cross-directory moves work via `dd`/`p` across oil buffers. Four new settings in **Settings → Vim Motions → File explorer**. Lua API: `vim.obsidian.oil.open(path)` / `vim.obsidian.oil.close()`.
-- **Fixed `gj`/`gk` heading jumping** — `gk` no longer requires two presses to cross a heading line that is visually tall (large font/line-height) but does not wrap. The fork now detects spurious within-line moves and force-advances to the adjacent document line. ([#26](https://github.com/saberzero1/motions/issues/26))
+- **[[remapping|Fully remappable keybindings]]** — every plugin keybinding is now user-remappable across all four contexts: editor, oil explorer, picker, and global workspace navigation. 46 new ex command aliases let you remap structural navigation, table navigation, workspace actions, and hint mode via `nmap`/`vim.keymap.set`. Oil gets 9 ex commands and `OilEnter`/`OilLeave` autocmd events for buffer-local keymaps. Picker keybindings are configurable via `vim.obsidian.pick_keymap()`. Global mappings support `:gmap`/`:gunmap` from the editor or non-editor `:` modal.
+- **Fixed which-key status bar overlap** — the which-key popup no longer hides behind Obsidian's status bar. The overlay now detects the status bar height and adds padding to keep content visible. In split views, padding is only applied when the pane's bottom edge is adjacent to the status bar.
 
 See the [[changelog|full changelog]] for details.
