@@ -1,7 +1,7 @@
 {
     "suite": "ex-sort",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-06T17:54:56.777Z",
+    "recorded_at": "2026-07-09T01:40:07.598Z",
     "cases": [
         {
             "name": ":sort alphabetically",

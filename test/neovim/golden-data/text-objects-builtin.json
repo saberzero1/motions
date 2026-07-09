@@ -1,7 +1,7 @@
 {
     "suite": "text-objects-builtin",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-08T20:46:19.353Z",
+    "recorded_at": "2026-07-09T01:40:07.697Z",
     "cases": [
         {
             "name": "diw should delete inner word",

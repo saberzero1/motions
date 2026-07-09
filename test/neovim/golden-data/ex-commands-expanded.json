@@ -1,7 +1,7 @@
 {
     "suite": "ex-commands-expanded",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-08T20:46:19.424Z",
+    "recorded_at": "2026-07-09T01:40:07.397Z",
     "cases": [
         {
             "name": ":yank should not error",

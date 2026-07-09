@@ -1,7 +1,7 @@
 {
     "suite": "upstream-gaps",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-08T20:46:19.442Z",
+    "recorded_at": "2026-07-09T01:41:08.383Z",
     "cases": [
         {
             "name": "dip inside empty lines deletes empty paragraph block",
@@ -33,10 +33,10 @@
             },
             "keys": "\u00162j2hAhello\u001b",
             "result": {
-                "content": "01234 line 1\n56789 line 2\nabcdefg line 3hello\nline 4",
+                "content": "0123hello4 line 1\n5678hello9 line 2\nabcdhelloefg line 3\nline 4",
                 "cursor": {
-                    "line": 2,
-                    "ch": 18
+                    "line": 0,
+                    "ch": 1
                 },
                 "mode": "normal"
             }
@@ -52,10 +52,10 @@
             },
             "keys": "\u00162jllAhello\u001b",
             "result": {
-                "content": "test\nme\npleasehello",
+                "content": "testhello\nme  hello\npleahellose",
                 "cursor": {
-                    "line": 2,
-                    "ch": 10
+                    "line": 0,
+                    "ch": 1
                 },
                 "mode": "normal"
             }
@@ -90,10 +90,10 @@
             },
             "keys": "\u0016jlvd",
             "result": {
-                "content": "12345\n67891\nabde",
+                "content": "12345\n6de",
                 "cursor": {
-                    "line": 2,
-                    "ch": 2
+                    "line": 1,
+                    "ch": 1
                 },
                 "mode": "normal"
             }
@@ -109,9 +109,9 @@
             },
             "keys": "\u0016jlVd",
             "result": {
-                "content": "12345\n67891",
+                "content": "12345",
                 "cursor": {
-                    "line": 1,
+                    "line": 0,
                     "ch": 2
                 },
                 "mode": "normal"

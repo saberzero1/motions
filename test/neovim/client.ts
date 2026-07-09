@@ -1,6 +1,24 @@
 import { attach, type NeovimClient as NvimAPI } from 'neovim';
 import { spawn, type ChildProcess } from 'child_process';
 
+function escapeForNormal(keys: string): string {
+    let result = '';
+    for (let i = 0; i < keys.length; i++) {
+        const code = keys.charCodeAt(i);
+        const ch = keys[i];
+        if (code === 0x1b) result += '\\<Esc>';
+        else if (code === 0x0a || code === 0x0d) result += '\\<CR>';
+        else if (code === 0x09) result += '\\<Tab>';
+        else if (code === 0x7f) result += '\\<BS>';
+        else if (code >= 0x01 && code <= 0x1a) {
+            result += `\\<C-${String.fromCharCode(code + 0x60)}>`;
+        } else if (ch === '"') result += '\\"';
+        else if (ch === '\\') result += '\\\\';
+        else result += ch;
+    }
+    return result;
+}
+
 export class NeovimClient {
     private process!: ChildProcess;
     private nvim!: NvimAPI;
@@ -37,15 +55,32 @@ export class NeovimClient {
     }
 
     async input(keys: string): Promise<void> {
-        var escaped = keys.replace(/\n/g, '<CR>');
-        var termcodes = (await this.nvim.call('nvim_replace_termcodes', [
-            escaped,
-            true,
-            true,
-            true,
-        ])) as string;
-        await this.nvim.call('nvim_feedkeys', [termcodes, 'tx', false]);
-        await this.nvim.command('redraw');
+        // :normal! processes block-insert replication and visual mode
+        // switches correctly, but doesn't support macro recording (q).
+        // nvim_feedkeys supports macros but skips block-insert replication.
+        // Use :normal! per Escape-delimited chunk when keys contain
+        // CTRL-V (block visual); fall back to nvim_feedkeys otherwise.
+        if (keys.indexOf('\x16') !== -1) {
+            const chunks = keys.split('\x1b');
+            for (let i = 0; i < chunks.length; i++) {
+                let chunk = chunks[i] ?? '';
+                if (i < chunks.length - 1) chunk += '\x1b';
+                if (chunk.length === 0) continue;
+                const vimKeys = escapeForNormal(chunk);
+                await this.nvim.command(`execute "normal ${vimKeys}"`);
+                await this.nvim.command('redraw');
+            }
+        } else {
+            const escaped = keys.replace(/\n/g, '<CR>');
+            const termcodes = (await this.nvim.call('nvim_replace_termcodes', [
+                escaped,
+                true,
+                true,
+                true,
+            ])) as string;
+            await this.nvim.call('nvim_feedkeys', [termcodes, 'tx', false]);
+            await this.nvim.command('redraw');
+        }
     }
 
     async executeLua(code: string): Promise<void> {

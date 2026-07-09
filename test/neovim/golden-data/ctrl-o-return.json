@@ -1,7 +1,7 @@
 {
     "suite": "ctrl-o-return",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.453Z",
+    "recorded_at": "2026-07-09T01:40:07.606Z",
     "cases": [
         {
             "name": "Ctrl-O from insert returns to insert after motion",

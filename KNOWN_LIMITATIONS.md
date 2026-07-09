@@ -636,7 +636,7 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 | Category                         | Count | Description                                                                                                                                         |
 | -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `csbBysaBb` chain                | 1     | Fork logic bug: `ysaBb` (add parens around braces) silently fails after `csbB` (change parens to braces). Confirmed not timing (fails at 200ms gap) |
-| Tag `cst`/`yst` (change/add tag) | 2     | Golden recording infrastructure updated to nvim_feedkeys; needs re-recording to verify                                                              |
+| Tag `cst`/`yst` (change/add tag) | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification                                                          |
 | `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                        |
 | `csf` (function call rename)     | 1     | Deferred — uses same `findSurroundingFunction` infrastructure as `dsf`                                                                              |
 
@@ -949,6 +949,19 @@ The plugin verifies Vim behavior against headless Neovim via golden comparison t
 | Cursor rendering (`rendered_cursor_position_*`)    | 2          | Test `.cm-fat-cursor` DOM element pixel position via `getBoundingClientRect()` — no Neovim equivalent                                         |
 
 These areas are covered by the fork's own browser test suite (1806 tests) but rely on the fork's test expectations being correct rather than Neovim-verified ground truth.
+
+### Golden recorder `nvim_feedkeys` limitation (fixed)
+
+The golden recorder (`test/neovim/client.ts`) previously used Neovim's `nvim_feedkeys` RPC API with `'tx'` flags to send key sequences. This API does not fully execute certain multi-step operations within a single call:
+
+- **Block-insert replication**: `<C-v>` + `I`/`A` + text + `<Esc>` only applied the inserted text to the last selected line instead of all lines in the block. The replication step (which Neovim performs at `<Esc>` exit from block-insert mode) did not complete before the RPC returned.
+- **Visual mode-switch + operator**: `<C-v>jl` then `v` or `V` followed by `d` produced incorrect deletion scope — the mode switch didn't fully resolve before the operator executed.
+
+This caused the `visual-block` and `upstream-gaps` golden suites to contain incorrect expected values that matched `nvim_feedkeys` behavior rather than interactive Neovim behavior. The 4 failing `upstream-gaps` tests and all 15 `visual-block` tests had wrong expectations.
+
+Fixed by using `:execute "normal ..."` (via `nvim.command()`) for key sequences containing `<C-v>`. This executes synchronously within Neovim's command loop, ensuring all side effects complete. Key sequences without `<C-v>` (the majority of tests) still use `nvim_feedkeys` since `:normal` doesn't support macro recording (`q`/`@a`). An `escapeForNormal()` helper converts JS control characters to Vim `\<...>` notation for the `:execute` string.
+
+Verified with `:normal!` (headless `-c` flags), Vimscript `feedkeys("...", "tx")`, and `nvim_feedkeys` — only `:normal!` and `:execute "normal ..."` produce correct results for block operations.
 
 ## Intentionally not supported
 

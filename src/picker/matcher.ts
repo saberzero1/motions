@@ -28,7 +28,9 @@ export function createMatcher(engine: MatcherEngine = 'auto'): ManagedMatcher {
     if (resolvedEngine === 'nucleo') {
         try {
             /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-undef -- dynamic import: nucleo is only loaded when selected */
-            const { createNucleoMatcher }: {
+            const {
+                createNucleoMatcher,
+            }: {
                 createNucleoMatcher: () => DisposableMatcher | null;
             } = require('./matcher-nucleo');
             /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-undef -- end dynamic import */

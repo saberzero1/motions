@@ -1,7 +1,7 @@
 {
     "suite": "select-mode-extended",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-06T17:54:56.498Z",
+    "recorded_at": "2026-07-09T01:41:09.463Z",
     "cases": [
         {
             "name": "gh then type replaces selection",
@@ -93,9 +93,9 @@
                 "content": "hlllo",
                 "cursor": {
                     "line": 0,
-                    "ch": 2
+                    "ch": 1
                 },
-                "mode": "insert"
+                "mode": "normal"
             }
         },
         {
@@ -112,9 +112,9 @@
                 "content": "llello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 2
+                    "ch": 1
                 },
-                "mode": "insert"
+                "mode": "normal"
             }
         }
     ]

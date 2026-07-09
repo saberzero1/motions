@@ -1,7 +1,7 @@
 {
     "suite": "marks",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.441Z",
+    "recorded_at": "2026-07-09T01:40:07.632Z",
     "cases": [
         {
             "name": "ma then 'a should jump to marked line",

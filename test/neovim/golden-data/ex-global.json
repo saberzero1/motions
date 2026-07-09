@@ -1,7 +1,7 @@
 {
     "suite": "ex-global",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-06T17:54:57.057Z",
+    "recorded_at": "2026-07-09T01:40:07.527Z",
     "cases": [
         {
             "name": ":g/pattern/d deletes matching lines",

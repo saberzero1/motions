@@ -1,7 +1,7 @@
 {
     "suite": "select-mode",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-04T20:45:58.450Z",
+    "recorded_at": "2026-07-09T01:41:09.189Z",
     "cases": [
         {
             "name": "gh extends charwise and typing replaces",
@@ -55,9 +55,9 @@
                 "content": "lello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 1
+                    "ch": 0
                 },
-                "mode": "insert"
+                "mode": "normal"
             }
         },
         {
