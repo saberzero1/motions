@@ -84,13 +84,6 @@ export class OilManager {
             this.removeFromIgnoreFilters(tempPath);
             void this.app.vault.adapter.remove(tempPath).catch(() => {});
         }
-        if (orphaned.length > 0) {
-            if (this.tempToDir.size === 0) {
-                this.unhideFromExplorer();
-            } else {
-                this.rebuildExplorerCss();
-            }
-        }
     }
 
     isOilFile(path: string): boolean {
@@ -108,7 +101,6 @@ export class OilManager {
             await this.app.vault.create(tempPath, content);
         }
         this.addToIgnoreFilters(tempPath);
-        this.hideFromExplorer(tempPath);
         this.tempToDir.set(tempPath, dirPath);
         await this.app.workspace.openLinkText(tempPath, '');
         await this.forceSourceMode();
@@ -204,7 +196,6 @@ export class OilManager {
             }
         }
         this.tempToDir.clear();
-        this.unhideFromExplorer();
     }
 
     getDirPath(tempFilePath: string): string | undefined {
@@ -300,7 +291,6 @@ export class OilManager {
                 void this.app.vault.adapter.remove(file.path);
             }
         }
-        this.unhideFromExplorer();
     }
 
     private getIgnoreFilters(): string[] {
@@ -334,50 +324,9 @@ export class OilManager {
         }
     }
 
-    private hideFromExplorer(path: string): void {
-        const doc = activeDocument;
-        const styleId = 'vim-motions-oil-hide';
-        let style = doc.getElementById(styleId) as HTMLStyleElement | null;
-        if (!style) {
-            style = doc.createElement('style');
-            style.id = styleId;
-            doc.head.appendChild(style);
-        }
-        const paths = new Set<string>();
-        for (const tempPath of this.tempToDir.keys()) {
-            paths.add(tempPath);
-        }
-        paths.add(path);
-        const selectors = Array.from(paths).map(
-            (p) =>
-                `.nav-file-title[data-path="${p.replace(/"/g, '\\"')}"]`,
-        );
-        style.textContent = selectors.join(',\n') + ' { display: none; }';
-        this.refreshFileExplorer();
-    }
 
-    private rebuildExplorerCss(): void {
-        if (this.tempToDir.size === 0) {
-            this.unhideFromExplorer();
-            return;
-        }
-        const first = this.tempToDir.keys().next().value;
-        if (first) this.hideFromExplorer(first);
-    }
 
-    private unhideFromExplorer(): void {
-        const doc = activeDocument;
-        const style = doc.getElementById('vim-motions-oil-hide');
-        if (style) style.remove();
-        this.refreshFileExplorer();
-    }
 
-    private refreshFileExplorer(): void {
-        for (const leaf of this.app.workspace.getLeavesOfType('file-explorer')) {
-            const view = leaf.view as unknown as { requestSort?: () => void };
-            view.requestSort?.();
-        }
-    }
 
 
 
