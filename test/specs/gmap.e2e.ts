@@ -347,8 +347,8 @@ describe('gmap / gnoremap / gunmap', function () {
         });
     });
 
-    describe(':gmap ex command', function () {
-        it(':gmap should open info modal in editor', async function () {
+    describe(':gmaps ex command', function () {
+        it(':gmaps should open info modal in editor', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -367,7 +367,7 @@ describe('gmap / gnoremap / gunmap', function () {
 
             const exInput = await browser.$('.cm-vim-panel input');
             if (await exInput.isExisting()) {
-                await exInput.setValue('gmap');
+                await exInput.setValue('gmaps');
                 await browser.keys(['Enter']);
                 await browser.pause(PAUSE.EDITOR_SETTLE);
 
