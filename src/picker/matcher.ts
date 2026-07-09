@@ -11,7 +11,10 @@ export interface ManagedMatcher extends PickerMatcher {
 }
 
 function wrapStateless(matcher: PickerMatcher): ManagedMatcher {
-    return { search: matcher.search, dispose() {} };
+    return {
+        search: (query, items) => matcher.search(query, items),
+        dispose() {},
+    };
 }
 
 export function createMatcher(engine: MatcherEngine = 'auto'): ManagedMatcher {
@@ -24,9 +27,11 @@ export function createMatcher(engine: MatcherEngine = 'auto'): ManagedMatcher {
 
     if (resolvedEngine === 'nucleo') {
         try {
+            /* eslint-disable @typescript-eslint/no-require-imports, no-undef -- dynamic import: nucleo is only loaded when selected */
             const { createNucleoMatcher } = require('./matcher-nucleo') as {
                 createNucleoMatcher: () => DisposableMatcher | null;
             };
+            /* eslint-enable @typescript-eslint/no-require-imports, no-undef -- end dynamic import */
             const nucleo = createNucleoMatcher();
             if (nucleo) return nucleo;
         } catch {

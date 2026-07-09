@@ -41,11 +41,11 @@ function getNucleoModule(): NucleoModule | null {
     initAttempted = true;
 
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        /* eslint-disable @typescript-eslint/no-require-imports, no-undef -- esbuild binary loader only works via require() in CJS output */
         const wasmBytes =
             require('nucleo-matcher-wasm/nucleo_wasm_bg.wasm') as Uint8Array;
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const mod = require('nucleo-matcher-wasm/web') as NucleoModule;
+        /* eslint-enable @typescript-eslint/no-require-imports, no-undef -- end WASM require block */
         mod.initSync(wasmBytes);
         nucleoModule = mod;
         return mod;
