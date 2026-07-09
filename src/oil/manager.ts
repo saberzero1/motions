@@ -1,0 +1,270 @@
+import { type App, MarkdownView, Modal, Notice } from 'obsidian';
+import type { VimMotionsSettings } from '../settings';
+import { OilCache } from './cache';
+import { renderDirectory } from './render';
+import { parseBufferLines } from './parser';
+import { computeDiff, mergeMultiBufferDiffs, type BufferDiff } from './diff';
+import { validateActions, executeActions } from './actions';
+import type { OilEntry, OilMergedDiff } from './types';
+
+export const OIL_TEMP_PREFIX = 'oil~';
+
+function entriesToBufferText(entries: OilEntry[]): string {
+    if (entries.length === 0) return '';
+    const maxId = entries.reduce((m, e) => Math.max(m, e.id), 0);
+    const idWidth = Math.max(3, String(maxId).length);
+    return entries
+        .map((e) => {
+            const idStr = String(e.id).padStart(idWidth, '0');
+            const typeChar = e.type === 'folder' ? 'd' : 'f';
+            return `/${idStr} ${typeChar} ${e.name}`;
+        })
+        .join('\n');
+}
+
+export class OilManager {
+    private tempToDir = new Map<string, string>();
+    private showHidden = false;
+    private sortKey: 'name' | 'mtime' | 'size' = 'name';
+
+    constructor(
+        private readonly app: App,
+        private readonly cache: OilCache,
+        private readonly settings: VimMotionsSettings,
+    ) {}
+
+    isOilFile(path: string): boolean {
+        const name = path.includes('/') ? path.substring(path.lastIndexOf('/') + 1) : path;
+        return name.startsWith(OIL_TEMP_PREFIX);
+    }
+
+    async openOil(dirPath: string): Promise<void> {
+        const tempPath = this.getTempFilePath(dirPath);
+        const content = this.renderDirectoryToBuffer(dirPath);
+        const existing = this.app.vault.getAbstractFileByPath(tempPath);
+        if (existing) {
+            await this.app.vault.modify(existing as import('obsidian').TFile, content);
+        } else {
+            await this.app.vault.create(tempPath, content);
+        }
+        this.tempToDir.set(tempPath, dirPath);
+        await this.app.workspace.openLinkText(tempPath, '');
+        await this.forceSourceMode();
+    }
+
+    async commit(filePath: string): Promise<void> {
+        const dirPath = this.getDirPath(filePath);
+        if (dirPath === undefined) return;
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const content = view.editor.getValue();
+        const parsed = parseBufferLines(content);
+        const snapshot = this.cache.snapshot(dirPath);
+        const bufferDiff: BufferDiff = {
+            parentPath: dirPath,
+            diff: computeDiff(parsed, snapshot, dirPath),
+        };
+        const merged = mergeMultiBufferDiffs([bufferDiff], this.cache);
+
+        const totalOps =
+            merged.creates.length +
+            merged.renames.length +
+            merged.deletes.length +
+            merged.moves.length;
+        if (totalOps === 0) {
+            new Notice('Oil: no changes');
+            return;
+        }
+
+        const validation = validateActions(merged, this.app);
+        if (!validation.valid) {
+            new Notice(`Oil: validation failed\n${validation.errors.join('\n')}`);
+            return;
+        }
+
+        if (merged.deletes.length >= this.getDeleteThreshold()) {
+            const confirmed = await this.confirmDestructive(merged);
+            if (!confirmed) {
+                new Notice('Oil: commit cancelled');
+                return;
+            }
+        }
+
+        const result = await executeActions(merged, this.app);
+        const msg = [];
+        if (result.completed.length > 0)
+            msg.push(`${result.completed.length} completed`);
+        if (result.failed.length > 0) msg.push(`${result.failed.length} failed`);
+        if (result.skipped.length > 0)
+            msg.push(`${result.skipped.length} skipped`);
+        new Notice(`Oil: ${msg.join(', ')}`);
+
+        await this.navigateToDirectory(dirPath, filePath);
+    }
+
+    async navigateToDirectory(
+        dirPath: string,
+        currentTempPath: string,
+    ): Promise<void> {
+        const content = this.renderDirectoryToBuffer(dirPath);
+        const file = this.app.vault.getAbstractFileByPath(currentTempPath);
+        if (file) {
+            await this.app.vault.modify(file as import('obsidian').TFile, content);
+        }
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (view?.file?.path === currentTempPath) {
+            view.editor.setValue(content);
+        }
+        this.tempToDir.set(currentTempPath, dirPath);
+    }
+
+    async cleanup(): Promise<void> {
+        for (const file of this.app.vault.getFiles()) {
+            if (this.isOilFile(file.path)) {
+                await this.app.vault.adapter.remove(file.path);
+            }
+        }
+        this.tempToDir.clear();
+    }
+
+    getDirPath(tempFilePath: string): string | undefined {
+        return this.tempToDir.get(tempFilePath);
+    }
+
+    getEntryAtLine(lineText: string): OilEntry | undefined {
+        const match = lineText.match(/^\/(\d+)\s+[df]\s/);
+        if (!match || !match[1]) return undefined;
+        const id = Number(match[1]);
+        if (!id) return undefined;
+        return this.cache.getEntry(id);
+    }
+
+    toggleHidden(): void {
+        this.showHidden = !this.showHidden;
+        new Notice(
+            `Oil: hidden files ${this.showHidden ? 'shown' : 'hidden'}`,
+        );
+    }
+
+    cycleSortKey(): void {
+        const order: Array<'name' | 'mtime' | 'size'> = [
+            'name',
+            'mtime',
+            'size',
+        ];
+        const idx = order.indexOf(this.sortKey);
+        this.sortKey = order[(idx + 1) % order.length]!;
+        new Notice(`Oil: sort by ${this.sortKey}`);
+    }
+
+    forgetTempPath(tempPath: string): void {
+        this.tempToDir.delete(tempPath);
+    }
+
+    private renderDirectoryToBuffer(dirPath: string): string {
+        const showHidden = this.settings.oilShowHiddenFiles ?? this.showHidden;
+        const sort = this.settings.oilDefaultSort ?? this.sortKey;
+        const rawEntries = renderDirectory(
+            this.app,
+            dirPath,
+            showHidden,
+            sort,
+        );
+        const entries = this.cache.loadDirectory(dirPath, rawEntries);
+        return entriesToBufferText(entries);
+    }
+
+    private getTempFilePath(dirPath: string): string {
+        const encoded = dirPath ? dirPath.replace(/\//g, '_') : '_root';
+        return OIL_TEMP_PREFIX + encoded + '.md';
+    }
+
+    private async forceSourceMode(): Promise<void> {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        if (!leaf) return;
+        const viewState = leaf.getViewState();
+        if (viewState.state?.mode !== 'source') {
+            viewState.state = { ...viewState.state, mode: 'source', source: true };
+            await leaf.setViewState(viewState);
+        }
+    }
+
+    private getDeleteThreshold(): number {
+        return this.settings?.oilConfirmDeleteThreshold ?? 1;
+    }
+
+    private confirmDestructive(diff: OilMergedDiff): Promise<boolean> {
+        return new Promise((resolve) => {
+            const modal = new OilConfirmModal(this.app, diff, resolve);
+            modal.open();
+        });
+    }
+}
+
+class OilConfirmModal extends Modal {
+    constructor(
+        app: App,
+        private readonly diff: OilMergedDiff,
+        private readonly resolve: (confirmed: boolean) => void,
+    ) {
+        super(app);
+    }
+
+    onOpen(): void {
+        const { contentEl } = this;
+        contentEl.createEl('h3', { text: 'Confirm oil changes' });
+
+        const summary: string[] = [];
+        if (this.diff.creates.length > 0)
+            summary.push(`Create ${this.diff.creates.length}`);
+        if (this.diff.moves.length > 0)
+            summary.push(`Move ${this.diff.moves.length}`);
+        if (this.diff.renames.length > 0)
+            summary.push(`Rename ${this.diff.renames.length}`);
+        if (this.diff.deletes.length > 0)
+            summary.push(`Delete ${this.diff.deletes.length}`);
+
+        contentEl.createEl('p', { text: summary.join(', ') + '.' });
+
+        if (this.diff.deletes.length > 0) {
+            contentEl.createEl('h4', { text: 'Files to delete' });
+            const ul = contentEl.createEl('ul');
+            for (const del of this.diff.deletes) {
+                ul.createEl('li', { text: del.entry.path });
+            }
+        }
+
+        if (this.diff.moves.length > 0) {
+            contentEl.createEl('h4', { text: 'Files to move' });
+            const ul = contentEl.createEl('ul');
+            for (const move of this.diff.moves) {
+                const dest = move.newParentPath
+                    ? `${move.newParentPath}/${move.newName}`
+                    : move.newName;
+                ul.createEl('li', {
+                    text: `${move.entry.path} → ${dest}`,
+                });
+            }
+        }
+
+        const btnContainer = contentEl.createDiv({
+            cls: 'modal-button-container',
+        });
+        btnContainer
+            .createEl('button', { text: 'Confirm', cls: 'mod-cta' })
+            .addEventListener('click', () => {
+                this.resolve(true);
+                this.close();
+            });
+        btnContainer
+            .createEl('button', { text: 'Cancel' })
+            .addEventListener('click', () => {
+                this.resolve(false);
+                this.close();
+            });
+    }
+
+    onClose(): void {
+        this.contentEl.empty();
+    }
+}

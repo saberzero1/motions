@@ -91,9 +91,10 @@ import { createTagsSource } from './picker/sources/tags';
 import { createRecentSource, trackRecentFile } from './picker/sources/recent';
 import { createMarksSource } from './picker/sources/marks';
 import { createRegistersSource } from './picker/sources/registers';
-import { OilView, OIL_VIEW_TYPE } from './oil/view';
+import { oilConcealExtension } from './oil/extensions';
 import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
+import { OilManager } from './oil/manager';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -160,6 +161,7 @@ export default class VimMotionsPlugin extends Plugin {
     private frecencySaveTimer: number | null = null;
     private matcher: ManagedMatcher | null = null;
     private oilKeybindingManager: OilKeybindingManager | null = null;
+    private oilManager: OilManager | null = null;
 
     get vimrcEnabled(): boolean {
         return (
@@ -347,12 +349,12 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         const oilCache = new OilCache();
-        this.registerView(
-            OIL_VIEW_TYPE,
-            (leaf) =>
-                new OilView(leaf, this.app, oilCache, this.settings),
+        this.oilManager = new OilManager(this.app, oilCache, this.settings);
+        this.oilKeybindingManager = new OilKeybindingManager(
+            this.app,
+            this.oilManager,
         );
-        this.oilKeybindingManager = new OilKeybindingManager(this.app);
+        this.registerEditorExtension(oilConcealExtension());
 
         const builtinVimOn = isVimEnabled(
             this.app as unknown as {
@@ -826,6 +828,7 @@ export default class VimMotionsPlugin extends Plugin {
                 vim,
                 this.globalRegistry ?? undefined,
                 this.autocmdManager ?? undefined,
+                this.oilManager ?? undefined,
                 {
                     openPicker: this.openPicker ?? undefined,
                     isPickerEnabled: () => this.settings.picker,
@@ -1135,6 +1138,7 @@ export default class VimMotionsPlugin extends Plugin {
                 vim,
                 this.globalRegistry ?? undefined,
                 this.autocmdManager ?? undefined,
+                this.oilManager ?? undefined,
                 {
                     openPicker: this.openPicker ?? undefined,
                     isPickerEnabled: () => this.settings.picker,
@@ -1984,6 +1988,10 @@ export default class VimMotionsPlugin extends Plugin {
         this.bufferKeymapManager = null;
         this.oilKeybindingManager?.destroy();
         this.oilKeybindingManager = null;
+        if (this.oilManager) {
+            void this.oilManager.cleanup();
+        }
+        this.oilManager = null;
         if (this.luaState) {
             destroyState(this.luaState);
             this.luaState = null;

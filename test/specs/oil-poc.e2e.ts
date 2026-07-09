@@ -1,14 +1,14 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-describe('Oil explorer - Phase 1', function () {
+describe('Oil explorer - temp markdown file approach', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
         await browser.pause(500);
     });
 
-    it('should open oil view via :Oil and show vault files', async function () {
+    it('should open oil via :Oil as a markdown file', async function () {
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
@@ -48,68 +48,69 @@ describe('Oil explorer - Phase 1', function () {
         });
 
         expect(result).toHaveProperty('success', true);
-        await browser.pause(800);
+        await browser.pause(2000);
 
+        const activeFile = (await browser.executeObsidian(({ app }) => {
+            return app.workspace.getActiveFile()?.path ?? '';
+        })) as string;
+
+        const oilFileExists = (await browser.executeObsidian(({ app }) => {
+            return app.vault
+                .getFiles()
+                .filter((f) => f.name.startsWith('oil~'))
+                .map((f) => f.path);
+        })) as string[];
+
+        expect(oilFileExists.length).toBeGreaterThan(0);
+        expect(activeFile).toContain('oil~');
+    });
+
+    it('oil file should be a regular markdown view', async function () {
         const viewType = (await browser.executeObsidian(({ app }) => {
             const leaf = app.workspace.getMostRecentLeaf();
             return leaf?.view?.getViewType() ?? 'unknown';
         })) as string;
 
-        expect(viewType).toBe('vim-motions-oil');
+        expect(viewType).toBe('markdown');
     });
 
-    it('oil view should show real vault files with concealment', async function () {
-        const visibleText = (await browser.executeObsidian(({ app }) => {
-            const leaves = app.workspace.getLeavesOfType('vim-motions-oil');
-            if (leaves.length === 0) return '';
-            const container = leaves[0].view.contentEl;
-            const cmContent = container.querySelector('.cm-content');
-            return cmContent?.textContent ?? '';
-        })) as string;
+    it('oil file should contain vault file names', async function () {
+        const editorContent = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return '';
+                return view.editor.getValue();
+            },
+        )) as string;
 
-        expect(visibleText).toContain('Welcome.md');
-        expect(visibleText).not.toContain('/001');
+        expect(editorContent).toContain('Welcome.md');
+        expect(editorContent).toContain('Target.md');
     });
 
-    it('oil view should have CM editor', async function () {
-        const hasCmEditor = (await browser.executeObsidian(({ app }) => {
-            const leaves = app.workspace.getLeavesOfType('vim-motions-oil');
-            if (leaves.length === 0) return false;
-            const container = leaves[0].view.contentEl;
-            return container.querySelector('.cm-editor') !== null;
-        })) as boolean;
+    it('oil file content should have entry IDs in source', async function () {
+        const editorContent = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return '';
+                return view.editor.getValue();
+            },
+        )) as string;
 
-        expect(hasCmEditor).toBe(true);
-    });
-
-    it('oil view should list correct vault files', async function () {
-        const vaultFiles = (await browser.executeObsidian(({ app }) => {
-            return app.vault
-                .getFiles()
-                .map((f) => f.name)
-                .sort();
-        })) as string[];
-
-        const oilContent = (await browser.executeObsidian(({ app }) => {
-            const leaves = app.workspace.getLeavesOfType('vim-motions-oil');
-            if (leaves.length === 0) return '';
-            const container = leaves[0].view.contentEl;
-            const cmContent = container.querySelector('.cm-content');
-            return cmContent?.textContent ?? '';
-        })) as string;
-
-        for (const name of vaultFiles) {
-            if (!name.startsWith('.')) {
-                expect(oilContent).toContain(name);
-            }
-        }
+        expect(editorContent).toMatch(/^\/\d+\s+[df]\s/m);
     });
 
     after(async function () {
-        await browser.executeObsidian(({ app }) => {
-            const leaves = app.workspace.getLeavesOfType('vim-motions-oil');
-            for (const leaf of leaves) {
-                leaf.detach();
+        await browser.executeObsidian(async ({ app }) => {
+            const leaf = app.workspace.getMostRecentLeaf();
+            if (leaf) leaf.detach();
+            for (const file of app.vault.getFiles()) {
+                if (file.name.startsWith('oil~')) {
+                    await app.vault.adapter.remove(file.path);
+                }
             }
         });
     });

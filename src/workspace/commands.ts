@@ -1,5 +1,5 @@
 import { App, MarkdownView, Notice, TFile } from 'obsidian';
-import { OilView, OIL_VIEW_TYPE } from '../oil/view';
+import type { OilManager } from '../oil/manager';
 import { createGrepCommand } from './vault-search';
 import type { ExCommandFn, VimApi } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
@@ -140,21 +140,16 @@ function executeCommand(app: App, commandId: string): void {
     ).commands.executeCommandById(commandId);
 }
 
-function getActiveOilView(app: App): OilView | null {
-    const leaf = app.workspace.getMostRecentLeaf();
-    if (leaf?.view?.getViewType() === OIL_VIEW_TYPE) {
-        return leaf.view as OilView;
-    }
-    return null;
-}
-
-function saveWithEvents(app: App, autocmdManager?: AutocmdManager): void {
-    const oilView = getActiveOilView(app);
-    if (oilView) {
-        void oilView.commit();
+function saveWithEvents(
+    app: App,
+    autocmdManager?: AutocmdManager,
+    oilManager?: OilManager,
+): void {
+    const file = app.workspace.getActiveFile();
+    if (file && oilManager?.isOilFile(file.path)) {
+        void oilManager.commit(file.path);
         return;
     }
-    const file = app.workspace.getActiveFile();
     const path = file?.path ?? '';
     autocmdManager?.fire('BufWritePre', { file: path });
     executeCommand(app, 'editor:save-file');
@@ -164,16 +159,17 @@ function saveWithEvents(app: App, autocmdManager?: AutocmdManager): void {
 function createWriteQuitCommand(
     app: App,
     autocmdManager?: AutocmdManager,
+    oilManager?: OilManager,
 ): ExCommandFn {
     return () => {
-        const oilView = getActiveOilView(app);
-        if (oilView) {
-            void oilView.commit().then(() => {
+        const file = app.workspace.getActiveFile();
+        if (file && oilManager?.isOilFile(file.path)) {
+            void oilManager.commit(file.path).then(() => {
                 executeCommand(app, 'workspace:close');
             });
             return;
         }
-        saveWithEvents(app, autocmdManager);
+        saveWithEvents(app, autocmdManager, oilManager);
         executeCommand(app, 'workspace:close');
     };
 }
@@ -355,16 +351,17 @@ function createSaveAsCommand(app: App): ExCommandFn {
 function createXitCommand(
     app: App,
     autocmdManager?: AutocmdManager,
+    oilManager?: OilManager,
 ): ExCommandFn {
     return () => {
-        const oilView = getActiveOilView(app);
-        if (oilView) {
-            void oilView.commit().then(() => {
+        const file = app.workspace.getActiveFile();
+        if (file && oilManager?.isOilFile(file.path)) {
+            void oilManager.commit(file.path).then(() => {
                 executeCommand(app, 'workspace:close');
             });
             return;
         }
-        saveWithEvents(app, autocmdManager);
+        saveWithEvents(app, autocmdManager, oilManager);
         executeCommand(app, 'workspace:close');
     };
 }
@@ -372,9 +369,10 @@ function createXitCommand(
 function createXallCommand(
     app: App,
     autocmdManager?: AutocmdManager,
+    oilManager?: OilManager,
 ): ExCommandFn {
     return () => {
-        saveWithEvents(app, autocmdManager);
+        saveWithEvents(app, autocmdManager, oilManager);
         app.workspace.iterateAllLeaves((leaf) => {
             leaf.detach();
         });
@@ -539,6 +537,7 @@ export function registerExCommands(
     vim?: VimApi,
     globalRegistry?: GlobalMappingRegistry,
     autocmdManager?: AutocmdManager,
+    oilManager?: OilManager,
     picker?: PickerConfig,
 ): void {
     const backlinksCommand = createBacklinksCommand(app);
@@ -546,9 +545,15 @@ export function registerExCommands(
     reg.defineEx('sidebar', 'sid', createSidebarCommand(app));
     reg.defineEx('explorer', 'exp', createExplorerCommand(app));
 
-    reg.defineEx('write', 'w', () => saveWithEvents(app, autocmdManager));
+    reg.defineEx('write', 'w', () =>
+        saveWithEvents(app, autocmdManager, oilManager),
+    );
     reg.defineEx('quit', 'q', () => executeCommand(app, 'workspace:close'));
-    reg.defineEx('wq', '', createWriteQuitCommand(app, autocmdManager));
+    reg.defineEx(
+        'wq',
+        '',
+        createWriteQuitCommand(app, autocmdManager, oilManager),
+    );
     reg.defineEx('bdelete', 'bd', () => executeCommand(app, 'workspace:close'));
     reg.defineEx('bclose', 'bc', () => executeCommand(app, 'workspace:close'));
     reg.defineEx('bnext', 'bn', () =>
@@ -560,8 +565,12 @@ export function registerExCommands(
     reg.defineEx('only', 'on', createCloseOthersExCommand(app));
     reg.defineEx('quitall', 'quita', createCloseAllCommand(app));
     reg.defineEx('qa', '', createCloseAllCommand(app));
-    reg.defineEx('wall', 'wal', () => saveWithEvents(app, autocmdManager));
-    reg.defineEx('wa', '', () => saveWithEvents(app, autocmdManager));
+    reg.defineEx('wall', 'wal', () =>
+        saveWithEvents(app, autocmdManager, oilManager),
+    );
+    reg.defineEx('wa', '', () =>
+        saveWithEvents(app, autocmdManager, oilManager),
+    );
 
     reg.defineEx('buffers', 'buf', createBufferListCommand(app, picker));
     reg.defineEx('ls', '', createBufferListCommand(app, picker));
@@ -648,9 +657,19 @@ export function registerExCommands(
     reg.defineEx('edit!', '', createEditForceCommand(app));
     reg.defineEx('enew', 'ene', createEnewCommand(app));
     reg.defineEx('saveas', 'sav', createSaveAsCommand(app));
-    reg.defineEx('update', 'up', () => saveWithEvents(app, autocmdManager));
-    reg.defineEx('xit', 'x', createXitCommand(app, autocmdManager));
-    reg.defineEx('xall', 'xa', createXallCommand(app, autocmdManager));
+    reg.defineEx('update', 'up', () =>
+        saveWithEvents(app, autocmdManager, oilManager),
+    );
+    reg.defineEx(
+        'xit',
+        'x',
+        createXitCommand(app, autocmdManager, oilManager),
+    );
+    reg.defineEx(
+        'xall',
+        'xa',
+        createXallCommand(app, autocmdManager, oilManager),
+    );
     reg.defineEx('find', 'fin', createFindCommand(app));
     reg.defineEx('read', 'r', createReadCommand(app));
 
@@ -698,6 +717,7 @@ export function registerExCommands(
     });
 
     reg.defineEx('Oil', '', (_cm, params) => {
+        if (!oilManager) return;
         const argPath = (params.argString ?? '').trim();
         let dirPath = argPath;
         if (!dirPath || dirPath === '.' || dirPath === '/') {
@@ -713,11 +733,6 @@ export function registerExCommands(
                 dirPath = '';
             }
         }
-        const leaf = app.workspace.getLeaf('tab');
-        void leaf.setViewState({
-            type: OIL_VIEW_TYPE,
-            state: { path: dirPath },
-        });
-        app.workspace.setActiveLeaf(leaf, { focus: true });
+        void oilManager.openOil(dirPath);
     });
 }

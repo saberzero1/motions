@@ -1,5 +1,6 @@
 import { App, TFile, TFolder } from 'obsidian';
 import type { OilEntry } from './types';
+import { OIL_TEMP_PREFIX } from './manager';
 
 function getParentPath(path: string): string {
     return path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
@@ -29,6 +30,7 @@ export function renderDirectory(
     const files = app.vault
         .getFiles()
         .filter((file) => !isInConfigDir(file.path, configDir))
+        .filter((file) => !file.name.startsWith(OIL_TEMP_PREFIX))
         .filter((file) => getParentPath(file.path) === dirPath)
         .filter((file) => showHidden || !file.name.startsWith('.'))
         .map<EntryMeta>((file: TFile) => ({

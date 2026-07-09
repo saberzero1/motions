@@ -1,5 +1,5 @@
-import type { App } from 'obsidian';
-import { OilView, OIL_VIEW_TYPE } from './view';
+import { type App, MarkdownView, Notice } from 'obsidian';
+import type { OilManager } from './manager';
 import { getVimApi } from '../vim/vim-api';
 
 interface OilMapping {
@@ -18,25 +18,20 @@ const OIL_MAPPINGS: OilMapping[] = [
     { lhs: 'y.', actionName: 'oilYankPath' },
 ];
 
-function getActiveOilView(app: App): OilView | null {
-    const leaf = app.workspace.getMostRecentLeaf();
-    if (leaf?.view?.getViewType() === OIL_VIEW_TYPE) {
-        return leaf.view as OilView;
-    }
-    return null;
-}
-
 export class OilKeybindingManager {
     private applied = false;
     private actionsRegistered = false;
 
-    constructor(private readonly app: App) {}
+    constructor(
+        private readonly app: App,
+        private readonly manager: OilManager,
+    ) {}
 
     onActiveLeafChange(): void {
-        const oilView = getActiveOilView(this.app);
-        if (oilView && !this.applied) {
+        const file = this.app.workspace.getActiveFile();
+        if (file && this.manager.isOilFile(file.path) && !this.applied) {
             this.apply();
-        } else if (!oilView && this.applied) {
+        } else if ((!file || !this.manager.isOilFile(file.path)) && this.applied) {
             this.remove();
         }
     }
@@ -70,18 +65,82 @@ export class OilKeybindingManager {
         if (!vim) return;
         this.actionsRegistered = true;
         const app = this.app;
+        const manager = this.manager;
 
-        vim.defineAction('oilOpenEntry', () => getActiveOilView(app)?.openEntryUnderCursor());
-        vim.defineAction('oilParent', () => getActiveOilView(app)?.navigateToParent());
-        vim.defineAction('oilRoot', () => getActiveOilView(app)?.navigateToRoot());
-        vim.defineAction('oilRefresh', () => getActiveOilView(app)?.refresh());
-        vim.defineAction('oilClose', () => {
-            const view = getActiveOilView(app);
-            if (view) view.leaf.detach();
+        vim.defineAction('oilOpenEntry', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cursor = view.editor.getCursor();
+            const lineText = view.editor.getLine(cursor?.line ?? 0);
+            const entry = manager.getEntryAtLine(lineText);
+            if (!entry) return;
+            if (entry.type === 'folder') {
+                void manager.navigateToDirectory(entry.path, file.path);
+            } else {
+                void app.workspace.openLinkText(entry.path, '');
+            }
         });
-        vim.defineAction('oilToggleHidden', () => getActiveOilView(app)?.toggleHidden());
-        vim.defineAction('oilCycleSort', () => getActiveOilView(app)?.cycleSortKey());
-        vim.defineAction('oilYankPath', () => getActiveOilView(app)?.yankFilePath());
+        vim.defineAction('oilParent', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            const dirPath = manager.getDirPath(file.path) ?? '';
+            if (!dirPath) {
+                new Notice('Oil: already at vault root');
+                return;
+            }
+            const parentPath = dirPath.includes('/')
+                ? dirPath.substring(0, dirPath.lastIndexOf('/'))
+                : '';
+            void manager.navigateToDirectory(parentPath, file.path);
+        });
+        vim.defineAction('oilRoot', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            void manager.navigateToDirectory('', file.path);
+        });
+        vim.defineAction('oilRefresh', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            const dirPath = manager.getDirPath(file.path) ?? '';
+            void manager.navigateToDirectory(dirPath, file.path);
+        });
+        vim.defineAction('oilClose', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            const leaf = app.workspace.getMostRecentLeaf();
+            leaf?.detach();
+            void app.vault.adapter.remove(file.path).then(() => {
+                manager.forgetTempPath(file.path);
+            });
+        });
+        vim.defineAction('oilToggleHidden', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            manager.toggleHidden();
+            const dirPath = manager.getDirPath(file.path) ?? '';
+            void manager.navigateToDirectory(dirPath, file.path);
+        });
+        vim.defineAction('oilCycleSort', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            manager.cycleSortKey();
+            const dirPath = manager.getDirPath(file.path) ?? '';
+            void manager.navigateToDirectory(dirPath, file.path);
+        });
+        vim.defineAction('oilYankPath', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cursor = view.editor.getCursor();
+            const lineText = view.editor.getLine(cursor?.line ?? 0);
+            const entry = manager.getEntryAtLine(lineText);
+            if (!entry) return;
+            void navigator.clipboard.writeText(entry.path);
+            new Notice(`Oil: yanked ${entry.path}`);
+        });
     }
 
     destroy(): void {
