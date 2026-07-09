@@ -350,6 +350,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         const oilCache = new OilCache();
         this.oilManager = new OilManager(this.app, oilCache, this.settings);
+        this.oilManager.install(this);
         this.oilKeybindingManager = new OilKeybindingManager(
             this.app,
             this.oilManager,
@@ -1660,6 +1661,23 @@ export default class VimMotionsPlugin extends Plugin {
             return true;
         });
         const customLuaPath = this.settings.luaConfigPath || undefined;
+        const oilCallbacks = {
+            oilOpen: (path: string) => {
+                if (!this.oilManager) return;
+                void this.oilManager.openOil(path);
+            },
+            oilClose: () => {
+                const file = this.app.workspace.getActiveFile();
+                if (!file) return;
+                const oilManager = this.oilManager;
+                if (!oilManager?.isOilFile(file.path)) return;
+                const leaf = this.app.workspace.getMostRecentLeaf();
+                leaf?.detach();
+                void this.app.vault.adapter.remove(file.path).then(() => {
+                    oilManager.forgetTempPath(file.path);
+                });
+            },
+        };
         const luaResult = await loadInitLua(
             this.app,
             vim,
@@ -1668,6 +1686,7 @@ export default class VimMotionsPlugin extends Plugin {
             customLuaPath,
             this.bufferKeymapManager,
             this.openPicker ?? undefined,
+            oilCallbacks,
         );
 
         this.luaCommandCount = luaResult.commandCount;

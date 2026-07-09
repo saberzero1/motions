@@ -1101,6 +1101,24 @@ export function injectObsidianApi(
     });
     lua.lua_setfield(L, obsidianIndex, to_luastring('set_cursor'));
 
+    lua.lua_newtable(L);
+    const obsOilIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const path = readLuaString(state, 1) ?? '';
+        callbacks.oilOpen?.(path);
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('open'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        callbacks.oilClose?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsOilIndex, to_luastring('close'));
+
+    lua.lua_setfield(L, obsidianIndex, to_luastring('oil'));
+
     lua.lua_pushvalue(L, obsidianIndex);
     lua.lua_setfield(L, vimTableIndex, to_luastring('obsidian'));
     lua.lua_pop(L, 1);

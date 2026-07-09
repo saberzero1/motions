@@ -17,6 +17,7 @@ import {
     LuaKeymap,
     LuaKeymapDelete,
     LuaGlobalKeymap,
+    type VimApiCallbacks,
 } from './api';
 import type { BufferKeymapManager } from './buffer';
 import { AutocmdManager } from './autocmd';
@@ -133,6 +134,7 @@ export async function loadInitLua(
     customPath?: string,
     bufferKeymapManager?: BufferKeymapManager,
     openPicker?: (source: string, opts?: { query?: string }) => void,
+    oilCallbacks?: Pick<VimApiCallbacks, 'oilOpen' | 'oilClose'>,
 ): Promise<LuaLoadResult> {
     const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
@@ -318,6 +320,7 @@ export async function loadInitLua(
         showNotice: (msg) => {
             new Notice(msg);
         },
+        ...oilCallbacks,
         onKeymap: (map) => {
             commandCount++;
             maps.push(map);

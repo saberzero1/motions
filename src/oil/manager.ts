@@ -1,4 +1,4 @@
-import { type App, MarkdownView, Modal, Notice } from 'obsidian';
+import { type App, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import type { VimMotionsSettings } from '../settings';
 import { OilCache } from './cache';
 import { renderDirectory } from './render';
@@ -26,12 +26,38 @@ export class OilManager {
     private tempToDir = new Map<string, string>();
     private showHidden = false;
     private sortKey: 'name' | 'mtime' | 'size' = 'name';
+    private refreshDebounceTimer: number | null = null;
 
     constructor(
         private readonly app: App,
         private readonly cache: OilCache,
         private readonly settings: VimMotionsSettings,
     ) {}
+
+    install(plugin: Plugin): void {
+        plugin.registerEvent(
+            this.app.vault.on('create', (file) => {
+                const dirPath = this.getParentDirPath(file.path);
+                this.refreshDirIfOpen(dirPath);
+            }),
+        );
+        plugin.registerEvent(
+            this.app.vault.on('delete', (file) => {
+                const dirPath = this.getParentDirPath(file.path);
+                this.refreshDirIfOpen(dirPath);
+            }),
+        );
+        plugin.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                const oldDir = this.getParentDirPath(oldPath);
+                const newDir = this.getParentDirPath(file.path);
+                this.refreshDirIfOpen(oldDir);
+                if (newDir !== oldDir) {
+                    this.refreshDirIfOpen(newDir);
+                }
+            }),
+        );
+    }
 
     isOilFile(path: string): boolean {
         const name = path.includes('/') ? path.substring(path.lastIndexOf('/') + 1) : path;
@@ -119,6 +145,10 @@ export class OilManager {
     }
 
     async cleanup(): Promise<void> {
+        if (this.refreshDebounceTimer !== null) {
+            window.clearTimeout(this.refreshDebounceTimer);
+            this.refreshDebounceTimer = null;
+        }
         for (const file of this.app.vault.getFiles()) {
             if (this.isOilFile(file.path)) {
                 await this.app.vault.adapter.remove(file.path);
@@ -159,6 +189,30 @@ export class OilManager {
 
     forgetTempPath(tempPath: string): void {
         this.tempToDir.delete(tempPath);
+    }
+
+    private scheduleRefresh(dirPath: string, tempPath: string): void {
+        if (this.refreshDebounceTimer !== null) {
+            window.clearTimeout(this.refreshDebounceTimer);
+        }
+        this.refreshDebounceTimer = window.setTimeout(() => {
+            this.refreshDebounceTimer = null;
+            void this.navigateToDirectory(dirPath, tempPath);
+        }, 200);
+    }
+
+    private refreshDirIfOpen(dirPath: string): void {
+        for (const [tempPath, mappedDir] of this.tempToDir.entries()) {
+            if (mappedDir === dirPath) {
+                this.scheduleRefresh(dirPath, tempPath);
+                return;
+            }
+        }
+    }
+
+    private getParentDirPath(path: string): string {
+        const idx = path.lastIndexOf('/');
+        return idx === -1 ? '' : path.slice(0, idx);
     }
 
     private renderDirectoryToBuffer(dirPath: string): string {
