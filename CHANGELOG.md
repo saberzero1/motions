@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.1] - 2026-07-09
+
+### Removed
+
+- **nucleo-matcher-wasm dependency removed** — the WASM-based fuzzy matcher from the Helix editor has been removed. The `nucleo` and `auto` picker engine options are no longer available. The bundled wasm-bindgen glue code contained a `fetch()` call (in the unused async init path) that triggered the Obsidian community directory scanner's network request warning, along with other WASM-related scanner flags. Since uFuzzy performs comparably and nucleo was disabled by default, the dependency has been dropped entirely to eliminate scanner warnings and reduce bundle size.
+    - Plugin: `src/picker/matcher-nucleo.ts` (deleted), `src/picker/matcher.ts` (nucleo branch and `auto`/`nucleo` engine options removed), `src/settings.ts` (`pickerMatcherEngine` type narrowed to `'ufuzzy' | 'obsidian'`, dropdown options reduced), `esbuild.config.mjs` (WASM binary loader plugin removed), `package.json` (`nucleo-matcher-wasm` dependency removed)
+    - Tests: `test/unit/picker/matcher.test.ts` (nucleo engine removed from test matrix, nucleo-specific test suite removed), `test/bench/matcher.bench.ts` (nucleo benchmarks removed), `test/specs/picker.e2e.ts` (nucleo removed from engine switching test)
+    - Docs: `KNOWN_LIMITATIONS.md` (nucleo entries removed from engine list, limitations, and bundle size section), `docs/configuration/settings.md` (engine options updated), `docs/index.md` (0.44.0 summary updated), `ACKNOWLEDGEMENTS.md` (nucleo attribution removed), `AGENTS.md` (nucleo-matcher-wasm fork section removed)
+
+### Changed
+
+- **Picker matching engine** — setting reduced from four options (`ufuzzy`, `nucleo`, `obsidian`, `auto`) to two (`ufuzzy`, `obsidian`). Default remains `ufuzzy`.
+- **Bundle size** — production bundle reduced by ~193KB (embedded WASM binary) plus ~30KB of wasm-bindgen glue code.
+
 ## [0.44.0] - 2026-07-09
 
 ### Changed

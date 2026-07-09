@@ -312,7 +312,7 @@ describe('Picker', function () {
     });
 
     describe('matcher engine switching', function () {
-        const engines = ['ufuzzy', 'nucleo', 'obsidian'] as const;
+        const engines = ['ufuzzy', 'obsidian'] as const;
 
         for (const engine of engines) {
             it(`should open picker with ${engine} engine`, async function () {

@@ -1,10 +1,8 @@
-import { Platform } from 'obsidian';
 import type { PickerMatcher } from './types';
-import type { DisposableMatcher } from './matcher-nucleo';
 import { createUFuzzyMatcher } from './matcher-ufuzzy';
 import { createObsidianMatcher } from './matcher-obsidian';
 
-export type MatcherEngine = 'auto' | 'nucleo' | 'ufuzzy' | 'obsidian';
+export type MatcherEngine = 'ufuzzy' | 'obsidian';
 
 export interface ManagedMatcher extends PickerMatcher {
     dispose(): void;
@@ -17,28 +15,11 @@ function wrapStateless(matcher: PickerMatcher): ManagedMatcher {
     };
 }
 
-export function createMatcher(engine: MatcherEngine = 'auto'): ManagedMatcher {
-    const resolvedEngine =
-        engine === 'auto' ? (Platform.isMobile ? 'ufuzzy' : 'nucleo') : engine;
-
-    if (resolvedEngine === 'obsidian') {
+export function createMatcher(
+    engine: MatcherEngine = 'ufuzzy',
+): ManagedMatcher {
+    if (engine === 'obsidian') {
         return wrapStateless(createObsidianMatcher());
-    }
-
-    if (resolvedEngine === 'nucleo') {
-        try {
-            /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-undef -- dynamic import: nucleo is only loaded when selected */
-            const {
-                createNucleoMatcher,
-            }: {
-                createNucleoMatcher: () => DisposableMatcher | null;
-            } = require('./matcher-nucleo');
-            /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-undef -- end dynamic import */
-            const nucleo = createNucleoMatcher();
-            if (nucleo) return nucleo;
-        } catch {
-            // WASM loading failed — fall through to uFuzzy
-        }
     }
 
     return wrapStateless(createUFuzzyMatcher());

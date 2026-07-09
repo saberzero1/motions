@@ -4,8 +4,6 @@ import { createObsidianMatcher } from '../../../src/picker/matcher-obsidian';
 import {
     indicesToRanges,
     utf32ToUtf16Indices,
-    buildHighlights,
-    buildHaystack,
 } from '../../../src/picker/matcher-utils';
 import type { PickerItem, PickerMatcher } from '../../../src/picker/types';
 
@@ -21,94 +19,10 @@ function itemWithFilter(
     return { id: label, label, description, filterValue };
 }
 
-function createTestNucleoMatcher(): PickerMatcher | null {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require('nucleo-matcher-wasm') as Record<string, unknown>;
-        const NucleoMatcherCls = mod.NucleoMatcher as new (
-            items: string[],
-            options?: Record<string, unknown>,
-        ) => Record<string, unknown>;
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let nucleo: any = null;
-        let lastHaystackKey = '';
-
-        return {
-            search(query: string, items: PickerItem[]) {
-                const haystack = items.map(buildHaystack);
-                const haystackKey = haystack.join('\0');
-
-                if (!nucleo) {
-                    nucleo = new NucleoMatcherCls(haystack, {
-                        matchPaths: true,
-                        caseMatching: 'smart',
-                        normalization: 'smart',
-                    });
-                    lastHaystackKey = haystackKey;
-                } else if (haystackKey !== lastHaystackKey) {
-                    nucleo.setItems(haystack);
-                    lastHaystackKey = haystackKey;
-                }
-
-                if (!query) {
-                    return items.map((it) => ({
-                        item: it,
-                        score: 0,
-                        highlights: [] as [number, number][],
-                    }));
-                }
-
-                const result = nucleo.matchLiteralIndexedWithIndices(
-                    query,
-                    'fuzzy',
-                    { maxResults: 500 },
-                ) as {
-                    indices: Uint32Array;
-                    scores: Uint32Array;
-                    charIndices: Uint32Array[];
-                };
-
-                const total = result.indices.length;
-                const matches = [];
-                for (let i = 0; i < total; i++) {
-                    const itemIdx = result.indices[i]!;
-                    const it = items[itemIdx];
-                    if (!it) continue;
-                    const rawIndices = Array.from(result.charIndices[i] ?? []);
-                    const utf16Indices = utf32ToUtf16Indices(
-                        haystack[itemIdx]!,
-                        rawIndices,
-                    );
-                    const ranges = indicesToRanges(utf16Indices);
-                    const highlights = buildHighlights(it, ranges);
-                    matches.push({
-                        item: it,
-                        score: total - i,
-                        highlights: highlights.label,
-                        descHighlights:
-                            highlights.desc.length > 0
-                                ? highlights.desc
-                                : undefined,
-                    });
-                }
-                return matches;
-            },
-        };
-    } catch {
-        return null;
-    }
-}
-
 const engines: [string, () => PickerMatcher][] = [
     ['ufuzzy', createUFuzzyMatcher],
     ['obsidian', createObsidianMatcher],
 ];
-
-const nucleoMatcher = createTestNucleoMatcher();
-if (nucleoMatcher) {
-    engines.push(['nucleo', () => nucleoMatcher]);
-}
 
 describe.each(engines)('%s matcher', (_name, factory) => {
     const matcher = factory();
@@ -307,73 +221,6 @@ describe.each(engines)('%s matcher', (_name, factory) => {
             const items = [item('apple'), item('banana'), item('cherry')];
             const results = matcher.search('xyz', items);
             expect(results).toHaveLength(0);
-        });
-    });
-});
-
-describe('nucleo-specific', () => {
-    const nucleo = createTestNucleoMatcher();
-    const describeNucleo = nucleo ? describe : describe.skip;
-
-    describeNucleo('fzf syntax chars treated as literals', () => {
-        it('treats $ as literal in filenames', () => {
-            const items = [item('$100.md'), item('price.md')];
-            const results = nucleo!.search('$100', items);
-            const labels = results.map((r) => r.item.label);
-            expect(labels).toContain('$100.md');
-        });
-
-        it('treats ! as literal in filenames', () => {
-            const items = [item('!important.md'), item('normal.md')];
-            const results = nucleo!.search('important', items);
-            const labels = results.map((r) => r.item.label);
-            expect(labels).toContain('!important.md');
-        });
-
-        it('treats ^ as literal in filenames', () => {
-            const items = [item('^header.md'), item('footer.md')];
-            const results = nucleo!.search('header', items);
-            const labels = results.map((r) => r.item.label);
-            expect(labels).toContain('^header.md');
-        });
-    });
-
-    describeNucleo('emoji highlight correctness (UTF-32 to UTF-16)', () => {
-        it('highlights text after emoji correctly', () => {
-            const items = [item('🎉 party notes')];
-            const results = nucleo!.search('party', items);
-            expect(results).toHaveLength(1);
-            const match = results[0]!;
-            for (const [start, end] of match.highlights) {
-                expect(start).toBeGreaterThanOrEqual(0);
-                expect(end).toBeLessThanOrEqual(match.item.label.length);
-                expect(end).toBeGreaterThan(start);
-            }
-        });
-
-        it('highlights CJK characters correctly', () => {
-            const items = [item('日本語メモ')];
-            const results = nucleo!.search('日本', items);
-            expect(results).toHaveLength(1);
-            const match = results[0]!;
-            expect(match.highlights.length).toBeGreaterThan(0);
-            for (const [start, end] of match.highlights) {
-                expect(start).toBeGreaterThanOrEqual(0);
-                expect(end).toBeLessThanOrEqual(match.item.label.length);
-            }
-        });
-    });
-
-    describeNucleo('large item sets', () => {
-        it('handles 10000 items without timeout', () => {
-            const items = Array.from({ length: 10000 }, (_, i) =>
-                item(`file-${i}.md`, `path/to/file-${i}.md`),
-            );
-            const start = performance.now();
-            const results = nucleo!.search('file-999', items);
-            const elapsed = performance.now() - start;
-            expect(results.length).toBeGreaterThan(0);
-            expect(elapsed).toBeLessThan(1000);
         });
     });
 });

@@ -31,7 +31,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 ## What's new in 0.44.0
 
-- **Picker matching engine setting** — choose between four fuzzy matching engines for the picker: `ufuzzy` (default, filename-aware ranking), `nucleo` (WASM-compiled, fzf-compatible scoring from the [Helix editor](https://github.com/helix-editor/nucleo)), `obsidian` (built-in API), or `auto` (nucleo on desktop, uFuzzy on mobile). Configurable via **Settings → Vim Motions → Picker matching engine**.
+- **Picker matching engine setting** — choose between two fuzzy matching engines for the picker: `ufuzzy` (default, filename-aware ranking) or `obsidian` (built-in API). Configurable via **Settings → Vim Motions → Picker matching engine**.
 - **Telescope-style picker presentation** — the fuzzy picker now uses a terminal-inspired visual style with monospace text, compact item density, accent-tinted selection, and floating border titles ("Files", "Results", "Preview") matching [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)'s aesthetic.
 - **Picker positional previews use raw text** — grep, live grep, headings, and marks previews now render as monospace plain text, keeping the line-number gutter perfectly aligned with content.
 - **Fixed picker preview gutter misaligned on files with frontmatter** — positional previews no longer show line numbers for YAML frontmatter lines that get stripped by the renderer.

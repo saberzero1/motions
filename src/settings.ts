@@ -108,7 +108,7 @@ export interface VimMotionsSettings {
     workspaceNavViewTypes: string;
     picker: boolean;
     pickerLeaderMappings: boolean;
-    pickerMatcherEngine: 'auto' | 'nucleo' | 'ufuzzy' | 'obsidian';
+    pickerMatcherEngine: 'ufuzzy' | 'obsidian';
     frecencyData?: Record<string, { count: number; timestamps: number[] }>;
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
@@ -484,13 +484,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                     {
                         name: 'Picker matching engine',
-                        desc: 'Fuzzy matching engine for the picker. Auto uses nucleo (WASM) on desktop and uFuzzy on mobile. Obsidian uses the built-in API.',
+                        desc: 'Fuzzy matching engine for the picker. uFuzzy is a fast pure-JS matcher with filename-aware ranking. Obsidian uses the built-in API.',
                         control: {
                             type: 'dropdown' as const,
                             key: 'pickerMatcherEngine',
                             options: {
-                                auto: 'Auto',
-                                nucleo: 'Nucleo (WASM)',
                                 ufuzzy: 'uFuzzy',
                                 obsidian: 'Obsidian built-in',
                             },

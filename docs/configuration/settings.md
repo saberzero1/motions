@@ -32,7 +32,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Workspace navigation | toggle | `true` | — | `vim.opt.workspacenav` | `set workspacenav` | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.). |
 | Fuzzy picker for buffers | toggle | `true` | — | — | — | Use the unified fuzzy picker for `:buffers`, `:ls`, `:marks`, `:registers`, and `:grep`. |
 | Picker leader mappings | toggle | `true` | — | — | — | Enable default `<leader>f*` picker mappings and which-key labels. |
-| Picker matching engine | dropdown | `ufuzzy` | `ufuzzy`, `auto`, `nucleo`, `obsidian` | — | — | Fuzzy matching engine. uFuzzy is a fast pure-JS matcher with filename-aware ranking. Auto uses nucleo (WASM) on desktop and uFuzzy on mobile. Obsidian uses the built-in `prepareFuzzySearch` API. |
+| Picker matching engine | dropdown | `ufuzzy` | `ufuzzy`, `obsidian` | — | — | Fuzzy matching engine. uFuzzy is a fast pure-JS matcher with filename-aware ranking. Obsidian uses the built-in `prepareFuzzySearch` API. |
 | Workspace navigation view types | text | `(empty)` | — | `vim.opt.workspacenavviewtypes` | `set workspacenavviewtypes` | Comma-separated view types where scroll and count keys are intercepted. Empty uses defaults. |
 
 > [!warning]
@@ -145,4 +145,4 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 - **Leader key bindings** (`leaderBindings`): While the plugin provides a UI for this, the same functionality is already achievable via standard `nmap <leader>...` commands in your vimrc.
 - **Fuzzy picker for buffers** (`picker`): Currently only configurable in settings.
 - **Picker leader mappings** (`pickerLeaderMappings`): Currently only configurable in settings.
-- **Picker matching engine** (`pickerMatcherEngine`): Currently only configurable in settings. Default is `ufuzzy` (fast pure-JS matcher with filename-aware ranking). `auto` uses nucleo (WASM) on desktop and uFuzzy on mobile. `obsidian` uses Obsidian's built-in `prepareFuzzySearch` API (zero bundle cost, maintained by Obsidian). Nucleo provides fzf-compatible scoring but does not support typo tolerance.
+- **Picker matching engine** (`pickerMatcherEngine`): Currently only configurable in settings. Default is `ufuzzy` (fast pure-JS matcher with filename-aware ranking). `obsidian` uses Obsidian's built-in `prepareFuzzySearch` API (zero bundle cost, maintained by Obsidian).

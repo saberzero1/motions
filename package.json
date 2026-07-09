@@ -1,6 +1,6 @@
 {
     "name": "obsidian-vim-motions",
-    "version": "0.44.0",
+    "version": "0.44.1",
     "description": "Enhances Obsidian's Vim mode with Markdown-aware text objects, structural navigation, workspace keyboard control, and a polished Neovim-native experience.",
     "main": "main.js",
     "type": "module",
@@ -54,7 +54,6 @@
     "dependencies": {
         "@leeoniya/ufuzzy": "^1.0.19",
         "@replit/codemirror-vim": "https://github.com/saberzero1/codemirror-vim.git",
-        "fengari": "https://github.com/saberzero1/fengari.git",
-        "nucleo-matcher-wasm": "https://github.com/saberzero1/nucleo-matcher-wasm.git"
+        "fengari": "https://github.com/saberzero1/fengari.git"
     }
 }
