@@ -912,6 +912,7 @@ Oil creates temporary markdown files (e.g., `oil~_root.md`) to render directory 
 ### Dotfiles cannot be used for temp files
 
 Obsidian's `vault.create()` does not support files starting with `.` (they are created on disk but not indexed, making them unopenable as markdown views). The `oil~` prefix is used instead.
+
 | `vim.lsp.*` / `vim.treesitter.*`        | Not applicable to Obsidian                                                                                                                                                                                                                                                                                                                                                                                               |
 | Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred                                                                                                                                                                                                                                                                                               |
 

@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-07-09
+
+### Added
+
+- **Oil explorer** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file explorer that renders vault directories as editable buffers. Create, rename, delete, and move files with standard vim commands, then commit all changes with `:w`. ([oil.nvim](https://github.com/stevearc/oil.nvim)-inspired)
+    - **`:Oil [path]`** opens the current file's directory (or a specified path) as an editable buffer in a new tab. Each line represents a file or folder with a concealed entry ID. The buffer is a regular markdown file — all existing vim features (EasyMotion, surround, text objects, which-key, status bar) work natively.
+    - **File operations via vim commands**: `o` (new line) + `:w` creates a file, `dd` + `:w` deletes, `cw` + `:w` renames. Filenames without an extension default to `.md`. Names ending with `/` create folders. Renames update backlinks via `app.fileManager.renameFile()`. Deletes respect user trash settings via `app.fileManager.trashFile()`.
+    - **Cross-directory moves**: `dd` in one oil buffer, `p` in another, `:w` moves the file. The diff engine detects moves by matching entry IDs across buffers.
+    - **Navigation keybindings** (active only in oil buffers): `<CR>` open/enter, `-` parent directory, `~` vault root, `q` close, `<C-l>` refresh, `g.` toggle hidden files, `gs` cycle sort order, `y.` yank file path
+    - **Auto-refresh**: vault event listeners (create/delete/rename) with 200ms debounce refresh open oil buffers when files change externally
+    - **Confirmation dialog**: shown when deleting files exceeding the configurable threshold (default: 1)
+    - **Stale file cleanup**: orphaned temp files from previous sessions are removed on plugin startup
+    - **Tab title**: reflects current directory (e.g., `oil~notes`) and updates on navigation
+    - **`:w`/`:wq`/`:x`/`:update` dispatch**: active file path is checked for the `oil~` prefix — oil commits route through the diff/validate/execute pipeline; normal files save normally
+    - **Global ex command**: `:Oil` available in the non-editor `:` command modal (same pattern as picker commands)
+    - **Setting gate**: `:Oil` command and keybindings only registered when the `oilExplorer` setting is enabled (default: on)
+    - Plugin: `src/oil/` (manager.ts, cache.ts, diff.ts, actions.ts, render.ts, parser.ts, extensions.ts, keybindings.ts, types.ts), `src/workspace/commands.ts` (`:w` dispatch, `:Oil` registration), `src/main.ts` (OilManager/OilKeybindingManager lifecycle), `src/settings.ts` (4 settings), `src/ui/global-ex-command.ts` (`:Oil` in global modal), `src/workspace/global-defaults.ts` (oil manager threading), `styles.css` (file explorer hiding)
+- **Oil explorer Lua API** — `vim.obsidian.oil.open(path)` opens oil for a directory, `vim.obsidian.oil.close()` closes the active oil buffer and cleans up the temp file
+    - Plugin: `src/lua/api.ts` (`oilOpen`/`oilClose` callbacks), `src/lua/obsidian-api.ts` (`vim.obsidian.oil` sub-table), `src/lua/loader.ts` (callback wiring)
+- **Oil explorer settings** — 4 new settings in **Settings → Vim Motions → File explorer**:
+    - `oilExplorer` (toggle, default: on) — enable/disable the oil explorer
+    - `oilShowHiddenFiles` (toggle, default: off) — show dotfiles in oil views
+    - `oilConfirmDeleteThreshold` (slider, 1–20, default: 1) — confirmation dialog threshold
+    - `oilDefaultSort` (dropdown: name/mtime/size, default: name) — directory sort order
+    - Plugin: `src/settings.ts`
+- **Oil explorer e2e test suite** — 10 regression tests covering: `:Oil` opens temp file, regular markdown view, vault file listing with concealment, current-directory default, file creation, folder creation, file deletion, file rename, no-op save, and temp file exclusion from listings
+    - Plugin: `test/specs/oil-poc.e2e.ts`
+- **`wdio.conf.mts` workspace cleanup** — `onPrepare` hook deletes stale `workspace.json` before e2e tests to prevent flaky failures from leftover workspace state
+
+### Changed
+
+- **Oil temp file hiding** — oil temp files (`oil~*.md`) are hidden from the file explorer via a static CSS prefix selector (`[data-path^="oil~"]`) in `styles.css`, and from search/graph/quick switcher via Obsidian's `userIgnoreFilters` mechanism. User-configured ignore filters are preserved — oil only adds/removes its own entries.
+
+### Documentation
+
+- `docs/features/oil-explorer.md`: new feature page covering overview, opening commands, file operations, navigation, configuration, and implementation details
+- `docs/features/index.md`: added oil explorer entry to workspace & commands section
+- `docs/reference/keybindings.md`: added Oil explorer keybinding table (13 entries)
+- `docs/configuration/settings.md`: added File explorer settings group (4 settings)
+- `KNOWN_LIMITATIONS.md`: added oil explorer section with cross-directory move requirements, temp file mechanism, and dotfile limitation
+
 ## [0.44.1] - 2026-07-09
 
 ### Removed
