@@ -1,4 +1,5 @@
 {
   "vimMode": false,
-  "settingsPopoutWindow": false
+  "settingsPopoutWindow": false,
+  "userIgnoreFilters": []
 }

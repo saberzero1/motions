@@ -159,16 +159,28 @@ export class OilManager {
         dirPath: string,
         currentTempPath: string,
     ): Promise<void> {
+        const newTempPath = this.getTempFilePath(dirPath);
         const content = this.renderDirectoryToBuffer(dirPath);
-        const file = this.app.vault.getAbstractFileByPath(currentTempPath);
-        if (file) {
-            await this.app.vault.modify(file as import('obsidian').TFile, content);
+
+        if (newTempPath !== currentTempPath) {
+            const file = this.app.vault.getAbstractFileByPath(currentTempPath);
+            if (file) {
+                await this.app.fileManager.renameFile(file, newTempPath);
+                this.removeFromIgnoreFilters(currentTempPath);
+                this.addToIgnoreFilters(newTempPath);
+            }
+            this.tempToDir.delete(currentTempPath);
+        }
+
+        const renamedFile = this.app.vault.getAbstractFileByPath(newTempPath);
+        if (renamedFile) {
+            await this.app.vault.modify(renamedFile as import('obsidian').TFile, content);
         }
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (view?.file?.path === currentTempPath) {
+        if (view?.file?.path === newTempPath) {
             view.editor.setValue(content);
         }
-        this.tempToDir.set(currentTempPath, dirPath);
+        this.tempToDir.set(newTempPath, dirPath);
     }
 
     async cleanup(): Promise<void> {
