@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as fs from 'fs';
 
 export const config: WebdriverIO.Config = {
     runner: 'local',
@@ -30,4 +31,13 @@ export const config: WebdriverIO.Config = {
     waitforTimeout: 5000,
     logLevel: 'warn',
     injectGlobals: false,
+
+    onPrepare() {
+        const workspace = path.resolve('test-vault/.obsidian/workspace.json');
+        try {
+            fs.unlinkSync(workspace);
+        } catch {
+            /* may not exist */
+        }
+    },
 };
