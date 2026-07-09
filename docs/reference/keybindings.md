@@ -366,6 +366,7 @@ Oil keybindings are only active when an oil buffer is focused.
 | `g.`       | Toggle hidden files (dotfiles)                           |
 | `gs`       | Cycle sort order (name → modified time → size)           |
 | `y.`       | Yank vault-relative file path to clipboard               |
+| `gf`       | Reveal file under cursor in Obsidian file explorer       |
 | `dd`       | Stage file deletion (commit with `:w`)                   |
 | `o`        | Stage file creation — type filename, commit with `:w`    |
 | `cw`       | Stage file rename — edit filename, commit with `:w`      |

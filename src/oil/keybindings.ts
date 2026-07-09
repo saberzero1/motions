@@ -16,6 +16,7 @@ const OIL_MAPPINGS: OilMapping[] = [
     { lhs: 'g.', actionName: 'oilToggleHidden' },
     { lhs: 'gs', actionName: 'oilCycleSort' },
     { lhs: 'y.', actionName: 'oilYankPath' },
+    { lhs: 'gf', actionName: 'oilRevealInExplorer' },
 ];
 
 export class OilKeybindingManager {
@@ -140,6 +141,39 @@ export class OilKeybindingManager {
             if (!entry) return;
             void navigator.clipboard.writeText(entry.path);
             new Notice(`Oil: yanked ${entry.path}`);
+        });
+        vim.defineAction('oilRevealInExplorer', () => {
+            const file = app.workspace.getActiveFile();
+            if (!file || !manager.isOilFile(file.path)) return;
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cursor = view.editor.getCursor();
+            const lineText = view.editor.getLine(cursor?.line ?? 0);
+            const entry = manager.getEntryAtLine(lineText);
+            if (!entry) return;
+            const target = app.vault.getAbstractFileByPath(entry.path);
+            if (!target) return;
+            const fileExplorer = (
+                app as unknown as {
+                    internalPlugins?: {
+                        plugins?: Record<
+                            string,
+                            { instance?: { revealInFolder?: (f: unknown) => void } }
+                        >;
+                    };
+                }
+            ).internalPlugins?.plugins?.['file-explorer']?.instance;
+            if (fileExplorer?.revealInFolder) {
+                fileExplorer.revealInFolder(target);
+            } else {
+                (
+                    app as unknown as {
+                        commands: { executeCommandById: (id: string) => void };
+                    }
+                ).commands.executeCommandById(
+                    'file-explorer:reveal-active-file',
+                );
+            }
         });
     }
 
