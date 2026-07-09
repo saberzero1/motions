@@ -64,12 +64,12 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## File explorer
 
-| Name                     | Type     | Default | Range/Options             | Lua                                | Vimrc                         | Description                                               |
-| ------------------------ | -------- | ------- | ------------------------- | ---------------------------------- | ----------------------------- | --------------------------------------------------------- |
-| Oil explorer             | toggle   | `true`  | —                         | `vim.opt.oilexplorer`              | `set oilexplorer`             | Enable the oil-style file explorer (`:Oil` command).      |
-| Show hidden files        | toggle   | `false` | —                         | `vim.opt.oilshowhiddenfiles`       | `set oilshowhiddenfiles`      | Show dotfiles and hidden folders in oil views.            |
-| Confirm delete threshold | slider   | `1`     | 1–20                      | `vim.opt.oilconfirmdeletethreshold`| `set oilconfirmdeletethreshold`| Show confirmation when deleting this many files or more.  |
-| Default sort order       | dropdown | `name`  | `name`, `mtime`, `size`   | `vim.opt.oildefaultsort`           | `set oildefaultsort`          | Default sort order for oil directory listings.            |
+| Name                     | Type     | Default | Range/Options           | Lua                                 | Vimrc                           | Description                                              |
+| ------------------------ | -------- | ------- | ----------------------- | ----------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| Oil explorer             | toggle   | `true`  | —                       | `vim.opt.oilexplorer`               | `set oilexplorer`               | Enable the oil-style file explorer (`:Oil` command).     |
+| Show hidden files        | toggle   | `false` | —                       | `vim.opt.oilshowhiddenfiles`        | `set oilshowhiddenfiles`        | Show dotfiles and hidden folders in oil views.           |
+| Confirm delete threshold | slider   | `1`     | 1–20                    | `vim.opt.oilconfirmdeletethreshold` | `set oilconfirmdeletethreshold` | Show confirmation when deleting this many files or more. |
+| Default sort order       | dropdown | `name`  | `name`, `mtime`, `size` | `vim.opt.oildefaultsort`            | `set oildefaultsort`            | Default sort order for oil directory listings.           |
 
 ## Status bar
 

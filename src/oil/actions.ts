@@ -30,7 +30,10 @@ export function validateActions(
     for (const rename of diff.renames) {
         const originalPath = rename.entry.path;
         const targetPath = buildPath(rename.entry.parentPath, rename.newName);
-        if (isInConfigDir(originalPath, configDir) || isInConfigDir(targetPath, configDir)) {
+        if (
+            isInConfigDir(originalPath, configDir) ||
+            isInConfigDir(targetPath, configDir)
+        ) {
             errors.push(`Rename blocked inside ${configDir}.`);
             continue;
         }
@@ -83,20 +86,36 @@ export async function executeActions(
     for (const create of diff.creates) {
         const targetPath = buildPath(create.parentPath, create.name);
         if (app.vault.getAbstractFileByPath(targetPath)) {
-            skipped.push({ type: 'create', name: create.name, parentPath: create.parentPath });
+            skipped.push({
+                type: 'create',
+                name: create.name,
+                parentPath: create.parentPath,
+            });
             continue;
         }
         try {
             if (create.isFolder) {
                 await app.vault.createFolder(targetPath);
-                completed.push({ type: 'createFolder', name: create.name, parentPath: create.parentPath });
+                completed.push({
+                    type: 'createFolder',
+                    name: create.name,
+                    parentPath: create.parentPath,
+                });
             } else {
                 await app.vault.create(targetPath, '');
-                completed.push({ type: 'create', name: create.name, parentPath: create.parentPath });
+                completed.push({
+                    type: 'create',
+                    name: create.name,
+                    parentPath: create.parentPath,
+                });
             }
         } catch (error) {
             failed.push({
-                action: { type: 'create', name: create.name, parentPath: create.parentPath },
+                action: {
+                    type: 'create',
+                    name: create.name,
+                    parentPath: create.parentPath,
+                },
                 error: String(error),
             });
         }

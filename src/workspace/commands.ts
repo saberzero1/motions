@@ -660,11 +660,7 @@ export function registerExCommands(
     reg.defineEx('update', 'up', () =>
         saveWithEvents(app, autocmdManager, oilManager),
     );
-    reg.defineEx(
-        'xit',
-        'x',
-        createXitCommand(app, autocmdManager, oilManager),
-    );
+    reg.defineEx('xit', 'x', createXitCommand(app, autocmdManager, oilManager));
     reg.defineEx(
         'xall',
         'xa',

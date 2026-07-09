@@ -66,7 +66,12 @@ export function renderDirectory(
     const all = [...folders, ...files];
 
     all.sort((a, b) => {
-        const typeOrder = a.entry.type === b.entry.type ? 0 : a.entry.type === 'folder' ? -1 : 1;
+        const typeOrder =
+            a.entry.type === b.entry.type
+                ? 0
+                : a.entry.type === 'folder'
+                  ? -1
+                  : 1;
         if (typeOrder !== 0) return typeOrder;
 
         if (sortKey === 'name') {
@@ -86,7 +91,9 @@ export function renderDirectory(
             if (diff !== 0) return diff;
         }
 
-        return a.nameKey.localeCompare(b.nameKey, undefined, { sensitivity: 'base' });
+        return a.nameKey.localeCompare(b.nameKey, undefined, {
+            sensitivity: 'base',
+        });
     });
 
     return all.map((item) => item.entry);

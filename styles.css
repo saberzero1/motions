@@ -931,7 +931,6 @@ settings:
 
 /* --- Oil temp file hiding --- */
 
-.nav-file-title[data-path^="oil~"] {
+.nav-file-title[data-path^='oil~'] {
     display: none;
 }
-

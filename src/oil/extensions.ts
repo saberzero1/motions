@@ -4,7 +4,12 @@ import {
     EditorView,
     WidgetType,
 } from '@codemirror/view';
-import { StateField, type Extension, type Range, type Text } from '@codemirror/state';
+import {
+    StateField,
+    type Extension,
+    type Range,
+    type Text,
+} from '@codemirror/state';
 
 const OIL_LINE_RE = /^\/\d+\s+([df])\s/;
 

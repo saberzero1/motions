@@ -87,7 +87,9 @@ export class OilManager {
     }
 
     isOilFile(path: string): boolean {
-        const name = path.includes('/') ? path.substring(path.lastIndexOf('/') + 1) : path;
+        const name = path.includes('/')
+            ? path.substring(path.lastIndexOf('/') + 1)
+            : path;
         return name.startsWith(OIL_TEMP_PREFIX);
     }
 
@@ -96,7 +98,10 @@ export class OilManager {
         const content = this.renderDirectoryToBuffer(dirPath);
         const existing = this.app.vault.getAbstractFileByPath(tempPath);
         if (existing) {
-            await this.app.vault.modify(existing as import('obsidian').TFile, content);
+            await this.app.vault.modify(
+                existing as import('obsidian').TFile,
+                content,
+            );
         } else {
             await this.app.vault.create(tempPath, content);
         }
@@ -132,7 +137,9 @@ export class OilManager {
 
         const validation = validateActions(merged, this.app);
         if (!validation.valid) {
-            new Notice(`Oil: validation failed\n${validation.errors.join('\n')}`);
+            new Notice(
+                `Oil: validation failed\n${validation.errors.join('\n')}`,
+            );
             return;
         }
 
@@ -148,7 +155,8 @@ export class OilManager {
         const msg = [];
         if (result.completed.length > 0)
             msg.push(`${result.completed.length} completed`);
-        if (result.failed.length > 0) msg.push(`${result.failed.length} failed`);
+        if (result.failed.length > 0)
+            msg.push(`${result.failed.length} failed`);
         if (result.skipped.length > 0)
             msg.push(`${result.skipped.length} skipped`);
         new Notice(`Oil: ${msg.join(', ')}`);
@@ -175,7 +183,10 @@ export class OilManager {
 
         const renamedFile = this.app.vault.getAbstractFileByPath(newTempPath);
         if (renamedFile) {
-            await this.app.vault.modify(renamedFile as import('obsidian').TFile, content);
+            await this.app.vault.modify(
+                renamedFile as import('obsidian').TFile,
+                content,
+            );
         }
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (view?.file?.path === newTempPath) {
@@ -212,9 +223,7 @@ export class OilManager {
 
     toggleHidden(): void {
         this.showHidden = !this.showHidden;
-        new Notice(
-            `Oil: hidden files ${this.showHidden ? 'shown' : 'hidden'}`,
-        );
+        new Notice(`Oil: hidden files ${this.showHidden ? 'shown' : 'hidden'}`);
     }
 
     cycleSortKey(): void {
@@ -259,12 +268,7 @@ export class OilManager {
     private renderDirectoryToBuffer(dirPath: string): string {
         const showHidden = this.settings.oilShowHiddenFiles ?? this.showHidden;
         const sort = this.settings.oilDefaultSort ?? this.sortKey;
-        const rawEntries = renderDirectory(
-            this.app,
-            dirPath,
-            showHidden,
-            sort,
-        );
+        const rawEntries = renderDirectory(this.app, dirPath, showHidden, sort);
         const entries = this.cache.loadDirectory(dirPath, rawEntries);
         return entriesToBufferText(entries);
     }
@@ -279,7 +283,11 @@ export class OilManager {
         if (!leaf) return;
         const viewState = leaf.getViewState();
         if (viewState.state?.mode !== 'source') {
-            viewState.state = { ...viewState.state, mode: 'source', source: true };
+            viewState.state = {
+                ...viewState.state,
+                mode: 'source',
+                source: true,
+            };
             await leaf.setViewState(viewState);
         }
     }
@@ -323,12 +331,6 @@ export class OilManager {
             this.setIgnoreFilters(updated);
         }
     }
-
-
-
-
-
-
 
     private getDeleteThreshold(): number {
         return this.settings?.oilConfirmDeleteThreshold ?? 1;

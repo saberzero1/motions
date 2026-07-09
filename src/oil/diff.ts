@@ -37,7 +37,11 @@ export function computeDiff(
             continue;
         }
 
-        creates.push({ name: line.name, parentPath, isFolder: line.type === 'd' });
+        creates.push({
+            name: line.name,
+            parentPath,
+            isFolder: line.type === 'd',
+        });
     }
 
     for (const entry of originalEntries.values()) {

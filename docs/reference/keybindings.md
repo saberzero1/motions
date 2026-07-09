@@ -356,22 +356,22 @@ Execute commands via the `:` command line, grouped by function.
 
 Oil keybindings are only active when an oil buffer is focused.
 
-| Keybinding | Description                                              |
-| ---------- | -------------------------------------------------------- |
-| `<CR>`     | Open file under cursor / navigate into directory         |
-| `-`        | Navigate to parent directory                             |
-| `~`        | Navigate to vault root                                   |
-| `q`        | Close oil buffer                                         |
-| `<C-l>`    | Refresh directory listing                                |
-| `g.`       | Toggle hidden files (dotfiles)                           |
-| `gs`       | Cycle sort order (name → modified time → size)           |
-| `y.`       | Yank vault-relative file path to clipboard               |
-| `gf`       | Reveal file under cursor in Obsidian file explorer       |
-| `dd`       | Stage file deletion (commit with `:w`)                   |
-| `o`        | Stage file creation — type filename, commit with `:w`    |
-| `cw`       | Stage file rename — edit filename, commit with `:w`      |
-| `:w`       | Commit all staged changes (create/rename/delete)         |
-| `:Oil`     | Open oil explorer for current file's directory           |
+| Keybinding | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| `<CR>`     | Open file under cursor / navigate into directory      |
+| `-`        | Navigate to parent directory                          |
+| `~`        | Navigate to vault root                                |
+| `q`        | Close oil buffer                                      |
+| `<C-l>`    | Refresh directory listing                             |
+| `g.`       | Toggle hidden files (dotfiles)                        |
+| `gs`       | Cycle sort order (name → modified time → size)        |
+| `y.`       | Yank vault-relative file path to clipboard            |
+| `gf`       | Reveal file under cursor in Obsidian file explorer    |
+| `dd`       | Stage file deletion (commit with `:w`)                |
+| `o`        | Stage file creation — type filename, commit with `:w` |
+| `cw`       | Stage file rename — edit filename, commit with `:w`   |
+| `:w`       | Commit all staged changes (create/rename/delete)      |
+| `:Oil`     | Open oil explorer for current file's directory        |
 
 ## Quality of life
 

@@ -32,7 +32,10 @@ export class OilKeybindingManager {
         const file = this.app.workspace.getActiveFile();
         if (file && this.manager.isOilFile(file.path) && !this.applied) {
             this.apply();
-        } else if ((!file || !this.manager.isOilFile(file.path)) && this.applied) {
+        } else if (
+            (!file || !this.manager.isOilFile(file.path)) &&
+            this.applied
+        ) {
             this.remove();
         }
     }
@@ -158,7 +161,11 @@ export class OilKeybindingManager {
                     internalPlugins?: {
                         plugins?: Record<
                             string,
-                            { instance?: { revealInFolder?: (f: unknown) => void } }
+                            {
+                                instance?: {
+                                    revealInFolder?: (f: unknown) => void;
+                                };
+                            }
                         >;
                     };
                 }

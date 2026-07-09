@@ -377,7 +377,12 @@ export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
         oilManager?: OilManager,
     ) {
         super(app);
-        this.entries = buildGlobalExCommands(app, globalRegistry, openPicker, oilManager);
+        this.entries = buildGlobalExCommands(
+            app,
+            globalRegistry,
+            openPicker,
+            oilManager,
+        );
         this.setPlaceholder('Ex command');
         this.setInstructions([
             { command: 'Enter', purpose: 'execute' },

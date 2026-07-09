@@ -921,7 +921,7 @@ Oil keybindings (`<CR>`, `-`, `~`, `q`, `g.`, `gs`, `y.`, `gf`, `<C-l>`) are har
 
 **Recommended architecture for remappable keybindings** (for the planning agent):
 
-The goal is to match how Neovim plugins handle keybindings: expose *actions* as callable functions/commands, register *default keybindings* as regular vim mappings that users can `unmap` and remap.
+The goal is to match how Neovim plugins handle keybindings: expose _actions_ as callable functions/commands, register _default keybindings_ as regular vim mappings that users can `unmap` and remap.
 
 1. **Expose actions as ex commands and Lua functions**: Each oil action becomes both an ex command (`:OilParent`, `:OilRoot`, `:OilToggleHidden`, `:OilRevealInExplorer`, etc.) and a Lua function (`vim.obsidian.oil.parent()`, `vim.obsidian.oil.root()`, `vim.obsidian.oil.toggle_hidden()`, `vim.obsidian.oil.reveal()`). The picker follows the same pattern (`:PickerFiles`, `vim.obsidian.pick('files')`).
 
@@ -939,8 +939,8 @@ The goal is to match how Neovim plugins handle keybindings: expose *actions* as 
 
 **Scope**: This is a cross-cutting architectural change that affects oil, picker, EasyMotion leader bindings, hint mode, and table manipulation — any feature with custom keybindings. A dedicated design pass is recommended rather than bolting it onto individual features.
 
-| `vim.lsp.*` / `vim.treesitter.*`        | Not applicable to Obsidian                                                                                                                                                                                                                                                                                                                                                                                               |
-| Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred                                                                                                                                                                                                                                                                                               |
+| `vim.lsp.*` / `vim.treesitter.*` | Not applicable to Obsidian |
+| Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred |
 
 ### Vault file reading
 

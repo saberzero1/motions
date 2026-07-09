@@ -1931,9 +1931,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Oil explorer')
-            .setDesc(
-                'Enable the oil-style file explorer (:oil command).',
-            )
+            .setDesc('Enable the oil-style file explorer (:oil command).')
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.oilExplorer)
@@ -1945,9 +1943,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Show hidden files')
-            .setDesc(
-                'Show dotfiles and hidden folders in oil views.',
-            )
+            .setDesc('Show dotfiles and hidden folders in oil views.')
             .addToggle((toggle) =>
                 toggle
                     .setValue(this.plugin.settings.oilShowHiddenFiles)
@@ -1974,9 +1970,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Default sort order')
-            .setDesc(
-                'Default sort order for oil directory listings.',
-            )
+            .setDesc('Default sort order for oil directory listings.')
             .addDropdown((dropdown) =>
                 dropdown
                     .addOptions({

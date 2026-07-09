@@ -6,7 +6,9 @@ type VimHandle = {
     handleEx: (cm: unknown, input: string) => void;
 };
 
-async function runExCommand(command: string): Promise<{ success?: boolean; error?: string }> {
+async function runExCommand(
+    command: string,
+): Promise<{ success?: boolean; error?: string }> {
     return (await browser.executeObsidian(({ app, obsidian }, cmd: string) => {
         try {
             const Vim = (
@@ -15,9 +17,12 @@ async function runExCommand(command: string): Promise<{ success?: boolean; error
                 }
             ).CodeMirrorAdapter?.Vim;
             if (!Vim) return { error: 'No Vim API' };
-            const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
             if (!view) return { error: 'No markdown view' };
-            const cm = (view.editor as unknown as Record<string, unknown>).cm as Record<string, unknown>;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
             const adapter = cm?.cm;
             if (!adapter) return { error: 'No adapter' };
             Vim.handleEx(adapter, cmd);
@@ -102,7 +107,9 @@ describe('Oil explorer', function () {
         it('oil view is a regular markdown view', async function () {
             await openOilAndWait();
             const viewType = (await browser.executeObsidian(({ app }) => {
-                return app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? '';
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
             })) as string;
             expect(viewType).toBe('markdown');
         });
@@ -140,11 +147,16 @@ describe('Oil explorer', function () {
         it('new line + :w creates a file', async function () {
             await openOilAndWait();
             await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
                 if (!view) return;
                 const editor = view.editor;
                 const lastLine = editor.lastLine();
-                editor.replaceRange('\noil-test-create.md', { line: lastLine, ch: editor.getLine(lastLine).length });
+                editor.replaceRange('\noil-test-create.md', {
+                    line: lastLine,
+                    ch: editor.getLine(lastLine).length,
+                });
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -159,11 +171,16 @@ describe('Oil explorer', function () {
         it('new line ending with / creates a folder', async function () {
             await openOilAndWait();
             await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
                 if (!view) return;
                 const editor = view.editor;
                 const lastLine = editor.lastLine();
-                editor.replaceRange('\noil-test-folder/', { line: lastLine, ch: editor.getLine(lastLine).length });
+                editor.replaceRange('\noil-test-folder/', {
+                    line: lastLine,
+                    ch: editor.getLine(lastLine).length,
+                });
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -187,7 +204,8 @@ describe('Oil explorer', function () {
     describe('file deletion', function () {
         it('deleting a line + :w removes the file', async function () {
             await browser.executeObsidian(async ({ app }) => {
-                const existing = app.vault.getAbstractFileByPath('oil-delete-me.md');
+                const existing =
+                    app.vault.getAbstractFileByPath('oil-delete-me.md');
                 if (existing) await app.vault.delete(existing);
                 await app.vault.create('oil-delete-me.md', 'to be deleted');
                 const plugin = (
@@ -195,7 +213,11 @@ describe('Oil explorer', function () {
                         plugins: {
                             plugins: Record<
                                 string,
-                                { settings?: { oilConfirmDeleteThreshold?: number } }
+                                {
+                                    settings?: {
+                                        oilConfirmDeleteThreshold?: number;
+                                    };
+                                }
                             >;
                         };
                     }
@@ -209,14 +231,22 @@ describe('Oil explorer', function () {
             await openOilAndWait();
 
             await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
                 if (!view) return;
                 const editor = view.editor;
                 const content = editor.getValue();
                 const lines = content.split('\n');
-                const targetIdx = lines.findIndex((l: string) => l.includes('oil-delete-me.md'));
+                const targetIdx = lines.findIndex((l: string) =>
+                    l.includes('oil-delete-me.md'),
+                );
                 if (targetIdx < 0) return;
-                editor.replaceRange('', { line: targetIdx, ch: 0 }, { line: targetIdx + 1, ch: 0 });
+                editor.replaceRange(
+                    '',
+                    { line: targetIdx, ch: 0 },
+                    { line: targetIdx + 1, ch: 0 },
+                );
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -232,7 +262,11 @@ describe('Oil explorer', function () {
                         plugins: {
                             plugins: Record<
                                 string,
-                                { settings?: { oilConfirmDeleteThreshold?: number } }
+                                {
+                                    settings?: {
+                                        oilConfirmDeleteThreshold?: number;
+                                    };
+                                }
                             >;
                         };
                     }
@@ -247,9 +281,11 @@ describe('Oil explorer', function () {
     describe('file rename', function () {
         it('editing a filename + :w renames the file', async function () {
             await browser.executeObsidian(async ({ app }) => {
-                const existing = app.vault.getAbstractFileByPath('oil-rename-src.md');
+                const existing =
+                    app.vault.getAbstractFileByPath('oil-rename-src.md');
                 if (existing) await app.vault.delete(existing);
-                const target = app.vault.getAbstractFileByPath('oil-rename-dst.md');
+                const target =
+                    app.vault.getAbstractFileByPath('oil-rename-dst.md');
                 if (target) await app.vault.delete(target);
                 await app.vault.create('oil-rename-src.md', 'will be renamed');
             });
@@ -258,11 +294,16 @@ describe('Oil explorer', function () {
             await openOilAndWait();
 
             await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
                 if (!view) return;
                 const editor = view.editor;
                 const content = editor.getValue();
-                const updated = content.replace('oil-rename-src.md', 'oil-rename-dst.md');
+                const updated = content.replace(
+                    'oil-rename-src.md',
+                    'oil-rename-dst.md',
+                );
                 editor.setValue(updated);
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);

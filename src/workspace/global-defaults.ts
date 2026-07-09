@@ -269,7 +269,12 @@ export function registerDefaultGlobalMappings(
         {
             type: 'builtin',
             fn: (app2) => {
-                new GlobalExCommandModal(app2, registry, openPicker, oilManager).open();
+                new GlobalExCommandModal(
+                    app2,
+                    registry,
+                    openPicker,
+                    oilManager,
+                ).open();
             },
         },
         'structural',
