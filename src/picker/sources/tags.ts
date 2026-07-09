@@ -1,7 +1,6 @@
 import { App, getAllTags } from 'obsidian';
-import { createMatcher } from '../matcher';
 import { PickerModal } from '../picker';
-import type { PickerItem, PickerSource } from '../types';
+import type { PickerItem, PickerMatcher, PickerSource } from '../types';
 
 function normalizeTag(tag: string): string {
     const trimmed = tag.trim();
@@ -71,7 +70,7 @@ function buildFileItems(paths: string[]): PickerItem[] {
     );
 }
 
-export function createTagsSource(): PickerSource {
+export function createTagsSource(matcher: PickerMatcher): PickerSource {
     return {
         name: 'tags',
         placeholder: 'Search tags…',
@@ -91,7 +90,6 @@ export function createTagsSource(): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { tag: string; files: string[] };
-            const matcher = createMatcher();
             const tagFiles = data.files.slice().sort();
             const source: PickerSource = {
                 name: `tag:${data.tag}`,

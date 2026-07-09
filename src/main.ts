@@ -74,6 +74,7 @@ import { migrateConfigModeSettings } from './settings-migration';
 import type { lua_State } from 'fengari';
 import { pickerRegistry } from './picker/registry';
 import { createMatcher } from './picker/matcher';
+import type { ManagedMatcher } from './picker/matcher';
 import { FrecencyStore } from './picker/frecency';
 import { getLastSession, PickerModal } from './picker/picker';
 import { createFilesSource } from './picker/sources/files';
@@ -154,6 +155,7 @@ export default class VimMotionsPlugin extends Plugin {
         | null = null;
     private frecencyStore: FrecencyStore | null = null;
     private frecencySaveTimer: number | null = null;
+    private matcher: ManagedMatcher | null = null;
 
     get vimrcEnabled(): boolean {
         return (
@@ -477,14 +479,16 @@ export default class VimMotionsPlugin extends Plugin {
         registerVimOptions(vim, onSettingOverride);
         this.registration = new VimRegistration(vim);
 
-        const matcher = createMatcher();
+        this.matcher?.dispose();
+        this.matcher = createMatcher(this.settings.pickerMatcherEngine);
+        const matcher = this.matcher;
         pickerRegistry.register(createFilesSource());
         pickerRegistry.register(createBuffersSource());
         pickerRegistry.register(createCommandsSource());
         pickerRegistry.register(createHeadingsSource());
         pickerRegistry.register(createOutlineSource());
         pickerRegistry.register(createBacklinksSource());
-        pickerRegistry.register(createTagsSource());
+        pickerRegistry.register(createTagsSource(matcher));
         pickerRegistry.register(createRecentSource());
         pickerRegistry.register(createMarksSource());
         pickerRegistry.register(createRegistersSource(vim));
@@ -1921,6 +1925,8 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        this.matcher?.dispose();
+        this.matcher = null;
         if (this.frecencySaveTimer) {
             window.clearTimeout(this.frecencySaveTimer);
             this.frecencySaveTimer = null;

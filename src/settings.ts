@@ -108,6 +108,7 @@ export interface VimMotionsSettings {
     workspaceNavViewTypes: string;
     picker: boolean;
     pickerLeaderMappings: boolean;
+    pickerMatcherEngine: 'auto' | 'nucleo' | 'ufuzzy' | 'obsidian';
     frecencyData?: Record<string, { count: number; timestamps: number[] }>;
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
@@ -155,6 +156,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     workspaceNavViewTypes: '',
     picker: true,
     pickerLeaderMappings: true,
+    pickerMatcherEngine: 'ufuzzy',
     frecencyData: undefined,
     configMode: 'lua-vimrc',
     enableStatusBar: true,
@@ -243,6 +245,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
     /** Settings keys that require reloadFeatures() after change. */
     private static readonly RELOAD_KEYS = new Set([
+        'pickerMatcherEngine',
         'enableTextObjects',
         'enableNavigation',
         'enableHardWrap',
@@ -477,6 +480,20 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         control: {
                             type: 'toggle' as const,
                             key: 'pickerLeaderMappings',
+                        },
+                    },
+                    {
+                        name: 'Picker matching engine',
+                        desc: 'Fuzzy matching engine for the picker. Auto uses nucleo (WASM) on desktop and uFuzzy on mobile. Obsidian uses the built-in API.',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'pickerMatcherEngine',
+                            options: {
+                                auto: 'Auto',
+                                nucleo: 'Nucleo (WASM)',
+                                ufuzzy: 'uFuzzy',
+                                obsidian: 'Obsidian built-in',
+                            },
                         },
                     },
                 ],

@@ -63,3 +63,38 @@ export const Platform = {
     isIosApp: false,
     isAndroidApp: false,
 };
+
+export function prepareFuzzySearch(
+    query: string,
+): (text: string) => { score: number; matches: [number, number][] } | null {
+    const lower = query.toLowerCase();
+    return (text: string) => {
+        const textLower = text.toLowerCase();
+        const matches: [number, number][] = [];
+        let qi = 0;
+        for (let ti = 0; ti < textLower.length && qi < lower.length; ti++) {
+            if (textLower[ti] === lower[qi]) {
+                const start = ti;
+                while (
+                    ti < textLower.length &&
+                    qi < lower.length &&
+                    textLower[ti] === lower[qi]
+                ) {
+                    ti++;
+                    qi++;
+                }
+                matches.push([start, ti]);
+                ti--;
+            }
+        }
+        if (qi < lower.length) return null;
+        const score = matches.length > 0 ? -matches.length : 0;
+        return { score, matches };
+    };
+}
+
+export function prepareSimpleSearch(
+    query: string,
+): (text: string) => { score: number; matches: [number, number][] } | null {
+    return prepareFuzzySearch(query);
+}

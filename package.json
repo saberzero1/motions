@@ -12,6 +12,7 @@
         "lint": "eslint .",
         "test:unit": "vitest run",
         "test:unit:watch": "vitest",
+        "test:bench": "vitest bench",
         "test:e2e": "wdio run ./wdio.conf.mts",
         "test": "npm run build && npm run test:e2e",
         "test:coverage": "tsx test/coverage-report.ts",
@@ -52,7 +53,8 @@
     },
     "dependencies": {
         "@leeoniya/ufuzzy": "^1.0.19",
-        "@replit/codemirror-vim": "file:../codemirror-vim",
-        "fengari": "https://github.com/saberzero1/fengari.git"
+        "@replit/codemirror-vim": "https://github.com/saberzero1/codemirror-vim.git",
+        "fengari": "https://github.com/saberzero1/fengari.git",
+        "nucleo-matcher-wasm": "https://github.com/saberzero1/nucleo-matcher-wasm.git"
     }
 }

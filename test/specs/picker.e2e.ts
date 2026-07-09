@@ -310,4 +310,61 @@ describe('Picker', function () {
             expect(orphanedItems).toBe(0);
         });
     });
+
+    describe('matcher engine switching', function () {
+        const engines = ['ufuzzy', 'nucleo', 'obsidian'] as const;
+
+        for (const engine of engines) {
+            it(`should open picker with ${engine} engine`, async function () {
+                await browser.executeObsidian(({ app }, eng: string) => {
+                    const plugin = (
+                        app as unknown as Record<string, unknown> & {
+                            plugins?: {
+                                plugins?: Record<
+                                    string,
+                                    {
+                                        settings: Record<string, unknown>;
+                                        reloadFeatures?: () => void;
+                                    }
+                                >;
+                            };
+                        }
+                    ).plugins?.plugins?.['vim-motions'];
+                    if (plugin) {
+                        plugin.settings.pickerMatcherEngine = eng;
+                        plugin.reloadFeatures?.();
+                    }
+                }, engine);
+                await browser.pause(300);
+                const result = await handleEx('files');
+                expect(result).toHaveProperty('success', true);
+                await browser.pause(300);
+                expect(await isPickerOpen()).toBe(true);
+                const count = await getPickerItemCount();
+                expect(count).toBeGreaterThan(0);
+            });
+        }
+
+        after(async function () {
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as Record<string, unknown> & {
+                        plugins?: {
+                            plugins?: Record<
+                                string,
+                                {
+                                    settings: Record<string, unknown>;
+                                    reloadFeatures?: () => void;
+                                }
+                            >;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (plugin) {
+                    plugin.settings.pickerMatcherEngine = 'auto';
+                    plugin.reloadFeatures?.();
+                }
+            });
+        });
+    });
 });

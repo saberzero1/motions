@@ -23,12 +23,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Picker matching engine setting** — selectable fuzzy matching engine for the picker (**Settings → Vim Motions → Picker matching engine**). Four options: `ufuzzy` (default), `nucleo`, `obsidian`, `auto`. The setting takes effect immediately on the next picker invocation without restarting Obsidian.
+    - **uFuzzy** (default): Pure JavaScript matcher with filename-aware ranking — prefers exact filename prefix matches over partial path matches (e.g., `Header.tsx` ranks above `header/utils.ts` for query `"Header"`). Fastest engine in benchmarks across all query types. Supports typo tolerance.
+    - **nucleo** (opt-in): WASM-compiled matcher from the [Helix editor](https://github.com/helix-editor/nucleo) (~193KB binary). Provides fzf-compatible scoring with optimal Smith-Waterman alignment and path-aware matching. Fork at [saberzero1/nucleo-matcher-wasm](https://github.com/saberzero1/nucleo-matcher-wasm) adds `matchLiteralIndexedWithIndices` and `matchPatternIndexedWithIndices` methods for efficient WASM boundary crossing.
+    - **obsidian** (opt-in): Obsidian's built-in `prepareFuzzySearch` API. Zero bundle cost. May be slower on large vaults.
+    - **auto**: nucleo on desktop, uFuzzy on mobile. Falls back to uFuzzy if WASM initialization fails.
+    - Plugin: `src/picker/matcher.ts` (factory), `src/picker/matcher-ufuzzy.ts` (enhanced sort), `src/picker/matcher-nucleo.ts` (WASM adapter), `src/picker/matcher-obsidian.ts` (Obsidian API adapter), `src/picker/matcher-utils.ts` (shared utilities), `src/settings.ts` (`pickerMatcherEngine` setting), `esbuild.config.mjs` (WASM binary loader plugin)
+- **Enhanced uFuzzy file-picker sort** — the uFuzzy matcher now uses a filename-aware ranking algorithm instead of the default sort. The sort prefers: (1) exact filename prefix matches, (2) shorter basenames among prefix matches, (3) filename matches over path-only matches, (4) more exact term boundaries, (5) tighter fuzzy matches, (6) shorter paths. The info phase is capped at 500 items with filename-prefix candidates prioritized, keeping sort overhead bounded for broad queries. Benchmarks show this produces the same #1 result as nucleo's Smith-Waterman scoring for 7 out of 8 test queries at ~25% overhead vs the default sort.
+    - Plugin: `src/picker/matcher-ufuzzy.ts` (`filePickerSort` function, 3-phase `filter()` → `info()` → custom sort pipeline)
+- **Matcher benchmark suite** — `npm run test:bench` runs a vitest benchmark comparing all three matching engines (uFuzzy, nucleo, obsidian) across 8 query patterns at 1K/5K/10K item counts. Uses realistic file path data (16 directories × 50 filenames × 6 extensions).
+    - Plugin: `test/bench/matcher.bench.ts`, `vitest.config.ts` (benchmark configuration), `package.json` (`test:bench` script)
+- **Picker engine switching e2e test** — validates that all three engines (ufuzzy, nucleo, obsidian) can be switched at runtime via settings and produce results in the picker.
+    - Plugin: `test/specs/picker.e2e.ts` (matcher engine switching section)
+- **Matcher unit tests expanded** — parameterized test suite runs 18 shared test cases across all three engines (54 tests total). Nucleo-specific tests cover fzf syntax chars as literals, emoji UTF-32/UTF-16 index correction, CJK characters, and 10K-item performance. Matcher-utils tests cover `indicesToRanges` and `utf32ToUtf16Indices`.
+    - Plugin: `test/unit/picker/matcher.test.ts` (68 tests, up from 18)
 - 3 Neovim golden comparison cases for `gk` column preservation across headings (`gk over heading preserves column`, `gk over heading then above preserves column`, `gk gj round-trip preserves column`), recorded against Neovim 0.12.2
 - 2 spike test suites: `spike-gk-font-variations.e2e.ts` (11 tests: CSS theme stress-testing with varying font sizes, line heights, heading sizes, editor widths, padding/margins), `spike-gk-column-drift.e2e.ts` (4 tests: column drift measurement per heading level with Neovim comparison data)
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: added "`gk`/`gj` column drift on heading lines" section documenting the pixel-vs-character column deviation from Neovim with measurement data table; added `gj`/`gk` column row to behavioral deviations table with "Pixel drift" status; updated golden test coverage note (7 → 10 heading tests, 3 golden comparison cases)
+- `KNOWN_LIMITATIONS.md`: updated picker section with four-engine description, filename-aware ranking, bundle size impact; added "`gk`/`gj` column drift on heading lines" section documenting the pixel-vs-character column deviation from Neovim with measurement data table; added `gj`/`gk` column row to behavioral deviations table with "Pixel drift" status; updated golden test coverage note (7 → 10 heading tests, 3 golden comparison cases)
+- `docs/configuration/settings.md`: added picker matching engine setting row with four options and notes section
+- `AGENTS.md`: added nucleo-matcher-wasm fork section (dependency URL, build instructions, WASM binary size, fork API additions, license)
+- `ACKNOWLEDGEMENTS.md`: added third-party attribution for nucleo-matcher-wasm (MPL-2.0), codemirror-vim (MIT), fengari (MIT)
 - `test/neovim/deviations.ts`: registered 2 known deviations for `gk` column preservation across heading lines (pixel-based `posAtCoords` vs Neovim's character-based `curswant`)
 - Fork `DIFFERENCES.md`: updated "Widget-aware vertical navigation" section with clamp-all-jumps approach and `posAtCoords` column fixup relaxation
 

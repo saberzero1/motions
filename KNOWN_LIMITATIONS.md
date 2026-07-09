@@ -911,7 +911,14 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 
 The picker uses a telescope.nvim-inspired visual presentation: monospace fonts, compact item density, accent-tinted selection, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables (`--font-monospace`, `--text-muted`, `--text-accent`, `--interactive-accent-hsl`, `--modal-background`, `--color-accent`) for full light/dark theme compatibility. The presentation matches the which-key overlay's terminal aesthetic.
 
-The picker uses uFuzzy for fuzzy matching (7.5KB, unicode mode). Matching is `prepareSimpleSearch`-based for grep (fuzzy, not regex). Live grep debounces at 200ms with generation-based cancellation.
+The picker supports four fuzzy matching engines selectable via **Settings → Vim Motions → Picker matching engine**:
+
+- **uFuzzy** (default): Pure JavaScript matcher (7.5KB) with filename-aware ranking. Prefers exact filename matches over partial path matches (e.g., `Header.tsx` ranks above `header/utils.ts` for query `"Header"`). Supports typo tolerance via single-error mode, configurable fuzziness, and multi-word queries.
+- **nucleo**: WASM-compiled matcher from the Helix editor (~193KB). Provides fzf-compatible scoring with optimal Smith-Waterman alignment, path-aware matching (`/` as word boundaries), and smart case sensitivity. Does not support typo tolerance (characters must appear in sequence).
+- **obsidian**: Obsidian's built-in `prepareFuzzySearch` API. Zero bundle cost (maintained by Obsidian). May be slower than nucleo or uFuzzy on very large vaults — the Obsidian docs note performance issues beyond a few thousand items.
+- **auto**: Uses nucleo on desktop, uFuzzy on mobile. Falls back to uFuzzy if WASM initialization fails.
+
+Matching is `prepareSimpleSearch`-based for grep (fuzzy, not regex). Live grep debounces at 200ms with generation-based cancellation.
 
 ### Limitations
 
@@ -923,10 +930,12 @@ The picker uses uFuzzy for fuzzy matching (7.5KB, unicode mode). Matching is `pr
 - **Preview hidden on mobile** — `@media (max-width: 600px)` hides the preview pane entirely.
 - **Tags picker has no preview** — selecting a tag opens a sub-picker showing files with that tag.
 - **uFuzzy unicode mode** — adds ~2.5KB over the base library size for broader language support (CJK, Cyrillic, accented characters).
+- **nucleo has no typo tolerance** — searching `helo` will not match `hello`. Users who need typo tolerance should switch to the uFuzzy engine in settings.
+- **nucleo ranking may differ from uFuzzy** — the two engines use fundamentally different algorithms (Smith-Waterman vs regexp-based). Result ordering for the same query may vary.
 
 ### Bundle size impact
 
-uFuzzy adds +17.5KB to the production bundle (unicode mode). Total plugin size with picker: ~671KB minified.
+The nucleo WASM binary (~193KB) is embedded in the production bundle via esbuild's binary loader. uFuzzy adds +17.5KB. Combined with picker UI code, the picker subsystem adds ~250KB to the production bundle.
 
 ## Neovim golden test coverage gaps
 
