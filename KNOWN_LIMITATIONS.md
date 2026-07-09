@@ -738,9 +738,17 @@ The bundled vim extension is now registered at `Prec.highest` so its keydown han
 
 `gj`/`gk` (and `j`/`k` when mapped to `gj`/`gk`) now correctly navigate into block MathJax (`$$`) and other replaced widget decorations in Obsidian's live preview. Previously, CM6's `moveVertically` treated replaced decorations as atomic, causing the cursor to skip over the entire widget's source range in a single step.
 
-The fork's `findPosV` now clamps any multi-document-line jump from `moveVertically` to a single document-line step when the skipped range contains no folds. CM6's `moveVertically` is coordinate/pixel-based and can overshoot when line heights vary — replaced widgets (MathJax), headings with larger fonts, and other variable-height content all cause multi-line jumps. The clamp ensures `gk`/`gj` never skip document lines unless content is actually folded/hidden. Wrapped lines are unaffected (`lineJump === 0`). On the clamped target line, `posAtCoords` resolves the horizontal cursor position from the goalColumn (pixel X coordinate) to preserve column alignment. When `posAtCoords` is unavailable or out of range, the character offset from the previous line is used as fallback. ([#26](https://github.com/saberzero1/motions/issues/26))
+The fork's `findPosV` applies three corrections to CM6's `moveVertically` result:
 
-**Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents).
+1. **Multi-line jump clamp**: When `moveVertically` jumps more than one document line and no fold exists in the skipped range, the cursor is clamped to the adjacent document line (±1). This prevents line-skipping on both replaced widgets (MathJax) and variable-height lines (headings with larger fonts).
+
+2. **Tall non-wrapped line detection**: When `moveVertically` stays on the same document line (`lineJump === 0`) but the Y coordinate change is less than half of `defaultLineHeight`, the cursor is "stuck" on a tall non-wrapped line — headings with large font size and/or line-height produce line blocks taller than `defaultLineHeight`, causing `moveVertically` to take multiple steps through the block even though the text doesn't wrap. The fix detects this via `coordsAtPos` comparison and force-moves to the adjacent document line. Legitimate within-line moves (wrapped display lines) produce Y deltas greater than the threshold and are not affected.
+
+3. **Column 0 fallback**: When `moveVertically` correctly crosses one line but drops the cursor at column 0 despite a non-zero goalColumn, `posAtCoords` resolves the correct character position from the pixel X coordinate.
+
+([#26](https://github.com/saberzero1/motions/issues/26))
+
+**Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents), `test/specs/spikes/spike-gk-issue26-repro.e2e.ts` (6 tests covering reporter's exact content with consecutive h2 headings, long wrapped lines, and empty lines).
 
 ## `gk`/`gj` column drift on heading lines
 
