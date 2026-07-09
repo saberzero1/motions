@@ -80,6 +80,7 @@ export class OilManager {
 
         for (const tempPath of orphaned) {
             this.tempToDir.delete(tempPath);
+            this.removeFromIgnoreFilters(tempPath);
             void this.app.vault.adapter.remove(tempPath).catch(() => {});
         }
     }
@@ -97,6 +98,7 @@ export class OilManager {
             await this.app.vault.modify(existing as import('obsidian').TFile, content);
         } else {
             await this.app.vault.create(tempPath, content);
+            this.addToIgnoreFilters(tempPath);
         }
         this.tempToDir.set(tempPath, dirPath);
         await this.app.workspace.openLinkText(tempPath, '');
@@ -176,6 +178,7 @@ export class OilManager {
         }
         for (const file of this.app.vault.getFiles()) {
             if (this.isOilFile(file.path)) {
+                this.removeFromIgnoreFilters(file.path);
                 await this.app.vault.adapter.remove(file.path);
             }
         }
@@ -265,6 +268,37 @@ export class OilManager {
         if (viewState.state?.mode !== 'source') {
             viewState.state = { ...viewState.state, mode: 'source', source: true };
             await leaf.setViewState(viewState);
+        }
+    }
+
+    private getIgnoreFilters(): string[] {
+        const vault = this.app.vault as unknown as {
+            getConfig?: (key: string) => unknown;
+        };
+        const raw = vault.getConfig?.('userIgnoreFilters');
+        return Array.isArray(raw) ? (raw as string[]) : [];
+    }
+
+    private setIgnoreFilters(filters: string[]): void {
+        const vault = this.app.vault as unknown as {
+            setConfig?: (key: string, value: unknown) => void;
+        };
+        vault.setConfig?.('userIgnoreFilters', filters);
+    }
+
+    private addToIgnoreFilters(path: string): void {
+        const filters = this.getIgnoreFilters();
+        if (!filters.includes(path)) {
+            filters.push(path);
+            this.setIgnoreFilters(filters);
+        }
+    }
+
+    private removeFromIgnoreFilters(path: string): void {
+        const filters = this.getIgnoreFilters();
+        const updated = filters.filter((f) => f !== path);
+        if (updated.length !== filters.length) {
+            this.setIgnoreFilters(updated);
         }
     }
 

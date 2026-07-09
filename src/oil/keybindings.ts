@@ -109,11 +109,11 @@ export class OilKeybindingManager {
         vim.defineAction('oilClose', () => {
             const file = app.workspace.getActiveFile();
             if (!file || !manager.isOilFile(file.path)) return;
+            const filePath = file.path;
             const leaf = app.workspace.getMostRecentLeaf();
             leaf?.detach();
-            void app.vault.adapter.remove(file.path).then(() => {
-                manager.forgetTempPath(file.path);
-            });
+            manager.forgetTempPath(filePath);
+            manager.cleanupOrphanedTempFiles();
         });
         vim.defineAction('oilToggleHidden', () => {
             const file = app.workspace.getActiveFile();

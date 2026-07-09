@@ -929,9 +929,3 @@ settings:
         default-dark: '#ffffff'
 */
 
-/* --- Oil temp file hiding (file explorer) --- */
-
-.nav-file-title[data-path^="oil~"],
-.tree-item[data-path^="oil~"] {
-    display: none;
-}
