@@ -26,15 +26,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 53 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 57 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.44.0
+## What's new in 0.45.0
 
-- **Picker matching engine setting** — choose between two fuzzy matching engines for the picker: `ufuzzy` (default, filename-aware ranking) or `obsidian` (built-in API). Configurable via **Settings → Vim Motions → Picker matching engine**.
-- **Telescope-style picker presentation** — the fuzzy picker now uses a terminal-inspired visual style with monospace text, compact item density, accent-tinted selection, and floating border titles ("Files", "Results", "Preview") matching [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)'s aesthetic.
-- **Picker positional previews use raw text** — grep, live grep, headings, and marks previews now render as monospace plain text, keeping the line-number gutter perfectly aligned with content.
-- **Fixed picker preview gutter misaligned on files with frontmatter** — positional previews no longer show line numbers for YAML frontmatter lines that get stripped by the renderer.
-- **Fixed Neovim golden recorder for visual-block operations** — block-insert (`<C-v>I`/`A`) and mode-switch operations now produce correct golden data.
+- **[[oil-explorer|Oil explorer]]** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file explorer that renders vault directories as editable buffers. Create, rename, delete, and move files with standard vim commands, then commit all changes with `:w`. Navigate with `<CR>`, `-`, `~`, toggle hidden files with `g.`, and cycle sort with `gs`. Cross-directory moves work via `dd`/`p` across oil buffers. Four new settings in **Settings → Vim Motions → File explorer**. Lua API: `vim.obsidian.oil.open(path)` / `vim.obsidian.oil.close()`.
+- **Fixed `gj`/`gk` heading jumping** — `gk` no longer requires two presses to cross a heading line that is visually tall (large font/line-height) but does not wrap. The fork now detects spurious within-line moves and force-advances to the adjacent document line. ([#26](https://github.com/saberzero1/motions/issues/26))
 
 See the [[changelog|full changelog]] for details.

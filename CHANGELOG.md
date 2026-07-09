@@ -7,21 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-07-09
+
 ### Fixed
 
 - **`gk`/`gj` takes extra keypress to traverse non-wrapped headings** — `gk` required two presses to cross a heading line that was visually tall (large font/line-height) but did not wrap. CM6's `moveVertically` saw the heading's line block as spanning multiple `defaultLineHeight` steps, causing a spurious within-line cursor move before crossing to the adjacent line. The fork's `findPosV` now detects when `moveVertically` stays on the same document line with negligible Y-coordinate change (less than half `defaultLineHeight` via `coordsAtPos` comparison) and force-moves to the adjacent document line. Legitimate wrapped-line navigation (Y delta ≥ threshold) is unaffected. ([#26](https://github.com/saberzero1/motions/issues/26))
     - Fork: `src/cm_adapter.ts` (`findPosV` Y-delta spurious move detection)
-
-### Added
-
-- Spike test for reporter's exact content (`spike-gk-issue26-repro.e2e.ts`, 6 tests: full-document gk/gj traversal, consecutive h2 headings, long wrapped line, h2-longline-h2 transitions)
-
-### Documentation
-
-- `KNOWN_LIMITATIONS.md`: updated "Visual line navigation" section with three-correction architecture (multi-line clamp, tall non-wrapped line detection, column 0 fallback); updated test coverage note
-- Fork `DIFFERENCES.md`: updated "Widget-aware vertical navigation" section with Y-delta spurious move detection
-
-## [0.45.0] - 2026-07-09
 
 ### Added
 
@@ -49,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Oil explorer e2e test suite** — 10 regression tests covering: `:Oil` opens temp file, regular markdown view, vault file listing with concealment, current-directory default, file creation, folder creation, file deletion, file rename, no-op save, and temp file exclusion from listings
     - Plugin: `test/specs/oil-poc.e2e.ts`
 - **`wdio.conf.mts` workspace cleanup** — `onPrepare` hook deletes stale `workspace.json` before e2e tests to prevent flaky failures from leftover workspace state
+- Spike test for reporter's exact content (`spike-gk-issue26-repro.e2e.ts`, 6 tests: full-document gk/gj traversal, consecutive h2 headings, long wrapped line, h2-longline-h2 transitions)
 
 ### Changed
 
@@ -61,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/reference/keybindings.md`: added Oil explorer keybinding table (13 entries)
 - `docs/configuration/settings.md`: added File explorer settings group (4 settings)
 - `KNOWN_LIMITATIONS.md`: added oil explorer section with cross-directory move requirements, temp file mechanism, and dotfile limitation
+- `KNOWN_LIMITATIONS.md`: updated "Visual line navigation" section with three-correction architecture (multi-line clamp, tall non-wrapped line detection, column 0 fallback); updated test coverage note
+- Fork `DIFFERENCES.md`: updated "Widget-aware vertical navigation" section with Y-delta spurious move detection
 
 ## [0.44.1] - 2026-07-09
 
