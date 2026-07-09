@@ -2,6 +2,7 @@ import { App, Notice, SuggestModal } from 'obsidian';
 import { executeCommand } from '../workspace/navigation';
 import type { GlobalMappingRegistry } from '../workspace/global-mapping-registry';
 import { VimInfoModal } from './vim-info-modal';
+import type { OilManager } from '../oil/manager';
 
 export type GlobalExFn = (app: App, args: string) => void;
 
@@ -20,6 +21,7 @@ export function buildGlobalExCommands(
     app: App,
     globalRegistry?: GlobalMappingRegistry,
     openPicker?: OpenPicker,
+    oilManager?: OilManager,
 ): GlobalExEntry[] {
     const cmd =
         (commandId: string): GlobalExFn =>
@@ -296,6 +298,31 @@ export function buildGlobalExCommands(
                   },
               ] satisfies GlobalExEntry[])
             : []),
+        ...(oilManager
+            ? ([
+                  {
+                      name: 'Oil',
+                      shortName: '',
+                      fn: (_app, args) => {
+                          let dirPath = args.trim();
+                          if (!dirPath || dirPath === '.' || dirPath === '/') {
+                              const activeFile = _app.workspace.getActiveFile();
+                              if (activeFile) {
+                                  dirPath = activeFile.path.includes('/')
+                                      ? activeFile.path.substring(
+                                            0,
+                                            activeFile.path.lastIndexOf('/'),
+                                        )
+                                      : '';
+                              } else {
+                                  dirPath = '';
+                              }
+                          }
+                          void oilManager.openOil(dirPath);
+                      },
+                  },
+              ] satisfies GlobalExEntry[])
+            : []),
     ];
 }
 
@@ -347,9 +374,10 @@ export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
         app: App,
         globalRegistry?: GlobalMappingRegistry,
         openPicker?: OpenPicker,
+        oilManager?: OilManager,
     ) {
         super(app);
-        this.entries = buildGlobalExCommands(app, globalRegistry, openPicker);
+        this.entries = buildGlobalExCommands(app, globalRegistry, openPicker, oilManager);
         this.setPlaceholder('Ex command');
         this.setInstructions([
             { command: 'Enter', purpose: 'execute' },

@@ -6,6 +6,7 @@ import type {
 } from './global-mapping-registry';
 import { executeCommand } from './navigation';
 import { GlobalExCommandModal } from '../ui/global-ex-command';
+import type { OilManager } from '../oil/manager';
 
 export const LINE_HEIGHT = 40;
 
@@ -130,6 +131,7 @@ export function registerDefaultGlobalMappings(
         close: (count?: number) => void;
     } | null,
     openPicker?: (source: string, opts?: { query?: string }) => void,
+    oilManager?: OilManager,
 ): void {
     void app;
     const add = (
@@ -267,7 +269,7 @@ export function registerDefaultGlobalMappings(
         {
             type: 'builtin',
             fn: (app2) => {
-                new GlobalExCommandModal(app2, registry, openPicker).open();
+                new GlobalExCommandModal(app2, registry, openPicker, oilManager).open();
             },
         },
         'structural',

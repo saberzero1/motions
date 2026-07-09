@@ -716,23 +716,24 @@ export function registerExCommands(
         ).open();
     });
 
-    reg.defineEx('Oil', '', (_cm, params) => {
-        if (!oilManager) return;
-        const argPath = (params.argString ?? '').trim();
-        let dirPath = argPath;
-        if (!dirPath || dirPath === '.' || dirPath === '/') {
-            const activeFile = app.workspace.getActiveFile();
-            if (activeFile) {
-                dirPath = activeFile.path.includes('/')
-                    ? activeFile.path.substring(
-                          0,
-                          activeFile.path.lastIndexOf('/'),
-                      )
-                    : '';
-            } else {
-                dirPath = '';
+    if (oilManager) {
+        reg.defineEx('Oil', '', (_cm, params) => {
+            const argPath = (params.argString ?? '').trim();
+            let dirPath = argPath;
+            if (!dirPath || dirPath === '.' || dirPath === '/') {
+                const activeFile = app.workspace.getActiveFile();
+                if (activeFile) {
+                    dirPath = activeFile.path.includes('/')
+                        ? activeFile.path.substring(
+                              0,
+                              activeFile.path.lastIndexOf('/'),
+                          )
+                        : '';
+                } else {
+                    dirPath = '';
+                }
             }
-        }
-        void oilManager.openOil(dirPath);
-    });
+            void oilManager.openOil(dirPath);
+        });
+    }
 }

@@ -830,7 +830,7 @@ export default class VimMotionsPlugin extends Plugin {
                 vim,
                 this.globalRegistry ?? undefined,
                 this.autocmdManager ?? undefined,
-                this.oilManager ?? undefined,
+                this.settings.oilExplorer ? this.oilManager ?? undefined : undefined,
                 {
                     openPicker: this.openPicker ?? undefined,
                     isPickerEnabled: () => this.settings.picker,
@@ -1012,6 +1012,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.hintActions,
                 this.openPicker ?? undefined,
+                this.settings.oilExplorer ? this.oilManager ?? undefined : undefined,
             );
             this.globalKeyHandler = new GlobalKeyHandler(
                 this.app,
@@ -1140,7 +1141,7 @@ export default class VimMotionsPlugin extends Plugin {
                 vim,
                 this.globalRegistry ?? undefined,
                 this.autocmdManager ?? undefined,
-                this.oilManager ?? undefined,
+                this.settings.oilExplorer ? this.oilManager ?? undefined : undefined,
                 {
                     openPicker: this.openPicker ?? undefined,
                     isPickerEnabled: () => this.settings.picker,
@@ -1199,6 +1200,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.hintActions,
                 this.openPicker ?? undefined,
+                this.settings.oilExplorer ? this.oilManager ?? undefined : undefined,
             );
             this.applyGlobalMaps();
             this.globalKeyHandler = new GlobalKeyHandler(
