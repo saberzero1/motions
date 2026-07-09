@@ -24,10 +24,14 @@ export function parseBufferLines(text: string): ParsedLine[] {
             continue;
         }
 
-        const name = line.trim();
-        if (!name) continue;
-        const isDir = name.endsWith('/');
-        parsed.push({ id: 0, type: isDir ? 'd' : 'f', name: isDir ? name.slice(0, -1) : name });
+        const raw = line.trim();
+        if (!raw) continue;
+        const isDir = raw.endsWith('/');
+        let name = isDir ? raw.slice(0, -1) : raw;
+        if (!isDir && !name.includes('.')) {
+            name += '.md';
+        }
+        parsed.push({ id: 0, type: isDir ? 'd' : 'f', name });
     }
 
     return parsed;

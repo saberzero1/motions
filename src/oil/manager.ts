@@ -350,9 +350,9 @@ export class OilManager {
         paths.add(path);
         const selectors = Array.from(paths).map(
             (p) =>
-                `.nav-file:has(> .nav-file-title[data-path="${p.replace(/"/g, '\\"')}"])`,
+                `.nav-file-title[data-path="${p.replace(/"/g, '\\"')}"]`,
         );
-        style.textContent = selectors.join(',\n') + ' { display: none !important; }';
+        style.textContent = selectors.join(',\n') + ' { display: none; }';
         this.refreshFileExplorer();
     }
 
