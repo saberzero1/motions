@@ -220,10 +220,10 @@ export function tableRealign(view: EditorView, table: TableRange): void {
                 const t = cell.trim();
                 const l = t.startsWith(':');
                 const r = t.endsWith(':');
-                if (l && r) return 'center' as Align;
-                if (r) return 'right' as Align;
-                if (l) return 'left' as Align;
-                return 'none' as Align;
+                if (l && r) return 'center';
+                if (r) return 'right';
+                if (l) return 'left';
+                return 'none';
             });
             rows.push([]);
         } else {

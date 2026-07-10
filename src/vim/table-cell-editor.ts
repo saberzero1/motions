@@ -28,16 +28,14 @@ export function openCellEditor(
 ): CellEditorHandle | null {
     closeCellEditor(null); // close any previous
 
-    const wrapper = cellEl.querySelector(
-        '.table-cell-wrapper',
-    ) as HTMLElement | null;
+    const wrapper = cellEl.querySelector('.table-cell-wrapper');
     if (!wrapper) return null;
 
     const originalText = wrapper.textContent?.trim() ?? '';
 
     // Clear rendered content, create editor container
     wrapper.textContent = '';
-    const editorContainer = document.createElement('div');
+    const editorContainer = createDiv();
     editorContainer.className = 'vim-table-cell-editor';
     wrapper.appendChild(editorContainer);
 

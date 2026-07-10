@@ -65,7 +65,7 @@ class TableNavController implements PluginValue {
 
     private scheduleCheck(): void {
         if (this.pendingTimer !== null) return;
-        this.pendingTimer = setTimeout(() => {
+        this.pendingTimer = window.setTimeout(() => {
             this.pendingTimer = null;
             this.checkEntry();
         }, 100);
@@ -376,7 +376,7 @@ class TableNavController implements PluginValue {
     }
 
     private refreshAfterOp(): void {
-        setTimeout(() => this.doRefreshAfterOp(), 50);
+        window.setTimeout(() => this.doRefreshAfterOp(), 50);
     }
 
     private doRefreshAfterOp(): void {
@@ -468,7 +468,7 @@ class TableNavController implements PluginValue {
         if (!this.widgetEl) return null;
         return this.widgetEl.querySelector(
             `[data-row="${this.activeRow}"][data-col="${this.activeCol}"]`,
-        ) as HTMLElement | null;
+        );
     }
 
     private getDataRowIndices(): number[] {
@@ -500,7 +500,7 @@ class TableNavController implements PluginValue {
     destroy(): void {
         if (this.state !== 'inactive') this.exitTable();
         if (this.pendingTimer !== null) {
-            clearTimeout(this.pendingTimer);
+            window.clearTimeout(this.pendingTimer);
             this.pendingTimer = null;
         }
     }
