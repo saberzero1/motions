@@ -185,7 +185,11 @@ class TableNavController implements PluginValue {
                 this.navKeyHandler,
                 true,
             );
-            document.removeEventListener('keydown', this.navKeyHandler, true);
+            activeDocument.removeEventListener(
+                'keydown',
+                this.navKeyHandler,
+                true,
+            );
         }
         this.installCellEditKeyHandler();
     }
@@ -201,7 +205,11 @@ class TableNavController implements PluginValue {
                 this.navKeyHandler,
                 true,
             );
-            document.addEventListener('keydown', this.navKeyHandler, true);
+            activeDocument.addEventListener(
+                'keydown',
+                this.navKeyHandler,
+                true,
+            );
         }
     }
 
@@ -216,7 +224,7 @@ class TableNavController implements PluginValue {
             }
         };
         this.widgetEl?.addEventListener('keydown', this.navKeyHandler, true);
-        document.addEventListener('keydown', this.navKeyHandler, true);
+        activeDocument.addEventListener('keydown', this.navKeyHandler, true);
     }
 
     private installCellEditKeyHandler(): void {
@@ -239,7 +247,11 @@ class TableNavController implements PluginValue {
                 this.navKeyHandler,
                 true,
             );
-            document.removeEventListener('keydown', this.navKeyHandler, true);
+            activeDocument.removeEventListener(
+                'keydown',
+                this.navKeyHandler,
+                true,
+            );
             this.navKeyHandler = null;
         }
         this.removeCellEditKeyHandler();
