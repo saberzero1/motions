@@ -70,7 +70,14 @@ import {
     yankHighlightExtension,
     showYankHighlight,
 } from './vim/yank-highlight';
-import type { VimYankEvent } from './types/vim-api';
+import {
+    markGutterExtension,
+    scheduleMarkGutterRefresh,
+    cancelMarkGutterRefresh,
+} from './vim/mark-gutter';
+import type { PersistedMarkEntry } from './vim/mark-gutter';
+import { MarkStore } from './vim/mark-store';
+import type { VimYankEvent, CmAdapter } from './types/vim-api';
 
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 import { loadInitLua } from './lua/loader';
@@ -100,6 +107,10 @@ import { createBacklinksSource } from './picker/sources/backlinks';
 import { createTagsSource } from './picker/sources/tags';
 import { createRecentSource, trackRecentFile } from './picker/sources/recent';
 import { createMarksSource } from './picker/sources/marks';
+import {
+    VimBufferMarkProvider,
+    GlobalMarkProvider,
+} from './picker/sources/mark-providers';
 import { createRegistersSource } from './picker/sources/registers';
 import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
@@ -119,6 +130,9 @@ export default class VimMotionsPlugin extends Plugin {
     private uninstallTableCursorFix: (() => void) | null = null;
     private uninstallVisualLineFix: (() => void) | null = null;
     private yankHighlightCleanup: (() => void) | null = null;
+    private markGutterCleanup: (() => void) | null = null;
+    markStore: MarkStore = new MarkStore();
+    private markSaveDirty = false;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
     private globalRegistry: GlobalMappingRegistry | null = null;
@@ -339,6 +353,7 @@ export default class VimMotionsPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
+        this.markStore.load(this.settings.persistedMarks ?? []);
 
         // --- Mobile gate ---
         // Always register settings tab and toggle command so users can
@@ -521,7 +536,12 @@ export default class VimMotionsPlugin extends Plugin {
             createTagsSource(matcher, () => this.settings.pickerKeymap),
         );
         pickerRegistry.register(createRecentSource());
-        pickerRegistry.register(createMarksSource());
+        pickerRegistry.register(
+            createMarksSource([
+                new VimBufferMarkProvider(),
+                new GlobalMarkProvider(this.markStore),
+            ]),
+        );
         pickerRegistry.register(createRegistersSource(vim));
         pickerRegistry.register(createLiveGrepSource());
         const frecencyStore = new FrecencyStore();
@@ -684,9 +704,11 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', () => {
                 this.attachYankHighlight();
+                this.attachMarkGutter();
             }),
         );
         this.attachYankHighlight();
+        this.attachMarkGutter();
 
         // --- Leader key resolution ---
         this.leaderRegistry = new LeaderRegistry();
@@ -865,6 +887,7 @@ export default class VimMotionsPlugin extends Plugin {
                     openPicker: this.openPicker ?? undefined,
                     isPickerEnabled: () => this.settings.picker,
                 },
+                this.triggerMarkGutterRefresh,
             );
         }
 
@@ -1101,8 +1124,21 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.registerEditorExtension(yankHighlightExtension());
+        if (this.settings.enableMarkGutter) {
+            this.registerEditorExtension(markGutterExtension());
+        }
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
+
+        this.registerInterval(
+            window.setInterval(() => {
+                if (this.markSaveDirty) {
+                    this.markSaveDirty = false;
+                    this.settings.persistedMarks = this.markStore.save();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
 
         this.app.workspace.trigger('parse-style-settings');
     }
@@ -1190,6 +1226,7 @@ export default class VimMotionsPlugin extends Plugin {
                     openPicker: this.openPicker ?? undefined,
                     isPickerEnabled: () => this.settings.picker,
                 },
+                this.triggerMarkGutterRefresh,
             );
         }
         this.registration.beginLeaderScope();
@@ -2101,9 +2138,103 @@ export default class VimMotionsPlugin extends Plugin {
         };
     }
 
+    private triggerMarkGutterRefresh = (): void => {
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!mdView) return;
+        const adapter = getCmAdapter(mdView);
+        if (!adapter) return;
+        scheduleMarkGutterRefresh(
+            adapter.cm6,
+            adapter,
+            this.getPersistedMarksForFile(mdView.file?.path),
+        );
+    };
+
+    private getPersistedMarksForFile(
+        filePath: string | undefined,
+    ): PersistedMarkEntry[] | undefined {
+        if (!filePath) return undefined;
+        const all = this.markStore.getAll();
+        const matching = all.filter((m) => m.filePath === filePath);
+        return matching.length > 0
+            ? matching.map((m) => ({ name: m.name, line: m.line }))
+            : undefined;
+    }
+
+    private attachMarkGutter(): void {
+        this.markGutterCleanup?.();
+        this.markGutterCleanup = null;
+
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!mdView) return;
+        const adapter = getCmAdapter(mdView);
+        if (!adapter) return;
+
+        const editorView = adapter.cm6;
+        const filePath = mdView.file?.path;
+
+        const handler = () => {
+            if (this.settings.enableMarkGutter) {
+                scheduleMarkGutterRefresh(
+                    editorView,
+                    adapter,
+                    this.getPersistedMarksForFile(filePath),
+                );
+            }
+            if (filePath) {
+                this.checkGlobalMarkChanges(adapter, filePath);
+            }
+        };
+
+        adapter.on('vim-command-done', handler);
+        this.markGutterCleanup = () => {
+            adapter.off('vim-command-done', handler);
+            cancelMarkGutterRefresh(editorView);
+        };
+
+        if (this.settings.enableMarkGutter) {
+            scheduleMarkGutterRefresh(
+                editorView,
+                adapter,
+                this.getPersistedMarksForFile(filePath),
+            );
+        }
+    }
+
+    private checkGlobalMarkChanges(cm: CmAdapter, filePath: string): void {
+        const marks = cm.state.vim?.marks;
+        if (!marks) return;
+        const globalRe = /^[A-Z]$/;
+
+        for (const name of Object.keys(marks)) {
+            if (!globalRe.test(name)) continue;
+            const marker = marks[name];
+            if (!marker) continue;
+            const pos = marker.find();
+            if (!pos) continue;
+            const existing = this.markStore.get(name);
+            if (
+                !existing ||
+                existing.filePath !== filePath ||
+                existing.line !== pos.line ||
+                existing.ch !== pos.ch
+            ) {
+                this.markStore.set(name, filePath, pos.line, pos.ch);
+                this.markSaveDirty = true;
+            }
+        }
+    }
+
     onunload() {
+        this.markGutterCleanup?.();
+        this.markGutterCleanup = null;
         this.yankHighlightCleanup?.();
         this.yankHighlightCleanup = null;
+        if (this.markSaveDirty) {
+            this.markSaveDirty = false;
+            this.settings.persistedMarks = this.markStore.save();
+            void this.saveSettings();
+        }
         this.matcher?.dispose();
         this.matcher = null;
         if (this.frecencySaveTimer) {

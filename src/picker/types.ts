@@ -8,6 +8,7 @@ export interface PickerItem {
     sortValue?: string;
     filterValue?: string;
     data?: unknown;
+    group?: string;
 }
 
 export type SplitDirection = 'horizontal' | 'vertical' | 'tab';

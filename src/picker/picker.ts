@@ -426,6 +426,20 @@ export class PickerModal extends Modal {
         container: HTMLElement,
         index: number,
     ): void {
+        const currentGroup = match.item.group;
+        if (currentGroup) {
+            const prevGroup =
+                index > 0
+                    ? this.currentMatches[index - 1]?.item.group
+                    : undefined;
+            if (currentGroup !== prevGroup) {
+                container.createDiv({
+                    cls: 'vim-motions-picker-group-header',
+                    text: currentGroup,
+                });
+            }
+        }
+
         const itemEl = container.createDiv({
             cls: 'vim-motions-picker-item',
         });

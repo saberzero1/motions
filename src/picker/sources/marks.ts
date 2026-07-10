@@ -1,58 +1,67 @@
-import { MarkdownView } from 'obsidian';
-import { getCmAdapter } from '../../vim/vim-api';
+import type { App } from 'obsidian';
 import type { PickerItem, PickerSource } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
+import type { MarkEntry, MarkProvider } from './mark-providers';
 
-export function createMarksSource(): PickerSource {
+interface MarkPickerData {
+    entry: MarkEntry;
+    providerIndex: number;
+}
+
+export function createMarksSource(providers: MarkProvider[]): PickerSource {
     return {
         name: 'marks',
         placeholder: 'Jump to mark…',
-        items(app) {
-            const view = app.workspace.getActiveViewOfType(MarkdownView);
-            if (!view) return [];
-
-            const cm = getCmAdapter(view);
-            if (!cm) return [];
-
-            const marks = cm.state.vim?.marks ?? {};
-            const sortedNames = Object.keys(marks).sort();
+        async items(app: App) {
             const items: PickerItem[] = [];
 
-            for (const name of sortedNames) {
-                const marker = marks[name];
-                if (!marker) continue;
-                const pos = marker.find();
-                if (!pos) continue;
+            for (let pi = 0; pi < providers.length; pi++) {
+                const provider = providers[pi]!;
+                const entries = await provider.getMarks(app);
+                if (entries.length === 0) continue;
 
-                const line = pos.line + 1;
-                const col = pos.ch;
-                const lineText = cm.getLine(pos.line);
-                const preview = lineText ? lineText.slice(0, 60).trim() : '';
+                const first = entries[0]!;
+                const groupLabel =
+                    first.category === 'buffer'
+                        ? 'Buffer marks'
+                        : first.category === 'global'
+                          ? 'Global marks'
+                          : 'Special marks';
 
-                items.push({
-                    id: name,
-                    label: name,
-                    description: `L${line}:${col}  ${preview}`,
-                    filterValue: `${name} ${preview}`,
-                    data: { line: pos.line, ch: pos.ch },
-                });
+                for (const entry of entries) {
+                    const line = entry.line + 1;
+                    const col = entry.ch;
+                    const desc =
+                        entry.category === 'global' && entry.filePath
+                            ? `${entry.filePath}  L${line}:${col}`
+                            : `L${line}:${col}  ${entry.preview ?? ''}`;
+
+                    items.push({
+                        id: `${entry.category}:${entry.name}`,
+                        label: entry.name,
+                        description: desc.trim(),
+                        filterValue: `${entry.name} ${entry.preview ?? ''} ${entry.filePath ?? ''}`,
+                        group: groupLabel,
+                        data: {
+                            entry,
+                            providerIndex: pi,
+                        } satisfies MarkPickerData,
+                    });
+                }
             }
 
             return items;
         },
         onSelect(item, app) {
-            const data = item.data as { line: number; ch: number };
-            const view = app.workspace.getActiveViewOfType(MarkdownView);
-            if (view) {
-                view.editor.setCursor(data.line, data.ch);
-                view.editor.focus();
-            }
+            const { entry, providerIndex } = item.data as MarkPickerData;
+            const provider = providers[providerIndex];
+            if (provider) void provider.navigateTo(entry, app);
         },
         async preview(item, app) {
-            const data = item.data as { line: number; ch: number };
-            const path = app.workspace.getActiveFile()?.path;
+            const { entry } = item.data as MarkPickerData;
+            const path = entry.filePath ?? app.workspace.getActiveFile()?.path;
             if (!path) return null;
-            return readLinesAroundPosition(app, path, data.line);
+            return readLinesAroundPosition(app, path, entry.line);
         },
     };
 }

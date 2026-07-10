@@ -528,7 +528,7 @@ function createVersionCommand(app: App): ExCommandFn {
     };
 }
 
-function createDelmarksCommand(): ExCommandFn {
+function createDelmarksCommand(onMarksChanged?: () => void): ExCommandFn {
     return (cm, params) => {
         const marks = (params.argString ?? '').trim();
         if (!marks) {
@@ -539,13 +539,16 @@ function createDelmarksCommand(): ExCommandFn {
         if (!Vim) return;
         const state = cm.state.vim;
         if (!state?.marks) return;
+        let changed = false;
         for (const ch of marks) {
             const mark = state.marks[ch];
             if (mark) {
                 mark.clear();
                 delete state.marks[ch];
+                changed = true;
             }
         }
+        if (changed) onMarksChanged?.();
     };
 }
 
@@ -557,6 +560,7 @@ export function registerExCommands(
     autocmdManager?: AutocmdManager,
     oilManager?: OilManager,
     picker?: PickerConfig,
+    onMarksChanged?: () => void,
 ): void {
     const backlinksCommand = createBacklinksCommand(app);
     const grepCommand = createGrepCommand(app);
@@ -716,7 +720,7 @@ export function registerExCommands(
     reg.defineEx('tablast', 'tabl', createBufferFirstLast(app, false));
 
     reg.defineEx('version', 've', createVersionCommand(app));
-    reg.defineEx('delmarks', 'delm', createDelmarksCommand());
+    reg.defineEx('delmarks', 'delm', createDelmarksCommand(onMarksChanged));
 
     reg.defineEx('gmaps', '', () => {
         if (!globalRegistry) return;

@@ -1004,3 +1004,29 @@ settings:
         animation: none;
     }
 }
+
+.vim-motions-picker-group-header {
+    padding: 4px 12px 2px;
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--background-modifier-border);
+    pointer-events: none;
+    user-select: none;
+}
+
+.cm-line[data-vim-marks]::after {
+    content: attr(data-vim-marks);
+    position: absolute;
+    right: calc(100% + 4px);
+    top: 0;
+    color: var(--text-accent);
+    font-family: var(--font-monospace);
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: inherit;
+    pointer-events: none;
+    opacity: 0.85;
+}

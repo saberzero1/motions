@@ -7,17 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Mark gutter indicators** — vim mark letters (`a`–`z`, `A`–`Z`) appear in the gutter area next to marked lines, providing visual feedback on where marks are set. Multiple marks on the same line are shown together (e.g., `ab`). The indicators use line decorations with CSS `::after` positioning — zero horizontal space consumed, no document shift. Updates on mark set/move/delete and on document edits. Toggle via **Settings → Vim Motions → Vim features → Mark gutter indicators** (default: on).
+    - Plugin: `src/vim/mark-gutter.ts` (new), `src/main.ts`, `src/settings.ts`, `styles.css`
+- **Global mark persistence** — marks `A`–`Z` are persisted across files and plugin restarts. Setting `mA` stores the file path and cursor position; navigating to `'A` from any file opens the target and jumps to the saved position. Marks are saved via a 30-second polling interval with dirty-flag checking, plus immediate save on unload.
+    - Plugin: `src/vim/mark-store.ts` (new), `src/main.ts`, `src/settings.ts` (`persistedMarks` field)
+- **Enhanced marks picker** — `:marks` and `<leader>fm` now show marks grouped by category: "Buffer marks" (`a`–`z`) with line preview, "Global marks" (`A`–`Z`) with file path. Selecting a global mark opens the target file and navigates to the saved position. Built on a `MarkProvider` abstraction for future extensibility (harpoon-style file marks).
+    - Plugin: `src/picker/sources/mark-providers.ts` (new: `MarkProvider` interface, `VimBufferMarkProvider`, `GlobalMarkProvider`), `src/picker/sources/marks.ts` (rewritten), `src/picker/types.ts` (`group` field), `src/picker/picker.ts` (group header rendering)
+- **Picker group headers** — `PickerItem` interface extended with optional `group` field. When set, the picker renders non-selectable section headers when the group changes between consecutive items. Available to all picker sources.
+    - Plugin: `src/picker/types.ts`, `src/picker/picker.ts`, `styles.css`
+
 ### Fixed
 
+- **`:delmarks` not refreshing gutter** — deleting marks via `:delmarks a` did not update the mark gutter indicators because the plugin's ex command handler didn't trigger a gutter refresh. Fixed by adding an `onMarksChanged` callback to `createDelmarksCommand` that schedules a gutter refresh.
+    - Plugin: `src/workspace/commands.ts`, `src/main.ts`
 - **Yank highlight not working on first load** — the yank highlight handler was not attached to the initially open editor on plugin startup, only activating after switching to a different pane. `reloadFeatures()` now calls `attachYankHighlight()` (cleanup + re-attach) instead of only cleaning up, ensuring the handler is attached when vimrc/lua loading triggers the first feature reload. ([#53](https://github.com/saberzero1/motions/issues/53))
     - Plugin: `src/main.ts` (`reloadFeatures` calls `attachYankHighlight()`)
 
 ### Documentation
 
+- `docs/features/marks.md`: new feature page covering mark gutter indicators, global mark persistence, and grouped marks picker
+- `docs/features/index.md`: added marks entry to Quality of life section
+- `docs/configuration/settings.md`: added Mark gutter indicators row to Vim features table
+- `docs/reference/keybindings.md`: updated `:marks` description to reflect grouped picker
 - `docs/features/quality-of-life.md`: added "Yank highlight" section with mode descriptions, configuration, CSS override tip, and fork-mode-only callout
 - `docs/features/index.md`: added yank highlight to Quality of life bullet
 - `docs/configuration/settings.md`: added Yank highlight and Yank highlight duration rows to Vim features table; added CSS override tip callout
-- `KNOWN_LIMITATIONS.md`: updated "Yank highlighting" row from external plugin recommendation to built-in
+- `KNOWN_LIMITATIONS.md`: updated "Yank highlighting" row from external plugin recommendation to built-in; added marks section
 
 ## [0.47.0] - 2026-07-10
 

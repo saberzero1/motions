@@ -339,24 +339,24 @@ Execute commands via the `:` command line, grouped by function.
 
 ### Navigation and search
 
-| Command         | Short    | Description                                 |
-| --------------- | -------- | ------------------------------------------- |
-| `:explorer`     |          | Reveal active file in file explorer         |
-| `:files`        |          | Find files by name                          |
-| `:buffers`      | `:buf`   | Switch between open buffers                 |
-| `:ls`           |          | Alias for `:buffers`                        |
-| `:headings`     |          | Search all headings across vault            |
-| `:outline`      |          | Jump to heading in current file             |
-| `:backlinks`    | `:backl` | Show files linking to current file          |
-| `:tags`         |          | Browse vault tags (opens sub-picker)        |
-| `:recent`       |          | Recently opened files                       |
-| `:marks`        |          | Jump to vim marks (editor context only)     |
-| `:grep {query}` | `:gre`   | Search vault content (pre-computed results) |
-| `:livegrep`     | `:liveg` | Real-time vault content search              |
-| `:resume`       | `:res`   | Reopen last picker with same query          |
-| `:back`         |          | Navigate back in history                    |
-| `:forward`      |          | Navigate forward in history                 |
-| `:changes`      |          | Show change list in modal                   |
+| Command         | Short    | Description                                  |
+| --------------- | -------- | -------------------------------------------- |
+| `:explorer`     |          | Reveal active file in file explorer          |
+| `:files`        |          | Find files by name                           |
+| `:buffers`      | `:buf`   | Switch between open buffers                  |
+| `:ls`           |          | Alias for `:buffers`                         |
+| `:headings`     |          | Search all headings across vault             |
+| `:outline`      |          | Jump to heading in current file              |
+| `:backlinks`    | `:backl` | Show files linking to current file           |
+| `:tags`         |          | Browse vault tags (opens sub-picker)         |
+| `:recent`       |          | Recently opened files                        |
+| `:marks`        |          | Jump to vim marks (grouped by buffer/global) |
+| `:grep {query}` | `:gre`   | Search vault content (pre-computed results)  |
+| `:livegrep`     | `:liveg` | Real-time vault content search               |
+| `:resume`       | `:res`   | Reopen last picker with same query           |
+| `:back`         |          | Navigate back in history                     |
+| `:forward`      |          | Navigate forward in history                  |
+| `:changes`      |          | Show change list in modal                    |
 
 ### Utility
 

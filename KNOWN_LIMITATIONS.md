@@ -966,9 +966,28 @@ See `docs/configuration/remapping.md` for the full remapping guide with examples
 
 **Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 43 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, disabled state, runtime `vim.cmd()` execution (8 tests), leader binding + which-key integration (9 tests), space-as-leader (7 tests), and documentation example validation (10 tests).
 
+## Marks
+
+**Status**: Working. Gutter indicators, global mark persistence, grouped picker.
+
+Vim marks (`m{a-z}`, `'{a-z}`) work via codemirror-vim. The plugin adds three enhancements:
+
+- **Gutter indicators**: Mark letters appear in the gutter area next to marked lines using `Decoration.line()` with a `data-vim-marks` attribute and CSS `::after` pseudo-element. Zero layout shift — marks overlay the existing gutter without adding a column. Toggle via `enableMarkGutter` setting (default: on).
+- **Global mark persistence**: Marks `A`–`Z` are stored in plugin settings (`persistedMarks` array) with file path and cursor position. Saved via 30-second polling interval with dirty-flag check, plus immediate save on `onunload()`. Marks survive file closes and plugin restarts.
+- **Grouped marks picker**: `:marks` shows marks grouped under "Buffer marks" and "Global marks" headers. Global marks display the target file path. Cross-file navigation opens the target file and positions the cursor.
+
+### Limitations
+
+- **Special marks not in picker** — marks `'`, `` ` ``, `.`, `<`, `>` are not shown in the picker or gutter. They require querying fork-internal `getMarkPos()` with complex semantics (jump list, last edit position).
+- **Global mark file rename** — renaming a file does not update persisted global marks pointing to it. The mark becomes stale and shows "File not found" on navigation. Future: hook into Obsidian's rename event.
+- **Marks set outside vim command pipeline** — marks created programmatically (not via `m{char}`) won't trigger gutter refresh until the next vim command fires `vim-command-done`.
+- **Gutter refresh mechanism** — the gutter reads `cm.state.vim.marks` on each `vim-command-done` event. Position tracking through document edits uses `Decoration.line()` position mapping (`set.map(tr.changes)`), not polling.
+
+**Test coverage**: `test/specs/marks-gutter.e2e.ts` (6 tests), `test/specs/marks-picker.e2e.ts` (8 tests).
+
 ## Picker / Fuzzy finder
 
-**Status**: Working. Unified picker with 11 sources, preview pane, live grep, and frecency scoring.
+**Status**: Working. Unified picker with 12 sources, preview pane, live grep, and frecency scoring.
 
 The picker uses a telescope.nvim-inspired visual presentation: monospace fonts, compact item density, accent-tinted selection, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables (`--font-monospace`, `--text-muted`, `--text-accent`, `--interactive-accent-hsl`, `--modal-background`, `--color-accent`) for full light/dark theme compatibility. The presentation matches the which-key overlay's terminal aesthetic.
 
@@ -982,7 +1001,7 @@ Matching is `prepareSimpleSearch`-based for grep (fuzzy, not regex). Live grep d
 ### Limitations
 
 - **`:grep` is fuzzy, not regex** — `prepareSimpleSearch` from Obsidian is used for vault content search. `:grep n.v` will not match "nav" — the `.` is not treated as a regex wildcard. Regex grep is a future consideration.
-- **`:marks` is editor-scoped** — marks are stored per CmAdapter (buffer-local). `:marks` in a non-editor view returns empty results. This matches vim's mark behavior.
+- **`:marks` shows buffer + global marks** — buffer-local marks (`a`–`z`) are read from the active editor's vim state. Global marks (`A`–`Z`) are read from the plugin's persisted `MarkStore`. `:marks` in a non-editor view shows only global marks (no active editor for buffer marks).
 - **Live grep iterates all files synchronously** — `cachedRead()` is fast but iterating 10K+ files on each keystroke (debounced) may cause brief UI pauses on very large vaults. MAX_RESULTS=100 cap limits result set size.
 - **Frecency persistence** — frecency data is stored in plugin settings via `saveData()`, debounced to 30 seconds. Data loss on crash is possible for the last 30 seconds of interactions.
 - **Preview pane rendering** — full-file previews (files, buffers, recent) are rendered through `MarkdownRenderer.render()`, displaying headings, formatting, code blocks, images, and links with non-interactive links. Positional previews (grep, live grep, headings, marks) use monospace plain text with a line-number gutter that highlights the target line — raw text ensures uniform line heights so the gutter stays aligned (markdown rendering produces variable-height headings/blocks that cause drift). Frontmatter is excluded from positional previews since `MarkdownRenderer` strips it, which would otherwise misalign the gutter. The picker modal uses a fixed height (50vh) to prevent layout shifts. Plain-string previews (commands, registers) remain as raw text.

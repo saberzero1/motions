@@ -30,6 +30,7 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Table widget in live preview   | dropdown | `cursor` | `embedded`, `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                      |
 | Yank highlight                 | dropdown | `solid`  | `off`, `solid`, `fade`                | `vim.opt.yankhighlightmode`     | `set yankhighlightmode`     | Highlight yanked text. "Solid" appears and disappears (Neovim-style). "Fade" gradually fades out. |
 | Yank highlight duration        | slider   | `200`    | 50–3000 ms                            | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                        |
+| Mark gutter indicators         | toggle   | `true`   | —                                     | `vim.opt.markgutter`            | `set markgutter`            | Show vim mark letters in the gutter next to marked lines.                                         |
 
 > [!tip]
 > Override the highlight color with a CSS snippet: set `--vim-motions-yank-bg` on `.theme-dark` or `.theme-light` (e.g., `--vim-motions-yank-bg: rgba(255, 200, 0, 0.4);`).

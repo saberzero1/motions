@@ -110,6 +110,12 @@ export interface VimMotionsSettings {
     pickerLeaderMappings: boolean;
     pickerMatcherEngine: 'ufuzzy' | 'obsidian';
     frecencyData?: Record<string, { count: number; timestamps: number[] }>;
+    persistedMarks?: {
+        name: string;
+        filePath: string;
+        line: number;
+        ch: number;
+    }[];
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
     enableChordDisplay: boolean;
@@ -124,6 +130,7 @@ export interface VimMotionsSettings {
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
 
+    enableMarkGutter: boolean;
     enableHintMode: boolean;
     hintModeLabels: string;
     hintModeHotkey: string;
@@ -189,6 +196,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,
 
+    enableMarkGutter: true,
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',
@@ -290,6 +298,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableWorkspaceNav',
         'enableEasyMotion',
         'enableHintMode',
+        'enableMarkGutter',
         'enableStatusBar',
         'enableChordDisplay',
         'enablePowerline',
@@ -1556,6 +1565,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableTableNav = value;
                         this.plugin.vimrcOverrides?.delete('enableTableNav');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Mark gutter indicators')
+            .setDesc(
+                describeOverride(
+                    'enableMarkGutter',
+                    'Show vim mark letters (a-z, A-Z) in the editor gutter next to marked lines.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableMarkGutter)
+                    .setDisabled(isOverridden('enableMarkGutter'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableMarkGutter = value;
+                        this.plugin.vimrcOverrides?.delete('enableMarkGutter');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
