@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Embedded table editing mode** — new `'embedded'` option for **Settings → Vim Motions → Table widget in Live Preview**. Tables render as themed HTML with a two-layer editing model:
+    - **Table navigation**: `h`/`j`/`k`/`l` moves a cell highlight across the rendered table. `j`/`k` at the top/bottom row exits the table.
+    - **Cell editing**: `i`/`a`/`c`/`s`/`Enter` opens a vim-enabled editor in the highlighted cell with full vim support (modes, motions, text objects, auto-formatting). `Escape` returns to table navigation; a second `Escape` exits the table. `Tab`/`Shift-Tab` moves between cells.
+    - **Table manipulation**: `o`/`O` (add row below/above), `dd` (delete row), `dc` (delete column), `J`/`K` (move row down/up), `H`/`L` (move column left/right), `I`/`A` (add column left/right), `=` (realign). These operate directly on the raw markdown — no dependency on Obsidian's internal table commands.
+    - Cell edits are written back per-cell with per-cell undo granularity.
+    - Configurable via `set tablewidget=embedded` in vimrc or `vim.opt.tablewidget = "embedded"` in Lua.
+    - Plugin: `src/vim/table-nav-controller.ts` (new), `src/vim/table-cell-editor.ts` (new), `src/vim/table-operations.ts` (new), `src/vim/table-utils.ts` (new), `src/vim/table-render-widget.ts` (modified: data attributes, embedded mode toggle, re-render guard), `src/vim/table-embedded-editor.ts` (rewritten), `src/vim/table-auto-format.ts` (getVimMode accepts EditorView), `src/motions/tables.ts` (exported helpers), `src/main.ts`, `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`, `styles.css`
+
 ### Changed
 
 - **Oil explorer architecture rewritten** — oil no longer creates temporary `oil~*.md` files in the vault. The directory listing is rendered in a dedicated `oil-explorer` view type with an embedded CodeMirror 6 editor, eliminating temp file visibility in tabs, search, and graph. Vim mode (both built-in and bundled fork) works natively in the embedded editor. View state (current directory) persists across workspace restarts via `getState()`/`setState()`.

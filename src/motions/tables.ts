@@ -15,11 +15,11 @@ function isTableLine(text: string): boolean {
     return TABLE_RE.test(text);
 }
 
-function isSeparatorLine(text: string): boolean {
+export function isSeparatorLine(text: string): boolean {
     return SEPARATOR_RE.test(text);
 }
 
-function findCellBoundaries(line: string): number[] {
+export function findCellBoundaries(line: string): number[] {
     const positions: number[] = [];
     for (let i = 0; i < line.length; i++) {
         if (line[i] === '|') positions.push(i);

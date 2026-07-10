@@ -260,7 +260,12 @@ export function registerVimOptions(
     vim.defineOption('tablewidget', 'cursor', 'string', [], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';
-        if (str === 'off' || str === 'cursor' || str === 'always') {
+        if (
+            str === 'off' ||
+            str === 'cursor' ||
+            str === 'always' ||
+            str === 'embedded'
+        ) {
             notify('tableWidgetMode', str, `set tablewidget=${str}`);
         }
     });

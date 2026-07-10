@@ -949,3 +949,28 @@ settings:
 .vim-motions-oil-editor {
     flex: 1;
 }
+
+/* --- Embedded table editor --- */
+
+.vim-table-cell-active {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: -1px;
+    border-radius: var(--radius-s);
+}
+
+.vim-table-cell-editor {
+    min-width: 2em;
+}
+
+.vim-table-cell-editor .cm-editor {
+    background: var(--background-primary);
+}
+
+.vim-table-cell-editor .cm-editor .cm-scroller {
+    padding: 0;
+}
+
+.vim-table-cell-editor .cm-editor .cm-content {
+    padding: 0;
+    min-height: unset;
+}

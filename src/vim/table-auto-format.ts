@@ -10,7 +10,12 @@ function isTableLine(text: string): boolean {
     return TABLE_RE.test(text);
 }
 
-function getVimMode(app: App): string | null {
+function getVimMode(app: App, editorView?: EditorView): string | null {
+    if (editorView) {
+        const adapter = (editorView as unknown as Record<string, unknown>)
+            .cm as { state?: { vim?: { mode?: string } } } | undefined;
+        return adapter?.state?.vim?.mode ?? null;
+    }
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return null;
     const cm = (view.editor as unknown as Record<string, unknown>).cm as Record<
@@ -123,7 +128,7 @@ export function createTableAutoFormatExtension(app: App): Extension {
     return EditorView.inputHandler.of((view, from, to, inserted) => {
         if (inserted !== '|') return false;
 
-        const mode = getVimMode(app);
+        const mode = getVimMode(app, view);
         if (mode !== 'insert') return false;
 
         const doc = view.state.doc;

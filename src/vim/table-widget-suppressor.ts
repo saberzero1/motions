@@ -2,7 +2,7 @@ import type { App } from 'obsidian';
 import { RangeSetBuilder } from '@codemirror/state';
 import { around } from '../util/around';
 
-export type TableWidgetMode = 'off' | 'cursor' | 'always';
+export type TableWidgetMode = 'off' | 'cursor' | 'always' | 'embedded';
 
 let mode: TableWidgetMode = 'off';
 

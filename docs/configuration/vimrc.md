@@ -154,17 +154,17 @@ Use `set <option>=<value>`.
 
 Use `set <option>=<value>`.
 
-| Option                  | Alias  | Description                                     | Default                               |
-| ----------------------- | ------ | ----------------------------------------------- | ------------------------------------- |
-| `clipboard`             | `clip` | System clipboard sync (`unnamed`/`unnamedplus`) | (off)                                 |
-| `insertmodeescape`      | `ime`  | Two-key sequence to exit insert mode            | (off)                                 |
-| `easymotionlabels`      | `eml`  | Characters for EasyMotion labels                | `asdghklqwertyuiopzxcvbnmfj`          |
-| `hintlabels`            | `hl`   | Characters for hint mode labels                 | `asdfghjkl`                           |
-| `guicursor`             | —      | Per-mode cursor shapes                          | (block/bar/block/underline/underline) |
-| `tablewidget`           | —      | Table widget mode (`off`/`cursor`/`always`)     | `cursor`                              |
-| `whichkey`              | `wk`   | Which-key hints (`off`/`leader`/`all`)          | `off`                                 |
-| `whichkeygrouping`      | `wkg`  | Which-key grouping (`flat`/`grouped`)           | `grouped`                             |
-| `workspacenavviewtypes` | `wnvt` | View types for workspace nav interception       | (empty — uses defaults)               |
+| Option                  | Alias  | Description                                            | Default                               |
+| ----------------------- | ------ | ------------------------------------------------------ | ------------------------------------- |
+| `clipboard`             | `clip` | System clipboard sync (`unnamed`/`unnamedplus`)        | (off)                                 |
+| `insertmodeescape`      | `ime`  | Two-key sequence to exit insert mode                   | (off)                                 |
+| `easymotionlabels`      | `eml`  | Characters for EasyMotion labels                       | `asdghklqwertyuiopzxcvbnmfj`          |
+| `hintlabels`            | `hl`   | Characters for hint mode labels                        | `asdfghjkl`                           |
+| `guicursor`             | —      | Per-mode cursor shapes                                 | (block/bar/block/underline/underline) |
+| `tablewidget`           | —      | Table widget mode (`off`/`cursor`/`always`/`embedded`) | `cursor`                              |
+| `whichkey`              | `wk`   | Which-key hints (`off`/`leader`/`all`)                 | `off`                                 |
+| `whichkeygrouping`      | `wkg`  | Which-key grouping (`flat`/`grouped`)                  | `grouped`                             |
+| `workspacenavviewtypes` | `wnvt` | View types for workspace nav interception              | (empty — uses defaults)               |
 
 ## Mode prompt customization
 

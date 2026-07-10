@@ -120,7 +120,7 @@ export interface VimMotionsSettings {
     enableHardWrap: boolean;
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
-    tableWidgetMode: 'off' | 'cursor' | 'always';
+    tableWidgetMode: 'off' | 'cursor' | 'always' | 'embedded';
 
     enableHintMode: boolean;
     hintModeLabels: string;
@@ -463,6 +463,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         desc: this.describeOverride(
                             'tableWidgetMode',
                             'Controls how tables display in Live Preview. ' +
+                                '"Embedded" opens a vim-enabled editor overlay when editing a table. ' +
                                 '"Always raw" keeps tables as plain text. ' +
                                 '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
                                 '"Off" uses the default interactive table editor.',
@@ -471,6 +472,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             type: 'dropdown' as const,
                             key: 'tableWidgetMode',
                             options: {
+                                embedded: 'Embedded',
                                 always: 'Always raw',
                                 cursor: 'Cursor-aware',
                                 off: 'Off',
@@ -1527,6 +1529,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 describeOverride(
                     'tableWidgetMode',
                     'Controls how tables display in Live Preview. ' +
+                        '"Embedded" opens a vim-enabled editor overlay when editing a table. ' +
                         '"Always raw" keeps tables as plain text. ' +
                         '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
                         '"Off" uses the default interactive table editor.',
@@ -1534,6 +1537,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             )
             .addDropdown((dropdown) =>
                 dropdown
+                    .addOption('embedded', 'Embedded')
                     .addOption('always', 'Always raw')
                     .addOption('cursor', 'Cursor-aware')
                     .addOption('off', 'Off')

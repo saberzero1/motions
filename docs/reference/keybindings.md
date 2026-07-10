@@ -77,6 +77,25 @@ Manage table structure using the `<leader>t` prefix.
 | `<leader>tdc` | Delete column           |
 | `<leader>tr`  | Realign table columns   |
 
+## Embedded table navigation
+
+Available when the table widget is set to "Embedded" and the cursor enters a table. These keybindings are active in the table navigation layer (before entering a cell).
+
+| Keybinding                      | Description                            |
+| ------------------------------- | -------------------------------------- |
+| `h` / `l`                       | Move cell highlight left / right       |
+| `j` / `k`                       | Move cell highlight down / up          |
+| `i` / `a` / `c` / `s` / `Enter` | Enter cell editing                     |
+| `Escape`                        | Exit table                             |
+| `o` / `O`                       | Add row below / above                  |
+| `dd`                            | Delete row                             |
+| `dc`                            | Delete column                          |
+| `J` / `K`                       | Move row down / up                     |
+| `H` / `L`                       | Move column left / right               |
+| `I` / `A`                       | Add column left / right                |
+| `=`                             | Realign table                          |
+| `Tab` / `Shift-Tab`             | Next / previous cell (in cell editing) |
+
 ## Picker shortcuts
 
 Open picker sources with the `<leader>f` prefix.

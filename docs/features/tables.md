@@ -67,11 +67,43 @@ Vim Motions includes built-in auto-formatting for tables:
 
 To provide a seamless editing experience, Vim Motions manages how tables are rendered in Obsidian's Live Preview mode.
 
+- **Embedded**: The table renders as themed HTML. Moving the cursor into the table enters a two-layer editing mode:
+    1. **Table navigation**: `h`/`j`/`k`/`l` moves a cell highlight. Structural commands (`o`, `O`, `dd`, `dc`, `J`, `K`, `H`, `L`, `I`, `A`, `=`) manipulate rows and columns directly.
+    2. **Cell editing**: Press `i`, `a`, `c`, `s`, or `Enter` to open a vim-enabled editor in the highlighted cell. `Escape` returns to table navigation. A second `Escape` exits the table.
 - **Cursor-aware (Default)**: Tables are rendered as themed HTML when the cursor is outside, but switch to raw Markdown when the cursor enters the table. This allows for full Vim editing power within the table.
 - **Always raw**: Tables always display as plain Markdown.
 - **Off**: Restores Obsidian's default interactive table editor.
 
 The rendered table widget processes cell content through Obsidian's markdown renderer. Inline formatting (bold, italic, code), images, links, and math expressions display correctly in the rendered view.
+
+> [!tip]
+> The **Embedded** mode provides the best vim editing experience for tables. The rendered table stays visible while editing, individual cells get their own vim editor, and structural commands let you add, delete, and move rows and columns without leaving the table.
+
+### Embedded mode keybindings
+
+**Table navigation** (active when the cursor enters a table):
+
+| Key                             | Action                                                 |
+| ------------------------------- | ------------------------------------------------------ |
+| `h` / `l`                       | Move cell highlight left / right                       |
+| `j` / `k`                       | Move cell highlight down / up (exit table at boundary) |
+| `i` / `a` / `c` / `s` / `Enter` | Enter cell editing                                     |
+| `Escape`                        | Exit table                                             |
+| `o` / `O`                       | Add row below / above                                  |
+| `dd`                            | Delete row                                             |
+| `dc`                            | Delete column                                          |
+| `J` / `K`                       | Move row down / up                                     |
+| `H` / `L`                       | Move column left / right                               |
+| `I` / `A`                       | Add column left / right                                |
+| `=`                             | Realign table                                          |
+
+**Cell editing** (active after entering a cell):
+
+| Key                       | Action                                  |
+| ------------------------- | --------------------------------------- |
+| All vim keys              | Normal vim editing within the cell      |
+| `Tab` / `Shift-Tab`       | Save cell, move to next / previous cell |
+| `Escape` (in normal mode) | Save cell, return to table navigation   |
 
 > [!info]
 > You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**.

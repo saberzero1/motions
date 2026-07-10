@@ -60,6 +60,11 @@ import {
     installTableCursorFix,
     createTableCursorFixExtension,
 } from './vim/table-cursor-fix';
+import {
+    tableEmbeddedField,
+    setEmbeddedModeEnabled,
+    setTableEmbeddedMode,
+} from './vim/table-embedded-editor';
 import { EditorView } from '@codemirror/view';
 
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
@@ -1064,8 +1069,15 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
-        setTableRenderEnabled(this.settings.tableWidgetMode === 'cursor');
+        const isEmbedded = this.settings.tableWidgetMode === 'embedded';
+        setTableRenderEnabled(
+            this.settings.tableWidgetMode === 'cursor' || isEmbedded,
+        );
         this.registerEditorExtension(tableRenderField);
+
+        setEmbeddedModeEnabled(isEmbedded);
+        setTableEmbeddedMode(isEmbedded);
+        this.registerEditorExtension(tableEmbeddedField);
 
         if (this.settings.enableTableNav) {
             this.registerEditorExtension(
@@ -1264,7 +1276,12 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.tableWidgetMode,
             );
         }
-        setTableRenderEnabled(this.settings.tableWidgetMode === 'cursor');
+        const isEmbedded = this.settings.tableWidgetMode === 'embedded';
+        setTableRenderEnabled(
+            this.settings.tableWidgetMode === 'cursor' || isEmbedded,
+        );
+        setEmbeddedModeEnabled(isEmbedded);
+        setTableEmbeddedMode(isEmbedded);
         if (this.settings.enableTableNav) {
             this.uninstallTableCursorFix = installTableCursorFix();
         }

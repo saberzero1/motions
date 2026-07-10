@@ -123,33 +123,33 @@ vim.g.mapleader = "\\"  -- Backslash (default)
 
 All plugin options are available via `vim.opt`. `vim.o` is an alias.
 
-| Option                    | Type    | Default                        | Valid range / values               | Example                                  |
-| ------------------------- | ------- | ------------------------------ | ---------------------------------- | ---------------------------------------- |
-| `textobjects`             | boolean | `true`                         |                                    | `vim.opt.textobjects = true`             |
-| `navigation`              | boolean | `true`                         |                                    | `vim.opt.navigation = true`              |
-| `hardwrap`                | boolean | `true`                         |                                    | `vim.opt.hardwrap = true`                |
-| `listcontinuation`        | boolean | `true`                         |                                    | `vim.opt.listcontinuation = true`        |
-| `tablenav`                | boolean | `true`                         |                                    | `vim.opt.tablenav = true`                |
-| `workspacenav`            | boolean | `true`                         |                                    | `vim.opt.workspacenav = true`            |
-| `easymotion`              | boolean | `true`                         |                                    | `vim.opt.easymotion = true`              |
-| `easymotiondimming`       | boolean | `true`                         |                                    | `vim.opt.easymotiondimming = true`       |
-| `hintmode`                | boolean | `true`                         |                                    | `vim.opt.hintmode = true`                |
-| `statusbar`               | boolean | `true`                         |                                    | `vim.opt.statusbar = true`               |
-| `chorddisplay`            | boolean | `true`                         |                                    | `vim.opt.chorddisplay = true`            |
-| `powerline`               | boolean | `false`                        |                                    | `vim.opt.powerline = true`               |
-| `expandtab`               | boolean | `true`                         |                                    | `vim.opt.expandtab = true`               |
-| `scrolloff`               | number  | `5`                            | 0–9999                             | `vim.opt.scrolloff = 8`                  |
-| `scanlimit`               | number  | `20`                           | 5–200                              | `vim.opt.scanlimit = 20`                 |
-| `labelfontsize`           | number  | `14`                           | 10–20                              | `vim.opt.labelfontsize = 14`             |
-| `tabstop`                 | number  | `4`                            |                                    | `vim.opt.tabstop = 4`                    |
-| `shiftwidth`              | number  | `4`                            |                                    | `vim.opt.shiftwidth = 4`                 |
-| `textwidth`               | number  | `80`                           |                                    | `vim.opt.textwidth = 80`                 |
-| `insertmodeescapetimeout` | number  | `1000`                         | 100–5000 ms                        | `vim.opt.insertmodeescapetimeout = 1000` |
-| `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"` | `vim.opt.clipboard = "unnamedplus"`      |
-| `insertmodeescape`        | string  | `""`                           |                                    | `vim.opt.insertmodeescape = "jk"`        |
-| `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                    | `vim.opt.easymotionlabels = "asdf"`      |
-| `hintlabels`              | string  | `"asdfghjkl"`                  |                                    | `vim.opt.hintlabels = "asdf"`            |
-| `tablewidget`             | string  | `"cursor"`                     | `"off"`, `"cursor"`, `"always"`    | `vim.opt.tablewidget = "cursor"`         |
+| Option                    | Type    | Default                        | Valid range / values                          | Example                                  |
+| ------------------------- | ------- | ------------------------------ | --------------------------------------------- | ---------------------------------------- |
+| `textobjects`             | boolean | `true`                         |                                               | `vim.opt.textobjects = true`             |
+| `navigation`              | boolean | `true`                         |                                               | `vim.opt.navigation = true`              |
+| `hardwrap`                | boolean | `true`                         |                                               | `vim.opt.hardwrap = true`                |
+| `listcontinuation`        | boolean | `true`                         |                                               | `vim.opt.listcontinuation = true`        |
+| `tablenav`                | boolean | `true`                         |                                               | `vim.opt.tablenav = true`                |
+| `workspacenav`            | boolean | `true`                         |                                               | `vim.opt.workspacenav = true`            |
+| `easymotion`              | boolean | `true`                         |                                               | `vim.opt.easymotion = true`              |
+| `easymotiondimming`       | boolean | `true`                         |                                               | `vim.opt.easymotiondimming = true`       |
+| `hintmode`                | boolean | `true`                         |                                               | `vim.opt.hintmode = true`                |
+| `statusbar`               | boolean | `true`                         |                                               | `vim.opt.statusbar = true`               |
+| `chorddisplay`            | boolean | `true`                         |                                               | `vim.opt.chorddisplay = true`            |
+| `powerline`               | boolean | `false`                        |                                               | `vim.opt.powerline = true`               |
+| `expandtab`               | boolean | `true`                         |                                               | `vim.opt.expandtab = true`               |
+| `scrolloff`               | number  | `5`                            | 0–9999                                        | `vim.opt.scrolloff = 8`                  |
+| `scanlimit`               | number  | `20`                           | 5–200                                         | `vim.opt.scanlimit = 20`                 |
+| `labelfontsize`           | number  | `14`                           | 10–20                                         | `vim.opt.labelfontsize = 14`             |
+| `tabstop`                 | number  | `4`                            |                                               | `vim.opt.tabstop = 4`                    |
+| `shiftwidth`              | number  | `4`                            |                                               | `vim.opt.shiftwidth = 4`                 |
+| `textwidth`               | number  | `80`                           |                                               | `vim.opt.textwidth = 80`                 |
+| `insertmodeescapetimeout` | number  | `1000`                         | 100–5000 ms                                   | `vim.opt.insertmodeescapetimeout = 1000` |
+| `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"`            | `vim.opt.clipboard = "unnamedplus"`      |
+| `insertmodeescape`        | string  | `""`                           |                                               | `vim.opt.insertmodeescape = "jk"`        |
+| `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                               | `vim.opt.easymotionlabels = "asdf"`      |
+| `hintlabels`              | string  | `"asdfghjkl"`                  |                                               | `vim.opt.hintlabels = "asdf"`            |
+| `tablewidget`             | string  | `"cursor"`                     | `"off"`, `"cursor"`, `"always"`, `"embedded"` | `vim.opt.tablewidget = "cursor"`         |
 
 | `whichkey` | string | `"off"` | `"off"`, `"leader"`, `"all"` | `vim.opt.whichkey = "leader"` |
 | `whichkeygrouping` | string | `"grouped"` | `"flat"`, `"grouped"` | `vim.opt.whichkeygrouping = "grouped"` |

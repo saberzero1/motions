@@ -12,51 +12,9 @@ import {
     editorInfoField,
     MarkdownRenderer,
 } from 'obsidian';
-
-const TABLE_RE = /^\s*\|/;
-const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
+import { SEPARATOR_RE, findTableRanges, cursorInRange } from './table-utils';
 
 type Alignment = 'left' | 'center' | 'right' | null;
-
-interface TableRange {
-    from: number;
-    to: number;
-    lines: string[];
-}
-
-function findTableRanges(state: EditorState): TableRange[] {
-    const doc = state.doc;
-    const ranges: TableRange[] = [];
-    let i = 1;
-    while (i <= doc.lines) {
-        const line = doc.line(i);
-        if (!TABLE_RE.test(line.text)) {
-            i++;
-            continue;
-        }
-        const start = i;
-        const lines: string[] = [line.text];
-        i++;
-        while (i <= doc.lines) {
-            const next = doc.line(i);
-            if (!TABLE_RE.test(next.text)) break;
-            lines.push(next.text);
-            i++;
-        }
-        if (lines.length >= 2) {
-            ranges.push({
-                from: doc.line(start).from,
-                to: doc.line(start + lines.length - 1).to,
-                lines,
-            });
-        }
-    }
-    return ranges;
-}
-
-function cursorInRange(state: EditorState, from: number, to: number): boolean {
-    return state.selection.ranges.some((r) => r.from <= to && r.to >= from);
-}
 
 function splitCells(line: string): string[] {
     return line.split('|').slice(1, -1);
@@ -165,6 +123,10 @@ class TableRenderWidget extends WidgetType {
         container.appendChild(wrapper);
 
         const { headers, alignments, rows } = parseTable(this.lines);
+        const separatorIndex = this.lines.findIndex((line) =>
+            SEPARATOR_RE.test(line),
+        );
+        const headerRowCount = separatorIndex >= 0 ? separatorIndex + 1 : 1;
 
         const table = doc.createElement('table');
         wrapper.appendChild(table);
@@ -175,6 +137,8 @@ class TableRenderWidget extends WidgetType {
         thead.appendChild(headerRow);
         for (let i = 0; i < headers.length; i++) {
             const th = doc.createElement('th');
+            th.setAttribute('data-row', '0');
+            th.setAttribute('data-col', String(i));
             const align = alignments[i];
             if (align) th.setAttribute('align', align);
             const cellWrapper = doc.createElement('div');
@@ -192,10 +156,13 @@ class TableRenderWidget extends WidgetType {
 
         const tbody = doc.createElement('tbody');
         table.appendChild(tbody);
-        for (const row of rows) {
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex] ?? [];
             const tr = doc.createElement('tr');
             for (let i = 0; i < Math.max(row.length, headers.length); i++) {
                 const td = doc.createElement('td');
+                td.setAttribute('data-row', String(rowIndex + headerRowCount));
+                td.setAttribute('data-col', String(i));
                 const align = alignments[i];
                 if (align) td.setAttribute('align', align);
                 const cellWrapper = doc.createElement('div');
@@ -231,7 +198,16 @@ function buildDecorations(state: EditorState): DecorationSet {
     const decorations: Range<Decoration>[] = [];
 
     for (const table of tables) {
-        if (cursorInRange(state, table.from, table.to)) continue;
+        if (
+            activeEditTableRange &&
+            table.from <= activeEditTableRange.to &&
+            table.to >= activeEditTableRange.from
+        ) {
+            continue;
+        }
+        if (!embeddedMode && cursorInRange(state, table.from, table.to)) {
+            continue;
+        }
         decorations.push(
             Decoration.replace({
                 widget: new TableRenderWidget(
@@ -247,9 +223,21 @@ function buildDecorations(state: EditorState): DecorationSet {
 }
 
 let enabled = false;
+let embeddedMode = false;
+let activeEditTableRange: { from: number; to: number } | null = null;
 
 export function setTableRenderEnabled(value: boolean): void {
     enabled = value;
+}
+
+export function setTableEmbeddedMode(value: boolean): void {
+    embeddedMode = value;
+}
+
+export function setActiveEditTableRange(
+    range: { from: number; to: number } | null,
+): void {
+    activeEditTableRange = range;
 }
 
 export const tableRenderField: Extension = StateField.define<DecorationSet>({
@@ -258,6 +246,9 @@ export const tableRenderField: Extension = StateField.define<DecorationSet>({
     },
     update(prev, tr) {
         if (!enabled) return Decoration.none;
+        if (activeEditTableRange && tr.docChanged) {
+            return prev.map(tr.changes);
+        }
         if (tr.docChanged || tr.selection) {
             return buildDecorations(tr.state);
         }
