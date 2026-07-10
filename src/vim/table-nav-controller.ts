@@ -43,7 +43,7 @@ class TableNavController implements PluginValue {
     private widgetEl: HTMLElement | null = null;
     private readonly view: EditorView;
     private readonly isNested: boolean;
-    private pendingTimer: ReturnType<typeof setTimeout> | null = null;
+    private pendingTimer: number | null = null;
 
     constructor(view: EditorView) {
         this.view = view;

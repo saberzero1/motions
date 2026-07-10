@@ -28,7 +28,7 @@ export function openCellEditor(
 ): CellEditorHandle | null {
     closeCellEditor(null); // close any previous
 
-    const wrapper = cellEl.querySelector('.table-cell-wrapper');
+    const wrapper = cellEl.querySelector<HTMLElement>('.table-cell-wrapper');
     if (!wrapper) return null;
 
     const originalText = wrapper.textContent?.trim() ?? '';
