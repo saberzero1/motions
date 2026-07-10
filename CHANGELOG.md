@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Yank highlight not working on first load** — the yank highlight handler was not attached to the initially open editor on plugin startup, only activating after switching to a different pane. `reloadFeatures()` now calls `attachYankHighlight()` (cleanup + re-attach) instead of only cleaning up, ensuring the handler is attached when vimrc/lua loading triggers the first feature reload. ([#53](https://github.com/saberzero1/motions/issues/53))
+    - Plugin: `src/main.ts` (`reloadFeatures` calls `attachYankHighlight()`)
+
+### Documentation
+
+- `docs/features/quality-of-life.md`: added "Yank highlight" section with mode descriptions, configuration, CSS override tip, and fork-mode-only callout
+- `docs/features/index.md`: added yank highlight to Quality of life bullet
+- `docs/configuration/settings.md`: added Yank highlight and Yank highlight duration rows to Vim features table; added CSS override tip callout
+- `KNOWN_LIMITATIONS.md`: updated "Yank highlighting" row from external plugin recommendation to built-in
+
 ## [0.47.0] - 2026-07-10
 
 ### Added

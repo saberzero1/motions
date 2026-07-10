@@ -1112,8 +1112,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.autocmdManager.deferReload();
             return;
         }
-        this.yankHighlightCleanup?.();
-        this.yankHighlightCleanup = null;
+        this.attachYankHighlight();
         this.modeTracker?.destroy();
         this.modeTracker = null;
         this.hintActions = null;
