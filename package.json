@@ -1,6 +1,6 @@
 {
     "name": "obsidian-vim-motions",
-    "version": "0.46.0",
+    "version": "0.47.0",
     "description": "Enhances Obsidian's Vim mode with Markdown-aware text objects, structural navigation, workspace keyboard control, and a polished Neovim-native experience.",
     "main": "main.js",
     "type": "module",

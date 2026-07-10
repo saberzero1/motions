@@ -9,13 +9,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **[[text-objects|Markdown text objects]]** — operate on bold, italic, code, math, links, blockquotes, code blocks, tables, and more with standard Vim operators
 - **[[structural-navigation|Structural navigation]]** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
-- **[[lua-config|Lua configuration]]** — `.obsidian.init.lua` with `vim.keymap.set`, `vim.opt` (including `guicursor`), `vim.fn`, `vim.api` (buffer APIs, `nvim_set_hl`), `vim.ob` (68 Obsidian-specific functions: metadata, filesystem, UI, cursor, surround, leader), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.uv` timers, 15 autocommand events, buffer-local keymaps, `vim.obsidian.keymap` (global keymaps), `vim.obsidian.whichkey` (which-key labels), and fuzzy picker API
+- **[[lua-config|Lua configuration]]** — `.obsidian.init.lua` with `vim.keymap.set`, `vim.opt` (including `guicursor`), `vim.fn`, `vim.api` (buffer APIs, `nvim_set_hl`), `vim.ob` (68 Obsidian-specific functions: metadata, filesystem, UI, cursor, surround, leader), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.uv` timers, 17 autocommand events, buffer-local keymaps, `vim.obsidian.keymap` (global keymaps), `vim.obsidian.whichkey` (which-key labels), and fuzzy picker API
 - **[[vimrc|Built-in vimrc]]** — `.obsidian.vimrc` loader with 35+ configurable settings
 - **[[easymotion|EasyMotion / Hop]]** — jump to any visible position with two keystrokes
 - **[[workspace-navigation|Workspace keyboard control]]** — navigate panes, tabs, and sidebar without a mouse
 - **[[surround|Surround]]** — add, change, or delete surrounding delimiters (nvim-surround parity, custom pairs)
 - **[[hardwrap|Hard-wrap formatting]]** — Markdown-aware `gq`/`gw` operators
-- **[[ex-commands|60+ ex commands]]** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, fuzzy picker commands, and more
+- **[[ex-commands|100+ ex commands]]** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, fuzzy picker commands, and more
 - **[[hint-mode|Vimium-style hints]]** — navigate the entire Obsidian UI with keyboard hints
 
 ## Get started
@@ -26,12 +26,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 57 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 60 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.46.0
+## What's new in 0.47.0
 
-- **[[remapping|Fully remappable keybindings]]** — every plugin keybinding is now user-remappable across all four contexts: editor, oil explorer, picker, and global workspace navigation. 46 new ex command aliases let you remap structural navigation, table navigation, workspace actions, and hint mode via `nmap`/`vim.keymap.set`. Oil gets 9 ex commands and `OilEnter`/`OilLeave` autocmd events for buffer-local keymaps. Picker keybindings are configurable via `vim.obsidian.pick_keymap()`. Global mappings support `:gmap`/`:gunmap` from the editor or non-editor `:` modal.
-- **Fixed which-key status bar overlap** — the which-key popup no longer hides behind Obsidian's status bar. The overlay now detects the status bar height and adds padding to keep content visible. In split views, padding is only applied when the pane's bottom edge is adjacent to the status bar.
+- **Yank highlight** — yanked text is briefly highlighted, giving visual feedback on what was yanked. Three modes: "Solid" (Neovim-style), "Fade" (gradual fade-out), or "Off". Duration is configurable (50–3000 ms). Works with remapped yank keys. Replaces the external [obsidian-vim-yank-highlight](https://github.com/aleksey-rowan/obsidian-vim-yank-highlight) plugin. Requires bundled fork mode.
+- **Embedded table editing mode** — new `'embedded'` option for the table widget. Tables render as themed HTML with cell-level navigation (`h`/`j`/`k`/`l`), vim-enabled cell editors (`i`/`a`/`c`/`s`/`Enter`), and direct table manipulation (`o`/`O` add rows, `dd` delete row, `dc` delete column, `J`/`K`/`H`/`L` move rows/columns, `I`/`A` add columns, `=` realign). Cell edits have per-cell undo granularity.
+- **Oil explorer rewritten** — oil no longer creates temporary `oil~*.md` files in the vault. The directory listing now uses a dedicated `oil-explorer` view type with an embedded CodeMirror 6 editor, eliminating temp file visibility in tabs, search, and graph. Includes a new reusable `EmbeddableMarkdownEditor` abstraction for mounting full CM6 + vim editors in any DOM container.
 
 See the [[changelog|full changelog]] for details.

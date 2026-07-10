@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-07-10
+
 ### Added
 
 - **Yank highlight** — yanked text is briefly highlighted, providing visual feedback on what was yanked. Three modes available in **Settings → Vim Motions → Vim features → Yank highlight**: "Solid" (default, Neovim-style — instant appear, hold, disappear), "Fade" (gradual fade-out animation), or "Off". Duration is configurable via the **Yank highlight duration** slider (50–3000ms, default 200ms). Highlight color adapts to the active theme via `--text-accent` and can be overridden with the `--vim-motions-yank-bg` CSS custom property. Respects `prefers-reduced-motion`. Replaces the external [obsidian-vim-yank-highlight](https://github.com/aleksey-rowan/obsidian-vim-yank-highlight) plugin. ([#53](https://github.com/saberzero1/motions/issues/53))
