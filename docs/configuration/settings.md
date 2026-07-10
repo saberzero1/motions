@@ -20,14 +20,19 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vim features
 
-| Name                           | Type     | Default  | Range/Options                         | Lua                        | Vimrc                  | Description                                                                              |
-| ------------------------------ | -------- | -------- | ------------------------------------- | -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- | ----- | --------------- |
-| Text objects                   | toggle   | `true`   | —                                     | `vim.opt.textobjects`      | `set textobjects`      | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                             |
-| Structural navigation          | toggle   | `true`   | —                                     | `vim.opt.navigation`       | `set navigation`       | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).              |
-| Hard-wrap operator (gq)        | toggle   | `true`   | —                                     | `vim.opt.hardwrap`         | `set hardwrap`         | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.             |
-| Smart list continuation on o/O | toggle   | `true`   | —                                     | `vim.opt.listcontinuation` | `set listcontinuation` | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O. |
-| Table navigation               | toggle   | `true`   | —                                     | `vim.opt.tablenav`         | `set tablenav`         | Enable table cell navigation motions (`]                                                 | `, `[ | `, `]c`, `[c`). |
-| Table widget in live preview   | dropdown | `cursor` | `embedded`, `always`, `cursor`, `off` | `vim.opt.tablewidget`      | `set tablewidget`      | Controls how tables display in Live Preview.                                             |
+| Name                           | Type     | Default  | Range/Options                         | Lua                             | Vimrc                       | Description                                                                                       |
+| ------------------------------ | -------- | -------- | ------------------------------------- | ------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------- | ----- | --------------- |
+| Text objects                   | toggle   | `true`   | —                                     | `vim.opt.textobjects`           | `set textobjects`           | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                                      |
+| Structural navigation          | toggle   | `true`   | —                                     | `vim.opt.navigation`            | `set navigation`            | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).                       |
+| Hard-wrap operator (gq)        | toggle   | `true`   | —                                     | `vim.opt.hardwrap`              | `set hardwrap`              | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.                      |
+| Smart list continuation on o/O | toggle   | `true`   | —                                     | `vim.opt.listcontinuation`      | `set listcontinuation`      | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O.          |
+| Table navigation               | toggle   | `true`   | —                                     | `vim.opt.tablenav`              | `set tablenav`              | Enable table cell navigation motions (`]                                                          | `, `[ | `, `]c`, `[c`). |
+| Table widget in live preview   | dropdown | `cursor` | `embedded`, `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                      |
+| Yank highlight                 | dropdown | `solid`  | `off`, `solid`, `fade`                | `vim.opt.yankhighlightmode`     | `set yankhighlightmode`     | Highlight yanked text. "Solid" appears and disappears (Neovim-style). "Fade" gradually fades out. |
+| Yank highlight duration        | slider   | `200`    | 50–3000 ms                            | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                        |
+
+> [!tip]
+> Override the highlight color with a CSS snippet: set `--vim-motions-yank-bg` on `.theme-dark` or `.theme-light` (e.g., `--vim-motions-yank-bg: rgba(255, 200, 0, 0.4);`).
 
 | Workspace navigation | toggle | `true` | — | `vim.opt.workspacenav` | `set workspacenav` | Enable pane/tab/sidebar control (`<C-w>h/j/k/l`, `gt`, `gT`, etc.). |
 | Fuzzy picker for buffers | toggle | `true` | — | — | — | Use the unified fuzzy picker for `:buffers`, `:ls`, `:marks`, `:registers`, and `:grep`. |

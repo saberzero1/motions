@@ -1024,12 +1024,12 @@ Verified with `:normal!` (headless `-c` flags), Vimscript `feedkeys("...", "tx")
 
 These features are excluded by design and will not be implemented:
 
-| Feature                         | Reason                                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `jscommand` / `jsfile` in vimrc | Security risk — arbitrary JavaScript execution                                                   |
-| `cmcommand` in vimrc            | Broken in CodeMirror 6, never fixed upstream                                                     |
-| Input method switching          | Use the [vim-im-control](https://github.com/kometenstaub/obsidian-vim-im-control) plugin         |
-| Yank highlighting               | Use the [vim-yank-highlight](https://github.com/kometenstaub/obsidian-vim-yank-highlight) plugin |
-| Reading view navigation         | Use the [vim-keynav](https://github.com/kometenstaub/obsidian-vim-keynav) plugin                 |
-| Vim toggle command              | Use the [vim-toggle](https://github.com/conneroisu/vim-toggle) plugin                            |
-| Canvas keyboard navigation      | Canvas is a different rendering surface without CodeMirror                                       |
+| Feature                         | Reason                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| `jscommand` / `jsfile` in vimrc | Security risk — arbitrary JavaScript execution                                              |
+| `cmcommand` in vimrc            | Broken in CodeMirror 6, never fixed upstream                                                |
+| Input method switching          | Use the [vim-im-control](https://github.com/kometenstaub/obsidian-vim-im-control) plugin    |
+| ~~Yank highlighting~~           | **Built-in** since v0.47.0 — see **Settings → Vim Motions → Vim features → Yank highlight** |
+| Reading view navigation         | Use the [vim-keynav](https://github.com/kometenstaub/obsidian-vim-keynav) plugin            |
+| Vim toggle command              | Use the [vim-toggle](https://github.com/conneroisu/vim-toggle) plugin                       |
+| Canvas keyboard navigation      | Canvas is a different rendering surface without CodeMirror                                  |

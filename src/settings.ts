@@ -121,6 +121,8 @@ export interface VimMotionsSettings {
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'off' | 'cursor' | 'always' | 'embedded';
+    yankHighlightMode: 'off' | 'solid' | 'fade';
+    yankHighlightDuration: number;
 
     enableHintMode: boolean;
     hintModeLabels: string;
@@ -184,6 +186,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     listContinuationOnOpen: true,
     enableTableNav: true,
     tableWidgetMode: 'cursor',
+    yankHighlightMode: 'solid',
+    yankHighlightDuration: 200,
 
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
@@ -282,6 +286,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'listContinuationOnOpen',
         'enableTableNav',
         'tableWidgetMode',
+        'yankHighlightMode',
         'enableWorkspaceNav',
         'enableEasyMotion',
         'enableHintMode',
@@ -479,6 +484,39 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                             disabled: () =>
                                 this.isOverridden('tableWidgetMode'),
+                        },
+                    },
+                    {
+                        name: 'Yank highlight',
+                        desc: this.describeOverride(
+                            'yankHighlightMode',
+                            'Highlight yanked text. "Solid" shows the highlight and removes it after the duration (Neovim-style). "Fade" gradually fades the highlight out.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'yankHighlightMode',
+                            options: {
+                                off: 'Off',
+                                solid: 'Solid',
+                                fade: 'Fade',
+                            },
+                            disabled: () =>
+                                this.isOverridden('yankHighlightMode'),
+                        },
+                    },
+                    {
+                        name: 'Yank highlight duration',
+                        desc: this.describeOverride(
+                            'yankHighlightDuration',
+                            'How long the yank highlight stays visible in milliseconds (50\u20133000).',
+                        ),
+                        control: {
+                            type: 'number' as const,
+                            key: 'yankHighlightDuration',
+                            min: 50,
+                            max: 3000,
+                            disabled: () =>
+                                this.isOverridden('yankHighlightDuration'),
                         },
                     },
                     {
@@ -1549,6 +1587,52 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('tableWidgetMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Yank highlight')
+            .setDesc(
+                describeOverride(
+                    'yankHighlightMode',
+                    'Highlight yanked text. "Solid" shows the highlight and removes it after the duration (Neovim-style). "Fade" gradually fades the highlight out.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOption('off', 'Off')
+                    .addOption('solid', 'Solid')
+                    .addOption('fade', 'Fade')
+                    .setValue(this.plugin.settings.yankHighlightMode)
+                    .setDisabled(isOverridden('yankHighlightMode'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.yankHighlightMode =
+                            value as VimMotionsSettings['yankHighlightMode'];
+                        this.plugin.vimrcOverrides?.delete('yankHighlightMode');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Yank highlight duration')
+            .setDesc(
+                describeOverride(
+                    'yankHighlightDuration',
+                    'How long the yank highlight stays visible in milliseconds (50\u20133000).',
+                ),
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(50, 3000, 50)
+                    .setValue(this.plugin.settings.yankHighlightDuration)
+                    .setDisabled(isOverridden('yankHighlightDuration'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.yankHighlightDuration = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'yankHighlightDuration',
+                        );
+                        await this.plugin.saveSettings();
                     }),
             );
 

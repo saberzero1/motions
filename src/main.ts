@@ -66,6 +66,11 @@ import {
     setTableEmbeddedMode,
 } from './vim/table-embedded-editor';
 import { EditorView } from '@codemirror/view';
+import {
+    yankHighlightExtension,
+    showYankHighlight,
+} from './vim/yank-highlight';
+import type { VimYankEvent } from './types/vim-api';
 
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 import { loadInitLua } from './lua/loader';
@@ -113,6 +118,7 @@ export default class VimMotionsPlugin extends Plugin {
     private uninstallTableSuppressor: (() => void) | null = null;
     private uninstallTableCursorFix: (() => void) | null = null;
     private uninstallVisualLineFix: (() => void) | null = null;
+    private yankHighlightCleanup: (() => void) | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
     private globalRegistry: GlobalMappingRegistry | null = null;
@@ -675,6 +681,13 @@ export default class VimMotionsPlugin extends Plugin {
             }),
         );
 
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', () => {
+                this.attachYankHighlight();
+            }),
+        );
+        this.attachYankHighlight();
+
         // --- Leader key resolution ---
         this.leaderRegistry = new LeaderRegistry();
         if (this.vimrcEnabled) {
@@ -1087,6 +1100,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.uninstallTableCursorFix = installTableCursorFix();
         }
 
+        this.registerEditorExtension(yankHighlightExtension());
+
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
 
         this.app.workspace.trigger('parse-style-settings');
@@ -1097,6 +1112,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.autocmdManager.deferReload();
             return;
         }
+        this.yankHighlightCleanup?.();
+        this.yankHighlightCleanup = null;
         this.modeTracker?.destroy();
         this.modeTracker = null;
         this.hintActions = null;
@@ -2038,7 +2055,56 @@ export default class VimMotionsPlugin extends Plugin {
         });
     }
 
+    private attachYankHighlight(): void {
+        this.yankHighlightCleanup?.();
+        this.yankHighlightCleanup = null;
+
+        if (this.settings.yankHighlightMode === 'off') return;
+
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!mdView) return;
+        const adapter = getCmAdapter(mdView);
+        if (!adapter) return;
+
+        const handler = (event: VimYankEvent) => {
+            if (event.operator !== 'y') return;
+
+            const editorView = (mdView.editor as unknown as { cm: EditorView })
+                ?.cm;
+            if (!editorView) return;
+
+            const state = editorView.state;
+            const sel = state.selection.main;
+
+            let ranges: { from: number; to: number }[];
+            if (event.regType === 'V') {
+                const fromLine = state.doc.lineAt(sel.from);
+                const toLine = state.doc.lineAt(sel.to);
+                ranges = [{ from: fromLine.from, to: toLine.to }];
+            } else if (event.regType === '\x16') {
+                // Blockwise: deferred to v2
+                return;
+            } else {
+                ranges = [{ from: sel.from, to: sel.to }];
+            }
+
+            showYankHighlight(
+                editorView,
+                ranges,
+                this.settings.yankHighlightDuration,
+                this.settings.yankHighlightMode as 'solid' | 'fade',
+            );
+        };
+
+        adapter.on('vim-yank', handler as (...args: unknown[]) => void);
+        this.yankHighlightCleanup = () => {
+            adapter.off('vim-yank', handler as (...args: unknown[]) => void);
+        };
+    }
+
     onunload() {
+        this.yankHighlightCleanup?.();
+        this.yankHighlightCleanup = null;
         this.matcher?.dispose();
         this.matcher = null;
         if (this.frecencySaveTimer) {

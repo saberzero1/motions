@@ -19,7 +19,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:Oil`, `:sidebar`, navigation/action aliases, and more
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 - **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
-- **Quality of life**: Neovim defaults (`Y`/`Q`), smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
+- **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation
 

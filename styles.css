@@ -974,3 +974,33 @@ settings:
     padding: 0;
     min-height: unset;
 }
+
+/* --- Yank highlight --- */
+
+.vim-motions-yank-highlight {
+    background-color: var(
+        --vim-motions-yank-bg,
+        color-mix(in oklch, var(--text-accent) 40%, transparent)
+    );
+    border-radius: var(--radius-s, 2px);
+}
+
+.vim-motions-yank-highlight-fade {
+    animation: vim-motions-yank-fade var(--vim-motions-yank-duration, 200ms)
+        ease-out forwards;
+}
+
+@keyframes vim-motions-yank-fade {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vim-motions-yank-highlight-fade {
+        animation: none;
+    }
+}

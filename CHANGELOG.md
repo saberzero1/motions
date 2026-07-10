@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Yank highlight** — yanked text is briefly highlighted, providing visual feedback on what was yanked. Three modes available in **Settings → Vim Motions → Vim features → Yank highlight**: "Solid" (default, Neovim-style — instant appear, hold, disappear), "Fade" (gradual fade-out animation), or "Off". Duration is configurable via the **Yank highlight duration** slider (50–3000ms, default 200ms). Highlight color adapts to the active theme via `--text-accent` and can be overridden with the `--vim-motions-yank-bg` CSS custom property. Respects `prefers-reduced-motion`. Replaces the external [obsidian-vim-yank-highlight](https://github.com/aleksey-rowan/obsidian-vim-yank-highlight) plugin. ([#53](https://github.com/saberzero1/motions/issues/53))
+    - Works with remapped yank keys (detects actual yank operations via the `vim-yank` event, not keypress sniffing)
+    - Handles rapid successive yanks (new highlight replaces previous), large yanks (>1000 lines skipped), and disposed views (tab close during highlight)
+    - Requires bundled fork mode (built-in vim mode OFF) — the built-in vim does not emit the `vim-yank` event
+    - Blockwise yank highlight deferred to a future release
+    - Plugin: `src/vim/yank-highlight.ts` (new), `src/main.ts`, `src/settings.ts`, `styles.css`
 - **Embedded table editing mode** — new `'embedded'` option for **Settings → Vim Motions → Table widget in Live Preview**. Tables render as themed HTML with a two-layer editing model:
     - **Table navigation**: `h`/`j`/`k`/`l` moves a cell highlight across the rendered table. `j`/`k` at the top/bottom row exits the table.
     - **Cell editing**: `i`/`a`/`c`/`s`/`Enter` opens a vim-enabled editor in the highlighted cell with full vim support (modes, motions, text objects, auto-formatting). `Escape` returns to table navigation; a second `Escape` exits the table. `Tab`/`Shift-Tab` moves between cells.

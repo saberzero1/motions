@@ -24,6 +24,25 @@ Pressing `o` or `O` on a list line automatically continues the list marker on th
 
 Works correctly on the first line after YAML frontmatter. Disable for plain Neovim behavior via **Settings → Vim Motions → Smart list continuation on o/O**, `vim.opt.listcontinuation = false` in Lua, or `set nolistcontinuation` in vimrc.
 
+## Yank highlight
+
+Yanked text is briefly highlighted to provide visual feedback on what was yanked. Three modes are available in **Settings → Vim Motions → Vim features → Yank highlight**:
+
+- **Solid** (default) — highlight appears instantly and disappears after the configured duration, matching Neovim's `vim.highlight.on_yank()` behavior
+- **Fade** — highlight gradually fades out over the configured duration
+- **Off** — no highlight
+
+Duration is configurable via the **Yank highlight duration** slider (50–3000ms, default 200ms), or in your config:
+
+- `vim.opt.yankhighlightmode = "solid"` / `vim.opt.yankhighlightduration = 200` in Lua
+- `set yankhighlightmode=solid` / `set yankhighlightduration=200` in vimrc
+
+> [!tip]
+> Override the highlight color with a CSS snippet: set `--vim-motions-yank-bg` on `.theme-dark` or `.theme-light` (e.g., `--vim-motions-yank-bg: rgba(255, 200, 0, 0.4);`).
+
+> [!info]
+> Yank highlight requires bundled fork mode (built-in vim mode OFF). The built-in vim does not emit the `vim-yank` event used for detection. Works with remapped yank keys — detection is based on the actual yank operation, not keypress sniffing.
+
 ## Neovim defaults
 
 - `Y` yanks to end of line (`y$`) instead of the entire line — matching Neovim's default
