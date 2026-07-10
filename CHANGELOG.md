@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Oil explorer architecture rewritten** — oil no longer creates temporary `oil~*.md` files in the vault. The directory listing is rendered in a dedicated `oil-explorer` view type with an embedded CodeMirror 6 editor, eliminating temp file visibility in tabs, search, and graph. Vim mode (both built-in and bundled fork) works natively in the embedded editor. View state (current directory) persists across workspace restarts via `getState()`/`setState()`.
+    - **New**: reusable `EmbeddableMarkdownEditor` abstraction (`src/editors/embeddable-editor.ts`) — extracts Obsidian's internal `ScrollableMarkdownEditor` prototype via `app.embedRegistry` and exposes a lightweight editor mountable in any DOM container with full CM6 + vim support. Designed for future use by the table editor and other features needing embedded markdown editing.
+    - **New**: `OilView` custom view (`src/oil/oil-view.ts`) — extends `View` with view type `'oil-explorer'`, embedded editor with oil conceal extension, directory state management, and previous-file tracking for workspace restoration on close.
+    - **Changed**: `:q`/`:wq`/`:x`/`q` in oil now restore the previously open file instead of leaving an empty workspace.
+    - **Changed**: Oil keybinding registration uses `vim.map` with `<CR>` notation instead of `vim.noremap` with literal newline, fixing command execution in the embedded editor.
+    - **Changed**: Lua `vim.obsidian.oil.*` callbacks call manager methods directly instead of routing through ex commands, fixing Lua API calls when no MarkdownView is active.
+    - **Removed**: `OIL_TEMP_PREFIX`, `tempToDir` map, `getTempFilePath()`, `forgetTempPath()`, `cleanupOrphanedTempFiles()`, `forceSourceMode()`, `userIgnoreFilters` management, CSS `.nav-file-title[data-path^='oil~']` hiding rule.
+    - **Migration**: Legacy `oil~*.md` files from previous versions are automatically cleaned up on first load (`cleanupLegacyTempFiles()`).
+    - Plugin: `src/editors/embeddable-editor.ts` (new), `src/oil/oil-view.ts` (new), `src/oil/manager.ts` (rewritten), `src/oil/keybindings.ts` (refactored), `src/oil/render.ts` (OIL_TEMP_PREFIX filter removed), `src/workspace/commands.ts` (OilView detection for `:w`/`:wq`/`:x`/`:q`), `src/main.ts` (`registerView`, Lua callbacks simplified), `styles.css` (OilView styling), `test/specs/oil-poc.e2e.ts` (rewritten for OilView, 16 tests)
+
+### Fixed
+
+- **Oil confirm dialog button not focused** — the confirmation dialog shown when deleting files now auto-focuses the Confirm button, matching pre-migration behavior.
+
 ## [0.46.0] - 2026-07-10
 
 ### Fixed

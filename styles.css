@@ -929,8 +929,23 @@ settings:
         default-dark: '#ffffff'
 */
 
-/* --- Oil temp file hiding --- */
+/* --- Oil view --- */
 
-.nav-file-title[data-path^='oil~'] {
-    display: none;
+.vim-motions-oil-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.vim-motions-oil-view .cm-editor {
+    padding: var(--file-margins);
+}
+
+.vim-motions-oil-view .cm-editor .cm-scroller {
+    padding: 0;
+}
+
+.vim-motions-oil-editor {
+    flex: 1;
 }

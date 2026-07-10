@@ -1,7 +1,8 @@
-import { type App, MarkdownView, Notice } from 'obsidian';
+import { type App, Notice } from 'obsidian';
 import type { OilManager } from './manager';
 import type { AutocmdManager } from '../lua/autocmd';
 import { getVimApi } from '../vim/vim-api';
+import { OilView } from './oil-view';
 
 interface OilMapping {
     lhs: string;
@@ -69,8 +70,8 @@ export class OilKeybindingManager {
     }
 
     onActiveLeafChange(): void {
-        const file = this.app.workspace.getActiveFile();
-        const isOil = !!(file && this.manager.isOilFile(file.path));
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        const isOil = leaf?.view instanceof OilView;
 
         if (isOil && !this.applied) {
             this.apply();
@@ -79,8 +80,9 @@ export class OilKeybindingManager {
         }
 
         if (isOil && !this.wasInOil) {
+            const view = leaf?.view instanceof OilView ? leaf.view : null;
             this.autocmdManager?.fire('OilEnter', {
-                file: file?.path ?? '',
+                file: view?.getDirPath() ?? '',
             });
         } else if (!isOil && this.wasInOil) {
             this.autocmdManager?.fire('OilLeave');
@@ -94,7 +96,7 @@ export class OilKeybindingManager {
         if (!vim) return;
         this.appliedKeys = [];
         for (const m of OIL_MAPPINGS) {
-            vim.noremap(m.lhs, `:${m.exName}\n`, 'normal');
+            vim.map(m.lhs, `:${m.exName}<CR>`, 'normal');
             this.appliedKeys.push(m.lhs);
         }
         this.applied = true;
@@ -135,26 +137,38 @@ export class OilKeybindingManager {
         app: App,
         manager: OilManager,
     ): Record<string, () => void> {
+        const getActiveOilView = (): OilView | null => {
+            const leaf = app.workspace.getMostRecentLeaf();
+            const view = leaf?.view;
+            return view instanceof OilView ? view : null;
+        };
+
+        const getCursorLine = (view: OilView): number | null => {
+            const editorView = view.getEditorView();
+            if (!editorView) return null;
+            const pos = editorView.state.selection.main.head;
+            return editorView.state.doc.lineAt(pos).number - 1;
+        };
+
         return {
             oilOpenEntry: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const view = getActiveOilView();
                 if (!view) return;
-                const cursor = view.editor.getCursor();
-                const lineText = view.editor.getLine(cursor?.line ?? 0);
+                const cursorLine = getCursorLine(view);
+                if (cursorLine === null) return;
+                const lineText = view.getLineText(cursorLine);
                 const entry = manager.getEntryAtLine(lineText);
                 if (!entry) return;
                 if (entry.type === 'folder') {
-                    void manager.navigateToDirectory(entry.path, file.path);
+                    void manager.navigateToDirectory(entry.path);
                 } else {
                     void app.workspace.openLinkText(entry.path, '');
                 }
             },
             oilParent: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                const dirPath = manager.getDirPath(file.path) ?? '';
+                const view = getActiveOilView();
+                if (!view) return;
+                const dirPath = view.getDirPath();
                 if (!dirPath) {
                     new Notice('Oil: already at vault root');
                     return;
@@ -162,61 +176,62 @@ export class OilKeybindingManager {
                 const parentPath = dirPath.includes('/')
                     ? dirPath.substring(0, dirPath.lastIndexOf('/'))
                     : '';
-                void manager.navigateToDirectory(parentPath, file.path);
+                void manager.navigateToDirectory(parentPath);
             },
             oilRoot: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                void manager.navigateToDirectory('', file.path);
+                const view = getActiveOilView();
+                if (!view) return;
+                void manager.navigateToDirectory('');
             },
             oilRefresh: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                const dirPath = manager.getDirPath(file.path) ?? '';
-                void manager.navigateToDirectory(dirPath, file.path);
+                const view = getActiveOilView();
+                if (!view) return;
+                void manager.navigateToDirectory(view.getDirPath());
             },
             oilClose: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                const filePath = file.path;
+                const view = getActiveOilView();
+                if (!view) return;
                 const leaf = app.workspace.getMostRecentLeaf();
-                leaf?.detach();
-                manager.forgetTempPath(filePath);
-                manager.cleanupOrphanedTempFiles();
+                if (!leaf) return;
+                const previousFile = view.getPreviousFile();
+                const file = previousFile
+                    ? app.vault.getAbstractFileByPath(previousFile)
+                    : null;
+                if (file) {
+                    void leaf.openFile(file as import('obsidian').TFile);
+                } else {
+                    leaf.detach();
+                }
             },
             oilToggleHidden: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
+                const view = getActiveOilView();
+                if (!view) return;
                 manager.toggleHidden();
-                const dirPath = manager.getDirPath(file.path) ?? '';
-                void manager.navigateToDirectory(dirPath, file.path);
+                void manager.navigateToDirectory(view.getDirPath());
             },
             oilCycleSort: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
+                const view = getActiveOilView();
+                if (!view) return;
                 manager.cycleSortKey();
-                const dirPath = manager.getDirPath(file.path) ?? '';
-                void manager.navigateToDirectory(dirPath, file.path);
+                void manager.navigateToDirectory(view.getDirPath());
             },
             oilYankPath: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const view = getActiveOilView();
                 if (!view) return;
-                const cursor = view.editor.getCursor();
-                const lineText = view.editor.getLine(cursor?.line ?? 0);
+                const cursorLine = getCursorLine(view);
+                if (cursorLine === null) return;
+                const lineText = view.getLineText(cursorLine);
                 const entry = manager.getEntryAtLine(lineText);
                 if (!entry) return;
                 void navigator.clipboard.writeText(entry.path);
                 new Notice(`Oil: yanked ${entry.path}`);
             },
             oilRevealInExplorer: () => {
-                const file = app.workspace.getActiveFile();
-                if (!file || !manager.isOilFile(file.path)) return;
-                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const view = getActiveOilView();
                 if (!view) return;
-                const cursor = view.editor.getCursor();
-                const lineText = view.editor.getLine(cursor?.line ?? 0);
+                const cursorLine = getCursorLine(view);
+                if (cursorLine === null) return;
+                const lineText = view.getLineText(cursorLine);
                 const entry = manager.getEntryAtLine(lineText);
                 if (!entry) return;
                 const target = app.vault.getAbstractFileByPath(entry.path);

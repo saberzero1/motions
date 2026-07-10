@@ -1,4 +1,4 @@
-import { type App, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
+import { type App, Modal, Notice, Plugin } from 'obsidian';
 import type { VimMotionsSettings } from '../settings';
 import { OilCache } from './cache';
 import { renderDirectory } from './render';
@@ -6,10 +6,9 @@ import { parseBufferLines } from './parser';
 import { computeDiff, mergeMultiBufferDiffs, type BufferDiff } from './diff';
 import { validateActions, executeActions } from './actions';
 import type { OilEntry, OilMergedDiff } from './types';
+import { OIL_VIEW_TYPE, type OilView } from './oil-view';
 
-export const OIL_TEMP_PREFIX = 'oil~';
-
-function entriesToBufferText(entries: OilEntry[]): string {
+export function entriesToBufferText(entries: OilEntry[]): string {
     if (entries.length === 0) return '';
     const maxId = entries.reduce((m, e) => Math.max(m, e.id), 0);
     const idWidth = Math.max(3, String(maxId).length);
@@ -23,7 +22,6 @@ function entriesToBufferText(entries: OilEntry[]): string {
 }
 
 export class OilManager {
-    private tempToDir = new Map<string, string>();
     private showHidden = false;
     private sortKey: 'name' | 'mtime' | 'size' = 'name';
     private refreshDebounceTimer: number | null = null;
@@ -35,24 +33,21 @@ export class OilManager {
     ) {}
 
     install(plugin: Plugin): void {
-        this.cleanupStaleFiles();
+        this.cleanupLegacyTempFiles();
         plugin.registerEvent(
             this.app.vault.on('create', (file) => {
-                if (this.isOilFile(file.path)) return;
                 const dirPath = this.getParentDirPath(file.path);
                 this.refreshDirIfOpen(dirPath);
             }),
         );
         plugin.registerEvent(
             this.app.vault.on('delete', (file) => {
-                if (this.isOilFile(file.path)) return;
                 const dirPath = this.getParentDirPath(file.path);
                 this.refreshDirIfOpen(dirPath);
             }),
         );
         plugin.registerEvent(
             this.app.vault.on('rename', (file, oldPath) => {
-                if (this.isOilFile(file.path)) return;
                 const oldDir = this.getParentDirPath(oldPath);
                 const newDir = this.getParentDirPath(file.path);
                 this.refreshDirIfOpen(oldDir);
@@ -63,60 +58,28 @@ export class OilManager {
         );
     }
 
-    cleanupOrphanedTempFiles(): void {
-        const openPaths = new Set<string>();
-        this.app.workspace.iterateAllLeaves((leaf) => {
-            const filePath = (
-                leaf.view as unknown as { file?: { path?: string } }
-            ).file?.path;
-            if (filePath) openPaths.add(filePath);
-        });
-
-        const orphaned: string[] = [];
-        for (const tempPath of this.tempToDir.keys()) {
-            if (!openPaths.has(tempPath)) {
-                orphaned.push(tempPath);
-            }
-        }
-
-        for (const tempPath of orphaned) {
-            this.tempToDir.delete(tempPath);
-            this.removeFromIgnoreFilters(tempPath);
-            void this.app.vault.adapter.remove(tempPath).catch(() => {});
-        }
-    }
-
-    isOilFile(path: string): boolean {
-        const name = path.includes('/')
-            ? path.substring(path.lastIndexOf('/') + 1)
-            : path;
-        return name.startsWith(OIL_TEMP_PREFIX);
+    isOilView(view: unknown): view is OilView {
+        const viewType = (
+            view as { getViewType?: () => string }
+        )?.getViewType?.();
+        return viewType === OIL_VIEW_TYPE;
     }
 
     async openOil(dirPath: string): Promise<void> {
-        const tempPath = this.getTempFilePath(dirPath);
-        const content = this.renderDirectoryToBuffer(dirPath);
-        const existing = this.app.vault.getAbstractFileByPath(tempPath);
-        if (existing) {
-            await this.app.vault.modify(
-                existing as import('obsidian').TFile,
-                content,
-            );
-        } else {
-            await this.app.vault.create(tempPath, content);
-        }
-        this.addToIgnoreFilters(tempPath);
-        this.tempToDir.set(tempPath, dirPath);
-        await this.app.workspace.openLinkText(tempPath, '');
-        await this.forceSourceMode();
+        const leaf = this.app.workspace.getLeaf(false);
+        const previousFile = this.app.workspace.getActiveFile()?.path ?? null;
+        await leaf.setViewState({
+            type: OIL_VIEW_TYPE,
+            state: { dirPath, previousFile },
+        });
     }
 
-    async commit(filePath: string): Promise<void> {
-        const dirPath = this.getDirPath(filePath);
-        if (dirPath === undefined) return;
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view) return;
-        const content = view.editor.getValue();
+    async commit(): Promise<void> {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        const view = leaf?.view;
+        if (!this.isOilView(view)) return;
+        const dirPath = view.getDirPath();
+        const content = view.getBufferContent();
         const parsed = parseBufferLines(content);
         const snapshot = this.cache.snapshot(dirPath);
         const bufferDiff: BufferDiff = {
@@ -161,56 +124,21 @@ export class OilManager {
             msg.push(`${result.skipped.length} skipped`);
         new Notice(`Oil: ${msg.join(', ')}`);
 
-        await this.navigateToDirectory(dirPath, filePath);
+        view.refreshContent(dirPath);
     }
 
-    async navigateToDirectory(
-        dirPath: string,
-        currentTempPath: string,
-    ): Promise<void> {
-        const newTempPath = this.getTempFilePath(dirPath);
-        const content = this.renderDirectoryToBuffer(dirPath);
-
-        if (newTempPath !== currentTempPath) {
-            const file = this.app.vault.getAbstractFileByPath(currentTempPath);
-            if (file) {
-                await this.app.fileManager.renameFile(file, newTempPath);
-                this.removeFromIgnoreFilters(currentTempPath);
-                this.addToIgnoreFilters(newTempPath);
-            }
-            this.tempToDir.delete(currentTempPath);
-        }
-
-        const renamedFile = this.app.vault.getAbstractFileByPath(newTempPath);
-        if (renamedFile) {
-            await this.app.vault.modify(
-                renamedFile as import('obsidian').TFile,
-                content,
-            );
-        }
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (view?.file?.path === newTempPath) {
-            view.editor.setValue(content);
-        }
-        this.tempToDir.set(newTempPath, dirPath);
+    async navigateToDirectory(dirPath: string): Promise<void> {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        const view = leaf?.view;
+        if (!this.isOilView(view)) return;
+        view.setDirectory(dirPath);
     }
 
-    async cleanup(): Promise<void> {
+    cleanup(): void {
         if (this.refreshDebounceTimer !== null) {
             window.clearTimeout(this.refreshDebounceTimer);
             this.refreshDebounceTimer = null;
         }
-        for (const file of this.app.vault.getFiles()) {
-            if (this.isOilFile(file.path)) {
-                this.removeFromIgnoreFilters(file.path);
-                await this.app.vault.adapter.remove(file.path);
-            }
-        }
-        this.tempToDir.clear();
-    }
-
-    getDirPath(tempFilePath: string): string | undefined {
-        return this.tempToDir.get(tempFilePath);
     }
 
     getEntryAtLine(lineText: string): OilEntry | undefined {
@@ -237,27 +165,107 @@ export class OilManager {
         new Notice(`Oil: sort by ${this.sortKey}`);
     }
 
-    forgetTempPath(tempPath: string): void {
-        this.tempToDir.delete(tempPath);
+    navigateToParent(): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const dirPath = view.getDirPath();
+        if (!dirPath) {
+            new Notice('Oil: already at vault root');
+            return;
+        }
+        const parentPath = dirPath.includes('/')
+            ? dirPath.substring(0, dirPath.lastIndexOf('/'))
+            : '';
+        void this.navigateToDirectory(parentPath);
     }
 
-    private scheduleRefresh(dirPath: string, tempPath: string): void {
+    refreshActiveOilView(): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        view.refreshContent();
+    }
+
+    yankPathAtCursor(): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry) return;
+        void navigator.clipboard.writeText(entry.path);
+        new Notice(`Oil: yanked ${entry.path}`);
+    }
+
+    revealAtCursor(): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry) return;
+        const target = this.app.vault.getAbstractFileByPath(entry.path);
+        if (!target) return;
+        const fileExplorer = (
+            this.app as unknown as {
+                internalPlugins?: {
+                    plugins?: Record<
+                        string,
+                        { instance?: { revealInFolder?: (f: unknown) => void } }
+                    >;
+                };
+            }
+        ).internalPlugins?.plugins?.['file-explorer']?.instance;
+        if (fileExplorer?.revealInFolder) {
+            fileExplorer.revealInFolder(target);
+        } else {
+            (
+                this.app as unknown as {
+                    commands: { executeCommandById: (id: string) => void };
+                }
+            ).commands.executeCommandById('file-explorer:reveal-active-file');
+        }
+    }
+
+    openEntryAtCursor(): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry) return;
+        if (entry.type === 'folder') {
+            void this.navigateToDirectory(entry.path);
+        } else {
+            void this.app.workspace.openLinkText(entry.path, '');
+        }
+    }
+
+    private getActiveOilView(): OilView | null {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        const view = leaf?.view;
+        return this.isOilView(view) ? view : null;
+    }
+
+    private getEntryAtCursor(view: OilView): OilEntry | undefined {
+        const editorView = view.getEditorView();
+        if (!editorView) return undefined;
+        const pos = editorView.state.selection.main.head;
+        const line = editorView.state.doc.lineAt(pos).number - 1;
+        const lineText = view.getLineText(line);
+        return this.getEntryAtLine(lineText);
+    }
+
+    private scheduleRefresh(view: OilView): void {
         if (this.refreshDebounceTimer !== null) {
             window.clearTimeout(this.refreshDebounceTimer);
         }
         this.refreshDebounceTimer = window.setTimeout(() => {
             this.refreshDebounceTimer = null;
-            void this.navigateToDirectory(dirPath, tempPath);
+            view.refreshContent();
         }, 200);
     }
 
     private refreshDirIfOpen(dirPath: string): void {
-        for (const [tempPath, mappedDir] of this.tempToDir.entries()) {
-            if (mappedDir === dirPath) {
-                this.scheduleRefresh(dirPath, tempPath);
-                return;
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            const view = leaf.view;
+            if (this.isOilView(view) && view.getDirPath() === dirPath) {
+                this.scheduleRefresh(view);
             }
-        }
+        });
     }
 
     private getParentDirPath(path: string): string {
@@ -265,7 +273,7 @@ export class OilManager {
         return idx === -1 ? '' : path.slice(0, idx);
     }
 
-    private renderDirectoryToBuffer(dirPath: string): string {
+    renderDirectoryToBuffer(dirPath: string): string {
         const showHidden = this.settings.oilShowHiddenFiles ?? this.showHidden;
         const sort = this.settings.oilDefaultSort ?? this.sortKey;
         const rawEntries = renderDirectory(this.app, dirPath, showHidden, sort);
@@ -273,62 +281,12 @@ export class OilManager {
         return entriesToBufferText(entries);
     }
 
-    private getTempFilePath(dirPath: string): string {
-        const encoded = dirPath ? dirPath.replace(/\//g, '_') : '_root';
-        return OIL_TEMP_PREFIX + encoded + '.md';
-    }
-
-    private async forceSourceMode(): Promise<void> {
-        const leaf = this.app.workspace.getMostRecentLeaf();
-        if (!leaf) return;
-        const viewState = leaf.getViewState();
-        if (viewState.state?.mode !== 'source') {
-            viewState.state = {
-                ...viewState.state,
-                mode: 'source',
-                source: true,
-            };
-            await leaf.setViewState(viewState);
-        }
-    }
-
-    private cleanupStaleFiles(): void {
+    private cleanupLegacyTempFiles(): void {
         for (const file of this.app.vault.getFiles()) {
-            if (this.isOilFile(file.path)) {
-                this.removeFromIgnoreFilters(file.path);
-                void this.app.vault.adapter.remove(file.path);
+            const name = file.name;
+            if (name.startsWith('oil~')) {
+                void this.app.vault.adapter.remove(file.path).catch(() => {});
             }
-        }
-    }
-
-    private getIgnoreFilters(): string[] {
-        const vault = this.app.vault as unknown as {
-            getConfig?: (key: string) => unknown;
-        };
-        const raw = vault.getConfig?.('userIgnoreFilters');
-        return Array.isArray(raw) ? (raw as string[]) : [];
-    }
-
-    private setIgnoreFilters(filters: string[]): void {
-        const vault = this.app.vault as unknown as {
-            setConfig?: (key: string, value: unknown) => void;
-        };
-        vault.setConfig?.('userIgnoreFilters', filters);
-    }
-
-    private addToIgnoreFilters(path: string): void {
-        const filters = this.getIgnoreFilters();
-        if (!filters.includes(path)) {
-            filters.push(path);
-            this.setIgnoreFilters(filters);
-        }
-    }
-
-    private removeFromIgnoreFilters(path: string): void {
-        const filters = this.getIgnoreFilters();
-        const updated = filters.filter((f) => f !== path);
-        if (updated.length !== filters.length) {
-            this.setIgnoreFilters(updated);
         }
     }
 
@@ -393,18 +351,21 @@ class OilConfirmModal extends Modal {
         const btnContainer = contentEl.createDiv({
             cls: 'modal-button-container',
         });
-        btnContainer
-            .createEl('button', { text: 'Confirm', cls: 'mod-cta' })
-            .addEventListener('click', () => {
-                this.resolve(true);
-                this.close();
-            });
+        const confirmBtn = btnContainer.createEl('button', {
+            text: 'Confirm',
+            cls: 'mod-cta',
+        });
+        confirmBtn.addEventListener('click', () => {
+            this.resolve(true);
+            this.close();
+        });
         btnContainer
             .createEl('button', { text: 'Cancel' })
             .addEventListener('click', () => {
                 this.resolve(false);
                 this.close();
             });
+        window.requestAnimationFrame(() => confirmBtn.focus());
     }
 
     onClose(): void {

@@ -15,7 +15,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support)
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, and cursor-aware table widget
-- **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:sidebar`, navigation/action aliases, and more
+- **Oil explorer** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file manager: edit directories as buffers, create/rename/delete files with vim commands
+- **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:Oil`, `:sidebar`, navigation/action aliases, and more
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 - **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
 - **Quality of life**: Neovim defaults (`Y`/`Q`), smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload

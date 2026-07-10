@@ -909,19 +909,33 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 
 ## Oil explorer
 
-**Status**: Initial release. Single-directory operations fully functional.
+**Status**: Stable. Uses embedded editor view (no temp files). Single-directory operations fully functional.
 
 ### Cross-directory file moves require both directories open
 
 Moving a file from directory A to directory B requires opening both directories in separate oil buffers (`dd` in one, `p` in the other, then `:w`). The diff engine detects cross-buffer moves by matching entry IDs across buffers.
 
-### Oil temp files visible with `oil~` prefix
+### Vim state is per-editor when using bundled vim mode
 
-Oil creates temporary markdown files (e.g., `oil~_root.md`) to render directory listings. These files are hidden from the file explorer via CSS and from search/graph via Obsidian's `userIgnoreFilters`, but the tab title shows the `oil~` prefix. The file is automatically deleted when the tab is closed or the plugin unloads.
+When Obsidian's built-in vim is disabled and the plugin provides vim via the bundled fork, each oil view gets its own vim instance. Registers, macros, and ex command history are not shared between the oil editor and regular editors. This is because `registerEditorExtension()` does not propagate to embedded editors — the oil view injects the vim extension locally via `buildLocalExtensions()`.
 
-### Dotfiles cannot be used for temp files
+When built-in vim is enabled, vim state is shared globally through Obsidian's editor infrastructure. This limitation only affects fork mode.
 
-Obsidian's `vault.create()` does not support files starting with `.` (they are created on disk but not indexed, making them unopenable as markdown views). The `oil~` prefix is used instead.
+### Third-party CM6 extensions not available in oil
+
+Extensions registered by other plugins via `registerEditorExtension()` do not appear in the oil editor. The embedded editor only includes extensions explicitly passed through `buildLocalExtensions()` — currently the oil conceal extension and (when built-in vim is disabled) the bundled vim extension. Syntax highlighting and markdown rendering from Obsidian's core are included.
+
+### Oil uses undocumented Obsidian internal API
+
+The embedded editor is created by extracting Obsidian's internal `ScrollableMarkdownEditor` prototype via `app.embedRegistry.embedByExtension.md()`. This is an undocumented internal API used by the Kanban plugin (500k+ installs) since 2022 without breakage. A runtime guard produces a descriptive error if the API changes in a future Obsidian update. The oil feature will degrade gracefully (error notice, oil unavailable) rather than crashing.
+
+### ~~Oil temp files visible with `oil~` prefix~~ (Fixed)
+
+**Status**: Fixed. Oil now uses a dedicated view type with an embedded editor. No temporary files are created in the vault.
+
+### ~~Dotfiles cannot be used for temp files~~ (Fixed)
+
+**Status**: Fixed. No longer relevant — Oil no longer creates any files in the vault.
 
 ### ~~Keybindings are not user-remappable~~ (Implemented)
 
@@ -930,7 +944,7 @@ Obsidian's `vault.create()` does not support files starting with `.` (they are c
 Every keybinding is remappable through one of four mechanisms depending on context:
 
 - **Editor keybindings** (motions, actions, operators): All have ex command aliases (e.g., `:nextheading`, `:focuspaneleft`, `:tablenextcell`, `:hintactivate`). Remap via `vim.keymap.set('n', 'key', ':excommand<CR>')` in Lua or `nmap key :excommand<CR>` in vimrc.
-- **Oil explorer keybindings**: Exposed as ex commands (`:oilparent`, `:oilroot`, etc.) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys registered as `vim.noremap` mappings. Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
+- **Oil explorer keybindings**: Exposed as ex commands (`:oilparent`, `:oilroot`, etc.) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys registered as `vim.map` mappings. Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
 - **Picker keybindings**: Configurable via `vim.obsidian.pick_keymap()` in Lua. Not available via vimrc (picker operates outside the vim keymap system).
 - **Global workspace navigation**: Remappable via `vim.obsidian.keymap.set`/`del` (Lua) and `:gmap`/`:gunmap`/`:gmaps` (vimrc and ex command line). Each default is tagged with a stable name.
 

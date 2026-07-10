@@ -91,10 +91,10 @@ import { createTagsSource } from './picker/sources/tags';
 import { createRecentSource, trackRecentFile } from './picker/sources/recent';
 import { createMarksSource } from './picker/sources/marks';
 import { createRegistersSource } from './picker/sources/registers';
-import { oilConcealExtension } from './oil/extensions';
 import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
 import { OilManager } from './oil/manager';
+import { OilView, createOilViewFactory } from './oil/oil-view';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -355,7 +355,10 @@ export default class VimMotionsPlugin extends Plugin {
             this.app,
             this.oilManager,
         );
-        this.registerEditorExtension(oilConcealExtension());
+        this.registerView(
+            OilView.VIEW_TYPE,
+            createOilViewFactory(this.oilManager, oilCache, this.settings),
+        );
 
         const builtinVimOn = isVimEnabled(
             this.app as unknown as {
@@ -661,7 +664,6 @@ export default class VimMotionsPlugin extends Plugin {
                 }
                 this.bufferKeymapManager?.switchBuffer(filePath);
                 this.oilKeybindingManager?.onActiveLeafChange();
-                this.oilManager?.cleanupOrphanedTempFiles();
                 if (filePath) {
                     this.autocmdManager?.fireFileType(filePath);
                 }
@@ -1692,41 +1694,42 @@ export default class VimMotionsPlugin extends Plugin {
             return true;
         });
         const customLuaPath = this.settings.luaConfigPath || undefined;
-        const execOilEx = (cmd: string) => {
-            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-            if (!view) return;
-            const cm = getCmAdapter(view);
-            if (!cm) return;
-            try {
-                vim.handleEx(cm, cmd);
-            } catch {
-                /* ex command may not be registered yet */
-            }
-        };
+        const oilMgr = this.oilManager;
         const oilCallbacks = {
             oilOpen: (path: string) => {
-                if (!this.oilManager) return;
-                void this.oilManager.openOil(path);
+                if (!oilMgr) return;
+                void oilMgr.openOil(path);
             },
             oilClose: () => {
-                const file = this.app.workspace.getActiveFile();
-                if (!file) return;
-                const oilManager = this.oilManager;
-                if (!oilManager?.isOilFile(file.path)) return;
                 const leaf = this.app.workspace.getMostRecentLeaf();
-                leaf?.detach();
-                void this.app.vault.adapter.remove(file.path).then(() => {
-                    oilManager.forgetTempPath(file.path);
-                });
+                if (!leaf) return;
+                const view = leaf.view;
+                if (oilMgr?.isOilView(view)) {
+                    const previousFile = view.getPreviousFile();
+                    const file = previousFile
+                        ? this.app.vault.getAbstractFileByPath(previousFile)
+                        : null;
+                    if (file) {
+                        void leaf.openFile(file as import('obsidian').TFile);
+                        return;
+                    }
+                }
+                leaf.detach();
             },
-            oilParent: () => execOilEx('oilparent'),
-            oilRoot: () => execOilEx('oilroot'),
-            oilRefresh: () => execOilEx('oilrefresh'),
-            oilToggleHidden: () => execOilEx('oiltogglehidden'),
-            oilCycleSort: () => execOilEx('oilcyclesort'),
-            oilYankPath: () => execOilEx('oilyankpath'),
-            oilReveal: () => execOilEx('oilreveal'),
-            oilOpenEntry: () => execOilEx('oilopen'),
+            oilParent: () => void oilMgr?.navigateToParent(),
+            oilRoot: () => void oilMgr?.navigateToDirectory(''),
+            oilRefresh: () => void oilMgr?.refreshActiveOilView(),
+            oilToggleHidden: () => {
+                oilMgr?.toggleHidden();
+                void oilMgr?.refreshActiveOilView();
+            },
+            oilCycleSort: () => {
+                oilMgr?.cycleSortKey();
+                void oilMgr?.refreshActiveOilView();
+            },
+            oilYankPath: () => oilMgr?.yankPathAtCursor(),
+            oilReveal: () => oilMgr?.revealAtCursor(),
+            oilOpenEntry: () => oilMgr?.openEntryAtCursor(),
         };
         const luaResult = await loadInitLua(
             this.app,
@@ -2066,7 +2069,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.oilKeybindingManager?.destroy();
         this.oilKeybindingManager = null;
         if (this.oilManager) {
-            void this.oilManager.cleanup();
+            this.oilManager.cleanup();
         }
         this.oilManager = null;
         if (this.luaState) {

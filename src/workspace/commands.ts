@@ -1,5 +1,6 @@
 import { App, MarkdownView, Notice, TFile } from 'obsidian';
 import type { OilManager } from '../oil/manager';
+import { OilView } from '../oil/oil-view';
 import { createGrepCommand } from './vault-search';
 import type { ExCommandFn, VimApi } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
@@ -145,15 +146,32 @@ function saveWithEvents(
     autocmdManager?: AutocmdManager,
     oilManager?: OilManager,
 ): void {
-    const file = app.workspace.getActiveFile();
-    if (file && oilManager?.isOilFile(file.path)) {
-        void oilManager.commit(file.path);
+    const activeLeaf = app.workspace.getMostRecentLeaf();
+    if (activeLeaf?.view instanceof OilView) {
+        if (oilManager) {
+            void oilManager.commit();
+        }
         return;
     }
+    const file = app.workspace.getActiveFile();
     const path = file?.path ?? '';
     autocmdManager?.fire('BufWritePre', { file: path });
     executeCommand(app, 'editor:save-file');
     autocmdManager?.fire('BufWritePost', { file: path });
+}
+
+function closeOilView(app: App, view: OilView): void {
+    const previousFile = view.getPreviousFile();
+    const leaf = app.workspace.getMostRecentLeaf();
+    if (previousFile && leaf) {
+        void leaf.openFile(
+            app.vault.getAbstractFileByPath(
+                previousFile,
+            ) as import('obsidian').TFile,
+        );
+    } else {
+        executeCommand(app, 'workspace:close');
+    }
 }
 
 function createWriteQuitCommand(
@@ -162,10 +180,10 @@ function createWriteQuitCommand(
     oilManager?: OilManager,
 ): ExCommandFn {
     return () => {
-        const file = app.workspace.getActiveFile();
-        if (file && oilManager?.isOilFile(file.path)) {
-            void oilManager.commit(file.path).then(() => {
-                executeCommand(app, 'workspace:close');
+        const activeLeaf = app.workspace.getMostRecentLeaf();
+        if (activeLeaf?.view instanceof OilView && oilManager) {
+            void oilManager.commit().then(() => {
+                closeOilView(app, activeLeaf.view as OilView);
             });
             return;
         }
@@ -354,10 +372,10 @@ function createXitCommand(
     oilManager?: OilManager,
 ): ExCommandFn {
     return () => {
-        const file = app.workspace.getActiveFile();
-        if (file && oilManager?.isOilFile(file.path)) {
-            void oilManager.commit(file.path).then(() => {
-                executeCommand(app, 'workspace:close');
+        const activeLeaf = app.workspace.getMostRecentLeaf();
+        if (activeLeaf?.view instanceof OilView && oilManager) {
+            void oilManager.commit().then(() => {
+                closeOilView(app, activeLeaf.view as OilView);
             });
             return;
         }
@@ -548,7 +566,14 @@ export function registerExCommands(
     reg.defineEx('write', 'w', () =>
         saveWithEvents(app, autocmdManager, oilManager),
     );
-    reg.defineEx('quit', 'q', () => executeCommand(app, 'workspace:close'));
+    reg.defineEx('quit', 'q', () => {
+        const activeLeaf = app.workspace.getMostRecentLeaf();
+        if (activeLeaf?.view instanceof OilView) {
+            closeOilView(app, activeLeaf.view);
+            return;
+        }
+        executeCommand(app, 'workspace:close');
+    });
     reg.defineEx(
         'wq',
         '',

@@ -110,9 +110,9 @@ See [[settings#File explorer]] for details.
 
 ## How it works
 
-When you open Oil, the plugin creates a temporary Markdown file (e.g., `oil~_root.md`) to render the directory listing. These files are hidden from the Obsidian file explorer via CSS and from search and graph views via `userIgnoreFilters`.
+When you open Oil, the plugin creates a dedicated Oil explorer view with an embedded Markdown editor. The directory listing is rendered as editable text directly in the view — no temporary files are created in the vault.
 
-Because Oil uses a standard Markdown buffer, all existing Vim features like EasyMotion, surround, and text objects work natively within the Oil view. The temporary file is automatically deleted when the tab is closed or the plugin unloads.
+Because Oil uses a full CodeMirror 6 editor, all existing Vim features like EasyMotion, surround, and text objects work natively within the Oil view. The view state (current directory) persists across workspace restarts.
 
 > [!warning]
 > **Cross-directory moves**: Moving a file from one directory to another (e.g., `dd` in one Oil buffer and `p` in another) is supported but requires both directories to be open in separate Oil buffers simultaneously. See [[known-limitations#Oil explorer]] for details.
