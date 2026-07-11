@@ -29,10 +29,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.49.0
+## What's new in 0.50.1
 
-- **Which-key sort order** — configurable sort order for the which-key popup. "which-key" (default) matches which-key.nvim: individual keys first, groups last, alphanumeric before special keys. "Groups first" shows groups before individual keys. Configurable via **Settings → Vim Motions → Which-key sort order**, `vim.opt.whichkeysort` in Lua, or `set whichkeysort` in vimrc.
-- **Which-key Lucide icons** — optional icon support for the which-key popup, inspired by which-key.nvim. Icons render inline via Obsidian's `setIcon()` API with 8 named theme colors or arbitrary CSS color strings. Per-entry icons assignable via Settings, Lua, or vimrc. Built-in defaults for Table, EasyMotion, and Harpoon groups. Toggle via `whichkeyicons` setting.
-- **Harpoon-style file pinning** — pin files to numbered slots for instant switching. `<leader>ha` pins, `<leader>1`–`<leader>9` jumps to slots, `<leader>hp` opens the harpoon picker. Cursor position tracked per file and restored on navigation. Pins persist across sessions; file renames and deletes auto-update. 6 ex commands (`:HarpoonAdd`, `:HarpoonRemove`, `:Harpoon`, `:HarpoonSelect`, `:HarpoonNext`, `:HarpoonPrev`), 14 Obsidian commands, and 15 leader keybindings with which-key group.
+- **Neovim-style folding** — full fold command set: `zf{motion}` creates manual folds, `zd`/`zD` delete folds at cursor, `zE` eliminates all folds, `zm`/`zr` fold/unfold one heading level at a time. Custom markdown fold provider adds frontmatter (`---` blocks) and callouts (`> [!type]`) as foldable regions alongside standard heading and code block folds.
+- **Fold placeholder text** — folded regions show descriptive placeholders: heading title + line count, code block language, callout type, or frontmatter field count.
+- **Fold-aware navigation** — navigating into a folded section (e.g., `]h` to a folded heading) automatically unfolds it, matching Neovim's default `foldopen` behavior. Configurable via **Settings → Vim Motions → Fold-aware navigation**.
+- **Fold persistence** — fold state is remembered across file switches and sessions.
+- **Fold viewport scroll compensation** — the viewport automatically scrolls to keep the cursor visible after any fold/unfold operation, including Obsidian's "Toggle fold properties" command.
+- **Table widget fix** — fixed table widget duplication when third-party decoration plugins (e.g., Another Dynamic Highlights) applied mark decorations over the same region. ([#55](https://github.com/saberzero1/motions/issues/55))
 
 See the [[changelog|full changelog]] for details.
