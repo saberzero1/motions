@@ -20,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Default icons**: Table (`table`, blue), EasyMotion (`zap`, yellow), Harpoon (`anchor`, orange) — applied automatically to built-in groups.
     - **Alignment**: spacer spans for rows without icons when icons are globally enabled, ensuring consistent column alignment.
     - Plugin: `src/ui/which-key.ts` (`WhichKeyLabelInfo`, `resolveIconColor`), `src/ui/global-which-key.ts`, `src/settings.ts` (GroupLabel/CommandLabel extended with `icon?`/`color?`), `src/main.ts`, `src/lua/api.ts`, `src/lua/obsidian-api.ts`, `src/lua/loader.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`, `src/vimrc/parser.ts`, `src/workspace/global-mapping-registry.ts`, `src/easymotion/register.ts`, `src/motions/tables.ts`, `styles.css`
-
 - **Harpoon-style file pinning** — pin files to numbered slots for instant switching. `<leader>ha` pins, `<leader>1`–`<leader>9` jumps to slots, `<leader>hp` opens the harpoon picker. Cursor position is tracked per-pinned-file and restored on navigation. Pins persist across sessions. File renames auto-update pins; file deletes auto-remove them.
     - 6 ex commands: `:HarpoonAdd`, `:HarpoonRemove [N]`, `:Harpoon`, `:HarpoonSelect N`, `:HarpoonNext`, `:HarpoonPrev`
     - 14 Obsidian commands for command palette access
