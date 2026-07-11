@@ -281,6 +281,7 @@ When making a change, update these docs pages:
 | EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)  |
 | Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)            |
 | Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                   |
+| Folding               | `features/workspace-navigation.md`  | Vim features (foldawarenavigation, foldpersistence)           |
 | Surround              | `features/surround.md`              | (no settings — fork feature)                                  |
 | Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                |
 | Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.) |
