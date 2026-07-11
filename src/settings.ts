@@ -234,7 +234,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     luaConfigPath: '',
     showConfigNotifications: true,
     leaderBindings: [],
-    foldAwareNavigation: false,
+    foldAwareNavigation: true,
     foldPersistence: false,
     oilExplorer: true,
     oilShowHiddenFiles: false,
@@ -315,6 +315,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableHintMode',
         'enableMarkGutter',
         'enableHarpoon',
+        'foldAwareNavigation',
+        'foldPersistence',
         'enableStatusBar',
         'enableChordDisplay',
         'enablePowerline',
@@ -820,6 +822,32 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             type: 'toggle' as const,
                             key: 'enableHarpoon',
                             disabled: () => this.isOverridden('enableHarpoon'),
+                        },
+                    },
+                    {
+                        name: 'Fold-aware navigation',
+                        desc: this.describeOverride(
+                            'foldAwareNavigation',
+                            'Automatically unfold sections when navigating into them (e.g., ]h into a folded heading).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'foldAwareNavigation',
+                            disabled: () =>
+                                this.isOverridden('foldAwareNavigation'),
+                        },
+                    },
+                    {
+                        name: 'Fold persistence',
+                        desc: this.describeOverride(
+                            'foldPersistence',
+                            'Remember fold state across file switches and sessions. Capped at 500 files, 30-day eviction.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'foldPersistence',
+                            disabled: () =>
+                                this.isOverridden('foldPersistence'),
                         },
                     },
                 ],
@@ -2019,6 +2047,48 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableHarpoon = value;
                         this.plugin.vimrcOverrides?.delete('enableHarpoon');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Fold-aware navigation')
+            .setDesc(
+                describeOverride(
+                    'foldAwareNavigation',
+                    'Automatically unfold sections when navigating into them (e.g., ]h into a folded heading).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.foldAwareNavigation)
+                    .setDisabled(isOverridden('foldAwareNavigation'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.foldAwareNavigation = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'foldAwareNavigation',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Fold persistence')
+            .setDesc(
+                describeOverride(
+                    'foldPersistence',
+                    'Remember fold state across file switches and sessions. Capped at 500 files, 30-day eviction.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.foldPersistence)
+                    .setDisabled(isOverridden('foldPersistence'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.foldPersistence = value;
+                        this.plugin.vimrcOverrides?.delete('foldPersistence');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
