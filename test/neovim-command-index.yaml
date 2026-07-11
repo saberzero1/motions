@@ -879,6 +879,48 @@ normal_mode_z_commands:
             test_file: 'workspace-extended.e2e.ts',
             description: 'toggle fold recursively (plugin)',
         }
+    zf:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'create fold (operator, plugin)',
+        }
+    zd:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'delete fold at cursor (plugin)',
+        }
+    zD:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'delete fold recursively (plugin)',
+        }
+    zE:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'eliminate all folds (plugin)',
+        }
+    zm:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'fold more - one heading level (plugin)',
+        }
+    zr:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'fold less - one heading level (plugin)',
+        }
 
 normal_mode_bracket_commands:
     '[(':

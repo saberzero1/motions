@@ -592,7 +592,47 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         });
     });
 
-    describe('7. All Obsidian fold commands — CM6 state and cursor impact', function () {
+    describe('7. Pre-Phase-2: does editor:fold-all collapse properties?', function () {
+        it('editor:fold-all on frontmatter doc — check metadata-container', async function () {
+            const result = (await browser.executeObsidian(
+                async ({ app, obsidian }, content: string) => {
+                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    if (!view) return { error: 'No view' };
+
+                    view.editor.setValue(content);
+                    view.editor.setCursor(6, 0);
+                    view.editor.focus();
+                    await new Promise((r) => setTimeout(r, 500));
+
+                    const editorEl = (view.editor as unknown as Record<string, unknown>).containerEl as HTMLElement | undefined;
+                    if (!editorEl) return { error: 'No containerEl' };
+
+                    const collapsedBefore = !!editorEl.querySelector('.metadata-container.is-collapsed');
+
+                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
+                        .commands.executeCommandById('editor:fold-all');
+                    await new Promise((r) => setTimeout(r, 500));
+
+                    const collapsedAfter = !!editorEl.querySelector('.metadata-container.is-collapsed');
+
+                    return {
+                        collapsedBefore,
+                        collapsedAfter,
+                        foldAllCollapsesProperties: !collapsedBefore && collapsedAfter,
+                        conclusion: !collapsedBefore && collapsedAfter
+                            ? 'editor:fold-all ALSO collapses properties — zM migration must include properties fold'
+                            : 'editor:fold-all does NOT collapse properties — safe to migrate zM to CM6 foldAll',
+                    };
+                },
+                FRONTMATTER_CONTENT,
+            )) as Record<string, unknown>;
+
+            console.log('Pre-Phase-2 verification:', JSON.stringify(result, null, 2));
+            expect(result).not.toHaveProperty('error');
+        });
+    });
+
+    describe('8. All Obsidian fold commands — CM6 state and cursor impact', function () {
         for (const cmd of ALL_OBSIDIAN_FOLD_CMDS) {
             it(`${cmd} — CM6 foldState mutation`, async function () {
                 const content =
@@ -697,7 +737,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         }
     });
 
-    describe('8. CM6 fold state deep inspection', function () {
+    describe('9. CM6 fold state deep inspection', function () {
         it('foldedRanges before/after CM6 foldCode', async function () {
             const result = (await browser.executeObsidian(
                 async (
@@ -801,7 +841,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         });
     });
 
-    describe('9. Vim mode detection', function () {
+    describe('10. Vim mode detection', function () {
         it('should report built-in vs bundled vim mode', async function () {
             const result = (await browser.executeObsidian(({ app }) => {
                 const builtinVimEnabled = (
