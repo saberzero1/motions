@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-07-11
+
 ### Added
 
 - **Mark gutter indicators** — vim mark letters (`a`–`z`, `A`–`Z`) appear in the gutter area next to marked lines, providing visual feedback on where marks are set. Multiple marks on the same line are shown together (e.g., `ab`). The indicators use line decorations with CSS `::after` positioning — zero horizontal space consumed, no document shift. Updates on mark set/move/delete and on document edits. Toggle via **Settings → Vim Motions → Vim features → Mark gutter indicators** (default: on).

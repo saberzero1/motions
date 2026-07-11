@@ -29,10 +29,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 60 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.47.0
+## What's new in 0.48.0
 
-- **Yank highlight** — yanked text is briefly highlighted, giving visual feedback on what was yanked. Three modes: "Solid" (Neovim-style), "Fade" (gradual fade-out), or "Off". Duration is configurable (50–3000 ms). Works with remapped yank keys. Replaces the external [obsidian-vim-yank-highlight](https://github.com/aleksey-rowan/obsidian-vim-yank-highlight) plugin. Requires bundled fork mode.
-- **Embedded table editing mode** — new `'embedded'` option for the table widget. Tables render as themed HTML with cell-level navigation (`h`/`j`/`k`/`l`), vim-enabled cell editors (`i`/`a`/`c`/`s`/`Enter`), and direct table manipulation (`o`/`O` add rows, `dd` delete row, `dc` delete column, `J`/`K`/`H`/`L` move rows/columns, `I`/`A` add columns, `=` realign). Cell edits have per-cell undo granularity.
-- **Oil explorer rewritten** — oil no longer creates temporary `oil~*.md` files in the vault. The directory listing now uses a dedicated `oil-explorer` view type with an embedded CodeMirror 6 editor, eliminating temp file visibility in tabs, search, and graph. Includes a new reusable `EmbeddableMarkdownEditor` abstraction for mounting full CM6 + vim editors in any DOM container.
+- **Mark gutter indicators** — vim mark letters (`a`–`z`, `A`–`Z`) appear in the gutter next to marked lines, providing visual feedback on where marks are set. Multiple marks on the same line are shown together (e.g., `ab`). Zero layout shift. Toggle via **Settings → Vim Motions → Vim features → Mark gutter indicators** (default: on).
+- **Global mark persistence** — marks `A`–`Z` are persisted across files and plugin restarts. Setting `mA` stores the file path and cursor position; jumping to `'A` from any file opens the target and restores the cursor.
+- **Grouped marks picker** — `:marks` and `<leader>fm` now show marks grouped by category: "Buffer marks" (`a`–`z`) with line preview, "Global marks" (`A`–`Z`) with file path. Selecting a global mark opens the target file and navigates to the saved position.
+- **Yank highlight fix** — yank highlight now activates on the initially open editor at plugin startup, not only after switching panes ([#53](https://github.com/saberzero1/motions/issues/53)).
 
 See the [[changelog|full changelog]] for details.
