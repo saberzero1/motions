@@ -29,8 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.51.0
+## What's new in 0.51.1
 
+- **Yank highlight fix** — linewise yank (`yy`) on a heading with text on the next line no longer highlights both lines. Only the actually yanked line is highlighted. ([#53](https://github.com/saberzero1/motions/issues/53))
 - **Input method switching for CJK users** — automatic IM switching when entering/leaving insert mode. Supports macism (macOS), im-select (macOS/Windows), fcitx5-remote (Linux), ibus (Linux), and any external IM switching binary. Per-editor state tracking, composition guard, and error throttling with auto-disable. Desktop only. Lua API via `vim.obsidian.im`. ([#55](https://github.com/saberzero1/motions/issues/55))
 - **`CmdlineEnter`/`CmdlineLeave` autocmd events** — fire when entering/leaving the `:`, `/`, or `?` command-line prompt, with `cmdtype` in event data. Auto-wired to IM switching on prompt exit.
 
