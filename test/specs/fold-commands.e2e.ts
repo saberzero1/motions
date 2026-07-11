@@ -66,9 +66,7 @@ async function isFoldedAt(line: number): Promise<boolean> {
             if (!view) return false;
             const lang = req('@codemirror/language') as {
                 foldedRanges: (state: unknown) => {
-                    iter: (
-                        from?: number,
-                    ) => {
+                    iter: (from?: number) => {
                         value: unknown;
                         from: number;
                         to: number;
@@ -76,9 +74,16 @@ async function isFoldedAt(line: number): Promise<boolean> {
                     };
                 };
             };
-            const cm6View = (
-                view.editor as unknown as Record<string, unknown>
-            ).cm as { state: { doc: { line: (n: number) => { from: number; to: number } } } } | undefined;
+            const cm6View = (view.editor as unknown as Record<string, unknown>)
+                .cm as
+                | {
+                      state: {
+                          doc: {
+                              line: (n: number) => { from: number; to: number };
+                          };
+                      };
+                  }
+                | undefined;
             if (!cm6View) return false;
             const docLine = cm6View.state.doc.line(targetLine + 1);
             const folded = lang.foldedRanges(cm6View.state);
@@ -96,34 +101,29 @@ async function isFoldedAt(line: number): Promise<boolean> {
 }
 
 async function countFolds(): Promise<number> {
-    return (await browser.executeObsidian(
-        ({ app, obsidian, require: req }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return 0;
-            const lang = req('@codemirror/language') as {
-                foldedRanges: (state: unknown) => {
-                    iter: () => {
-                        value: unknown;
-                        next: () => void;
-                    };
+    return (await browser.executeObsidian(({ app, obsidian, require: req }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return 0;
+        const lang = req('@codemirror/language') as {
+            foldedRanges: (state: unknown) => {
+                iter: () => {
+                    value: unknown;
+                    next: () => void;
                 };
             };
-            const cm6View = (
-                view.editor as unknown as Record<string, unknown>
-            ).cm as { state: unknown } | undefined;
-            if (!cm6View) return 0;
-            const folded = lang.foldedRanges(cm6View.state);
-            let count = 0;
-            const iter = folded.iter();
-            while (iter.value) {
-                count++;
-                iter.next();
-            }
-            return count;
-        },
-    )) as number;
+        };
+        const cm6View = (view.editor as unknown as Record<string, unknown>)
+            .cm as { state: unknown } | undefined;
+        if (!cm6View) return 0;
+        const folded = lang.foldedRanges(cm6View.state);
+        let count = 0;
+        const iter = folded.iter();
+        while (iter.value) {
+            count++;
+            iter.next();
+        }
+        return count;
+    })) as number;
 }
 
 describe('Fold commands (Phase 2)', function () {

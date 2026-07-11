@@ -126,7 +126,12 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
 
                     const lang = req('@codemirror/language') as {
                         foldedRanges: (state: unknown) => {
-                            iter: () => { from: number; to: number; done: boolean; next: () => void };
+                            iter: () => {
+                                from: number;
+                                to: number;
+                                done: boolean;
+                                next: () => void;
+                            };
                         };
                     };
                     const cm6View = (
@@ -136,19 +141,30 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
 
                     const foldsBefore: Array<{ from: number; to: number }> = [];
                     const ib = lang.foldedRanges(cm6View.state).iter();
-                    while (!ib.done) { foldsBefore.push({ from: ib.from, to: ib.to }); ib.next(); }
+                    while (!ib.done) {
+                        foldsBefore.push({ from: ib.from, to: ib.to });
+                        ib.next();
+                    }
 
                     (
-                        app as unknown as { commands: { executeCommandById: (id: string) => boolean } }
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
                     ).commands.executeCommandById(foldCmd);
                     await new Promise((r) => setTimeout(r, 500));
 
                     const foldsAfter: Array<{ from: number; to: number }> = [];
                     const ia = lang.foldedRanges(cm6View.state).iter();
-                    while (!ia.done) { foldsAfter.push({ from: ia.from, to: ia.to }); ia.next(); }
+                    while (!ia.done) {
+                        foldsAfter.push({ from: ia.from, to: ia.to });
+                        ia.next();
+                    }
 
                     const foldStateChanged =
-                        JSON.stringify(foldsBefore) !== JSON.stringify(foldsAfter);
+                        JSON.stringify(foldsBefore) !==
+                        JSON.stringify(foldsAfter);
 
                     return {
                         executedCmd: foldCmd,
@@ -174,11 +190,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
 
         it('should detect DOM-level properties widget collapse', async function () {
             const result = (await browser.executeObsidian(
-                async (
-                    { app, obsidian },
-                    content: string,
-                    foldCmd: string,
-                ) => {
+                async ({ app, obsidian }, content: string, foldCmd: string) => {
                     const view = app.workspace.getActiveViewOfType(
                         obsidian.MarkdownView,
                     );
@@ -194,15 +206,16 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     ).containerEl as HTMLElement | undefined;
                     if (!editorEl) return { error: 'No containerEl' };
 
-                    const widgetBefore =
-                        editorEl.querySelector('.metadata-container');
+                    const widgetBefore = editorEl.querySelector(
+                        '.metadata-container',
+                    );
                     const collapsedBefore = editorEl.querySelector(
                         '.metadata-container.is-collapsed',
                     );
 
-                    (
-                        app as unknown as CommandsApi
-                    ).commands.executeCommandById(foldCmd);
+                    (app as unknown as CommandsApi).commands.executeCommandById(
+                        foldCmd,
+                    );
                     await new Promise((r) => setTimeout(r, 500));
 
                     const collapsedAfter = editorEl.querySelector(
@@ -226,10 +239,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                 FOLD_PROPERTIES_CMD,
             )) as Record<string, unknown>;
 
-            console.log(
-                'DOM detection:',
-                JSON.stringify(result, null, 2),
-            );
+            console.log('DOM detection:', JSON.stringify(result, null, 2));
             expect(result).not.toHaveProperty('error');
         });
     });
@@ -239,14 +249,11 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             await setupEditor(FRONTMATTER_CONTENT, { line: 6, ch: 0 });
             const cursorBefore = await getCursorPos();
 
-            await browser.executeObsidian(
-                ({ app }, foldCmd: string) => {
-                    (
-                        app as unknown as CommandsApi
-                    ).commands.executeCommandById(foldCmd);
-                },
-                FOLD_PROPERTIES_CMD,
-            );
+            await browser.executeObsidian(({ app }, foldCmd: string) => {
+                (app as unknown as CommandsApi).commands.executeCommandById(
+                    foldCmd,
+                );
+            }, FOLD_PROPERTIES_CMD);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const cursorAfter = await getCursorPos();
@@ -262,14 +269,11 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             await setupEditor(FRONTMATTER_CONTENT, { line: 2, ch: 0 });
             const cursorBefore = await getCursorPos();
 
-            await browser.executeObsidian(
-                ({ app }, foldCmd: string) => {
-                    (
-                        app as unknown as CommandsApi
-                    ).commands.executeCommandById(foldCmd);
-                },
-                FOLD_PROPERTIES_CMD,
-            );
+            await browser.executeObsidian(({ app }, foldCmd: string) => {
+                (app as unknown as CommandsApi).commands.executeCommandById(
+                    foldCmd,
+                );
+            }, FOLD_PROPERTIES_CMD);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const cursorAfter = await getCursorPos();
@@ -287,14 +291,11 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             await setupEditor(FRONTMATTER_CONTENT, { line: 0, ch: 0 });
             const cursorBefore = await getCursorPos();
 
-            await browser.executeObsidian(
-                ({ app }, foldCmd: string) => {
-                    (
-                        app as unknown as CommandsApi
-                    ).commands.executeCommandById(foldCmd);
-                },
-                FOLD_PROPERTIES_CMD,
-            );
+            await browser.executeObsidian(({ app }, foldCmd: string) => {
+                (app as unknown as CommandsApi).commands.executeCommandById(
+                    foldCmd,
+                );
+            }, FOLD_PROPERTIES_CMD);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const cursorAfter = await getCursorPos();
@@ -309,26 +310,20 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             await setupEditor(FRONTMATTER_CONTENT, { line: 8, ch: 5 });
             const cursorOriginal = await getCursorPos();
 
-            await browser.executeObsidian(
-                ({ app }, foldCmd: string) => {
-                    (
-                        app as unknown as CommandsApi
-                    ).commands.executeCommandById(foldCmd);
-                },
-                FOLD_PROPERTIES_CMD,
-            );
+            await browser.executeObsidian(({ app }, foldCmd: string) => {
+                (app as unknown as CommandsApi).commands.executeCommandById(
+                    foldCmd,
+                );
+            }, FOLD_PROPERTIES_CMD);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const cursorAfterFold = await getCursorPos();
 
-            await browser.executeObsidian(
-                ({ app }, foldCmd: string) => {
-                    (
-                        app as unknown as CommandsApi
-                    ).commands.executeCommandById(foldCmd);
-                },
-                FOLD_PROPERTIES_CMD,
-            );
+            await browser.executeObsidian(({ app }, foldCmd: string) => {
+                (app as unknown as CommandsApi).commands.executeCommandById(
+                    foldCmd,
+                );
+            }, FOLD_PROPERTIES_CMD);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const cursorAfterUnfold = await getCursorPos();
@@ -349,11 +344,25 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             const cursorBefore = await getCursorPos();
 
             await browser.executeObsidian(({ app, obsidian }) => {
-                const Vim = (window as unknown as { CodeMirrorAdapter?: { Vim?: { handleKey: (cm: unknown, key: string) => boolean } } }).CodeMirrorAdapter?.Vim;
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
                 if (!Vim) return;
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
                 if (!view) return;
-                const cm = (view.editor as unknown as Record<string, unknown>).cm as Record<string, unknown>;
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
                 const adapter = cm?.cm;
                 if (!adapter) return;
                 Vim.handleKey(adapter, 'z');
@@ -370,12 +379,26 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             const cursorBefore = await getCursorPos();
 
             await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
                 if (!view) return;
                 view.editor.setCursor(0, 0);
-                const Vim = (window as unknown as { CodeMirrorAdapter?: { Vim?: { handleKey: (cm: unknown, key: string) => boolean } } }).CodeMirrorAdapter?.Vim;
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
                 if (!Vim) return;
-                const cm = (view.editor as unknown as Record<string, unknown>).cm as Record<string, unknown>;
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
                 const adapter = cm?.cm;
                 if (!adapter) return;
                 Vim.handleKey(adapter, 'z');
@@ -395,7 +418,13 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
             const cursorBefore = await getCursorPos();
 
             await browser.executeObsidian(({ app }) => {
-                (app as unknown as { commands: { executeCommandById: (id: string) => boolean } }).commands.executeCommandById('editor:fold-all');
+                (
+                    app as unknown as {
+                        commands: {
+                            executeCommandById: (id: string) => boolean;
+                        };
+                    }
+                ).commands.executeCommandById('editor:fold-all');
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -411,7 +440,9 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         it('cursor at last line — does fold change doc line count?', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian }, content: string, foldCmd: string) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     view.editor.setValue(content);
@@ -424,19 +455,28 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                         lineCount: view.editor.lineCount(),
                         cursorLine: view.editor.getCursor().line,
                         cursorCh: view.editor.getCursor().ch,
-                        lineContent: view.editor.getLine(view.editor.getCursor().line),
+                        lineContent: view.editor.getLine(
+                            view.editor.getCursor().line,
+                        ),
                         docLength: view.editor.getValue().length,
                     };
 
-                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
-                        .commands.executeCommandById(foldCmd);
+                    (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
+                    ).commands.executeCommandById(foldCmd);
                     await new Promise((r) => setTimeout(r, 500));
 
                     const after = {
                         lineCount: view.editor.lineCount(),
                         cursorLine: view.editor.getCursor().line,
                         cursorCh: view.editor.getCursor().ch,
-                        lineContent: view.editor.getLine(view.editor.getCursor().line),
+                        lineContent: view.editor.getLine(
+                            view.editor.getCursor().line,
+                        ),
                         docLength: view.editor.getValue().length,
                     };
 
@@ -447,21 +487,27 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                         lineCountDelta: after.lineCount - before.lineCount,
                         cursorLineDelta: after.cursorLine - before.cursorLine,
                         docLengthChanged: before.docLength !== after.docLength,
-                        contentAtCursorChanged: before.lineContent !== after.lineContent,
+                        contentAtCursorChanged:
+                            before.lineContent !== after.lineContent,
                     };
                 },
                 FRONTMATTER_CONTENT,
                 FOLD_PROPERTIES_CMD,
             )) as Record<string, unknown>;
 
-            console.log('LAST LINE — properties fold:', JSON.stringify(result, null, 2));
+            console.log(
+                'LAST LINE — properties fold:',
+                JSON.stringify(result, null, 2),
+            );
             expect(result).not.toHaveProperty('error');
         });
 
         it('cursor at line 6 — verify content at cursor stays same', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian }, content: string, foldCmd: string) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     view.editor.setValue(content);
@@ -477,8 +523,13 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                         line7Content: view.editor.getLine(7),
                     };
 
-                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
-                        .commands.executeCommandById(foldCmd);
+                    (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
+                    ).commands.executeCommandById(foldCmd);
                     await new Promise((r) => setTimeout(r, 500));
 
                     const afterCursor = view.editor.getCursor();
@@ -494,21 +545,27 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                         before,
                         after,
                         lineCountDelta: after.lineCount - before.lineCount,
-                        cursorPointsToSameContent: before.lineContent === after.lineContent,
+                        cursorPointsToSameContent:
+                            before.lineContent === after.lineContent,
                     };
                 },
                 FRONTMATTER_CONTENT,
                 FOLD_PROPERTIES_CMD,
             )) as Record<string, unknown>;
 
-            console.log('LINE 6 content check:', JSON.stringify(result, null, 2));
+            console.log(
+                'LINE 6 content check:',
+                JSON.stringify(result, null, 2),
+            );
             expect(result).not.toHaveProperty('error');
         });
 
         it('editor:fold-all — line count and content at cursor', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian }, content: string) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     view.editor.setValue(content);
@@ -520,37 +577,52 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     const before = {
                         lineCount: view.editor.lineCount(),
                         cursorLine: view.editor.getCursor().line,
-                        lineContent: view.editor.getLine(view.editor.getCursor().line),
+                        lineContent: view.editor.getLine(
+                            view.editor.getCursor().line,
+                        ),
                     };
 
-                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
-                        .commands.executeCommandById('editor:fold-all');
+                    (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
+                    ).commands.executeCommandById('editor:fold-all');
                     await new Promise((r) => setTimeout(r, 500));
 
                     const after = {
                         lineCount: view.editor.lineCount(),
                         cursorLine: view.editor.getCursor().line,
-                        lineContent: view.editor.getLine(view.editor.getCursor().line),
+                        lineContent: view.editor.getLine(
+                            view.editor.getCursor().line,
+                        ),
                     };
 
                     return {
                         before,
                         after,
                         lineCountDelta: after.lineCount - before.lineCount,
-                        cursorPointsToSameContent: before.lineContent === after.lineContent,
+                        cursorPointsToSameContent:
+                            before.lineContent === after.lineContent,
                     };
                 },
                 HEADING_CONTENT,
             )) as Record<string, unknown>;
 
-            console.log('editor:fold-all last line:', JSON.stringify(result, null, 2));
+            console.log(
+                'editor:fold-all last line:',
+                JSON.stringify(result, null, 2),
+            );
             expect(result).not.toHaveProperty('error');
         });
 
         it('editor:toggle-fold on heading — line count change', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian }, content: string) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     view.editor.setValue(content);
@@ -562,32 +634,45 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     const before = {
                         lineCount: view.editor.lineCount(),
                         cursorLine: view.editor.getCursor().line,
-                        lineContent: view.editor.getLine(view.editor.getCursor().line),
+                        lineContent: view.editor.getLine(
+                            view.editor.getCursor().line,
+                        ),
                     };
 
                     view.editor.setCursor(0, 0);
-                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
-                        .commands.executeCommandById('editor:toggle-fold');
+                    (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
+                    ).commands.executeCommandById('editor:toggle-fold');
                     await new Promise((r) => setTimeout(r, 500));
 
                     view.editor.setCursor(lastLine, 0);
                     const after = {
                         lineCount: view.editor.lineCount(),
                         cursorLine: view.editor.getCursor().line,
-                        lineContent: view.editor.getLine(view.editor.getCursor().line),
+                        lineContent: view.editor.getLine(
+                            view.editor.getCursor().line,
+                        ),
                     };
 
                     return {
                         before,
                         after,
                         lineCountDelta: after.lineCount - before.lineCount,
-                        cursorPointsToSameContent: before.lineContent === after.lineContent,
+                        cursorPointsToSameContent:
+                            before.lineContent === after.lineContent,
                     };
                 },
                 HEADING_CONTENT,
             )) as Record<string, unknown>;
 
-            console.log('editor:toggle-fold last line:', JSON.stringify(result, null, 2));
+            console.log(
+                'editor:toggle-fold last line:',
+                JSON.stringify(result, null, 2),
+            );
             expect(result).not.toHaveProperty('error');
         });
     });
@@ -596,7 +681,9 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         it('editor:fold-all on frontmatter doc — check metadata-container', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian }, content: string) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     view.editor.setValue(content);
@@ -604,30 +691,46 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     view.editor.focus();
                     await new Promise((r) => setTimeout(r, 500));
 
-                    const editorEl = (view.editor as unknown as Record<string, unknown>).containerEl as HTMLElement | undefined;
+                    const editorEl = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).containerEl as HTMLElement | undefined;
                     if (!editorEl) return { error: 'No containerEl' };
 
-                    const collapsedBefore = !!editorEl.querySelector('.metadata-container.is-collapsed');
+                    const collapsedBefore = !!editorEl.querySelector(
+                        '.metadata-container.is-collapsed',
+                    );
 
-                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
-                        .commands.executeCommandById('editor:fold-all');
+                    (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
+                    ).commands.executeCommandById('editor:fold-all');
                     await new Promise((r) => setTimeout(r, 500));
 
-                    const collapsedAfter = !!editorEl.querySelector('.metadata-container.is-collapsed');
+                    const collapsedAfter = !!editorEl.querySelector(
+                        '.metadata-container.is-collapsed',
+                    );
 
                     return {
                         collapsedBefore,
                         collapsedAfter,
-                        foldAllCollapsesProperties: !collapsedBefore && collapsedAfter,
-                        conclusion: !collapsedBefore && collapsedAfter
-                            ? 'editor:fold-all ALSO collapses properties — zM migration must include properties fold'
-                            : 'editor:fold-all does NOT collapse properties — safe to migrate zM to CM6 foldAll',
+                        foldAllCollapsesProperties:
+                            !collapsedBefore && collapsedAfter,
+                        conclusion:
+                            !collapsedBefore && collapsedAfter
+                                ? 'editor:fold-all ALSO collapses properties — zM migration must include properties fold'
+                                : 'editor:fold-all does NOT collapse properties — safe to migrate zM to CM6 foldAll',
                     };
                 },
                 FRONTMATTER_CONTENT,
             )) as Record<string, unknown>;
 
-            console.log('Pre-Phase-2 verification:', JSON.stringify(result, null, 2));
+            console.log(
+                'Pre-Phase-2 verification:',
+                JSON.stringify(result, null, 2),
+            );
             expect(result).not.toHaveProperty('error');
         });
     });
@@ -660,7 +763,12 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
 
                         const lang = req('@codemirror/language') as {
                             foldedRanges: (state: unknown) => {
-                                iter: () => { from: number; to: number; done: boolean; next: () => void };
+                                iter: () => {
+                                    from: number;
+                                    to: number;
+                                    done: boolean;
+                                    next: () => void;
+                                };
                             };
                         };
                         const cm6View = (
@@ -668,18 +776,26 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                         ).cm as { state: unknown } | undefined;
                         if (!cm6View?.state) return { error: 'No CM6 state' };
 
-                        const foldsBefore: Array<{ from: number; to: number }> = [];
+                        const foldsBefore: Array<{ from: number; to: number }> =
+                            [];
                         const ib = lang.foldedRanges(cm6View.state).iter();
-                        while (!ib.done) { foldsBefore.push({ from: ib.from, to: ib.to }); ib.next(); }
+                        while (!ib.done) {
+                            foldsBefore.push({ from: ib.from, to: ib.to });
+                            ib.next();
+                        }
 
                         (
                             app as unknown as CommandsApi
                         ).commands.executeCommandById(cmdId);
                         await new Promise((r) => setTimeout(r, 500));
 
-                        const foldsAfter: Array<{ from: number; to: number }> = [];
+                        const foldsAfter: Array<{ from: number; to: number }> =
+                            [];
                         const ia = lang.foldedRanges(cm6View.state).iter();
-                        while (!ia.done) { foldsAfter.push({ from: ia.from, to: ia.to }); ia.next(); }
+                        while (!ia.done) {
+                            foldsAfter.push({ from: ia.from, to: ia.to });
+                            ia.next();
+                        }
 
                         return {
                             command: cmdId,
@@ -713,14 +829,11 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                 await setupEditor(content, { line: 6, ch: 0 });
                 const cursorBefore = await getCursorPos();
 
-                await browser.executeObsidian(
-                    ({ app }, cmdId: string) => {
-                        (
-                            app as unknown as CommandsApi
-                        ).commands.executeCommandById(cmdId);
-                    },
-                    cmd,
-                );
+                await browser.executeObsidian(({ app }, cmdId: string) => {
+                    (app as unknown as CommandsApi).commands.executeCommandById(
+                        cmdId,
+                    );
+                }, cmd);
                 await browser.pause(PAUSE.EDITOR_SETTLE);
 
                 const cursorAfter = await getCursorPos();
@@ -740,11 +853,10 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
     describe('9. CM6 fold state deep inspection', function () {
         it('foldedRanges before/after CM6 foldCode', async function () {
             const result = (await browser.executeObsidian(
-                async (
-                    { app, obsidian, require: req },
-                    content: string,
-                ) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                async ({ app, obsidian, require: req }, content: string) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     view.editor.setValue(content);
@@ -753,27 +865,46 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     await new Promise((r) => setTimeout(r, 500));
 
                     const lang = req('@codemirror/language') as {
-                        foldedRanges: (state: unknown) => { iter: () => { from: number; to: number; done: boolean; next: () => void } };
+                        foldedRanges: (state: unknown) => {
+                            iter: () => {
+                                from: number;
+                                to: number;
+                                done: boolean;
+                                next: () => void;
+                            };
+                        };
                         foldCode: (view: unknown) => boolean;
                         unfoldCode: (view: unknown) => boolean;
                     };
-                    const cm6View = (view.editor as unknown as Record<string, unknown>).cm as { state: unknown } | undefined;
+                    const cm6View = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as { state: unknown } | undefined;
                     if (!cm6View) return { error: 'No CM6 view' };
 
                     const foldsBefore: Array<{ from: number; to: number }> = [];
                     const ib = lang.foldedRanges(cm6View.state).iter();
-                    while (!ib.done) { foldsBefore.push({ from: ib.from, to: ib.to }); ib.next(); }
+                    while (!ib.done) {
+                        foldsBefore.push({ from: ib.from, to: ib.to });
+                        ib.next();
+                    }
 
                     lang.foldCode(cm6View);
                     await new Promise((r) => setTimeout(r, 300));
 
                     const foldsAfter: Array<{ from: number; to: number }> = [];
                     const ia = lang.foldedRanges(cm6View.state).iter();
-                    while (!ia.done) { foldsAfter.push({ from: ia.from, to: ia.to }); ia.next(); }
+                    while (!ia.done) {
+                        foldsAfter.push({ from: ia.from, to: ia.to });
+                        ia.next();
+                    }
 
                     lang.unfoldCode(cm6View);
 
-                    return { foldsBefore, foldsAfter, foldCreated: foldsAfter.length > foldsBefore.length };
+                    return {
+                        foldsBefore,
+                        foldsAfter,
+                        foldCreated: foldsAfter.length > foldsBefore.length,
+                    };
                 },
                 HEADING_CONTENT,
             )) as Record<string, unknown>;
@@ -784,19 +915,27 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
 
         it('CM6 foldAll vs Obsidian editor:fold-all — state comparison', async function () {
             const result = (await browser.executeObsidian(
-                async (
-                    { app, obsidian, require: req },
-                    content: string,
-                ) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                async ({ app, obsidian, require: req }, content: string) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
 
                     const lang = req('@codemirror/language') as {
-                        foldedRanges: (state: unknown) => { iter: () => { from: number; to: number; done: boolean; next: () => void } };
+                        foldedRanges: (state: unknown) => {
+                            iter: () => {
+                                from: number;
+                                to: number;
+                                done: boolean;
+                                next: () => void;
+                            };
+                        };
                         foldAll: (view: unknown) => boolean;
                         unfoldAll: (view: unknown) => boolean;
                     };
-                    const cm6View = (view.editor as unknown as Record<string, unknown>).cm as { state: unknown } | undefined;
+                    const cm6View = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as { state: unknown } | undefined;
                     if (!cm6View) return { error: 'No CM6 view' };
 
                     view.editor.setValue(content);
@@ -808,7 +947,10 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     await new Promise((r) => setTimeout(r, 300));
                     const cm6Folds: Array<{ from: number; to: number }> = [];
                     const i1 = lang.foldedRanges(cm6View.state).iter();
-                    while (!i1.done) { cm6Folds.push({ from: i1.from, to: i1.to }); i1.next(); }
+                    while (!i1.done) {
+                        cm6Folds.push({ from: i1.from, to: i1.to });
+                        i1.next();
+                    }
                     lang.unfoldAll(cm6View);
                     await new Promise((r) => setTimeout(r, 300));
 
@@ -817,26 +959,43 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
                     view.editor.focus();
                     await new Promise((r) => setTimeout(r, 500));
 
-                    (app as unknown as { commands: { executeCommandById: (id: string) => boolean } }).commands.executeCommandById('editor:fold-all');
+                    (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById: (id: string) => boolean;
+                            };
+                        }
+                    ).commands.executeCommandById('editor:fold-all');
                     await new Promise((r) => setTimeout(r, 300));
-                    const obsidianFolds: Array<{ from: number; to: number }> = [];
+                    const obsidianFolds: Array<{ from: number; to: number }> =
+                        [];
                     const i2 = lang.foldedRanges(cm6View.state).iter();
-                    while (!i2.done) { obsidianFolds.push({ from: i2.from, to: i2.to }); i2.next(); }
+                    while (!i2.done) {
+                        obsidianFolds.push({ from: i2.from, to: i2.to });
+                        i2.next();
+                    }
                     lang.unfoldAll(cm6View);
 
                     return {
                         cm6FoldAllRanges: cm6Folds,
                         obsidianFoldAllRanges: obsidianFolds,
-                        identical: JSON.stringify(cm6Folds) === JSON.stringify(obsidianFolds),
-                        conclusion: JSON.stringify(cm6Folds) === JSON.stringify(obsidianFolds)
-                            ? 'IDENTICAL — safe to migrate zM/zR to CM6'
-                            : 'DIFFERENT — keep separate implementations',
+                        identical:
+                            JSON.stringify(cm6Folds) ===
+                            JSON.stringify(obsidianFolds),
+                        conclusion:
+                            JSON.stringify(cm6Folds) ===
+                            JSON.stringify(obsidianFolds)
+                                ? 'IDENTICAL — safe to migrate zM/zR to CM6'
+                                : 'DIFFERENT — keep separate implementations',
                     };
                 },
                 HEADING_CONTENT,
             )) as Record<string, unknown>;
 
-            console.log('CM6 vs Obsidian fold-all:', JSON.stringify(result, null, 2));
+            console.log(
+                'CM6 vs Obsidian fold-all:',
+                JSON.stringify(result, null, 2),
+            );
             expect(result).not.toHaveProperty('error');
         });
     });

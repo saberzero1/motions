@@ -82,7 +82,7 @@ export class FoldPersistenceStore {
             const toRemove = remaining.length - MAX_ENTRIES;
             for (let i = 0; i < toRemove; i++) {
                 const key = remaining[i]?.[0];
-            if (key) delete this.data[key];
+                if (key) delete this.data[key];
             }
         }
     }

@@ -258,7 +258,7 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `zM` / `zR`         | Fold all / unfold all                               | —      |
 | `zf{motion}`        | Create fold over motion range                       | —      |
 | `zd` / `zD`         | Delete fold at cursor                               | —      |
-| `zE`                | Eliminate all folds                                  | —      |
+| `zE`                | Eliminate all folds                                 | —      |
 | `zm` / `zr`         | Fold more / fold less (by heading level)            | —      |
 
 ## Select mode

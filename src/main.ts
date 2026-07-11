@@ -71,10 +71,7 @@ import {
     yankHighlightExtension,
     showYankHighlight,
 } from './vim/yank-highlight';
-import {
-    foldSyncExtension,
-    setFoldAwareNavigation,
-} from './vim/fold-sync';
+import { foldSyncExtension, setFoldAwareNavigation } from './vim/fold-sync';
 import { foldLevelExtension } from './fold/fold-level';
 import { markdownFoldProvider } from './fold/provider';
 import { FoldPersistenceStore } from './fold/persistence';
@@ -392,9 +389,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.markStore.load(this.settings.persistedMarks ?? []);
         this.harpoonStore.load(this.settings.harpoonPins ?? []);
         this.foldStore.load(
-            (
-                this.settings as unknown as Record<string, unknown>
-            ).persistedFolds as
+            (this.settings as unknown as Record<string, unknown>)
+                .persistedFolds as
                 | Record<
                       string,
                       { ranges: { from: number; to: number }[]; ts: number }
@@ -815,7 +811,10 @@ export default class VimMotionsPlugin extends Plugin {
                         }
                     }
                 }
-                if (newLeaf?.view instanceof MarkdownView && newLeaf.view.file) {
+                if (
+                    newLeaf?.view instanceof MarkdownView &&
+                    newLeaf.view.file
+                ) {
                     const filePath = newLeaf.view.file.path;
                     this.previousFoldFile = filePath;
                     const editorView = (
@@ -831,10 +830,7 @@ export default class VimMotionsPlugin extends Plugin {
                             'object'
                     ) {
                         window.setTimeout(() => {
-                            this.foldStore.restore(
-                                filePath,
-                                cm6 as EditorView,
-                            );
+                            this.foldStore.restore(filePath, cm6 as EditorView);
                         }, 100);
                     }
                 } else {

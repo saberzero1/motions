@@ -15,7 +15,9 @@ import type { VimRegistration } from '../vim/registration';
 import { exCommandFromAction } from '../keybindings/action-registry';
 
 function rangesToDocOffsets(
-    view: { state: { doc: { line: (n: number) => { from: number; to: number } } } },
+    view: {
+        state: { doc: { line: (n: number) => { from: number; to: number } } };
+    },
     ranges: OperatorRange[],
 ): { from: number; to: number } | null {
     const first = ranges[0];
@@ -74,10 +76,5 @@ export function registerFoldCommands(reg: VimRegistration): void {
 
     reg.defineAction('foldEliminateAll', foldEliminateAllAction);
     reg.mapCommand('zE', 'action', 'foldEliminateAll', {});
-    exCommandFromAction(
-        reg,
-        'foldeliminate',
-        'folde',
-        foldEliminateAllAction,
-    );
+    exCommandFromAction(reg, 'foldeliminate', 'folde', foldEliminateAllAction);
 }

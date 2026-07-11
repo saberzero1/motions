@@ -68,15 +68,16 @@ async function isFoldedAt(line: number): Promise<boolean> {
                     };
                 };
             };
-            const cm6View = (
-                view.editor as unknown as Record<string, unknown>
-            ).cm as {
-                state: {
-                    doc: {
-                        line: (n: number) => { from: number; to: number };
-                    };
-                };
-            } | undefined;
+            const cm6View = (view.editor as unknown as Record<string, unknown>)
+                .cm as
+                | {
+                      state: {
+                          doc: {
+                              line: (n: number) => { from: number; to: number };
+                          };
+                      };
+                  }
+                | undefined;
             if (!cm6View) return false;
             const docLine = cm6View.state.doc.line(targetLine + 1);
             const folded = lang.foldedRanges(cm6View.state);

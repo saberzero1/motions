@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-07-11
+
 ### Added
 
 - **Fold viewport scroll compensation** — the viewport automatically scrolls to keep the cursor visible after any fold/unfold operation, including Obsidian's "Toggle fold properties" command. Uses a `TransactionExtender` for CM6 fold effects and a `MutationObserver` for the properties widget's CSS class toggle. ([#54](https://github.com/saberzero1/motions/issues/54))

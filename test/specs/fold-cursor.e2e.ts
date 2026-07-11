@@ -41,41 +41,33 @@ type CommandsApi = {
 };
 
 async function execObsidianCommand(cmdId: string): Promise<void> {
-    await browser.executeObsidian(
-        ({ app }, cmd: string) => {
-            (app as unknown as CommandsApi).commands.executeCommandById(cmd);
-        },
-        cmdId,
-    );
+    await browser.executeObsidian(({ app }, cmd: string) => {
+        (app as unknown as CommandsApi).commands.executeCommandById(cmd);
+    }, cmdId);
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
 async function sendVimFoldKey(key: string): Promise<void> {
-    await browser.executeObsidian(
-        ({ app, obsidian }, k: string) => {
-            const Vim = (
-                window as unknown as {
-                    CodeMirrorAdapter?: {
-                        Vim?: {
-                            handleKey: (cm: unknown, key: string) => boolean;
-                        };
+    await browser.executeObsidian(({ app, obsidian }, k: string) => {
+        const Vim = (
+            window as unknown as {
+                CodeMirrorAdapter?: {
+                    Vim?: {
+                        handleKey: (cm: unknown, key: string) => boolean;
                     };
-                }
-            ).CodeMirrorAdapter?.Vim;
-            if (!Vim) return;
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return;
-            const cm = (view.editor as unknown as Record<string, unknown>)
-                .cm as Record<string, unknown>;
-            const adapter = cm?.cm;
-            if (!adapter) return;
-            Vim.handleKey(adapter, 'z');
-            Vim.handleKey(adapter, k);
-        },
-        key,
-    );
+                };
+            }
+        ).CodeMirrorAdapter?.Vim;
+        if (!Vim) return;
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return;
+        const cm = (view.editor as unknown as Record<string, unknown>)
+            .cm as Record<string, unknown>;
+        const adapter = cm?.cm;
+        if (!adapter) return;
+        Vim.handleKey(adapter, 'z');
+        Vim.handleKey(adapter, k);
+    }, key);
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 

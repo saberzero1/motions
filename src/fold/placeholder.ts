@@ -35,7 +35,9 @@ function describeFoldRange(
     if (calloutMatch?.[2]) {
         const type = calloutMatch[2];
         const title = calloutMatch[3]?.trim();
-        return title ? `${type}: ${title} — ${lineCount} lines` : `${type} — ${lineCount} lines`;
+        return title
+            ? `${type}: ${title} — ${lineCount} lines`
+            : `${type} — ${lineCount} lines`;
     }
 
     return `${lineCount} lines`;

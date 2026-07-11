@@ -86,20 +86,21 @@ async function isFoldableAt(line: number): Promise<boolean> {
                     lineEnd: number,
                 ) => { from: number; to: number } | null;
             };
-            const cm6View = (
-                view.editor as unknown as Record<string, unknown>
-            ).cm as {
-                state: {
-                    doc: {
-                        line: (
-                            n: number,
-                        ) => { from: number; to: number };
-                    };
-                };
-            } | undefined;
+            const cm6View = (view.editor as unknown as Record<string, unknown>)
+                .cm as
+                | {
+                      state: {
+                          doc: {
+                              line: (n: number) => { from: number; to: number };
+                          };
+                      };
+                  }
+                | undefined;
             if (!cm6View) return false;
             const docLine = cm6View.state.doc.line(targetLine + 1);
-            return lang.foldable(cm6View.state, docLine.from, docLine.to) !== null;
+            return (
+                lang.foldable(cm6View.state, docLine.from, docLine.to) !== null
+            );
         },
         line,
     )) as boolean;
@@ -122,17 +123,16 @@ async function isFoldedAt(line: number): Promise<boolean> {
                     };
                 };
             };
-            const cm6View = (
-                view.editor as unknown as Record<string, unknown>
-            ).cm as {
-                state: {
-                    doc: {
-                        line: (
-                            n: number,
-                        ) => { from: number; to: number };
-                    };
-                };
-            } | undefined;
+            const cm6View = (view.editor as unknown as Record<string, unknown>)
+                .cm as
+                | {
+                      state: {
+                          doc: {
+                              line: (n: number) => { from: number; to: number };
+                          };
+                      };
+                  }
+                | undefined;
             if (!cm6View) return false;
             const docLine = cm6View.state.doc.line(targetLine + 1);
             const folded = lang.foldedRanges(cm6View.state);
@@ -178,25 +178,58 @@ describe('Fold providers and placeholders (Phase 3)', function () {
         it('frontmatter can be folded via foldEffect dispatch', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian, require: req }, content: string) => {
-                    const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
                     if (!view) return { error: 'No view' };
                     view.editor.setValue(content);
                     view.editor.focus();
                     await new Promise((r) => setTimeout(r, 500));
 
                     const lang = req('@codemirror/language') as {
-                        foldable: (state: unknown, from: number, to: number) => { from: number; to: number } | null;
-                        foldEffect: { of: (range: { from: number; to: number }) => unknown };
-                        foldedRanges: (state: unknown) => { iter: () => { value: unknown; from: number; to: number; next: () => void } };
+                        foldable: (
+                            state: unknown,
+                            from: number,
+                            to: number,
+                        ) => { from: number; to: number } | null;
+                        foldEffect: {
+                            of: (range: {
+                                from: number;
+                                to: number;
+                            }) => unknown;
+                        };
+                        foldedRanges: (state: unknown) => {
+                            iter: () => {
+                                value: unknown;
+                                from: number;
+                                to: number;
+                                next: () => void;
+                            };
+                        };
                     };
-                    const cm6View = (view.editor as unknown as Record<string, unknown>).cm as {
-                        state: { doc: { line: (n: number) => { from: number; to: number } } };
-                        dispatch: (spec: { effects: unknown }) => void;
-                    } | undefined;
+                    const cm6View = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as
+                        | {
+                              state: {
+                                  doc: {
+                                      line: (n: number) => {
+                                          from: number;
+                                          to: number;
+                                      };
+                                  };
+                              };
+                              dispatch: (spec: { effects: unknown }) => void;
+                          }
+                        | undefined;
                     if (!cm6View) return { error: 'No CM6 view' };
 
                     const line1 = cm6View.state.doc.line(1);
-                    const range = lang.foldable(cm6View.state, line1.from, line1.to);
+                    const range = lang.foldable(
+                        cm6View.state,
+                        line1.from,
+                        line1.to,
+                    );
                     if (!range) return { foldable: false };
 
                     cm6View.dispatch({ effects: lang.foldEffect.of(range) });
@@ -205,7 +238,10 @@ describe('Fold providers and placeholders (Phase 3)', function () {
                     let folded = false;
                     const iter = lang.foldedRanges(cm6View.state).iter();
                     while (iter.value) {
-                        if (iter.from <= line1.to && iter.to >= line1.from) { folded = true; break; }
+                        if (iter.from <= line1.to && iter.to >= line1.from) {
+                            folded = true;
+                            break;
+                        }
                         iter.next();
                     }
                     return { foldable: true, folded };
