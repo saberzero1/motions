@@ -48,6 +48,99 @@ Configure via **Settings → Vim Motions → Which-key leader grouping**, `vim.o
 | `grouped` | Collapse bindings by prefix (default). Pressing `<leader>` shows `t → Table (+11)` instead of listing all table commands. Press `t` to drill into the group. |
 | `flat`    | Show all bindings in a flat list without grouping                                                                                                            |
 
+## Sort order
+
+Configure via **Settings → Vim Motions → Which-key hints → Which-key sort order**, `vim.opt.whichkeysort = "order"` in Lua, or `set whichkeysort=<order>` (alias `wks`) in vimrc.
+
+| Mode           | Behavior                                                                                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `which-key`    | Matches which-key.nvim defaults (default). Individual keys first, groups last. Alphanumeric keys before special keys (`<…>`). Natural alphabetical tiebreaker. |
+| `groups-first` | Groups appear before individual keys. Both categories sorted alphabetically.                                                                                   |
+
+```lua
+vim.opt.whichkeysort = "groups-first"
+```
+
+```vim
+" Or via vimrc:
+set whichkeysort=groups-first
+set wks=which-key
+```
+
+## Icons
+
+Configure via **Settings → Vim Motions → Which-key hints → Which-key icons**, `vim.opt.whichkeyicons = true` in Lua, or `set whichkeyicons` in vimrc.
+
+When enabled, icons appear next to entries in the which-key popup. Built-in groups (Table, EasyMotion, Harpoon, etc.) show default icons automatically.
+
+### Assigning icons to groups
+
+Icons use [Lucide](https://lucide.dev/icons) icon names from Obsidian's built-in icon library.
+
+```lua
+vim.obsidian.whichkey.set_group("<leader>t", "Table", { icon = "table", color = "blue" })
+vim.obsidian.whichkey.set_group("<leader>g", "Git", { icon = "git-branch", color = "orange" })
+```
+
+```vim
+" Or via vimrc:
+whichkeygroup <leader>t Table icon=table color=blue
+whichkeygroup <leader>g Git icon=git-branch color=orange
+```
+
+### Assigning icons to individual bindings
+
+```lua
+vim.obsidian.whichkey.set_label("<leader>w", "Save file", { icon = "save", color = "green" })
+```
+
+```vim
+whichkeylabel <leader>w Save file icon=save color=green
+```
+
+### Batch assignment with `add()`
+
+```lua
+vim.obsidian.whichkey.add({
+    { "<leader>t", group = "Table", icon = "table", color = "blue" },
+    { "<leader>w", desc = "Save file", icon = "save", color = "green" },
+    { "<leader>f", group = "Find", icon = "search", color = "cyan" },
+})
+```
+
+### Colors
+
+Named colors map to Obsidian's theme variables and adapt to light/dark mode:
+
+| Name     | CSS Variable     |
+| -------- | ---------------- |
+| `red`    | `--color-red`    |
+| `orange` | `--color-orange` |
+| `yellow` | `--color-yellow` |
+| `green`  | `--color-green`  |
+| `cyan`   | `--color-cyan`   |
+| `blue`   | `--color-blue`   |
+| `purple` | `--color-purple` |
+| `pink`   | `--color-pink`   |
+
+Arbitrary CSS colors are also accepted (e.g., `#ff6600`, `rgb(100, 200, 50)`). Named colors are recommended for theme compatibility.
+
+If no color is specified, icons use `--text-muted` for a subtle appearance.
+
+### Default icons
+
+Built-in groups automatically receive icons when which-key icons are enabled:
+
+| Group      | Icon     | Color  |
+| ---------- | -------- | ------ |
+| Table      | `table`  | blue   |
+| EasyMotion | `zap`    | yellow |
+| Harpoon    | `anchor` | orange |
+
+These defaults can be overridden by setting a custom icon on the same group prefix.
+
+Icons can also be configured in **Settings → Vim Motions → Which-key group labels** and **Which-key command labels** using the icon and color fields.
+
 ## Group labels
 
 Name groups by their key prefix to give the collapsed group a descriptive label.

@@ -153,6 +153,8 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 
 | `whichkey` | string | `"off"` | `"off"`, `"leader"`, `"all"` | `vim.opt.whichkey = "leader"` |
 | `whichkeygrouping` | string | `"grouped"` | `"flat"`, `"grouped"` | `vim.opt.whichkeygrouping = "grouped"` |
+| `whichkeysort` | string | `"which-key"` | `"which-key"`, `"groups-first"` | `vim.opt.whichkeysort = "which-key"` |
+| `whichkeyicons` | boolean | `true` | | `vim.opt.whichkeyicons = true` |
 | `whichkeydelay` | number | `500` | 0–2000 ms | `vim.opt.whichkeydelay = 300` |
 | `workspacenavviewtypes` | string | `""` | Comma-separated view types | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
 | `guicursor` | string | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes | `vim.opt.guicursor = "n:bar,i:block"` |

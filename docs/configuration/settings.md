@@ -130,11 +130,13 @@ Map leader key sequences to Obsidian commands. This UI allows you to add new bin
 
 ## Which-key hints
 
-| Name                      | Type     | Default   | Range/Options          | Lua                        | Vimrc                  | Description                                                                                       |
-| ------------------------- | -------- | --------- | ---------------------- | -------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
-| Which-key mode            | dropdown | `off`     | `off`, `leader`, `all` | `vim.opt.whichkey`         | `set whichkey`         | Show available key continuations in a popup.                                                      |
-| Which-key leader grouping | dropdown | `grouped` | `grouped`, `flat`      | `vim.opt.whichkeygrouping` | `set whichkeygrouping` | How leader key bindings are displayed.                                                            |
-| Which-key popup delay     | number   | `500`     | 0–2000                 | `vim.opt.whichkeydelay`    | `set whichkeydelay`    | Delay in milliseconds before the popup appears. Subsequent keystrokes update the popup instantly. |
+| Name                      | Type     | Default     | Range/Options               | Lua                        | Vimrc                  | Description                                                                                                                                                                 |
+| ------------------------- | -------- | ----------- | --------------------------- | -------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Which-key mode            | dropdown | `off`       | `off`, `leader`, `all`      | `vim.opt.whichkey`         | `set whichkey`         | Show available key continuations in a popup.                                                                                                                                |
+| Which-key leader grouping | dropdown | `grouped`   | `grouped`, `flat`           | `vim.opt.whichkeygrouping` | `set whichkeygrouping` | How leader key bindings are displayed.                                                                                                                                      |
+| Which-key sort order      | dropdown | `which-key` | `which-key`, `groups-first` | `vim.opt.whichkeysort`     | `set whichkeysort`     | How entries are sorted. `which-key` matches which-key.nvim (keys first, groups last, alphanumeric before special). `groups-first` shows groups before keys, alphabetically. |
+| Which-key icons           | toggle   | `true`      | —                           | `vim.opt.whichkeyicons`    | `set whichkeyicons`    | Show icons next to entries in the which-key popup. Built-in groups show default Lucide icons.                                                                               |
+| Which-key popup delay     | number   | `500`       | 0–2000                      | `vim.opt.whichkeydelay`    | `set whichkeydelay`    | Delay in milliseconds before the popup appears. Subsequent keystrokes update the popup instantly.                                                                           |
 
 ## Which-key group labels
 

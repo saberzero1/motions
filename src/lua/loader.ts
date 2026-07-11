@@ -39,7 +39,12 @@ export interface LuaLoadResult {
     path: string;
     maps: LuaKeymap[];
     unmaps: LuaKeymapDelete[];
-    commandLabels: Array<{ key: string; label: string }>;
+    commandLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
     pendingExCommands: string[];
     mapOperations: Array<
         | { type: 'map'; map: LuaKeymap }
@@ -47,8 +52,18 @@ export interface LuaLoadResult {
     >;
     globalMaps: LuaGlobalKeymap[];
     globalUnmaps: string[];
-    globalWhichKeyLabels: Array<{ key: string; label: string }>;
-    globalWhichKeyGroups: Array<{ key: string; label: string }>;
+    globalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
+    globalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
     surroundPairs: Array<{ trigger: string; open: string; close: string }>;
     leaderBindings: Array<{
         key: string;
@@ -195,7 +210,12 @@ export async function loadInitLua(
     let commandCount = 0;
     const maps: LuaKeymap[] = [];
     const unmaps: LuaKeymapDelete[] = [];
-    const commandLabels: Array<{ key: string; label: string }> = [];
+    const commandLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
     const pendingExCommands: string[] = [];
     const mapOperations: Array<
         | { type: 'map'; map: LuaKeymap }
@@ -203,8 +223,18 @@ export async function loadInitLua(
     > = [];
     const globalMaps: LuaGlobalKeymap[] = [];
     const globalUnmaps: string[] = [];
-    const globalWhichKeyLabels: Array<{ key: string; label: string }> = [];
-    const globalWhichKeyGroups: Array<{ key: string; label: string }> = [];
+    const globalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
+    const globalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
     const surroundPairs: Array<{
         trigger: string;
         open: string;
@@ -478,20 +508,30 @@ export async function loadInitLua(
                 globalRegistry.removeMapping(lhs.replace(/ /g, '<Space>'));
             }
         },
-        onWhichKeyGroupLabel: (key, label, context) => {
+        onWhichKeyGroupLabel: (key, label, context, icon, color) => {
             commandCount++;
             if (context === 'global') {
-                globalWhichKeyGroups.push({ key, label });
+                globalWhichKeyGroups.push({ key, label, icon, color });
             } else {
-                onSettingOverride?.('whichKeyGroupLabel', { key, label });
+                onSettingOverride?.('whichKeyGroupLabel', {
+                    key,
+                    label,
+                    icon,
+                    color,
+                });
             }
         },
-        onWhichKeyCommandLabel: (key, label, context) => {
+        onWhichKeyCommandLabel: (key, label, context, icon, color) => {
             commandCount++;
             if (context === 'global') {
-                globalWhichKeyLabels.push({ key, label });
+                globalWhichKeyLabels.push({ key, label, icon, color });
             } else {
-                onSettingOverride?.('whichKeyCommandLabel', { key, label });
+                onSettingOverride?.('whichKeyCommandLabel', {
+                    key,
+                    label,
+                    icon,
+                    color,
+                });
             }
         },
         getModePrompt: (_key) => {

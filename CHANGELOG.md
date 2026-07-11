@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Which-key sort order setting** — configurable sort order for the which-key popup. "which-key" (default) matches which-key.nvim defaults: individual keys first, groups last, alphanumeric before special keys, natural alphabetical tiebreaker. "Groups first" shows groups before individual keys, both sorted alphabetically. Configurable via **Settings → Vim Motions → Which-key sort order**, `vim.opt.whichkeysort` in Lua, or `set whichkeysort=<order>` (alias `wks`) in vimrc.
+    - Plugin: `src/ui/which-key.ts` (`sortWhichKeyEntries`, `WhichKeySortOrder` type), `src/ui/global-which-key.ts`, `src/settings.ts`, `src/main.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+- **Which-key Lucide icons** — optional Lucide icon support for the which-key popup, inspired by which-key.nvim. Icons render as inline SVGs via Obsidian's `setIcon()` API, colored using Obsidian's CSS color variables or arbitrary CSS color strings. Each row displays: key → separator (➤) → icon → description, matching which-key.nvim's column layout.
+    - **Global toggle**: `whichKeyIcons` setting (default: on). Configurable via Settings UI, `vim.opt.whichkeyicons` in Lua, or `set whichkeyicons` / `set nowhichkeyicons` in vimrc.
+    - **Per-entry icons**: assign icon and color to any group label or command label via Settings UI, Lua (`vim.obsidian.whichkey.set_group("<leader>t", "Table", { icon = "table", color = "blue" })`), or vimrc (`whichkeygroup <leader>t Table icon=table color=blue`).
+    - **Color system**: 8 named Obsidian colors (`red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `purple`, `pink`) mapped to theme CSS variables, plus arbitrary CSS color strings. Default icon color: `--text-muted`.
+    - **Default icons**: Table (`table`, blue), EasyMotion (`zap`, yellow), Harpoon (`anchor`, orange) — applied automatically to built-in groups.
+    - **Alignment**: spacer spans for rows without icons when icons are globally enabled, ensuring consistent column alignment.
+    - Plugin: `src/ui/which-key.ts` (`WhichKeyLabelInfo`, `resolveIconColor`), `src/ui/global-which-key.ts`, `src/settings.ts` (GroupLabel/CommandLabel extended with `icon?`/`color?`), `src/main.ts`, `src/lua/api.ts`, `src/lua/obsidian-api.ts`, `src/lua/loader.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`, `src/vimrc/parser.ts`, `src/workspace/global-mapping-registry.ts`, `src/easymotion/register.ts`, `src/motions/tables.ts`, `styles.css`
+
 - **Harpoon-style file pinning** — pin files to numbered slots for instant switching. `<leader>ha` pins, `<leader>1`–`<leader>9` jumps to slots, `<leader>hp` opens the harpoon picker. Cursor position is tracked per-pinned-file and restored on navigation. Pins persist across sessions. File renames auto-update pins; file deletes auto-remove them.
     - 6 ex commands: `:HarpoonAdd`, `:HarpoonRemove [N]`, `:Harpoon`, `:HarpoonSelect N`, `:HarpoonNext`, `:HarpoonPrev`
     - 14 Obsidian commands for command palette access
@@ -18,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- `docs/configuration/which-key.md`: added Sort order and Icons sections with Lua/vimrc/Settings examples, color table, and default icons
+- `docs/configuration/settings.md`: added Which-key sort order and Which-key icons rows to Which-key hints table
+- `docs/configuration/vimrc.md`: added `whichkeysort` (`wks`) and `whichkeyicons` (`wki`) options
+- `docs/configuration/lua-config.md`: added `whichkeysort` and `whichkeyicons` options to `vim.opt` table
+- `KNOWN_LIMITATIONS.md`: added Sort order and Icons subsections to Which-key overlay section
 - `docs/features/harpoon.md`: new feature page
 - `docs/features/index.md`: added harpoon to Jump navigation section
 - `docs/configuration/settings.md`: added Harpoon file pinning to Jump navigation table

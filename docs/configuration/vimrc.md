@@ -164,6 +164,8 @@ Use `set <option>=<value>`.
 | `tablewidget`           | —      | Table widget mode (`off`/`cursor`/`always`/`embedded`) | `cursor`                              |
 | `whichkey`              | `wk`   | Which-key hints (`off`/`leader`/`all`)                 | `off`                                 |
 | `whichkeygrouping`      | `wkg`  | Which-key grouping (`flat`/`grouped`)                  | `grouped`                             |
+| `whichkeysort`          | `wks`  | Which-key sort order (`which-key`/`groups-first`)      | `which-key`                           |
+| `whichkeyicons`         | `wki`  | Which-key icons (`on`/`off`)                           | `on`                                  |
 | `workspacenavviewtypes` | `wnvt` | View types for workspace nav interception              | (empty — uses defaults)               |
 
 ## Mode prompt customization

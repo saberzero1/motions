@@ -333,7 +333,7 @@ export function registerEasyMotion(
         leaderRegistry.addBinding(keys, def.description, 'builtin');
     }
 
-    leaderRegistry.addGroupLabel(leader, 'EasyMotion', true);
+    leaderRegistry.addGroupLabel(leader, 'EasyMotion', true, 'zap', 'yellow');
 
     for (const def of EXTRA_DEFS) {
         const motionFactory = def.createTrigger(app, chars, opts);

@@ -290,6 +290,28 @@ export function registerVimOptions(
             }
         },
     );
+    vim.defineOption(
+        'whichkeysort',
+        'which-key',
+        'string',
+        ['wks'],
+        (value) => {
+            if (value === undefined) return;
+            const str = typeof value === 'string' ? value : '';
+            if (str === 'which-key' || str === 'groups-first') {
+                notify('whichKeySortOrder', str, `set whichkeysort=${str}`);
+            }
+        },
+    );
+    vim.defineOption('whichkeyicons', true, 'boolean', ['wki'], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'whichKeyIcons',
+            enabled,
+            `set ${enabled ? '' : 'no'}whichkeyicons`,
+        );
+    });
     registered = true;
 }
 

@@ -154,6 +154,18 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         min: 0,
         max: 2000,
     },
+    whichkeysort: {
+        type: 'string',
+        settingsKey: 'whichKeySortOrder',
+        validValues: ['which-key', 'groups-first'],
+    },
+    wks: {
+        type: 'string',
+        settingsKey: 'whichKeySortOrder',
+        validValues: ['which-key', 'groups-first'],
+    },
+    whichkeyicons: { type: 'boolean', settingsKey: 'whichKeyIcons' },
+    wki: { type: 'boolean', settingsKey: 'whichKeyIcons' },
     updatetime: { type: 'number', settingsKey: 'updatetime' },
 };
 
@@ -355,8 +367,18 @@ export interface VimrcLoadResult {
     maps: DeferredMap[];
     globalMaps: DeferredGlobalMap[];
     globalUnmaps: string[];
-    globalWhichKeyLabels: Array<{ key: string; label: string }>;
-    globalWhichKeyGroups: Array<{ key: string; label: string }>;
+    globalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
+    globalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
 }
 
 export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
@@ -446,8 +468,44 @@ interface LoadFileResult {
     deferredMaps: DeferredMap[];
     deferredGlobalMaps: DeferredGlobalMap[];
     globalUnmaps: string[];
-    globalWhichKeyLabels: Array<{ key: string; label: string }>;
-    globalWhichKeyGroups: Array<{ key: string; label: string }>;
+    globalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
+    globalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }>;
+}
+
+function extractIconColorFromArgs(args: string[]): {
+    label: string;
+    icon?: string;
+    color?: string;
+} {
+    let icon: string | undefined;
+    let color: string | undefined;
+    let end = args.length;
+    while (end > 0) {
+        const token = args[end - 1];
+        if (token?.startsWith('icon=')) {
+            icon = token.slice('icon='.length);
+            end -= 1;
+            continue;
+        }
+        if (token?.startsWith('color=')) {
+            color = token.slice('color='.length);
+            end -= 1;
+            continue;
+        }
+        break;
+    }
+    const label = args.slice(0, end).join(' ');
+    return { label, icon, color };
 }
 
 async function loadVimrcFile(
@@ -481,28 +539,44 @@ async function loadVimrcFile(
     const deferredMaps: DeferredMap[] = [];
     const deferredGlobalMaps: DeferredGlobalMap[] = [];
     const globalUnmaps: string[] = [];
-    const globalWhichKeyLabels: Array<{ key: string; label: string }> = [];
-    const globalWhichKeyGroups: Array<{ key: string; label: string }> = [];
+    const globalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
+    const globalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
 
     vim.defineEx('whichkeygroup', 'whichkeyg', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
         const key = params.args[0]!.replace(/<leader>/gi, currentLeader);
-        const label = params.args.slice(1).join(' ');
+        const { label, icon, color } = extractIconColorFromArgs(
+            params.args.slice(1),
+        );
+        if (!label) return;
         onSettingOverride?.(
             'whichKeyGroupLabel',
-            { key, label },
-            `whichkeygroup ${key} ${label}`,
+            { key, label, icon, color },
+            `whichkeygroup ${key} ${params.args.slice(1).join(' ')}`,
         );
     });
 
     vim.defineEx('whichkeylabel', 'whichkeyl', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
         const key = params.args[0]!.replace(/<leader>/gi, currentLeader);
-        const label = params.args.slice(1).join(' ');
+        const { label, icon, color } = extractIconColorFromArgs(
+            params.args.slice(1),
+        );
+        if (!label) return;
         onSettingOverride?.(
             'whichKeyCommandLabel',
-            { key, label },
-            `whichkeylabel ${key} ${label}`,
+            { key, label, icon, color },
+            `whichkeylabel ${key} ${params.args.slice(1).join(' ')}`,
         );
     });
 
@@ -610,14 +684,24 @@ async function loadVimrcFile(
 
         if (parsed?.type === 'gwhichkeylabel' && parsed.lhs && parsed.rhs) {
             const key = parsed.lhs.replace(/<leader>/gi, currentLeader);
-            globalWhichKeyLabels.push({ key, label: parsed.rhs });
+            globalWhichKeyLabels.push({
+                key,
+                label: parsed.rhs,
+                icon: parsed.icon,
+                color: parsed.color,
+            });
             applied++;
             continue;
         }
 
         if (parsed?.type === 'gwhichkeygroup' && parsed.lhs && parsed.rhs) {
             const key = parsed.lhs.replace(/<leader>/gi, currentLeader);
-            globalWhichKeyGroups.push({ key, label: parsed.rhs });
+            globalWhichKeyGroups.push({
+                key,
+                label: parsed.rhs,
+                icon: parsed.icon,
+                color: parsed.color,
+            });
             applied++;
             continue;
         }

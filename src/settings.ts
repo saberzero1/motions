@@ -47,11 +47,15 @@ export interface LeaderBinding {
 export interface GroupLabel {
     key: string;
     label: string;
+    icon?: string;
+    color?: string;
 }
 
 export interface CommandLabel {
     key: string;
     label: string;
+    icon?: string;
+    color?: string;
 }
 
 export interface ModePrompts {
@@ -151,6 +155,8 @@ export interface VimMotionsSettings {
     whichKeyMode: 'off' | 'leader' | 'all';
     whichKeyGrouping: 'flat' | 'grouped';
     whichKeyDelay: number;
+    whichKeySortOrder: 'which-key' | 'groups-first';
+    whichKeyIcons: boolean;
     whichKeyGroupLabels: GroupLabel[];
     whichKeyCommandLabels: CommandLabel[];
     vimrcPath: string;
@@ -218,6 +224,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     whichKeyMode: 'off',
     whichKeyGrouping: 'grouped',
     whichKeyDelay: 500,
+    whichKeySortOrder: 'which-key',
+    whichKeyIcons: true,
     whichKeyGroupLabels: [],
     whichKeyCommandLabels: [],
     vimrcPath: '',
@@ -330,6 +338,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'whichKeyMode',
         'whichKeyGrouping',
         'whichKeyDelay',
+        'whichKeySortOrder',
+        'whichKeyIcons',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
@@ -1232,6 +1242,39 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             min: 0,
                             max: 2000,
                             disabled: () => this.isOverridden('whichKeyDelay'),
+                        },
+                    },
+                    {
+                        name: 'Which-key sort order',
+                        desc: this.describeOverride(
+                            'whichKeySortOrder',
+                            'How entries are sorted in the which-key popup. ' +
+                                '"which-key" matches which-key.nvim defaults: individual keys first, groups last, ' +
+                                'alphanumeric before special keys, natural alphabetical tiebreaker. ' +
+                                '"Groups first" shows groups before individual keys, both sorted alphabetically.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'whichKeySortOrder',
+                            options: {
+                                'which-key': 'which-key.nvim (default)',
+                                'groups-first':
+                                    'Groups first, then keys (alphabetical)',
+                            },
+                            disabled: () =>
+                                this.isOverridden('whichKeySortOrder'),
+                        },
+                    },
+                    {
+                        name: 'Which-key icons',
+                        desc: this.describeOverride(
+                            'whichKeyIcons',
+                            'Show icons next to entries in the which-key popup.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'whichKeyIcons',
+                            disabled: () => this.isOverridden('whichKeyIcons'),
                         },
                     },
                 ],
@@ -2562,6 +2605,56 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
+        new Setting(containerEl)
+            .setName('Which-key sort order')
+            .setDesc(
+                describeOverride(
+                    'whichKeySortOrder',
+                    'How entries are sorted in the which-key popup. ' +
+                        '"which-key.nvim" matches which-key.nvim defaults: individual keys first, groups last, ' +
+                        'alphanumeric before special keys, natural alphabetical tiebreaker. ' +
+                        '"Groups first" shows groups before individual keys, both sorted alphabetically.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        'which-key': 'which-key.nvim (default)',
+                        'groups-first':
+                            'Groups first, then keys (alphabetical)',
+                    })
+                    .setValue(this.plugin.settings.whichKeySortOrder)
+                    .setDisabled(isOverridden('whichKeySortOrder'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.whichKeySortOrder = value as
+                            | 'which-key'
+                            | 'groups-first';
+                        this.plugin.vimrcOverrides?.delete('whichKeySortOrder');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Which-key icons')
+            .setDesc(
+                describeOverride(
+                    'whichKeyIcons',
+                    'Show icons next to entries in the which-key popup.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.whichKeyIcons)
+                    .setDisabled(isOverridden('whichKeyIcons'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.whichKeyIcons = value;
+                        this.plugin.vimrcOverrides?.delete('whichKeyIcons');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
         new Setting(containerEl).setName('Which-key group labels').setHeading();
         new Setting(containerEl).setDesc(
             'Name groups by their full key prefix. Use the leader character + prefix for leader groups ' +
@@ -2669,6 +2762,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(`${entry.label} (from vimrc)`)
                         .setDisabled(true),
                 );
+            setting.addText((text: TextComponent) =>
+                text
+                    .setPlaceholder('Icon (e.g., table)')
+                    .setValue(entry.icon ?? '')
+                    .setDisabled(true),
+            );
+            setting.addText((text: TextComponent) =>
+                text
+                    .setPlaceholder('Color (e.g., blue)')
+                    .setValue(entry.color ?? '')
+                    .setDisabled(true),
+            );
             setting.settingEl.addClass('vim-motions-leader-binding-row');
         }
 
@@ -2703,6 +2808,32 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             this.plugin.reloadFeatures();
                         }),
                 )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Icon (e.g., table)')
+                        .setValue(entry.icon ?? '')
+                        .onChange(async (value) => {
+                            entry.icon = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyGroupLabels',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Color (e.g., blue)')
+                        .setValue(entry.color ?? '')
+                        .onChange(async (value) => {
+                            entry.color = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyGroupLabels',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
                 .addExtraButton((button) =>
                     button
                         .setIcon('cross')
@@ -2722,7 +2853,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 .setButtonText('Add group label')
                 .setCta()
                 .onClick(async () => {
-                    labels.push({ key: '', label: '' });
+                    labels.push({ key: '', label: '', icon: '', color: '' });
                     await this.plugin.saveSettings();
                     this.renderGroupLabels(container);
                 }),
@@ -2758,6 +2889,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(`${entry.label} (from vimrc)`)
                         .setDisabled(true),
                 );
+            setting.addText((text: TextComponent) =>
+                text
+                    .setPlaceholder('Icon (e.g., table)')
+                    .setValue(entry.icon ?? '')
+                    .setDisabled(true),
+            );
+            setting.addText((text: TextComponent) =>
+                text
+                    .setPlaceholder('Color (e.g., blue)')
+                    .setValue(entry.color ?? '')
+                    .setDisabled(true),
+            );
             setting.settingEl.addClass('vim-motions-leader-binding-row');
         }
 
@@ -2792,6 +2935,32 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             this.plugin.reloadFeatures();
                         }),
                 )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Icon (e.g., table)')
+                        .setValue(entry.icon ?? '')
+                        .onChange(async (value) => {
+                            entry.icon = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyCommandLabels',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
+                .addText((text: TextComponent) =>
+                    text
+                        .setPlaceholder('Color (e.g., blue)')
+                        .setValue(entry.color ?? '')
+                        .onChange(async (value) => {
+                            entry.color = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'whichKeyCommandLabels',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                )
                 .addExtraButton((button) =>
                     button
                         .setIcon('cross')
@@ -2810,7 +2979,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 .setButtonText('Add command label')
                 .setCta()
                 .onClick(async () => {
-                    labels.push({ key: '', label: '' });
+                    labels.push({ key: '', label: '', icon: '', color: '' });
                     await this.plugin.saveSettings();
                     this.renderCommandLabels(container);
                 }),

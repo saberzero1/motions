@@ -223,13 +223,17 @@ export function injectObsidianApi(
             );
         }
         let context: 'editor' | 'global' = 'editor';
+        let icon: string | undefined;
+        let color: string | undefined;
         if (lua.lua_istable(state, 3)) {
             const ctx = readStringField(state, 3, 'context');
             if (ctx === 'global') context = 'global';
+            icon = readStringField(state, 3, 'icon');
+            color = readStringField(state, 3, 'color');
         }
         const leaderKey = getLeaderKey();
         const key = replaceLeaderKey(keyRaw, leaderKey);
-        callbacks.onWhichKeyGroupLabel?.(key, label, context);
+        callbacks.onWhichKeyGroupLabel?.(key, label, context, icon, color);
         return 0;
     });
     lua.lua_setfield(L, obsWhichkeyIndex, to_luastring('set_group'));
@@ -254,13 +258,17 @@ export function injectObsidianApi(
             );
         }
         let context: 'editor' | 'global' = 'editor';
+        let icon: string | undefined;
+        let color: string | undefined;
         if (lua.lua_istable(state, 3)) {
             const ctx = readStringField(state, 3, 'context');
             if (ctx === 'global') context = 'global';
+            icon = readStringField(state, 3, 'icon');
+            color = readStringField(state, 3, 'color');
         }
         const leaderKey = getLeaderKey();
         const key = replaceLeaderKey(keyRaw, leaderKey);
-        callbacks.onWhichKeyCommandLabel?.(key, label, context);
+        callbacks.onWhichKeyCommandLabel?.(key, label, context, icon, color);
         return 0;
     });
     lua.lua_setfield(L, obsWhichkeyIndex, to_luastring('set_label'));
@@ -296,10 +304,24 @@ export function injectObsidianApi(
             if (ctx === 'global') context = 'global';
             const group = readStringField(state, entryIndex, 'group');
             const desc = readStringField(state, entryIndex, 'desc');
+            const icon = readStringField(state, entryIndex, 'icon');
+            const color = readStringField(state, entryIndex, 'color');
             if (group) {
-                callbacks.onWhichKeyGroupLabel?.(key, group, context);
+                callbacks.onWhichKeyGroupLabel?.(
+                    key,
+                    group,
+                    context,
+                    icon,
+                    color,
+                );
             } else if (desc) {
-                callbacks.onWhichKeyCommandLabel?.(key, desc, context);
+                callbacks.onWhichKeyCommandLabel?.(
+                    key,
+                    desc,
+                    context,
+                    icon,
+                    color,
+                );
             }
             lua.lua_pop(state, 1);
         }
@@ -500,7 +522,13 @@ export function injectObsidianApi(
         });
         callbacks.onLeaderBinding?.(key, commandId, desc);
         if (desc) {
-            callbacks.onWhichKeyCommandLabel?.(lhs, desc, 'editor');
+            callbacks.onWhichKeyCommandLabel?.(
+                lhs,
+                desc,
+                'editor',
+                undefined,
+                undefined,
+            );
         }
         return 0;
     });
@@ -564,7 +592,13 @@ export function injectObsidianApi(
             });
             callbacks.onLeaderBinding?.(key, commandId, desc);
             if (desc) {
-                callbacks.onWhichKeyCommandLabel?.(lhs, desc, 'editor');
+                callbacks.onWhichKeyCommandLabel?.(
+                    lhs,
+                    desc,
+                    'editor',
+                    undefined,
+                    undefined,
+                );
             }
             lua.lua_pop(state, 1);
         }

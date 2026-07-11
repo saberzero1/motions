@@ -80,11 +80,15 @@ export interface VimApiCallbacks {
         key: string,
         label: string,
         context: 'editor' | 'global',
+        icon?: string,
+        color?: string,
     ) => void;
     onWhichKeyCommandLabel?: (
         key: string,
         label: string,
         context: 'editor' | 'global',
+        icon?: string,
+        color?: string,
     ) => void;
     onCursorConfig?: (shapes: Record<string, string>) => void;
     onModePromptConfig?: (prompts: Record<string, string>) => void;

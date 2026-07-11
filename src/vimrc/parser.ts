@@ -25,6 +25,8 @@ export interface VimrcCommand {
     name?: string;
     args?: string;
     path?: string;
+    icon?: string;
+    color?: string;
 }
 
 const MAP_COMMANDS = new Set([
@@ -46,6 +48,31 @@ const GUNMAP_COMMANDS = new Set(['gunmap']);
 
 const GWHICHKEYLABEL_CMD = 'gwhichkeylabel';
 const GWHICHKEYGROUP_CMD = 'gwhichkeygroup';
+
+function extractIconColor(tokens: string[]): {
+    label: string;
+    icon?: string;
+    color?: string;
+} {
+    let icon: string | undefined;
+    let color: string | undefined;
+    let end = tokens.length;
+    while (end > 0) {
+        const token = tokens[end - 1];
+        if (token?.startsWith('icon=')) {
+            icon = token.slice('icon='.length);
+            end -= 1;
+            continue;
+        }
+        if (token?.startsWith('color=')) {
+            color = token.slice('color='.length);
+            end -= 1;
+            continue;
+        }
+        break;
+    }
+    return { label: tokens.slice(0, end).join(' '), icon, color };
+}
 
 function getMapContext(
     cmd: string,
@@ -120,16 +147,16 @@ export function parseLine(line: string): VimrcCommand | null {
 
     if (cmd === GWHICHKEYLABEL_CMD) {
         const lhs = parts[1];
-        const rhs = parts.slice(2).join(' ');
+        const { label: rhs, icon, color } = extractIconColor(parts.slice(2));
         if (!lhs || !rhs) return null;
-        return { type: 'gwhichkeylabel', raw: trimmed, lhs, rhs };
+        return { type: 'gwhichkeylabel', raw: trimmed, lhs, rhs, icon, color };
     }
 
     if (cmd === GWHICHKEYGROUP_CMD) {
         const lhs = parts[1];
-        const rhs = parts.slice(2).join(' ');
+        const { label: rhs, icon, color } = extractIconColor(parts.slice(2));
         if (!lhs || !rhs) return null;
-        return { type: 'gwhichkeygroup', raw: trimmed, lhs, rhs };
+        return { type: 'gwhichkeygroup', raw: trimmed, lhs, rhs, icon, color };
     }
 
     if (cmd === 'surroundmap') {

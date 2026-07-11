@@ -41,6 +41,7 @@ import {
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintActions } from './ui/hint-mode';
 import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
+import type { WhichKeyLabelInfo } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import { registerVimOptions } from './vim/options';
 import { VimRegistration } from './vim/registration';
@@ -145,14 +146,32 @@ export default class VimMotionsPlugin extends Plugin {
     private globalWhichKeyOverlay: GlobalWhichKeyOverlay | null = null;
     private vimrcGlobalMaps: DeferredGlobalMap[] = [];
     private vimrcGlobalUnmaps: string[] = [];
-    private vimrcGlobalWhichKeyLabels: Array<{ key: string; label: string }> =
-        [];
-    private vimrcGlobalWhichKeyGroups: Array<{ key: string; label: string }> =
-        [];
+    private vimrcGlobalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
+    private vimrcGlobalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
     private luaGlobalMaps: import('./lua/api').LuaGlobalKeymap[] = [];
     private luaGlobalUnmaps: string[] = [];
-    private luaGlobalWhichKeyLabels: Array<{ key: string; label: string }> = [];
-    private luaGlobalWhichKeyGroups: Array<{ key: string; label: string }> = [];
+    private luaGlobalWhichKeyLabels: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
+    private luaGlobalWhichKeyGroups: Array<{
+        key: string;
+        label: string;
+        icon?: string;
+        color?: string;
+    }> = [];
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
     private vimrcLoading = false;
@@ -1530,7 +1549,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (!generalMode && bindings.length === 0) return;
 
         const registryLabels = this.leaderRegistry.getGroupLabels();
-        const groupLabels = new Map<string, string>();
+        const groupLabels = new Map<string, WhichKeyLabelInfo>();
         for (const [key, label] of registryLabels) {
             groupLabels.set(leaderKey + key, label);
         }
@@ -1539,37 +1558,61 @@ export default class VimMotionsPlugin extends Plugin {
                 const expandedKey = entry.key
                     .trim()
                     .replace(/<leader>/gi, leaderKey);
-                groupLabels.set(expandedKey, entry.label);
+                groupLabels.set(expandedKey, {
+                    label: entry.label,
+                    icon: entry.icon,
+                    color: entry.color,
+                });
             }
         }
         for (const entry of this.vimrcGroupLabels) {
             if (entry.key && entry.label) {
-                groupLabels.set(entry.key, entry.label);
+                groupLabels.set(entry.key, {
+                    label: entry.label,
+                    icon: entry.icon,
+                    color: entry.color,
+                });
             }
         }
         for (const entry of this.luaGroupLabels) {
             if (entry.key && entry.label) {
-                groupLabels.set(entry.key, entry.label);
+                groupLabels.set(entry.key, {
+                    label: entry.label,
+                    icon: entry.icon,
+                    color: entry.color,
+                });
             }
         }
 
-        const commandLabels = new Map<string, string>();
+        const commandLabels = new Map<string, WhichKeyLabelInfo>();
         for (const entry of this.settings.whichKeyCommandLabels) {
             if (entry.key && entry.label) {
                 const expandedKey = entry.key
                     .trim()
                     .replace(/<leader>/gi, leaderKey);
-                commandLabels.set(expandedKey, entry.label);
+                commandLabels.set(expandedKey, {
+                    label: entry.label,
+                    icon: entry.icon,
+                    color: entry.color,
+                });
             }
         }
         for (const entry of this.vimrcCommandLabels) {
             if (entry.key && entry.label) {
-                commandLabels.set(entry.key, entry.label);
+                commandLabels.set(entry.key, {
+                    label: entry.label,
+                    icon: entry.icon,
+                    color: entry.color,
+                });
             }
         }
         for (const entry of this.luaCommandLabels) {
             if (entry.key && entry.label) {
-                commandLabels.set(entry.key, entry.label);
+                commandLabels.set(entry.key, {
+                    label: entry.label,
+                    icon: entry.icon,
+                    color: entry.color,
+                });
             }
         }
 
@@ -1581,7 +1624,9 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.whichKeyGrouping === 'grouped',
             groupLabels,
             commandLabels,
+            this.settings.whichKeyIcons,
             this.settings.whichKeyDelay,
+            this.settings.whichKeySortOrder,
         );
         this.whichKeyOverlay.attach();
     }
@@ -1699,7 +1744,7 @@ export default class VimMotionsPlugin extends Plugin {
                 'builtin',
             );
         }
-        this.leaderRegistry.addGroupLabel('f', 'Find', true);
+        this.leaderRegistry.addGroupLabel('f', 'Find', true, 'search', 'green');
     }
 
     private registerHarpoonExCommands(): void {
@@ -1879,7 +1924,13 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
-        this.leaderRegistry.addGroupLabel('h', 'Harpoon', true);
+        this.leaderRegistry.addGroupLabel(
+            'h',
+            'Harpoon',
+            true,
+            'anchor',
+            'orange',
+        );
     }
 
     private parseHotkey(serialized: string): {
@@ -1997,6 +2048,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.globalRegistry.setGroupLabel(
                 normalizeKeyString(entry.key),
                 entry.label,
+                entry.icon,
+                entry.color,
             );
         }
         for (const gm of this.luaGlobalMaps) {
@@ -2033,6 +2086,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.globalRegistry.setGroupLabel(
                 normalizeKeyString(entry.key),
                 entry.label,
+                entry.icon,
+                entry.color,
             );
         }
     }
@@ -2383,20 +2438,36 @@ export default class VimMotionsPlugin extends Plugin {
         const leaderKey = this.leaderRegistry?.getLeaderKey() ?? '\\';
         const generalMode = mode === 'all';
 
-        const commandLabels = new Map<string, string>();
+        const commandLabels = new Map<string, WhichKeyLabelInfo>();
         for (const entry of this.vimrcGlobalWhichKeyLabels) {
-            commandLabels.set(normalizeKeyString(entry.key), entry.label);
+            commandLabels.set(normalizeKeyString(entry.key), {
+                label: entry.label,
+                icon: entry.icon,
+                color: entry.color,
+            });
         }
         for (const entry of this.luaGlobalWhichKeyLabels) {
-            commandLabels.set(normalizeKeyString(entry.key), entry.label);
+            commandLabels.set(normalizeKeyString(entry.key), {
+                label: entry.label,
+                icon: entry.icon,
+                color: entry.color,
+            });
         }
 
-        const groupLabels = new Map<string, string>();
+        const groupLabels = new Map<string, WhichKeyLabelInfo>();
         for (const entry of this.vimrcGlobalWhichKeyGroups) {
-            groupLabels.set(normalizeKeyString(entry.key), entry.label);
+            groupLabels.set(normalizeKeyString(entry.key), {
+                label: entry.label,
+                icon: entry.icon,
+                color: entry.color,
+            });
         }
         for (const entry of this.luaGlobalWhichKeyGroups) {
-            groupLabels.set(normalizeKeyString(entry.key), entry.label);
+            groupLabels.set(normalizeKeyString(entry.key), {
+                label: entry.label,
+                icon: entry.icon,
+                color: entry.color,
+            });
         }
         for (const [prefix, label] of this.globalRegistry.getGroupLabels()) {
             groupLabels.set(prefix, label);
@@ -2408,7 +2479,9 @@ export default class VimMotionsPlugin extends Plugin {
             leaderKey,
             commandLabels,
             groupLabels,
+            this.settings.whichKeyIcons,
             this.settings.whichKeyDelay,
+            this.settings.whichKeySortOrder,
         );
         this.globalWhichKeyOverlay.attach(this.globalKeyHandler);
     }

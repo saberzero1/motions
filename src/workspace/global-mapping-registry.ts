@@ -1,4 +1,5 @@
 import type { App } from 'obsidian';
+import type { WhichKeyLabelInfo } from '../ui/which-key';
 
 export type GlobalMapGate = 'standard' | 'hint' | 'structural';
 
@@ -23,7 +24,7 @@ export type ResolveResult =
 
 export class GlobalMappingRegistry {
     private entries = new Map<string, GlobalMapEntry>();
-    private groupLabels = new Map<string, string>();
+    private groupLabels = new Map<string, WhichKeyLabelInfo>();
 
     addMapping(
         keys: string,
@@ -48,11 +49,16 @@ export class GlobalMappingRegistry {
         }
     }
 
-    setGroupLabel(prefix: string, label: string): void {
-        this.groupLabels.set(prefix, label);
+    setGroupLabel(
+        prefix: string,
+        label: string,
+        icon?: string,
+        color?: string,
+    ): void {
+        this.groupLabels.set(prefix, { label, icon, color });
     }
 
-    getGroupLabels(): Map<string, string> {
+    getGroupLabels(): Map<string, WhichKeyLabelInfo> {
         return new Map(this.groupLabels);
     }
 

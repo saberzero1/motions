@@ -263,6 +263,25 @@ The overlay attaches to the active editor pane's `contentEl` with `position: abs
 
 The overlay adds `padding-bottom` equal to Obsidian's status bar height so that keybinding rows are not hidden behind the status bar. In horizontal split views, the padding is only applied when the editor pane's bottom edge is adjacent to the status bar — top panes (whose bottom edge doesn't reach the status bar) show no extra padding. The global which-key (workspace navigation) always applies the padding since it spans the full workspace.
 
+### Sort order
+
+Configurable via **Settings → Vim Motions → Which-key sort order**, `vim.opt.whichkeysort` in Lua, or `set whichkeysort=<order>` (alias `wks`) in vimrc. Two modes:
+
+- **which-key** (default) — matches which-key.nvim defaults: individual keys first, groups last, alphanumeric keys before special keys (`<…>`), natural alphabetical tiebreaker, lowercase before uppercase.
+- **Groups first** — groups appear before individual keys, both categories sorted alphabetically.
+
+### Icons
+
+Configurable via **Settings → Vim Motions → Which-key icons**, `vim.opt.whichkeyicons` in Lua, or `set whichkeyicons` in vimrc (default: on).
+
+When enabled, Lucide icons appear next to entries in the which-key popup, rendered via Obsidian's `setIcon()` API. The column layout matches which-key.nvim: key → separator (➤) → icon → description. Icons use `stroke="currentColor"` and are colored via the CSS `color` property on the icon span.
+
+Icons and colors can be assigned per group label and per command label via Settings UI, Lua API (`vim.obsidian.whichkey.set_group/set_label/add` with `icon` and `color` opts), or vimrc (`whichkeygroup <leader>t Table icon=table color=blue`). 8 named Obsidian colors (`red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `purple`, `pink`) map to `var(--color-<name>)` CSS variables. Arbitrary CSS color strings are also accepted (sanitized against injection). Default icon color is `--text-muted`.
+
+Built-in groups register default icons: Table (`table`, blue), EasyMotion (`zap`, yellow), Harpoon (`anchor`, orange). User-configured icons override defaults via the standard priority merge (Lua > vimrc > Settings).
+
+When icons are enabled, rows without an assigned icon receive an empty spacer span to maintain column alignment across all rows. When icons are disabled globally, no icon spans or spacers are rendered.
+
 ### Grouping
 
 When **Which-key leader grouping** is set to "Grouped" (default), bindings sharing a common prefix key are collapsed into a single group entry (e.g. `t` → `Table (+11)`). Pressing the group key drills down to show only the bindings within that group. Groups are sorted before ungrouped entries. Setting the mode to "Flat" restores the original behavior of listing all bindings individually.
@@ -283,6 +302,8 @@ Built-in features register default labels (Table, EasyMotion) that user entries 
 
 - User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions (shown as the raw rhs key sequence)
 - The overlay does not show during macro playback or when a register prefix (`"a`) is pending
+- Icon IDs are validated at render time — invalid icon names (not in Obsidian's Lucide bundle) result in an empty spacer; no error is thrown
+- Icons in pop-out windows depend on `setIcon()` working with foreign `Document` objects — if Obsidian's API references `document` internally, icons may not render in pop-out windows
 
 ## `<C-w>` prefix conflict with Obsidian hotkeys
 

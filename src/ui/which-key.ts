@@ -1,7 +1,9 @@
 import type { App } from 'obsidian';
-import { MarkdownView } from 'obsidian';
+import { MarkdownView, setIcon } from 'obsidian';
 import type { CmAdapter } from '../types/vim-api';
 import { getCmAdapter, getVimApi } from '../vim/vim-api';
+
+export type WhichKeySortOrder = 'which-key' | 'groups-first';
 
 export interface LeaderBinding {
     key: string;
@@ -9,15 +11,107 @@ export interface LeaderBinding {
     source: 'builtin' | 'user';
 }
 
+export interface WhichKeyLabelInfo {
+    label: string;
+    icon?: string;
+    color?: string;
+}
+
 interface WhichKeyEntry {
     key: string;
     description: string;
     group?: boolean;
+    icon?: string;
+    color?: string;
 }
 
 const DEFAULT_SHOW_DELAY = 500;
 
 const OPERATOR_PENDING_TYPES = new Set(['motion', 'operatorMotion', 'search']);
+
+/**
+ * Natural sort key: zero-pad embedded numbers, lowercase for
+ * case-insensitive comparison.
+ */
+function naturalSortKey(key: string): string {
+    return key.replace(/\d+/g, (m) => m.padStart(10, '0')).toLowerCase();
+}
+
+export function resolveIconColor(color?: string): string {
+    if (!color) return 'var(--text-muted)';
+    const trimmed = color.trim();
+    if (!trimmed) return 'var(--text-muted)';
+    const lower = trimmed.toLowerCase();
+    const named: Record<string, string> = {
+        red: 'var(--color-red)',
+        orange: 'var(--color-orange)',
+        yellow: 'var(--color-yellow)',
+        green: 'var(--color-green)',
+        cyan: 'var(--color-cyan)',
+        blue: 'var(--color-blue)',
+        purple: 'var(--color-purple)',
+        pink: 'var(--color-pink)',
+        azure: 'var(--color-blue)',
+        grey: 'var(--text-muted)',
+    };
+    const mapped = named[lower];
+    if (mapped) return mapped;
+    if (/[;{}]/.test(trimmed)) return 'var(--text-muted)';
+    return trimmed;
+}
+
+/**
+ * Sort which-key entries according to the chosen sort order.
+ *
+ * **`which-key`** (matches which-key.nvim defaults):
+ *   1. Groups last (individual keys first)
+ *   2. Alphanumeric keys before special keys (`<…>`)
+ *   3. Natural alphabetical tiebreaker (number-aware, case-insensitive)
+ *   4. Lowercase keys before uppercase
+ *
+ * **`groups-first`**:
+ *   1. Groups first, individual keys second
+ *   2. Alphabetical within each category
+ */
+export function sortWhichKeyEntries(
+    entries: WhichKeyEntry[],
+    order: WhichKeySortOrder,
+): WhichKeyEntry[] {
+    const sorted = [...entries];
+    sorted.sort((a, b) => {
+        if (order === 'which-key') {
+            // 1. Groups last
+            const aGroup = a.group ? 1 : 0;
+            const bGroup = b.group ? 1 : 0;
+            if (aGroup !== bGroup) return aGroup - bGroup;
+
+            // 2. Alphanumeric keys before special keys
+            const aAlpha = /^\w/.test(a.key) ? 0 : 1;
+            const bAlpha = /^\w/.test(b.key) ? 0 : 1;
+            if (aAlpha !== bAlpha) return aAlpha - bAlpha;
+
+            // 3. Natural sort
+            const aNat = naturalSortKey(a.key);
+            const bNat = naturalSortKey(b.key);
+            if (aNat !== bNat) return aNat < bNat ? -1 : 1;
+
+            // 4. Lowercase first
+            const aLower = a.key === a.key.toLowerCase() ? 0 : 1;
+            const bLower = b.key === b.key.toLowerCase() ? 0 : 1;
+            if (aLower !== bLower) return aLower - bLower;
+
+            return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+        }
+
+        // groups-first: groups first, then singles, both alphabetical
+        const aGroup = a.group ? 0 : 1;
+        const bGroup = b.group ? 0 : 1;
+        if (aGroup !== bGroup) return aGroup - bGroup;
+
+        return a.key.localeCompare(b.key);
+    });
+    return sorted;
+}
 
 function isValidInOperatorPending(entry: {
     type: string;
@@ -66,8 +160,10 @@ function buildNextKeyEntries(
         toKeys?: string;
         operatorPending?: boolean;
         label?: string;
+        icon?: string;
+        color?: string;
     }>,
-    groupLabels?: Map<string, string>,
+    groupLabels?: Map<string, WhichKeyLabelInfo>,
 ): WhichKeyEntry[] {
     const groups = new Map<
         string,
@@ -79,6 +175,8 @@ function buildNextKeyEntries(
             action?: string;
             toKeys?: string;
             label?: string;
+            icon?: string;
+            color?: string;
         }>
     >();
 
@@ -104,7 +202,9 @@ function buildNextKeyEntries(
                     : '';
             const whichEntry: WhichKeyEntry = {
                 key: entry.keys,
-                description: describeKeymapEntry(entry),
+                description: entry.label || describeKeymapEntry(entry),
+                icon: entry.icon,
+                color: entry.color,
             };
             if (suffix) {
                 whichEntry.key = key + suffix;
@@ -126,13 +226,15 @@ function buildNextKeyEntries(
                         ? `+${multiChar.length} more`
                         : `+${multiChar.length} keys`;
                 const label = customLabel
-                    ? `${customLabel} (+${multiChar.length})`
+                    ? `${customLabel.label} (+${multiChar.length})`
                     : fallback;
                 if (singleChar.length === 0) {
                     groupEntries.push({
                         key,
                         description: label,
                         group: true,
+                        icon: customLabel?.icon,
+                        color: customLabel?.color,
                     });
                 }
             }
@@ -140,6 +242,26 @@ function buildNextKeyEntries(
     }
 
     return [...groupEntries, ...singleEntries];
+}
+
+function buildSortedNextKeyEntries(
+    entries: Array<{
+        keys: string;
+        type: string;
+        operator?: string;
+        motion?: string;
+        action?: string;
+        toKeys?: string;
+        operatorPending?: boolean;
+        label?: string;
+    }>,
+    groupLabels: Map<string, WhichKeyLabelInfo> | undefined,
+    sortOrder: WhichKeySortOrder,
+): WhichKeyEntry[] {
+    return sortWhichKeyEntries(
+        buildNextKeyEntries(entries, groupLabels),
+        sortOrder,
+    );
 }
 
 function getVimStatus(adapter: CmAdapter): string {
@@ -177,9 +299,11 @@ export class WhichKeyOverlay {
     private leaderBindings: LeaderBinding[];
     private generalMode: boolean;
     private groupLeaderBindings: boolean;
-    private groupLabels: Map<string, string>;
-    private commandLabels: Map<string, string>;
+    private groupLabels: Map<string, WhichKeyLabelInfo>;
+    private commandLabels: Map<string, WhichKeyLabelInfo>;
+    private showIcons: boolean;
     private showDelay: number;
+    private sortOrder: WhichKeySortOrder;
     private overlay: HTMLElement | null = null;
     private showTimer: number | null = null;
     private keyHandler: ((key: string) => void) | null = null;
@@ -197,9 +321,11 @@ export class WhichKeyOverlay {
         leaderBindings: LeaderBinding[],
         generalMode: boolean,
         groupLeaderBindings: boolean,
-        groupLabels: Map<string, string>,
-        commandLabels: Map<string, string>,
+        groupLabels: Map<string, WhichKeyLabelInfo>,
+        commandLabels: Map<string, WhichKeyLabelInfo>,
+        showIcons: boolean,
         showDelay?: number,
+        sortOrder?: WhichKeySortOrder,
     ) {
         this.app = app;
         this.leaderKey = leaderKey;
@@ -208,7 +334,9 @@ export class WhichKeyOverlay {
         this.groupLeaderBindings = groupLeaderBindings;
         this.groupLabels = groupLabels;
         this.commandLabels = commandLabels;
+        this.showIcons = showIcons;
         this.showDelay = showDelay ?? DEFAULT_SHOW_DELAY;
+        this.sortOrder = sortOrder ?? 'which-key';
     }
 
     attach(): void {
@@ -280,7 +408,7 @@ export class WhichKeyOverlay {
         }
 
         if (this.generalMode) {
-            this.onKeyPressGeneral(key);
+            this.onKeyPressGeneral();
         } else {
             this.onKeyPressLeaderOnly(key);
         }
@@ -335,7 +463,7 @@ export class WhichKeyOverlay {
         }
     }
 
-    private onKeyPressGeneral(key: string): void {
+    private onKeyPressGeneral(): void {
         this.clearTimer();
 
         if (!this.lastAdapter) return;
@@ -390,34 +518,51 @@ export class WhichKeyOverlay {
             : `${this.leaderKey} \u2026`;
 
         if (!this.groupLeaderBindings) {
-            const entries: WhichKeyEntry[] = filtered.map((b) => ({
-                key: prefix ? b.key.slice(prefix.length) : b.key,
-                description:
-                    this.commandLabels.get(this.leaderKey + b.key) ?? b.command,
-            }));
-            this.showOverlay(titlePrefix, entries);
+            const entries: WhichKeyEntry[] = filtered.map((b) => {
+                const labelInfo = this.commandLabels.get(
+                    this.leaderKey + b.key,
+                );
+                return {
+                    key: prefix ? b.key.slice(prefix.length) : b.key,
+                    description: labelInfo?.label ?? b.command,
+                    icon: labelInfo?.icon,
+                    color: labelInfo?.color,
+                };
+            });
+            this.showOverlay(
+                titlePrefix,
+                sortWhichKeyEntries(entries, this.sortOrder),
+            );
             return;
         }
 
-        const bindingsForGrouping = filtered.map((b) => ({
-            keys: prefix ? b.key.slice(prefix.length) : b.key,
-            type: 'action' as const,
-            action: b.command,
-            label: this.commandLabels.get(this.leaderKey + b.key),
-        }));
+        const bindingsForGrouping = filtered.map((b) => {
+            const labelInfo = this.commandLabels.get(this.leaderKey + b.key);
+            return {
+                keys: prefix ? b.key.slice(prefix.length) : b.key,
+                type: 'action' as const,
+                action: b.command,
+                label: labelInfo?.label,
+                icon: labelInfo?.icon,
+                color: labelInfo?.color,
+            };
+        });
 
         const absolutePrefix = this.leaderKey + prefix;
         const relativeLabels = this.getRelativeGroupLabels(absolutePrefix);
 
-        const entries = buildNextKeyEntries(
+        const entries = buildSortedNextKeyEntries(
             bindingsForGrouping,
             relativeLabels,
+            this.sortOrder,
         );
         this.showOverlay(titlePrefix, entries);
     }
 
-    private getRelativeGroupLabels(keyBuffer: string): Map<string, string> {
-        const relative = new Map<string, string>();
+    private getRelativeGroupLabels(
+        keyBuffer: string,
+    ): Map<string, WhichKeyLabelInfo> {
+        const relative = new Map<string, WhichKeyLabelInfo>();
         for (const [key, label] of this.groupLabels) {
             if (keyBuffer && key.startsWith(keyBuffer)) {
                 const rel = key.slice(keyBuffer.length);
@@ -446,12 +591,21 @@ export class WhichKeyOverlay {
             const keymap = vim.getKeymap(context);
             const filtered = keymap
                 .filter((e) => isValidInOperatorPending(e))
-                .map((entry) => ({
-                    ...entry,
-                    label: this.commandLabels.get(entry.keys),
-                }));
+                .map((entry) => {
+                    const labelInfo = this.commandLabels.get(entry.keys);
+                    return {
+                        ...entry,
+                        label: labelInfo?.label,
+                        icon: labelInfo?.icon,
+                        color: labelInfo?.color,
+                    };
+                });
             const labels = this.getRelativeGroupLabels('');
-            const grouped = buildNextKeyEntries(filtered, labels);
+            const grouped = buildSortedNextKeyEntries(
+                filtered,
+                labels,
+                this.sortOrder,
+            );
             entries.push(...grouped);
         } else if (keyBuffer) {
             if (typeof vim.getCompletions !== 'function') return;
@@ -475,50 +629,68 @@ export class WhichKeyOverlay {
             }
 
             if (this.groupLeaderBindings) {
-                const completionEntries = completions.map((c) => ({
-                    keys: c.suffix,
-                    type: c.type ?? 'action',
-                    operator: (c as Record<string, unknown>).operator as
-                        | string
-                        | undefined,
-                    motion: (c as Record<string, unknown>).motion as
-                        | string
-                        | undefined,
-                    action: (c as Record<string, unknown>).action as
-                        | string
-                        | undefined,
-                    toKeys: (c as Record<string, unknown>).toKeys as
-                        | string
-                        | undefined,
-                    label:
-                        this.commandLabels.get(keyBuffer + c.suffix) ??
-                        leaderBindingMap.get(c.suffix),
-                }));
+                const completionEntries = completions.map((c) => {
+                    const labelInfo = this.commandLabels.get(
+                        keyBuffer + c.suffix,
+                    );
+                    return {
+                        keys: c.suffix,
+                        type: c.type ?? 'action',
+                        operator: (c as Record<string, unknown>).operator as
+                            | string
+                            | undefined,
+                        motion: (c as Record<string, unknown>).motion as
+                            | string
+                            | undefined,
+                        action: (c as Record<string, unknown>).action as
+                            | string
+                            | undefined,
+                        toKeys: (c as Record<string, unknown>).toKeys as
+                            | string
+                            | undefined,
+                        label:
+                            labelInfo?.label ?? leaderBindingMap.get(c.suffix),
+                        icon: labelInfo?.icon,
+                        color: labelInfo?.color,
+                    };
+                });
 
                 const labels = this.getRelativeGroupLabels(keyBuffer);
-                const grouped = buildNextKeyEntries(completionEntries, labels);
+                const grouped = buildSortedNextKeyEntries(
+                    completionEntries,
+                    labels,
+                    this.sortOrder,
+                );
 
                 if (grouped.length > 0) {
                     entries.push(...grouped);
                 } else {
                     for (const c of completions) {
+                        const labelInfo = this.commandLabels.get(
+                            keyBuffer + c.suffix,
+                        );
                         const desc =
-                            this.commandLabels.get(keyBuffer + c.suffix) ??
-                            leaderBindingMap.get(c.suffix);
+                            labelInfo?.label ?? leaderBindingMap.get(c.suffix);
                         entries.push({
                             key: c.suffix,
                             description: desc ?? describeKeymapEntry(c),
+                            icon: labelInfo?.icon,
+                            color: labelInfo?.color,
                         });
                     }
                 }
             } else {
                 for (const c of completions) {
+                    const labelInfo = this.commandLabels.get(
+                        keyBuffer + c.suffix,
+                    );
                     const desc =
-                        this.commandLabels.get(keyBuffer + c.suffix) ??
-                        leaderBindingMap.get(c.suffix);
+                        labelInfo?.label ?? leaderBindingMap.get(c.suffix);
                     entries.push({
                         key: c.suffix,
                         description: desc ?? describeKeymapEntry(c),
+                        icon: labelInfo?.icon,
+                        color: labelInfo?.color,
                     });
                 }
             }
@@ -527,7 +699,7 @@ export class WhichKeyOverlay {
         if (entries.length === 0) return;
 
         const title = displayChord ? `${displayChord} \u2026` : '\u2026';
-        this.showOverlay(title, entries);
+        this.showOverlay(title, sortWhichKeyEntries(entries, this.sortOrder));
     }
 
     private showOverlay(title: string, entries: WhichKeyEntry[]): void {
@@ -562,6 +734,20 @@ export class WhichKeyOverlay {
                 cls: 'vim-motions-which-key-key',
                 text: entry.key,
             });
+            row.createSpan({
+                cls: 'vim-motions-which-key-sep',
+                text: '\u279C',
+            });
+            if (this.showIcons) {
+                const iconSpan = row.createSpan({
+                    cls: 'vim-motions-which-key-icon',
+                });
+                iconSpan.style.color = resolveIconColor(entry.color);
+                const iconId = entry.icon?.trim();
+                if (iconId) {
+                    setIcon(iconSpan, iconId);
+                }
+            }
             row.createSpan({
                 cls: 'vim-motions-which-key-cmd',
                 text: entry.description,
@@ -605,7 +791,7 @@ export class LeaderRegistry {
     private bindings: LeaderBinding[] = [];
     private groupLabels = new Map<
         string,
-        { label: string; builtin: boolean }
+        { label: string; builtin: boolean; icon?: string; color?: string }
     >();
 
     setLeaderKey(key: string): void {
@@ -635,8 +821,14 @@ export class LeaderRegistry {
         }
     }
 
-    addGroupLabel(prefix: string, label: string, builtin = false): void {
-        this.groupLabels.set(prefix, { label, builtin });
+    addGroupLabel(
+        prefix: string,
+        label: string,
+        builtin = false,
+        icon?: string,
+        color?: string,
+    ): void {
+        this.groupLabels.set(prefix, { label, builtin, icon, color });
     }
 
     clearBuiltinBindings(): void {
@@ -650,10 +842,14 @@ export class LeaderRegistry {
         return [...this.bindings];
     }
 
-    getGroupLabels(): Map<string, string> {
-        const result = new Map<string, string>();
+    getGroupLabels(): Map<string, WhichKeyLabelInfo> {
+        const result = new Map<string, WhichKeyLabelInfo>();
         for (const [key, entry] of this.groupLabels) {
-            result.set(key, entry.label);
+            result.set(key, {
+                label: entry.label,
+                icon: entry.icon,
+                color: entry.color,
+            });
         }
         return result;
     }
