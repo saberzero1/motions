@@ -730,6 +730,8 @@ describe('vim api', () => {
                 ',t',
                 'Table',
                 'editor',
+                undefined,
+                undefined,
             );
             destroyState(L);
         });
@@ -757,8 +759,9 @@ describe('vim api', () => {
                 ',w',
                 'Save file',
                 'editor',
+                undefined,
+                undefined,
             );
-            destroyState(L);
         });
 
         it('should support global context option', () => {
@@ -784,8 +787,9 @@ describe('vim api', () => {
                 ',',
                 '+leader',
                 'global',
+                undefined,
+                undefined,
             );
-            destroyState(L);
         });
 
         it('should batch-add group and command labels with add()', () => {
@@ -819,17 +823,23 @@ describe('vim api', () => {
                 ',f',
                 'Find',
                 'editor',
+                undefined,
+                undefined,
             );
             expect(onWhichKeyGroupLabel).toHaveBeenCalledWith(
                 ',g',
                 'Git',
                 'editor',
+                undefined,
+                undefined,
             );
             expect(onWhichKeyCommandLabel).toHaveBeenCalledTimes(1);
             expect(onWhichKeyCommandLabel).toHaveBeenCalledWith(
                 ',w',
                 'Save file',
                 'editor',
+                undefined,
+                undefined,
             );
             destroyState(L);
         });
@@ -863,11 +873,15 @@ describe('vim api', () => {
                 ',f',
                 'Find',
                 'global',
+                undefined,
+                undefined,
             );
             expect(onWhichKeyCommandLabel).toHaveBeenCalledWith(
                 ',e',
                 'Explorer',
                 'global',
+                undefined,
+                undefined,
             );
             destroyState(L);
         });
@@ -900,6 +914,8 @@ describe('vim api', () => {
                 ',t',
                 'Table',
                 'editor',
+                undefined,
+                undefined,
             );
             destroyState(L);
         });
@@ -979,6 +995,8 @@ describe('vim api', () => {
                 ',t',
                 'Table',
                 'editor',
+                undefined,
+                undefined,
             );
             destroyState(L);
         });
