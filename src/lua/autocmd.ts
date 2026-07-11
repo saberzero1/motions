@@ -2,6 +2,7 @@ import type { TFile } from 'obsidian';
 import { lauxlib, lua } from 'fengari';
 import type { lua_State } from 'fengari';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
+import { getDialogPrefix } from '../vim/mode-tracker';
 import { simpleGlobMatch } from './fn';
 
 export interface AutocmdEntry {
@@ -61,6 +62,10 @@ export interface AutocmdCallbacks {
     onFileOpen: (handler: (file: TFile | null) => void) => (() => void) | void;
     onFocusGained: (handler: () => void) => (() => void) | void;
     onFocusLost: (handler: () => void) => (() => void) | void;
+    onDialog?: (
+        handler: () => void,
+        adapter?: CmAdapter | null,
+    ) => (() => void) | void;
 }
 
 export interface AutocmdYankEvent {
@@ -118,8 +123,13 @@ export class AutocmdManager {
     private cursorHoldTimeout = 4000;
     private previousLeafType: string | null = null;
     private previousLeafId: string | null = null;
+
+    get currentLeafId(): string | null {
+        return this.previousLeafId;
+    }
     private previousLeafFilePath: string | null = null;
     private leafEnterDebounceTimer: number | null = null;
+    private cmdlinePrefix: string | null = null;
 
     constructor(private L: lua_State | null) {}
 
@@ -405,6 +415,13 @@ export class AutocmdManager {
             adapter,
         );
         if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
+        if (this.callbacks.onDialog) {
+            const dialogCleanup = this.callbacks.onDialog(
+                this.handleDialog,
+                adapter,
+            );
+            if (dialogCleanup) this.adapterCleanups.push(dialogCleanup);
+        }
     }
 
     private detachAdapter(): void {
@@ -452,6 +469,21 @@ export class AutocmdManager {
         this.cursorHoldTimer = window.setTimeout(() => {
             this.fire('CursorHold', { file: filePath });
         }, this.cursorHoldTimeout);
+    };
+
+    private handleDialog = (): void => {
+        const dialog = this.currentAdapter?.state?.dialog;
+        if (dialog) {
+            const prefix = getDialogPrefix(dialog);
+            if (prefix) {
+                this.cmdlinePrefix = prefix;
+                this.fire('CmdlineEnter', { data: { cmdtype: prefix } });
+            }
+        } else if (this.cmdlinePrefix) {
+            const prefix = this.cmdlinePrefix;
+            this.cmdlinePrefix = null;
+            this.fire('CmdlineLeave', { data: { cmdtype: prefix } });
+        }
     };
 
     private modeToChar(mode: VimModeChange): string {

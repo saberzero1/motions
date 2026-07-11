@@ -66,7 +66,7 @@ export function isAbsolutePath(p: string): boolean {
     return false;
 }
 
-function expandTilde(p: string): string {
+export function expandTilde(p: string): string {
     if (!p.startsWith('~')) return p;
     if (!Platform.isDesktop) return p;
     const os = getOs();

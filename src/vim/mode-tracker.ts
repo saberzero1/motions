@@ -18,6 +18,21 @@ const DEFAULT_MODE_LABELS: Record<string, string> = {
     insertNormal: 'NORMAL',
 };
 
+export function getDialogPrefix(dialog: HTMLElement): string | null {
+    const firstSpan = dialog.querySelector('span');
+    if (!firstSpan) return null;
+    for (const child of Array.from(firstSpan.childNodes)) {
+        if (child.nodeType === Node.TEXT_NODE) {
+            const text = child.textContent?.trim();
+            if (text === ':' || text === '/' || text === '?') {
+                return text;
+            }
+            return null;
+        }
+    }
+    return null;
+}
+
 export interface VimModeTrackerOptions {
     chordDisplay: boolean;
     powerline: boolean;
@@ -217,25 +232,8 @@ export class VimModeTracker {
         return map[mode] ?? mode;
     }
 
-    /**
-     * Detect dialog type from DOM structure.
-     * showPrompt() in vim.js calls makePrompt(prefix, desc) which creates:
-     *   <span> TEXT_NODE(prefix) <input/> </span>
-     * The prefix is a raw text node (':', '/', '?'), NOT a span element.
-     */
     private getDialogPrefix(dialog: HTMLElement): string | null {
-        const firstSpan = dialog.querySelector('span');
-        if (!firstSpan) return null;
-        for (const child of Array.from(firstSpan.childNodes)) {
-            if (child.nodeType === Node.TEXT_NODE) {
-                const text = child.textContent?.trim();
-                if (text === ':' || text === '/' || text === '?') {
-                    return text;
-                }
-                return null;
-            }
-        }
-        return null;
+        return getDialogPrefix(dialog);
     }
 
     destroy(): void {

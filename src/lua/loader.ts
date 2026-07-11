@@ -26,6 +26,7 @@ import { injectStdlib } from './stdlib';
 import { injectTimers, TimerManager } from './timers';
 import { HighlightManager } from './highlight';
 import type { lua_State } from 'fengari';
+import type { ImSwitcher } from '../im/im-switcher';
 import {
     isAbsolutePath,
     readExternalFile,
@@ -177,6 +178,7 @@ export async function loadInitLua(
         removeMapping: (keys: string) => boolean;
         setLabel: (keys: string, label: string) => void;
     },
+    imSwitcher?: ImSwitcher | null,
 ): Promise<LuaLoadResult> {
     const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
@@ -869,6 +871,28 @@ export async function loadInitLua(
             }
             return 'n';
         },
+        imGet: () => imSwitcher?.lastKnownIm ?? null,
+        imSet: (id: string) => {
+            void imSwitcher?.set(id);
+        },
+        imSave: () => {
+            const leafId = autocmdManager.currentLeafId ?? '';
+            imSwitcher?.save(leafId);
+        },
+        imRestore: () => {
+            const leafId = autocmdManager.currentLeafId ?? '';
+            imSwitcher?.restore(leafId);
+        },
+        imGetEnabled: () => imSwitcher?.config.enabled ?? false,
+        imSetEnabled: (_value: boolean) => {
+            console.warn(
+                'Vim Motions: vim.obsidian.im.enabled setter is not wired to settings yet.',
+            );
+        },
+        imGetAuto: () => imSwitcher?.config.autoWire ?? true,
+        imSetAuto: (value: boolean) => {
+            imSwitcher?.setAutoWire(value);
+        },
     });
 
     injectVimFn(L, {
@@ -1027,6 +1051,13 @@ export async function loadInitLua(
                         'vim-yank',
                         handler as (...args: unknown[]) => void,
                     );
+            },
+            onDialog: (handler, adapter) => {
+                const view = app.workspace.getActiveViewOfType(MarkdownView);
+                const resolved = adapter ?? (view ? getCmAdapter(view) : null);
+                if (!resolved) return undefined;
+                resolved.on('dialog', handler);
+                return () => resolved.off('dialog', handler);
             },
             onCursorMoved: (handler, adapter) => {
                 const view = app.workspace.getActiveViewOfType(MarkdownView);

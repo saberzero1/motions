@@ -103,6 +103,10 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.oil.parent()`                          | Oil: navigate to parent directory                  | see Obsidian namespace               |
 | `vim.obsidian.oil.open_entry()`                      | Oil: open file/directory under cursor              | see Obsidian namespace               |
 | `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                | see Obsidian namespace               |
+| `vim.obsidian.im.get()`                              | Get current IM identifier (desktop only)           | see Obsidian namespace               |
+| `vim.obsidian.im.set(id)`                            | Switch to specific IM (desktop only)               | see Obsidian namespace               |
+| `vim.obsidian.im.save()`                             | Save current IM for active editor                  | see Obsidian namespace               |
+| `vim.obsidian.im.restore()`                          | Restore saved IM for active editor                 | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
 
 ### Leader key
@@ -499,6 +503,8 @@ Vim Motions supports a Neovim-compatible autocommand system for reacting to edit
 | `TextYankPost` | After yank, delete, or change operation                 | No                                                    |
 | `OilEnter`     | An oil explorer buffer becomes active                   | No                                                    |
 | `OilLeave`     | Leaving an oil explorer buffer                          | No                                                    |
+| `CmdlineEnter` | Opening `:`, `/`, or `?` command-line prompt            | No (`data.cmdtype` = `":"`, `"/"`, or `"?"`)          |
+| `CmdlineLeave` | Closing a command-line prompt (Enter, Escape, or blur)  | No (`data.cmdtype` = `":"`, `"/"`, or `"?"`)          |
 
 > [!tip] CursorHold timing
 > Configure the idle timeout with `vim.opt.updatetime = 1000` (milliseconds). Default is 4000ms, matching Neovim.
@@ -905,6 +911,41 @@ vim.obsidian.leader.add({
 ```
 
 The second argument is an Obsidian command ID (the same IDs shown by `:ob` with no arguments). For general-purpose keymaps or Lua function callbacks, use `vim.keymap.set` instead.
+
+### Input method switching (`vim.obsidian.im`)
+
+Programmatic control over input method (IM) switching for CJK users. Requires an external IM switching binary and configuration in **Settings → Vim Motions → Input method**. Desktop only.
+
+| Function/Property           | Returns       | Description                                             |
+| --------------------------- | ------------- | ------------------------------------------------------- |
+| `vim.obsidian.im.get()`     | `string\|nil` | Current IM identifier (cached), or `nil` if unavailable |
+| `vim.obsidian.im.set(id)`   |               | Switch to specific IM identifier                        |
+| `vim.obsidian.im.save()`    |               | Save current IM for the active editor                   |
+| `vim.obsidian.im.restore()` |               | Restore saved IM for the active editor                  |
+| `vim.obsidian.im.enabled`   | `boolean`     | Read/write: master toggle for IM switching              |
+| `vim.obsidian.im.auto`      | `boolean`     | Read/write: auto-wire to `InsertEnter`/`InsertLeave`    |
+
+When `vim.obsidian.im.auto` is `true` (default), the plugin automatically saves/restores IM on mode changes. Set it to `false` for manual control:
+
+```lua
+vim.obsidian.im.auto = false
+
+vim.api.nvim_create_autocmd('InsertLeave', {
+    callback = function()
+        vim.obsidian.im.save()
+        vim.obsidian.im.set('com.apple.keylayout.ABC')
+    end
+})
+
+vim.api.nvim_create_autocmd('InsertEnter', {
+    callback = function()
+        vim.obsidian.im.restore()
+    end
+})
+```
+
+> [!info] Desktop only
+> `vim.obsidian.im.get()` returns `nil` on mobile. All other functions are silent no-ops.
 
 ## Environment variables
 

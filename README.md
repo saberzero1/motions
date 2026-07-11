@@ -8,7 +8,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, and table cells with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
-- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (17 events), `vim.obsidian` namespace, buffer-local keymaps, and Neovim-compatible syntax
+- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (19 events), `vim.obsidian` namespace (including `vim.obsidian.im` for input method control), buffer-local keymaps, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support with Lucide icons
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)
@@ -22,6 +22,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Harpoon** — pin files to numbered slots for instant switching (`<leader>1`–`<leader>9`), cursor position tracking, persistence across sessions, auto-updating on file rename/delete
 - **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
 - **Folding** — full Neovim-style fold commands: `zf` (create), `zd` (delete), `zE` (eliminate all), `zm`/`zr` (incremental level), custom fold providers for frontmatter and callouts, descriptive fold placeholder text, fold-aware navigation (auto-unfold on `]h`), and cross-session fold persistence
+- **Input method switching** — automatic IM switching for CJK users when entering/leaving insert mode. Supports macism, im-select, fcitx5-remote, ibus, and any external binary. Per-editor state, composition guard, Lua API (`vim.obsidian.im`). Desktop only.
 - **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation

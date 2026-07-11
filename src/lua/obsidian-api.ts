@@ -1,4 +1,4 @@
-import { lua, lauxlib, to_luastring } from 'fengari';
+import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import {
     MODE_PROMPT_MAP,
@@ -1243,6 +1243,84 @@ export function injectObsidianApi(
     lua.lua_setfield(L, obsOilIndex, to_luastring('open_entry'));
 
     lua.lua_setfield(L, obsidianIndex, to_luastring('oil'));
+
+    // vim.obsidian.im sub-table
+    lua.lua_newtable(L);
+    const obsImIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const result = callbacks.imGet?.();
+        if (result == null) {
+            lua.lua_pushnil(state);
+        } else {
+            lua.lua_pushstring(state, to_luastring(result));
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, obsImIndex, to_luastring('get'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const id = to_jsstring(lauxlib.luaL_checkstring(state, 1));
+        callbacks.imSet?.(id);
+        return 0;
+    });
+    lua.lua_setfield(L, obsImIndex, to_luastring('set'));
+
+    lua.lua_pushjsfunction(L, () => {
+        callbacks.imSave?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsImIndex, to_luastring('save'));
+
+    lua.lua_pushjsfunction(L, () => {
+        callbacks.imRestore?.();
+        return 0;
+    });
+    lua.lua_setfield(L, obsImIndex, to_luastring('restore'));
+
+    // Create metatable for enabled/auto properties
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = lua.lua_isstring(state, 2)
+            ? to_jsstring(lauxlib.luaL_checkstring(state, 2))
+            : null;
+        if (key === 'enabled') {
+            lua.lua_pushboolean(state, callbacks.imGetEnabled?.() ?? false);
+            return 1;
+        }
+        if (key === 'auto') {
+            lua.lua_pushboolean(state, callbacks.imGetAuto?.() ?? true);
+            return 1;
+        }
+        if (key) {
+            lua.lua_getfield(state, 1, to_luastring(key));
+            return 1;
+        }
+        lua.lua_pushnil(state);
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = lua.lua_isstring(state, 2)
+            ? to_jsstring(lauxlib.luaL_checkstring(state, 2))
+            : null;
+        if (key === 'enabled') {
+            const val = lua.lua_toboolean(state, 3);
+            callbacks.imSetEnabled?.(val);
+            return 0;
+        }
+        if (key === 'auto') {
+            const val = lua.lua_toboolean(state, 3);
+            callbacks.imSetAuto?.(val);
+            return 0;
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, obsImIndex);
+
+    lua.lua_setfield(L, obsidianIndex, to_luastring('im'));
 
     lua.lua_pushvalue(L, obsidianIndex);
     lua.lua_setfield(L, vimTableIndex, to_luastring('obsidian'));

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Input method switching for CJK users** — automatic IM switching when entering/leaving insert mode. Supports macism (macOS), im-select (macOS/Windows), fcitx5-remote (Linux), ibus (Linux), and any external IM switching binary. Per-editor IM state tracking, 50ms debounced switching, composition guard (never switches mid-IME composition), and error throttling with auto-disable. Desktop only — graceful no-op on mobile. ([#55](https://github.com/saberzero1/motions/issues/55))
+    - **Lua API**: `vim.obsidian.im.get()`, `.set(id)`, `.save()`, `.restore()`, `.enabled`, `.auto` — programmatic control for advanced use cases. Set `vim.obsidian.im.auto = false` to disable auto-wiring and handle switching via Lua autocmds.
+    - **Settings**: 7 new settings in **Settings → Vim Motions → Input method** — master toggle, binary path, obtain/switch args, normal mode IM, restore behavior (restore previous / use fixed default), default insert IM.
+    - **Security**: Uses `child_process.execFile` (no shell interpretation). Binary path must be absolute. IM identifiers validated against shell metacharacters. Scoped process access following the `external-fs.ts` pattern.
+    - Plugin: `src/im/im-process.ts` (new), `src/im/im-switcher.ts` (new), `src/settings.ts`, `src/lua/obsidian-api.ts`, `src/lua/api.ts`, `src/lua/loader.ts`, `src/lua/autocmd.ts`, `src/main.ts`, `src/util/external-fs.ts`
+    - Tests: `test/unit/im-process.test.ts` (new), `test/unit/im-switcher.test.ts` (new)
+- **`CmdlineEnter`/`CmdlineLeave` autocmd events** — fire when entering/leaving the `:`, `/`, or `?` command-line prompt. Event data includes `cmdtype` (`":"`, `"/"`, or `"?"`). `CmdlineLeave` is auto-wired to IM switching (switches to normal mode IM on prompt exit), matching im-select.nvim's default behavior.
+    - Plugin: `src/lua/autocmd.ts`, `src/lua/loader.ts`, `src/vim/mode-tracker.ts`, `src/im/im-switcher.ts`, `src/main.ts`
+
+### Documentation
+
+- `docs/configuration/lua-config.md`: added `vim.obsidian.im` API section with function reference and Lua examples
+- `docs/configuration/settings.md`: added "Input method" settings group table
+- `KNOWN_LIMITATIONS.md`: added IM switching limitations section (desktop-only, no command-line/search mode, Flatpak/Snap, system-wide switching); updated "Intentionally not supported" table to mark IM switching as built-in
+
 ## [0.50.1] - 2026-07-11
 
 ### Fixed

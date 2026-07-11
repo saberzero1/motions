@@ -125,6 +125,9 @@ import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
 import { OilManager } from './oil/manager';
 import { OilView, createOilViewFactory } from './oil/oil-view';
+import { ImSwitcher } from './im/im-switcher';
+import { parseImArgs } from './im/im-process';
+import { expandTilde } from './util/external-fs';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -220,6 +223,10 @@ export default class VimMotionsPlugin extends Plugin {
     private matcher: ManagedMatcher | null = null;
     private oilKeybindingManager: OilKeybindingManager | null = null;
     private oilManager: OilManager | null = null;
+    private imSwitcher: ImSwitcher | null = null;
+    private imInsertLeaveId: number | null = null;
+    private imInsertEnterId: number | null = null;
+    private imCmdlineLeaveId: number | null = null;
 
     get vimrcEnabled(): boolean {
         return (
@@ -397,6 +404,28 @@ export default class VimMotionsPlugin extends Plugin {
                   >
                 | undefined,
         );
+
+        if (this.settings.imEnabled && Platform.isDesktop) {
+            const resolvedBinary = expandTilde(this.settings.imBinaryPath);
+            this.imSwitcher = new ImSwitcher({
+                enabled: true,
+                autoWire: true,
+                defaultNormalIm: this.settings.imDefaultNormalIm,
+                restoreBehavior: this.settings.imRestoreBehavior,
+                defaultInsertIm: this.settings.imDefaultInsertIm,
+                obtainConfig: {
+                    binary: resolvedBinary,
+                    args: parseImArgs(this.settings.imObtainArgs),
+                    timeoutMs: 5000,
+                },
+                switchConfig: {
+                    binary: resolvedBinary,
+                    args: parseImArgs(this.settings.imSwitchArgs),
+                    timeoutMs: 5000,
+                },
+            });
+            this.imSwitcher.primeCache();
+        }
 
         // --- Mobile gate ---
         // Always register settings tab and toggle command so users can
@@ -746,6 +775,26 @@ export default class VimMotionsPlugin extends Plugin {
                 }
             }),
         );
+
+        if (this.imSwitcher) {
+            this.registerEvent(
+                this.app.workspace.on('active-leaf-change', (leaf) => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    const editorEl = view
+                        ? ((
+                              view.editor as unknown as {
+                                  cm?: { dom?: HTMLElement };
+                              }
+                          ).cm?.dom ?? null)
+                        : null;
+                    const leafId =
+                        (leaf as unknown as { id?: string })?.id ?? '';
+                    this.imSwitcher?.onLeafChange(leafId);
+                    this.imSwitcher?.reattachCompositionListeners(editorEl);
+                }),
+            );
+        }
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (newLeaf) => {
@@ -2301,6 +2350,7 @@ export default class VimMotionsPlugin extends Plugin {
                 Object.assign(s, keymap);
             },
             this.globalRegistry ?? undefined,
+            this.imSwitcher,
         );
 
         this.luaCommandCount = luaResult.commandCount;
@@ -2347,6 +2397,47 @@ export default class VimMotionsPlugin extends Plugin {
         this.timerManager?.destroyAll();
         this.timerManager = luaResult.timerManager;
         this.autocmdManager = luaResult.autocmdManager;
+        if (this.imSwitcher?.config.autoWire && this.autocmdManager) {
+            if (this.imInsertLeaveId == null) {
+                this.imInsertLeaveId = this.autocmdManager.register(
+                    'InsertLeave',
+                    {
+                        callback: () => {
+                            const leafId =
+                                this.autocmdManager?.currentLeafId ?? '';
+                            this.imSwitcher?.onInsertLeave(leafId);
+                        },
+                        desc: 'IM switch on InsertLeave',
+                    },
+                );
+            }
+            if (this.imInsertEnterId == null) {
+                this.imInsertEnterId = this.autocmdManager.register(
+                    'InsertEnter',
+                    {
+                        callback: () => {
+                            const leafId =
+                                this.autocmdManager?.currentLeafId ?? '';
+                            this.imSwitcher?.onInsertEnter(leafId);
+                        },
+                        desc: 'IM switch on InsertEnter',
+                    },
+                );
+            }
+            if (this.imCmdlineLeaveId == null) {
+                this.imCmdlineLeaveId = this.autocmdManager.register(
+                    'CmdlineLeave',
+                    {
+                        callback: () => {
+                            const leafId =
+                                this.autocmdManager?.currentLeafId ?? '';
+                            this.imSwitcher?.onCmdlineLeave(leafId);
+                        },
+                        desc: 'IM switch on CmdlineLeave',
+                    },
+                );
+            }
+        }
         this.oilKeybindingManager?.setAutocmdManager(
             this.autocmdManager ?? null,
         );
@@ -2787,6 +2878,20 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration = null;
         this.timerManager?.destroyAll();
         this.timerManager = null;
+        if (this.imInsertLeaveId != null) {
+            this.autocmdManager?.deleteAutocmd(this.imInsertLeaveId);
+            this.imInsertLeaveId = null;
+        }
+        if (this.imInsertEnterId != null) {
+            this.autocmdManager?.deleteAutocmd(this.imInsertEnterId);
+            this.imInsertEnterId = null;
+        }
+        if (this.imCmdlineLeaveId != null) {
+            this.autocmdManager?.deleteAutocmd(this.imCmdlineLeaveId);
+            this.imCmdlineLeaveId = null;
+        }
+        this.imSwitcher?.destroy();
+        this.imSwitcher = null;
         this.autocmdManager?.destroy();
         this.autocmdManager = null;
         this.highlightManager?.destroy();

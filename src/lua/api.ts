@@ -158,6 +158,14 @@ export interface VimApiCallbacks {
     fsRename?: (path: string | undefined, newPath: string) => void;
     fsMove?: (path: string | undefined, dest: string) => void;
     fsTrash?: (path?: string) => void;
+    imGet?: () => string | null;
+    imSet?: (id: string) => void;
+    imSave?: () => void;
+    imRestore?: () => void;
+    imGetEnabled?: () => boolean;
+    imSetEnabled?: (value: boolean) => void;
+    imGetAuto?: () => boolean;
+    imSetAuto?: (value: boolean) => void;
     autocmdManager: AutocmdManager;
     highlightManager?: HighlightManager;
 }

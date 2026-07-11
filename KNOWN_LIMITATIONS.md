@@ -843,7 +843,7 @@ The plugin supports Lua config files (`init.lua`, `.init.lua`, etc. — see [Con
 
 ### Supported APIs
 
-The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), `vim.o`, `vim.g` (including `mode_prompt_*`), `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.stricmp`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob` (including `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), `vim.ob.get_cursor`, `vim.ob.set_cursor`, `vim.ob.get_selection`, `vim.ob.mode`, `vim.ob.notice`, `vim.obsidian.keymap.set/del` for global keymaps, `vim.obsidian.whichkey.set_group/set_label/add` for which-key labels, `vim.obsidian.cursor.set` for cursor shapes, `vim.obsidian.modeprompt.set` for mode prompts, `vim.obsidian.surround.set/del/add` for custom surround pairs, `vim.obsidian.leader.set/del/add` for leader bindings, and `vim.obsidian.pick(source, opts?)` for the fuzzy picker), `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
+The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), `vim.o`, `vim.g` (including `mode_prompt_*`), `vim.keymap.set`, `vim.keymap.del`, `vim.cmd()`, `vim.vault_name()`, `vim.tbl_*`, `vim.split`, `vim.trim`, `vim.startswith`, `vim.endswith`, `vim.stricmp`, `vim.inspect`, `vim.json`, `vim.schedule`, `vim.defer_fn`, `vim.uv`, `vim.notify` (with levels), `vim.obsidian`/`vim.ob` (including `vim.ob.meta.*` (9 functions), `vim.ob.fs.*` (11 functions), `vim.ob.ui.*` (4 functions), `vim.ob.im.*` (4 functions + 2 properties), `vim.ob.get_cursor`, `vim.ob.set_cursor`, `vim.ob.get_selection`, `vim.ob.mode`, `vim.ob.notice`, `vim.obsidian.keymap.set/del` for global keymaps, `vim.obsidian.whichkey.set_group/set_label/add` for which-key labels, `vim.obsidian.cursor.set` for cursor shapes, `vim.obsidian.modeprompt.set` for mode prompts, `vim.obsidian.surround.set/del/add` for custom surround pairs, `vim.obsidian.leader.set/del/add` for leader bindings, and `vim.obsidian.pick(source, opts?)` for the fuzzy picker), `vim.env`, `vim.api.nvim_set_hl`, `vim.api.nvim_buf_*`, and `print()`. See `docs/configuration/lua-config.md` for the full reference.
 
 ### Unsupported Neovim APIs
 
@@ -851,7 +851,7 @@ The Lua config runtime (`init.lua`) supports `vim.opt` (including `guicursor`), 
 
 ### Autocmds
 
-17 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `BufWritePre`, `BufWritePost`, `FocusGained`, `FocusLost`, `TextYankPost`, `CursorMoved`, `CursorHold`, `LeafEnter`, `LeafLeave`, `FileType`, `OilEnter`, `OilLeave`. See `docs/configuration/lua-config.md` for the full reference.
+19 events supported: `InsertEnter`, `InsertLeave`, `ModeChanged`, `BufEnter`, `BufLeave`, `BufWritePre`, `BufWritePost`, `FocusGained`, `FocusLost`, `TextYankPost`, `CursorMoved`, `CursorHold`, `LeafEnter`, `LeafLeave`, `FileType`, `OilEnter`, `OilLeave`, `CmdlineEnter`, `CmdlineLeave`. See `docs/configuration/lua-config.md` for the full reference.
 
 Limitations:
 
@@ -1077,6 +1077,34 @@ Fixed by using `:execute "normal ..."` (via `nvim.command()`) for key sequences 
 
 Verified with `:normal!` (headless `-c` flags), Vimscript `feedkeys("...", "tx")`, and `nvim_feedkeys` — only `:normal!` and `:execute "normal ..."` produce correct results for block operations.
 
+## Input method switching
+
+**Status**: Working. Desktop only (macOS, Windows, Linux). Requires an external IM switching binary (e.g., `macism`, `im-select`, `fcitx5-remote`, `ibus`).
+
+The plugin can automatically switch input methods when entering/leaving insert mode. Enable in **Settings → Vim Motions → Input method**. The Lua API (`vim.obsidian.im`) provides programmatic control for advanced use cases.
+
+Limitations:
+
+- **Desktop only**: Mobile devices do not support `child_process` and the feature is a no-op. The settings group is hidden on mobile.
+- **Command-line and search mode**: IM switching auto-wires to `CmdlineLeave` (switches to normal IM when exiting `:`, `/`, or `?` prompts). `CmdlineEnter` does not trigger an IM switch (users may need CJK input for search queries). The global ex command modal (`:` in non-editor views) does not fire `CmdlineEnter`/`CmdlineLeave`.
+- **System-wide switching**: IM switching is a system-wide OS operation. Switching IM in one Obsidian window affects all windows and applications.
+- **Flatpak/Snap**: Sandboxed Obsidian installations (Flatpak, Snap) may not have access to IM switching binaries outside the sandbox. Use the AppImage or native package instead.
+- **Binary must be pre-installed**: The plugin calls an external binary (`macism`, `fcitx5-remote`, `im-select.exe`, etc.) — it does not bundle one. The binary must be installed separately and the full path provided in settings.
+
+### Deferred enhancements
+
+The following IM switching improvements are planned but not yet implemented:
+
+- **Platform presets**: A settings dropdown to auto-fill binary path and arguments for common tools (macOS macism, Linux fcitx5, Windows im-select). Currently configuration is manual with documentation examples.
+- **Session persistence**: The per-editor saved IM cache does not survive Obsidian restarts. The first `InsertEnter` after restart in `restore` mode uses whatever IM is active rather than restoring the previous session's IM. After one insert→normal→insert cycle, restore works normally.
+- **`:IMToggle`/`:IMStatus` ex commands**: Quick toggle and status commands for the command line. Currently users can toggle via settings or `vim.obsidian.im.enabled = false` in Lua.
+- **Content-type aware switching**: IM switching based on cursor context (e.g., auto-switch to English inside math blocks or code blocks) independently of vim mode. Users can implement this today by combining `vim.obsidian.im` with cursor position checks in Lua autocmds.
+- **`CmdlineEnter`/`CmdlineLeave` for global ex command modal**: The global `:` modal in non-editor views (Obsidian `SuggestModal`) does not fire cmdline autocmd events. Only the codemirror-vim editor dialog fires them.
+- **`CmdlineChanged` event**: An autocmd event that fires on each keystroke in the command-line prompt. Not needed for IM switching but useful for advanced Lua scripting.
+- **`cmdline` text in event data**: Including the actual command text in `CmdlineLeave`'s event data. Currently only `cmdtype` (`:`, `/`, `?`) is provided.
+- **Composition listeners on search dialog input**: The composition guard currently covers only the editor DOM element. CJK composition in the `/` search input is not tracked. This is acceptable because `CmdlineLeave` fires when the dialog closes (abandoning any active composition), but a more complete solution would track composition in the search input too.
+- **`loadInitLua()` parameter refactor**: The function signature has grown to 11 parameters. Candidate for refactoring to an options object in a future cleanup pass.
+
 ## Intentionally not supported
 
 These features are excluded by design and will not be implemented:
@@ -1085,7 +1113,7 @@ These features are excluded by design and will not be implemented:
 | ------------------------------- | ------------------------------------------------------------------------------------------- |
 | `jscommand` / `jsfile` in vimrc | Security risk — arbitrary JavaScript execution                                              |
 | `cmcommand` in vimrc            | Broken in CodeMirror 6, never fixed upstream                                                |
-| Input method switching          | Use the [vim-im-control](https://github.com/kometenstaub/obsidian-vim-im-control) plugin    |
+| ~~Input method switching~~      | **Built-in** since v0.51.0 — see **Settings → Vim Motions → Input method**                  |
 | ~~Yank highlighting~~           | **Built-in** since v0.47.0 — see **Settings → Vim Motions → Vim features → Yank highlight** |
 | Reading view navigation         | Use the [vim-keynav](https://github.com/kometenstaub/obsidian-vim-keynav) plugin            |
 | Vim toggle command              | Use the [vim-toggle](https://github.com/conneroisu/vim-toggle) plugin                       |

@@ -1,6 +1,7 @@
 import {
     App,
     Notice,
+    Platform,
     PluginSettingTab,
     setIcon,
     Setting,
@@ -180,6 +181,14 @@ export interface VimMotionsSettings {
         scrollUp: string[];
         close: string[];
     };
+
+    imEnabled: boolean;
+    imBinaryPath: string;
+    imObtainArgs: string;
+    imSwitchArgs: string;
+    imDefaultNormalIm: string;
+    imRestoreBehavior: 'restore' | 'default';
+    imDefaultInsertIm: string;
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -251,6 +260,14 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
         scrollUp: ['C-u'],
         close: ['Escape', 'C-c'],
     },
+
+    imEnabled: false,
+    imBinaryPath: '',
+    imObtainArgs: '',
+    imSwitchArgs: '{im}',
+    imDefaultNormalIm: '',
+    imRestoreBehavior: 'restore' as const,
+    imDefaultInsertIm: '',
 };
 
 interface ObsidianCommand {
@@ -346,6 +363,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'whichKeyDelay',
         'whichKeySortOrder',
         'whichKeyIcons',
+        'imEnabled',
+        'imBinaryPath',
+        'imObtainArgs',
+        'imSwitchArgs',
+        'imDefaultNormalIm',
+        'imRestoreBehavior',
+        'imDefaultInsertIm',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
@@ -1395,6 +1419,102 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                 ],
             },
+
+            // ── Input method ─────────────────────────────────────────
+            ...(Platform.isDesktop
+                ? [
+                      {
+                          type: 'group' as const,
+                          heading: 'Input method',
+                          items: [
+                              {
+                                  name: 'Enable input method switching',
+                                  desc: 'Automatically switch input methods when entering/leaving insert mode. Requires an external IM switching binary (e.g. macism, fcitx5-remote, im-select). Desktop only.',
+                                  control: {
+                                      type: 'toggle' as const,
+                                      key: 'imEnabled',
+                                  },
+                              },
+                              ...(this.plugin.settings.imEnabled
+                                  ? [
+                                        {
+                                            name: 'IM binary path',
+                                            desc: 'Absolute path to the input method switching binary (e.g. /opt/homebrew/bin/macism, /usr/bin/fcitx5-remote, C:\\im-select\\im-select.exe). Tilde (~) paths are supported.',
+                                            control: {
+                                                type: 'text' as const,
+                                                key: 'imBinaryPath',
+                                                placeholder:
+                                                    '/opt/homebrew/bin/macism',
+                                            },
+                                        },
+                                        {
+                                            name: 'Obtain IM arguments',
+                                            desc: 'Arguments to query the current input method. Leave empty if the binary returns the current IM when invoked without arguments (macism, im-select). For fcitx5-remote use: -n',
+                                            control: {
+                                                type: 'text' as const,
+                                                key: 'imObtainArgs',
+                                                placeholder: '',
+                                            },
+                                        },
+                                        {
+                                            name: 'Switch IM arguments',
+                                            desc: 'Arguments to switch the input method. Use {im} as a placeholder for the IM identifier. For macism/im-select: {im} — For fcitx5-remote: -s {im} — For ibus: engine {im}',
+                                            control: {
+                                                type: 'text' as const,
+                                                key: 'imSwitchArgs',
+                                                placeholder: '{im}',
+                                            },
+                                        },
+                                        {
+                                            name: 'Normal mode IM',
+                                            desc: 'IM identifier to switch to in normal mode (e.g. com.apple.keylayout.ABC, keyboard-us, 1033).',
+                                            control: {
+                                                type: 'text' as const,
+                                                key: 'imDefaultNormalIm',
+                                                placeholder:
+                                                    'com.apple.keylayout.ABC',
+                                            },
+                                        },
+                                        {
+                                            name: 'Insert mode IM behavior',
+                                            desc: 'Restore: switch back to the IM that was active before leaving insert mode. Default: always switch to a fixed IM when entering insert mode.',
+                                            control: {
+                                                type: 'dropdown' as const,
+                                                key: 'imRestoreBehavior',
+                                                options: {
+                                                    restore:
+                                                        'Restore previous IM',
+                                                    default:
+                                                        'Use fixed default IM',
+                                                },
+                                            },
+                                        },
+                                        ...(this.plugin.settings
+                                            .imRestoreBehavior === 'default'
+                                            ? [
+                                                  {
+                                                      name: 'Default insert mode IM',
+                                                      desc:
+                                                          this.plugin.settings
+                                                              .imDefaultInsertIm ===
+                                                          ''
+                                                              ? '⚠️ Set a default insert IM identifier, otherwise no IM switch will occur on InsertEnter.'
+                                                              : 'IM identifier to switch to when entering insert mode.',
+                                                      control: {
+                                                          type: 'text' as const,
+                                                          key: 'imDefaultInsertIm',
+                                                          placeholder:
+                                                              'com.apple.inputmethod.SCIM.ITABC',
+                                                      },
+                                                  },
+                                              ]
+                                            : []),
+                                    ]
+                                  : []),
+                          ],
+                      },
+                  ]
+                : []),
         ];
     }
 
