@@ -1,6 +1,7 @@
 import { MarkdownView, Notice } from 'obsidian';
 import type { App } from 'obsidian';
 import { foldCode, unfoldCode, toggleFold } from '@codemirror/language';
+import { registerFoldLevelCommands } from '../fold/fold-level';
 import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import { exCommandFromAction } from '../keybindings/action-registry';
@@ -349,6 +350,8 @@ export function registerWorkspaceNavigation(
     reg.mapCommand('zO', 'action', 'foldOpen', {});
     reg.mapCommand('zC', 'action', 'foldClose', {});
     reg.mapCommand('zA', 'action', 'foldToggle', {});
+
+    registerFoldLevelCommands(reg);
 
     const charInfoAction = createCharInfoAction(app);
     reg.defineAction('charInfo', charInfoAction);
