@@ -163,6 +163,8 @@ export interface VimMotionsSettings {
     luaConfigPath: string;
     showConfigNotifications: boolean;
     leaderBindings: LeaderBinding[];
+    foldAwareNavigation: boolean;
+    foldPersistence: boolean;
     oilExplorer: boolean;
     oilShowHiddenFiles: boolean;
     oilConfirmDeleteThreshold: number;
@@ -232,6 +234,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     luaConfigPath: '',
     showConfigNotifications: true,
     leaderBindings: [],
+    foldAwareNavigation: false,
+    foldPersistence: false,
     oilExplorer: true,
     oilShowHiddenFiles: false,
     oilConfirmDeleteThreshold: 1,

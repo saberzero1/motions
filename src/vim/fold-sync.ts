@@ -1,6 +1,12 @@
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
-import { foldEffect, unfoldEffect } from '@codemirror/language';
+import { foldEffect, unfoldEffect, foldedRanges } from '@codemirror/language';
+
+let foldAwareNavigationEnabled = false;
+
+export function setFoldAwareNavigation(enabled: boolean): void {
+    foldAwareNavigationEnabled = enabled;
+}
 
 const foldScrollExtender = EditorState.transactionExtender.of((tr) => {
     if (!tr.docChanged) {
@@ -13,6 +19,32 @@ const foldScrollExtender = EditorState.transactionExtender.of((tr) => {
                 };
             }
         }
+    }
+    return null;
+});
+
+const foldAwareNavExtender = EditorState.transactionExtender.of((tr) => {
+    if (!foldAwareNavigationEnabled) return null;
+    if (tr.docChanged) return null;
+    if (!tr.selection) return null;
+
+    const cursorPos = tr.newSelection.main.head;
+    const cursorLine = tr.state.doc.lineAt(cursorPos);
+    const folded = foldedRanges(tr.state);
+    const iter = folded.iter();
+    while (iter.value) {
+        if (cursorPos >= iter.from && cursorPos <= iter.to) {
+            return {
+                effects: unfoldEffect.of({ from: iter.from, to: iter.to }),
+            };
+        }
+        const foldLine = tr.state.doc.lineAt(iter.from);
+        if (foldLine.number === cursorLine.number) {
+            return {
+                effects: unfoldEffect.of({ from: iter.from, to: iter.to }),
+            };
+        }
+        iter.next();
     }
     return null;
 });
@@ -91,5 +123,5 @@ const propertiesFoldObserver = ViewPlugin.fromClass(
 );
 
 export function foldSyncExtension(): Extension {
-    return [foldScrollExtender, propertiesFoldObserver];
+    return [foldScrollExtender, foldAwareNavExtender, propertiesFoldObserver];
 }

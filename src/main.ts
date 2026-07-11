@@ -71,9 +71,13 @@ import {
     yankHighlightExtension,
     showYankHighlight,
 } from './vim/yank-highlight';
-import { foldSyncExtension } from './vim/fold-sync';
+import {
+    foldSyncExtension,
+    setFoldAwareNavigation,
+} from './vim/fold-sync';
 import { foldLevelExtension } from './fold/fold-level';
 import { markdownFoldProvider } from './fold/provider';
+import { FoldPersistenceStore } from './fold/persistence';
 import { foldPlaceholderExtension } from './fold/placeholder';
 import {
     markGutterExtension,
@@ -141,9 +145,12 @@ export default class VimMotionsPlugin extends Plugin {
     private markGutterCleanup: (() => void) | null = null;
     markStore: MarkStore = new MarkStore();
     harpoonStore: HarpoonStore = new HarpoonStore();
+    foldStore: FoldPersistenceStore = new FoldPersistenceStore();
     private markSaveDirty = false;
     private harpoonSaveDirty = false;
+    private foldPersistDirty = false;
     private previousLeafId: string | null = null;
+    private previousFoldFile: string | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
     private globalRegistry: GlobalMappingRegistry | null = null;
@@ -384,6 +391,16 @@ export default class VimMotionsPlugin extends Plugin {
         await this.loadSettings();
         this.markStore.load(this.settings.persistedMarks ?? []);
         this.harpoonStore.load(this.settings.harpoonPins ?? []);
+        this.foldStore.load(
+            (
+                this.settings as unknown as Record<string, unknown>
+            ).persistedFolds as
+                | Record<
+                      string,
+                      { ranges: { from: number; to: number }[]; ts: number }
+                  >
+                | undefined,
+        );
 
         // --- Mobile gate ---
         // Always register settings tab and toggle command so users can
@@ -775,15 +792,71 @@ export default class VimMotionsPlugin extends Plugin {
         this.attachMarkGutter();
 
         this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (newLeaf) => {
+                if (!this.settings.foldPersistence) return;
+                if (this.previousFoldFile) {
+                    const mdView =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (mdView?.file?.path === this.previousFoldFile) {
+                        const editorView = (
+                            mdView.editor as unknown as Record<string, unknown>
+                        ).cm as { cm6?: EditorView } | undefined;
+                        const cm6 = editorView?.cm6 ?? editorView;
+                        if (
+                            cm6 &&
+                            typeof (cm6 as Record<string, unknown>).state ===
+                                'object'
+                        ) {
+                            this.foldStore.capture(
+                                this.previousFoldFile,
+                                cm6 as EditorView,
+                            );
+                            this.foldPersistDirty = true;
+                        }
+                    }
+                }
+                if (newLeaf?.view instanceof MarkdownView && newLeaf.view.file) {
+                    const filePath = newLeaf.view.file.path;
+                    this.previousFoldFile = filePath;
+                    const editorView = (
+                        newLeaf.view.editor as unknown as Record<
+                            string,
+                            unknown
+                        >
+                    ).cm as { cm6?: EditorView } | undefined;
+                    const cm6 = editorView?.cm6 ?? editorView;
+                    if (
+                        cm6 &&
+                        typeof (cm6 as Record<string, unknown>).state ===
+                            'object'
+                    ) {
+                        window.setTimeout(() => {
+                            this.foldStore.restore(
+                                filePath,
+                                cm6 as EditorView,
+                            );
+                        }, 100);
+                    }
+                } else {
+                    this.previousFoldFile = null;
+                }
+            }),
+        );
+
+        this.registerEvent(
             this.app.vault.on('rename', (file, oldPath) => {
                 this.harpoonStore.renamePath(oldPath, file.path);
                 this.harpoonSaveDirty = true;
+                this.foldStore.renamePath(oldPath, file.path);
+                this.foldPersistDirty = true;
             }),
         );
         this.registerEvent(
             this.app.vault.on('delete', (file) => {
                 this.harpoonStore.removeByPath(file.path);
                 this.harpoonSaveDirty = true;
+                this.foldStore.removePath(file.path);
+                this.foldPersistDirty = true;
             }),
         );
 
@@ -1297,6 +1370,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.registerEditorExtension(yankHighlightExtension());
         this.registerEditorExtension(foldSyncExtension());
+        setFoldAwareNavigation(this.settings.foldAwareNavigation);
         this.registerEditorExtension(foldLevelExtension());
         this.registerEditorExtension(markdownFoldProvider());
         this.registerEditorExtension(foldPlaceholderExtension());
@@ -1320,6 +1394,17 @@ export default class VimMotionsPlugin extends Plugin {
                 if (this.harpoonSaveDirty) {
                     this.harpoonSaveDirty = false;
                     this.settings.harpoonPins = this.harpoonStore.save();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (this.foldPersistDirty) {
+                    this.foldPersistDirty = false;
+                    (
+                        this.settings as unknown as Record<string, unknown>
+                    ).persistedFolds = this.foldStore.save();
                     void this.saveSettings();
                 }
             }, 30_000),
@@ -1485,6 +1570,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.scrolloffManager?.setup(this.settings.scrolloffLines);
+        setFoldAwareNavigation(this.settings.foldAwareNavigation);
 
         if (isBundledVimActive()) {
             const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -2660,6 +2746,13 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.harpoonSaveDirty) {
             this.harpoonSaveDirty = false;
             this.settings.harpoonPins = this.harpoonStore.save();
+            void this.saveSettings();
+        }
+        if (this.foldPersistDirty) {
+            this.foldPersistDirty = false;
+            (
+                this.settings as unknown as Record<string, unknown>
+            ).persistedFolds = this.foldStore.save();
             void this.saveSettings();
         }
         this.matcher?.dispose();
