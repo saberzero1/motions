@@ -56,6 +56,8 @@ Control Markdown folding with standard Vim fold commands:
 - `zm`: Fold one more heading level (incrementally folds h1, then h2, etc.).
 - `zr`: Fold one less heading level (unfolds the most recently folded level).
 
+Frontmatter (`---` blocks) and callouts (`> [!type]`) are foldable via `zc`/`zo`/`za`. Folded regions show descriptive placeholder text including the heading title, code language, or callout type.
+
 The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command.
 
 ## Non-editor view support
