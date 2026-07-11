@@ -26,14 +26,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 60 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.48.0
+## What's new in 0.49.0
 
-- **Mark gutter indicators** — vim mark letters (`a`–`z`, `A`–`Z`) appear in the gutter next to marked lines, providing visual feedback on where marks are set. Multiple marks on the same line are shown together (e.g., `ab`). Zero layout shift. Toggle via **Settings → Vim Motions → Vim features → Mark gutter indicators** (default: on).
-- **Global mark persistence** — marks `A`–`Z` are persisted across files and plugin restarts. Setting `mA` stores the file path and cursor position; jumping to `'A` from any file opens the target and restores the cursor.
-- **Grouped marks picker** — `:marks` and `<leader>fm` now show marks grouped by category: "Buffer marks" (`a`–`z`) with line preview, "Global marks" (`A`–`Z`) with file path. Selecting a global mark opens the target file and navigates to the saved position.
-- **Yank highlight fix** — yank highlight now activates on the initially open editor at plugin startup, not only after switching panes ([#53](https://github.com/saberzero1/motions/issues/53)).
+- **Which-key sort order** — configurable sort order for the which-key popup. "which-key" (default) matches which-key.nvim: individual keys first, groups last, alphanumeric before special keys. "Groups first" shows groups before individual keys. Configurable via **Settings → Vim Motions → Which-key sort order**, `vim.opt.whichkeysort` in Lua, or `set whichkeysort` in vimrc.
+- **Which-key Lucide icons** — optional icon support for the which-key popup, inspired by which-key.nvim. Icons render inline via Obsidian's `setIcon()` API with 8 named theme colors or arbitrary CSS color strings. Per-entry icons assignable via Settings, Lua, or vimrc. Built-in defaults for Table, EasyMotion, and Harpoon groups. Toggle via `whichkeyicons` setting.
+- **Harpoon-style file pinning** — pin files to numbered slots for instant switching. `<leader>ha` pins, `<leader>1`–`<leader>9` jumps to slots, `<leader>hp` opens the harpoon picker. Cursor position tracked per file and restored on navigation. Pins persist across sessions; file renames and deletes auto-update. 6 ex commands (`:HarpoonAdd`, `:HarpoonRemove`, `:Harpoon`, `:HarpoonSelect`, `:HarpoonNext`, `:HarpoonPrev`), 14 Obsidian commands, and 15 leader keybindings with which-key group.
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-07-11
+
 ### Added
 
 - **Which-key sort order setting** — configurable sort order for the which-key popup. "which-key" (default) matches which-key.nvim defaults: individual keys first, groups last, alphanumeric before special keys, natural alphabetical tiebreaker. "Groups first" shows groups before individual keys, both sorted alphabetically. Configurable via **Settings → Vim Motions → Which-key sort order**, `vim.opt.whichkeysort` in Lua, or `set whichkeysort=<order>` (alias `wks`) in vimrc.
