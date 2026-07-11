@@ -544,6 +544,7 @@ These commands exist but behave differently from Neovim:
 | `:wall` / `:wa`    | Save all modified buffers                          | Saves only the current file                                | Obsidian auto-saves; a true "save all" would need to iterate all leaves                                                                                             |
 | `gf`               | Open file path under cursor                        | Opens Obsidian quick switcher                              | Wikilinks (`gd`) are more natural for note navigation                                                                                                               |
 | `zO` / `zC` / `zA` | Recursive fold open/close/toggle                   | Maps to the same action as `zo`/`zc`/`za`                  | CM6 has no recursive fold API. Obsidian markdown uses flat heading-level folds (not nested), so the non-recursive versions are functionally equivalent in practice. |
+| `zn` / `zN`         | Fold none (disable folding) / fold normal (re-enable) | Not implemented                                         | Cannot disable Obsidian's fold gutter/arrows from plugin code. |
 | `it` / `at`        | HTML tag text objects (CM Vim native via XML mode) | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown                                            |
 
 ## Select mode and Virtual Replace mode

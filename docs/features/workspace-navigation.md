@@ -51,6 +51,8 @@ Control Markdown folding with standard Vim fold commands:
 - `zM`: Close all folds in the document.
 - `zR`: Open all folds in the document.
 
+The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command.
+
 ## Non-editor view support
 
 The global key handler extends Vim control to non-editor views like PDFs, the graph view, canvas, and the file explorer.
