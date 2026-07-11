@@ -50,6 +50,11 @@ Control Markdown folding with standard Vim fold commands:
 - `zO`, `zC`, `zA`: Functionally equivalent to their non-recursive counterparts in Obsidian's flat heading structure.
 - `zM`: Close all folds in the document.
 - `zR`: Open all folds in the document.
+- `zf{motion}`: Create a manual fold over the motion range (also works in visual mode).
+- `zd` / `zD`: Delete the fold at the cursor.
+- `zE`: Eliminate all folds in the document.
+- `zm`: Fold one more heading level (incrementally folds h1, then h2, etc.).
+- `zr`: Fold one less heading level (unfolds the most recently folded level).
 
 The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command.
 

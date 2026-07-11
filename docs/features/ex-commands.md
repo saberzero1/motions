@@ -192,6 +192,10 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 | `:foldtoggle`           | `za`        | Toggle fold                     |
 | `:foldall`              | `zM`        | Close all folds                 |
 | `:unfoldall`            | `zR`        | Open all folds                  |
+| `:folddelete`           | `zd`        | Delete fold at cursor           |
+| `:foldeliminate`        | `zE`        | Eliminate all folds             |
+| `:foldmore`             | `zm`        | Fold one more heading level     |
+| `:foldless`             | `zr`        | Fold one less heading level     |
 | `:documentoutline`      | `gO`        | Open document outline           |
 | `:openurl`              | `gx`        | Open URL under cursor           |
 | `:docstats`             | `g<C-g>`    | Show document statistics        |

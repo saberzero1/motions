@@ -256,6 +256,10 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `zc` / `zo`         | Fold / unfold at cursor                             | —      |
 | `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    | —      |
 | `zM` / `zR`         | Fold all / unfold all                               | —      |
+| `zf{motion}`        | Create fold over motion range                       | —      |
+| `zd` / `zD`         | Delete fold at cursor                               | —      |
+| `zE`                | Eliminate all folds                                  | —      |
+| `zm` / `zr`         | Fold more / fold less (by heading level)            | —      |
 
 ## Select mode
 
