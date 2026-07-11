@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-07-11
+
 ### Added
 
 - **Input method switching for CJK users** — automatic IM switching when entering/leaving insert mode. Supports macism (macOS), im-select (macOS/Windows), fcitx5-remote (Linux), ibus (Linux), and any external IM switching binary. Per-editor IM state tracking, 50ms debounced switching, composition guard (never switches mid-IME composition), and error throttling with auto-disable. Desktop only — graceful no-op on mobile. ([#55](https://github.com/saberzero1/motions/issues/55))

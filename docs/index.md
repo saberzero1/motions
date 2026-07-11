@@ -29,13 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.50.1
+## What's new in 0.51.0
 
-- **Neovim-style folding** — full fold command set: `zf{motion}` creates manual folds, `zd`/`zD` delete folds at cursor, `zE` eliminates all folds, `zm`/`zr` fold/unfold one heading level at a time. Custom markdown fold provider adds frontmatter (`---` blocks) and callouts (`> [!type]`) as foldable regions alongside standard heading and code block folds.
-- **Fold placeholder text** — folded regions show descriptive placeholders: heading title + line count, code block language, callout type, or frontmatter field count.
-- **Fold-aware navigation** — navigating into a folded section (e.g., `]h` to a folded heading) automatically unfolds it, matching Neovim's default `foldopen` behavior. Configurable via **Settings → Vim Motions → Fold-aware navigation**.
-- **Fold persistence** — fold state is remembered across file switches and sessions.
-- **Fold viewport scroll compensation** — the viewport automatically scrolls to keep the cursor visible after any fold/unfold operation, including Obsidian's "Toggle fold properties" command.
-- **Table widget fix** — fixed table widget duplication when third-party decoration plugins (e.g., Another Dynamic Highlights) applied mark decorations over the same region. ([#55](https://github.com/saberzero1/motions/issues/55))
+- **Input method switching for CJK users** — automatic IM switching when entering/leaving insert mode. Supports macism (macOS), im-select (macOS/Windows), fcitx5-remote (Linux), ibus (Linux), and any external IM switching binary. Per-editor state tracking, composition guard, and error throttling with auto-disable. Desktop only. Lua API via `vim.obsidian.im`. ([#55](https://github.com/saberzero1/motions/issues/55))
+- **`CmdlineEnter`/`CmdlineLeave` autocmd events** — fire when entering/leaving the `:`, `/`, or `?` command-line prompt, with `cmdtype` in event data. Auto-wired to IM switching on prompt exit.
 
 See the [[changelog|full changelog]] for details.
