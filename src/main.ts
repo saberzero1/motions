@@ -73,6 +73,8 @@ import {
 } from './vim/yank-highlight';
 import { foldSyncExtension } from './vim/fold-sync';
 import { foldLevelExtension } from './fold/fold-level';
+import { markdownFoldProvider } from './fold/provider';
+import { foldPlaceholderExtension } from './fold/placeholder';
 import {
     markGutterExtension,
     scheduleMarkGutterRefresh,
@@ -1296,6 +1298,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(yankHighlightExtension());
         this.registerEditorExtension(foldSyncExtension());
         this.registerEditorExtension(foldLevelExtension());
+        this.registerEditorExtension(markdownFoldProvider());
+        this.registerEditorExtension(foldPlaceholderExtension());
         if (this.settings.enableMarkGutter) {
             this.registerEditorExtension(markGutterExtension());
         }
