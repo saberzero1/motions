@@ -21,6 +21,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Marks** — gutter indicators showing mark letters next to marked lines (zero layout shift), global mark persistence across files and sessions (`A`–`Z`), and a grouped marks picker with cross-file navigation
 - **Harpoon** — pin files to numbered slots for instant switching (`<leader>1`–`<leader>9`), cursor position tracking, persistence across sessions, auto-updating on file rename/delete
 - **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
+- **Folding** — full Neovim-style fold commands: `zf` (create), `zd` (delete), `zE` (eliminate all), `zm`/`zr` (incremental level), custom fold providers for frontmatter and callouts, descriptive fold placeholder text, fold-aware navigation (auto-unfold on `]h`), and cross-session fold persistence
 - **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation

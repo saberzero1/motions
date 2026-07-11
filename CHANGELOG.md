@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Fold viewport scroll compensation** — the viewport automatically scrolls to keep the cursor visible after any fold/unfold operation, including Obsidian's "Toggle fold properties" command. Uses a `TransactionExtender` for CM6 fold effects and a `MutationObserver` for the properties widget's CSS class toggle. ([#54](https://github.com/saberzero1/motions/issues/54))
+    - Plugin: `src/vim/fold-sync.ts` (new), `src/main.ts`
+- **Fold create/delete commands** — `zf{motion}` creates a manual fold over the motion range (works in both visual and operator-pending mode). `zd`/`zD` delete the fold at the cursor. `zE` eliminates all folds in the document.
+    - Ex commands: `:folddelete` (`zd`), `:foldeliminate` (`zE`)
+    - Plugin: `src/fold/commands.ts` (new), `src/operators/register.ts`
+- **Incremental fold level** — `zm` folds one more heading level (h1 first, then h2, etc.). `zr` unfolds one heading level. A custom `StateField` tracks the current fold depth (0–6).
+    - Ex commands: `:foldmore` (`zm`), `:foldless` (`zr`)
+    - Plugin: `src/fold/fold-level.ts` (new), `src/workspace/navigation.ts`, `src/main.ts`
+- **Markdown fold provider** — custom `foldService` registers frontmatter (`---` blocks) and callouts (`> [!type]`) as foldable regions. These are now foldable via `zc`/`zo`/`za` in addition to the standard CM6 heading and code block folds.
+    - Plugin: `src/fold/provider.ts` (new), `src/main.ts`
+- **Fold placeholder text** — folded regions show descriptive placeholder text: heading title + line count, code block language, callout type, or frontmatter field count. Uses `codeFolding({ preparePlaceholder, placeholderDOM })`.
+    - Plugin: `src/fold/placeholder.ts` (new), `src/main.ts`
+- **Fold-aware navigation** — when enabled, navigating into a folded section (e.g., `]h` to a folded heading) automatically unfolds it. Matches Neovim's default `foldopen` behavior. Configurable via **Settings → Vim Motions → Fold-aware navigation** (default: on).
+    - Plugin: `src/vim/fold-sync.ts`, `src/settings.ts`
+- **Fold persistence** — fold state is remembered across file switches and sessions. Folds are captured on leaf change and restored when re-opening a file. Capped at 500 files with 30-day TTL eviction. Cleans up on file rename/delete.
+    - Plugin: `src/fold/persistence.ts` (new), `src/main.ts`, `src/settings.ts`
+
+### Documentation
+
+- `docs/features/workspace-navigation.md`: added fold provider, placeholder, fold-aware navigation, and persistence documentation
+- `docs/reference/keybindings.md`: added `zf`, `zd`, `zD`, `zE`, `zm`, `zr` keybindings
+- `docs/features/ex-commands.md`: added `:folddelete`, `:foldeliminate`, `:foldmore`, `:foldless`
+- `docs/configuration/settings.md`: added Fold-aware navigation and Fold persistence settings
+- `KNOWN_LIMITATIONS.md`: added `zn`/`zN` as known deviations; updated fold command coverage
+- `test/neovim-command-index.yaml`: added 6 new fold command entries
+
 ## [0.49.0] - 2026-07-11
 
 ### Added

@@ -1056,7 +1056,7 @@ The plugin verifies Vim behavior against headless Neovim via golden comparison t
 | Area                                               | Fork tests | Reason not golden-verifiable                                                                                                                  |
 | -------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Scroll/viewport (`zz`, `zt`, `zb`, `Ctrl-d/u/f/b`) | 9          | Depend on viewport dimensions and `scrollInfo` — headless Neovim has no viewport geometry                                                     |
-| Fold (`zo`, `zc`, `za`, `zf`)                      | 5          | CM6 fold API is fundamentally different from Neovim; already registered as known deviations (`zO`/`zC`/`zA` map to non-recursive equivalents) |
+| Fold (`zo`, `zc`, `za`, `zf`, `zd`, `zE`, `zm`, `zr`) | 32       | CM6 fold API is fundamentally different from Neovim; `zO`/`zC`/`zA` map to non-recursive equivalents; `zn`/`zN` infeasible (cannot disable Obsidian fold gutter) |
 | Jumplist (stale marker edge case)                  | 1          | Single test for cross-document marker invalidation — Neovim doesn't share the CM6 `Marker`/`posFromIndex` infrastructure                      |
 | Cursor rendering (`rendered_cursor_position_*`)    | 2          | Test `.cm-fat-cursor` DOM element pixel position via `getBoundingClientRect()` — no Neovim equivalent                                         |
 
