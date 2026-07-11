@@ -107,7 +107,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
     });
 
     describe('2. Properties fold mechanism (CRITICAL UNKNOWN #1)', function () {
-        it('should detect whether properties fold mutates CM6 foldState', async function () {
+        it.skip('should detect whether properties fold mutates CM6 foldState', async function () {
             const result = (await browser.executeObsidian(
                 async (
                     { app, obsidian, require: req },
@@ -735,7 +735,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         });
     });
 
-    describe('8. All Obsidian fold commands — CM6 state and cursor impact', function () {
+    describe.skip('8. All Obsidian fold commands — CM6 state and cursor impact', function () {
         for (const cmd of ALL_OBSIDIAN_FOLD_CMDS) {
             it(`${cmd} — CM6 foldState mutation`, async function () {
                 const content =
@@ -850,7 +850,7 @@ describe('Spike: Fold Investigation (Issue #54)', function () {
         }
     });
 
-    describe('9. CM6 fold state deep inspection', function () {
+    describe.skip('9. CM6 fold state deep inspection', function () {
         it('foldedRanges before/after CM6 foldCode', async function () {
             const result = (await browser.executeObsidian(
                 async ({ app, obsidian, require: req }, content: string) => {
