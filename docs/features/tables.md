@@ -111,6 +111,9 @@ The rendered table widget processes cell content through Obsidian's markdown ren
 > [!note]
 > **First-render learning lag**: On the very first load after plugin installation, the suppressor needs to observe one table widget render to learn its internal structure. A table may briefly flash as a widget before being suppressed; this is cached for the session.
 
+> [!warning]
+> **Third-party plugin compatibility**: Plugins that apply text decorations globally (e.g., dynamic highlighters) may conflict with the table widget if they mark text inside replaced table ranges. The table widget uses elevated CM6 decoration precedence to prevent duplication, but plugins that also escalate their decoration precedence could override this. If you see duplicated table content, try disabling the conflicting plugin's highlighting or switching to **Always raw** mode.
+
 ## Ex commands
 
 The following Ex commands are available for table manipulation:

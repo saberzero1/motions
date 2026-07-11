@@ -113,6 +113,8 @@ The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping t
 
 **Table manipulation commands** (`<Leader>t` prefix and ex commands like `:tablerowafter`) call Obsidian commands via `executeCommandById`. These may not work when the table widget is suppressed, since Obsidian's table commands expect the interactive widget to be present. Use Source mode table editing or manual Markdown editing instead.
 
+**Third-party decoration conflicts**: Plugins that apply `Decoration.mark` decorations globally (e.g., [aDHL — Another Dynamic Highlights](https://github.com/tine-schreibt/aDHL)) can conflict with the table widget's `Decoration.replace` when both target the same document range. The table widget uses `Prec.high()` to ensure its replace decoration takes precedence over default-priority marks from other plugins during CM6's decoration merging. If a third-party plugin escalates its own decorations to `Prec.high()` or `Prec.highest()`, the conflict may resurface. This is a fundamental CM6 limitation — there is no mechanism for one plugin to query or yield to another plugin's decorations. ([#55](https://github.com/saberzero1/motions/issues/55))
+
 **First-render learning lag**: On the very first load after plugin install, the suppressor needs to observe one table widget render to learn its constructor. The first table may briefly flash as a widget before being suppressed on the next render cycle. This one-time learning is cached for the session.
 
 ## Vimrc hot-reload

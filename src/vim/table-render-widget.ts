@@ -1,5 +1,6 @@
 import { WidgetType, EditorView } from '@codemirror/view';
 import {
+    Prec,
     StateField,
     type EditorState,
     type Extension,
@@ -240,19 +241,21 @@ export function setActiveEditTableRange(
     activeEditTableRange = range;
 }
 
-export const tableRenderField: Extension = StateField.define<DecorationSet>({
-    create(state) {
-        return enabled ? buildDecorations(state) : Decoration.none;
-    },
-    update(prev, tr) {
-        if (!enabled) return Decoration.none;
-        if (activeEditTableRange && tr.docChanged) {
-            return prev.map(tr.changes);
-        }
-        if (tr.docChanged || tr.selection) {
-            return buildDecorations(tr.state);
-        }
-        return prev;
-    },
-    provide: (f) => EditorView.decorations.from(f),
-});
+export const tableRenderField: Extension = Prec.high(
+    StateField.define<DecorationSet>({
+        create(state) {
+            return enabled ? buildDecorations(state) : Decoration.none;
+        },
+        update(prev, tr) {
+            if (!enabled) return Decoration.none;
+            if (activeEditTableRange && tr.docChanged) {
+                return prev.map(tr.changes);
+            }
+            if (tr.docChanged || tr.selection) {
+                return buildDecorations(tr.state);
+            }
+            return prev;
+        },
+        provide: (f) => EditorView.decorations.from(f),
+    }),
+);

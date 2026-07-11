@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Table widget duplication with third-party decoration plugins** — the embedded/cursor-aware table widget could show duplicated table content when another plugin (e.g., aDHL — Another Dynamic Highlights) applied `Decoration.mark` ranges over the same document region covered by the table's `Decoration.replace` block widget. CM6's decoration merging resolved the conflicting mark and replace decorations at default precedence, allowing raw table text to leak through alongside the rendered widget during re-entrant view updates. Fixed by wrapping the `tableRenderField` StateField in `Prec.high()`, ensuring the replace decoration takes precedence over default-priority mark decorations from other plugins. ([#55](https://github.com/saberzero1/motions/issues/55))
+    - Plugin: `src/vim/table-render-widget.ts` (`Prec.high()` wrap on `tableRenderField`)
+
 ## [0.50.0] - 2026-07-11
 
 ### Added
