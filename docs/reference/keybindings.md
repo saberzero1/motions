@@ -114,6 +114,20 @@ Open picker sources with the `<leader>f` prefix.
 | `<leader>fR` | Registers                |
 | `<leader>fp` | Resume last picker       |
 
+## Harpoon
+
+Pin files to numbered slots for instant switching. See [[harpoon]] for details.
+
+| Keybinding              | Description         |
+| ----------------------- | ------------------- |
+| `<leader>ha`            | Pin current file    |
+| `<leader>hr`            | Remove current file |
+| `<leader>ht`            | Toggle pin          |
+| `<leader>hp`            | Open harpoon picker |
+| `<leader>1`–`<leader>9` | Jump to slot 1–9    |
+| `<leader>hn`            | Next pin            |
+| `<leader>hN`            | Previous pin        |
+
 ### Keyboard shortcuts inside picker
 
 | Key                  | Action                   |
@@ -357,6 +371,17 @@ Execute commands via the `:` command line, grouped by function.
 | `:back`         |          | Navigate back in history                     |
 | `:forward`      |          | Navigate forward in history                  |
 | `:changes`      |          | Show change list in modal                    |
+
+### Harpoon
+
+| Command            | Short       | Description                                            |
+| ------------------ | ----------- | ------------------------------------------------------ |
+| `:HarpoonAdd`      | `:HarpoonA` | Pin current file to next slot                          |
+| `:HarpoonRemove`   | `:HarpoonR` | Remove current file (or `:HarpoonRemove N` for slot N) |
+| `:Harpoon`         |             | Open harpoon picker                                    |
+| `:HarpoonSelect N` | `:HarpoonS` | Jump to pin slot N                                     |
+| `:HarpoonNext`     | `:HarpoonN` | Next pin                                               |
+| `:HarpoonPrev`     | `:HarpoonP` | Previous pin                                           |
 
 ### Utility
 

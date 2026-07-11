@@ -985,9 +985,23 @@ Vim marks (`m{a-z}`, `'{a-z}`) work via codemirror-vim. The plugin adds three en
 
 **Test coverage**: `test/specs/marks-gutter.e2e.ts` (6 tests), `test/specs/marks-picker.e2e.ts` (8 tests).
 
+## Harpoon file pinning
+
+**Status**: Working. Pin files to numbered slots with cursor tracking and persistence.
+
+Pin files to numbered slots (`<leader>1`–`<leader>9`) for instant switching. Cursor position is tracked per-pinned-file via `active-leaf-change` departure-cursor capture and restored on navigation. Pins are stored in `VimMotionsSettings.harpoonPins` with 30-second dirty-flag save interval. File renames auto-update via `vault.on('rename')`; file deletes auto-remove via `vault.on('delete')`.
+
+### Limitations
+
+- **No editable menu** — harpoon v2's floating editable buffer (reorder/remove by editing lines) is deferred. V1 uses the picker + add/remove commands.
+- **Navigation opens in current pane** — `getLeaf(false)` replaces the current buffer (matching harpoon v2). Users expecting new-tab behavior should use the picker's `<C-t>` for tab-open.
+- **Cursor tracking is per-switch** — cursor position is captured when you leave a pinned file. Positions are not tracked continuously (no `CursorMoved` listener). If the plugin crashes, the last captured position may be stale by up to one editing session.
+- **Non-markdown cursor restore** — pinning works for any file type, but cursor position is only restored for `MarkdownView` files (PDFs, canvas, images don't have a text cursor).
+- **Sparse slot arrays** — removing a pin sets its slot to `null` without shifting other slots. Slot numbers are stable (pin 3 stays pin 3 even if pin 2 is removed). Trailing nulls are trimmed.
+
 ## Picker / Fuzzy finder
 
-**Status**: Working. Unified picker with 12 sources, preview pane, live grep, and frecency scoring.
+**Status**: Working. Unified picker with 13 sources, preview pane, live grep, and frecency scoring.
 
 The picker uses a telescope.nvim-inspired visual presentation: monospace fonts, compact item density, accent-tinted selection, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables (`--font-monospace`, `--text-muted`, `--text-accent`, `--interactive-accent-hsl`, `--modal-background`, `--color-accent`) for full light/dark theme compatibility. The presentation matches the which-key overlay's terminal aesthetic.
 

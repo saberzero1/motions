@@ -19,6 +19,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:Oil`, `:sidebar`, navigation/action aliases, and more
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 - **Marks** — gutter indicators showing mark letters next to marked lines (zero layout shift), global mark persistence across files and sessions (`A`–`Z`), and a grouped marks picker with cross-file navigation
+- **Harpoon** — pin files to numbered slots for instant switching (`<leader>1`–`<leader>9`), cursor position tracking, persistence across sessions, auto-updating on file rename/delete
 - **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
 - **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 

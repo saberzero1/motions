@@ -116,6 +116,7 @@ export interface VimMotionsSettings {
         line: number;
         ch: number;
     }[];
+    harpoonPins?: ({ filePath: string; row: number; col: number } | null)[];
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
     enableChordDisplay: boolean;
@@ -131,6 +132,7 @@ export interface VimMotionsSettings {
     yankHighlightDuration: number;
 
     enableMarkGutter: boolean;
+    enableHarpoon: boolean;
     enableHintMode: boolean;
     hintModeLabels: string;
     hintModeHotkey: string;
@@ -197,6 +199,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     yankHighlightDuration: 200,
 
     enableMarkGutter: true,
+    enableHarpoon: true,
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',
@@ -299,6 +302,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableEasyMotion',
         'enableHintMode',
         'enableMarkGutter',
+        'enableHarpoon',
         'enableStatusBar',
         'enableChordDisplay',
         'enablePowerline',
@@ -526,6 +530,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             max: 3000,
                             disabled: () =>
                                 this.isOverridden('yankHighlightDuration'),
+                        },
+                    },
+                    {
+                        name: 'Mark gutter indicators',
+                        desc: this.describeOverride(
+                            'enableMarkGutter',
+                            'Show vim mark letters (a-z, A-Z) in the editor gutter next to marked lines.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableMarkGutter',
+                            disabled: () =>
+                                this.isOverridden('enableMarkGutter'),
                         },
                     },
                     {
@@ -777,6 +794,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             max: 20,
                             step: 1,
                             disabled: () => this.isOverridden('labelFontSize'),
+                        },
+                    },
+                    {
+                        name: 'Harpoon file pinning',
+                        desc: this.describeOverride(
+                            'enableHarpoon',
+                            'Pin files to numbered slots for instant switching (<leader>1\u20139). Add pins with <leader>ha, list with <leader>hp.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableHarpoon',
+                            disabled: () => this.isOverridden('enableHarpoon'),
                         },
                     },
                 ],
@@ -1925,6 +1954,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             value || 'asdghklqwertyuiopzxcvbnmfj';
                         this.plugin.vimrcOverrides?.delete('easyMotionLabels');
                         await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Harpoon file pinning')
+            .setDesc(
+                describeOverride(
+                    'enableHarpoon',
+                    'Pin files to numbered slots for instant switching (<leader>1–9). Add pins with <leader>ha, list with <leader>hp.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableHarpoon)
+                    .setDisabled(isOverridden('enableHarpoon'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableHarpoon = value;
+                        this.plugin.vimrcOverrides?.delete('enableHarpoon');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
                     }),
             );
 

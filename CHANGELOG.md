@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Harpoon-style file pinning** — pin files to numbered slots for instant switching. `<leader>ha` pins, `<leader>1`–`<leader>9` jumps to slots, `<leader>hp` opens the harpoon picker. Cursor position is tracked per-pinned-file and restored on navigation. Pins persist across sessions. File renames auto-update pins; file deletes auto-remove them.
+    - 6 ex commands: `:HarpoonAdd`, `:HarpoonRemove [N]`, `:Harpoon`, `:HarpoonSelect N`, `:HarpoonNext`, `:HarpoonPrev`
+    - 14 Obsidian commands for command palette access
+    - 15 leader keybindings with which-key "Harpoon" group
+    - Picker with slot-ordered display, fuzzy search, preview, and split-open support
+    - Plugin: `src/vim/harpoon-store.ts` (new), `src/vim/harpoon-nav.ts` (new), `src/picker/sources/harpoon.ts` (new), `src/main.ts`, `src/settings.ts`
+
+### Documentation
+
+- `docs/features/harpoon.md`: new feature page
+- `docs/features/index.md`: added harpoon to Jump navigation section
+- `docs/configuration/settings.md`: added Harpoon file pinning to Jump navigation table
+- `docs/reference/keybindings.md`: added Harpoon section with leader bindings and ex commands
+
 ## [0.48.0] - 2026-07-11
 
 ### Added

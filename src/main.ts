@@ -77,6 +77,9 @@ import {
 } from './vim/mark-gutter';
 import type { PersistedMarkEntry } from './vim/mark-gutter';
 import { MarkStore } from './vim/mark-store';
+import { HarpoonStore } from './vim/harpoon-store';
+import { navigateToHarpoonPin } from './vim/harpoon-nav';
+import { createHarpoonSource } from './picker/sources/harpoon';
 import type { VimYankEvent, CmAdapter } from './types/vim-api';
 
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
@@ -132,7 +135,10 @@ export default class VimMotionsPlugin extends Plugin {
     private yankHighlightCleanup: (() => void) | null = null;
     private markGutterCleanup: (() => void) | null = null;
     markStore: MarkStore = new MarkStore();
+    harpoonStore: HarpoonStore = new HarpoonStore();
     private markSaveDirty = false;
+    private harpoonSaveDirty = false;
+    private previousLeafId: string | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
     private globalRegistry: GlobalMappingRegistry | null = null;
@@ -354,6 +360,7 @@ export default class VimMotionsPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
         this.markStore.load(this.settings.persistedMarks ?? []);
+        this.harpoonStore.load(this.settings.harpoonPins ?? []);
 
         // --- Mobile gate ---
         // Always register settings tab and toggle command so users can
@@ -542,6 +549,9 @@ export default class VimMotionsPlugin extends Plugin {
                 new GlobalMarkProvider(this.markStore),
             ]),
         );
+        if (this.settings.enableHarpoon) {
+            pickerRegistry.register(createHarpoonSource(this.harpoonStore));
+        }
         pickerRegistry.register(createRegistersSource(vim));
         pickerRegistry.register(createLiveGrepSource());
         const frecencyStore = new FrecencyStore();
@@ -702,6 +712,37 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (newLeaf) => {
+                if (!this.settings.enableHarpoon) return;
+                if (this.previousLeafId) {
+                    this.app.workspace.iterateAllLeaves((leaf) => {
+                        const leafId = (leaf as unknown as { id?: string }).id;
+                        if (
+                            leafId === this.previousLeafId &&
+                            leaf.view instanceof MarkdownView &&
+                            leaf.view.file
+                        ) {
+                            const view = leaf.view;
+                            const filePath = view.file!.path;
+                            if (this.harpoonStore.getByPath(filePath)) {
+                                const cursor = view.editor.getCursor();
+                                this.harpoonStore.updateCursor(
+                                    filePath,
+                                    cursor.line,
+                                    cursor.ch,
+                                );
+                                this.harpoonSaveDirty = true;
+                            }
+                        }
+                    });
+                }
+                this.previousLeafId = newLeaf
+                    ? ((newLeaf as unknown as { id?: string }).id ?? null)
+                    : null;
+            }),
+        );
+
+        this.registerEvent(
             this.app.workspace.on('active-leaf-change', () => {
                 this.attachYankHighlight();
                 this.attachMarkGutter();
@@ -709,6 +750,19 @@ export default class VimMotionsPlugin extends Plugin {
         );
         this.attachYankHighlight();
         this.attachMarkGutter();
+
+        this.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                this.harpoonStore.renamePath(oldPath, file.path);
+                this.harpoonSaveDirty = true;
+            }),
+        );
+        this.registerEvent(
+            this.app.vault.on('delete', (file) => {
+                this.harpoonStore.removeByPath(file.path);
+                this.harpoonSaveDirty = true;
+            }),
+        );
 
         // --- Leader key resolution ---
         this.leaderRegistry = new LeaderRegistry();
@@ -890,6 +944,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.triggerMarkGutterRefresh,
             );
         }
+        this.registerHarpoonExCommands();
 
         this.addCommand({
             id: 'picker-files',
@@ -951,6 +1006,99 @@ export default class VimMotionsPlugin extends Plugin {
             name: 'Picker: Live grep',
             callback: () => this.openPicker?.('livegrep'),
         });
+        if (this.settings.enableHarpoon) {
+            this.addCommand({
+                id: 'harpoon-add',
+                name: 'Harpoon: Pin current file',
+                callback: () => {
+                    const file = this.app.workspace.getActiveFile();
+                    if (!file) {
+                        new Notice('No file to pin');
+                        return;
+                    }
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    const cursor = view?.editor.getCursor();
+                    const idx = this.harpoonStore.add(
+                        file.path,
+                        cursor?.line ?? 0,
+                        cursor?.ch ?? 0,
+                    );
+                    const existing = this.harpoonStore.getByPath(file.path);
+                    if (existing && existing.index === idx) {
+                        new Notice(`Pinned to slot ${idx + 1}`);
+                    }
+                    this.harpoonSaveDirty = true;
+                },
+            });
+            this.addCommand({
+                id: 'harpoon-toggle',
+                name: 'Harpoon: Toggle pin',
+                callback: () => {
+                    const file = this.app.workspace.getActiveFile();
+                    if (!file) {
+                        new Notice('No file to pin');
+                        return;
+                    }
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    const cursor = view?.editor.getCursor();
+                    const added = this.harpoonStore.toggle(
+                        file.path,
+                        cursor?.line ?? 0,
+                        cursor?.ch ?? 0,
+                    );
+                    new Notice(
+                        added
+                            ? `Pinned to slot ${this.harpoonStore.getByPath(file.path)!.index + 1}`
+                            : 'Unpinned',
+                    );
+                    this.harpoonSaveDirty = true;
+                },
+            });
+            this.addCommand({
+                id: 'harpoon-remove',
+                name: 'Harpoon: Remove current file',
+                callback: () => {
+                    const file = this.app.workspace.getActiveFile();
+                    if (!file) return;
+                    this.harpoonStore.removeByPath(file.path);
+                    new Notice('Unpinned');
+                    this.harpoonSaveDirty = true;
+                },
+            });
+            this.addCommand({
+                id: 'harpoon-picker',
+                name: 'Harpoon: Open pin list',
+                callback: () => this.openPicker?.('harpoon'),
+            });
+            for (let i = 1; i <= 9; i++) {
+                this.addCommand({
+                    id: `harpoon-select-${i}`,
+                    name: `Harpoon: Go to pin ${i}`,
+                    callback: () => {
+                        const item = this.harpoonStore.get(i - 1);
+                        if (item) void navigateToHarpoonPin(this.app, item);
+                    },
+                });
+            }
+            this.addCommand({
+                id: 'harpoon-next',
+                name: 'Harpoon: Next pin',
+                callback: () => {
+                    const item = this.harpoonStore.selectNext();
+                    if (item) void navigateToHarpoonPin(this.app, item);
+                },
+            });
+            this.addCommand({
+                id: 'harpoon-prev',
+                name: 'Harpoon: Previous pin',
+                callback: () => {
+                    const item = this.harpoonStore.selectPrev();
+                    if (item) void navigateToHarpoonPin(this.app, item);
+                },
+            });
+        }
         this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && !Platform.isMobile) {
             registerEasyMotion(
@@ -992,6 +1140,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.pickerLeaderMappings && this.leaderRegistry) {
             this.registerPickerLeaderMappings();
         }
+        this.registerHarpoonLeaderMappings();
         this.registration.endLeaderScope();
 
         // --- Neovim default remaps (always on, use map so user vimrc noremap can override) ---
@@ -1139,6 +1288,15 @@ export default class VimMotionsPlugin extends Plugin {
                 }
             }, 30_000),
         );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (this.harpoonSaveDirty) {
+                    this.harpoonSaveDirty = false;
+                    this.settings.harpoonPins = this.harpoonStore.save();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
 
         this.app.workspace.trigger('parse-style-settings');
     }
@@ -1229,6 +1387,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.triggerMarkGutterRefresh,
             );
         }
+        this.registerHarpoonExCommands();
         this.registration.beginLeaderScope();
         if (
             this.settings.enableEasyMotion &&
@@ -1256,6 +1415,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.pickerLeaderMappings && this.leaderRegistry) {
             this.registerPickerLeaderMappings();
         }
+        this.registerHarpoonLeaderMappings();
         this.registration.endLeaderScope();
         this.registration.map('Y', 'y$', 'normal');
         this.registration.map('Q', '@@', 'normal');
@@ -1454,6 +1614,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHintMode && !Platform.isMobile) {
             this.registerHintActions(this.registration, this.leaderRegistry);
         }
+        this.registerHarpoonLeaderMappings();
         this.applySettingsLeaderBindings(
             this.registration,
             this.leaderRegistry,
@@ -1539,6 +1700,186 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         this.leaderRegistry.addGroupLabel('f', 'Find', true);
+    }
+
+    private registerHarpoonExCommands(): void {
+        if (!this.settings.enableHarpoon || !this.registration) return;
+        const vim = getVimApi();
+        if (!vim) return;
+        vim.defineEx('HarpoonAdd', 'HarpoonA', () => {
+            const file = this.app.workspace.getActiveFile();
+            if (!file) {
+                new Notice('No file to pin');
+                return;
+            }
+            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            const cursor = view?.editor.getCursor();
+            this.harpoonStore.add(
+                file.path,
+                cursor?.line ?? 0,
+                cursor?.ch ?? 0,
+            );
+            this.harpoonSaveDirty = true;
+        });
+        vim.defineEx('HarpoonRemove', 'HarpoonR', (_cm, params) => {
+            const arg = (params.argString ?? '').trim();
+            if (arg) {
+                const n = parseInt(arg, 10);
+                if (!isNaN(n) && n >= 1) this.harpoonStore.remove(n - 1);
+            } else {
+                const file = this.app.workspace.getActiveFile();
+                if (file) this.harpoonStore.removeByPath(file.path);
+            }
+            this.harpoonSaveDirty = true;
+        });
+        vim.defineEx('Harpoon', 'Harpoon', () => {
+            this.openPicker?.('harpoon');
+        });
+        vim.defineEx('HarpoonSelect', 'HarpoonS', (_cm, params) => {
+            const n = parseInt((params.argString ?? '').trim(), 10);
+            if (!isNaN(n) && n >= 1) {
+                const item = this.harpoonStore.get(n - 1);
+                if (item) void navigateToHarpoonPin(this.app, item);
+            }
+        });
+        vim.defineEx('HarpoonNext', 'HarpoonN', () => {
+            const item = this.harpoonStore.selectNext();
+            if (item) void navigateToHarpoonPin(this.app, item);
+        });
+        vim.defineEx('HarpoonPrev', 'HarpoonP', () => {
+            const item = this.harpoonStore.selectPrev();
+            if (item) void navigateToHarpoonPin(this.app, item);
+        });
+    }
+
+    private registerHarpoonLeaderMappings(): void {
+        if (
+            !this.leaderRegistry ||
+            !this.registration ||
+            !this.settings.enableHarpoon
+        )
+            return;
+        const leader = this.leaderRegistry.getLeaderKey();
+
+        const actions: [string, string, () => void][] = [
+            [
+                'ha',
+                'harpoonAdd',
+                () => {
+                    const file = this.app.workspace.getActiveFile();
+                    if (!file) {
+                        new Notice('No file to pin');
+                        return;
+                    }
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    const cursor = view?.editor.getCursor();
+                    const idx = this.harpoonStore.add(
+                        file.path,
+                        cursor?.line ?? 0,
+                        cursor?.ch ?? 0,
+                    );
+                    new Notice(`Pinned to slot ${idx + 1}`);
+                    this.harpoonSaveDirty = true;
+                },
+            ],
+            [
+                'hr',
+                'harpoonRemove',
+                () => {
+                    const file = this.app.workspace.getActiveFile();
+                    if (!file) return;
+                    this.harpoonStore.removeByPath(file.path);
+                    new Notice('Unpinned');
+                    this.harpoonSaveDirty = true;
+                },
+            ],
+            [
+                'ht',
+                'harpoonToggle',
+                () => {
+                    const file = this.app.workspace.getActiveFile();
+                    if (!file) {
+                        new Notice('No file to pin');
+                        return;
+                    }
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    const cursor = view?.editor.getCursor();
+                    const added = this.harpoonStore.toggle(
+                        file.path,
+                        cursor?.line ?? 0,
+                        cursor?.ch ?? 0,
+                    );
+                    if (added) {
+                        const entry = this.harpoonStore.getByPath(file.path);
+                        new Notice(`Pinned to slot ${(entry?.index ?? 0) + 1}`);
+                    } else {
+                        new Notice('Unpinned');
+                    }
+                    this.harpoonSaveDirty = true;
+                },
+            ],
+            [
+                'hp',
+                'harpoonPicker',
+                () => {
+                    this.openPicker?.('harpoon');
+                },
+            ],
+            [
+                'hn',
+                'harpoonNext',
+                () => {
+                    const item = this.harpoonStore.selectNext();
+                    if (item) void navigateToHarpoonPin(this.app, item);
+                },
+            ],
+            [
+                'hN',
+                'harpoonPrevious',
+                () => {
+                    const item = this.harpoonStore.selectPrev();
+                    if (item) void navigateToHarpoonPin(this.app, item);
+                },
+            ],
+        ];
+
+        for (const [suffix, actionName, callback] of actions) {
+            this.registration.defineAction(actionName, callback);
+            this.registration.mapCommand(
+                leader + suffix,
+                'action',
+                actionName,
+                {},
+            );
+            this.leaderRegistry.addBinding(
+                leader + suffix,
+                actionName,
+                'builtin',
+            );
+        }
+
+        for (let i = 1; i <= 9; i++) {
+            const actionName = `harpoonSelect${i}`;
+            this.registration.defineAction(actionName, () => {
+                const item = this.harpoonStore.get(i - 1);
+                if (item) void navigateToHarpoonPin(this.app, item);
+            });
+            this.registration.mapCommand(
+                leader + `${i}`,
+                'action',
+                actionName,
+                {},
+            );
+            this.leaderRegistry.addBinding(
+                leader + `${i}`,
+                `pin ${i}`,
+                'builtin',
+            );
+        }
+
+        this.leaderRegistry.addGroupLabel('h', 'Harpoon', true);
     }
 
     private parseHotkey(serialized: string): {
@@ -2233,6 +2574,11 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.markSaveDirty) {
             this.markSaveDirty = false;
             this.settings.persistedMarks = this.markStore.save();
+            void this.saveSettings();
+        }
+        if (this.harpoonSaveDirty) {
+            this.harpoonSaveDirty = false;
+            this.settings.harpoonPins = this.harpoonStore.save();
             void this.saveSettings();
         }
         this.matcher?.dispose();

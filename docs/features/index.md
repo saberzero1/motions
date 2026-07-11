@@ -17,6 +17,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Jump navigation
 
 - **[[easymotion|EasyMotion / Hop]]** — jump to any visible position with two keystrokes. Find, word, line, and search motions. Works in operator-pending mode (`d` + easymotion) and visual mode. Live Preview aware.
+- **[[harpoon|Harpoon]]** — pin files to numbered slots for instant switching (`<leader>1`–`<leader>9`). Cursor position tracked and restored. Pins persist across sessions; file renames update automatically.
 - **[[hint-mode|Hint mode]]** — Vimium-style keyboard navigation for the entire Obsidian UI. Multiple actions: `f` activates, `F` opens in new pane, `yf` yanks, `df` closes. Works in editor, sidebar, tab bar, settings, and popout windows.
 
 ## Workspace & commands
