@@ -40,6 +40,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Picker leader mappings | toggle | `true` | — | — | — | Enable default `<leader>f*` picker mappings and which-key labels. |
 | Picker matching engine | dropdown | `ufuzzy` | `ufuzzy`, `obsidian` | — | — | Fuzzy matching engine. uFuzzy is a fast pure-JS matcher with filename-aware ranking. Obsidian uses the built-in `prepareFuzzySearch` API. |
 | Workspace navigation view types | text | `(empty)` | — | `vim.opt.workspacenavviewtypes` | `set workspacenavviewtypes` | Comma-separated view types where scroll and count keys are intercepted. Empty uses defaults. |
+| Fold-aware navigation | toggle | `false` | — | `vim.opt.foldawarenavigation` | `set foldawarenavigation` | Automatically unfold sections when navigating into them (e.g., `]h` into a folded heading). |
+| Fold persistence | toggle | `false` | — | `vim.opt.foldpersistence` | `set foldpersistence` | Remember fold state across file switches and sessions. Capped at 500 files, 30-day TTL. |
 
 > [!warning]
 > **Workspace navigation**: `<C-w>` may conflict with Obsidian's "Close current tab" hotkey. Rebind it in **Settings → Hotkeys**.

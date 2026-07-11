@@ -58,6 +58,10 @@ Control Markdown folding with standard Vim fold commands:
 
 Frontmatter (`---` blocks) and callouts (`> [!type]`) are foldable via `zc`/`zo`/`za`. Folded regions show descriptive placeholder text including the heading title, code language, or callout type.
 
+When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-aware navigation**), navigating into a folded section with `]h`, `[h`, `j`, `k`, or any motion will automatically unfold it. This is off by default for backwards compatibility.
+
+When **Fold persistence** is enabled (**Settings → Vim Motions → Fold persistence**), fold state is remembered across file switches and sessions. Folds are restored when re-opening a previously folded file.
+
 The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command.
 
 ## Non-editor view support
