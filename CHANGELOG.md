@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Yank highlight over-extending on headings** — linewise yank (`yy`) on a heading with text on the very next line highlighted both lines, even though only the heading line was yanked. The highlight range calculation used `state.doc.lineAt(sel.to).to` to find the end of the highlight, but the codemirror-vim fork's `expandSelectionToLine()` sets `sel.to` to the start of the _next_ line (via `curEnd.line++`). Calling `lineAt()` on that position resolved to the entire next line, extending the highlight one line too far. Fixed by using `sel.to` directly as the highlight end boundary, which already points to the correct position (the start of the line after the last yanked line). ([#53](https://github.com/saberzero1/motions/issues/53))
+    - Plugin: `src/main.ts` (`attachYankHighlight` linewise range calculation)
+
 ## [0.51.0] - 2026-07-11
 
 ### Added

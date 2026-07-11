@@ -2710,8 +2710,7 @@ export default class VimMotionsPlugin extends Plugin {
             let ranges: { from: number; to: number }[];
             if (event.regType === 'V') {
                 const fromLine = state.doc.lineAt(sel.from);
-                const toLine = state.doc.lineAt(sel.to);
-                ranges = [{ from: fromLine.from, to: toLine.to }];
+                ranges = [{ from: fromLine.from, to: sel.to }];
             } else if (event.regType === '\x16') {
                 // Blockwise: deferred to v2
                 return;
