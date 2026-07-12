@@ -29,10 +29,15 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.51.1
+## What's new in 0.52.0
 
-- **Yank highlight fix** — linewise yank (`yy`) on a heading with text on the next line no longer highlights both lines. Only the actually yanked line is highlighted. ([#53](https://github.com/saberzero1/motions/issues/53))
-- **Input method switching for CJK users** — automatic IM switching when entering/leaving insert mode. Supports macism (macOS), im-select (macOS/Windows), fcitx5-remote (Linux), ibus (Linux), and any external IM switching binary. Per-editor state tracking, composition guard, and error throttling with auto-disable. Desktop only. Lua API via `vim.obsidian.im`. ([#55](https://github.com/saberzero1/motions/issues/55))
-- **`CmdlineEnter`/`CmdlineLeave` autocmd events** — fire when entering/leaving the `:`, `/`, or `?` command-line prompt, with `cmdtype` in event data. Auto-wired to IM switching on prompt exit.
+- **Line number gutter** — `set number`, `set relativenumber`, or both for hybrid mode. Matches Neovim semantics exactly. Runtime switching via `:set number` / `:set nonumber`. Configurable via settings, vimrc, or Lua (`vim.opt.number`, `vim.opt.relativenumber`).
+- **Cursor line highlight** — `set cursorline` / `set nocursorline` with `cursorlineopt` (number/line/both).
+- **Fold column** — `set foldcolumn` shows ▸/▾ indicators for foldable regions with click-to-fold.
+- **Picker provider API** — external plugins can register custom picker sources via `window.VimMotions.picker.registerSource()`. Type definitions ship for consumer plugins.
+- **Meta-picker** — `:Picker` (no arguments) opens a source browser listing all registered picker sources. `:Picker <source>` opens a named source directly.
+- **Bundled picker integrations** — Omnisearch (full-text search), Obsidian Tasks (incomplete tasks by due date), and Dataview (indexed pages with tags/aliases). Gated by settings toggles in **Settings → Vim Motions → Third-party integrations**.
+- **`signcolumn` option** — `enableMarkGutter` migrated to a dropdown with Auto/Always/Off modes matching Neovim's `signcolumn`. Existing settings auto-migrated.
+- **Line numbers in table cells fix** — Obsidian's line number gutters no longer leak into embedded table cell editors. ([#19](https://github.com/saberzero1/motions/issues/19))
 
 See the [[changelog|full changelog]] for details.
