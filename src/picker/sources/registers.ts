@@ -6,6 +6,10 @@ export function createRegistersSource(vim: VimApi): PickerSource {
     return {
         name: 'registers',
         placeholder: 'Select register…',
+        displayName: 'Registers',
+        icon: 'clipboard',
+        description: 'View vim register contents',
+        priority: 10,
         items() {
             const rc = vim.getRegisterController();
             const items: PickerItem[] = [];

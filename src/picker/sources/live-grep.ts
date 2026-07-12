@@ -10,6 +10,10 @@ export function createLiveGrepSource(): PickerSource {
         name: 'livegrep',
         placeholder: 'Search vault content…',
         frecencySource: true,
+        displayName: 'Live grep',
+        icon: 'text-search',
+        description: 'Search file contents in real-time',
+        priority: 11,
         items() {
             return [];
         },

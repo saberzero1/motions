@@ -1118,3 +1118,7 @@ These features are excluded by design and will not be implemented:
 | Reading view navigation         | Use the [vim-keynav](https://github.com/kometenstaub/obsidian-vim-keynav) plugin            |
 | Vim toggle command              | Use the [vim-toggle](https://github.com/conneroisu/vim-toggle) plugin                       |
 | Canvas keyboard navigation      | Canvas is a different rendering surface without CodeMirror                                  |
+
+## Picker provider API and pop-out windows
+
+The picker provider API (`window.VimMotions.picker`) is only available on the main Obsidian window. Pop-out windows have separate `window` objects and will not have access to the API. External sources registered via the main window work when the picker is opened from the main window.

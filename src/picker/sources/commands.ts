@@ -5,6 +5,10 @@ export function createCommandsSource(): PickerSource {
         name: 'commands',
         placeholder: 'Run command…',
         frecencySource: true,
+        displayName: 'Run action',
+        icon: 'terminal',
+        description: 'Execute an Obsidian command',
+        priority: 3,
         items(app) {
             const commands = (
                 app as unknown as {

@@ -40,6 +40,10 @@ export function createBacklinksSource(): PickerSource {
         name: 'backlinks',
         placeholder: 'Filter backlinks…',
         frecencySource: true,
+        displayName: 'Backlinks',
+        icon: 'link',
+        description: 'Files linking to the current file',
+        priority: 6,
         items(app) {
             const backlinks = getBacklinks(app);
             return backlinks.map(

@@ -37,6 +37,14 @@ export interface PickerSource {
     name: string;
     placeholder: string;
     frecencySource?: boolean;
+    /** Human-readable name shown in the meta-picker (fallback: name). */
+    displayName?: string;
+    /** Lucide icon name for display in source listings. */
+    icon?: string;
+    /** One-line description of this source. */
+    description?: string;
+    /** Sort priority in the meta-picker (lower = higher priority). */
+    priority?: number;
     items(app: App): PickerItem[] | Promise<PickerItem[]>;
     search?(query: string, app: App): PickerItem[] | Promise<PickerItem[]>;
     onSelect(item: PickerItem, app: App): void;

@@ -8,6 +8,10 @@ export function createBuffersSource(): PickerSource {
         name: 'buffers',
         placeholder: 'Switch buffers…',
         frecencySource: true,
+        displayName: 'Switch buffer',
+        icon: 'arrow-left-right',
+        description: 'Switch between open editors',
+        priority: 2,
         items(app) {
             const items: PickerItem[] = [];
             const activeLeaf = app.workspace.getLeaf(false);

@@ -52,6 +52,8 @@ The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-teles
 | `:grep <query>` | `:gre`   | Search vault content (pre-computed results)     |
 | `:livegrep`     | `:liveg` | Real-time vault content search                  |
 | `:resume`       | `:res`   | Reopen last picker with same query              |
+| `:Picker`       | `:Pick`  | Open meta-picker listing all sources            |
+| `:Picker {src}` |          | Open a named picker source directly             |
 
 ### Keyboard shortcuts inside picker
 

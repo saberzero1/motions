@@ -659,6 +659,18 @@ export function registerExCommands(
         }
         grepCommand(cm, params);
     });
+    reg.defineEx('Picker', 'Pick', (_cm, params) => {
+        if (!picker?.openPicker) {
+            new Notice('Picker is unavailable');
+            return;
+        }
+        const source = params.argString?.trim();
+        if (source) {
+            picker.openPicker(source);
+        } else {
+            picker.openPicker('pickers');
+        }
+    });
     reg.defineEx('back', 'bac', () => executeCommand(app, 'app:go-back'));
     reg.defineEx('forward', 'fo', () => executeCommand(app, 'app:go-forward'));
 

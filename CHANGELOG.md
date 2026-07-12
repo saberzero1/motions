@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Picker provider API** — external plugins can register custom picker sources via `window.VimMotions.picker.registerSource()`. The API validates namespaced source names (`pluginId:sourceName`), wraps external source methods in try/catch with 5-second timeout, caps results at 10,000 items, and emits `source-registered` / `source-unregistered` events. Consumer plugins discover the API via `window.VimMotions.picker` or `app.plugins.plugins['vim-motions'].pickerAPI`.
+    - **Lifecycle**: `vim-motions:picker-ready` workspace event fires after API installation; consumers use `onLayoutReady` + event listener pattern for load-order safety.
+    - **Type definitions**: `src/picker/picker-api.d.ts` ships standalone types for consumer plugins with full JSDoc and usage examples.
+    - Plugin: `src/picker/api.ts` (new), `src/picker/picker-api.d.ts` (new), `src/picker/registry.ts` (extended), `src/picker/types.ts` (metadata fields), `src/main.ts` (API wiring)
+- **Meta-picker** — `:Picker` (no arguments) opens a source browser listing all registered picker sources grouped by "Built-in" / "Extensions", with display names, icons, and keymap bindings shown. Selecting an entry opens that picker. `:Picker <source>` opens a named source directly.
+    - Plugin: `src/picker/sources/pickers.ts` (new), `src/workspace/commands.ts` (`:Picker` ex command), `src/main.ts` (`picker-pickers` Obsidian command)
+- **Picker source metadata** — `PickerSource` interface extended with optional `displayName`, `icon`, `description`, and `priority` fields. All 12 built-in sources now include metadata for display in the meta-picker.
+    - Plugin: `src/picker/types.ts`, `src/picker/sources/*.ts` (all 12 source files)
+
+### Documentation
+
+- `docs/development/picker-api.md`: new provider API reference with consumer guide, API surface, integration examples (Omnisearch, Tasks), and lifecycle documentation
+- `docs/development/index.md`: added picker provider API link
+- `docs/reference/keybindings.md`: added `:Picker` / `:Pick` to ex commands table
+- `KNOWN_LIMITATIONS.md`: added picker provider API pop-out window limitation
+
 ## [0.51.1] - 2026-07-11
 
 ### Fixed

@@ -22,6 +22,10 @@ export function createRecentSource(): PickerSource {
         name: 'recent',
         placeholder: 'Recent files…',
         frecencySource: true,
+        displayName: 'Recent files',
+        icon: 'clock',
+        description: 'Recently opened files',
+        priority: 8,
         items() {
             return recentFiles.map(
                 (path): PickerItem => ({

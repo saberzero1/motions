@@ -16,6 +16,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, cursor-aware table widget, and embedded per-cell editing with vim-enabled cell editors and direct table manipulation (`o`, `dd`, `J`/`K`, `H`/`L`, `=`)
 - **Oil explorer** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file manager: edit directories as buffers, create/rename/delete files with vim commands
+- **Telescope-style picker** — fuzzy finder with 12 built-in sources (files, buffers, commands, headings, grep, marks, registers, etc.), preview pane, frecency scoring, and a [provider API](https://saberzero1.github.io/motions/development/picker-api) for external plugin integration
 - **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:Oil`, `:sidebar`, navigation/action aliases, and more
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 - **Marks** — gutter indicators showing mark letters next to marked lines (zero layout shift), global mark persistence across files and sessions (`A`–`Z`), and a grouped marks picker with cross-file navigation

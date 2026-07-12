@@ -7,6 +7,10 @@ export function createFilesSource(): PickerSource {
         name: 'files',
         placeholder: 'Find files…',
         frecencySource: true,
+        displayName: 'Find files',
+        icon: 'file-text',
+        description: 'Search vault files by name',
+        priority: 1,
         items(app) {
             return app.vault.getMarkdownFiles().map((file) => ({
                 id: file.path,

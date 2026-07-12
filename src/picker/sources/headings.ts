@@ -95,6 +95,10 @@ export function createHeadingsSource(): PickerSource {
         name: 'headings',
         placeholder: 'Search headings…',
         frecencySource: true,
+        displayName: 'Search headings',
+        icon: 'heading',
+        description: 'Jump to any heading in the vault',
+        priority: 4,
         items(app) {
             const headings = getVaultHeadings(app);
             return buildHeadingItems(headings, true);
@@ -122,6 +126,10 @@ export function createOutlineSource(): PickerSource {
         name: 'outline',
         placeholder: 'Jump to heading…',
         frecencySource: true,
+        displayName: 'Document outline',
+        icon: 'list-tree',
+        description: 'Jump to a heading in the current file',
+        priority: 5,
         items(app) {
             const activeFile = app.workspace.getActiveFile();
             if (!activeFile) {

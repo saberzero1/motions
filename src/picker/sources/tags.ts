@@ -82,6 +82,10 @@ export function createTagsSource(
     return {
         name: 'tags',
         placeholder: 'Search tags…',
+        displayName: 'Search tags',
+        icon: 'tag',
+        description: 'Browse files by tag',
+        priority: 7,
         items(app) {
             const tagMap = buildTagIndex(app);
             return Array.from(tagMap.entries())

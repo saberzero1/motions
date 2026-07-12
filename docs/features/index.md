@@ -23,7 +23,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Workspace & commands
 
 - **[[workspace-navigation|Workspace navigation]]** — Neovim-style window management: `<C-w>` splits, `gt`/`gT` tabs, `gd` go-to-definition, `gO` outline, `gf` file switcher. Global key handler for non-editor views (PDF, graph, canvas).
-- **[[ex-commands#Picker commands|Picker / Fuzzy finder]]** — telescope.nvim-inspired fuzzy picker with 11 sources, preview pane, live grep, and frecency scoring.
+- **[[ex-commands#Picker commands|Picker / Fuzzy finder]]** — telescope.nvim-inspired fuzzy picker with 12 built-in sources, preview pane, live grep, frecency scoring, meta-picker (`:Picker`), and a [[picker-api|provider API]] for external plugin integration.
 - **[[surround|Surround]]** — vim-surround implementation: `ds`/`cs`/`ys`/`S` with Markdown delimiter support. Count-prefix repeats delimiters (`2ysiw*` → `**word**`). Dot-repeatable.
 - **[[ex-commands|Ex commands]]** — 60+ ex commands for file management (`:e`, `:w`, `:saveas`), buffer navigation (`:bn`, `:bp`, `:b`), window management (`:sp`, `:vs`, `:tabnew`), table manipulation, and Obsidian integration (`:ob`, `:sidebar`, `:grep`).
 - **[[oil-explorer|Oil explorer]]** — oil.nvim-inspired file explorer: edit vault directories as buffers, create/rename/delete files with standard vim commands (`dd`, `o`, `cw`, `:w`).

@@ -32,6 +32,10 @@ Copy `main.js`, `manifest.json`, and `styles.css` to `<vault>/.obsidian/plugins/
 
 See [[architecture]] for the dual-vim architecture, module structure, and design patterns.
 
+## Picker provider API
+
+See [[picker-api]] for how external plugins can register custom picker sources via `window.VimMotions.picker`.
+
 ## Full development guide
 
 The comprehensive development guide — including testing strategy, Neovim golden comparison infrastructure, file conventions, and contribution guidelines — is maintained in [AGENTS.md](https://github.com/saberzero1/motions/blob/main/AGENTS.md) in the repository root.

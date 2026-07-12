@@ -121,6 +121,9 @@ import {
     GlobalMarkProvider,
 } from './picker/sources/mark-providers';
 import { createRegistersSource } from './picker/sources/registers';
+import { createPickersSource } from './picker/sources/pickers';
+import { installPickerAPI, uninstallPickerAPI } from './picker/api';
+import type { PickerAPI } from './picker/api';
 import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
 import { OilManager } from './oil/manager';
@@ -221,6 +224,7 @@ export default class VimMotionsPlugin extends Plugin {
     private frecencyStore: FrecencyStore | null = null;
     private frecencySaveTimer: number | null = null;
     private matcher: ManagedMatcher | null = null;
+    pickerAPI: PickerAPI | null = null;
     private oilKeybindingManager: OilKeybindingManager | null = null;
     private oilManager: OilManager | null = null;
     private imSwitcher: ImSwitcher | null = null;
@@ -598,27 +602,32 @@ export default class VimMotionsPlugin extends Plugin {
         this.matcher?.dispose();
         this.matcher = createMatcher(this.settings.pickerMatcherEngine);
         const matcher = this.matcher;
-        pickerRegistry.register(createFilesSource());
-        pickerRegistry.register(createBuffersSource());
-        pickerRegistry.register(createCommandsSource());
-        pickerRegistry.register(createHeadingsSource());
-        pickerRegistry.register(createOutlineSource());
-        pickerRegistry.register(createBacklinksSource());
+        pickerRegistry.register(createFilesSource(), true);
+        pickerRegistry.register(createBuffersSource(), true);
+        pickerRegistry.register(createCommandsSource(), true);
+        pickerRegistry.register(createHeadingsSource(), true);
+        pickerRegistry.register(createOutlineSource(), true);
+        pickerRegistry.register(createBacklinksSource(), true);
         pickerRegistry.register(
             createTagsSource(matcher, () => this.settings.pickerKeymap),
+            true,
         );
-        pickerRegistry.register(createRecentSource());
+        pickerRegistry.register(createRecentSource(), true);
         pickerRegistry.register(
             createMarksSource([
                 new VimBufferMarkProvider(),
                 new GlobalMarkProvider(this.markStore),
             ]),
+            true,
         );
         if (this.settings.enableHarpoon) {
-            pickerRegistry.register(createHarpoonSource(this.harpoonStore));
+            pickerRegistry.register(
+                createHarpoonSource(this.harpoonStore),
+                true,
+            );
         }
-        pickerRegistry.register(createRegistersSource(vim));
-        pickerRegistry.register(createLiveGrepSource());
+        pickerRegistry.register(createRegistersSource(vim), true);
+        pickerRegistry.register(createLiveGrepSource(), true);
         const frecencyStore = new FrecencyStore();
         if (this.settings.frecencyData) {
             try {
@@ -743,6 +752,23 @@ export default class VimMotionsPlugin extends Plugin {
                 km,
             );
         };
+
+        pickerRegistry.register(
+            createPickersSource(
+                () => this.leaderRegistry?.getBindings() ?? [],
+                () => this.leaderRegistry?.getLeaderKey() ?? '\\',
+                (s) => this.openPicker?.(s),
+            ),
+            true,
+        );
+
+        this.pickerAPI = installPickerAPI();
+        (this as unknown as Record<string, unknown>).api = this.pickerAPI;
+        this.register(() => {
+            uninstallPickerAPI();
+            this.pickerAPI = null;
+        });
+        this.app.workspace.trigger('vim-motions:picker-ready');
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf) => {
@@ -1146,6 +1172,11 @@ export default class VimMotionsPlugin extends Plugin {
             id: 'picker-livegrep',
             name: 'Picker: Live grep',
             callback: () => this.openPicker?.('livegrep'),
+        });
+        this.addCommand({
+            id: 'picker-pickers',
+            name: 'Picker: All pickers',
+            callback: () => this.openPicker?.('pickers'),
         });
         if (this.settings.enableHarpoon) {
             this.addCommand({

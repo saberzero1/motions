@@ -13,6 +13,10 @@ export function createHarpoonSource(store: HarpoonStore): PickerSource {
     return {
         name: 'harpoon',
         placeholder: 'Jump to pinned file\u2026',
+        displayName: 'Harpoon pins',
+        icon: 'anchor',
+        description: 'Pinned files for quick access',
+        priority: 12,
         items() {
             return store.getAll().map(({ item, index }) => {
                 const basename =

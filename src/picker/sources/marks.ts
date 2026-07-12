@@ -12,6 +12,10 @@ export function createMarksSource(providers: MarkProvider[]): PickerSource {
     return {
         name: 'marks',
         placeholder: 'Jump to mark…',
+        displayName: 'Jump to mark',
+        icon: 'map-pin',
+        description: 'Navigate to a vim mark',
+        priority: 9,
         async items(app: App) {
             const items: PickerItem[] = [];
 

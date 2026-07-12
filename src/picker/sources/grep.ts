@@ -63,6 +63,10 @@ export function createGrepSource(query: string): PickerSource {
         name: 'grep',
         placeholder: 'Filter results…',
         frecencySource: true,
+        displayName: 'Grep results',
+        icon: 'text-search',
+        description: 'Search results for a query',
+        priority: 11,
         async items(app) {
             const results = await searchVault(app, query);
             return results.map(
