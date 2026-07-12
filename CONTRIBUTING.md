@@ -52,20 +52,42 @@ The tests run in a headless Obsidian instance with Xvfb. The test vault is in `t
 src/
   main.ts                  # Plugin lifecycle (onload, onunload, reloadFeatures)
   settings.ts              # Settings interface, defaults, and settings tab UI
+  settings-migration.ts    # Settings schema migration between versions
   types/
     vim-api.d.ts           # Type declarations for the Vim API (CmAdapter, VimApi, etc.)
+    codemirror-vim.d.ts    # CodeMirror Vim type declarations
   vim/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations
+    bundled-vim.ts         # Bundled vim fork registration as CM6 extension
     mode-tracker.ts        # Status bar mode indicator + macro recording
     scrolloff.ts           # CSS scroll-padding based scrolloff
     options.ts             # Vim option registration (clipboard, tabstop, etc.)
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
+    changelist.ts          # Change list tracking
+    yank-highlight.ts      # Yank highlight flash effect
+    visual-line-command-fix.ts  # Visual line command edge-case fixes
+    fold-sync.ts           # Fold state synchronization
+    mark-store.ts          # Mark persistence across sessions
+    mark-gutter.ts         # Gutter indicators for marks
+    harpoon-store.ts       # Harpoon file slot persistence
+    harpoon-nav.ts         # Harpoon navigation keybindings
+    table-utils.ts         # Table parsing and cell utilities
+    table-nav-controller.ts    # Table cell navigation controller
+    table-operations.ts    # Table row/column manipulation (insert, delete, move)
+    table-auto-format.ts   # Auto-format tables on edit
+    table-cursor-fix.ts    # Cursor positioning in table cells
+    table-cell-editor.ts   # Per-cell editing with vim-enabled editor
+    table-embedded-editor.ts   # Embedded editor within table widgets
+    table-render-widget.ts     # CM6 decoration widget for rendered tables
+    table-widget-suppressor.ts # Suppress table widget when editing
   text-objects/
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)
     link.ts                # [[wikilink]] and [text](url) text objects
     code-block.ts          # Fenced code block text objects
     blockquote.ts          # Blockquote and callout text objects
+    table-cell.ts          # Table cell text object (i| / a|)
+    tag.ts                 # HTML/Markdown tag text objects
     register.ts            # Wires all text objects to keybindings
   motions/
     headings.ts            # ]h/[h heading navigation
@@ -78,20 +100,103 @@ src/
   operators/
     hardwrap.ts            # gq/gw Markdown-aware hard-wrap
     register.ts            # Wires operators to keybindings
+  actions/
+    open-line.ts           # Open-line action implementation
   workspace/
     navigation.ts          # Pane/tab/fold/gd/gx/gO/grn/grr/gra/gf/hint-mode keybindings
-    commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, etc.)
+    commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation
-    backlinks.ts           # :backlinks modal (if separate)
+    global-key-handler.ts  # Global key event handling (outside editor)
+    global-mapping-registry.ts  # Registry for global key mappings
+    global-defaults.ts     # Default global keybindings
   easymotion/
-    easymotion.ts          # <leader><leader>w/j/f overlay labels
+    register.ts            # Wires EasyMotion to keybindings
+    targets.ts             # Target detection (words, lines, chars)
+    overlay.ts             # Label overlay rendering
+    labels.ts              # Label generation and assignment
+    keypress.ts            # Keypress handling during label selection
+    types.ts               # EasyMotion type definitions
+  fold/
+    commands.ts            # Fold commands (zf, zd, zE, zm, zr, etc.)
+    provider.ts            # Fold providers (frontmatter, callouts, custom)
+    persistence.ts         # Cross-session fold persistence
+    placeholder.ts         # Descriptive fold placeholder text
+    fold-level.ts          # Fold level tracking
+  lua/
+    engine.ts              # Fengari Lua 5.3 VM setup and library loading
+    loader.ts              # .obsidian.init.lua config file loader
+    api.ts                 # vim.keymap, vim.opt, vim.g, vim.cmd, vim.notify, etc.
+    fn.ts                  # vim.fn.* function library (27 functions)
+    buffer.ts              # vim.api.nvim_buf_* buffer API
+    autocmd.ts             # vim.api.nvim_create_autocmd and augroups
+    highlight.ts           # vim.api.nvim_set_hl highlight groups
+    stdlib.ts              # vim.tbl_*, vim.split, vim.trim, vim.inspect, vim.json, etc.
+    obsidian-api.ts        # vim.obsidian / vim.ob namespace (including vim.obsidian.im)
+    timers.ts              # vim.schedule, vim.defer_fn, vim.uv timers
+    strftime.ts            # os.date-compatible time formatting
+    types.d.ts             # Lua engine type declarations
+  oil/
+    oil-view.ts            # Oil file explorer view (ItemView)
+    manager.ts             # Oil session lifecycle management
+    parser.ts              # Buffer text ↔ directory entry parsing
+    diff.ts                # Diff buffer edits to file system operations
+    actions.ts             # File operations (create, rename, delete, move)
+    render.ts              # Directory listing rendering
+    keybindings.ts         # Oil-specific vim keybindings
+    extensions.ts          # CM6 extensions for Oil buffers
+    cache.ts               # Directory listing cache
+    types.ts               # Oil type definitions
+  picker/
+    picker.ts              # Main picker UI (modal, input, result list, preview)
+    api.ts                 # Public picker API for external plugin integration
+    picker-api.d.ts        # Picker API type declarations
+    registry.ts            # Source registry and picker command registration
+    matcher.ts             # Fuzzy matching interface
+    matcher-obsidian.ts    # Matcher using Obsidian's prepareSimpleSearch
+    matcher-ufuzzy.ts      # Matcher using uFuzzy library
+    matcher-utils.ts       # Shared matcher utilities
+    frecency.ts            # Frecency scoring for result ranking
+    types.ts               # Picker type definitions
+    sources/               # Built-in picker sources:
+      files.ts             #   File finder
+      buffers.ts           #   Open buffer switcher
+      recent.ts            #   Recent files
+      commands.ts          #   Command palette
+      headings.ts          #   Document headings
+      grep.ts              #   Grep search
+      live-grep.ts         #   Live grep (search-as-you-type)
+      marks.ts             #   Marks picker
+      mark-providers.ts    #   Mark data providers
+      registers.ts         #   Register contents
+      tags.ts              #   Tag search
+      backlinks.ts         #   Backlinks for current file
+      harpoon.ts           #   Harpoon slots
+      pickers.ts           #   Meta-picker (pick a picker)
+      split-open.ts        #   Open result in split
+      preview-utils.ts     #   Preview pane utilities
+      omnisearch.ts        #   Omnisearch integration
+      tasks.ts             #   Obsidian Tasks integration
+      dataview.ts          #   Dataview integration
+  im/
+    im-switcher.ts         # Input method auto-switching on mode change
+    im-process.ts          # External IM binary process management
+  editors/
+    embeddable-editor.ts   # Reusable embeddable editor component (used by table cell editor)
+  keybindings/
+    action-registry.ts     # Centralized action registry for cross-context keybindings
   ui/
     vim-info-modal.ts      # Reusable table modal base (used by :reg, :marks, :buffers, :backlinks)
     outline-modal.ts       # gO document outline (SuggestModal)
     context-actions.ts     # gra context-aware action picker
     hint-mode.ts           # Vimium-style label overlay for clickable UI elements
     which-key.ts           # Leader key hint overlay + LeaderRegistry
+    global-which-key.ts    # Which-key overlay outside editor context
     ex-suggest.ts          # Ex command tab completion
+    global-ex-command.ts   # Ex command input outside editor context
+    vimrc-file-suggest.ts  # File suggestion for vimrc/Lua config path settings
+  util/
+    around.ts              # Monkey-patching utility (around pattern)
+    external-fs.ts         # External filesystem access helpers
   vimrc/
     parser.ts              # Line-by-line .obsidian.vimrc parser
     loader.ts              # Loads and applies vimrc commands
@@ -110,11 +215,12 @@ src/
         motionArgs: MotionArgs,
         vim: VimState,
         inputState: unknown,
-    ) => VimPos | [VimPos, VimPos] | null | undefined;
+    ) => VimPos | [VimPos, VimPos] | Promise<VimPos | null> | null | undefined;
     ```
 
     - Return a single `VimPos` for cursor motions.
     - Return `[VimPos, VimPos]` for text objects (selection range).
+    - Return `Promise<VimPos | null>` for async motions (e.g., EasyMotion operator-pending).
     - Return `null` for no-op.
 
 2. Register in the appropriate `register.ts` file:
@@ -181,6 +287,50 @@ reg.mapCommand('gX', 'action', 'myAction', {});
 
 2. The vimrc loader handles `set myoption=value` automatically — no changes needed in `loader.ts`.
 
+### New Lua API function
+
+1. Add the implementation in the appropriate file under `src/lua/` (e.g., `fn.ts` for `vim.fn.*`, `buffer.ts` for `vim.api.nvim_buf_*`, `api.ts` for top-level `vim.*`).
+
+2. Register it in the Lua engine so it's available to user configs.
+
+3. Update `docs/configuration/lua-config.md` with the new function and `KNOWN_LIMITATIONS.md` with the updated function count.
+
+4. Add unit tests in `test/unit/lua/`.
+
+### New picker source
+
+1. Create a new source file in `src/picker/sources/`:
+
+    ```typescript
+    import { type PickerSource } from '../types';
+
+    export const mySource: PickerSource = {
+        id: 'my-source',
+        name: 'My Source',
+        // ... implement items(), preview(), accept()
+    };
+    ```
+
+2. Register the source in `src/picker/registry.ts`.
+
+3. Add an ex command alias if appropriate (e.g., `:Picker mysource`) in `src/workspace/commands.ts`.
+
+### New Oil action
+
+1. Add the action function in `src/oil/actions.ts`.
+
+2. Wire the keybinding in `src/oil/keybindings.ts`.
+
+3. If it modifies the buffer, ensure the diff engine in `src/oil/diff.ts` can translate the edit into file system operations.
+
+### New fold command
+
+1. Add the command in `src/fold/commands.ts`.
+
+2. If it introduces a new fold provider, add it in `src/fold/provider.ts`.
+
+3. Fold persistence is handled by `src/fold/persistence.ts` — ensure new fold types are persisted correctly.
+
 ## Conventions
 
 ### Code style
@@ -188,7 +338,7 @@ reg.mapCommand('gX', 'action', 'myAction', {});
 - TypeScript with `"strict": true`.
 - Tabs for indentation.
 - No `as any`, `@ts-ignore`, or `@ts-expect-error`.
-- No `console.log` (lint rule). Use `new Notice()` for user-facing messages.
+- Avoid `console.log` in production code. Use `new Notice()` for user-facing messages.
 - Use `activeDocument` instead of `document` (Obsidian popout window compatibility).
 - Use `window.setTimeout`/`window.clearTimeout` instead of `setTimeout`/`clearTimeout`.
 - Use CSS classes and variables instead of inline styles.
@@ -211,12 +361,63 @@ When adding a new setting toggle, wire it in both `onload()` and `reloadFeatures
 
 ## Testing
 
-### Test patterns
+### Test infrastructure
 
-Tests use [WebdriverIO](https://webdriver.io/) with [wdio-obsidian-service](https://github.com/nicholasgasior/wdio-obsidian-service).
+```
+test/
+  helpers.ts                 # Shared WDIO helpers (setupEditor, vimKeys, getCursorPos, etc.)
+  neovim-command-index.yaml  # Command coverage tracking
+  coverage-report.ts         # Coverage report generator
+  tsconfig.json              # Test-specific TypeScript config
+  specs/                     # E2E tests (Tier 2 — plugin features)
+    vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared)
+    spikes/                  # Exploratory/discovery tests
+  neovim/                    # Neovim golden comparison infrastructure
+    test-definitions.ts      # Test case definitions (shared by golden recording + e2e)
+    golden-data/             # Recorded Neovim output (committed, CI compares against these)
+    deviations.ts            # Known intentional differences from Neovim
+    client.ts                # Headless Neovim client
+    compare.ts               # Comparison logic
+    test-wrapper.ts          # testWithNeovim() helper
+    record-golden.ts         # Golden file recording script
+    smoke.ts                 # Quick Neovim smoke test
+  unit/                      # Unit tests (Vitest)
+    lua/                     # Lua engine unit tests
+    picker/                  # Picker unit tests
+    __mocks__/               # Mock modules
+  bench/                     # Performance benchmarks
+    matcher.bench.ts         # Fuzzy matcher benchmarks
+```
+
+### Test tiers
+
+- **Tier 1** (`test/specs/vim-builtin/`) — Core Vim behavior. Use `testWithNeovim()` as the primary format. These tests compare the plugin's behavior against headless Neovim using golden files.
+- **Tier 2** (`test/specs/`) — Plugin features (text objects, navigation, workspace, operators, vimrc, settings, Lua config). Standard WDIO tests.
+- **Spikes** (`test/specs/spikes/`) — Exploratory/R&D tests for investigating behavior.
+
+### E2E test patterns
+
+E2E tests use [WebdriverIO](https://webdriver.io/) with [wdio-obsidian-service](https://github.com/nicholasgasior/wdio-obsidian-service).
+
+#### Tier 1 — Neovim-compared tests
+
+Use `testWithNeovim()` for any behavior Neovim can verify — do not hand-write expected values:
 
 ```typescript
-// Standard test pattern
+testWithNeovim('suite-name', 'test description', {
+    content: 'initial buffer content',
+    cursor: { line: 0, ch: 0 },
+    keys: ['keystroke-sequence'],
+});
+```
+
+Add a matching entry in `test/neovim/test-definitions.ts` and re-record golden files with `npm run test:neovim-record`.
+
+For viewport-dependent behavior (`H`/`M`/`L`, scroll, folds), use regular `it()` blocks — headless Neovim has no viewport to compare against.
+
+#### Tier 2 — Standard E2E tests
+
+```typescript
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
@@ -257,6 +458,31 @@ describe('My feature', function () {
 });
 ```
 
+### Shared test helpers
+
+`test/helpers.ts` provides commonly used utilities. Import them instead of writing inline `executeObsidian` boilerplate:
+
+- `setupEditor(content, cursor?)` — Set editor content and cursor position.
+- `vimKeys(...keys)` — Send Vim key sequence with proper pauses.
+- `vimRawKeys(keys)` — Send raw key string via `Vim.handleKey`.
+- `getCursorPos()` — Get `{ line, ch }` cursor position.
+- `getEditorValue()` — Get editor text content.
+- `getSelection()` — Get selected text.
+- `getVimMode()` — Get current Vim mode string.
+- `getRegisterContent(register)` — Get register contents.
+- `sendVimEscape()` — Send Escape and wait for normal mode.
+- `loadSingleFileWorkspace(content)` — Load a workspace with a single file.
+- `unsupported(name, fn)` — Mark a test as unsupported (skip with label).
+- `deviation(name, fn)` — Mark a test as a known Neovim deviation.
+
+### Unit tests
+
+Unit tests use [Vitest](https://vitest.dev/) and live in `test/unit/`. These test pure logic without Obsidian (Lua engine, picker matching, settings migration, etc.).
+
+```bash
+npm run test:unit
+```
+
 ### Key testing rules
 
 - Always call `obsidianPage.openFile('Welcome.md')` in the `before` hook — CI starts without a file open.
@@ -267,8 +493,9 @@ describe('My feature', function () {
 
 ## Obsidian API notes
 
-- The CM5 adapter is at `view.editor.cm.cm` (not `view.editor.cm`).
-- The CM6 EditorView is at `view.editor.cm.cm.cm6` (or `adapter.cm6`).
+- The CM6 EditorView is at `(view.editor as any).cm` — this returns the CM6 `EditorView`.
+- The CM5-compat adapter (used by codemirror-vim) is at `editorView.cm` where `editorView` is the CM6 EditorView above.
+- From the CM5 adapter, access the underlying CM6 EditorView via `adapter.cm6`.
 - Obsidian uses HyperMD node names, not standard Lezer Markdown names (e.g., `header_header-1` not `ATXHeading1`).
 - `app.commands.executeCommandById()` is internal API — works but not in the type definitions.
 - `app.metadataCache.resolvedLinks` is the public link graph.
