@@ -128,6 +128,8 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `listcontinuation`  | `lc`  | Smart list continuation on `o`/`O`    | on      |
 | `tablenav`          | `tn`  | Table cell navigation                 | on      |
 | `workspacenav`      | `wn`  | Pane/tab/sidebar control              | on      |
+| `number`            | `nu`  | Show absolute line numbers            | off     |
+| `relativenumber`    | `rnu` | Show relative line numbers            | off     |
 | `easymotion`        | `em`  | EasyMotion/Hop navigation             | on      |
 | `easymotiondimming` | `emd` | Dim non-target text during EasyMotion | on      |
 | `hintmode`          | `hm`  | Vimium-style hint labels              | on      |

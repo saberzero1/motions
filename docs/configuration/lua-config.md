@@ -135,6 +135,8 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `listcontinuation`        | boolean | `true`                         |                                               | `vim.opt.listcontinuation = true`        |
 | `tablenav`                | boolean | `true`                         |                                               | `vim.opt.tablenav = true`                |
 | `workspacenav`            | boolean | `true`                         |                                               | `vim.opt.workspacenav = true`            |
+| `number`                  | boolean | `false`                        |                                               | `vim.opt.number = true`                  |
+| `relativenumber`          | boolean | `false`                        |                                               | `vim.opt.relativenumber = true`          |
 | `easymotion`              | boolean | `true`                         |                                               | `vim.opt.easymotion = true`              |
 | `easymotiondimming`       | boolean | `true`                         |                                               | `vim.opt.easymotiondimming = true`       |
 | `hintmode`                | boolean | `true`                         |                                               | `vim.opt.hintmode = true`                |
@@ -163,6 +165,9 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `workspacenavviewtypes` | string | `""` | Comma-separated view types | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
 | `guicursor` | string | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes | `vim.opt.guicursor = "n:bar,i:block"` |
 | `updatetime` | number | `4000` | ms (CursorHold delay) | `vim.opt.updatetime = 4000` |
+
+> [!tip] Hybrid line numbers
+> Enabling both `vim.opt.number = true` and `vim.opt.relativenumber = true` activates hybrid mode: the current line shows its absolute number, while all other lines show their relative distance from the cursor.
 
 > [!tip] Table syntax for string options
 > String options that accept comma-separated values can also be set using Lua tables. The elements are joined with commas automatically.

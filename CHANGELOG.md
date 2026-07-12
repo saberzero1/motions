@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Configurable line number gutter** — `set number`, `set relativenumber`, or both for hybrid mode (absolute on current line, relative on others), matching Neovim's semantics exactly. Uses a custom CM6 `gutter()` with `Compartment`-based runtime switching — `:set number` / `:set nonumber` take effect instantly without full feature reload. When the plugin's line number gutter is active, Obsidian's native line numbers are suppressed via CSS to prevent duplication. Defaults to off (matching Neovim defaults).
+    - **Settings**: **Settings → Vim Motions → Line numbers** — two toggles: Line numbers, Relative line numbers
+    - **Vimrc**: `set number` / `set nonumber` (alias `nu`), `set relativenumber` / `set norelativenumber` (alias `rnu`)
+    - **Lua**: `vim.opt.number = true`, `vim.opt.relativenumber = true`
+    - Plugin: `src/vim/line-number-gutter.ts` (new), `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`, `src/main.ts`, `styles.css`
 - **Picker provider API** — external plugins can register custom picker sources via `window.VimMotions.picker.registerSource()`. The API validates namespaced source names (`pluginId:sourceName`), wraps external source methods in try/catch with 5-second timeout, caps results at 10,000 items, and emits `source-registered` / `source-unregistered` events. Consumer plugins discover the API via `window.VimMotions.picker` or `app.plugins.plugins['vim-motions'].pickerAPI`.
     - **Lifecycle**: `vim-motions:picker-ready` workspace event fires after API installation; consumers use `onLayoutReady` + event listener pattern for load-order safety.
     - **Type definitions**: `src/picker/picker-api.d.ts` ships standalone types for consumer plugins with full JSDoc and usage examples.
@@ -24,8 +29,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - All three are gated by settings toggles in **Settings → Vim Motions → Third-party integrations** (default: enabled) and by runtime plugin detection via `onLayoutReady`.
     - Plugin: `src/picker/sources/omnisearch.ts` (new), `src/picker/sources/tasks.ts` (new), `src/picker/sources/dataview.ts` (new), `src/main.ts` (detection + registration), `src/settings.ts` (3 toggles)
 
+### Fixed
+
+- **Obsidian line numbers leaking into table cell editors** — when Obsidian's "Show line numbers" setting is enabled, line number gutters appeared inside embedded table cell editors where they shouldn't. Fixed by suppressing `.cm-gutters` in cell editors via CSS. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Plugin: `styles.css`
+
+### Changed
+
+- **Mark gutter internals refactored** — the mark gutter implementation has been extracted into a dedicated `sign-column.ts` module. The rendering approach is unchanged (line decorations + CSS `::after` overlay, zero layout shift), but the internal architecture now cleanly separates the sign column field from the refresh scheduling API. No user-facing changes.
+    - Plugin: `src/vim/sign-column.ts` (new), `src/vim/mark-gutter.ts` (refactored to delegate)
+
 ### Documentation
 
+- `docs/configuration/settings.md`: added Line numbers settings group
+- `docs/configuration/vimrc.md`: added `number`/`nu`, `relativenumber`/`rnu` to boolean options table
+- `docs/configuration/lua-config.md`: added `vim.opt.number`, `vim.opt.relativenumber` with hybrid mode tip
+- `KNOWN_LIMITATIONS.md`: removed `number` and `relativenumber` from "not implemented" options list
 - `docs/development/picker-api.md`: new provider API reference with consumer guide, API surface, integration examples (Omnisearch, Tasks), and lifecycle documentation
 - `docs/development/index.md`: added picker provider API link
 - `docs/reference/keybindings.md`: added `:Picker` / `:Pick` to ex commands table

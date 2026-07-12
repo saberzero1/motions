@@ -58,6 +58,13 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Insert mode escape timeout | number   | `1000`  | 100–5000                          | `vim.opt.insertmodeescapetimeout` | `set insertmodeescapetimeout` | Timeout in milliseconds for insert mode escape sequence. |
 | Textwidth                  | number   | `80`    | 0–200                             | `vim.opt.textwidth`               | `set textwidth`               | Line wrap width for `gq`/`gw` (0 to disable).            |
 
+## Line numbers
+
+| Name                  | Type   | Default | Range/Options | Lua                      | Vimrc                | Description                                                                                                                                               |
+| --------------------- | ------ | ------- | ------------- | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Line numbers          | toggle | `false` | —             | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
+| Relative line numbers | toggle | `false` | —             | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
+
 ## Jump navigation
 
 | Name                        | Type   | Default                      | Range/Options | Lua                         | Vimrc                   | Description                                                   |

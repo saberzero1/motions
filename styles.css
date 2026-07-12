@@ -983,6 +983,10 @@ settings:
     min-width: 2em;
 }
 
+.vim-table-cell-editor .cm-gutters {
+    display: none;
+}
+
 .vim-table-cell-editor .cm-editor {
     background: var(--background-primary);
 }
@@ -1038,6 +1042,8 @@ settings:
     user-select: none;
 }
 
+/* --- Sign column (vim marks overlay) --- */
+
 .cm-line[data-vim-marks]::after {
     content: attr(data-vim-marks);
     position: absolute;
@@ -1050,4 +1056,28 @@ settings:
     line-height: inherit;
     pointer-events: none;
     opacity: 0.85;
+}
+
+/* --- Line number gutter --- */
+
+.vim-motions-line-numbers .cm-gutterElement {
+    min-width: 3ch;
+    text-align: right;
+    padding: 0 4px 0 0;
+}
+
+.vim-motions-line-num {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    line-height: inherit;
+}
+
+.vim-motions-line-num-current {
+    color: var(--text-normal);
+    font-weight: 600;
+}
+
+.vim-motions-line-numbers-active .cm-lineNumbers {
+    display: none;
 }

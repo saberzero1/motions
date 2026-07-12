@@ -236,6 +236,19 @@ export function registerVimOptions(
         }
     });
 
+    vim.defineOption('number', false, 'boolean', ['nu'], (value) => {
+        if (value === undefined) return;
+        notify('number', !!value, `set ${value ? '' : 'no'}number`);
+    });
+    vim.defineOption('relativenumber', false, 'boolean', ['rnu'], (value) => {
+        if (value === undefined) return;
+        notify(
+            'relativenumber',
+            !!value,
+            `set ${value ? '' : 'no'}relativenumber`,
+        );
+    });
+
     vim.defineOption(
         'easymotionlabels',
         'asdghklqwertyuiopzxcvbnmfj',

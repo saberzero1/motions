@@ -179,7 +179,7 @@ The following settings are intentionally **not** exposed via vimrc:
 | `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)                                 |
 | `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc or `vim.keymap.set` in init.lua |
 
-Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `number`, `relativenumber`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
+Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
 Unknown `set` options are silently ignored (no error, no effect).
 

@@ -140,6 +140,8 @@ export interface VimMotionsSettings {
     yankHighlightDuration: number;
 
     enableMarkGutter: boolean;
+    number: boolean;
+    relativenumber: boolean;
     enableHarpoon: boolean;
     enableHintMode: boolean;
     hintModeLabels: string;
@@ -222,6 +224,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     yankHighlightDuration: 200,
 
     enableMarkGutter: true,
+    number: false,
+    relativenumber: false,
     enableHarpoon: true,
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
@@ -778,6 +782,38 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             min: 0,
                             max: 200,
                             disabled: () => this.isOverridden('textwidth'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Line numbers ────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Line numbers',
+                items: [
+                    {
+                        name: 'Line numbers',
+                        desc: this.describeOverride(
+                            'number',
+                            'Show absolute line numbers in the gutter. Equivalent to `set number` in Neovim.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'number',
+                            disabled: () => this.isOverridden('number'),
+                        },
+                    },
+                    {
+                        name: 'Relative line numbers',
+                        desc: this.describeOverride(
+                            'relativenumber',
+                            'Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Equivalent to `set relativenumber` in Neovim.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'relativenumber',
+                            disabled: () => this.isOverridden('relativenumber'),
                         },
                     },
                 ],
@@ -1591,7 +1627,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         await this.plugin.saveSettings();
 
-        if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
+        if (key === 'number' || key === 'relativenumber') {
+            this.plugin.reconfigureLineNumberGutter();
+        } else if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
             this.plugin.reloadFeatures();
         }
     }
@@ -2129,6 +2167,50 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     if (vim) vim.setOption('textwidth', clamped);
                 });
             });
+
+        // ── Line numbers ─────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Line numbers').setHeading();
+
+        new Setting(containerEl)
+            .setName('Line numbers')
+            .setDesc(
+                describeOverride(
+                    'number',
+                    'Show absolute line numbers in the gutter. Equivalent to `set number` in Neovim.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.number)
+                    .setDisabled(isOverridden('number'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.number = value;
+                        this.plugin.vimrcOverrides?.delete('number');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureLineNumberGutter();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Relative line numbers')
+            .setDesc(
+                describeOverride(
+                    'relativenumber',
+                    'Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Equivalent to `set relativenumber` in Neovim.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.relativenumber)
+                    .setDisabled(isOverridden('relativenumber'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.relativenumber = value;
+                        this.plugin.vimrcOverrides?.delete('relativenumber');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureLineNumberGutter();
+                    }),
+            );
 
         // ── Jump navigation ──────────────────────────────────────────
 

@@ -82,6 +82,10 @@ import {
     cancelMarkGutterRefresh,
 } from './vim/mark-gutter';
 import type { PersistedMarkEntry } from './vim/mark-gutter';
+import {
+    createLineNumberExtension,
+    reconfigureLineNumbers,
+} from './vim/line-number-gutter';
 import { MarkStore } from './vim/mark-store';
 import { HarpoonStore } from './vim/harpoon-store';
 import { navigateToHarpoonPin } from './vim/harpoon-nav';
@@ -519,6 +523,14 @@ export default class VimMotionsPlugin extends Plugin {
                     this.autocmdManager?.setUpdateTime(value);
                     overrides.set(key, directive ?? `set updatetime=${value}`);
                     applied = true;
+                }
+            } else if (key === 'number' || key === 'relativenumber') {
+                (this.settings as unknown as Record<string, unknown>)[key] =
+                    value;
+                overrides.set(key, directive ?? `set ${key}`);
+                applied = true;
+                if (!this.vimrcLoading && !this.luaLoading) {
+                    this.reconfigureLineNumberGutter();
                 }
             } else if (key.startsWith('modePrompts.')) {
                 const mode = key.replace(
@@ -1466,6 +1478,17 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(foldPlaceholderExtension());
         if (this.settings.enableMarkGutter) {
             this.registerEditorExtension(markGutterExtension());
+        }
+        this.registerEditorExtension(
+            createLineNumberExtension(
+                this.settings.number,
+                this.settings.relativenumber,
+            ),
+        );
+        if (this.settings.number || this.settings.relativenumber) {
+            activeDocument.body.classList.add(
+                'vim-motions-line-numbers-active',
+            );
         }
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
@@ -2905,7 +2928,26 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    reconfigureLineNumberGutter(): void {
+        const num = this.settings.number;
+        const rel = this.settings.relativenumber;
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            const view = (leaf.view as MarkdownView)?.editor;
+            const cm = (
+                view as unknown as { cm?: { cm: EditorView } } | undefined
+            )?.cm?.cm;
+            if (cm) {
+                reconfigureLineNumbers(cm, num, rel);
+            }
+        });
+        activeDocument.body.classList.toggle(
+            'vim-motions-line-numbers-active',
+            num || rel,
+        );
+    }
+
     onunload() {
+        activeDocument.body.classList.remove('vim-motions-line-numbers-active');
         this.markGutterCleanup?.();
         this.markGutterCleanup = null;
         this.yankHighlightCleanup?.();

@@ -167,6 +167,10 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     whichkeyicons: { type: 'boolean', settingsKey: 'whichKeyIcons' },
     wki: { type: 'boolean', settingsKey: 'whichKeyIcons' },
     updatetime: { type: 'number', settingsKey: 'updatetime' },
+    number: { type: 'boolean', settingsKey: 'number' },
+    nu: { type: 'boolean', settingsKey: 'number' },
+    relativenumber: { type: 'boolean', settingsKey: 'relativenumber' },
+    rnu: { type: 'boolean', settingsKey: 'relativenumber' },
 };
 
 function applyKnownSetOption(
