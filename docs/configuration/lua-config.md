@@ -144,6 +144,8 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `chorddisplay`            | boolean | `true`                         |                                               | `vim.opt.chorddisplay = true`            |
 | `powerline`               | boolean | `false`                        |                                               | `vim.opt.powerline = true`               |
 | `expandtab`               | boolean | `true`                         |                                               | `vim.opt.expandtab = true`               |
+| `cursorline`              | boolean | `true`                         |                                               | `vim.opt.cursorline = true`              |
+| `foldcolumn`              | boolean | `false`                        |                                               | `vim.opt.foldcolumn = true`              |
 | `scrolloff`               | number  | `5`                            | 0–9999                                        | `vim.opt.scrolloff = 8`                  |
 | `scanlimit`               | number  | `20`                           | 5–200                                         | `vim.opt.scanlimit = 20`                 |
 | `labelfontsize`           | number  | `14`                           | 10–20                                         | `vim.opt.labelfontsize = 14`             |
@@ -151,6 +153,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `shiftwidth`              | number  | `4`                            |                                               | `vim.opt.shiftwidth = 4`                 |
 | `textwidth`               | number  | `80`                           |                                               | `vim.opt.textwidth = 80`                 |
 | `insertmodeescapetimeout` | number  | `1000`                         | 100–5000 ms                                   | `vim.opt.insertmodeescapetimeout = 1000` |
+| `numberwidth`             | number  | `2`                            | 1–20                                          | `vim.opt.numberwidth = 2`                |
 | `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"`            | `vim.opt.clipboard = "unnamedplus"`      |
 | `insertmodeescape`        | string  | `""`                           |                                               | `vim.opt.insertmodeescape = "jk"`        |
 | `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                               | `vim.opt.easymotionlabels = "asdf"`      |
@@ -164,6 +167,8 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `whichkeydelay` | number | `500` | 0–2000 ms | `vim.opt.whichkeydelay = 300` |
 | `workspacenavviewtypes` | string | `""` | Comma-separated view types | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
 | `guicursor` | string | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes | `vim.opt.guicursor = "n:bar,i:block"` |
+| `cursorlineopt` | string | `"number"` | `"number"`, `"line"`, `"both"` | `vim.opt.cursorlineopt = "both"` |
+| `signcolumn` | string | `"auto"` | `"auto"`, `"yes"`, `"no"` | `vim.opt.signcolumn = "yes"` |
 | `updatetime` | number | `4000` | ms (CursorHold delay) | `vim.opt.updatetime = 4000` |
 
 > [!tip] Hybrid line numbers

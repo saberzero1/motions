@@ -66,6 +66,14 @@ function computeLineNumber(
     }
 }
 
+// ── Number width ─────────────────────────────────────────
+
+let numberwidthValue = 2;
+
+export function setNumberwidth(value: number): void {
+    numberwidthValue = Math.max(1, Math.min(20, value));
+}
+
 // ── Compartment ──────────────────────────────────────────
 
 const lineNumberCompartment = new Compartment();
@@ -90,12 +98,15 @@ function createLineNumberGutter(mode: LineNumberMode): Extension {
             return update.selectionSet || update.docChanged;
         },
         initialSpacer(view) {
-            const digits = Math.max(2, String(view.state.doc.lines).length);
+            const digits = Math.max(
+                numberwidthValue,
+                String(view.state.doc.lines).length,
+            );
             return new LineNumberMarker('0'.repeat(digits), false);
         },
         updateSpacer(_spacer, update) {
             const digits = Math.max(
-                2,
+                numberwidthValue,
                 String(update.view.state.doc.lines).length,
             );
             return new LineNumberMarker('0'.repeat(digits), false);

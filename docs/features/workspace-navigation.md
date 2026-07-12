@@ -64,6 +64,8 @@ When **Fold persistence** is enabled (**Settings → Vim Motions → Fold persis
 
 The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command.
 
+When **Fold column** is enabled (`set foldcolumn` or **Settings → Vim Motions → Vim features → Fold column**), fold indicators appear in the gutter: `▸` for foldable regions and `▾` for folded regions. Clicking an indicator toggles the fold.
+
 ## Non-editor view support
 
 The global key handler extends Vim control to non-editor views like PDFs, the graph view, canvas, and the file explorer.

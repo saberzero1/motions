@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cursor line highlight** — `set cursorline` / `set nocursorline` with `cursorlineopt` (number/line/both). Compartment-based runtime switching.
+- **Fold column** — `set foldcolumn` shows ▸/▾ indicators for foldable regions with click-to-fold. Uses CM6 `foldable()` / `foldedRanges()` APIs.
+- **`numberwidth` option** — `set numberwidth=N` controls minimum line number column width (1–20, default: 2).
+- **Mobile gutter width reduction** — line number gutter uses smaller font and reduced width on viewports ≤ 600px.
 - **Configurable line number gutter** — `set number`, `set relativenumber`, or both for hybrid mode (absolute on current line, relative on others), matching Neovim's semantics exactly. Uses a custom CM6 `gutter()` with `Compartment`-based runtime switching — `:set number` / `:set nonumber` take effect instantly without full feature reload. When the plugin's line number gutter is active, Obsidian's native line numbers are suppressed via CSS to prevent duplication. Defaults to off (matching Neovim defaults).
     - **Settings**: **Settings → Vim Motions → Line numbers** — two toggles: Line numbers, Relative line numbers
     - **Vimrc**: `set number` / `set nonumber` (alias `nu`), `set relativenumber` / `set norelativenumber` (alias `rnu`)
@@ -36,11 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`enableMarkGutter` migrated to `signcolumn`** — the boolean toggle is now a dropdown with Auto/Always/Off modes matching Neovim's `signcolumn` option. Existing settings are auto-migrated. `set markgutter` / `set nomarkgutter` remain as backward-compatible aliases.
 - **Mark gutter internals refactored** — the mark gutter implementation has been extracted into a dedicated `sign-column.ts` module. The rendering approach is unchanged (line decorations + CSS `::after` overlay, zero layout shift), but the internal architecture now cleanly separates the sign column field from the refresh scheduling API. No user-facing changes.
     - Plugin: `src/vim/sign-column.ts` (new), `src/vim/mark-gutter.ts` (refactored to delegate)
 
 ### Documentation
 
+- `docs/configuration/settings.md`: added `numberwidth`, `cursorline`, `cursorlineopt`, `signcolumn`, and `foldcolumn` settings
+- `docs/configuration/vimrc.md`: added new gutter options and `markgutter` alias to options tables
+- `docs/configuration/lua-config.md`: added new gutter options to `vim.opt` table
+- `docs/features/marks.md`: updated to mention `signcolumn` as the canonical way to toggle mark indicators
+- `KNOWN_LIMITATIONS.md`: added notes on `signcolumn` overlay behavior and `cursorlineopt=screenline` support
 - `docs/configuration/settings.md`: added Line numbers settings group
 - `docs/configuration/vimrc.md`: added `number`/`nu`, `relativenumber`/`rnu` to boolean options table
 - `docs/configuration/lua-config.md`: added `vim.opt.number`, `vim.opt.relativenumber` with hybrid mode tip

@@ -29,3 +29,15 @@ export function migrateConfigModeSettings(
     }
     return data;
 }
+
+export function migrateSigncolumnSettings(
+    data: Partial<VimMotionsSettings> | null,
+): Partial<VimMotionsSettings> | null {
+    if (!data) return data;
+    const raw = data as Record<string, unknown>;
+    if (!('signcolumn' in raw) && 'enableMarkGutter' in raw) {
+        raw.signcolumn = raw.enableMarkGutter === false ? 'no' : 'auto';
+        delete raw.enableMarkGutter;
+    }
+    return data;
+}

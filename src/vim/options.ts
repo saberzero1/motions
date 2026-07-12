@@ -248,6 +248,41 @@ export function registerVimOptions(
             `set ${value ? '' : 'no'}relativenumber`,
         );
     });
+    vim.defineOption('numberwidth', 2, 'number', ['nuw'], (value) => {
+        if (value === undefined) return;
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n >= 1 && n <= 20) {
+            notify('numberwidth', n, `set numberwidth=${n}`);
+        }
+    });
+    vim.defineOption('cursorline', true, 'boolean', ['cul'], (value) => {
+        if (value === undefined) return;
+        notify('cursorline', !!value, `set ${value ? '' : 'no'}cursorline`);
+    });
+    vim.defineOption(
+        'cursorlineopt',
+        'number',
+        'string',
+        ['culopt'],
+        (value) => {
+            if (value === undefined) return;
+            const str = typeof value === 'string' ? value : '';
+            if (str === 'number' || str === 'line' || str === 'both') {
+                notify('cursorlineopt', str, `set cursorlineopt=${str}`);
+            }
+        },
+    );
+    vim.defineOption('signcolumn', 'auto', 'string', ['scl'], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'auto' || str === 'yes' || str === 'no') {
+            notify('signcolumn', str, `set signcolumn=${str}`);
+        }
+    });
+    vim.defineOption('foldcolumn', false, 'boolean', ['fdc'], (value) => {
+        if (value === undefined) return;
+        notify('foldcolumn', !!value, `set ${value ? '' : 'no'}foldcolumn`);
+    });
 
     vim.defineOption(
         'easymotionlabels',

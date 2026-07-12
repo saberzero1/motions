@@ -30,7 +30,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Table widget in live preview   | dropdown | `cursor` | `embedded`, `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                      |
 | Yank highlight                 | dropdown | `solid`  | `off`, `solid`, `fade`                | `vim.opt.yankhighlightmode`     | `set yankhighlightmode`     | Highlight yanked text. "Solid" appears and disappears (Neovim-style). "Fade" gradually fades out. |
 | Yank highlight duration        | slider   | `200`    | 50–3000 ms                            | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                        |
-| Mark gutter indicators         | toggle   | `true`   | —                                     | `vim.opt.markgutter`            | `set markgutter`            | Show vim mark letters in the gutter next to marked lines.                                         |
+| Sign column                    | dropdown | `auto`   | `auto`, `yes`, `no`                   | `vim.opt.signcolumn`            | `set signcolumn`            | Show vim mark letters in the gutter. Auto/Always/Off. Default: Auto.                              |
+| Fold column                    | toggle   | `false`  | —                                     | `vim.opt.foldcolumn`            | `set foldcolumn`            | Show fold indicators (▸/▾) in the gutter for foldable regions. Click to toggle. Default: off.     |
 
 > [!tip]
 > Override the highlight color with a CSS snippet: set `--vim-motions-yank-bg` on `.theme-dark` or `.theme-light` (e.g., `--vim-motions-yank-bg: rgba(255, 200, 0, 0.4);`).
@@ -60,10 +61,13 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Line numbers
 
-| Name                  | Type   | Default | Range/Options | Lua                      | Vimrc                | Description                                                                                                                                               |
-| --------------------- | ------ | ------- | ------------- | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Line numbers          | toggle | `false` | —             | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
-| Relative line numbers | toggle | `false` | —             | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
+| Name                       | Type     | Default  | Range/Options            | Lua                      | Vimrc                | Description                                                                                                                                               |
+| -------------------------- | -------- | -------- | ------------------------ | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Line numbers               | toggle   | `false`  | —                        | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
+| Relative line numbers      | toggle   | `false`  | —                        | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
+| Number width               | slider   | `2`      | 1–20                     | `vim.opt.numberwidth`    | `set numberwidth`    | Minimum width of the line number column in characters (1–20). Default: 2.                                                                                 |
+| Cursor line highlight      | toggle   | `true`   | —                        | `vim.opt.cursorline`     | `set cursorline`     | Highlight the current cursor line. Default: on.                                                                                                           |
+| Cursor line highlight mode | dropdown | `number` | `number`, `line`, `both` | `vim.opt.cursorlineopt`  | `set cursorlineopt`  | What to highlight — Number, Line, or Both. Default: Number.                                                                                               |
 
 ## Jump navigation
 

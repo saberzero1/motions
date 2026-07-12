@@ -171,6 +171,38 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     nu: { type: 'boolean', settingsKey: 'number' },
     relativenumber: { type: 'boolean', settingsKey: 'relativenumber' },
     rnu: { type: 'boolean', settingsKey: 'relativenumber' },
+    numberwidth: {
+        type: 'number',
+        settingsKey: 'numberwidth',
+        min: 1,
+        max: 20,
+    },
+    nuw: { type: 'number', settingsKey: 'numberwidth', min: 1, max: 20 },
+    cursorline: { type: 'boolean', settingsKey: 'cursorline' },
+    cul: { type: 'boolean', settingsKey: 'cursorline' },
+    cursorlineopt: {
+        type: 'string',
+        settingsKey: 'cursorlineopt',
+        validValues: ['number', 'line', 'both'],
+    },
+    culopt: {
+        type: 'string',
+        settingsKey: 'cursorlineopt',
+        validValues: ['number', 'line', 'both'],
+    },
+    signcolumn: {
+        type: 'string',
+        settingsKey: 'signcolumn',
+        validValues: ['auto', 'yes', 'no'],
+    },
+    scl: {
+        type: 'string',
+        settingsKey: 'signcolumn',
+        validValues: ['auto', 'yes', 'no'],
+    },
+    markgutter: { type: 'boolean', settingsKey: 'enableMarkGutter' },
+    foldcolumn: { type: 'boolean', settingsKey: 'foldcolumn' },
+    fdc: { type: 'boolean', settingsKey: 'foldcolumn' },
 };
 
 function applyKnownSetOption(

@@ -140,8 +140,13 @@ export interface VimMotionsSettings {
     yankHighlightDuration: number;
 
     enableMarkGutter: boolean;
+    signcolumn: 'auto' | 'yes' | 'no';
     number: boolean;
     relativenumber: boolean;
+    numberwidth: number;
+    cursorline: boolean;
+    cursorlineopt: 'number' | 'line' | 'both';
+    foldcolumn: boolean;
     enableHarpoon: boolean;
     enableHintMode: boolean;
     hintModeLabels: string;
@@ -224,8 +229,13 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     yankHighlightDuration: 200,
 
     enableMarkGutter: true,
+    signcolumn: 'auto',
     number: false,
     relativenumber: false,
+    numberwidth: 2,
+    cursorline: true,
+    cursorlineopt: 'number',
+    foldcolumn: false,
     enableHarpoon: true,
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
@@ -340,7 +350,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableWorkspaceNav',
         'enableEasyMotion',
         'enableHintMode',
-        'enableMarkGutter',
+        'signcolumn',
         'enableHarpoon',
         'foldAwareNavigation',
         'foldPersistence',
@@ -586,16 +596,32 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         },
                     },
                     {
-                        name: 'Mark gutter indicators',
+                        name: 'Sign column',
                         desc: this.describeOverride(
-                            'enableMarkGutter',
-                            'Show vim mark letters (a-z, A-Z) in the editor gutter next to marked lines.',
+                            'signcolumn',
+                            'Show vim mark letters (a-z, A-Z) in the gutter next to marked lines. Auto: show when marks exist. Always: same as Auto (overlay has zero width). Off: never show.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'signcolumn',
+                            options: {
+                                auto: 'Auto',
+                                yes: 'Always',
+                                no: 'Off',
+                            },
+                            disabled: () => this.isOverridden('signcolumn'),
+                        },
+                    },
+                    {
+                        name: 'Fold column',
+                        desc: this.describeOverride(
+                            'foldcolumn',
+                            'Show fold indicators (\u25b8/\u25be) in the gutter for foldable regions. Click to toggle folds.',
                         ),
                         control: {
                             type: 'toggle' as const,
-                            key: 'enableMarkGutter',
-                            disabled: () =>
-                                this.isOverridden('enableMarkGutter'),
+                            key: 'foldcolumn',
+                            disabled: () => this.isOverridden('foldcolumn'),
                         },
                     },
                     {
@@ -814,6 +840,49 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             type: 'toggle' as const,
                             key: 'relativenumber',
                             disabled: () => this.isOverridden('relativenumber'),
+                        },
+                    },
+                    {
+                        name: 'Number width',
+                        desc: this.describeOverride(
+                            'numberwidth',
+                            'Minimum width of the line number column in characters (1\u201320). The gutter auto-expands for larger files.',
+                        ),
+                        control: {
+                            type: 'number' as const,
+                            key: 'numberwidth',
+                            min: 1,
+                            max: 20,
+                            disabled: () => this.isOverridden('numberwidth'),
+                        },
+                    },
+                    {
+                        name: 'Cursor line highlight',
+                        desc: this.describeOverride(
+                            'cursorline',
+                            'Highlight the current cursor line. Equivalent to `set cursorline` in Neovim.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'cursorline',
+                            disabled: () => this.isOverridden('cursorline'),
+                        },
+                    },
+                    {
+                        name: 'Cursor line highlight mode',
+                        desc: this.describeOverride(
+                            'cursorlineopt',
+                            'What to highlight on the cursor line: Number (line number only), Line (line background), or Both.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'cursorlineopt',
+                            options: {
+                                number: 'Number',
+                                line: 'Line',
+                                both: 'Both',
+                            },
+                            disabled: () => this.isOverridden('cursorlineopt'),
                         },
                     },
                 ],
@@ -1627,8 +1696,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         await this.plugin.saveSettings();
 
-        if (key === 'number' || key === 'relativenumber') {
+        if (
+            key === 'number' ||
+            key === 'relativenumber' ||
+            key === 'numberwidth'
+        ) {
             this.plugin.reconfigureLineNumberGutter();
+        } else if (key === 'cursorline' || key === 'cursorlineopt') {
+            this.plugin.reconfigureCursorlineHighlight();
+        } else if (key === 'foldcolumn') {
+            this.plugin.reconfigureFoldColumnGutter();
         } else if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
             this.plugin.reloadFeatures();
         }
@@ -1874,22 +1951,50 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Mark gutter indicators')
+            .setName('Sign column')
             .setDesc(
                 describeOverride(
-                    'enableMarkGutter',
-                    'Show vim mark letters (a-z, A-Z) in the editor gutter next to marked lines.',
+                    'signcolumn',
+                    'Show vim mark letters (a-z, A-Z) in the gutter next to marked lines. Auto: show when marks exist. Always: same as Auto (overlay has zero width). Off: never show.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        auto: 'Auto',
+                        yes: 'Always',
+                        no: 'Off',
+                    })
+                    .setValue(this.plugin.settings.signcolumn)
+                    .setDisabled(isOverridden('signcolumn'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.signcolumn = value as
+                            | 'auto'
+                            | 'yes'
+                            | 'no';
+                        this.plugin.vimrcOverrides?.delete('signcolumn');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Fold column')
+            .setDesc(
+                describeOverride(
+                    'foldcolumn',
+                    'Show fold indicators (\u25b8/\u25be) in the gutter for foldable regions. Click to toggle folds.',
                 ),
             )
             .addToggle((toggle) =>
                 toggle
-                    .setValue(this.plugin.settings.enableMarkGutter)
-                    .setDisabled(isOverridden('enableMarkGutter'))
+                    .setValue(this.plugin.settings.foldcolumn)
+                    .setDisabled(isOverridden('foldcolumn'))
                     .onChange(async (value) => {
-                        this.plugin.settings.enableMarkGutter = value;
-                        this.plugin.vimrcOverrides?.delete('enableMarkGutter');
+                        this.plugin.settings.foldcolumn = value;
+                        this.plugin.vimrcOverrides?.delete('foldcolumn');
                         await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
+                        this.plugin.reconfigureFoldColumnGutter();
                     }),
             );
 
@@ -2209,6 +2314,79 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('relativenumber');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureLineNumberGutter();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Number width')
+            .setDesc(
+                describeOverride(
+                    'numberwidth',
+                    'Minimum width of the line number column in characters (1\u201320). The gutter auto-expands for larger files.',
+                ),
+            )
+            .addText((text) => {
+                text.inputEl.type = 'number';
+                text.inputEl.min = '1';
+                text.inputEl.max = '20';
+                text.setValue(String(this.plugin.settings.numberwidth));
+                text.setDisabled(isOverridden('numberwidth'));
+                text.onChange(async (val) => {
+                    const n = Number(val);
+                    if (!isNaN(n) && n >= 1 && n <= 20) {
+                        this.plugin.settings.numberwidth = n;
+                        this.plugin.vimrcOverrides?.delete('numberwidth');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureLineNumberGutter();
+                    }
+                });
+            });
+
+        new Setting(containerEl)
+            .setName('Cursor line highlight')
+            .setDesc(
+                describeOverride(
+                    'cursorline',
+                    'Highlight the current cursor line. Equivalent to `set cursorline` in Neovim.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.cursorline)
+                    .setDisabled(isOverridden('cursorline'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.cursorline = value;
+                        this.plugin.vimrcOverrides?.delete('cursorline');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureCursorlineHighlight();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Cursor line highlight mode')
+            .setDesc(
+                describeOverride(
+                    'cursorlineopt',
+                    'What to highlight on the cursor line: Number (line number only), Line (line background), or Both.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        number: 'Number',
+                        line: 'Line',
+                        both: 'Both',
+                    })
+                    .setValue(this.plugin.settings.cursorlineopt)
+                    .setDisabled(isOverridden('cursorlineopt'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.cursorlineopt = value as
+                            | 'number'
+                            | 'line'
+                            | 'both';
+                        this.plugin.vimrcOverrides?.delete('cursorlineopt');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureCursorlineHighlight();
                     }),
             );
 

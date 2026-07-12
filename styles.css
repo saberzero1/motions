@@ -1081,3 +1081,46 @@ settings:
 .vim-motions-line-numbers-active .cm-lineNumbers {
     display: none;
 }
+
+/* --- Cursor line highlight --- */
+
+.vim-motions-cursorline {
+    background-color: var(
+        --vim-motions-cursorline-bg,
+        color-mix(in oklch, var(--text-accent) 6%, transparent)
+    );
+}
+
+/* --- Fold column --- */
+
+.vim-motions-fold-column .cm-gutterElement {
+    min-width: 1ch;
+    padding: 0 1px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.vim-motions-fold-marker-open,
+.vim-motions-fold-marker-folded {
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    color: var(--text-faint);
+    line-height: inherit;
+}
+
+.vim-motions-fold-marker-open:hover,
+.vim-motions-fold-marker-folded:hover {
+    color: var(--text-normal);
+}
+
+/* --- Mobile gutter width reduction --- */
+
+@media (max-width: 600px) {
+    .vim-motions-line-numbers .cm-gutterElement {
+        min-width: 2ch;
+        padding: 0 2px 0 0;
+    }
+    .vim-motions-line-num {
+        font-size: var(--font-smallest);
+    }
+}

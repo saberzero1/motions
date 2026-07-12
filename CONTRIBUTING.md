@@ -69,7 +69,11 @@ src/
     visual-line-command-fix.ts  # Visual line command edge-case fixes
     fold-sync.ts           # Fold state synchronization
     mark-store.ts          # Mark persistence across sessions
-    mark-gutter.ts         # Gutter indicators for marks
+    sign-column.ts         # Sign column (mark indicators via line decorations)
+    mark-gutter.ts         # Mark gutter refresh scheduling (delegates to sign-column)
+    line-number-gutter.ts  # Configurable line number gutter (absolute/relative/hybrid)
+    cursorline.ts          # Cursor line highlight (number/line/both modes)
+    fold-column.ts         # Fold column gutter (▸/▾ indicators with click-to-fold)
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing and cell utilities

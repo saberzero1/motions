@@ -85,7 +85,16 @@ import type { PersistedMarkEntry } from './vim/mark-gutter';
 import {
     createLineNumberExtension,
     reconfigureLineNumbers,
+    setNumberwidth,
 } from './vim/line-number-gutter';
+import {
+    createCursorlineExtension,
+    reconfigureCursorline,
+} from './vim/cursorline';
+import {
+    createFoldColumnExtension,
+    reconfigureFoldColumn,
+} from './vim/fold-column';
 import { MarkStore } from './vim/mark-store';
 import { HarpoonStore } from './vim/harpoon-store';
 import { navigateToHarpoonPin } from './vim/harpoon-nav';
@@ -100,7 +109,10 @@ import { createSandboxedState, destroyState, evalLua } from './lua/engine';
 import { injectVimApi } from './lua/api';
 import { injectVimFn } from './lua/fn';
 import { AutocmdManager } from './lua/autocmd';
-import { migrateConfigModeSettings } from './settings-migration';
+import {
+    migrateConfigModeSettings,
+    migrateSigncolumnSettings,
+} from './settings-migration';
 import type { lua_State } from 'fengari';
 import { pickerRegistry } from './picker/registry';
 import type { PickerSource } from './picker/types';
@@ -524,13 +536,47 @@ export default class VimMotionsPlugin extends Plugin {
                     overrides.set(key, directive ?? `set updatetime=${value}`);
                     applied = true;
                 }
-            } else if (key === 'number' || key === 'relativenumber') {
+            } else if (
+                key === 'number' ||
+                key === 'relativenumber' ||
+                key === 'numberwidth'
+            ) {
+                (this.settings as unknown as Record<string, unknown>)[key] =
+                    value;
+                overrides.set(key, directive ?? `set ${key}`);
+                applied = true;
+                if (key === 'numberwidth' && typeof value === 'number') {
+                    setNumberwidth(value);
+                }
+                if (!this.vimrcLoading && !this.luaLoading) {
+                    this.reconfigureLineNumberGutter();
+                }
+            } else if (key === 'cursorline' || key === 'cursorlineopt') {
                 (this.settings as unknown as Record<string, unknown>)[key] =
                     value;
                 overrides.set(key, directive ?? `set ${key}`);
                 applied = true;
                 if (!this.vimrcLoading && !this.luaLoading) {
-                    this.reconfigureLineNumberGutter();
+                    this.reconfigureCursorlineHighlight();
+                }
+            } else if (key === 'signcolumn') {
+                (this.settings as unknown as Record<string, unknown>)[key] =
+                    value;
+                overrides.set(
+                    key,
+                    directive ?? `set signcolumn=${String(value)}`,
+                );
+                applied = true;
+                if (!this.vimrcLoading && !this.luaLoading) {
+                    this.reloadFeatures();
+                }
+            } else if (key === 'foldcolumn') {
+                (this.settings as unknown as Record<string, unknown>)[key] =
+                    value;
+                overrides.set(key, directive ?? `set ${key}`);
+                applied = true;
+                if (!this.vimrcLoading && !this.luaLoading) {
+                    this.reconfigureFoldColumnGutter();
                 }
             } else if (key.startsWith('modePrompts.')) {
                 const mode = key.replace(
@@ -1476,7 +1522,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(foldLevelExtension());
         this.registerEditorExtension(markdownFoldProvider());
         this.registerEditorExtension(foldPlaceholderExtension());
-        if (this.settings.enableMarkGutter) {
+        if (this.settings.signcolumn !== 'no') {
             this.registerEditorExtension(markGutterExtension());
         }
         this.registerEditorExtension(
@@ -1490,6 +1536,16 @@ export default class VimMotionsPlugin extends Plugin {
                 'vim-motions-line-numbers-active',
             );
         }
+        setNumberwidth(this.settings.numberwidth);
+        this.registerEditorExtension(
+            createCursorlineExtension(
+                this.settings.cursorline,
+                this.settings.cursorlineopt,
+            ),
+        );
+        this.registerEditorExtension(
+            createFoldColumnExtension(this.settings.foldcolumn),
+        );
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
 
@@ -2877,7 +2933,7 @@ export default class VimMotionsPlugin extends Plugin {
         const filePath = mdView.file?.path;
 
         const handler = () => {
-            if (this.settings.enableMarkGutter) {
+            if (this.settings.signcolumn !== 'no') {
                 scheduleMarkGutterRefresh(
                     editorView,
                     adapter,
@@ -2895,7 +2951,7 @@ export default class VimMotionsPlugin extends Plugin {
             cancelMarkGutterRefresh(editorView);
         };
 
-        if (this.settings.enableMarkGutter) {
+        if (this.settings.signcolumn !== 'no') {
             scheduleMarkGutterRefresh(
                 editorView,
                 adapter,
@@ -2931,19 +2987,34 @@ export default class VimMotionsPlugin extends Plugin {
     reconfigureLineNumberGutter(): void {
         const num = this.settings.number;
         const rel = this.settings.relativenumber;
+        this.iterateEditorViews((cm) => reconfigureLineNumbers(cm, num, rel));
+        activeDocument.body.classList.toggle(
+            'vim-motions-line-numbers-active',
+            num || rel,
+        );
+    }
+
+    reconfigureCursorlineHighlight(): void {
+        const enabled = this.settings.cursorline;
+        const opt = this.settings.cursorlineopt;
+        this.iterateEditorViews((cm) =>
+            reconfigureCursorline(cm, enabled, opt),
+        );
+    }
+
+    reconfigureFoldColumnGutter(): void {
+        const enabled = this.settings.foldcolumn;
+        this.iterateEditorViews((cm) => reconfigureFoldColumn(cm, enabled));
+    }
+
+    private iterateEditorViews(fn: (cm: EditorView) => void): void {
         this.app.workspace.iterateAllLeaves((leaf) => {
             const view = (leaf.view as MarkdownView)?.editor;
             const cm = (
                 view as unknown as { cm?: { cm: EditorView } } | undefined
             )?.cm?.cm;
-            if (cm) {
-                reconfigureLineNumbers(cm, num, rel);
-            }
+            if (cm) fn(cm);
         });
-        activeDocument.body.classList.toggle(
-            'vim-motions-line-numbers-active',
-            num || rel,
-        );
     }
 
     onunload() {
@@ -3048,7 +3119,9 @@ export default class VimMotionsPlugin extends Plugin {
                   enableLuaConfig?: boolean;
               })
             | null;
-        const migrated = migrateConfigModeSettings(data);
+        const migrated = migrateSigncolumnSettings(
+            migrateConfigModeSettings(data),
+        );
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated ?? {});
         this.migrateLegacySettings(migrated);
     }

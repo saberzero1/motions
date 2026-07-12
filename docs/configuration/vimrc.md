@@ -137,6 +137,9 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `chorddisplay`      | `cd`  | Pending keystrokes in status bar      | on      |
 | `powerline`         | `pl`  | Colored powerline status bar          | off     |
 | `expandtab`         | `et`  | Use spaces instead of tabs            | on      |
+| `cursorline`        | `cul` | Cursor line highlight                 | on      |
+| `foldcolumn`        | `fdc` | Fold column indicators                | off     |
+| `markgutter`        | —     | Alias for `signcolumn` (compat)       | on      |
 
 ## Number options
 
@@ -151,24 +154,27 @@ Use `set <option>=<value>`.
 | `shiftwidth`              | `sw`   | Indent width                             | 4       | 1-8      |
 | `textwidth`               | `tw`   | Line wrap width for `gq`/`gw`            | 80      | 0-200    |
 | `insertmodeescapetimeout` | `imet` | Timeout (ms) for insert escape sequence  | 1000    | 100-5000 |
+| `numberwidth`             | `nuw`  | Minimum line number column width         | 2       | 1-20     |
 
 ## String options
 
 Use `set <option>=<value>`.
 
-| Option                  | Alias  | Description                                            | Default                               |
-| ----------------------- | ------ | ------------------------------------------------------ | ------------------------------------- |
-| `clipboard`             | `clip` | System clipboard sync (`unnamed`/`unnamedplus`)        | (off)                                 |
-| `insertmodeescape`      | `ime`  | Two-key sequence to exit insert mode                   | (off)                                 |
-| `easymotionlabels`      | `eml`  | Characters for EasyMotion labels                       | `asdghklqwertyuiopzxcvbnmfj`          |
-| `hintlabels`            | `hl`   | Characters for hint mode labels                        | `asdfghjkl`                           |
-| `guicursor`             | —      | Per-mode cursor shapes                                 | (block/bar/block/underline/underline) |
-| `tablewidget`           | —      | Table widget mode (`off`/`cursor`/`always`/`embedded`) | `cursor`                              |
-| `whichkey`              | `wk`   | Which-key hints (`off`/`leader`/`all`)                 | `off`                                 |
-| `whichkeygrouping`      | `wkg`  | Which-key grouping (`flat`/`grouped`)                  | `grouped`                             |
-| `whichkeysort`          | `wks`  | Which-key sort order (`which-key`/`groups-first`)      | `which-key`                           |
-| `whichkeyicons`         | `wki`  | Which-key icons (`on`/`off`)                           | `on`                                  |
-| `workspacenavviewtypes` | `wnvt` | View types for workspace nav interception              | (empty — uses defaults)               |
+| Option                  | Alias    | Description                                            | Default                               |
+| ----------------------- | -------- | ------------------------------------------------------ | ------------------------------------- |
+| `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)        | (off)                                 |
+| `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                   | (off)                                 |
+| `easymotionlabels`      | `eml`    | Characters for EasyMotion labels                       | `asdghklqwertyuiopzxcvbnmfj`          |
+| `hintlabels`            | `hl`     | Characters for hint mode labels                        | `asdfghjkl`                           |
+| `guicursor`             | —        | Per-mode cursor shapes                                 | (block/bar/block/underline/underline) |
+| `tablewidget`           | —        | Table widget mode (`off`/`cursor`/`always`/`embedded`) | `cursor`                              |
+| `whichkey`              | `wk`     | Which-key hints (`off`/`leader`/`all`)                 | `off`                                 |
+| `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                  | `grouped`                             |
+| `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)      | `which-key`                           |
+| `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                           | `on`                                  |
+| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception              | (empty — uses defaults)               |
+| `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)    | `number`                              |
+| `signcolumn`            | `scl`    | Sign column visibility (`auto`/`yes`/`no`)             | `auto`                                |
 
 ## Mode prompt customization
 

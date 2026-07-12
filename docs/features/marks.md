@@ -14,7 +14,7 @@ When you set a mark with `m{a-z}` or `m{A-Z}`, the mark letter appears in the gu
 
 The gutter indicators use no extra horizontal space — they overlay the existing gutter area without shifting document content.
 
-Toggle via **Settings → Vim Motions → Vim features → Mark gutter indicators**, `vim.opt.markgutter = false` in Lua, or `set nomarkgutter` in vimrc.
+Toggle via **Settings → Vim Motions → Vim features → Sign column**, `vim.opt.signcolumn = "no"` in Lua, or `set signcolumn=no` in vimrc. `set markgutter` / `set nomarkgutter` remain as backward-compatible aliases.
 
 ## Global mark persistence
 
