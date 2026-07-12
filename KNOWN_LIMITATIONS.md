@@ -1122,3 +1122,32 @@ These features are excluded by design and will not be implemented:
 ## Picker provider API and pop-out windows
 
 The picker provider API (`window.VimMotions.picker`) is only available on the main Obsidian window. Pop-out windows have separate `window` objects and will not have access to the API. External sources registered via the main window work when the picker is opened from the main window.
+
+## Bundled picker integrations
+
+### Runtime plugin detection
+
+The bundled picker integrations (Omnisearch, Tasks, Dataview) detect target plugins via `app.workspace.onLayoutReady()` at startup and via `reloadFeatures()` when integration settings are toggled. Obsidian does not emit events when community plugins are enabled or disabled at runtime (`app.plugins` has no event emitter — confirmed by runtime inspection of Obsidian v1.12.7). If a user enables Omnisearch/Tasks/Dataview after Vim Motions has loaded, the integration source will not appear until the user toggles the corresponding setting in **Settings → Vim Motions → Third-party integrations** (which triggers `reloadFeatures()`) or reloads Obsidian.
+
+### API stability
+
+The integrations use undocumented or internal APIs from each target plugin. These may change without notice:
+
+- **Omnisearch**: Uses `globalThis.omnisearch.search(query)` — a public but untyped global. Duck-typed at registration time (`typeof search === 'function'`).
+- **Tasks**: Uses `plugin.getTasks()` and `plugin.getState()` on the plugin instance — not part of the official `TasksApiV1` (which only exposes modal and toggle methods). The `obsidian-tasks-plugin:cache-update` workspace event is also undocumented.
+- **Dataview**: Uses `DataviewAPI.pages()` — a well-established public API exposed via `window.DataviewAPI`. The most stable of the three.
+
+All external API calls are wrapped in try/catch. If a target plugin changes its API shape, the integration silently degrades to empty results with a console warning.
+
+### Deferred features
+
+The following are intentionally not implemented in v1:
+
+| Feature                            | Rationale                                                                                                                                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dataview DQL query execution       | The picker is a navigation tool, not a query editor. DQL is complex and better served by Dataview's own code blocks. May be added as a separate `dataview-query` source if users request it.                                          |
+| Task creation/editing from picker  | Write operations are out of scope for picker sources. Users can jump to the task and edit in-place. Tasks plugin's `apiV1.createTaskLineModal()` and `editTaskLineModal()` could be integrated as picker actions in a future release. |
+| Multiple sub-sources per plugin    | Separate `tasks-overdue`, `tasks-today`, `dataview-query` sources would clutter the meta-picker. Prefer filter modes within a single source (e.g., query prefix `!` to show all tasks including completed).                           |
+| Custom Dataview query in settings  | Pre-configured DQL filters would require a settings UI for query editing. Users who want filtered pages can use Dataview's own query blocks or write a custom provider via the picker API.                                            |
+| Task filter modes                  | The `tasks` source currently shows all incomplete tasks. Modes like "due today", "overdue", or "all including completed" could be added via query prefix or a settings dropdown.                                                      |
+| Version pinning for target plugins | The integrations duck-type API methods rather than checking version strings. If a breaking change occurs, the try/catch wrapper prevents crashes. Pinning would require maintaining a compatibility matrix.                           |

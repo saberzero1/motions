@@ -99,6 +99,7 @@ import { AutocmdManager } from './lua/autocmd';
 import { migrateConfigModeSettings } from './settings-migration';
 import type { lua_State } from 'fengari';
 import { pickerRegistry } from './picker/registry';
+import type { PickerSource } from './picker/types';
 import { createMatcher } from './picker/matcher';
 import type { ManagedMatcher } from './picker/matcher';
 import { FrecencyStore } from './picker/frecency';
@@ -124,6 +125,15 @@ import { createRegistersSource } from './picker/sources/registers';
 import { createPickersSource } from './picker/sources/pickers';
 import { installPickerAPI, uninstallPickerAPI } from './picker/api';
 import type { PickerAPI } from './picker/api';
+import {
+    createOmnisearchSource,
+    isOmnisearchAvailable,
+} from './picker/sources/omnisearch';
+import { createTasksSource, isTasksAvailable } from './picker/sources/tasks';
+import {
+    createDataviewSource,
+    isDataviewAvailable,
+} from './picker/sources/dataview';
 import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
 import { OilManager } from './oil/manager';
@@ -769,6 +779,10 @@ export default class VimMotionsPlugin extends Plugin {
             this.pickerAPI = null;
         });
         this.app.workspace.trigger('vim-motions:picker-ready');
+
+        this.app.workspace.onLayoutReady(() => {
+            this.registerBundledIntegrations();
+        });
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf) => {
@@ -1687,6 +1701,9 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableTableNav) {
             this.uninstallTableCursorFix = installTableCursorFix();
         }
+        if (this.pickerAPI) {
+            this.registerBundledIntegrations();
+        }
     }
 
     private rebuildExSuggest(): void {
@@ -1915,6 +1932,44 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         this.leaderRegistry.addGroupLabel('f', 'Find', true, 'search', 'green');
+    }
+
+    registerBundledIntegrations(): void {
+        const wanted = (
+            setting: boolean,
+            available: boolean,
+            name: string,
+            create: () => PickerSource,
+        ) => {
+            if (setting && available) {
+                if (!pickerRegistry.has(name)) {
+                    pickerRegistry.register(create(), true);
+                }
+            } else {
+                if (pickerRegistry.has(name)) {
+                    pickerRegistry.unregister(name);
+                }
+            }
+        };
+
+        wanted(
+            this.settings.pickerOmnisearch,
+            isOmnisearchAvailable(),
+            'omnisearch',
+            createOmnisearchSource,
+        );
+        wanted(
+            this.settings.pickerTasks,
+            isTasksAvailable(this.app),
+            'tasks',
+            createTasksSource,
+        );
+        wanted(
+            this.settings.pickerDataview,
+            isDataviewAvailable(this.app),
+            'dataview',
+            createDataviewSource,
+        );
     }
 
     private registerHarpoonExCommands(): void {

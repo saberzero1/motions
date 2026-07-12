@@ -158,6 +158,16 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 > [!tip]
 > Set **Scrolloff lines** to `9999` to keep the cursor vertically centered.
 
+## Third-party integrations
+
+Bundled picker sources for popular community plugins. Sources register automatically when the target plugin is detected and unregister when it is disabled.
+
+| Name           | Type   | Default | Description                                                        |
+| -------------- | ------ | ------- | ------------------------------------------------------------------ |
+| Omnisearch     | toggle | `true`  | Register Omnisearch as a picker source for full-text vault search. |
+| Obsidian Tasks | toggle | `true`  | Register Obsidian Tasks as a picker source for navigating tasks.   |
+| Dataview       | toggle | `true`  | Register Dataview as a picker source for browsing indexed pages.   |
+
 ## Input method
 
 | Name                          | Type     | Default   | Range/Options                                 | Description                                                                                                          |

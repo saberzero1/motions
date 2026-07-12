@@ -221,6 +221,20 @@ const register = () => {
 };
 ```
 
+## Bundled integrations
+
+Vim Motions ships built-in picker sources for three popular plugins. These register automatically when the target plugin is detected:
+
+| Source       | Plugin         | Type    | Description                                     |
+| ------------ | -------------- | ------- | ----------------------------------------------- |
+| `omnisearch` | Omnisearch     | Dynamic | Full-text vault search (debounced, min 2 chars) |
+| `tasks`      | Obsidian Tasks | Static  | Incomplete tasks sorted by due date             |
+| `dataview`   | Dataview       | Static  | All indexed pages with tags/aliases             |
+
+Each can be disabled in **Settings → Vim Motions → Third-party integrations**.
+
+These serve as reference implementations for external plugin authors. See `src/picker/sources/omnisearch.ts`, `tasks.ts`, and `dataview.ts`.
+
 ## Type definitions
 
 Copy `src/picker/picker-api.d.ts` into your plugin for full type safety, or reference the types from the Vim Motions repository.

@@ -13,7 +13,12 @@ export const config: WebdriverIO.Config = {
             browserVersion: 'latest',
             'wdio:obsidianOptions': {
                 installerVersion: 'earliest',
-                plugins: ['.'],
+                plugins: [
+                    '.',
+                    { id: 'omnisearch', enabled: false },
+                    { id: 'obsidian-tasks-plugin', enabled: false },
+                    { id: 'dataview', enabled: false },
+                ],
                 vault: 'test-vault',
             },
         },

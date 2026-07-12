@@ -114,6 +114,9 @@ export interface VimMotionsSettings {
     picker: boolean;
     pickerLeaderMappings: boolean;
     pickerMatcherEngine: 'ufuzzy' | 'obsidian';
+    pickerOmnisearch: boolean;
+    pickerTasks: boolean;
+    pickerDataview: boolean;
     frecencyData?: Record<string, { count: number; timestamps: number[] }>;
     persistedMarks?: {
         name: string;
@@ -200,6 +203,9 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     picker: true,
     pickerLeaderMappings: true,
     pickerMatcherEngine: 'ufuzzy',
+    pickerOmnisearch: true,
+    pickerTasks: true,
+    pickerDataview: true,
     frecencyData: undefined,
     configMode: 'lua-vimrc',
     enableStatusBar: true,
@@ -370,6 +376,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'imDefaultNormalIm',
         'imRestoreBehavior',
         'imDefaultInsertIm',
+        'pickerOmnisearch',
+        'pickerTasks',
+        'pickerDataview',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
@@ -628,6 +637,38 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 ufuzzy: 'uFuzzy',
                                 obsidian: 'Obsidian built-in',
                             },
+                        },
+                    },
+                ],
+            },
+
+            // ── Third-party integrations ────────────────────────────
+            {
+                type: 'group' as const,
+                name: 'Third-party integrations',
+                items: [
+                    {
+                        name: 'Omnisearch',
+                        desc: 'Register Omnisearch as a picker source for full-text vault search.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'pickerOmnisearch',
+                        },
+                    },
+                    {
+                        name: 'Obsidian Tasks',
+                        desc: 'Register Obsidian Tasks as a picker source for navigating tasks.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'pickerTasks',
+                        },
+                    },
+                    {
+                        name: 'Dataview',
+                        desc: 'Register Dataview as a picker source for browsing indexed pages.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'pickerDataview',
                         },
                     },
                 ],

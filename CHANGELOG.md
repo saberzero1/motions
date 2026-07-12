@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/picker/sources/pickers.ts` (new), `src/workspace/commands.ts` (`:Picker` ex command), `src/main.ts` (`picker-pickers` Obsidian command)
 - **Picker source metadata** — `PickerSource` interface extended with optional `displayName`, `icon`, `description`, and `priority` fields. All 12 built-in sources now include metadata for display in the meta-picker.
     - Plugin: `src/picker/types.ts`, `src/picker/sources/*.ts` (all 12 source files)
+- **Bundled picker integrations** — three built-in picker sources that auto-detect and integrate with popular plugins:
+    - **Omnisearch** (`omnisearch`) — dynamic full-text vault search via `globalThis.omnisearch.search()`. 150ms debounce, min 2-char query. Jumps to first match offset on selection.
+    - **Obsidian Tasks** (`tasks`) — shows all incomplete tasks sorted by due date, grouped by status type. Cached with event-based invalidation via `obsidian-tasks-plugin:cache-update`. Jumps to task line on selection.
+    - **Dataview** (`dataview`) — lists all Dataview-indexed pages with tags and aliases in description. Filterable by the picker's fuzzy matcher.
+    - All three are gated by settings toggles in **Settings → Vim Motions → Third-party integrations** (default: enabled) and by runtime plugin detection via `onLayoutReady`.
+    - Plugin: `src/picker/sources/omnisearch.ts` (new), `src/picker/sources/tasks.ts` (new), `src/picker/sources/dataview.ts` (new), `src/main.ts` (detection + registration), `src/settings.ts` (3 toggles)
 
 ### Documentation
 
@@ -24,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/development/index.md`: added picker provider API link
 - `docs/reference/keybindings.md`: added `:Picker` / `:Pick` to ex commands table
 - `KNOWN_LIMITATIONS.md`: added picker provider API pop-out window limitation
+- `docs/configuration/settings.md`: added Third-party integrations settings group
+- `docs/development/picker-api.md`: added bundled integrations section
+- `eslint.config.mts`: added `.obsidian-cache` to global ignores (downloaded community plugin JS files)
+- `wdio.conf.mts`: added Omnisearch, Tasks, Dataview as `enabled: false` plugins for integration testing
+- `test/specs/picker-integration.e2e.ts`: 12 e2e tests covering source registration, picker opening, search results, meta-picker listing, and plugin disable/enable lifecycle
 
 ## [0.51.1] - 2026-07-11
 
