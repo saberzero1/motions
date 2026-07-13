@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-07-13
+
 ### Fixed
 
 - **Which-key descriptions not showing for keymaps set via Lua** — `vim.keymap.set` and `vim.obsidian.leader.set` with a `desc` option showed raw action names (`lua-action-0`), command strings (`:Oil<CR>`), or internal function names (`harpoonSelect1`) instead of the user's description. The codemirror-vim fork normalizes literal space characters to `<Space>` notation in key strings (e.g., `" ff"` → `"<Space>ff"`), but the which-key overlay stored and looked up label keys using unnormalized literal spaces — all lookups missed. Additionally, the leader-only which-key mode never triggered with space as leader because the `vim-keypress` event emits `"<Space>"` but the overlay compared against the raw `" "` character. ([#58](https://github.com/saberzero1/motions/issues/58))

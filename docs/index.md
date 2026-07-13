@@ -29,15 +29,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.52.0
+## What's new in 0.53.0
 
-- **Line number gutter** — `set number`, `set relativenumber`, or both for hybrid mode. Matches Neovim semantics exactly. Runtime switching via `:set number` / `:set nonumber`. Configurable via settings, vimrc, or Lua (`vim.opt.number`, `vim.opt.relativenumber`).
-- **Cursor line highlight** — `set cursorline` / `set nocursorline` with `cursorlineopt` (number/line/both).
-- **Fold column** — `set foldcolumn` shows ▸/▾ indicators for foldable regions with click-to-fold.
-- **Picker provider API** — external plugins can register custom picker sources via `window.VimMotions.picker.registerSource()`. Type definitions ship for consumer plugins.
-- **Meta-picker** — `:Picker` (no arguments) opens a source browser listing all registered picker sources. `:Picker <source>` opens a named source directly.
-- **Bundled picker integrations** — Omnisearch (full-text search), Obsidian Tasks (incomplete tasks by due date), and Dataview (indexed pages with tags/aliases). Gated by settings toggles in **Settings → Vim Motions → Third-party integrations**.
-- **`signcolumn` option** — `enableMarkGutter` migrated to a dropdown with Auto/Always/Off modes matching Neovim's `signcolumn`. Existing settings auto-migrated.
-- **Line numbers in table cells fix** — Obsidian's line number gutters no longer leak into embedded table cell editors. ([#19](https://github.com/saberzero1/motions/issues/19))
+- **[[snippets|Snippets]]** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution, and context-aware filtering (prose/code/frontmatter). Ships 40+ Obsidian-adapted snippets. Three trigger modes: CM6 completion menu, Tab expansion, and ex commands (`:snippet`, `:snippets` picker). User-defined snippets via JSON files or LuaSnip-inspired Lua DSL with reactive `f()`/`d()` nodes.
+- **Snippet Lua DSL** — `vim.snippet.*` API: `s()`, `t()`, `i()`, `c()`, `rep()`, `fmt()` for static snippets, plus `f()` (function nodes), `d()` (dynamic nodes), `sn()` (snippet nodes), `r()` (restore nodes) for reactive snippets that execute Lua at edit time.
+- **Which-key fix** — descriptions now display correctly for keymaps set via `vim.keymap.set` and `vim.obsidian.leader.set` with space as leader. ([#58](https://github.com/saberzero1/motions/issues/58))
+- **`vim.opt.clipboard` fix** — setting `vim.opt.clipboard = "unnamed"` or `vim.opt.textwidth` in init.lua now works correctly. Previously these options were silently ignored. ([#56](https://github.com/saberzero1/motions/issues/56))
+- **Vim option architecture** — side-effect options (clipboard, textwidth, guicursor) now use a unified `SideEffectOpt` table, eliminating silent failures when adding new options via Lua or vimrc.
 
 See the [[changelog|full changelog]] for details.
