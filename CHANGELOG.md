@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-07-13
+
 ### Added
 
 - **Which-key auto-resolves Obsidian command names for `:obcommand` mappings** — when a key is mapped to `:obcommand <id><CR>` or `:ob <id><CR>` without an explicit `desc`, the which-key popup now displays Obsidian's native command name instead of the raw ex command string. For example, `:ob app:go-back<CR>` displays as "Navigate back". Explicit `desc` options still take priority. Unknown command IDs fall back to the raw string. Descriptions are automatically localized — Obsidian's built-in commands already have localized names, so descriptions match the user's Obsidian language setting. Works in both editor which-key (leader bindings, `vim.keymap.set`) and global which-key (`:gmap`, `vim.obsidian.keymap.set`). ([#62](https://github.com/saberzero1/motions/issues/62))

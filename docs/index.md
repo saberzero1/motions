@@ -29,12 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.53.0
+## What's new in 0.54.0
 
-- **[[snippets|Snippets]]** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution, and context-aware filtering (prose/code/frontmatter). Ships 40+ Obsidian-adapted snippets. Three trigger modes: CM6 completion menu, Tab expansion, and ex commands (`:snippet`, `:snippets` picker). User-defined snippets via JSON files or LuaSnip-inspired Lua DSL with reactive `f()`/`d()` nodes.
-- **Snippet Lua DSL** — `vim.snippet.*` API: `s()`, `t()`, `i()`, `c()`, `rep()`, `fmt()` for static snippets, plus `f()` (function nodes), `d()` (dynamic nodes), `sn()` (snippet nodes), `r()` (restore nodes) for reactive snippets that execute Lua at edit time.
-- **Which-key fix** — descriptions now display correctly for keymaps set via `vim.keymap.set` and `vim.obsidian.leader.set` with space as leader. ([#58](https://github.com/saberzero1/motions/issues/58))
-- **`vim.opt.clipboard` fix** — setting `vim.opt.clipboard = "unnamed"` or `vim.opt.textwidth` in init.lua now works correctly. Previously these options were silently ignored. ([#56](https://github.com/saberzero1/motions/issues/56))
-- **Vim option architecture** — side-effect options (clipboard, textwidth, guicursor) now use a unified `SideEffectOpt` table, eliminating silent failures when adding new options via Lua or vimrc.
+- **Which-key auto-resolves Obsidian command names** — when a key is mapped to `:obcommand <id>` or `:ob <id>` without an explicit `desc`, the which-key popup now displays Obsidian's native command name instead of the raw ex command string. For example, `:ob app:go-back<CR>` displays as "Navigate back". Descriptions are automatically localized to match the user's Obsidian language setting. Works in both editor and global which-key. ([#62](https://github.com/saberzero1/motions/issues/62))
+- **Internal API consolidation** — extracted ~40 inline unsafe type casts across 16 files into 6 typed utility modules under `src/util/`, centralizing access to Obsidian's internal APIs (`commands`, `editor`, `leaf`, `metadata`, `vault`, `keymap`).
 
 See the [[changelog|full changelog]] for details.
