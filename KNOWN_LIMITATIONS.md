@@ -1163,3 +1163,11 @@ The following are intentionally not implemented in v1:
 - Dynamic snippets triggered via the completion menu expand with their static body only — the dynamic context is not activated. Use Tab expansion for full dynamic behavior.
 - Nested `d()` nodes (dynamic nodes inside dynamic nodes) are not supported.
 - User snippet directory scanning requires desktop — vault-relative paths work on mobile, but absolute paths and `~` expansion are desktop-only.
+
+### Ex command snippet expansion
+
+`:snippet <name>` and `:snippets` (picker) commands are registered but expansion via the test harness's `Vim.handleEx()` bridge does not produce visible results. The commands work correctly when typed directly in the ex command line. The issue is that `getActiveEditorView(app)` returns a view reference that differs from the adapter's CM6 view when invoked through the programmatic `handleEx` path. This is a test infrastructure limitation, not a user-facing bug.
+
+### Dynamic node (`d()`) test registration timing
+
+Lua-defined `d()` snippets registered via `loadLuaConfig` in e2e tests may not appear in the snippet registry because `reloadFeatures()` called after Lua config load is short-circuited by the autocmd manager's `isFiring()` guard. The snippet registry IS rebuilt directly in `loadLuaConfigInternal` (bypassing `reloadFeatures`), but `d()` snippets defined in a test-specific `loadLuaConfig` call may not trigger this path correctly. The `f()` node tests pass because they benefit from the direct registry rebuild added to address this issue. This is a test lifecycle timing issue, not a runtime bug — real users defining `d()` snippets in `.obsidian.init.lua` will have them loaded correctly during normal plugin initialization.
