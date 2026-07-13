@@ -28,10 +28,14 @@ export function createSnippetCompletionSource(
             return entry.prefixes.flatMap((prefix) => {
                 if (query && !prefix.startsWith(query)) return [];
                 const body = preprocessSnippetBody(entry.body, getContext());
+                const isDynamic = registry.getDynamic(prefix) !== undefined;
+                const detail = isDynamic
+                    ? `[dynamic] ${entry.name}`
+                    : entry.name;
                 return [
                     snippetCompletion(body, {
                         label: prefix,
-                        detail: entry.name,
+                        detail,
                         info: entry.description || undefined,
                         type: 'snippet',
                         boost: entry.source === 'user' ? 1 : 0,

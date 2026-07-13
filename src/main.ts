@@ -165,6 +165,12 @@ import { registerSnippetCommands } from './snippets/commands';
 import { createSnippetsPickerSource } from './snippets/picker-source';
 import type { SnippetRegistry } from './snippets/registry';
 import type { PreprocessContext } from './snippets/types';
+import {
+    createDynamicSnippetPlugin,
+    getActiveDynamicContext,
+    setActiveDynamicContext,
+} from './snippets/dynamic-bridge';
+import { snippetState } from '@codemirror/autocomplete';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -1230,6 +1236,7 @@ export default class VimMotionsPlugin extends Plugin {
                     snippetDirectory: this.settings.snippetDirectory,
                 },
                 this.luaSnippetDefs,
+                this.luaState ?? undefined,
             ).then(({ registry, errors }) => {
                 this.snippetRegistry = registry;
                 if (errors.length > 0) {
@@ -1621,6 +1628,23 @@ export default class VimMotionsPlugin extends Plugin {
                     ),
                 );
             }
+            this.registerEditorExtension(
+                createDynamicSnippetPlugin(
+                    () => getActiveDynamicContext(),
+                ),
+            );
+            this.registerEditorExtension(
+                EditorView.updateListener.of((update) => {
+                    const prev = update.startState.field(
+                        snippetState,
+                        false,
+                    );
+                    const curr = update.state.field(snippetState, false);
+                    if (prev && !curr) {
+                        setActiveDynamicContext(null);
+                    }
+                }),
+            );
         }
 
         this.registerEditorExtension(
@@ -3117,6 +3141,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        setActiveDynamicContext(null);
         activeDocument.body.classList.remove('vim-motions-line-numbers-active');
         this.markGutterCleanup?.();
         this.markGutterCleanup = null;

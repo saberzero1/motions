@@ -1,8 +1,9 @@
 import type { App } from 'obsidian';
 import type { SnippetFile } from './types';
 import { SnippetRegistry } from './registry';
-import { compileLuaSnippets } from './lua-compiler';
+import { compileLuaSnippets, compileLuaSnippetsHybrid } from './lua-compiler';
 import type { LuaSnippetDef } from '../lua/snippet-api';
+import type { lua_State } from 'fengari';
 import {
     isAbsolutePath,
     readExternalFile,
@@ -38,6 +39,7 @@ export async function loadSnippets(
     app: App,
     settings: { snippetBundled: boolean; snippetDirectory: string },
     luaSnippets?: LuaSnippetDef[],
+    luaState?: lua_State,
 ): Promise<{ registry: SnippetRegistry; errors: SnippetLoadError[] }> {
     const registry = new SnippetRegistry();
     const errors: SnippetLoadError[] = [];
@@ -122,8 +124,28 @@ export async function loadSnippets(
     }
 
     if (luaSnippets && luaSnippets.length > 0) {
-        const compiled = compileLuaSnippets(luaSnippets);
-        registry.loadFile(compiled, 'lua');
+        if (luaState) {
+            const { staticSnippets, dynamicSnippets } =
+                compileLuaSnippetsHybrid(luaSnippets, luaState);
+            registry.loadFile(staticSnippets, 'lua');
+            for (const [trigger, { def, compiled }] of dynamicSnippets) {
+                registry.loadFile(
+                    {
+                        [trigger]: {
+                            prefix: trigger,
+                            body: compiled.staticBody,
+                            description: `[dynamic] ${trigger}`,
+                            context: def.context,
+                        },
+                    },
+                    'lua',
+                );
+                registry.registerDynamic(trigger, compiled);
+            }
+        } else {
+            const compiled = compileLuaSnippets(luaSnippets);
+            registry.loadFile(compiled, 'lua');
+        }
     }
 
     return { registry, errors };

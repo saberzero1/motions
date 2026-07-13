@@ -1,10 +1,12 @@
+import type { EditorState } from '@codemirror/state';
 import { type Extension, Prec } from '@codemirror/state';
 import { type EditorView, keymap } from '@codemirror/view';
-import { snippet, hasNextSnippetField } from '@codemirror/autocomplete';
+import { snippet, snippetState } from '@codemirror/autocomplete';
 import type { SnippetRegistry } from './registry';
 import type { PreprocessContext } from './types';
 import { preprocessSnippetBody } from './preprocess';
 import { detectCursorContext, matchesContext } from './context';
+import { expandDynamicSnippet } from './dynamic-bridge';
 
 export function createSnippetTabKeymap(
     getRegistry: () => SnippetRegistry | null,
@@ -12,13 +14,21 @@ export function createSnippetTabKeymap(
     isInsertMode: () => boolean,
     isEnabled: () => boolean,
 ): Extension {
+    const snippetStateField = snippetState;
+    const hasNextSnippetFieldCompat = (state: EditorState): boolean => {
+        const active = state.field(snippetStateField, false);
+        return !!(
+            active && active.ranges.some((r) => r.field === active.active + 1)
+        );
+    };
+
     return Prec.high(
         keymap.of([
             {
                 key: 'Tab',
                 run(view: EditorView): boolean {
                     if (!isEnabled() || !isInsertMode()) return false;
-                    if (hasNextSnippetField(view.state)) {
+                    if (hasNextSnippetFieldCompat(view.state)) {
                         return false;
                     }
                     if (!view.state.selection.main.empty) return false;
@@ -46,6 +56,17 @@ export function createSnippetTabKeymap(
                     if (!entry) return false;
 
                     const prefixFrom = cursorPos - prefix.length;
+                    const dynamicDef = registry.getDynamic(prefix);
+                    if (dynamicDef) {
+                        expandDynamicSnippet(
+                            view,
+                            dynamicDef,
+                            prefixFrom,
+                            cursorPos,
+                            getContext(),
+                        );
+                        return true;
+                    }
                     const body = preprocessSnippetBody(
                         entry.body,
                         getContext(),

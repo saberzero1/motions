@@ -1,8 +1,11 @@
+import { lua, lauxlib } from 'fengari';
+import type { DynamicSnippetDef } from './dynamic-bridge';
 import type { SnippetDefinition, SnippetEntry, SnippetFile } from './types';
 
 export class SnippetRegistry {
     private entries = new Map<string, SnippetEntry>();
     private prefixIndex = new Map<string, SnippetEntry[]>();
+    private dynamicDefs = new Map<string, DynamicSnippetDef>();
 
     loadFile(
         file: SnippetFile,
@@ -21,6 +24,16 @@ export class SnippetRegistry {
     clear(): void {
         this.entries.clear();
         this.prefixIndex.clear();
+        for (const def of this.dynamicDefs.values()) {
+            for (const node of def.dynamicNodes) {
+                lauxlib.luaL_unref(
+                    def.luaState,
+                    lua.LUA_REGISTRYINDEX,
+                    node.luaFnRef,
+                );
+            }
+        }
+        this.dynamicDefs.clear();
     }
 
     getAll(): SnippetEntry[] {
@@ -46,6 +59,18 @@ export class SnippetRegistry {
 
     get(id: string): SnippetEntry | undefined {
         return this.entries.get(id);
+    }
+
+    registerDynamic(trigger: string, def: DynamicSnippetDef): void {
+        this.dynamicDefs.set(trigger, def);
+    }
+
+    getDynamic(prefix: string): DynamicSnippetDef | undefined {
+        return this.dynamicDefs.get(prefix);
+    }
+
+    hasDynamic(prefix: string): boolean {
+        return this.dynamicDefs.has(prefix);
     }
 
     private normalizeEntry(

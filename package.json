@@ -42,7 +42,7 @@
         "jiti": "^2.6.1",
         "mocha": "^11.7.6",
         "neovim": "^5.4.0",
-        "obsidian": "latest",
+        "obsidian": "^1.13.1",
         "tsx": "^4.22.4",
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.59.1",
@@ -52,7 +52,7 @@
         "yaml": "^2.7.1"
     },
     "dependencies": {
-        "@codemirror/autocomplete": "https://github.com/saberzero1/autocomplete.git",
+        "@codemirror/autocomplete": "github:saberzero1/autocomplete",
         "@leeoniya/ufuzzy": "^1.0.19",
         "@replit/codemirror-vim": "https://github.com/saberzero1/codemirror-vim.git",
         "fengari": "https://github.com/saberzero1/fengari.git"
