@@ -1,5 +1,5 @@
 import { Notice, MarkdownView, type App } from 'obsidian';
-import { snippet } from '@codemirror/autocomplete';
+import { snippet } from './autocomplete-types';
 import type { EditorView } from '@codemirror/view';
 import type { VimRegistration } from '../vim/registration';
 import type { SnippetRegistry } from './registry';

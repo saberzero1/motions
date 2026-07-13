@@ -157,7 +157,7 @@ import { OilView, createOilViewFactory } from './oil/oil-view';
 import { ImSwitcher } from './im/im-switcher';
 import { parseImArgs } from './im/im-process';
 import { expandTilde } from './util/external-fs';
-import { autocompletion } from '@codemirror/autocomplete';
+import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
 import { createSnippetTabKeymap } from './snippets/tab-expand';
@@ -170,7 +170,7 @@ import {
     getActiveDynamicContext,
     setActiveDynamicContext,
 } from './snippets/dynamic-bridge';
-import { snippetState } from '@codemirror/autocomplete';
+import { snippetState } from './snippets/autocomplete-types';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;

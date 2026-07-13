@@ -1,7 +1,7 @@
 import type { EditorState } from '@codemirror/state';
 import { type Extension, Prec } from '@codemirror/state';
 import { type EditorView, keymap } from '@codemirror/view';
-import { snippet, snippetState } from '@codemirror/autocomplete';
+import { snippet, snippetState } from './autocomplete-types';
 import type { SnippetRegistry } from './registry';
 import type { PreprocessContext } from './types';
 import { preprocessSnippetBody } from './preprocess';

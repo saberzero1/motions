@@ -3,7 +3,7 @@ import {
     type CompletionResult,
     type CompletionSource,
     snippetCompletion,
-} from '@codemirror/autocomplete';
+} from './autocomplete-types';
 import type { SnippetRegistry } from './registry';
 import type { PreprocessContext } from './types';
 import { preprocessSnippetBody } from './preprocess';

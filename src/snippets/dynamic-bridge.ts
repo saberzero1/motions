@@ -7,7 +7,7 @@ import {
     setActive,
     snippet,
     snippetState,
-} from '@codemirror/autocomplete';
+} from './autocomplete-types';
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import type { LuaSnippetNode } from '../lua/snippet-api';

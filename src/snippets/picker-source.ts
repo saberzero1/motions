@@ -3,7 +3,7 @@ import type { PickerSource, PickerItem, PreviewReturn } from '../picker/types';
 import type { SnippetRegistry } from './registry';
 import type { PreprocessContext } from './types';
 import { preprocessSnippetBody } from './preprocess';
-import { snippet } from '@codemirror/autocomplete';
+import { snippet } from './autocomplete-types';
 import type { EditorView } from '@codemirror/view';
 
 function getActiveEditorView(app: App): EditorView | null {
