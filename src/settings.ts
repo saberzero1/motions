@@ -199,6 +199,11 @@ export interface VimMotionsSettings {
     imDefaultNormalIm: string;
     imRestoreBehavior: 'restore' | 'default';
     imDefaultInsertIm: string;
+
+    enableSnippets: boolean;
+    snippetBundled: boolean;
+    snippetDirectory: string;
+    snippetTriggerMode: 'completion' | 'tab' | 'both';
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -288,6 +293,11 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     imDefaultNormalIm: '',
     imRestoreBehavior: 'restore' as const,
     imDefaultInsertIm: '',
+
+    enableSnippets: true,
+    snippetBundled: true,
+    snippetDirectory: '',
+    snippetTriggerMode: 'both' as const,
 };
 
 interface ObsidianCommand {
@@ -393,6 +403,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'pickerOmnisearch',
         'pickerTasks',
         'pickerDataview',
+        'enableSnippets',
+        'snippetBundled',
+        'snippetDirectory',
+        'snippetTriggerMode',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
@@ -2647,6 +2661,75 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.labelFontSize = value;
                         this.plugin.vimrcOverrides?.delete('labelFontSize');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        // ── Snippets ─────────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Snippets').setHeading();
+
+        new Setting(containerEl)
+            .setName('Enable snippets')
+            .setDesc(
+                'Enable snippet expansion with tabstop navigation, variables, and completion.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableSnippets)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableSnippets = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Bundled snippets')
+            .setDesc(
+                'Include built-in Obsidian Markdown snippets (headings, callouts, wikilinks, tables, etc.).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.snippetBundled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.snippetBundled = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Snippet directory')
+            .setDesc(
+                'Path to a directory containing user snippet JSON files. Supports ~ for home directory and absolute paths (desktop only).',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('~/snippets')
+                    .setValue(this.plugin.settings.snippetDirectory)
+                    .onChange(async (value) => {
+                        this.plugin.settings.snippetDirectory = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Trigger mode')
+            .setDesc(
+                'How snippets are triggered: completion menu (type prefix to see suggestions), tab expansion (type prefix + tab), or both.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        both: 'Both',
+                        completion: 'Completion menu only',
+                        tab: 'Tab expansion only',
+                    })
+                    .setValue(this.plugin.settings.snippetTriggerMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.snippetTriggerMode = value as
+                            | 'completion'
+                            | 'tab'
+                            | 'both';
                         await this.plugin.saveSettings();
                     }),
             );

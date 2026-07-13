@@ -203,6 +203,14 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     markgutter: { type: 'boolean', settingsKey: 'enableMarkGutter' },
     foldcolumn: { type: 'boolean', settingsKey: 'foldcolumn' },
     fdc: { type: 'boolean', settingsKey: 'foldcolumn' },
+    snippets: { type: 'boolean', settingsKey: 'enableSnippets' },
+    snippetbundled: { type: 'boolean', settingsKey: 'snippetBundled' },
+    snippetdir: { type: 'string', settingsKey: 'snippetDirectory' },
+    snippettrigger: {
+        type: 'string',
+        settingsKey: 'snippetTriggerMode',
+        validValues: ['completion', 'tab', 'both'],
+    },
 };
 
 function applyKnownSetOption(

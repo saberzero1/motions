@@ -157,6 +157,14 @@ import { OilView, createOilViewFactory } from './oil/oil-view';
 import { ImSwitcher } from './im/im-switcher';
 import { parseImArgs } from './im/im-process';
 import { expandTilde } from './util/external-fs';
+import { autocompletion } from '@codemirror/autocomplete';
+import { loadSnippets } from './snippets/loader';
+import { createSnippetCompletionSource } from './snippets/completion-source';
+import { createSnippetTabKeymap } from './snippets/tab-expand';
+import { registerSnippetCommands } from './snippets/commands';
+import { createSnippetsPickerSource } from './snippets/picker-source';
+import type { SnippetRegistry } from './snippets/registry';
+import type { PreprocessContext } from './snippets/types';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -253,10 +261,21 @@ export default class VimMotionsPlugin extends Plugin {
     pickerAPI: PickerAPI | null = null;
     private oilKeybindingManager: OilKeybindingManager | null = null;
     private oilManager: OilManager | null = null;
+    private snippetRegistry: SnippetRegistry | null = null;
+    private luaSnippetDefs: import('./lua/snippet-api').LuaSnippetDef[] = [];
     private imSwitcher: ImSwitcher | null = null;
     private imInsertLeaveId: number | null = null;
     private imInsertEnterId: number | null = null;
     private imCmdlineLeaveId: number | null = null;
+
+    private getSnippetPreprocessContext(): PreprocessContext {
+        const activeFile = this.app.workspace.getActiveFile();
+        return {
+            filePath: activeFile?.path ?? '',
+            clipboard: '',
+            selectedText: '',
+        };
+    }
 
     get vimrcEnabled(): boolean {
         return (
@@ -1185,6 +1204,44 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.registerHarpoonExCommands();
 
+        if (this.settings.enableSnippets) {
+            if (this.registration) {
+                registerSnippetCommands(
+                    this.registration,
+                    this.app,
+                    () => this.snippetRegistry,
+                    () => this.getSnippetPreprocessContext(),
+                    () => this.openPicker ?? undefined,
+                );
+            }
+            if (this.settings.picker) {
+                pickerRegistry.register(
+                    createSnippetsPickerSource(
+                        () => this.snippetRegistry,
+                        () => this.getSnippetPreprocessContext(),
+                    ),
+                    true,
+                );
+            }
+            void loadSnippets(
+                this.app,
+                {
+                    snippetBundled: this.settings.snippetBundled,
+                    snippetDirectory: this.settings.snippetDirectory,
+                },
+                this.luaSnippetDefs,
+            ).then(({ registry, errors }) => {
+                this.snippetRegistry = registry;
+                if (errors.length > 0) {
+                    new Notice(
+                        `Snippet errors:\n${errors.map((e) => `${e.file}: ${e.error}`).join('\n')}`,
+                    );
+                }
+            });
+        } else {
+            this.snippetRegistry = null;
+        }
+
         this.addCommand({
             id: 'picker-files',
             name: 'Picker: Find files',
@@ -1525,6 +1582,47 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.signcolumn !== 'no') {
             this.registerEditorExtension(markGutterExtension());
         }
+
+        if (this.settings.enableSnippets) {
+            const triggerMode = this.settings.snippetTriggerMode;
+            if (triggerMode === 'completion' || triggerMode === 'both') {
+                this.registerEditorExtension(
+                    autocompletion({
+                        override: [
+                            createSnippetCompletionSource(
+                                () => this.snippetRegistry,
+                                () => this.getSnippetPreprocessContext(),
+                            ),
+                        ],
+                        activateOnTyping: true,
+                        defaultKeymap: false,
+                    }),
+                );
+            }
+            if (triggerMode === 'tab' || triggerMode === 'both') {
+                this.registerEditorExtension(
+                    createSnippetTabKeymap(
+                        () => this.snippetRegistry,
+                        () => this.getSnippetPreprocessContext(),
+                        () => {
+                            const mdView =
+                                this.app.workspace.getActiveViewOfType(
+                                    MarkdownView,
+                                );
+                            if (!mdView) return false;
+                            const adapter = getCmAdapter(mdView);
+                            if (!adapter) return false;
+                            const vimState = adapter.state.vim as
+                                | Record<string, unknown>
+                                | undefined;
+                            return !!vimState?.insertMode;
+                        },
+                        () => this.settings.enableSnippets,
+                    ),
+                );
+            }
+        }
+
         this.registerEditorExtension(
             createLineNumberExtension(
                 this.settings.number,
@@ -2655,6 +2753,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.reregisterLeaderFeatures();
         this.rebuildWhichKey();
+        this.luaSnippetDefs = luaResult.luaSnippets ?? [];
         this.luaLoaded = true;
         this.luaLoading = false;
         this.reloadFeatures();

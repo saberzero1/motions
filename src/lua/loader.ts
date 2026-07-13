@@ -25,6 +25,7 @@ import { injectVimFn } from './fn';
 import { injectStdlib } from './stdlib';
 import { injectTimers, TimerManager } from './timers';
 import { HighlightManager } from './highlight';
+import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
 import type { lua_State } from 'fengari';
 import type { ImSwitcher } from '../im/im-switcher';
 import {
@@ -78,6 +79,7 @@ export interface LuaLoadResult {
     autocmdManager: AutocmdManager | null;
     timerManager: TimerManager | null;
     highlightManager: HighlightManager | null;
+    luaSnippets: LuaSnippetDef[];
 }
 
 /**
@@ -202,6 +204,7 @@ export async function loadInitLua(
             surroundPairs: [],
             leaderBindings: [],
             commandCount: 0,
+            luaSnippets: [],
             state: null,
             autocmdManager: null,
             timerManager: null,
@@ -1022,6 +1025,7 @@ export async function loadInitLua(
 
     injectStdlib(L);
     const timerManager = injectTimers(L);
+    const luaSnippets = injectSnippetApi(L);
 
     const result = evalLua(L, content);
     const initialFilePath = app.workspace.getActiveFile()?.path ?? null;
@@ -1123,6 +1127,7 @@ export async function loadInitLua(
             surroundPairs: [],
             leaderBindings: [],
             commandCount: 0,
+            luaSnippets,
             state: L,
             autocmdManager,
             timerManager,
@@ -1152,6 +1157,7 @@ export async function loadInitLua(
         surroundPairs,
         leaderBindings,
         commandCount,
+        luaSnippets,
         state: L,
         autocmdManager,
         timerManager,
