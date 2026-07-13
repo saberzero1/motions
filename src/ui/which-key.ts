@@ -27,6 +27,17 @@ interface WhichKeyEntry {
 
 const DEFAULT_SHOW_DELAY = 500;
 
+/**
+ * Normalize a vim key string so literal special characters match the
+ * `<…>` notation used by the codemirror-vim fork internally.
+ * Mirrors the fork's own `normalizeKeyString` in `vim.js`.
+ */
+export function normalizeVimKey(input: string): string {
+    return input.replace(/<[^>]+>|( )/g, (_m, literalSpace: string) =>
+        literalSpace ? '<Space>' : _m,
+    );
+}
+
 const OPERATOR_PENDING_TYPES = new Set(['motion', 'operatorMotion', 'search']);
 
 /**
@@ -296,6 +307,7 @@ function getEditorContainer(app: App): HTMLElement | null {
 export class WhichKeyOverlay {
     private app: App;
     private leaderKey: string;
+    private normalizedLeaderKey: string;
     private leaderBindings: LeaderBinding[];
     private generalMode: boolean;
     private groupLeaderBindings: boolean;
@@ -329,6 +341,7 @@ export class WhichKeyOverlay {
     ) {
         this.app = app;
         this.leaderKey = leaderKey;
+        this.normalizedLeaderKey = normalizeVimKey(leaderKey);
         this.leaderBindings = leaderBindings;
         this.generalMode = generalMode;
         this.groupLeaderBindings = groupLeaderBindings;
@@ -415,7 +428,7 @@ export class WhichKeyOverlay {
     }
 
     private onKeyPressLeaderOnly(key: string): void {
-        if (key === this.leaderKey && !this.pendingLeader) {
+        if (key === this.normalizedLeaderKey && !this.pendingLeader) {
             this.pendingLeader = true;
             this.leaderPrefix = '';
             this.clearTimer();
@@ -520,7 +533,7 @@ export class WhichKeyOverlay {
         if (!this.groupLeaderBindings) {
             const entries: WhichKeyEntry[] = filtered.map((b) => {
                 const labelInfo = this.commandLabels.get(
-                    this.leaderKey + b.key,
+                    normalizeVimKey(this.leaderKey + b.key),
                 );
                 return {
                     key: prefix ? b.key.slice(prefix.length) : b.key,
@@ -537,7 +550,9 @@ export class WhichKeyOverlay {
         }
 
         const bindingsForGrouping = filtered.map((b) => {
-            const labelInfo = this.commandLabels.get(this.leaderKey + b.key);
+            const labelInfo = this.commandLabels.get(
+                normalizeVimKey(this.leaderKey + b.key),
+            );
             return {
                 keys: prefix ? b.key.slice(prefix.length) : b.key,
                 type: 'action' as const,
@@ -548,7 +563,7 @@ export class WhichKeyOverlay {
             };
         });
 
-        const absolutePrefix = this.leaderKey + prefix;
+        const absolutePrefix = normalizeVimKey(this.leaderKey + prefix);
         const relativeLabels = this.getRelativeGroupLabels(absolutePrefix);
 
         const entries = buildSortedNextKeyEntries(
@@ -613,11 +628,13 @@ export class WhichKeyOverlay {
             const completions = vim.getCompletions(keyBuffer, effectiveContext);
 
             const isLeaderScope =
-                !opPending && keyBuffer.startsWith(this.leaderKey);
+                !opPending && keyBuffer.startsWith(this.normalizedLeaderKey);
 
             const leaderBindingMap = new Map<string, string>();
             if (isLeaderScope) {
-                const leaderSuffix = keyBuffer.slice(this.leaderKey.length);
+                const leaderSuffix = keyBuffer.slice(
+                    this.normalizedLeaderKey.length,
+                );
                 for (const b of this.leaderBindings) {
                     if (!leaderSuffix || b.key.startsWith(leaderSuffix)) {
                         const rel = leaderSuffix

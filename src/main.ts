@@ -40,7 +40,11 @@ import {
 } from './vim/bundled-vim';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintActions } from './ui/hint-mode';
-import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
+import {
+    LeaderRegistry,
+    WhichKeyOverlay,
+    normalizeVimKey,
+} from './ui/which-key';
 import type { WhichKeyLabelInfo } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import { registerVimOptions } from './vim/options';
@@ -1973,13 +1977,13 @@ export default class VimMotionsPlugin extends Plugin {
         const registryLabels = this.leaderRegistry.getGroupLabels();
         const groupLabels = new Map<string, WhichKeyLabelInfo>();
         for (const [key, label] of registryLabels) {
-            groupLabels.set(leaderKey + key, label);
+            groupLabels.set(normalizeVimKey(leaderKey + key), label);
         }
         for (const entry of this.settings.whichKeyGroupLabels) {
             if (entry.key && entry.label) {
-                const expandedKey = entry.key
-                    .trim()
-                    .replace(/<leader>/gi, leaderKey);
+                const expandedKey = normalizeVimKey(
+                    entry.key.trim().replace(/<leader>/gi, leaderKey),
+                );
                 groupLabels.set(expandedKey, {
                     label: entry.label,
                     icon: entry.icon,
@@ -1989,7 +1993,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
         for (const entry of this.vimrcGroupLabels) {
             if (entry.key && entry.label) {
-                groupLabels.set(entry.key, {
+                groupLabels.set(normalizeVimKey(entry.key), {
                     label: entry.label,
                     icon: entry.icon,
                     color: entry.color,
@@ -1998,7 +2002,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
         for (const entry of this.luaGroupLabels) {
             if (entry.key && entry.label) {
-                groupLabels.set(entry.key, {
+                groupLabels.set(normalizeVimKey(entry.key), {
                     label: entry.label,
                     icon: entry.icon,
                     color: entry.color,
@@ -2009,9 +2013,9 @@ export default class VimMotionsPlugin extends Plugin {
         const commandLabels = new Map<string, WhichKeyLabelInfo>();
         for (const entry of this.settings.whichKeyCommandLabels) {
             if (entry.key && entry.label) {
-                const expandedKey = entry.key
-                    .trim()
-                    .replace(/<leader>/gi, leaderKey);
+                const expandedKey = normalizeVimKey(
+                    entry.key.trim().replace(/<leader>/gi, leaderKey),
+                );
                 commandLabels.set(expandedKey, {
                     label: entry.label,
                     icon: entry.icon,
@@ -2021,7 +2025,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
         for (const entry of this.vimrcCommandLabels) {
             if (entry.key && entry.label) {
-                commandLabels.set(entry.key, {
+                commandLabels.set(normalizeVimKey(entry.key), {
                     label: entry.label,
                     icon: entry.icon,
                     color: entry.color,
@@ -2030,7 +2034,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
         for (const entry of this.luaCommandLabels) {
             if (entry.key && entry.label) {
-                commandLabels.set(entry.key, {
+                commandLabels.set(normalizeVimKey(entry.key), {
                     label: entry.label,
                     icon: entry.icon,
                     color: entry.color,

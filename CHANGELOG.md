@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Which-key descriptions not showing for keymaps set via Lua** — `vim.keymap.set` and `vim.obsidian.leader.set` with a `desc` option showed raw action names (`lua-action-0`), command strings (`:Oil<CR>`), or internal function names (`harpoonSelect1`) instead of the user's description. The codemirror-vim fork normalizes literal space characters to `<Space>` notation in key strings (e.g., `" ff"` → `"<Space>ff"`), but the which-key overlay stored and looked up label keys using unnormalized literal spaces — all lookups missed. Additionally, the leader-only which-key mode never triggered with space as leader because the `vim-keypress` event emits `"<Space>"` but the overlay compared against the raw `" "` character. ([#58](https://github.com/saberzero1/motions/issues/58))
+    - Plugin: `src/ui/which-key.ts` (`normalizeVimKey()` function mirroring the fork's `normalizeKeyString`, `normalizedLeaderKey` field for key event comparison, normalized lookups in `showLeaderBindings`/`showCompletions`/`onKeyPressLeaderOnly`), `src/main.ts` (`rebuildWhichKey()` normalizes all `commandLabels` and `groupLabels` map keys from settings, vimrc, and Lua sources)
 - **`vim.opt.clipboard` silently ignored in init.lua** — setting `vim.opt.clipboard = "unnamed"` or `"unnamedplus"` in init.lua had no effect. The Lua `vim.opt` handler only routed options through the `KNOWN_SET_OPTIONS` table, but `clipboard` was special-cased in the vimrc loader and missing from that table. Yanks never synced to the system clipboard when configured via Lua. Same issue affected `vim.opt.textwidth`. ([#56](https://github.com/saberzero1/motions/issues/56))
     - Plugin: `src/vimrc/loader.ts` (`SideEffectOpt` type, `clipboard`/`textwidth`/`guicursor` added to `KNOWN_SET_OPTIONS`), `src/lua/api.ts` (special-case blocks removed, unified `KNOWN_SET_OPTIONS` path), `src/main.ts` (initial settings load from saved values), `src/lua/loader.ts` (`setOption` callback)
 - **Settings-based clipboard and textwidth not restored on plugin restart** — if a user set clipboard or textwidth via the Settings UI, the value was saved to disk but not re-applied to the vim engine on the next Obsidian startup. The saved `this.settings.clipboard` and `this.settings.textwidth` were never pushed to `vim.setOption()` during plugin load. Fixed by applying saved side-effect options after `registerVimOptions()`.
@@ -36,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 9 unit tests in `test/unit/which-key.test.ts`: `normalizeVimKey()` — space conversion, idempotence, angle-bracket preservation, mixed notation
+- 4 e2e regression tests in `test/specs/lua-space-leader.e2e.ts`: which-key descriptions with space leader — string command desc, function callback desc, `all` mode desc, `vim.obsidian.leader.set` desc
 - 11 new e2e tests in `test/specs/lua-config.e2e.ts`:
     - `vim.opt.clipboard = "unnamed"` applies from init.lua (1 test)
     - `yy`/`yw`/`dd` populate `+` register when clipboard set via Lua (3 tests)

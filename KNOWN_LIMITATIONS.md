@@ -306,6 +306,16 @@ Groups are labeled with a generic `+N keys` text by default. Custom labels can b
 
 Built-in features register default labels (Table, EasyMotion) that user entries can override. Whitespace in the prefix field is trimmed.
 
+### ~~Descriptions not showing for Lua keymaps with space leader~~ (Fixed)
+
+**Status**: Fixed. Key normalization unified between the codemirror-vim fork and the which-key overlay. ([#58](https://github.com/saberzero1/motions/issues/58))
+
+`vim.keymap.set("n", "<leader>ff", function() ... end, { desc = "Find" })` with `vim.g.mapleader = " "` showed `lua-action-0` instead of `"Find"` in the which-key popup. String-action keymaps showed the raw command (e.g., `:Oil<CR>`), and built-in feature descriptions (EasyMotion, Harpoon) reverted to internal function names (e.g., `harpoonSelect1`).
+
+Root cause: the codemirror-vim fork normalizes literal space characters to `<Space>` notation when storing keymaps (`_mapCommand` → `normalizeKeyString`), and `getCompletions()`/`getKeymap()` return keys in this normalized form. The fork's key event handler (`vimKeyFromEvent`) also emits `<Space>` for space bar presses. However, the which-key overlay stored label keys with literal spaces (from `replaceLeaderKey`) and compared the raw leader key character against `<Space>` event keys — all lookups missed. The leader-only which-key mode additionally never triggered with space as leader because `"<Space>" !== " "`.
+
+Fix: added `normalizeVimKey()` mirroring the fork's `normalizeKeyString`, applied at label storage time in `rebuildWhichKey()` and at lookup time in `showLeaderBindings()`/`showCompletions()`. Added `normalizedLeaderKey` for key event comparison in `onKeyPressLeaderOnly()`.
+
 ### Limitations
 
 - User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions (shown as the raw rhs key sequence)

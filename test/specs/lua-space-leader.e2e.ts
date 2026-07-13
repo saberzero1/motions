@@ -10,6 +10,7 @@ import {
     hasWhichKeyOverlay,
     waitForWhichKey,
     getWhichKeyKeys,
+    getWhichKeyDescriptions,
     getWhichKeyGroups,
     getPluginSetting,
     PAUSE,
@@ -142,6 +143,72 @@ describe('Space as leader key', function () {
         await browser.pause(600);
         const visible = await hasWhichKeyOverlay();
         expect(visible).toBe(false);
+        await sendVimEscape();
+    });
+
+    it('which-key shows desc for string command (not raw rhs)', async function () {
+        await loadLuaConfig(
+            [
+                'vim.g.mapleader = " "',
+                'vim.opt.whichkey = "leader"',
+                'vim.keymap.set("n", "<leader>e", ":ob file-explorer:reveal-active-file<CR>", { desc = "Reveal in explorer" })',
+            ].join('\n'),
+        );
+        await focusEditor();
+        await browser.keys([' ']);
+        await waitForWhichKey();
+        const descriptions = await getWhichKeyDescriptions();
+        expect(descriptions).toContain('Reveal in explorer');
+        await sendVimEscape();
+    });
+
+    it('which-key shows desc for function callback (not lua-action-N)', async function () {
+        await loadLuaConfig(
+            [
+                'vim.g.mapleader = " "',
+                'vim.opt.whichkey = "leader"',
+                'vim.keymap.set("n", "<leader>z", function() vim.cmd("ob switcher:open") end, { desc = "Open Recent Files" })',
+            ].join('\n'),
+        );
+        await focusEditor();
+        await browser.keys([' ']);
+        await waitForWhichKey();
+        const descriptions = await getWhichKeyDescriptions();
+        expect(descriptions).toContain('Open Recent Files');
+        await sendVimEscape();
+    });
+
+    it('which-key shows desc in all mode with space leader', async function () {
+        await loadLuaConfig(
+            [
+                'vim.g.mapleader = " "',
+                'vim.opt.whichkey = "all"',
+                'vim.keymap.set("n", "<leader>w", function() vim.cmd("set scrolloff=42") end, { desc = "Save" })',
+                'vim.keymap.set("n", "<leader>q", ":ob app:quit<CR>", { desc = "Quit" })',
+            ].join('\n'),
+        );
+        await focusEditor();
+        await browser.keys([' ']);
+        await waitForWhichKey();
+        const descriptions = await getWhichKeyDescriptions();
+        expect(descriptions).toContain('Save');
+        expect(descriptions).toContain('Quit');
+        await sendVimEscape();
+    });
+
+    it('which-key shows desc with vim.obsidian.leader.set', async function () {
+        await loadLuaConfig(
+            [
+                'vim.g.mapleader = " "',
+                'vim.opt.whichkey = "leader"',
+                'vim.obsidian.leader.set("e", "file-explorer:reveal-active-file", { desc = "Explorer" })',
+            ].join('\n'),
+        );
+        await focusEditor();
+        await browser.keys([' ']);
+        await waitForWhichKey();
+        const descriptions = await getWhichKeyDescriptions();
+        expect(descriptions).toContain('Explorer');
         await sendVimEscape();
     });
 });
