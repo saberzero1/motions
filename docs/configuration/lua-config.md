@@ -473,6 +473,9 @@ vim.keymap.del("n", "Q")
 > [!tip] Choosing between `vim.cmd()` and `vim.obsidian.leader.add()`
 > For leader-prefixed commands that execute Obsidian commands, `vim.obsidian.leader.add()` is the simplest approach — it automatically registers which-key labels. `vim.keymap.set` with function callbacks gives you more flexibility (conditional logic, `vim.fn` checks, `vim.notify`) but requires an explicit `desc` option for which-key labels.
 
+> [!warning] Which-key auto-resolution with function callbacks
+> String RHS mappings like `vim.keymap.set("n", "<leader>r", ":ob app:go-back<CR>")` auto-resolve the Obsidian command name in the which-key popup. Function callbacks wrapping `vim.cmd("ob ...")` do **not** — Lua functions are opaque and cannot be introspected. Always provide a `desc` option when using function callbacks, or use a string RHS for automatic resolution.
+
 ## Buffer-local keymaps
 
 Keymaps can be scoped to specific files using the `buffer` option:
@@ -669,15 +672,15 @@ vim.api.nvim_clear_autocmds({ group = g, event = "InsertEnter" })
 
 ## vim.keymap.set options
 
-| Option    | Type           | Default | Description                                                                                                 |
-| --------- | -------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `desc`    | string         | (none)  | Description shown in which-key popup                                                                        |
-| `noremap` | boolean        | `true`  | Non-recursive mapping                                                                                       |
-| `remap`   | boolean        | `false` | Recursive mapping (inverse of `noremap`)                                                                    |
-| `silent`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                          |
-| `nowait`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                          |
-| `buffer`  | number/boolean | (none)  | Buffer-local keymap (`0` or `true` = current file). See Buffer-local keymaps above. Non-zero numbers error. |
-| `expr`    | (none)         | (none)  | Not supported (throws error)                                                                                |
+| Option    | Type           | Default | Description                                                                                                                                                                                                    |
+| --------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `desc`    | string         | (none)  | Description shown in which-key popup. Required for function callbacks — string RHS with `:ob`/`:obcommand` auto-resolves the command name, but function callbacks are opaque and need an explicit description. |
+| `noremap` | boolean        | `true`  | Non-recursive mapping                                                                                                                                                                                          |
+| `remap`   | boolean        | `false` | Recursive mapping (inverse of `noremap`)                                                                                                                                                                       |
+| `silent`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                                                                                                                             |
+| `nowait`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                                                                                                                             |
+| `buffer`  | number/boolean | (none)  | Buffer-local keymap (`0` or `true` = current file). See Buffer-local keymaps above. Non-zero numbers error.                                                                                                    |
+| `expr`    | (none)         | (none)  | Not supported (throws error)                                                                                                                                                                                   |
 
 ## Obsidian namespace
 

@@ -326,6 +326,7 @@ Mappings to `:obcommand <id><CR>` or `:ob <id><CR>` without an explicit `desc` n
 
 ### Limitations
 
+- **Function callbacks with `vim.cmd("ob ...")`**: When `vim.keymap.set` uses a function callback that calls `vim.cmd("ob ...")` or `vim.cmd("obcommand ...")`, the which-key popup cannot auto-resolve the Obsidian command name. Lua functions are opaque — the plugin cannot introspect the function body to extract the command ID. Use a string RHS (`:ob <id><CR>`) for auto-resolution, or provide an explicit `desc` option. See examples under "Mapping examples" in the Lua configuration docs.
 - User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions when the rhs is not an `:obcommand`/`:ob` pattern (shown as the raw rhs key sequence)
 - The overlay does not show during macro playback or when a register prefix (`"a`) is pending
 - Icon IDs are validated at render time — invalid icon names (not in Obsidian's Lucide bundle) result in an empty spacer; no error is thrown
