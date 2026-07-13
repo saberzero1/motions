@@ -701,12 +701,18 @@ export default class VimMotionsPlugin extends Plugin {
             if (savedValue === undefined || savedValue === '') continue;
             const spec = KNOWN_SET_OPTIONS[key];
             if (spec?.type === 'sideEffect') {
-                spec.apply(savedValue, onSettingOverride, `setting ${key}`);
-                try {
-                    vim.setOption(key, savedValue);
-                } catch {
-                    continue;
-                }
+                spec.apply(
+                    savedValue,
+                    (sKey, sValue, sDirective) => {
+                        onSettingOverride(sKey, sValue, sDirective);
+                        try {
+                            vim.setOption(key, sValue);
+                        } catch {
+                            return;
+                        }
+                    },
+                    `setting ${key}`,
+                );
             }
         }
         this.registration = new VimRegistration(vim);

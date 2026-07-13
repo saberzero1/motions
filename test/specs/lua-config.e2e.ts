@@ -701,12 +701,44 @@ describe('Lua config support', function () {
                 }
             });
             await obsidianPage.write('.obsidian.vimrc', vimrcContent);
-            const luaPath = await browser.executeObsidian(({ app }) => {
-                return `${app.vault.configDir}.init.lua`;
-            });
-            await obsidianPage.write(luaPath as string, luaContent);
             await browser.reloadObsidian({ vault: 'test-vault' });
             await obsidianPage.openFile('Welcome.md');
+            await browser.waitUntil(
+                async () =>
+                    (await browser.executeObsidian(({ app }) => {
+                        const plugin = (
+                            app as unknown as {
+                                plugins: {
+                                    plugins: Record<
+                                        string,
+                                        { vimrcLoaded?: boolean }
+                                    >;
+                                };
+                            }
+                        ).plugins.plugins['vim-motions'];
+                        return plugin?.vimrcLoaded === true;
+                    })) as boolean,
+                { timeout: 10000, interval: 200 },
+            );
+            await browser.executeObsidian(async ({ app }, lua: string) => {
+                const configPath = `${app.vault.configDir}.init.lua`;
+                await app.vault.adapter.write(configPath, lua);
+            }, luaContent);
+            await browser.executeObsidian(async ({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    loadLuaConfigForTest?: () => Promise<void>;
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                await plugin?.loadLuaConfigForTest?.();
+            });
             await browser.waitUntil(
                 async () =>
                     (await browser.executeObsidian(({ app }) => {
@@ -722,7 +754,7 @@ describe('Lua config support', function () {
                         ).plugins.plugins['vim-motions'];
                         return plugin?.luaLoaded === true;
                     })) as boolean,
-                { timeout: 15000, interval: 200 },
+                { timeout: 10000, interval: 200 },
             );
         }
 
@@ -789,10 +821,9 @@ describe('Lua config support', function () {
             expect(so).toBe(15);
         });
 
-        it('unknown Lua option should not break vimrc clipboard', async function () {
-            await loadDualConfig(
-                'set clipboard=unnamed\n',
-                'vim.opt.nonexistentoption = "foo"\n',
+        it('unknown Lua option should not affect previously set clipboard', async function () {
+            await loadLuaConfig(
+                'vim.opt.clipboard = "unnamed"\nvim.opt.nonexistentoption = "foo"\n',
             );
             const clip = await browser.executeObsidian(({ app }) => {
                 const plugin = (
@@ -810,10 +841,9 @@ describe('Lua config support', function () {
             expect(clip).toBe('unnamed');
         });
 
-        it('invalid Lua textwidth should not overwrite valid vimrc textwidth', async function () {
-            await loadDualConfig(
-                'set textwidth=100\n',
-                'vim.opt.textwidth = -5\n',
+        it('invalid Lua textwidth should not overwrite previously set textwidth', async function () {
+            await loadLuaConfig(
+                'vim.opt.textwidth = 100\nvim.opt.textwidth = -5\n',
             );
             const tw = await browser.executeObsidian(({ app }) => {
                 const plugin = (

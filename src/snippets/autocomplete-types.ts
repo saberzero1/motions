@@ -52,14 +52,23 @@ export interface CompletionContext {
     readonly state: EditorState;
     readonly pos: number;
     readonly explicit: boolean;
-    matchBefore(expr: RegExp): { from: number; to: number; text: string } | null;
+    matchBefore(
+        expr: RegExp,
+    ): { from: number; to: number; text: string } | null;
 }
 
 export interface CompletionResult {
     from: number;
     to?: number;
     options: Completion[];
-    validFor?: RegExp | ((text: string, from: number, to: number, state: EditorState) => boolean);
+    validFor?:
+        | RegExp
+        | ((
+              text: string,
+              from: number,
+              to: number,
+              state: EditorState,
+          ) => boolean);
     filter?: boolean;
 }
 
@@ -85,7 +94,9 @@ export const snippetCompletion = mod['snippetCompletion'] as (
     completion: Completion,
 ) => Completion;
 
-export const snippetState = mod['snippetState'] as StateField<ActiveSnippet | null>;
+export const snippetState = mod[
+    'snippetState'
+] as StateField<ActiveSnippet | null>;
 
 export const hasNextSnippetField = mod['hasNextSnippetField'] as (
     state: EditorState,
@@ -105,7 +116,9 @@ export const cycleSnippetChoice = mod['cycleSnippetChoice'] as (
     dir: 1 | -1,
 ) => StateCommand;
 
-export const setActive = mod['setActive'] as StateEffectType<ActiveSnippet | null>;
+export const setActive = mod[
+    'setActive'
+] as StateEffectType<ActiveSnippet | null>;
 
 export const fieldSelection = mod['fieldSelection'] as (
     ranges: readonly FieldRange[],
@@ -113,18 +126,18 @@ export const fieldSelection = mod['fieldSelection'] as (
 ) => EditorSelection;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention -- matches upstream class name
-export const FieldRange = mod['FieldRange'] as (new (
+export const FieldRange = mod['FieldRange'] as new (
     field: number,
     from: number,
     to: number,
-) => FieldRange);
+) => FieldRange;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention -- matches upstream class name
-export const ActiveSnippet = mod['ActiveSnippet'] as (new (
+export const ActiveSnippet = mod['ActiveSnippet'] as new (
     ranges: readonly FieldRange[],
     active: number,
     choices?: SnippetChoices,
-) => ActiveSnippet);
+) => ActiveSnippet;
 
 export const autocompletion = mod['autocompletion'] as (config?: {
     override?: CompletionSource[];

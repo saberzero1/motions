@@ -269,14 +269,16 @@ function applyKnownSetOption(
     if (spec.type === 'sideEffect') {
         spec.apply(
             optValue,
-            onSettingOverride,
+            (sKey, sValue, sDirective) => {
+                onSettingOverride?.(sKey, sValue, sDirective);
+                try {
+                    vim.setOption(optName, sValue);
+                } catch {
+                    return;
+                }
+            },
             `set ${optName}=${String(optValue ?? '')}`,
         );
-        try {
-            vim.setOption(optName, optValue);
-        } catch {
-            return true;
-        }
         return true;
     }
 

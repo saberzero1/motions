@@ -577,8 +577,14 @@ export function injectVimApi(
         }
         if (spec.type === 'sideEffect') {
             const directive = `vim.opt.${key} = ${formatDirectiveValue(value)}`;
-            spec.apply(value, callbacks.onSettingOverride, directive);
-            callbacks.setOption?.(key, value);
+            spec.apply(
+                value,
+                (sKey, sValue, sDirective) => {
+                    callbacks.onSettingOverride(sKey, sValue, sDirective);
+                    callbacks.setOption?.(key, sValue);
+                },
+                directive,
+            );
             return 0;
         }
         callbacks.onSettingOverride(
