@@ -19,15 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vim option architecture: `SideEffectOpt` type** — options that require side effects beyond `this.settings[key] = value` (clipboard, textwidth, guicursor) are now declared in the `KNOWN_SET_OPTIONS` table with a `sideEffect` type and an `apply()` callback. Previously, these options were special-cased with separate `if` blocks in both the vimrc loader and the Lua `vim.opt` handler — adding a new side-effect option required touching 2-3 files manually, and missing one path caused silent failures. Now there is a single declaration point. The vimrc loader, Lua handler, and initial settings load all route through the same table-driven path.
     - Plugin: `src/vimrc/loader.ts` (`SideEffectOpt` interface, `applyKnownSetOption` sideEffect handling, special-case blocks removed), `src/lua/api.ts` (unified `KNOWN_SET_OPTIONS` path)
 
-### Tests
-
-- 11 new e2e tests in `test/specs/lua-config.e2e.ts`:
-    - `vim.opt.clipboard = "unnamed"` applies from init.lua (1 test)
-    - `yy`/`yw`/`dd` populate `+` register when clipboard set via Lua (3 tests)
-    - `vim.opt.textwidth` and `vim.opt.tw` alias from init.lua (2 tests)
-    - Dual-config override precedence: Lua overrides vimrc for clipboard, textwidth, scrolloff (3 tests)
-    - Error resilience: unknown Lua option preserves vimrc clipboard; invalid textwidth (`-5`) preserves vimrc value (2 tests)
-
 ### Added
 
 - **Snippets** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution ($CURRENT_YEAR, $TM_FILENAME, $UUID, etc.), and context-aware filtering (prose/code/frontmatter). Ships 40+ Obsidian-adapted snippets (headings, callouts, wikilinks, tables, frontmatter, math, date/time). Three trigger mechanisms: CM6 completion menu, Tab expansion (vim-native), and ex commands (`:snippet name`, `:snippets` picker). Bundled snippets toggleable via settings.
@@ -45,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 11 new e2e tests in `test/specs/lua-config.e2e.ts`:
+    - `vim.opt.clipboard = "unnamed"` applies from init.lua (1 test)
+    - `yy`/`yw`/`dd` populate `+` register when clipboard set via Lua (3 tests)
+    - `vim.opt.textwidth` and `vim.opt.tw` alias from init.lua (2 tests)
+    - Dual-config override precedence: Lua overrides vimrc for clipboard, textwidth, scrolloff (3 tests)
+    - Error resilience: unknown Lua option preserves vimrc clipboard; invalid textwidth (`-5`) preserves vimrc value (2 tests)
 - 7 e2e spec files (22 passing, 5 skipped) covering expansion, tabstops, variables, context, f()/d() nodes, static regression
 - 15 LuaSnip golden comparison unit tests (extracted from LuaSnip test suite commit `0abc8f3`)
 - 359 total unit tests passing
