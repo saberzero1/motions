@@ -360,6 +360,44 @@ A subset of Neovim's `vim.*` utility functions is available for table manipulati
 | `vim.log.levels.ERROR` | 4     | Obsidian Notice + console.error |
 | `vim.log.levels.OFF`   | 5     | No output                       |
 
+## Snippets
+
+Define snippets using a LuaSnip-inspired DSL. Static snippets compile to VS Code JSON at load time.
+
+| Function                             | Description                                             |
+| ------------------------------------ | ------------------------------------------------------- |
+| `vim.snippet.s(name, nodes, opts?)`  | Create a snippet definition                             |
+| `vim.snippet.t(text)`                | Static text node                                        |
+| `vim.snippet.i(index, default?)`     | Editable tabstop (index 0 = final position)             |
+| `vim.snippet.c(index, choices)`      | Choice node (list of `t()` nodes)                       |
+| `vim.snippet.rep(index)`             | Mirror/repeat another tabstop                           |
+| `vim.snippet.fmt(str, nodes, opts?)` | Format string — `{}` replaced by nodes in order         |
+| `vim.snippet.add(trigger, snippet)`  | Register a snippet with a trigger prefix                |
+| `vim.snippet.add_all(table)`         | Register multiple snippets (`{trigger = snippet, ...}`) |
+
+```lua
+local s = vim.snippet.s
+local t = vim.snippet.t
+local i = vim.snippet.i
+local fmt = vim.snippet.fmt
+
+vim.snippet.add("meta", s("Frontmatter", fmt([[
+---
+title: {}
+date: {}
+tags: [{}]
+---
+{}
+]], { i(1, "Title"), i(2, "2026-01-01"), i(3, "tag"), i(0) })))
+```
+
+Options for `vim.snippet.s()`:
+
+- `context` — restrict snippet to `"prose"`, `"code:*"`, `"code:js"`, or `"frontmatter"`
+- `description` — shown in the snippet picker
+
+See [[snippets]] for the complete snippet reference.
+
 ## Async and timers
 
 | Function                    | Description                                                                                | Example                                                 |

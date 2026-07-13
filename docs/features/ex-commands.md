@@ -54,6 +54,8 @@ The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-teles
 | `:resume`       | `:res`   | Reopen last picker with same query              |
 | `:Picker`       | `:Pick`  | Open meta-picker listing all sources            |
 | `:Picker {src}` |          | Open a named picker source directly             |
+| `:snippets`     |          | Search and insert snippets via picker           |
+| `:snippet name` | `:snip`  | Insert a snippet by name at cursor              |
 
 When [Omnisearch](https://github.com/scambier/obsidian-omnisearch), [Obsidian Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks), or [Dataview](https://github.com/blacksmithgu/obsidian-dataview) is installed, additional sources are registered automatically: `:Picker omnisearch`, `:Picker tasks`, `:Picker dataview`. These can be disabled in **Settings → Vim Motions → Third-party integrations**.
 

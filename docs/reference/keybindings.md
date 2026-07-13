@@ -373,6 +373,8 @@ Execute commands via the `:` command line, grouped by function.
 | `:livegrep`     | `:liveg` | Real-time vault content search               |
 | `:resume`       | `:res`   | Reopen last picker with same query           |
 | `:Picker`       | `:Pick`  | Open meta-picker listing all sources         |
+| `:snippets`     |          | Search and insert snippets                   |
+| `:snippet name` | `:snip`  | Insert a snippet by name                     |
 | `:Picker {src}` |          | Open a named picker source directly          |
 | `:back`         |          | Navigate back in history                     |
 | `:forward`      |          | Navigate forward in history                  |
@@ -401,6 +403,18 @@ Execute commands via the `:` command line, grouped by function.
 | `:delmarks {marks}`                | Delete specified marks                 |
 | `:version` / `:ve`                 | Show plugin version                    |
 | `:gmap`                            | List all active global bindings        |
+
+## Snippets
+
+Snippet keybindings are active during snippet expansion (after a snippet has been triggered).
+
+| Keybinding  | Description                                     |
+| ----------- | ----------------------------------------------- |
+| `Tab`       | Move to next tabstop / expand snippet at prefix |
+| `Shift+Tab` | Move to previous tabstop                        |
+| `Escape`    | Exit snippet mode                               |
+| `Ctrl+N`    | Cycle to next choice (on choice fields)         |
+| `Ctrl+P`    | Cycle to previous choice (on choice fields)     |
 
 ## Oil explorer
 

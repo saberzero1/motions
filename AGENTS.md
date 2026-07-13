@@ -16,6 +16,9 @@
     - **IMPORTANT: dependency URL in `package.json`**: The `@replit/codemirror-vim` dependency MUST point to `https://github.com/saberzero1/codemirror-vim.git` (the remote URL) before committing. During local development, use `npm install ~/Repos/codemirror-vim` for fast iteration, but **always switch back to the HTTPS URL before committing** — `file:../codemirror-vim` breaks CI, the community scanner, and anyone cloning the repo. Check `git diff package.json package-lock.json` before every commit to verify no local path leaked.
 - **fengari fork**: The plugin uses a [browser-only fork of fengari](https://github.com/saberzero1/fengari) at `~/Repos/fengari` for the Lua 5.3 runtime. The fork strips all Node.js dependencies (`fs`, `child_process`, `os` module, `readline-sync`, `tmp`) to eliminate Obsidian community scanner warnings. Only `sprintf-js` (pure JS, required for `string.format`) remains as a dependency. See the fork's [`DIFFERENCES.md`](https://github.com/saberzero1/fengari/blob/master/DIFFERENCES.md) for the full list of changes from upstream.
     - **IMPORTANT: dependency URL in `package.json`**: The `fengari` dependency MUST point to `https://github.com/saberzero1/fengari.git` (the remote URL) before committing. During local development, use `npm install ~/Repos/fengari` for fast iteration, but **always switch back to the HTTPS URL before committing** — same rules as the codemirror-vim fork.
+- **codemirror autocomplete fork**: The plugin uses a fork of `@codemirror/autocomplete` at `~/Repos/autocomplete` for the snippet system. The fork extends the snippet parser with choice nodes, transforms, and nested placeholders (Phases 2+). See the fork's `DIFFERENCES.md` for changes from upstream.
+    - **IMPORTANT: dependency URL in `package.json`**: The `@codemirror/autocomplete` dependency MUST point to `https://github.com/saberzero1/autocomplete.git` (the remote URL) before committing. During local development, use `npm install ~/Repos/autocomplete` for fast iteration, but **always switch back to the HTTPS URL before committing** — same rules as the codemirror-vim and fengari forks.
+    - **IMPORTANT: esbuild externals**: `@codemirror/autocomplete` is deliberately **removed** from the `external` list in `esbuild.config.mjs` so the fork is bundled into `main.js` (same pattern as `@replit/codemirror-vim`). Do not re-add it to externals.
     - **What's stripped**: Lua `io` library (entire file), Lua `package`/`require()` system (entire file), Node.js-only `os` functions (`exit`, `getenv`, `remove`, `rename`, `tmpname`, `execute`), `debug.debug()` interactive REPL, file loading (`luaL_loadfilex`), `process.stdout`/`process.stderr`/`process.env` references
     - **What's kept in the fork**: Core VM, all safe standard libraries (base, string, table, math, coroutine, utf8), browser-safe `os` functions (date, time, difftime, clock, setlocale), debug library (minus `debug.debug()`), `sprintf-js`
     - **What the plugin loads**: The plugin's `engine.ts` only opens 6 libraries: `_G`, `string`, `table`, `math`, `coroutine`, `utf8`. The `os` and `debug` libraries are available in the fork but are **not loaded** into the Lua sandbox. Users cannot access `os.*` or `debug.*` functions.
@@ -272,24 +275,25 @@ When making a change, update these docs pages:
 
 ### Page ownership by feature area
 
-| Feature area          | Canonical docs page                 | Settings group(s)                                             |
-| --------------------- | ----------------------------------- | ------------------------------------------------------------- |
-| Text objects          | `features/text-objects.md`          | Vim features (textobjects), Advanced (scanlimit)              |
-| Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                     |
-| Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                          |
-| Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)               |
-| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)  |
-| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)            |
-| Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                   |
-| Folding               | `features/workspace-navigation.md`  | Vim features (foldawarenavigation, foldpersistence)           |
-| Surround              | `features/surround.md`              | (no settings — fork feature)                                  |
-| Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                |
-| Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.) |
-| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath)              |
-| Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                          |
-| Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                 |
-| Cursor shapes         | `configuration/cursor-shapes.md`    | Cursor shapes                                                 |
-| Status bar            | `configuration/status-bar.md`       | Status bar, Vim mode display prompt                           |
+| Feature area          | Canonical docs page                 | Settings group(s)                                                               |
+| --------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| Text objects          | `features/text-objects.md`          | Vim features (textobjects), Advanced (scanlimit)                                |
+| Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                                       |
+| Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                                            |
+| Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                 |
+| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                    |
+| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                              |
+| Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                                     |
+| Folding               | `features/workspace-navigation.md`  | Vim features (foldawarenavigation, foldpersistence)                             |
+| Surround              | `features/surround.md`              | (no settings — fork feature)                                                    |
+| Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                                  |
+| Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.)                   |
+| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath)                                |
+| Snippets              | `features/snippets.md`              | Snippets (enableSnippets, snippetBundled, snippetDirectory, snippetTriggerMode) |
+| Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                                            |
+| Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                                   |
+| Cursor shapes         | `configuration/cursor-shapes.md`    | Cursor shapes                                                                   |
+| Status bar            | `configuration/status-bar.md`       | Status bar, Vim mode display prompt                                             |
 
 ### Transclusion conventions
 

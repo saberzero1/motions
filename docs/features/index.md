@@ -27,6 +27,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 - **[[surround|Surround]]** — vim-surround implementation: `ds`/`cs`/`ys`/`S` with Markdown delimiter support. Count-prefix repeats delimiters (`2ysiw*` → `**word**`). Dot-repeatable.
 - **[[ex-commands|Ex commands]]** — 60+ ex commands for file management (`:e`, `:w`, `:saveas`), buffer navigation (`:bn`, `:bp`, `:b`), window management (`:sp`, `:vs`, `:tabnew`), table manipulation, and Obsidian integration (`:ob`, `:sidebar`, `:grep`).
 - **[[oil-explorer|Oil explorer]]** — oil.nvim-inspired file explorer: edit vault directories as buffers, create/rename/delete files with standard vim commands (`dd`, `o`, `cw`, `:w`).
+- **[[snippets|Snippets]]** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution, choice nodes, context-aware filtering. Ships 40+ Obsidian-adapted snippets. User-defined snippets via JSON files or Lua DSL.
 
 ## Quality of life
 

@@ -140,6 +140,8 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `cursorline`        | `cul` | Cursor line highlight                 | on      |
 | `foldcolumn`        | `fdc` | Fold column indicators                | off     |
 | `markgutter`        | —     | Alias for `signcolumn` (compat)       | on      |
+| `snippets`          | —     | Enable snippet expansion              | on      |
+| `snippetbundled`    | —     | Include bundled Obsidian snippets     | on      |
 
 ## Number options
 
@@ -175,6 +177,8 @@ Use `set <option>=<value>`.
 | `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception              | (empty — uses defaults)               |
 | `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)    | `number`                              |
 | `signcolumn`            | `scl`    | Sign column visibility (`auto`/`yes`/`no`)             | `auto`                                |
+| `snippetdir`            | —        | Path to user snippet JSON directory                    | (off)                                 |
+| `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)       | `both`                                |
 
 ## Mode prompt customization
 

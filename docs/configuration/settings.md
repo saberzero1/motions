@@ -82,6 +82,15 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`     | `set labelfontsize`     | Font size for EasyMotion and hint mode labels.                |
 | Harpoon file pinning        | toggle | `true`                       | —             | `vim.opt.harpoon`           | `set harpoon`           | Pin files to numbered slots for instant switching.            |
 
+## Snippets
+
+| Name              | Type     | Default | Range/Options               | Lua                      | Vimrc                | Description                                                |
+| ----------------- | -------- | ------- | --------------------------- | ------------------------ | -------------------- | ---------------------------------------------------------- |
+| Enable snippets   | toggle   | `true`  | —                           | `vim.opt.snippets`       | `set snippets`       | Master toggle for snippet expansion.                       |
+| Bundled snippets  | toggle   | `true`  | —                           | `vim.opt.snippetbundled` | `set snippetbundled` | Include built-in Obsidian markdown snippets.               |
+| Snippet directory | text     | `(off)` | —                           | `vim.opt.snippetdir`     | `set snippetdir`     | Path to a directory with user snippet JSON files.          |
+| Trigger mode      | dropdown | `both`  | `completion`, `tab`, `both` | `vim.opt.snippettrigger` | `set snippettrigger` | How snippets are triggered: completion menu, Tab, or both. |
+
 ## File explorer
 
 | Name                     | Type     | Default | Range/Options           | Lua                                 | Vimrc                           | Description                                              |
