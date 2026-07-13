@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-07-13
+
 ### Changed
 
 - **Sign column migrated to dedicated gutter column** — vim mark indicators (`a`–`z`, `A`–`Z`) now render in a proper CM6 `gutter()` column instead of using `Decoration.line()` + CSS `::after` overlays. Fixes marks cascading vertically into the wrong line, overlapping on multi-mark lines, and inheriting heading font sizes. The gutter layout from left to right is: sign column → line numbers → fold column → content, matching Neovim's default arrangement. Uses `Compartment`-based runtime reconfiguration — `:set signcolumn=yes/auto/no` takes effect without full feature reload. `signcolumn=auto` now causes layout shift when marks appear/disappear (matching Neovim behavior); `signcolumn=yes` always reserves gutter space. ([#59](https://github.com/saberzero1/motions/issues/59))

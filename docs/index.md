@@ -29,9 +29,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.54.0
+## What's new in 0.55.0
 
-- **Which-key auto-resolves Obsidian command names** — when a key is mapped to `:obcommand <id>` or `:ob <id>` without an explicit `desc`, the which-key popup now displays Obsidian's native command name instead of the raw ex command string. For example, `:ob app:go-back<CR>` displays as "Navigate back". Descriptions are automatically localized to match the user's Obsidian language setting. Works in both editor and global which-key. ([#62](https://github.com/saberzero1/motions/issues/62))
-- **Internal API consolidation** — extracted ~40 inline unsafe type casts across 16 files into 6 typed utility modules under `src/util/`, centralizing access to Obsidian's internal APIs (`commands`, `editor`, `leaf`, `metadata`, `vault`, `keymap`).
+- **Sign column migrated to dedicated gutter column** — vim mark indicators now render in a proper CM6 gutter column instead of CSS overlays. Fixes marks cascading into wrong lines, overlapping on multi-mark lines, and inheriting heading font sizes. Gutter layout matches Neovim: sign column → line numbers → fold column → content. Runtime reconfiguration via `:set signcolumn=yes/auto/no`. ([#59](https://github.com/saberzero1/motions/issues/59))
+- **Dual line number display** — new `linenumbermode` option shows absolute and relative line numbers in separate side-by-side gutter columns. `set number relativenumber linenumbermode=dual` renders both simultaneously. Configurable via Settings UI, vimrc, or `vim.opt.linenumbermode` in Lua.
+- **`statuscolumn` API** — Neovim-compatible format string for user-configurable gutter layout: `%l` (line number), `%r` (relative number), `%s` (signs), `%C` (folds), `%=` (separator), and literal text. When set, replaces all individual gutter columns with a unified layout. Configurable via `vim.opt.statuscolumn` in Lua or `set statuscolumn` in vimrc. ([#59](https://github.com/saberzero1/motions/issues/59))
+- **Global vs local mark colors** — global marks (`A`–`Z`) and local marks (`a`–`z`) render in distinct colors. Click-to-navigate on mark labels moves the cursor to the marked line.
+- **Status bar duplication fix** — fixed vim mode indicator and chord display being duplicated when non-default clipboard or textwidth settings were saved. ([#63](https://github.com/saberzero1/motions/issues/63))
 
 See the [[changelog|full changelog]] for details.
