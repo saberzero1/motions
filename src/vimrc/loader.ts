@@ -187,6 +187,16 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         max: 20,
     },
     nuw: { type: 'number', settingsKey: 'numberwidth', min: 1, max: 20 },
+    linenumbermode: {
+        type: 'string',
+        settingsKey: 'linenumbermode',
+        validValues: ['hybrid', 'dual', 'dual-rel-abs'],
+    },
+    lnm: {
+        type: 'string',
+        settingsKey: 'linenumbermode',
+        validValues: ['hybrid', 'dual', 'dual-rel-abs'],
+    },
     cursorline: { type: 'boolean', settingsKey: 'cursorline' },
     cul: { type: 'boolean', settingsKey: 'cursorline' },
     cursorlineopt: {
@@ -202,12 +212,10 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     signcolumn: {
         type: 'string',
         settingsKey: 'signcolumn',
-        validValues: ['auto', 'yes', 'no'],
     },
     scl: {
         type: 'string',
         settingsKey: 'signcolumn',
-        validValues: ['auto', 'yes', 'no'],
     },
     markgutter: {
         type: 'sideEffect',
@@ -216,6 +224,8 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
             onSettingOverride?.('signcolumn', mode, directive);
         },
     },
+    statuscolumn: { type: 'string', settingsKey: 'statuscolumn' },
+    stc: { type: 'string', settingsKey: 'statuscolumn' },
     foldcolumn: { type: 'boolean', settingsKey: 'foldcolumn' },
     fdc: { type: 'boolean', settingsKey: 'foldcolumn' },
     snippets: { type: 'boolean', settingsKey: 'enableSnippets' },

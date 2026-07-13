@@ -143,10 +143,12 @@ export interface VimMotionsSettings {
 
     /** @deprecated Migrated to `signcolumn`. Kept for settings migration only. */
     enableMarkGutter?: boolean;
-    signcolumn: 'auto' | 'yes' | 'no';
+    signcolumn: string;
     number: boolean;
     relativenumber: boolean;
     numberwidth: number;
+    linenumbermode: 'hybrid' | 'dual' | 'dual-rel-abs';
+    statuscolumn: string;
     cursorline: boolean;
     cursorlineopt: 'number' | 'line' | 'both';
     foldcolumn: boolean;
@@ -240,6 +242,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     number: false,
     relativenumber: false,
     numberwidth: 2,
+    linenumbermode: 'hybrid',
+    statuscolumn: '',
     cursorline: true,
     cursorlineopt: 'number',
     foldcolumn: false,
@@ -858,6 +862,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             min: 1,
                             max: 20,
                             disabled: () => this.isOverridden('numberwidth'),
+                        },
+                    },
+                    {
+                        name: 'Line number display',
+                        desc: this.describeOverride(
+                            'linenumbermode',
+                            'How to display line numbers when both absolute and relative are enabled. Hybrid: single column (Neovim default). Dual: absolute and relative in separate columns.',
+                        ),
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'linenumbermode',
+                            options: {
+                                hybrid: 'Hybrid (single column)',
+                                dual: 'Dual (abs | rel)',
+                                'dual-rel-abs': 'Dual (rel | abs)',
+                            },
+                            disabled: () => this.isOverridden('linenumbermode'),
                         },
                     },
                     {
@@ -1703,13 +1724,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         if (
             key === 'number' ||
             key === 'relativenumber' ||
-            key === 'numberwidth'
+            key === 'numberwidth' ||
+            key === 'linenumbermode'
         ) {
             this.plugin.reconfigureLineNumberGutter();
         } else if (key === 'cursorline' || key === 'cursorlineopt') {
             this.plugin.reconfigureCursorlineHighlight();
         } else if (key === 'signcolumn') {
             this.plugin.reconfigureSignColumnGutter();
+        } else if (key === 'statuscolumn') {
+            this.plugin.reconfigureStatusColumnGutter();
         } else if (key === 'foldcolumn') {
             this.plugin.reconfigureFoldColumnGutter();
         } else if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
@@ -1969,10 +1993,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.signcolumn)
                     .setDisabled(isOverridden('signcolumn'))
                     .onChange(async (value) => {
-                        this.plugin.settings.signcolumn = value as
-                            | 'auto'
-                            | 'yes'
-                            | 'no';
+                        this.plugin.settings.signcolumn = value;
                         this.plugin.vimrcOverrides?.delete('signcolumn');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureSignColumnGutter();

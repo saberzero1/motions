@@ -5,11 +5,10 @@ import { gutter, GutterMarker, EditorView } from '@codemirror/view';
 
 export type LineNumberMode = 'off' | 'absolute' | 'relative' | 'hybrid';
 
+export type LineNumberDisplayMode = 'hybrid' | 'dual' | 'dual-rel-abs';
+
 // ── Mode helpers ─────────────────────────────────────────
 
-/**
- * Map :set number/relativenumber flags to a line-number mode.
- */
 export function getLineNumberMode(
     number: boolean,
     relativenumber: boolean,
@@ -44,7 +43,7 @@ class LineNumberMarker extends GutterMarker {
 
 // ── Line number math ─────────────────────────────────────
 
-function computeLineNumber(
+export function computeLineNumber(
     lineNo: number,
     cursorLineNo: number,
     mode: LineNumberMode,
@@ -74,15 +73,23 @@ export function setNumberwidth(value: number): void {
     numberwidthValue = Math.max(1, Math.min(20, value));
 }
 
-// ── Compartment ──────────────────────────────────────────
+export function getNumberwidth(): number {
+    return numberwidthValue;
+}
+
+// ── Compartments ─────────────────────────────────────────
 
 const lineNumberCompartment = new Compartment();
+const lineNumberSecondaryCompartment = new Compartment();
 
 // ── Extension factory ────────────────────────────────────
 
-function createLineNumberGutter(mode: LineNumberMode): Extension {
+function createLineNumberGutter(
+    mode: LineNumberMode,
+    gutterClass?: string,
+): Extension {
     return gutter({
-        class: 'vim-motions-line-numbers',
+        class: gutterClass ?? 'vim-motions-line-numbers',
         lineMarker(view, line) {
             const cursorLineNo = view.state.doc.lineAt(
                 view.state.selection.main.head,
@@ -98,33 +105,53 @@ function createLineNumberGutter(mode: LineNumberMode): Extension {
             return update.selectionSet || update.docChanged;
         },
         initialSpacer(view) {
-            const digits = Math.max(
-                numberwidthValue,
-                String(view.state.doc.lines).length,
-            );
+            const digits =
+                mode === 'relative'
+                    ? numberwidthValue
+                    : Math.max(
+                          numberwidthValue,
+                          String(view.state.doc.lines).length,
+                      );
             return new LineNumberMarker('0'.repeat(digits), false);
         },
         updateSpacer(_spacer, update) {
-            const digits = Math.max(
-                numberwidthValue,
-                String(update.view.state.doc.lines).length,
-            );
+            const digits =
+                mode === 'relative'
+                    ? numberwidthValue
+                    : Math.max(
+                          numberwidthValue,
+                          String(update.view.state.doc.lines).length,
+                      );
             return new LineNumberMarker('0'.repeat(digits), false);
         },
     });
 }
 
 /**
- * Create a configurable line-number extension (absolute/relative/hybrid).
+ * Create the primary line-number extension.
  */
 export function createLineNumberExtension(
     number: boolean,
     relativenumber: boolean,
+    displayMode: LineNumberDisplayMode = 'hybrid',
 ): Extension {
     const mode = getLineNumberMode(number, relativenumber);
-    return lineNumberCompartment.of(
-        mode === 'off' ? [] : createLineNumberGutter(mode),
-    );
+    const { primary } = resolveGutters(mode, displayMode);
+    return lineNumberCompartment.of(primary);
+}
+
+/**
+ * Create the secondary line-number extension (for dual mode).
+ * Must be registered as a separate registerEditorExtension() call.
+ */
+export function createLineNumberSecondaryExtension(
+    number: boolean,
+    relativenumber: boolean,
+    displayMode: LineNumberDisplayMode = 'hybrid',
+): Extension {
+    const mode = getLineNumberMode(number, relativenumber);
+    const { secondary } = resolveGutters(mode, displayMode);
+    return lineNumberSecondaryCompartment.of(secondary);
 }
 
 /**
@@ -134,8 +161,47 @@ export function reconfigureLineNumbers(
     view: EditorView,
     number: boolean,
     relativenumber: boolean,
+    displayMode: LineNumberDisplayMode = 'hybrid',
 ): void {
     const mode = getLineNumberMode(number, relativenumber);
-    const ext = mode === 'off' ? [] : createLineNumberGutter(mode);
-    view.dispatch({ effects: lineNumberCompartment.reconfigure(ext) });
+    const { primary, secondary } = resolveGutters(mode, displayMode);
+    view.dispatch({
+        effects: [
+            lineNumberCompartment.reconfigure(primary),
+            lineNumberSecondaryCompartment.reconfigure(secondary),
+        ],
+    });
+}
+
+// ── Internal helpers ─────────────────────────────────────
+
+function resolveGutters(
+    mode: LineNumberMode,
+    displayMode: LineNumberDisplayMode,
+): { primary: Extension; secondary: Extension } {
+    if (mode === 'off') {
+        return { primary: [], secondary: [] };
+    }
+
+    if (mode !== 'hybrid' || displayMode === 'hybrid') {
+        return {
+            primary: createLineNumberGutter(mode),
+            secondary: [],
+        };
+    }
+
+    const absFirst = displayMode === 'dual';
+    const leftMode: LineNumberMode = absFirst ? 'absolute' : 'relative';
+    const rightMode: LineNumberMode = absFirst ? 'relative' : 'absolute';
+    const leftClass = absFirst
+        ? 'vim-motions-line-numbers vim-motions-line-numbers-absolute'
+        : 'vim-motions-line-numbers vim-motions-line-numbers-relative';
+    const rightClass = absFirst
+        ? 'vim-motions-line-numbers vim-motions-line-numbers-relative'
+        : 'vim-motions-line-numbers vim-motions-line-numbers-absolute';
+
+    return {
+        primary: createLineNumberGutter(leftMode, leftClass),
+        secondary: createLineNumberGutter(rightMode, rightClass),
+    };
 }

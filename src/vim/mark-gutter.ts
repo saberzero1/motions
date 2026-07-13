@@ -10,8 +10,8 @@ import type { SignEntry } from './sign-column';
 export {
     createSignColumnExtension as createMarkGutterExtension,
     reconfigureSignColumn as reconfigureMarkGutter,
+    signColumnFieldExtension,
 } from './sign-column';
-export type { SignColumnMode } from './sign-column';
 import type { CmAdapter } from '../types/vim-api';
 
 // ── Refresh Logic ────────────────────────────────────────

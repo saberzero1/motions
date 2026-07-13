@@ -13,9 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/sign-column.ts` (rewritten: `gutter()` + `GutterMarker` + `Compartment`), `src/vim/mark-gutter.ts` (updated re-exports), `src/main.ts` (unconditional registration, `reconfigureSignColumnGutter()`), `src/settings.ts` (removed from `RELOAD_KEYS`, dedicated handlers in both settings panels, `enableMarkGutter` deprecated), `src/vimrc/loader.ts` (`markgutter` mapped to `signcolumn` via `sideEffect`), `styles.css` (gutter element styles replacing `::after` overlay)
 - **`enableMarkGutter` setting deprecated** — the boolean `enableMarkGutter` property is now optional with `@deprecated` JSDoc. Existing settings are auto-migrated to `signcolumn` via `settings-migration.ts`. The property is kept in the interface for migration type safety only.
 
+### Added
+
+- **Dual line number display** — new `linenumbermode` option (`hybrid`/`dual`/`dual-rel-abs`) shows absolute and relative line numbers in separate side-by-side gutter columns. `set number relativenumber linenumbermode=dual` renders absolute on the left, relative on the right (configurable via `dual-rel-abs` for the reverse). The default `hybrid` mode is unchanged — existing configs are fully backward compatible. Auto-disabled on mobile viewports (≤600px, falls back to hybrid). Configurable via Settings UI dropdown, `set linenumbermode=dual` (alias `lnm`) in vimrc, or `vim.opt.linenumbermode = "dual"` in Lua.
+    - Plugin: `src/vim/line-number-gutter.ts` (dual compartments, `resolveGutters()`), `src/vim/options.ts` (`linenumbermode` option), `src/settings.ts` (setting + UI dropdown), `src/vimrc/loader.ts` (`linenumbermode`/`lnm`), `src/main.ts` (pass `linenumbermode` to extension creation/reconfiguration)
+- **Global vs local mark color differentiation** — global marks (`A`–`Z`) render in `--text-muted` color, local marks (`a`–`z`) render in `--text-accent`. The first character of the label determines the CSS class (`.vim-motions-sign-marker-global` or `.vim-motions-sign-marker-local`).
+    - Plugin: `src/vim/sign-column.ts` (`SignMarker.toDOM()` case detection), `styles.css`
+- **Click-to-navigate on mark labels** — clicking a mark label in the sign column gutter moves the cursor to that line. Uses `domEventHandlers.click` on the gutter, querying the `signColumnField` RangeSet for markers at the clicked line.
+    - Plugin: `src/vim/sign-column.ts` (`domEventHandlers.click`)
+- **`signcolumn` width modes** — `signcolumn` now accepts `auto:N` and `yes:N` syntax (N = 1–4) to control sign column character width. `set signcolumn=auto:3` reserves 3 character slots when marks exist. `set signcolumn=yes:2` always reserves 2 character slots. Validation via regex; invalid values silently rejected.
+    - Plugin: `src/vim/sign-column.ts` (`parseSignColumnMode()`, `isValidSignColumnValue()`), `src/vim/options.ts` (validation), `src/settings.ts` (type widened to `string`), `src/vimrc/loader.ts` (removed `validValues`)
+- **`statuscolumn` API** — Neovim-compatible `statuscolumn` option for user-configurable gutter layout. A format string controls which gutter segments appear and in what order: `%l` (line number), `%r` (relative number), `%s` (sign column marks), `%C` (fold indicators), `%=` (separator), and literal text. When set, the unified gutter replaces all individual gutter columns. When empty (default), individual `signcolumn`/`number`/`relativenumber`/`foldcolumn` settings manage gutters independently. Configurable via `vim.opt.statuscolumn = "%s %l %r %C"` in Lua or `set statuscolumn` (alias `stc`) in vimrc. Click handlers on sign and fold segments preserved. `linenumbermode` deprecated — `dual` maps to `statuscolumn = "%l %r"`. ([#59](https://github.com/saberzero1/motions/issues/59))
+    - Plugin: `src/vim/statuscolumn.ts` (new: parser, composite `StatusColumnMarker`, unified gutter, `StatusColumnSpacer`), `src/vim/sign-column.ts` (`signColumnField` extracted as standalone extension, `SignMarker.label` public), `src/vim/line-number-gutter.ts` (`computeLineNumber` + `getNumberwidth` exported), `src/vim/mark-gutter.ts` (re-exports `signColumnFieldExtension`), `src/vim/options.ts` (`statuscolumn` option), `src/settings.ts` (`statuscolumn` setting), `src/vimrc/loader.ts` (`statuscolumn`/`stc`), `src/main.ts` (standalone `signColumnField` registration, `statusColumnCompartment`, `reconfigureStatusColumnGutter()`), `styles.css` (statuscolumn segment styles)
+
+### Fixed
+
+- **`iterateEditorViews` crash on non-editor leaves** — `reconfigureLineNumberGutter()` and other gutter reconfigure methods could throw `view.dispatch is not a function` on leaves where the CM6 EditorView chain resolved to a non-EditorView object. Fixed by adding a `typeof cm.dispatch === 'function'` guard in `iterateEditorViews`.
+    - Plugin: `src/main.ts` (`iterateEditorViews` type guard)
+
 ### Tests
 
 - 10 e2e tests in `test/specs/marks-gutter.e2e.ts` (4 new, 6 updated): mark in gutter, mark move, multiple marks, delmarks removal, no marks = empty, dedicated gutter column, no line overlays, ellipsis truncation (4+ marks), consistent font size on headings, no `data-vim-marks` attribute
+- 4 e2e tests in `test/specs/statuscolumn.e2e.ts`: no statuscolumn by default, option registered in vim engine, sign column gutter present, mark gutter functionality preserved
 
 ### Documentation
 

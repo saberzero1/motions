@@ -168,7 +168,9 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `workspacenavviewtypes` | string | `""` | Comma-separated view types | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
 | `guicursor` | string | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes | `vim.opt.guicursor = "n:bar,i:block"` |
 | `cursorlineopt` | string | `"number"` | `"number"`, `"line"`, `"both"` | `vim.opt.cursorlineopt = "both"` |
-| `signcolumn` | string | `"auto"` | `"auto"`, `"yes"`, `"no"` | `vim.opt.signcolumn = "yes"` |
+| `signcolumn` | string | `"auto"` | `"auto[:N]"`, `"yes[:N]"`, `"no"` | `vim.opt.signcolumn = "auto:3"` |
+| `linenumbermode` | string | `"hybrid"` | `"hybrid"`, `"dual"`, `"dual-rel-abs"` | `vim.opt.linenumbermode = "dual"` |
+| `statuscolumn` | string | `""` | format string (`%l`, `%r`, `%s`, `%C`, `%=`) | `vim.opt.statuscolumn = "%s %l %r %C"` |
 | `updatetime` | number | `4000` | ms (CursorHold delay) | `vim.opt.updatetime = 4000` |
 
 > [!tip] Hybrid line numbers

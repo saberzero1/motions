@@ -84,15 +84,22 @@ import { foldPlaceholderExtension } from './fold/placeholder';
 import {
     createMarkGutterExtension,
     reconfigureMarkGutter,
+    signColumnFieldExtension,
     scheduleMarkGutterRefresh,
     cancelMarkGutterRefresh,
 } from './vim/mark-gutter';
 import type { PersistedMarkEntry } from './vim/mark-gutter';
 import {
     createLineNumberExtension,
+    createLineNumberSecondaryExtension,
     reconfigureLineNumbers,
     setNumberwidth,
 } from './vim/line-number-gutter';
+import {
+    createStatusColumnExtension,
+    reconfigureStatusColumn,
+    type StatusColumnSettings,
+} from './vim/statuscolumn';
 import {
     createCursorlineExtension,
     reconfigureCursorline,
@@ -569,7 +576,8 @@ export default class VimMotionsPlugin extends Plugin {
             } else if (
                 key === 'number' ||
                 key === 'relativenumber' ||
-                key === 'numberwidth'
+                key === 'numberwidth' ||
+                key === 'linenumbermode'
             ) {
                 (this.settings as unknown as Record<string, unknown>)[key] =
                     value;
@@ -599,6 +607,17 @@ export default class VimMotionsPlugin extends Plugin {
                 applied = true;
                 if (!this.vimrcLoading && !this.luaLoading) {
                     this.reconfigureSignColumnGutter();
+                }
+            } else if (key === 'statuscolumn') {
+                (this.settings as unknown as Record<string, unknown>)[key] =
+                    value;
+                overrides.set(
+                    key,
+                    directive ?? `set statuscolumn=${String(value)}`,
+                );
+                applied = true;
+                if (!this.vimrcLoading && !this.luaLoading) {
+                    this.reconfigureStatusColumnGutter();
                 }
             } else if (key === 'foldcolumn') {
                 (this.settings as unknown as Record<string, unknown>)[key] =
@@ -1608,8 +1627,15 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(foldLevelExtension());
         this.registerEditorExtension(markdownFoldProvider());
         this.registerEditorExtension(foldPlaceholderExtension());
+        this.registerEditorExtension(signColumnFieldExtension());
         this.registerEditorExtension(
             createMarkGutterExtension(this.settings.signcolumn),
+        );
+        this.registerEditorExtension(
+            createStatusColumnExtension(
+                this.settings.statuscolumn,
+                this.getStatusColumnSettings(),
+            ),
         );
 
         if (this.settings.enableSnippets) {
@@ -1668,6 +1694,14 @@ export default class VimMotionsPlugin extends Plugin {
             createLineNumberExtension(
                 this.settings.number,
                 this.settings.relativenumber,
+                this.settings.linenumbermode,
+            ),
+        );
+        this.registerEditorExtension(
+            createLineNumberSecondaryExtension(
+                this.settings.number,
+                this.settings.relativenumber,
+                this.settings.linenumbermode,
             ),
         );
         if (this.settings.number || this.settings.relativenumber) {
@@ -3133,7 +3167,10 @@ export default class VimMotionsPlugin extends Plugin {
     reconfigureLineNumberGutter(): void {
         const num = this.settings.number;
         const rel = this.settings.relativenumber;
-        this.iterateEditorViews((cm) => reconfigureLineNumbers(cm, num, rel));
+        const mode = this.settings.linenumbermode;
+        this.iterateEditorViews((cm) =>
+            reconfigureLineNumbers(cm, num, rel, mode),
+        );
         activeDocument.body.classList.toggle(
             'vim-motions-line-numbers-active',
             num || rel,
@@ -3158,13 +3195,59 @@ export default class VimMotionsPlugin extends Plugin {
         this.iterateEditorViews((cm) => reconfigureMarkGutter(cm, mode));
     }
 
+    reconfigureStatusColumnGutter(): void {
+        const format = this.settings.statuscolumn;
+        const stcSettings = this.getStatusColumnSettings();
+        this.iterateEditorViews((cm) =>
+            reconfigureStatusColumn(cm, format, stcSettings),
+        );
+        if (format) {
+            this.iterateEditorViews((cm) => {
+                reconfigureLineNumbers(
+                    cm,
+                    false,
+                    false,
+                    this.settings.linenumbermode,
+                );
+                reconfigureMarkGutter(cm, 'no');
+                reconfigureFoldColumn(cm, false);
+            });
+            activeDocument.body.classList.add(
+                'vim-motions-line-numbers-active',
+            );
+        } else {
+            this.iterateEditorViews((cm) => {
+                reconfigureLineNumbers(
+                    cm,
+                    this.settings.number,
+                    this.settings.relativenumber,
+                    this.settings.linenumbermode,
+                );
+                reconfigureMarkGutter(cm, this.settings.signcolumn);
+                reconfigureFoldColumn(cm, this.settings.foldcolumn);
+            });
+            activeDocument.body.classList.toggle(
+                'vim-motions-line-numbers-active',
+                this.settings.number || this.settings.relativenumber,
+            );
+        }
+    }
+
+    private getStatusColumnSettings(): StatusColumnSettings {
+        return {
+            number: this.settings.number,
+            relativenumber: this.settings.relativenumber,
+            signcolumn: this.settings.signcolumn,
+        };
+    }
+
     private iterateEditorViews(fn: (cm: EditorView) => void): void {
         this.app.workspace.iterateAllLeaves((leaf) => {
             const view = (leaf.view as MarkdownView)?.editor;
             const cm = (
                 view as unknown as { cm?: { cm: EditorView } } | undefined
             )?.cm?.cm;
-            if (cm) fn(cm);
+            if (cm && typeof cm.dispatch === 'function') fn(cm);
         });
     }
 

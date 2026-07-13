@@ -71,7 +71,8 @@ src/
     mark-store.ts          # Mark persistence across sessions
     sign-column.ts         # Sign column (mark indicators via gutter() + GutterMarker + Compartment)
     mark-gutter.ts         # Mark gutter refresh scheduling (delegates to sign-column)
-    line-number-gutter.ts  # Configurable line number gutter (absolute/relative/hybrid)
+    line-number-gutter.ts  # Configurable line number gutter (absolute/relative/hybrid/dual)
+    statuscolumn.ts        # Unified configurable gutter (statuscolumn format string API)
     cursorline.ts          # Cursor line highlight (number/line/both modes)
     fold-column.ts         # Fold column gutter (▸/▾ indicators with click-to-fold)
     harpoon-store.ts       # Harpoon file slot persistence

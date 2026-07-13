@@ -1,7 +1,9 @@
 import type { VimApi } from '../types/vim-api';
 import type { CursorShape, CursorShapes } from '../settings';
+import { isValidSignColumnValue } from './sign-column';
 
 let textwidthValue = 80;
+let statuscolumnValue = '';
 
 export function getTextwidth(): number {
     return textwidthValue;
@@ -272,13 +274,33 @@ export function registerVimOptions(
             }
         },
     );
+    vim.defineOption('linenumbermode', 'hybrid', 'string', ['lnm'], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'hybrid' || str === 'dual' || str === 'dual-rel-abs') {
+            notify('linenumbermode', str, `set linenumbermode=${str}`);
+        }
+    });
     vim.defineOption('signcolumn', 'auto', 'string', ['scl'], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';
-        if (str === 'auto' || str === 'yes' || str === 'no') {
+        if (isValidSignColumnValue(str)) {
             notify('signcolumn', str, `set signcolumn=${str}`);
         }
     });
+    vim.defineOption(
+        'statuscolumn',
+        '',
+        'string',
+        ['stc'],
+        (value): string | undefined => {
+            if (value === undefined) return statuscolumnValue;
+            const str = typeof value === 'string' ? value : '';
+            statuscolumnValue = str;
+            notify('statuscolumn', str, `set statuscolumn=${str}`);
+            return undefined;
+        },
+    );
     vim.defineOption('foldcolumn', false, 'boolean', ['fdc'], (value) => {
         if (value === undefined) return;
         notify('foldcolumn', !!value, `set ${value ? '' : 'no'}foldcolumn`);

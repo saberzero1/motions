@@ -185,7 +185,11 @@ The following settings are intentionally **not** exposed via vimrc:
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
-`signcolumn=auto` shows the sign column gutter when marks exist and hides it when empty (causes layout shift, matching Neovim). `signcolumn=yes` always reserves gutter space. `cursorlineopt=screenline` is not supported.
+`signcolumn` accepts `auto`, `auto:N`, `yes`, `yes:N`, `no` (N = 1–4, character slots). `auto` shows the sign column when marks exist and hides it when empty (causes layout shift, matching Neovim). `yes` always reserves gutter space. Clicking a mark label in the sign column moves the cursor to that line. Global marks (`A`–`Z`) render in a distinct color from local marks (`a`–`z`). `cursorlineopt=screenline` is not supported.
+
+`linenumbermode` is deprecated in favor of `statuscolumn`. `linenumbermode=dual` internally sets `statuscolumn="%l %r"`. Changing `linenumbermode` requires an Obsidian restart.
+
+`statuscolumn` provides a format string for customizing the gutter layout. Supported tokens: `%l` (line number respecting `number`/`relativenumber`, absolute fallback when both off), `%r` (relative number), `%s` (sign column marks, respects `signcolumn` auto/yes/no and width), `%C` (fold indicators, always active when present), `%=` (flex separator), literal text. When `statuscolumn` is set, all individual gutter columns are hidden — the unified gutter replaces them. When empty (default), individual settings manage gutters independently. Changing `statuscolumn` requires an Obsidian restart — the unified gutter compartment is registered during plugin load. Set `statuscolumn` in your Lua config (`vim.opt.statuscolumn = "%s %l %r %C"`) for it to apply on startup. v1 limitations: no `%{expr}` Lua expressions, no `%#HlGroup#` highlight groups, no width specifiers (`%-5l`), no per-window `statuscolumn`, no `v:virtnum` for wrapped lines. Global only (`vim.opt.statuscolumn`). Invalid format strings silently fall back to empty (plugin-managed gutters).
 
 Unknown `set` options are silently ignored (no error, no effect).
 

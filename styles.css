@@ -1054,9 +1054,16 @@ settings:
     font-family: var(--font-monospace);
     font-size: var(--font-ui-smaller);
     font-weight: 600;
-    color: var(--text-accent);
     line-height: inherit;
     opacity: 0.85;
+}
+
+.vim-motions-sign-marker-local {
+    color: var(--text-accent);
+}
+
+.vim-motions-sign-marker-global {
+    color: var(--text-muted);
 }
 
 .vim-motions-sign-spacer {
@@ -1122,9 +1129,84 @@ settings:
     color: var(--text-normal);
 }
 
+/* --- Statuscolumn (unified gutter) --- */
+
+.vim-motions-statuscolumn .cm-gutterElement {
+    display: flex;
+    align-items: baseline;
+    padding: 0 2px;
+}
+
+.vim-motions-stc-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+}
+
+.vim-motions-stc-line-number,
+.vim-motions-stc-relative-number {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    line-height: inherit;
+    text-align: right;
+    min-width: 2ch;
+    padding: 0 1px;
+}
+
+.vim-motions-stc-line-number.vim-motions-line-num-current,
+.vim-motions-stc-relative-number.vim-motions-line-num-current {
+    color: var(--text-normal);
+    font-weight: 600;
+}
+
+.vim-motions-stc-signs {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    font-weight: 600;
+    line-height: inherit;
+    opacity: 0.85;
+    min-width: 2ch;
+    text-align: center;
+    padding: 0 1px;
+}
+
+.vim-motions-stc-fold {
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    color: var(--text-faint);
+    line-height: inherit;
+    cursor: pointer;
+    min-width: 1ch;
+    text-align: center;
+}
+
+.vim-motions-stc-fold:hover {
+    color: var(--text-normal);
+}
+
+.vim-motions-stc-separator {
+    flex-grow: 1;
+}
+
+.vim-motions-stc-literal {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    line-height: inherit;
+}
+
 /* --- Mobile gutter width reduction --- */
 
 @media (max-width: 600px) {
+    .vim-motions-statuscolumn .cm-gutterElement {
+        padding: 0 1px;
+    }
+    .vim-motions-stc-line-number,
+    .vim-motions-stc-relative-number,
+    .vim-motions-stc-signs {
+        font-size: var(--font-smallest);
+        min-width: 1.5ch;
+    }
     .vim-motions-sign-column .cm-gutterElement {
         min-width: 1.5ch;
         padding: 0 1px;

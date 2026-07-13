@@ -12,17 +12,23 @@ Vim marks work out of the box via the codemirror-vim engine. Vim Motions adds th
 
 When you set a mark with `m{a-z}` or `m{A-Z}`, the mark letter appears in a dedicated gutter column to the left of line numbers. Multiple marks on the same line are shown together (e.g., `ab`); if more than three marks share a line, the display truncates with an ellipsis (e.g., `abc…`). The indicators update automatically when marks are moved, deleted, or when text edits shift line positions.
 
-Mark labels use a fixed font size regardless of the content line — heading lines won't inflate the mark indicators.
+Mark labels use a fixed font size regardless of the content line — heading lines won't inflate the mark indicators. Global marks (`A`–`Z`) render in a distinct color from local marks (`a`–`z`).
 
-The sign column has three modes:
+Clicking a mark label in the sign column moves the cursor to that line.
 
-| Mode   | Vimrc                 | Lua                           | Behavior                                                 |
-| ------ | --------------------- | ----------------------------- | -------------------------------------------------------- |
-| Auto   | `set signcolumn=auto` | `vim.opt.signcolumn = "auto"` | Show the gutter column when marks exist, hide when empty |
-| Always | `set signcolumn=yes`  | `vim.opt.signcolumn = "yes"`  | Always reserve gutter space, even with no marks          |
-| Off    | `set signcolumn=no`   | `vim.opt.signcolumn = "no"`   | Never show mark indicators                               |
+The sign column has three modes, with optional width control:
+
+| Mode   | Vimrc                   | Lua                             | Behavior                                                 |
+| ------ | ----------------------- | ------------------------------- | -------------------------------------------------------- |
+| Auto   | `set signcolumn=auto`   | `vim.opt.signcolumn = "auto"`   | Show the gutter column when marks exist, hide when empty |
+| Auto:N | `set signcolumn=auto:3` | `vim.opt.signcolumn = "auto:3"` | Same as auto, but reserve N character slots (1–4)        |
+| Always | `set signcolumn=yes`    | `vim.opt.signcolumn = "yes"`    | Always reserve gutter space, even with no marks          |
+| Yes:N  | `set signcolumn=yes:2`  | `vim.opt.signcolumn = "yes:2"`  | Always reserve N character slots                         |
+| Off    | `set signcolumn=no`     | `vim.opt.signcolumn = "no"`     | Never show mark indicators                               |
 
 Toggle via **Settings → Vim Motions → Vim features → Sign column**. `set markgutter` / `set nomarkgutter` remain as backward-compatible aliases.
+
+Mark indicators also appear in the `statuscolumn` unified gutter when `%s` is included in the format string (e.g., `vim.opt.statuscolumn = "%s %l %r %C"`).
 
 The gutter layout from left to right is: **sign column → line numbers → fold column → content**, matching Neovim's default arrangement.
 

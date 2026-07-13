@@ -176,7 +176,9 @@ Use `set <option>=<value>`.
 | `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                           | `on`                                  |
 | `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception              | (empty — uses defaults)               |
 | `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)    | `number`                              |
-| `signcolumn`            | `scl`    | Sign column visibility (`auto`/`yes`/`no`)             | `auto`                                |
+| `signcolumn`            | `scl`    | Sign column visibility (`auto[:N]`/`yes[:N]`/`no`)     | `auto`                                |
+| `linenumbermode`        | `lnm`    | Line number display (deprecated — use `statuscolumn`)  | `hybrid`                              |
+| `statuscolumn`          | `stc`    | Custom gutter layout format string                     | (empty — plugin-managed)              |
 | `snippetdir`            | —        | Path to user snippet JSON directory                    | (off)                                 |
 | `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)       | `both`                                |
 
