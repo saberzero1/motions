@@ -97,6 +97,30 @@ export async function readExternalFile(
 }
 
 /**
+ * Read directory entries from an absolute filesystem path.
+ * Guarded by `Platform.isDesktop` — returns `null` on mobile.
+ * Returns an array of filenames (not full paths).
+ */
+export async function readExternalDir(
+    dirPath: string,
+): Promise<string[] | null> {
+    if (!Platform.isDesktop) return null;
+
+    const resolved = expandTilde(dirPath);
+    try {
+        const fs = getFs();
+        // fs/promises.readdir returns string[] by default
+        return await (
+            fs as unknown as {
+                readdir(path: string): Promise<string[]>;
+            }
+        ).readdir(resolved);
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Check whether a file exists at an absolute filesystem path.
  * Guarded by `Platform.isDesktop` — returns `false` on mobile.
  */
