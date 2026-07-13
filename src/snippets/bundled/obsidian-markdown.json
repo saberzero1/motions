@@ -1,0 +1,305 @@
+{
+    "Wikilink": {
+        "prefix": "wl",
+        "body": "[[${1:page}]]$0",
+        "description": "Insert a wikilink"
+    },
+    "Wikilink with alias": {
+        "prefix": "wla",
+        "body": "[[${1:page}|${2:alias}]]$0",
+        "description": "Insert a wikilink with an alias"
+    },
+    "Embed": {
+        "prefix": "embed",
+        "body": "![[${1:file}]]$0",
+        "description": "Embed a file"
+    },
+    "Heading 1": {
+        "prefix": "h1",
+        "body": "# ${1:Heading}$0",
+        "description": "Insert a level 1 heading"
+    },
+    "Heading 2": {
+        "prefix": "h2",
+        "body": "## ${1:Heading}$0",
+        "description": "Insert a level 2 heading"
+    },
+    "Heading 3": {
+        "prefix": "h3",
+        "body": "### ${1:Heading}$0",
+        "description": "Insert a level 3 heading"
+    },
+    "Heading 4": {
+        "prefix": "h4",
+        "body": "#### ${1:Heading}$0",
+        "description": "Insert a level 4 heading"
+    },
+    "Heading 5": {
+        "prefix": "h5",
+        "body": "##### ${1:Heading}$0",
+        "description": "Insert a level 5 heading"
+    },
+    "Heading 6": {
+        "prefix": "h6",
+        "body": "###### ${1:Heading}$0",
+        "description": "Insert a level 6 heading"
+    },
+    "Bold": {
+        "prefix": "bold",
+        "body": "**${1:text}**$0",
+        "description": "Insert bold text"
+    },
+    "Italic": {
+        "prefix": "italic",
+        "body": "*${1:text}*$0",
+        "description": "Insert italic text"
+    },
+    "Bold Italic": {
+        "prefix": "bi",
+        "body": "***${1:text}***$0",
+        "description": "Insert bold italic text"
+    },
+    "Strikethrough": {
+        "prefix": "strike",
+        "body": "~~${1:text}~~$0",
+        "description": "Insert strikethrough text"
+    },
+    "Highlight": {
+        "prefix": "hl",
+        "body": "==${1:text}==$0",
+        "description": "Insert highlighted text"
+    },
+    "Inline Code": {
+        "prefix": "ic",
+        "body": "`${1:code}`$0",
+        "description": "Insert inline code"
+    },
+    "Code Block": {
+        "prefix": "cb",
+        "body": ["```${1:language}", "${2:code}", "```$0"],
+        "description": "Insert a fenced code block"
+    },
+    "Link": {
+        "prefix": "link",
+        "body": "[${1:text}](${2:url})$0",
+        "description": "Insert a link"
+    },
+    "Image": {
+        "prefix": "img",
+        "body": "![${1:alt}](${2:url})$0",
+        "description": "Insert an image"
+    },
+    "Blockquote": {
+        "prefix": "quote",
+        "body": "> ${1:text}$0",
+        "description": "Insert a blockquote"
+    },
+    "Horizontal Rule": {
+        "prefix": "hr",
+        "body": "---",
+        "description": "Insert a horizontal rule"
+    },
+    "Task": {
+        "prefix": "task",
+        "body": "- [ ] ${1:task}$0",
+        "description": "Insert a task list item"
+    },
+    "Ordered List": {
+        "prefix": "ol",
+        "body": [
+            "1. ${1:First item}",
+            "2. ${2:Second item}",
+            "3. ${3:Third item}$0"
+        ],
+        "description": "Insert an ordered list"
+    },
+    "Unordered List": {
+        "prefix": "ul",
+        "body": [
+            "- ${1:First item}",
+            "- ${2:Second item}",
+            "- ${3:Third item}$0"
+        ],
+        "description": "Insert an unordered list"
+    },
+    "Comment": {
+        "prefix": "comment",
+        "body": "%%${1:comment}%%$0",
+        "description": "Insert an Obsidian comment"
+    },
+    "Frontmatter": {
+        "prefix": "fm",
+        "body": [
+            "---",
+            "title: ${1:$TM_FILENAME_BASE}",
+            "date: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE",
+            "tags: [${2:tag}]",
+            "---",
+            "$0"
+        ],
+        "description": "Insert frontmatter"
+    },
+    "Math Block": {
+        "prefix": "math",
+        "body": ["$$", "${1:expression}", "$$$0"],
+        "description": "Insert a math block"
+    },
+    "Inline Math": {
+        "prefix": "im",
+        "body": "$${1:expression}$$0",
+        "description": "Insert inline math"
+    },
+    "Table 2x2": {
+        "prefix": "table",
+        "body": [
+            "| ${1:Header 1} | ${2:Header 2} |",
+            "| --- | --- |",
+            "| ${3:Cell 1} | ${4:Cell 2} |$0"
+        ],
+        "description": "Insert a 2x2 table"
+    },
+    "Table 3x3": {
+        "prefix": "table3",
+        "body": [
+            "| ${1:Header 1} | ${2:Header 2} | ${3:Header 3} |",
+            "| --- | --- | --- |",
+            "| ${4:Cell 1} | ${5:Cell 2} | ${6:Cell 3} |$0"
+        ],
+        "description": "Insert a 3x3 table"
+    },
+    "Callout Note": {
+        "prefix": "cnote",
+        "body": "> [!note] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a note callout"
+    },
+    "Callout Abstract": {
+        "prefix": "cabstract",
+        "body": "> [!abstract] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert an abstract callout"
+    },
+    "Callout Summary": {
+        "prefix": "csummary",
+        "body": "> [!summary] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a summary callout"
+    },
+    "Callout TLDR": {
+        "prefix": "ctldr",
+        "body": "> [!tldr] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a tldr callout"
+    },
+    "Callout Info": {
+        "prefix": "cinfo",
+        "body": "> [!info] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert an info callout"
+    },
+    "Callout Todo": {
+        "prefix": "ctodo",
+        "body": "> [!todo] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a todo callout"
+    },
+    "Callout Tip": {
+        "prefix": "ctip",
+        "body": "> [!tip] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a tip callout"
+    },
+    "Callout Hint": {
+        "prefix": "chint",
+        "body": "> [!hint] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a hint callout"
+    },
+    "Callout Important": {
+        "prefix": "cimportant",
+        "body": "> [!important] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert an important callout"
+    },
+    "Callout Success": {
+        "prefix": "csuccess",
+        "body": "> [!success] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a success callout"
+    },
+    "Callout Check": {
+        "prefix": "ccheck",
+        "body": "> [!check] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a check callout"
+    },
+    "Callout Done": {
+        "prefix": "cdone",
+        "body": "> [!done] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a done callout"
+    },
+    "Callout Question": {
+        "prefix": "cquestion",
+        "body": "> [!question] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a question callout"
+    },
+    "Callout Help": {
+        "prefix": "chelp",
+        "body": "> [!help] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a help callout"
+    },
+    "Callout FAQ": {
+        "prefix": "cfaq",
+        "body": "> [!faq] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a FAQ callout"
+    },
+    "Callout Warning": {
+        "prefix": "cwarning",
+        "body": "> [!warning] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a warning callout"
+    },
+    "Callout Caution": {
+        "prefix": "ccaution",
+        "body": "> [!caution] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a caution callout"
+    },
+    "Callout Attention": {
+        "prefix": "cattention",
+        "body": "> [!attention] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert an attention callout"
+    },
+    "Callout Failure": {
+        "prefix": "cfailure",
+        "body": "> [!failure] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a failure callout"
+    },
+    "Callout Fail": {
+        "prefix": "cfail",
+        "body": "> [!fail] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a fail callout"
+    },
+    "Callout Missing": {
+        "prefix": "cmissing",
+        "body": "> [!missing] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a missing callout"
+    },
+    "Callout Danger": {
+        "prefix": "cdanger",
+        "body": "> [!danger] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a danger callout"
+    },
+    "Callout Error": {
+        "prefix": "cerror",
+        "body": "> [!error] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert an error callout"
+    },
+    "Callout Bug": {
+        "prefix": "cbug",
+        "body": "> [!bug] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a bug callout"
+    },
+    "Callout Example": {
+        "prefix": "cexample",
+        "body": "> [!example] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert an example callout"
+    },
+    "Callout Quote": {
+        "prefix": "cquote",
+        "body": "> [!quote] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a quote callout"
+    },
+    "Callout Cite": {
+        "prefix": "ccite",
+        "body": "> [!cite] ${1:Title}\n> ${2:Content}$0",
+        "description": "Insert a cite callout"
+    }
+}

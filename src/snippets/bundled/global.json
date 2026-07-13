@@ -1,0 +1,32 @@
+{
+    "Date ISO": {
+        "prefix": "date",
+        "body": "$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE",
+        "description": "Insert the current date in ISO format"
+    },
+    "Date Long": {
+        "prefix": "datel",
+        "body": "$CURRENT_MONTH_NAME $CURRENT_DATE, $CURRENT_YEAR",
+        "description": "Insert the current date in long format"
+    },
+    "Time": {
+        "prefix": "time",
+        "body": "$CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND",
+        "description": "Insert the current time"
+    },
+    "Datetime": {
+        "prefix": "datetime",
+        "body": "$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND",
+        "description": "Insert the current date and time"
+    },
+    "Date Time ISO": {
+        "prefix": "diso",
+        "body": "$CURRENT_YEAR-$CURRENT_MONTH-${CURRENT_DATE}T$CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND",
+        "description": "Insert the current date and time in ISO format"
+    },
+    "UUID": {
+        "prefix": "uuid",
+        "body": "$UUID",
+        "description": "Insert a UUID"
+    }
+}
