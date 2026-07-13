@@ -184,6 +184,14 @@ src/
   im/
     im-switcher.ts         # Input method auto-switching on mode change
     im-process.ts          # External IM binary process management
+  snippets/
+    manager.ts             # Snippet session and expansion management
+    parser.ts              # VS Code snippet format parser
+    variables.ts           # Snippet variable resolution ($UUID, $DATE, etc.)
+    context.ts             # Snippet context filtering (prose, code, frontmatter)
+    provider.ts            # Snippet source provider (bundled + user)
+    dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
+    bundled/               # Bundled Obsidian-specific snippets
   editors/
     embeddable-editor.ts   # Reusable embeddable editor component (used by table cell editor)
   keybindings/
@@ -334,6 +342,16 @@ reg.mapCommand('gX', 'action', 'myAction', {});
 2. If it introduces a new fold provider, add it in `src/fold/provider.ts`.
 
 3. Fold persistence is handled by `src/fold/persistence.ts` — ensure new fold types are persisted correctly.
+
+### New snippet source
+
+1. Create a JSON file following the VS Code snippet format in your snippet directory, or use the Lua DSL in `.obsidian.init.lua`.
+
+2. For bundled snippets, add entries to `src/snippets/bundled/obsidian-markdown.json` or `src/snippets/bundled/global.json`.
+
+3. For dynamic snippets (f/d/r nodes), the snippet must be defined via the Lua DSL — JSON files only support static snippets.
+
+4. Add tests in `test/specs/snippets/` for e2e tests or `test/unit/snippets/` for unit tests.
 
 ## Conventions
 

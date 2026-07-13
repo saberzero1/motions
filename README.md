@@ -8,7 +8,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, and table cells with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
-- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (19 events), `vim.obsidian` namespace (including `vim.obsidian.im` for input method control), buffer-local keymaps, and Neovim-compatible syntax
+- **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.snippet.*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (19 events), `vim.obsidian` namespace (including `vim.obsidian.im` for input method control), buffer-local keymaps, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support with Lucide icons
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)
@@ -17,6 +17,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, cursor-aware table widget, and embedded per-cell editing with vim-enabled cell editors and direct table manipulation (`o`, `dd`, `J`/`K`, `H`/`L`, `=`)
 - **Oil explorer** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file manager: edit directories as buffers, create/rename/delete files with vim commands
 - **Telescope-style picker** — fuzzy finder with 12 built-in sources (files, buffers, commands, headings, grep, marks, registers, etc.), preview pane, frecency scoring, bundled integrations for [Omnisearch](https://github.com/scambier/obsidian-omnisearch), [Obsidian Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks), and [Dataview](https://github.com/blacksmithgu/obsidian-dataview), and a [provider API](https://saberzero1.github.io/motions/development/picker-api) for external plugin integration
+- **Snippets** — VS Code-compatible snippet expansion with tabstop navigation, variables, choice nodes, context filtering. 40+ bundled Obsidian snippets. User-defined snippets via JSON files or [LuaSnip](https://github.com/L3MON4D3/LuaSnip)-inspired Lua DSL with reactive `f()`/`d()` nodes
 - **100+ ex commands** — `:sp`, `:vs`, `:e`, `:grep`, `:ob`, `:Oil`, `:sidebar`, navigation/action aliases, and more
 - **Vimium-style hints** — navigate the entire Obsidian UI with keyboard hints (`f`, `F`, `yf`, `df`)
 - **Line numbers** — configurable line number gutter with absolute, relative, and hybrid modes matching Neovim's `number`/`relativenumber` semantics. Cursor line highlight (`cursorline`/`cursorlineopt`), configurable number width, and mobile-responsive gutter. Suppresses Obsidian's native line numbers when active

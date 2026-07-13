@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Snippets** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution ($CURRENT_YEAR, $TM_FILENAME, $UUID, etc.), and context-aware filtering (prose/code/frontmatter). Ships 40+ Obsidian-adapted snippets (headings, callouts, wikilinks, tables, frontmatter, math, date/time). Three trigger mechanisms: CM6 completion menu, Tab expansion (vim-native), and ex commands (`:snippet name`, `:snippets` picker). Bundled snippets toggleable via settings.
+- **User snippet directory** — load custom VS Code JSON snippet files from a configurable directory. Supports vault-relative and absolute paths (with `~` expansion, desktop only). User snippets override bundled snippets on prefix collision.
+- **Snippet Lua DSL** — LuaSnip-inspired `vim.snippet.*` API: `s()`, `t()`, `i()`, `c()`, `rep()`, `fmt()` for static snippets that compile to VS Code JSON at load time. `f()` (function nodes), `d()` (dynamic nodes), `sn()` (snippet nodes), `r()` (restore nodes) for reactive snippets that execute Lua functions via fengari at edit time.
+- **Snippet context filtering** — snippets can be restricted to specific editing contexts (`"prose"`, `"code:js"`, `"code:*"`, `"frontmatter"`) via a `"context"` field in JSON or the `context` option in Lua DSL.
+- **Choice node cycling** — `Ctrl+N`/`Ctrl+P` cycle through choice options (`${1|a,b,c|}`) on active snippet fields.
+- **Snippet picker** — `:snippets` opens the telescope-style fuzzy finder with snippet preview. `:snippet name` expands by name.
+- **`@codemirror/autocomplete` fork** — recursive descent snippet parser replacing CM6's regex parser, supporting choice nodes, nested placeholders, transforms (parsed, not applied), and bare `$1` syntax. Fork at [saberzero1/autocomplete](https://github.com/saberzero1/autocomplete).
+- 4 new settings: Enable snippets, Bundled snippets, Snippet directory, Trigger mode
+- 4 new vimrc `set` options: `snippets`, `snippetbundled`, `snippetdir`, `snippettrigger`
+- 13 new `vim.snippet.*` Lua API functions
+- Plugin files: `src/snippets/` (14 files), `src/lua/snippet-api.ts`, `src/snippets/dynamic-bridge.ts`
+- Fork files: `~/Repos/autocomplete/src/snippet.ts` (parser), `~/Repos/autocomplete/src/index.ts` (exports)
+
+### Tests
+
+- 7 e2e spec files (22 passing, 5 skipped) covering expansion, tabstops, variables, context, f()/d() nodes, static regression
+- 15 LuaSnip golden comparison unit tests (extracted from LuaSnip test suite commit `0abc8f3`)
+- 359 total unit tests passing
+
+### Documentation
+
+- `docs/features/snippets.md` (new feature page)
+- `docs/features/index.md`, `docs/reference/keybindings.md`, `docs/configuration/settings.md`, `docs/features/ex-commands.md`, `docs/configuration/vimrc.md`, `docs/configuration/lua-config.md` (updated)
+- `AGENTS.md` (fork dependency + page ownership)
+- `KNOWN_LIMITATIONS.md` (7 limitation entries)
+
 ## [0.52.0] - 2026-07-12
 
 ### Added
