@@ -244,6 +244,7 @@ export default class VimMotionsPlugin extends Plugin {
     }> = [];
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
+    private initializing = true;
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
     vimrcOverrides: Map<string, string> = new Map();
@@ -586,7 +587,11 @@ export default class VimMotionsPlugin extends Plugin {
                 if (key === 'numberwidth' && typeof value === 'number') {
                     setNumberwidth(value);
                 }
-                if (!this.vimrcLoading && !this.luaLoading) {
+                if (
+                    !this.initializing &&
+                    !this.vimrcLoading &&
+                    !this.luaLoading
+                ) {
                     this.reconfigureLineNumberGutter();
                 }
             } else if (key === 'cursorline' || key === 'cursorlineopt') {
@@ -594,7 +599,11 @@ export default class VimMotionsPlugin extends Plugin {
                     value;
                 overrides.set(key, directive ?? `set ${key}`);
                 applied = true;
-                if (!this.vimrcLoading && !this.luaLoading) {
+                if (
+                    !this.initializing &&
+                    !this.vimrcLoading &&
+                    !this.luaLoading
+                ) {
                     this.reconfigureCursorlineHighlight();
                 }
             } else if (key === 'signcolumn') {
@@ -605,7 +614,11 @@ export default class VimMotionsPlugin extends Plugin {
                     directive ?? `set signcolumn=${String(value)}`,
                 );
                 applied = true;
-                if (!this.vimrcLoading && !this.luaLoading) {
+                if (
+                    !this.initializing &&
+                    !this.vimrcLoading &&
+                    !this.luaLoading
+                ) {
                     this.reconfigureSignColumnGutter();
                 }
             } else if (key === 'statuscolumn') {
@@ -616,7 +629,11 @@ export default class VimMotionsPlugin extends Plugin {
                     directive ?? `set statuscolumn=${String(value)}`,
                 );
                 applied = true;
-                if (!this.vimrcLoading && !this.luaLoading) {
+                if (
+                    !this.initializing &&
+                    !this.vimrcLoading &&
+                    !this.luaLoading
+                ) {
                     this.reconfigureStatusColumnGutter();
                 }
             } else if (key === 'foldcolumn') {
@@ -624,7 +641,11 @@ export default class VimMotionsPlugin extends Plugin {
                     value;
                 overrides.set(key, directive ?? `set ${key}`);
                 applied = true;
-                if (!this.vimrcLoading && !this.luaLoading) {
+                if (
+                    !this.initializing &&
+                    !this.vimrcLoading &&
+                    !this.luaLoading
+                ) {
                     this.reconfigureFoldColumnGutter();
                 }
             } else if (key.startsWith('modePrompts.')) {
@@ -669,7 +690,12 @@ export default class VimMotionsPlugin extends Plugin {
                 applied = true;
             }
 
-            if (applied && !this.vimrcLoading && !this.luaLoading) {
+            if (
+                applied &&
+                !this.initializing &&
+                !this.vimrcLoading &&
+                !this.luaLoading
+            ) {
                 this.reloadFeatures();
             }
         };
@@ -1753,6 +1779,7 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.app.workspace.trigger('parse-style-settings');
+        this.initializing = false;
     }
 
     reloadFeatures(): void {

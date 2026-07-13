@@ -161,6 +161,8 @@ Settings-based clipboard and textwidth values are now re-applied on plugin load 
 
 Options that require side effects (clipboard → `setClipboardOption()`, textwidth → `setTextwidth()`, guicursor → `parseGuicursor()`) use a `SideEffectOpt` type in the `KNOWN_SET_OPTIONS` table. This ensures all three code paths (vimrc `set`, Lua `vim.opt`, and initial settings load) invoke the same side-effect callback — eliminating the class of bug where an option works in vimrc but silently fails in Lua or vice versa.
 
+The initial settings load during `onload()` is guarded by an `initializing` flag that suppresses `reloadFeatures()` and gutter reconfiguration side effects until `onload()` completes. Without this guard, the settings restoration loop triggers premature `reloadFeatures()` calls that create resources (VimModeTracker, GlobalKeyHandler) before `onload()` creates its own — leading to duplicate status bar elements and orphaned event listeners. The guard follows the same pattern as `vimrcLoading`/`luaLoading`. ([#63](https://github.com/saberzero1/motions/issues/63))
+
 ## ~~Scrolloff line height assumption~~ (Fixed)
 
 Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height. Note: `defaultLineHeight` returns an average line height — documents with mixed-height lines (e.g., headings with larger fonts) may not have pixel-perfect scrolloff distances.
