@@ -201,20 +201,20 @@ vim.snippet.add("ret", s("Return", {
 
 ### DSL functions
 
-| Function                              | Description                                                  |
-| ------------------------------------- | ------------------------------------------------------------ |
-| `vim.snippet.s(name, nodes, opts?)`   | Define a snippet                                             |
-| `vim.snippet.t(text)`                 | Static text node                                             |
-| `vim.snippet.i(index, default?)`      | Editable tabstop                                             |
-| `vim.snippet.c(index, choices)`       | Choice node (list of `t()` nodes)                            |
-| `vim.snippet.rep(index)`              | Mirror/repeat a tabstop                                      |
-| `vim.snippet.fmt(str, nodes, opts?)`  | Format string with `{}` placeholders                         |
-| `vim.snippet.f(fn, deps)`             | Function node — computes text from dependency field values   |
-| `vim.snippet.d(index, fn, deps)`      | Dynamic node — generates sub-snippet based on field values   |
-| `vim.snippet.sn(index, nodes, opts?)` | Snippet node — wraps nodes for use as `d()` return value     |
+| Function                              | Description                                                   |
+| ------------------------------------- | ------------------------------------------------------------- |
+| `vim.snippet.s(name, nodes, opts?)`   | Define a snippet                                              |
+| `vim.snippet.t(text)`                 | Static text node                                              |
+| `vim.snippet.i(index, default?)`      | Editable tabstop                                              |
+| `vim.snippet.c(index, choices)`       | Choice node (list of `t()` nodes)                             |
+| `vim.snippet.rep(index)`              | Mirror/repeat a tabstop                                       |
+| `vim.snippet.fmt(str, nodes, opts?)`  | Format string with `{}` placeholders                          |
+| `vim.snippet.f(fn, deps)`             | Function node — computes text from dependency field values    |
+| `vim.snippet.d(index, fn, deps)`      | Dynamic node — generates sub-snippet based on field values    |
+| `vim.snippet.sn(index, nodes, opts?)` | Snippet node — wraps nodes for use as `d()` return value      |
 | `vim.snippet.r(index, type_name?)`    | Restore node — preserves user input across `d()` regeneration |
-| `vim.snippet.add(trigger, snippet)`   | Register a snippet                                           |
-| `vim.snippet.add_all(table)`          | Register multiple snippets                                   |
+| `vim.snippet.add(trigger, snippet)`   | Register a snippet                                            |
+| `vim.snippet.add_all(table)`          | Register multiple snippets                                    |
 
 Static snippets (`t`, `i`, `c`, `rep`, `fmt`) compile to VS Code JSON at load time. Dynamic snippets (`f`, `d`, `r`) execute Lua functions reactively during snippet editing.
 

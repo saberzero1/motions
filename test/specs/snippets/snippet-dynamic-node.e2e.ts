@@ -63,30 +63,26 @@ async function typePrefixAndTab(prefix: string): Promise<void> {
 async function waitForSnippet(trigger: string): Promise<void> {
     await browser.waitUntil(
         async () =>
-            (await browser.executeObsidian(
-                ({ app }, t: string) => {
-                    const plugin = (
-                        app as unknown as {
-                            plugins: {
-                                plugins: Record<
-                                    string,
-                                    {
-                                        snippetRegistry?: {
-                                            lookupByPrefix: (
-                                                p: string,
-                                            ) => unknown[];
-                                        };
-                                    }
-                                >;
-                            };
-                        }
-                    ).plugins.plugins['vim-motions'];
-                    const matches =
-                        plugin?.snippetRegistry?.lookupByPrefix(t);
-                    return Array.isArray(matches) && matches.length > 0;
-                },
-                trigger,
-            )) as boolean,
+            (await browser.executeObsidian(({ app }, t: string) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    snippetRegistry?: {
+                                        lookupByPrefix: (
+                                            p: string,
+                                        ) => unknown[];
+                                    };
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                const matches = plugin?.snippetRegistry?.lookupByPrefix(t);
+                return Array.isArray(matches) && matches.length > 0;
+            }, trigger)) as boolean,
         { timeout: 10000, interval: 200 },
     );
 }
@@ -136,7 +132,9 @@ vim.snippet.add("dtest", s("DynamicTest", {
             return {
                 luaCount: plugin?.luaSnippetDefs?.length ?? -1,
                 registryCount: plugin?.snippetRegistry?.getAll()?.length ?? -1,
-                hasDtest: (plugin?.snippetRegistry?.lookupByPrefix('dtest')?.length ?? 0) > 0,
+                hasDtest:
+                    (plugin?.snippetRegistry?.lookupByPrefix('dtest')?.length ??
+                        0) > 0,
             };
         })) as Record<string, unknown>;
         console.log('DTEST DEBUG:', JSON.stringify(info));

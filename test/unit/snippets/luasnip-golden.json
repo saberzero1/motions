@@ -1,419 +1,419 @@
 [
-  {
-    "_category": "snippet_basics",
-    "_description": "Tests from snippet_basics_spec.lua — basic snippet expansion with s(), t(), i()",
-    "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/snippet_basics_spec.lua"
-  },
-  {
-    "name": "Can expand Snippets via snip_expand",
-    "source": "tests/integration/snippet_basics_spec.lua:L31",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\tt\"the snippet expands\"\n\t\t\t})",
-    "staticText": ["the snippet expands"],
-    "docstring": null
-  },
-  {
-    "name": "Can jump around in simple snippets.",
-    "source": "tests/integration/snippet_basics_spec.lua:L99",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\tt\"text\", i(1), t\"text again\", i(2), t\"and again\"\n\t\t\t})",
-    "staticText": ["texttext againand again"],
-    "docstring": null
-  },
-  {
-    "name": "Can expand and jump out of nested snippets.",
-    "source": "tests/integration/snippet_basics_spec.lua:L183",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\tt\"a[\", i(1), t\"]a\", i(2), t\"b\"\n\t\t\t})",
-    "staticText": ["a[]ab"],
-    "docstring": null
-  },
-  {
-    "_category": "function_node",
-    "_description": "Tests from function_spec.lua — f() node behavior",
-    "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/function_spec.lua"
-  },
-  {
-    "name": "Text generated on expand/general test of functionality.",
-    "source": "tests/integration/function_spec.lua:L27",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\tf(function(args, snip)\n\t\t\t\t\treturn \"it expands\"\n\t\t\t\tend, {})\n\t\t\t})",
-    "staticText": ["it expands"],
-    "docstring": null
-  },
-  {
-    "name": "Updates when argnodes text changes + args as table.",
-    "source": "tests/integration/function_spec.lua:L49",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"), t\" -> \", f(function(args) return args[1] end, 1), t\" == \", f(function(args) return args[1] end, {1})\n\t\t\t})",
-    "staticText": ["a -> a == a"],
-    "docstring": null
-  },
-  {
-    "_category": "dynamic_node",
-    "_description": "Tests from dynamic_spec.lua — d() and sn() node behavior",
-    "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/dynamic_spec.lua"
-  },
-  {
-    "name": "The snippet is generated.",
-    "source": "tests/integration/dynamic_spec.lua:L27",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\td(1, function(args, snip)\n\t\t\t\t\treturn sn(nil, {t\"yep\"})\n\t\t\t\tend, {})\n\t\t\t})",
-    "staticText": ["yep"],
-    "docstring": ["${1:yep}$0"]
-  },
-  {
-    "name": "The snippet is jumped into and indented.",
-    "source": "tests/integration/dynamic_spec.lua:L46",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\td(1, function(args, snip)\n\t\t\t\t\treturn sn(nil, { t\"yep \", i(1, { \"line1\", \"line2\" }) })\n\t\t\t\tend, {})\n\t\t\t})",
-    "staticText": ["yep line1", "line2"],
-    "docstring": ["${1:yep ${1:line1", "line2}}$0"]
-  },
-  {
-    "name": "The dynamicNode is updated if argnode changes.",
-    "source": "tests/integration/dynamic_spec.lua:L71",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"preset\"),\n\t\t\t\td(2, function(args, snip)\n\t\t\t\t\treturn sn(nil, { i(1, args[1]) })\n\t\t\t\tend, 1)\n\t\t\t})",
-    "staticText": ["presetpreset"],
-    "docstring": ["${1:preset}${2:${1:preset}}$0"]
-  },
-  {
-    "name": "Multiple argnodes update the dynamicNode correctly as well.",
-    "source": "tests/integration/dynamic_spec.lua:L122",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\ti(2, \"b\"),\n\t\t\t\td(3, function(args, snip)\n\t\t\t\t\treturn sn(nil, { i(1, args[1][1]..args[2][1]) })\n\t\t\t\tend, {1, 2})\n\t\t\t})",
-    "staticText": ["abab"],
-    "docstring": ["${1:a}${2:b}${3:${1:ab}}$0"]
-  },
-  {
-    "name": "restoreNode works in dynamicNode.",
-    "source": "tests/integration/dynamic_spec.lua:L168",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\td(2, function(args, snip)\n\t\t\t\t\treturn sn(nil, { t(args[1]), r(1, \"restore_key\", i(1, \"sample_text\")) })\n\t\t\t\tend, 1)\n\t\t\t})",
-    "staticText": ["aasample_text"],
-    "docstring": ["${1:a}${2:a${1:${1:sample_text}}}$0"]
-  },
-  {
-    "name": "dynamicNode propagates indent.",
-    "source": "tests/integration/dynamic_spec.lua:L214",
-    "type": "lua_dsl",
-    "snippet": "s(\"fails\", d(1, function ()\n\t\t\t\treturn sn(nil, fmt(\"{}\", {f(function () return {\"a\", \"b\"} end)}))\n\t\t\tend))",
-    "staticText": ["a", "b"],
-    "docstring": ["${1:a", "b}$0"]
-  },
-  {
-    "name": "dynamicNode works in dynamicNode.",
-    "source": "tests/integration/dynamic_spec.lua:L234",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\td(2, function(args, snip)\n\t\t\t\t\treturn sn(nil, { i(1, args[1]), d(2, function(args, snip) return sn(nil, { t(args[1]) }) end, 1) })\n\t\t\t\tend, {1})\n\t\t\t})",
-    "staticText": ["aaa"],
-    "docstring": ["${1:a}${2:${1:a}${2:a}}$0"]
-  },
-  {
-    "_category": "lsp_parser",
-    "_description": "Tests from parser_spec.lua — LSP snippet string parsing (ls.parser.parse_snippet)",
-    "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/parser_spec.lua",
-    "_note": "These use LuaSnips LSP snippet parser, not the Lua DSL. They produce the same node types (s/t/i/c) but from a string definition."
-  },
-  {
-    "name": "Expands text-only snippet with auto-generated $0.",
-    "source": "tests/integration/parser_spec.lua:L31",
-    "type": "lsp_parser",
-    "snippet": "\"abcde\"",
-    "staticText": ["abcde"],
-    "docstring": null
-  },
-  {
-    "name": "Omits backslash-r in passed text.",
-    "source": "tests/integration/parser_spec.lua:L51",
-    "type": "lsp_parser",
-    "snippet": "\"adsf\\\\r\\\\nasdf\"",
-    "staticText": ["adsf", "asdf"],
-    "docstring": null
-  },
-  {
-    "name": "Can create snippets with tabstops.",
-    "source": "tests/integration/parser_spec.lua:L72",
-    "type": "lsp_parser",
-    "snippet": "\"a$2 $0b$1 c\"",
-    "staticText": ["a b c"],
-    "docstring": null
-  },
-  {
-    "name": "Can mirror tabstops.",
-    "source": "tests/integration/parser_spec.lua:L109",
-    "type": "lsp_parser",
-    "snippet": "\"a$1 ${2:b} c\"",
-    "staticText": ["a b c"],
-    "docstring": null
-  },
-  {
-    "name": "Can create nested snippets.",
-    "source": "tests/integration/parser_spec.lua:L157",
-    "type": "lsp_parser",
-    "snippet": "\"${1: aaa $2 bbb}\"",
-    "staticText": [" aaa  bbb"],
-    "docstring": null
-  },
-  {
-    "name": "Copies tabstop if jsregexp is not available.",
-    "source": "tests/integration/parser_spec.lua:L275",
-    "type": "lsp_parser",
-    "snippet": "\"$1 a ${1/(.*)/asdf $1 asdf/} a\"",
-    "staticText": [" a  a"],
-    "docstring": null
-  },
-  {
-    "name": "Modifies invalid $0 with choice.",
-    "source": "tests/integration/parser_spec.lua:L341",
-    "type": "lsp_parser",
-    "snippet": "\"$0   ${0|asdf,qwer,zxcv|} asdf\"",
-    "staticText": ["asdf   asdf asdf"],
-    "docstring": null
-  },
-  {
-    "name": "Modifies invalid $0 with choice nested in placeholder.",
-    "source": "tests/integration/parser_spec.lua:L376",
-    "type": "lsp_parser",
-    "snippet": "\"$0   ${1: ${0|asdf,qwer,zxcv|}} asdf\"",
-    "staticText": ["asdf    asdf asdf"],
-    "docstring": null
-  },
-  {
-    "name": "Does not modify $0 which can be represented.",
-    "source": "tests/integration/parser_spec.lua:L411",
-    "type": "lsp_parser",
-    "snippet": "\"${0:qwer} asdf\"",
-    "staticText": ["qwer asdf"],
-    "docstring": null
-  },
-  {
-    "name": "Turns the correct nodes into insert/functionNode.",
-    "source": "tests/integration/parser_spec.lua:L428",
-    "type": "lsp_parser",
-    "snippet": "\"${1} ${1:asdf} ${1:asdf}\"",
-    "staticText": ["asdf asdf asdf"],
-    "docstring": null
-  },
-  {
-    "_category": "choice_node",
-    "_description": "Tests from choice_spec.lua — c() node behavior",
-    "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/choice_spec.lua"
-  },
-  {
-    "name": "Can change choice.",
-    "source": "tests/integration/choice_spec.lua:L27",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\tc(1, {\n\t\t\t\t\tt\"a\",\n\t\t\t\t\tt\"b\"\n\t\t\t\t})\n\t\t\t})",
-    "staticText": ["a"],
-    "docstring": null
-  },
-  {
-    "name": "Changed content of choice is restored.",
-    "source": "tests/integration/choice_spec.lua:L55",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\tc(1, {\n\t\t\t\t\t-- parsed as snippetNode.\n\t\t\t\t\t{\n\t\t\t\t\t\ti(1, \"a\"), t\" \", c(2, {\n\t\t\t\t\t\t\t\t\t\t\tt\"a\",\n\t\t\t\t\t\t\t\t\t\t\tt\"b\"\n\t\t\t\t\t\t\t\t\t })\n\t\t\t\t\t},\n\t\t\t\t\tt\"b\"\n\t\t\t\t})\n\t\t\t})",
-    "staticText": ["a a"],
-    "docstring": ["${1:${${1:a} ${2:a}}}$0"]
-  },
-  {
-    "name": "dynamicNode works in choiceNode.",
-    "source": "tests/integration/choice_spec.lua:L166",
-    "type": "lua_dsl",
-    "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\tc(2, {\n\t\t\t\t\td(nil, function(args, snip)\n\t\t\t\t\t\treturn sn(nil, { i(1, args[1]) })\n\t\t\t\t\tend, 1),\n\t\t\t\t\tt\"none\"\n\t\t\t\t})\n\t\t\t})",
-    "staticText": ["aa"],
-    "docstring": ["${1:a}${2:${${1:a}}}$0"]
-  },
-  {
-    "_category": "fmt_interpolation",
-    "_description": "Tests from unit/fmt_spec.lua — fmt.interpolate() pure function tests",
-    "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/unit/fmt_spec.lua",
-    "_note": "These test fmt.interpolate() which is the underlying function for fmt(). The format string uses {} delimiters by default."
-  },
-  {
-    "name": "expands with no numbers",
-    "source": "tests/unit/fmt_spec.lua:L68",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{}b{}c{}d\", { 4, 5, 6 })",
-    "staticText": ["a4b5c6d"],
-    "docstring": null
-  },
-  {
-    "name": "expands with explicit numbers",
-    "source": "tests/unit/fmt_spec.lua:L75",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{2}b{1}c{3}d\", { 4, 5, 6 })",
-    "staticText": ["a5b4c6d"],
-    "docstring": null
-  },
-  {
-    "name": "expands with mixed numbering",
-    "source": "tests/unit/fmt_spec.lua:L82",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{}b{3}c{}d{2}e\", { 1, 2, 3, 4 })",
-    "staticText": ["a1b3c4d2e"],
-    "docstring": null
-  },
-  {
-    "name": "expands named placeholders",
-    "source": "tests/unit/fmt_spec.lua:L89",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{A}b{B}c{C}d\", { A = 1, B = 2, C = 3 })",
-    "staticText": ["a1b2c3d"],
-    "docstring": null
-  },
-  {
-    "name": "expands all mixed",
-    "source": "tests/unit/fmt_spec.lua:L96",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a {A} b {} c {3} d {} e {B} f {A} g {2} h\", { 1, 2, 3, 4, A = 10, B = 20 })",
-    "staticText": ["a 10 b 1 c 3 d 4 e 20 f 10 g 2 h"],
-    "docstring": null
-  },
-  {
-    "name": "current index changed by numbered nodes",
-    "source": "tests/unit/fmt_spec.lua:L103",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"{} {} {1} {} {}\", { 1, 2, 3 })",
-    "staticText": ["1 2 1 2 3"],
-    "docstring": null
-  },
-  {
-    "name": "excludes trailing text",
-    "source": "tests/unit/fmt_spec.lua:L110",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"{}abcd{}\", { 1, 2 })",
-    "staticText": ["1abcd2"],
-    "docstring": null
-  },
-  {
-    "name": "escapes empty double-braces",
-    "source": "tests/unit/fmt_spec.lua:L117",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{{}}b{}c{{}}d{}e\", { 2, 4 })",
-    "staticText": ["a{}b2c{}d4e"],
-    "docstring": null
-  },
-  {
-    "name": "escapes non-empty double-braces",
-    "source": "tests/unit/fmt_spec.lua:L124",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{{d}}b{}c\", { 2 })",
-    "staticText": ["a{d}b2c"],
-    "docstring": null
-  },
-  {
-    "name": "do not trim placeholders with whitespace",
-    "source": "tests/unit/fmt_spec.lua:L131",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{ something}b{}c\", { [\" something\"] = 1, 2 })",
-    "staticText": ["a1b2c"],
-    "docstring": null
-  },
-  {
-    "name": "replaces nested escaped braces",
-    "source": "tests/unit/fmt_spec.lua:L138",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{{{{}}}}b{}c{{ {{ }}}}d\", { 2 })",
-    "staticText": ["a{{}}b2c{ { }}d"],
-    "docstring": null
-  },
-  {
-    "name": "replaces unmatched escaped braces",
-    "source": "tests/unit/fmt_spec.lua:L145",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{{{{b{}c\", { 2 })",
-    "staticText": ["a{{b2c"],
-    "docstring": null
-  },
-  {
-    "name": "replaces in braces inside escaped braces",
-    "source": "tests/unit/fmt_spec.lua:L152",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a{{{}}}b{{ {}}}c{{{} }}d{{ {} }}e\", { 1, 2, 3, 4 })",
-    "staticText": ["a{1}b{ 2}c{3 }d{ 4 }e"],
-    "docstring": null
-  },
-  {
-    "name": "repeats node with default options",
-    "source": "tests/unit/fmt_spec.lua:L159",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"{a}{a}\", { a = 1 })",
-    "staticText": ["11"],
-    "docstring": null
-  },
-  {
-    "name": "can use different delimiters",
-    "source": "tests/unit/fmt_spec.lua:L170",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"foo() { return <>; };\", { 10 }, { delimiters = \"<>\" })",
-    "staticText": ["foo() { return 10; };"],
-    "docstring": null
-  },
-  {
-    "name": "can escape custom delimiters",
-    "source": "tests/unit/fmt_spec.lua:L192",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"foo((x)) { return x + (); };\", { 10 }, { delimiters = \"()\" })",
-    "staticText": ["foo(x) { return x + 10; };"],
-    "docstring": null
-  },
-  {
-    "name": "can use named placeholders with custom delimiters",
-    "source": "tests/unit/fmt_spec.lua:L200",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"foo(x) { return x + [y]; };\", { y = 10 }, { delimiters = \"[]\" })",
-    "staticText": ["foo(x) { return x + 10; };"],
-    "docstring": null
-  },
-  {
-    "name": "allows unused args with strict=false",
-    "source": "tests/unit/fmt_spec.lua:L216",
-    "type": "fmt_interpolation",
-    "snippet": "fmt(\"a {A} b {B} c {} d\", { 1, 2, A = 10, B = 20, C = 30 }, { strict = false })",
-    "staticText": ["a 10 b 20 c 1 d"],
-    "docstring": null
-  },
-  {
-    "_category": "fmt_interpolation_errors",
-    "_description": "Error cases from unit/fmt_spec.lua — fmt.interpolate() should error",
-    "_note": "These should raise errors in your test runner."
-  },
-  {
-    "name": "fails for unbalanced braces",
-    "source": "tests/unit/fmt_spec.lua:L166",
-    "type": "fmt_interpolation_error",
-    "snippet": "fmt(\"a{b\", {})",
-    "staticText": null,
-    "docstring": null,
-    "expectedError": true
-  },
-  {
-    "name": "fails for nested braces",
-    "source": "tests/unit/fmt_spec.lua:L168",
-    "type": "fmt_interpolation_error",
-    "snippet": "fmt(\"a{ { } }b\", {})",
-    "staticText": null,
-    "docstring": null,
-    "expectedError": true
-  },
-  {
-    "name": "disallows unused list args",
-    "source": "tests/unit/fmt_spec.lua:L208",
-    "type": "fmt_interpolation_error",
-    "snippet": "fmt(\"a {} b {} c\", { 1, 2, 3 })",
-    "staticText": null,
-    "docstring": null,
-    "expectedError": true
-  },
-  {
-    "name": "disallows unused map args",
-    "source": "tests/unit/fmt_spec.lua:L210",
-    "type": "fmt_interpolation_error",
-    "snippet": "fmt(\"a {A} b {B} c {} d\", { 1, A = 10, B = 20, C = 30 })",
-    "staticText": null,
-    "docstring": null,
-    "expectedError": true
-  }
+    {
+        "_category": "snippet_basics",
+        "_description": "Tests from snippet_basics_spec.lua — basic snippet expansion with s(), t(), i()",
+        "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/snippet_basics_spec.lua"
+    },
+    {
+        "name": "Can expand Snippets via snip_expand",
+        "source": "tests/integration/snippet_basics_spec.lua:L31",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\tt\"the snippet expands\"\n\t\t\t})",
+        "staticText": ["the snippet expands"],
+        "docstring": null
+    },
+    {
+        "name": "Can jump around in simple snippets.",
+        "source": "tests/integration/snippet_basics_spec.lua:L99",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\tt\"text\", i(1), t\"text again\", i(2), t\"and again\"\n\t\t\t})",
+        "staticText": ["texttext againand again"],
+        "docstring": null
+    },
+    {
+        "name": "Can expand and jump out of nested snippets.",
+        "source": "tests/integration/snippet_basics_spec.lua:L183",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\tt\"a[\", i(1), t\"]a\", i(2), t\"b\"\n\t\t\t})",
+        "staticText": ["a[]ab"],
+        "docstring": null
+    },
+    {
+        "_category": "function_node",
+        "_description": "Tests from function_spec.lua — f() node behavior",
+        "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/function_spec.lua"
+    },
+    {
+        "name": "Text generated on expand/general test of functionality.",
+        "source": "tests/integration/function_spec.lua:L27",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\tf(function(args, snip)\n\t\t\t\t\treturn \"it expands\"\n\t\t\t\tend, {})\n\t\t\t})",
+        "staticText": ["it expands"],
+        "docstring": null
+    },
+    {
+        "name": "Updates when argnodes text changes + args as table.",
+        "source": "tests/integration/function_spec.lua:L49",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"), t\" -> \", f(function(args) return args[1] end, 1), t\" == \", f(function(args) return args[1] end, {1})\n\t\t\t})",
+        "staticText": ["a -> a == a"],
+        "docstring": null
+    },
+    {
+        "_category": "dynamic_node",
+        "_description": "Tests from dynamic_spec.lua — d() and sn() node behavior",
+        "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/dynamic_spec.lua"
+    },
+    {
+        "name": "The snippet is generated.",
+        "source": "tests/integration/dynamic_spec.lua:L27",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\td(1, function(args, snip)\n\t\t\t\t\treturn sn(nil, {t\"yep\"})\n\t\t\t\tend, {})\n\t\t\t})",
+        "staticText": ["yep"],
+        "docstring": ["${1:yep}$0"]
+    },
+    {
+        "name": "The snippet is jumped into and indented.",
+        "source": "tests/integration/dynamic_spec.lua:L46",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\td(1, function(args, snip)\n\t\t\t\t\treturn sn(nil, { t\"yep \", i(1, { \"line1\", \"line2\" }) })\n\t\t\t\tend, {})\n\t\t\t})",
+        "staticText": ["yep line1", "line2"],
+        "docstring": ["${1:yep ${1:line1", "line2}}$0"]
+    },
+    {
+        "name": "The dynamicNode is updated if argnode changes.",
+        "source": "tests/integration/dynamic_spec.lua:L71",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"preset\"),\n\t\t\t\td(2, function(args, snip)\n\t\t\t\t\treturn sn(nil, { i(1, args[1]) })\n\t\t\t\tend, 1)\n\t\t\t})",
+        "staticText": ["presetpreset"],
+        "docstring": ["${1:preset}${2:${1:preset}}$0"]
+    },
+    {
+        "name": "Multiple argnodes update the dynamicNode correctly as well.",
+        "source": "tests/integration/dynamic_spec.lua:L122",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\ti(2, \"b\"),\n\t\t\t\td(3, function(args, snip)\n\t\t\t\t\treturn sn(nil, { i(1, args[1][1]..args[2][1]) })\n\t\t\t\tend, {1, 2})\n\t\t\t})",
+        "staticText": ["abab"],
+        "docstring": ["${1:a}${2:b}${3:${1:ab}}$0"]
+    },
+    {
+        "name": "restoreNode works in dynamicNode.",
+        "source": "tests/integration/dynamic_spec.lua:L168",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\td(2, function(args, snip)\n\t\t\t\t\treturn sn(nil, { t(args[1]), r(1, \"restore_key\", i(1, \"sample_text\")) })\n\t\t\t\tend, 1)\n\t\t\t})",
+        "staticText": ["aasample_text"],
+        "docstring": ["${1:a}${2:a${1:${1:sample_text}}}$0"]
+    },
+    {
+        "name": "dynamicNode propagates indent.",
+        "source": "tests/integration/dynamic_spec.lua:L214",
+        "type": "lua_dsl",
+        "snippet": "s(\"fails\", d(1, function ()\n\t\t\t\treturn sn(nil, fmt(\"{}\", {f(function () return {\"a\", \"b\"} end)}))\n\t\t\tend))",
+        "staticText": ["a", "b"],
+        "docstring": ["${1:a", "b}$0"]
+    },
+    {
+        "name": "dynamicNode works in dynamicNode.",
+        "source": "tests/integration/dynamic_spec.lua:L234",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\td(2, function(args, snip)\n\t\t\t\t\treturn sn(nil, { i(1, args[1]), d(2, function(args, snip) return sn(nil, { t(args[1]) }) end, 1) })\n\t\t\t\tend, {1})\n\t\t\t})",
+        "staticText": ["aaa"],
+        "docstring": ["${1:a}${2:${1:a}${2:a}}$0"]
+    },
+    {
+        "_category": "lsp_parser",
+        "_description": "Tests from parser_spec.lua — LSP snippet string parsing (ls.parser.parse_snippet)",
+        "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/parser_spec.lua",
+        "_note": "These use LuaSnips LSP snippet parser, not the Lua DSL. They produce the same node types (s/t/i/c) but from a string definition."
+    },
+    {
+        "name": "Expands text-only snippet with auto-generated $0.",
+        "source": "tests/integration/parser_spec.lua:L31",
+        "type": "lsp_parser",
+        "snippet": "\"abcde\"",
+        "staticText": ["abcde"],
+        "docstring": null
+    },
+    {
+        "name": "Omits backslash-r in passed text.",
+        "source": "tests/integration/parser_spec.lua:L51",
+        "type": "lsp_parser",
+        "snippet": "\"adsf\\\\r\\\\nasdf\"",
+        "staticText": ["adsf", "asdf"],
+        "docstring": null
+    },
+    {
+        "name": "Can create snippets with tabstops.",
+        "source": "tests/integration/parser_spec.lua:L72",
+        "type": "lsp_parser",
+        "snippet": "\"a$2 $0b$1 c\"",
+        "staticText": ["a b c"],
+        "docstring": null
+    },
+    {
+        "name": "Can mirror tabstops.",
+        "source": "tests/integration/parser_spec.lua:L109",
+        "type": "lsp_parser",
+        "snippet": "\"a$1 ${2:b} c\"",
+        "staticText": ["a b c"],
+        "docstring": null
+    },
+    {
+        "name": "Can create nested snippets.",
+        "source": "tests/integration/parser_spec.lua:L157",
+        "type": "lsp_parser",
+        "snippet": "\"${1: aaa $2 bbb}\"",
+        "staticText": [" aaa  bbb"],
+        "docstring": null
+    },
+    {
+        "name": "Copies tabstop if jsregexp is not available.",
+        "source": "tests/integration/parser_spec.lua:L275",
+        "type": "lsp_parser",
+        "snippet": "\"$1 a ${1/(.*)/asdf $1 asdf/} a\"",
+        "staticText": [" a  a"],
+        "docstring": null
+    },
+    {
+        "name": "Modifies invalid $0 with choice.",
+        "source": "tests/integration/parser_spec.lua:L341",
+        "type": "lsp_parser",
+        "snippet": "\"$0   ${0|asdf,qwer,zxcv|} asdf\"",
+        "staticText": ["asdf   asdf asdf"],
+        "docstring": null
+    },
+    {
+        "name": "Modifies invalid $0 with choice nested in placeholder.",
+        "source": "tests/integration/parser_spec.lua:L376",
+        "type": "lsp_parser",
+        "snippet": "\"$0   ${1: ${0|asdf,qwer,zxcv|}} asdf\"",
+        "staticText": ["asdf    asdf asdf"],
+        "docstring": null
+    },
+    {
+        "name": "Does not modify $0 which can be represented.",
+        "source": "tests/integration/parser_spec.lua:L411",
+        "type": "lsp_parser",
+        "snippet": "\"${0:qwer} asdf\"",
+        "staticText": ["qwer asdf"],
+        "docstring": null
+    },
+    {
+        "name": "Turns the correct nodes into insert/functionNode.",
+        "source": "tests/integration/parser_spec.lua:L428",
+        "type": "lsp_parser",
+        "snippet": "\"${1} ${1:asdf} ${1:asdf}\"",
+        "staticText": ["asdf asdf asdf"],
+        "docstring": null
+    },
+    {
+        "_category": "choice_node",
+        "_description": "Tests from choice_spec.lua — c() node behavior",
+        "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/integration/choice_spec.lua"
+    },
+    {
+        "name": "Can change choice.",
+        "source": "tests/integration/choice_spec.lua:L27",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\tc(1, {\n\t\t\t\t\tt\"a\",\n\t\t\t\t\tt\"b\"\n\t\t\t\t})\n\t\t\t})",
+        "staticText": ["a"],
+        "docstring": null
+    },
+    {
+        "name": "Changed content of choice is restored.",
+        "source": "tests/integration/choice_spec.lua:L55",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\tc(1, {\n\t\t\t\t\t-- parsed as snippetNode.\n\t\t\t\t\t{\n\t\t\t\t\t\ti(1, \"a\"), t\" \", c(2, {\n\t\t\t\t\t\t\t\t\t\t\tt\"a\",\n\t\t\t\t\t\t\t\t\t\t\tt\"b\"\n\t\t\t\t\t\t\t\t\t })\n\t\t\t\t\t},\n\t\t\t\t\tt\"b\"\n\t\t\t\t})\n\t\t\t})",
+        "staticText": ["a a"],
+        "docstring": ["${1:${${1:a} ${2:a}}}$0"]
+    },
+    {
+        "name": "dynamicNode works in choiceNode.",
+        "source": "tests/integration/choice_spec.lua:L166",
+        "type": "lua_dsl",
+        "snippet": "s(\"trig\", {\n\t\t\t\ti(1, \"a\"),\n\t\t\t\tc(2, {\n\t\t\t\t\td(nil, function(args, snip)\n\t\t\t\t\t\treturn sn(nil, { i(1, args[1]) })\n\t\t\t\t\tend, 1),\n\t\t\t\t\tt\"none\"\n\t\t\t\t})\n\t\t\t})",
+        "staticText": ["aa"],
+        "docstring": ["${1:a}${2:${${1:a}}}$0"]
+    },
+    {
+        "_category": "fmt_interpolation",
+        "_description": "Tests from unit/fmt_spec.lua — fmt.interpolate() pure function tests",
+        "_source_repo": "https://github.com/L3MON4D3/LuaSnip/blob/0abc8f390b278c3b4aabc4c004ac8a088b65cf24/tests/unit/fmt_spec.lua",
+        "_note": "These test fmt.interpolate() which is the underlying function for fmt(). The format string uses {} delimiters by default."
+    },
+    {
+        "name": "expands with no numbers",
+        "source": "tests/unit/fmt_spec.lua:L68",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{}b{}c{}d\", { 4, 5, 6 })",
+        "staticText": ["a4b5c6d"],
+        "docstring": null
+    },
+    {
+        "name": "expands with explicit numbers",
+        "source": "tests/unit/fmt_spec.lua:L75",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{2}b{1}c{3}d\", { 4, 5, 6 })",
+        "staticText": ["a5b4c6d"],
+        "docstring": null
+    },
+    {
+        "name": "expands with mixed numbering",
+        "source": "tests/unit/fmt_spec.lua:L82",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{}b{3}c{}d{2}e\", { 1, 2, 3, 4 })",
+        "staticText": ["a1b3c4d2e"],
+        "docstring": null
+    },
+    {
+        "name": "expands named placeholders",
+        "source": "tests/unit/fmt_spec.lua:L89",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{A}b{B}c{C}d\", { A = 1, B = 2, C = 3 })",
+        "staticText": ["a1b2c3d"],
+        "docstring": null
+    },
+    {
+        "name": "expands all mixed",
+        "source": "tests/unit/fmt_spec.lua:L96",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a {A} b {} c {3} d {} e {B} f {A} g {2} h\", { 1, 2, 3, 4, A = 10, B = 20 })",
+        "staticText": ["a 10 b 1 c 3 d 4 e 20 f 10 g 2 h"],
+        "docstring": null
+    },
+    {
+        "name": "current index changed by numbered nodes",
+        "source": "tests/unit/fmt_spec.lua:L103",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"{} {} {1} {} {}\", { 1, 2, 3 })",
+        "staticText": ["1 2 1 2 3"],
+        "docstring": null
+    },
+    {
+        "name": "excludes trailing text",
+        "source": "tests/unit/fmt_spec.lua:L110",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"{}abcd{}\", { 1, 2 })",
+        "staticText": ["1abcd2"],
+        "docstring": null
+    },
+    {
+        "name": "escapes empty double-braces",
+        "source": "tests/unit/fmt_spec.lua:L117",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{{}}b{}c{{}}d{}e\", { 2, 4 })",
+        "staticText": ["a{}b2c{}d4e"],
+        "docstring": null
+    },
+    {
+        "name": "escapes non-empty double-braces",
+        "source": "tests/unit/fmt_spec.lua:L124",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{{d}}b{}c\", { 2 })",
+        "staticText": ["a{d}b2c"],
+        "docstring": null
+    },
+    {
+        "name": "do not trim placeholders with whitespace",
+        "source": "tests/unit/fmt_spec.lua:L131",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{ something}b{}c\", { [\" something\"] = 1, 2 })",
+        "staticText": ["a1b2c"],
+        "docstring": null
+    },
+    {
+        "name": "replaces nested escaped braces",
+        "source": "tests/unit/fmt_spec.lua:L138",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{{{{}}}}b{}c{{ {{ }}}}d\", { 2 })",
+        "staticText": ["a{{}}b2c{ { }}d"],
+        "docstring": null
+    },
+    {
+        "name": "replaces unmatched escaped braces",
+        "source": "tests/unit/fmt_spec.lua:L145",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{{{{b{}c\", { 2 })",
+        "staticText": ["a{{b2c"],
+        "docstring": null
+    },
+    {
+        "name": "replaces in braces inside escaped braces",
+        "source": "tests/unit/fmt_spec.lua:L152",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a{{{}}}b{{ {}}}c{{{} }}d{{ {} }}e\", { 1, 2, 3, 4 })",
+        "staticText": ["a{1}b{ 2}c{3 }d{ 4 }e"],
+        "docstring": null
+    },
+    {
+        "name": "repeats node with default options",
+        "source": "tests/unit/fmt_spec.lua:L159",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"{a}{a}\", { a = 1 })",
+        "staticText": ["11"],
+        "docstring": null
+    },
+    {
+        "name": "can use different delimiters",
+        "source": "tests/unit/fmt_spec.lua:L170",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"foo() { return <>; };\", { 10 }, { delimiters = \"<>\" })",
+        "staticText": ["foo() { return 10; };"],
+        "docstring": null
+    },
+    {
+        "name": "can escape custom delimiters",
+        "source": "tests/unit/fmt_spec.lua:L192",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"foo((x)) { return x + (); };\", { 10 }, { delimiters = \"()\" })",
+        "staticText": ["foo(x) { return x + 10; };"],
+        "docstring": null
+    },
+    {
+        "name": "can use named placeholders with custom delimiters",
+        "source": "tests/unit/fmt_spec.lua:L200",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"foo(x) { return x + [y]; };\", { y = 10 }, { delimiters = \"[]\" })",
+        "staticText": ["foo(x) { return x + 10; };"],
+        "docstring": null
+    },
+    {
+        "name": "allows unused args with strict=false",
+        "source": "tests/unit/fmt_spec.lua:L216",
+        "type": "fmt_interpolation",
+        "snippet": "fmt(\"a {A} b {B} c {} d\", { 1, 2, A = 10, B = 20, C = 30 }, { strict = false })",
+        "staticText": ["a 10 b 20 c 1 d"],
+        "docstring": null
+    },
+    {
+        "_category": "fmt_interpolation_errors",
+        "_description": "Error cases from unit/fmt_spec.lua — fmt.interpolate() should error",
+        "_note": "These should raise errors in your test runner."
+    },
+    {
+        "name": "fails for unbalanced braces",
+        "source": "tests/unit/fmt_spec.lua:L166",
+        "type": "fmt_interpolation_error",
+        "snippet": "fmt(\"a{b\", {})",
+        "staticText": null,
+        "docstring": null,
+        "expectedError": true
+    },
+    {
+        "name": "fails for nested braces",
+        "source": "tests/unit/fmt_spec.lua:L168",
+        "type": "fmt_interpolation_error",
+        "snippet": "fmt(\"a{ { } }b\", {})",
+        "staticText": null,
+        "docstring": null,
+        "expectedError": true
+    },
+    {
+        "name": "disallows unused list args",
+        "source": "tests/unit/fmt_spec.lua:L208",
+        "type": "fmt_interpolation_error",
+        "snippet": "fmt(\"a {} b {} c\", { 1, 2, 3 })",
+        "staticText": null,
+        "docstring": null,
+        "expectedError": true
+    },
+    {
+        "name": "disallows unused map args",
+        "source": "tests/unit/fmt_spec.lua:L210",
+        "type": "fmt_interpolation_error",
+        "snippet": "fmt(\"a {A} b {B} c {} d\", { 1, A = 10, B = 20, C = 30 })",
+        "staticText": null,
+        "docstring": null,
+        "expectedError": true
+    }
 ]

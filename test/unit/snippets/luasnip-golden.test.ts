@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createSandboxedState, destroyState, evalLua } from '../../../src/lua/engine';
-import { injectSnippetApi, type LuaSnippetDef } from '../../../src/lua/snippet-api';
+import {
+    createSandboxedState,
+    destroyState,
+    evalLua,
+} from '../../../src/lua/engine';
+import {
+    injectSnippetApi,
+    type LuaSnippetDef,
+} from '../../../src/lua/snippet-api';
 import { injectStdlib } from '../../../src/lua/stdlib';
 import { injectVimApi } from '../../../src/lua/api';
 import { AutocmdManager } from '../../../src/lua/autocmd';
@@ -62,13 +69,20 @@ function isGoldenTest(entry: GoldenEntry): entry is GoldenTest {
 }
 
 function hasDynamicNodes(snippet: string): boolean {
-    return /\bf\s*\(/.test(snippet) || /\bd\s*\(/.test(snippet) || /\br\s*\(/.test(snippet);
+    return (
+        /\bf\s*\(/.test(snippet) ||
+        /\bd\s*\(/.test(snippet) ||
+        /\br\s*\(/.test(snippet)
+    );
 }
 
 function toStaticText(body: string): string {
-    const withPlaceholders = body.replace(/\$\{(\d+):([^}]*)\}/g, (_match, _idx, text) => {
-        return text;
-    });
+    const withPlaceholders = body.replace(
+        /\$\{(\d+):([^}]*)\}/g,
+        (_match, _idx, text) => {
+            return text;
+        },
+    );
     const withChoices = withPlaceholders.replace(
         /\$\{(\d+)\|([^}]*)\|\}/g,
         (_match, _idx, choices) => {
@@ -125,7 +139,9 @@ describe('LuaSnip golden comparison', () => {
             expect(entry).toBeDefined();
 
             const body = entry?.body;
-            const bodyStr = Array.isArray(body) ? body.join('\n') : body ?? '';
+            const bodyStr = Array.isArray(body)
+                ? body.join('\n')
+                : (body ?? '');
             const expectedStr = (test.staticText ?? []).join('\n');
             const staticBodyStr = toStaticText(bodyStr);
 

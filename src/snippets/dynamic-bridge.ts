@@ -55,10 +55,7 @@ export class DynamicSnippetContext {
                 const depRanges = ranges.filter((r) => r.field === dep);
                 const depRange = depRanges[0];
                 if (!depRange) continue;
-                const currentText = state.sliceDoc(
-                    depRange.from,
-                    depRange.to,
-                );
+                const currentText = state.sliceDoc(depRange.from, depRange.to);
                 if (this.fieldCache.get(dep) !== currentText) {
                     this.fieldCache.set(dep, currentText);
                     if (!changed.includes(node.fieldIndex)) {
@@ -394,7 +391,10 @@ class DynamicSnippetPluginValue {
                 );
             }
         } catch (error) {
-            console.error('Vim Motions: snippet dynamic recompute error:', error);
+            console.error(
+                'Vim Motions: snippet dynamic recompute error:',
+                error,
+            );
         }
     }
 
@@ -511,7 +511,8 @@ function applyChangesAndRemapRanges(
 ): { ranges: FieldRange[] } | null {
     const sorted = [...changes].sort((a, b) => b.from - a.from);
     const totalDelta = sorted.reduce(
-        (sum, change) => sum + (change.insert.length - (change.to - change.from)),
+        (sum, change) =>
+            sum + (change.insert.length - (change.to - change.from)),
         0,
     );
     const finalDocLength = state.doc.length + totalDelta;

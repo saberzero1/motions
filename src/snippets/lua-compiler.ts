@@ -18,7 +18,10 @@ export function compileLuaSnippets(defs: LuaSnippetDef[]): SnippetFile {
 
 export interface CompilationResult {
     staticSnippets: SnippetFile;
-    dynamicSnippets: Map<string, { def: LuaSnippetDef; compiled: DynamicSnippetDef }>;
+    dynamicSnippets: Map<
+        string,
+        { def: LuaSnippetDef; compiled: DynamicSnippetDef }
+    >;
 }
 
 export function compileLuaSnippetsHybrid(

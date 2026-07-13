@@ -1643,16 +1643,11 @@ export default class VimMotionsPlugin extends Plugin {
                 );
             }
             this.registerEditorExtension(
-                createDynamicSnippetPlugin(
-                    () => getActiveDynamicContext(),
-                ),
+                createDynamicSnippetPlugin(() => getActiveDynamicContext()),
             );
             this.registerEditorExtension(
                 EditorView.updateListener.of((update) => {
-                    const prev = update.startState.field(
-                        snippetState,
-                        false,
-                    );
+                    const prev = update.startState.field(snippetState, false);
                     const curr = update.state.field(snippetState, false);
                     if (prev && !curr) {
                         setActiveDynamicContext(null);

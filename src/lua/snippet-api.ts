@@ -108,7 +108,14 @@ end
 `;
 
 export interface LuaSnippetNode {
-    type: 'text' | 'insert' | 'choice' | 'rep' | 'function' | 'dynamic' | 'restore';
+    type:
+        | 'text'
+        | 'insert'
+        | 'choice'
+        | 'rep'
+        | 'function'
+        | 'dynamic'
+        | 'restore';
     text?: string;
     index?: number;
     placeholder?: string;
