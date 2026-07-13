@@ -20,18 +20,18 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Vim features
 
-| Name                           | Type     | Default  | Range/Options                         | Lua                             | Vimrc                       | Description                                                                                       |
-| ------------------------------ | -------- | -------- | ------------------------------------- | ------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------- | ----- | --------------- |
-| Text objects                   | toggle   | `true`   | —                                     | `vim.opt.textobjects`           | `set textobjects`           | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                                      |
-| Structural navigation          | toggle   | `true`   | —                                     | `vim.opt.navigation`            | `set navigation`            | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).                       |
-| Hard-wrap operator (gq)        | toggle   | `true`   | —                                     | `vim.opt.hardwrap`              | `set hardwrap`              | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.                      |
-| Smart list continuation on o/O | toggle   | `true`   | —                                     | `vim.opt.listcontinuation`      | `set listcontinuation`      | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O.          |
-| Table navigation               | toggle   | `true`   | —                                     | `vim.opt.tablenav`              | `set tablenav`              | Enable table cell navigation motions (`]                                                          | `, `[ | `, `]c`, `[c`). |
-| Table widget in live preview   | dropdown | `cursor` | `embedded`, `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                      |
-| Yank highlight                 | dropdown | `solid`  | `off`, `solid`, `fade`                | `vim.opt.yankhighlightmode`     | `set yankhighlightmode`     | Highlight yanked text. "Solid" appears and disappears (Neovim-style). "Fade" gradually fades out. |
-| Yank highlight duration        | slider   | `200`    | 50–3000 ms                            | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                        |
-| Sign column                    | dropdown | `auto`   | `auto`, `yes`, `no`                   | `vim.opt.signcolumn`            | `set signcolumn`            | Show vim mark letters in the gutter. Auto/Always/Off. Default: Auto.                              |
-| Fold column                    | toggle   | `false`  | —                                     | `vim.opt.foldcolumn`            | `set foldcolumn`            | Show fold indicators (▸/▾) in the gutter for foldable regions. Click to toggle. Default: off.     |
+| Name                           | Type     | Default  | Range/Options                         | Lua                             | Vimrc                       | Description                                                                                                               |
+| ------------------------------ | -------- | -------- | ------------------------------------- | ------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----- | --------------- |
+| Text objects                   | toggle   | `true`   | —                                     | `vim.opt.textobjects`           | `set textobjects`           | Enable Markdown-aware text objects (`i*`, `a*`, `il`, etc.).                                                              |
+| Structural navigation          | toggle   | `true`   | —                                     | `vim.opt.navigation`            | `set navigation`            | Enable heading, list, and link navigation motions (`]h`, `[h`, `]l`, etc.).                                               |
+| Hard-wrap operator (gq)        | toggle   | `true`   | —                                     | `vim.opt.hardwrap`              | `set hardwrap`              | Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.                                              |
+| Smart list continuation on o/O | toggle   | `true`   | —                                     | `vim.opt.listcontinuation`      | `set listcontinuation`      | Automatically continue list markers (bullets, numbers, checkboxes) when pressing o or O.                                  |
+| Table navigation               | toggle   | `true`   | —                                     | `vim.opt.tablenav`              | `set tablenav`              | Enable table cell navigation motions (`]                                                                                  | `, `[ | `, `]c`, `[c`). |
+| Table widget in live preview   | dropdown | `cursor` | `embedded`, `always`, `cursor`, `off` | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview.                                                                              |
+| Yank highlight                 | dropdown | `solid`  | `off`, `solid`, `fade`                | `vim.opt.yankhighlightmode`     | `set yankhighlightmode`     | Highlight yanked text. "Solid" appears and disappears (Neovim-style). "Fade" gradually fades out.                         |
+| Yank highlight duration        | slider   | `200`    | 50–3000 ms                            | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                                                |
+| Sign column                    | dropdown | `auto`   | `auto`, `yes`, `no`                   | `vim.opt.signcolumn`            | `set signcolumn`            | Show vim mark letters in a dedicated gutter column. Auto: show when marks exist. Always: always reserve space. Off: hide. |
+| Fold column                    | toggle   | `false`  | —                                     | `vim.opt.foldcolumn`            | `set foldcolumn`            | Show fold indicators (▸/▾) in the gutter for foldable regions. Click to toggle. Default: off.                             |
 
 > [!tip]
 > Override the highlight color with a CSS snippet: set `--vim-motions-yank-bg` on `.theme-dark` or `.theme-light` (e.g., `--vim-motions-yank-bg: rgba(255, 200, 0, 0.4);`).
@@ -61,13 +61,29 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Line numbers
 
-| Name                       | Type     | Default  | Range/Options            | Lua                      | Vimrc                | Description                                                                                                                                               |
-| -------------------------- | -------- | -------- | ------------------------ | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Line numbers               | toggle   | `false`  | —                        | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
-| Relative line numbers      | toggle   | `false`  | —                        | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
-| Number width               | slider   | `2`      | 1–20                     | `vim.opt.numberwidth`    | `set numberwidth`    | Minimum width of the line number column in characters (1–20). Default: 2.                                                                                 |
-| Cursor line highlight      | toggle   | `true`   | —                        | `vim.opt.cursorline`     | `set cursorline`     | Highlight the current cursor line. Default: on.                                                                                                           |
-| Cursor line highlight mode | dropdown | `number` | `number`, `line`, `both` | `vim.opt.cursorlineopt`  | `set cursorlineopt`  | What to highlight — Number, Line, or Both. Default: Number.                                                                                               |
+| Name                  | Type   | Default | Range/Options | Lua                      | Vimrc                | Description                                                                                                                                               |
+| --------------------- | ------ | ------- | ------------- | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Line numbers          | toggle | `false` | —             | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
+| Relative line numbers | toggle | `false` | —             | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
+| Number width          | slider | `2`     | 1–20          | `vim.opt.numberwidth`    | `set numberwidth`    | Minimum width of the line number column in characters (1–20). Default: 2.                                                                                 |
+| Cursor line highlight | toggle | `true`  | —             | `vim.opt.cursorline`     | `set cursorline`     | Highlight the current cursor line. Default: on.                                                                                                           |
+
+> [!tip] Gutter layout
+> When all gutter columns are active, the layout from left to right is: **sign column → line numbers → fold column → content**. This matches Neovim's default arrangement.
+>
+> Example with hybrid line numbers (`number` + `relativenumber`), sign column, and fold column enabled — cursor on line 8:
+>
+> ```
+>  a   3  ▸  ## Introduction
+>      2     Some text here.
+>      1     More context.
+>      8     ← cursor line (absolute number)
+>      1     Additional notes.
+>  b   2     Another paragraph.
+>      3     Final thoughts.
+> ```
+>
+> | Cursor line highlight mode | dropdown | `number` | `number`, `line`, `both` | `vim.opt.cursorlineopt` | `set cursorlineopt` | What to highlight — Number, Line, or Both. Default: Number. |
 
 ## Jump navigation
 

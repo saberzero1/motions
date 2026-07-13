@@ -7,7 +7,11 @@
 import { EditorView } from '@codemirror/view';
 import { setSignsEffect } from './sign-column';
 import type { SignEntry } from './sign-column';
-export { signColumnExtension as markGutterExtension } from './sign-column';
+export {
+    createSignColumnExtension as createMarkGutterExtension,
+    reconfigureSignColumn as reconfigureMarkGutter,
+} from './sign-column';
+export type { SignColumnMode } from './sign-column';
 import type { CmAdapter } from '../types/vim-api';
 
 // ── Refresh Logic ────────────────────────────────────────

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Sign column migrated to dedicated gutter column** — vim mark indicators (`a`–`z`, `A`–`Z`) now render in a proper CM6 `gutter()` column instead of using `Decoration.line()` + CSS `::after` overlays. Fixes marks cascading vertically into the wrong line, overlapping on multi-mark lines, and inheriting heading font sizes. The gutter layout from left to right is: sign column → line numbers → fold column → content, matching Neovim's default arrangement. Uses `Compartment`-based runtime reconfiguration — `:set signcolumn=yes/auto/no` takes effect without full feature reload. `signcolumn=auto` now causes layout shift when marks appear/disappear (matching Neovim behavior); `signcolumn=yes` always reserves gutter space. ([#59](https://github.com/saberzero1/motions/issues/59))
+    - Plugin: `src/vim/sign-column.ts` (rewritten: `gutter()` + `GutterMarker` + `Compartment`), `src/vim/mark-gutter.ts` (updated re-exports), `src/main.ts` (unconditional registration, `reconfigureSignColumnGutter()`), `src/settings.ts` (removed from `RELOAD_KEYS`, dedicated handlers in both settings panels, `enableMarkGutter` deprecated), `src/vimrc/loader.ts` (`markgutter` mapped to `signcolumn` via `sideEffect`), `styles.css` (gutter element styles replacing `::after` overlay)
+- **`enableMarkGutter` setting deprecated** — the boolean `enableMarkGutter` property is now optional with `@deprecated` JSDoc. Existing settings are auto-migrated to `signcolumn` via `settings-migration.ts`. The property is kept in the interface for migration type safety only.
+
+### Tests
+
+- 10 e2e tests in `test/specs/marks-gutter.e2e.ts` (4 new, 6 updated): mark in gutter, mark move, multiple marks, delmarks removal, no marks = empty, dedicated gutter column, no line overlays, ellipsis truncation (4+ marks), consistent font size on headings, no `data-vim-marks` attribute
+
+### Documentation
+
+- `docs/features/marks.md`: rewritten gutter indicators section — dedicated gutter column, fixed font size, truncation, three-mode table, gutter layout order
+- `docs/configuration/settings.md`: updated sign column description, added gutter layout tip with ASCII art example
+- `docs/configuration/lua-config.md`: expanded hybrid line numbers tip with gutter layout example
+- `KNOWN_LIMITATIONS.md`: updated `signcolumn` section — removed zero-width overlay note, updated behavior description
+- `README.md`: updated marks feature description
+
 ## [0.54.0] - 2026-07-13
 
 ### Added

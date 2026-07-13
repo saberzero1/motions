@@ -10,11 +10,21 @@ Vim marks work out of the box via the codemirror-vim engine. Vim Motions adds th
 
 ## Gutter indicators
 
-When you set a mark with `m{a-z}` or `m{A-Z}`, the mark letter appears in the gutter area next to the marked line. Multiple marks on the same line are shown together (e.g., `ab`). The indicators update automatically when marks are moved, deleted, or when text edits shift line positions.
+When you set a mark with `m{a-z}` or `m{A-Z}`, the mark letter appears in a dedicated gutter column to the left of line numbers. Multiple marks on the same line are shown together (e.g., `ab`); if more than three marks share a line, the display truncates with an ellipsis (e.g., `abc…`). The indicators update automatically when marks are moved, deleted, or when text edits shift line positions.
 
-The gutter indicators use no extra horizontal space — they overlay the existing gutter area without shifting document content.
+Mark labels use a fixed font size regardless of the content line — heading lines won't inflate the mark indicators.
 
-Toggle via **Settings → Vim Motions → Vim features → Sign column**, `vim.opt.signcolumn = "no"` in Lua, or `set signcolumn=no` in vimrc. `set markgutter` / `set nomarkgutter` remain as backward-compatible aliases.
+The sign column has three modes:
+
+| Mode   | Vimrc                 | Lua                           | Behavior                                                 |
+| ------ | --------------------- | ----------------------------- | -------------------------------------------------------- |
+| Auto   | `set signcolumn=auto` | `vim.opt.signcolumn = "auto"` | Show the gutter column when marks exist, hide when empty |
+| Always | `set signcolumn=yes`  | `vim.opt.signcolumn = "yes"`  | Always reserve gutter space, even with no marks          |
+| Off    | `set signcolumn=no`   | `vim.opt.signcolumn = "no"`   | Never show mark indicators                               |
+
+Toggle via **Settings → Vim Motions → Vim features → Sign column**. `set markgutter` / `set nomarkgutter` remain as backward-compatible aliases.
+
+The gutter layout from left to right is: **sign column → line numbers → fold column → content**, matching Neovim's default arrangement.
 
 ## Global mark persistence
 

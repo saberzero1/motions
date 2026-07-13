@@ -69,7 +69,7 @@ src/
     visual-line-command-fix.ts  # Visual line command edge-case fixes
     fold-sync.ts           # Fold state synchronization
     mark-store.ts          # Mark persistence across sessions
-    sign-column.ts         # Sign column (mark indicators via line decorations)
+    sign-column.ts         # Sign column (mark indicators via gutter() + GutterMarker + Compartment)
     mark-gutter.ts         # Mark gutter refresh scheduling (delegates to sign-column)
     line-number-gutter.ts  # Configurable line number gutter (absolute/relative/hybrid)
     cursorline.ts          # Cursor line highlight (number/line/both modes)

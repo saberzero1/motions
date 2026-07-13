@@ -82,7 +82,8 @@ import { markdownFoldProvider } from './fold/provider';
 import { FoldPersistenceStore } from './fold/persistence';
 import { foldPlaceholderExtension } from './fold/placeholder';
 import {
-    markGutterExtension,
+    createMarkGutterExtension,
+    reconfigureMarkGutter,
     scheduleMarkGutterRefresh,
     cancelMarkGutterRefresh,
 } from './vim/mark-gutter';
@@ -597,7 +598,7 @@ export default class VimMotionsPlugin extends Plugin {
                 );
                 applied = true;
                 if (!this.vimrcLoading && !this.luaLoading) {
-                    this.reloadFeatures();
+                    this.reconfigureSignColumnGutter();
                 }
             } else if (key === 'foldcolumn') {
                 (this.settings as unknown as Record<string, unknown>)[key] =
@@ -1607,9 +1608,9 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(foldLevelExtension());
         this.registerEditorExtension(markdownFoldProvider());
         this.registerEditorExtension(foldPlaceholderExtension());
-        if (this.settings.signcolumn !== 'no') {
-            this.registerEditorExtension(markGutterExtension());
-        }
+        this.registerEditorExtension(
+            createMarkGutterExtension(this.settings.signcolumn),
+        );
 
         if (this.settings.enableSnippets) {
             const triggerMode = this.settings.snippetTriggerMode;
@@ -3150,6 +3151,11 @@ export default class VimMotionsPlugin extends Plugin {
     reconfigureFoldColumnGutter(): void {
         const enabled = this.settings.foldcolumn;
         this.iterateEditorViews((cm) => reconfigureFoldColumn(cm, enabled));
+    }
+
+    reconfigureSignColumnGutter(): void {
+        const mode = this.settings.signcolumn;
+        this.iterateEditorViews((cm) => reconfigureMarkGutter(cm, mode));
     }
 
     private iterateEditorViews(fn: (cm: EditorView) => void): void {

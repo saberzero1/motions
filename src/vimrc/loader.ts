@@ -209,7 +209,13 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         settingsKey: 'signcolumn',
         validValues: ['auto', 'yes', 'no'],
     },
-    markgutter: { type: 'boolean', settingsKey: 'enableMarkGutter' },
+    markgutter: {
+        type: 'sideEffect',
+        apply: (value, onSettingOverride, directive) => {
+            const mode = value !== false ? 'auto' : 'no';
+            onSettingOverride?.('signcolumn', mode, directive);
+        },
+    },
     foldcolumn: { type: 'boolean', settingsKey: 'foldcolumn' },
     fdc: { type: 'boolean', settingsKey: 'foldcolumn' },
     snippets: { type: 'boolean', settingsKey: 'enableSnippets' },

@@ -17,17 +17,33 @@ async function getMarkGutterLabels(): Promise<
         if (!cm6) return [];
         const dom = (cm6 as { dom: HTMLElement }).dom;
         if (!dom) return [];
-        const lines = dom.querySelectorAll('.cm-line[data-vim-marks]');
+        const gutterCol = dom.querySelector('.vim-motions-sign-column');
+        if (!gutterCol) return [];
+        const gutterElements = Array.from(
+            gutterCol.querySelectorAll('.cm-gutterElement'),
+        );
         const results: { line: number; marks: string }[] = [];
-        lines.forEach((el) => {
-            const marks = (el as HTMLElement).dataset.vimMarks ?? '';
-            const allLines = dom.querySelectorAll('.cm-line');
-            let lineIndex = -1;
-            allLines.forEach((l, i) => {
-                if (l === el) lineIndex = i;
+        for (let i = 0; i < gutterElements.length; i++) {
+            const el = gutterElements[i];
+            const marker = el.querySelector('.vim-motions-sign-marker');
+            if (!marker) continue;
+            const marks = marker.textContent ?? '';
+            if (!marks) continue;
+            const contentLines = dom.querySelectorAll('.cm-line');
+            const elTop = (el as HTMLElement).getBoundingClientRect().top;
+            let closestLine = 0;
+            let closestDist = Infinity;
+            contentLines.forEach((line, idx) => {
+                const dist = Math.abs(
+                    (line as HTMLElement).getBoundingClientRect().top - elTop,
+                );
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestLine = idx;
+                }
             });
-            results.push({ line: lineIndex, marks });
-        });
+            results.push({ line: closestLine, marks });
+        }
         return results;
     })) as { line: number; marks: string }[];
 }
@@ -196,45 +212,138 @@ describe('Mark gutter indicators', function () {
         expect(labels.length).toBe(0);
     });
 
-    it('should not add horizontal space to the editor', async function () {
-        const widthBefore = (await browser.executeObsidian(
-            ({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return 0;
-                const container = (
-                    view.editor as unknown as Record<string, unknown>
-                ).cm as Record<string, unknown>;
-                const dom = (container as unknown as { dom: HTMLElement }).dom;
-                const gutters = dom?.querySelector(
-                    '.cm-gutters',
-                ) as HTMLElement | null;
-                return gutters?.offsetWidth ?? 0;
-            },
-        )) as number;
-
+    it('should render marks in a dedicated gutter column', async function () {
         await vimHandleKey('m');
         await vimHandleKey('a');
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
-        const widthAfter = (await browser.executeObsidian(
+        const hasGutterColumn = (await browser.executeObsidian(
             ({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,
                 );
-                if (!view) return 0;
+                if (!view) return false;
                 const container = (
                     view.editor as unknown as Record<string, unknown>
                 ).cm as Record<string, unknown>;
                 const dom = (container as unknown as { dom: HTMLElement }).dom;
-                const gutters = dom?.querySelector(
-                    '.cm-gutters',
+                const col = dom?.querySelector(
+                    '.vim-motions-sign-column',
                 ) as HTMLElement | null;
-                return gutters?.offsetWidth ?? 0;
+                return col !== null && col.offsetWidth > 0;
+            },
+        )) as boolean;
+
+        expect(hasGutterColumn).toBe(true);
+    });
+
+    it('should not render marks as line overlays', async function () {
+        await vimHandleKey('m');
+        await vimHandleKey('a');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const hasOverlay = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return false;
+                const container = (
+                    view.editor as unknown as Record<string, unknown>
+                ).cm as Record<string, unknown>;
+                const dom = (container as unknown as { dom: HTMLElement }).dom;
+                return dom?.querySelector('.cm-line[data-vim-marks]') !== null;
+            },
+        )) as boolean;
+
+        expect(hasOverlay).toBe(false);
+    });
+
+    it('should truncate with ellipsis when more than 3 marks on same line', async function () {
+        for (const key of ['a', 'b', 'c', 'd']) {
+            await vimHandleKey('m');
+            await vimHandleKey(key);
+            await browser.pause(PAUSE.KEY_GAP);
+        }
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const labels = await getMarkGutterLabels();
+        const line0 = labels.find((l) => l.line === 0);
+        expect(line0).toBeDefined();
+        expect(line0!.marks).toBe('abc\u2026');
+    });
+
+    it('should use consistent font size on heading lines', async function () {
+        await setupEditor('# Heading line\nregular line\nthird line', {
+            line: 0,
+            ch: 0,
+        });
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+
+        await vimHandleKey('m');
+        await vimHandleKey('a');
+        await browser.pause(PAUSE.KEY_GAP);
+
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await vimHandleKey('m');
+        await vimHandleKey('b');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const fontSizes = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return [];
+                const container = (
+                    view.editor as unknown as Record<string, unknown>
+                ).cm as Record<string, unknown>;
+                const dom = (container as unknown as { dom: HTMLElement }).dom;
+                const markers = dom?.querySelectorAll(
+                    '.vim-motions-sign-marker',
+                );
+                if (!markers) return [];
+                const sizes: string[] = [];
+                markers.forEach((el) => {
+                    sizes.push(getComputedStyle(el as HTMLElement).fontSize);
+                });
+                return sizes;
+            },
+        )) as string[];
+
+        expect(fontSizes.length).toBeGreaterThanOrEqual(2);
+        expect(fontSizes[0]).toBe(fontSizes[1]);
+    });
+
+    it('should not have data-vim-marks overlay on any line', async function () {
+        await vimHandleKey('m');
+        await vimHandleKey('a');
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await vimHandleKey('m');
+        await vimHandleKey('b');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const overlayCount = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return -1;
+                const container = (
+                    view.editor as unknown as Record<string, unknown>
+                ).cm as Record<string, unknown>;
+                const dom = (container as unknown as { dom: HTMLElement }).dom;
+                return (
+                    dom?.querySelectorAll('.cm-line[data-vim-marks]').length ??
+                    -1
+                );
             },
         )) as number;
 
-        expect(widthAfter).toBe(widthBefore);
+        expect(overlayCount).toBe(0);
     });
 });

@@ -141,7 +141,8 @@ export interface VimMotionsSettings {
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
 
-    enableMarkGutter: boolean;
+    /** @deprecated Migrated to `signcolumn`. Kept for settings migration only. */
+    enableMarkGutter?: boolean;
     signcolumn: 'auto' | 'yes' | 'no';
     number: boolean;
     relativenumber: boolean;
@@ -235,7 +236,6 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,
 
-    enableMarkGutter: true,
     signcolumn: 'auto',
     number: false,
     relativenumber: false,
@@ -356,7 +356,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableWorkspaceNav',
         'enableEasyMotion',
         'enableHintMode',
-        'signcolumn',
         'enableHarpoon',
         'foldAwareNavigation',
         'foldPersistence',
@@ -604,7 +603,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         name: 'Sign column',
                         desc: this.describeOverride(
                             'signcolumn',
-                            'Show vim mark letters (a-z, A-Z) in the gutter next to marked lines. Auto: show when marks exist. Always: same as Auto (overlay has zero width). Off: never show.',
+                            'Show vim mark letters (a-z, A-Z) in a dedicated gutter column. Auto: show gutter when marks exist. Always: always reserve gutter space. Off: never show.',
                         ),
                         control: {
                             type: 'dropdown' as const,
@@ -1709,6 +1708,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             this.plugin.reconfigureLineNumberGutter();
         } else if (key === 'cursorline' || key === 'cursorlineopt') {
             this.plugin.reconfigureCursorlineHighlight();
+        } else if (key === 'signcolumn') {
+            this.plugin.reconfigureSignColumnGutter();
         } else if (key === 'foldcolumn') {
             this.plugin.reconfigureFoldColumnGutter();
         } else if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
@@ -1955,7 +1956,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             .setDesc(
                 describeOverride(
                     'signcolumn',
-                    'Show vim mark letters (a-z, A-Z) in the gutter next to marked lines. Auto: show when marks exist. Always: same as Auto (overlay has zero width). Off: never show.',
+                    'Show vim mark letters (a-z, A-Z) in a dedicated gutter column. Auto: show gutter when marks exist. Always: always reserve gutter space. Off: never show.',
                 ),
             )
             .addDropdown((dropdown) =>
@@ -1974,7 +1975,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             | 'no';
                         this.plugin.vimrcOverrides?.delete('signcolumn');
                         await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
+                        this.plugin.reconfigureSignColumnGutter();
                     }),
             );
 

@@ -185,7 +185,7 @@ The following settings are intentionally **not** exposed via vimrc:
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 
-`signcolumn=yes` and `signcolumn=auto` behave identically because the sign column uses a zero-width overlay that does not shift document content. `cursorlineopt=screenline` is not supported.
+`signcolumn=auto` shows the sign column gutter when marks exist and hides it when empty (causes layout shift, matching Neovim). `signcolumn=yes` always reserves gutter space. `cursorlineopt=screenline` is not supported.
 
 Unknown `set` options are silently ignored (no error, no effect).
 

@@ -1042,20 +1042,29 @@ settings:
     user-select: none;
 }
 
-/* --- Sign column (vim marks overlay) --- */
+/* --- Sign column (vim marks gutter) --- */
 
-.cm-line[data-vim-marks]::after {
-    content: attr(data-vim-marks);
-    position: absolute;
-    right: calc(100% + 4px);
-    top: 0;
-    color: var(--text-accent);
+.vim-motions-sign-column .cm-gutterElement {
+    min-width: 2ch;
+    padding: 0 2px;
+    text-align: center;
+}
+
+.vim-motions-sign-marker {
     font-family: var(--font-monospace);
-    font-size: 0.75em;
+    font-size: var(--font-ui-smaller);
+    font-weight: 600;
+    color: var(--text-accent);
+    line-height: inherit;
+    opacity: 0.85;
+}
+
+.vim-motions-sign-spacer {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
     font-weight: 600;
     line-height: inherit;
-    pointer-events: none;
-    opacity: 0.85;
+    visibility: hidden;
 }
 
 /* --- Line number gutter --- */
@@ -1116,6 +1125,13 @@ settings:
 /* --- Mobile gutter width reduction --- */
 
 @media (max-width: 600px) {
+    .vim-motions-sign-column .cm-gutterElement {
+        min-width: 1.5ch;
+        padding: 0 1px;
+    }
+    .vim-motions-sign-marker {
+        font-size: var(--font-smallest);
+    }
     .vim-motions-line-numbers .cm-gutterElement {
         min-width: 2ch;
         padding: 0 2px 0 0;

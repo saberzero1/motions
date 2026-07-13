@@ -173,6 +173,20 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 
 > [!tip] Hybrid line numbers
 > Enabling both `vim.opt.number = true` and `vim.opt.relativenumber = true` activates hybrid mode: the current line shows its absolute number, while all other lines show their relative distance from the cursor.
+>
+> Example with cursor on line 8:
+>
+> ```
+>  a   3   ## Introduction
+>      2   Some text here.
+>      1   More context.
+>      8   ← cursor line (shows absolute number)
+>      1   Additional notes.
+>  b   2   Another paragraph.
+>      3   Final thoughts.
+> ```
+>
+> The sign column (`a`, `b`) appears to the left of line numbers. The fold column (if enabled) appears to the right. This layout matches Neovim's default gutter arrangement: **sign column → line numbers → fold column → content**.
 
 > [!tip] Table syntax for string options
 > String options that accept comma-separated values can also be set using Lua tables. The elements are joined with commas automatically.
