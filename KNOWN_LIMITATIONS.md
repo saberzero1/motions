@@ -1153,3 +1153,13 @@ The following are intentionally not implemented in v1:
 | Custom Dataview query in settings  | Pre-configured DQL filters would require a settings UI for query editing. Users who want filtered pages can use Dataview's own query blocks or write a custom provider via the picker API.                                            |
 | Task filter modes                  | The `tasks` source currently shows all incomplete tasks. Modes like "due today", "overdue", or "all including completed" could be added via query prefix or a settings dropdown.                                                      |
 | Version pinning for target plugins | The integrations duck-type API methods rather than checking version strings. If a breaking change occurs, the try/catch wrapper prevents crashes. Pinning would require maintaining a compatibility matrix.                           |
+
+## Snippets
+
+### Dynamic snippet limitations
+
+- Dynamic snippet `f()` and `d()` nodes have a 50ms debounce on recomputation. Very rapid typing may show stale computed values for a brief moment.
+- Lua function execution is time-guarded at 100ms per recomputation cycle. Functions exceeding this limit are skipped for that cycle.
+- Dynamic snippets triggered via the completion menu expand with their static body only — the dynamic context is not activated. Use Tab expansion for full dynamic behavior.
+- Nested `d()` nodes (dynamic nodes inside dynamic nodes) are not supported.
+- User snippet directory scanning requires desktop — vault-relative paths work on mobile, but absolute paths and `~` expansion are desktop-only.

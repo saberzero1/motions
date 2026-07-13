@@ -364,16 +364,20 @@ A subset of Neovim's `vim.*` utility functions is available for table manipulati
 
 Define snippets using a LuaSnip-inspired DSL. Static snippets compile to VS Code JSON at load time.
 
-| Function                             | Description                                             |
-| ------------------------------------ | ------------------------------------------------------- |
-| `vim.snippet.s(name, nodes, opts?)`  | Create a snippet definition                             |
-| `vim.snippet.t(text)`                | Static text node                                        |
-| `vim.snippet.i(index, default?)`     | Editable tabstop (index 0 = final position)             |
-| `vim.snippet.c(index, choices)`      | Choice node (list of `t()` nodes)                       |
-| `vim.snippet.rep(index)`             | Mirror/repeat another tabstop                           |
-| `vim.snippet.fmt(str, nodes, opts?)` | Format string — `{}` replaced by nodes in order         |
-| `vim.snippet.add(trigger, snippet)`  | Register a snippet with a trigger prefix                |
-| `vim.snippet.add_all(table)`         | Register multiple snippets (`{trigger = snippet, ...}`) |
+| Function                              | Description                                              |
+| ------------------------------------- | -------------------------------------------------------- |
+| `vim.snippet.s(name, nodes, opts?)`   | Create a snippet definition                              |
+| `vim.snippet.t(text)`                 | Static text node                                         |
+| `vim.snippet.i(index, default?)`      | Editable tabstop (index 0 = final position)              |
+| `vim.snippet.c(index, choices)`       | Choice node (list of `t()` nodes)                        |
+| `vim.snippet.rep(index)`              | Mirror/repeat another tabstop                            |
+| `vim.snippet.fmt(str, nodes, opts?)`  | Format string — `{}` replaced by nodes in order          |
+| `vim.snippet.f(fn, deps)`             | Function node — computes text from dependency fields     |
+| `vim.snippet.d(index, fn, deps)`      | Dynamic node — generates sub-snippet from field values   |
+| `vim.snippet.sn(index, nodes, opts?)` | Snippet node — return value for `d()` callbacks          |
+| `vim.snippet.r(index, type_name?)`    | Restore node — preserves edits across `d()` regeneration |
+| `vim.snippet.add(trigger, snippet)`   | Register a snippet with a trigger prefix                 |
+| `vim.snippet.add_all(table)`          | Register multiple snippets (`{trigger = snippet, ...}`)  |
 
 ```lua
 local s = vim.snippet.s

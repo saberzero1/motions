@@ -201,18 +201,68 @@ vim.snippet.add("ret", s("Return", {
 
 ### DSL functions
 
-| Function                             | Description                          |
-| ------------------------------------ | ------------------------------------ |
-| `vim.snippet.s(name, nodes, opts?)`  | Define a snippet                     |
-| `vim.snippet.t(text)`                | Static text node                     |
-| `vim.snippet.i(index, default?)`     | Editable tabstop                     |
-| `vim.snippet.c(index, choices)`      | Choice node (list of `t()` nodes)    |
-| `vim.snippet.rep(index)`             | Mirror/repeat a tabstop              |
-| `vim.snippet.fmt(str, nodes, opts?)` | Format string with `{}` placeholders |
-| `vim.snippet.add(trigger, snippet)`  | Register a snippet                   |
-| `vim.snippet.add_all(table)`         | Register multiple snippets           |
+| Function                              | Description                                                  |
+| ------------------------------------- | ------------------------------------------------------------ |
+| `vim.snippet.s(name, nodes, opts?)`   | Define a snippet                                             |
+| `vim.snippet.t(text)`                 | Static text node                                             |
+| `vim.snippet.i(index, default?)`      | Editable tabstop                                             |
+| `vim.snippet.c(index, choices)`       | Choice node (list of `t()` nodes)                            |
+| `vim.snippet.rep(index)`              | Mirror/repeat a tabstop                                      |
+| `vim.snippet.fmt(str, nodes, opts?)`  | Format string with `{}` placeholders                         |
+| `vim.snippet.f(fn, deps)`             | Function node — computes text from dependency field values   |
+| `vim.snippet.d(index, fn, deps)`      | Dynamic node — generates sub-snippet based on field values   |
+| `vim.snippet.sn(index, nodes, opts?)` | Snippet node — wraps nodes for use as `d()` return value     |
+| `vim.snippet.r(index, type_name?)`    | Restore node — preserves user input across `d()` regeneration |
+| `vim.snippet.add(trigger, snippet)`   | Register a snippet                                           |
+| `vim.snippet.add_all(table)`          | Register multiple snippets                                   |
 
-Lua snippets compile to VS Code JSON format at load time and are loaded as a third source after bundled and user JSON snippets.
+Static snippets (`t`, `i`, `c`, `rep`, `fmt`) compile to VS Code JSON at load time. Dynamic snippets (`f`, `d`, `r`) execute Lua functions reactively during snippet editing.
+
+### Dynamic snippets
+
+Dynamic snippets update in real time as you edit fields.
+
+**`f()` — function node**: Computes text from other field values. Updates automatically when dependency fields change.
+
+```lua
+vim.snippet.add("mirror", s("Mirror", {
+    i(1, "hello"),
+    t(" → "),
+    f(function(args) return string.upper(args[1]) end, { 1 }),
+}))
+-- Typing "world" in field 1 → output: "world → WORLD"
+```
+
+**`d()` — dynamic node**: Generates an entire sub-snippet based on field values. Regenerates when dependencies change.
+
+```lua
+vim.snippet.add("list", s("List", {
+    i(1, "3"),
+    d(2, function(args)
+        local n = tonumber(args[1]) or 1
+        local nodes = {}
+        for j = 1, n do
+            table.insert(nodes, t("\n- "))
+            table.insert(nodes, i(j, "item " .. j))
+        end
+        return sn(nil, nodes)
+    end, { 1 }),
+}))
+-- Typing "3" in field 1 → generates 3 editable list items
+```
+
+**`r()` — restore node**: Used inside `d()` to preserve user edits when the dynamic node regenerates.
+
+```lua
+d(2, function(args, parent, old_state)
+    return sn(nil, {
+        t("\n"),
+        i(1, "editable"),  -- restored from old_state if available
+    }, { stored = old_state })
+end, { 1 })
+```
+
+> [!info] Dynamic snippets have a 50ms debounce on recomputation to avoid UI jank. Lua functions are time-guarded at 100ms — if a function exceeds this limit, recomputation is skipped for that cycle.
 
 ## Settings
 
