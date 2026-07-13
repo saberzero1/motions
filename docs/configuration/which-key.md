@@ -309,4 +309,26 @@ end, { desc = "Grep" })
 -- Pressing leader then f shows: f → Find file, g → Grep
 ```
 
+### Automatic descriptions for obcommand mappings
+
+When a key is mapped to `:obcommand <id><CR>` or `:ob <id><CR>` without a `desc` option, the which-key popup automatically resolves and displays Obsidian's native command name instead of the raw ex command string:
+
+```lua
+-- No desc needed — which-key shows "Navigate back" (Obsidian's native name)
+vim.keymap.set("n", "<leader>r", ":ob app:go-back<CR>")
+
+-- Explicit desc still takes priority
+vim.keymap.set("n", "<leader>r", ":ob app:go-back<CR>", { desc = "Go back" })
+-- which-key shows: "Go back"
+```
+
+This also works for global mappings via `:gmap` in vimrc:
+
+```vim
+gmap <leader>q :obcommand workspace:close
+" which-key shows: "Close current tab" (Obsidian's native name)
+```
+
+If the command ID doesn't exist (e.g., from an uninstalled plugin), the description falls back to the raw command string. Resolved names are automatically localized — Obsidian's built-in commands already have translated names, so descriptions match your Obsidian language setting.
+
 See [[lua-config#Leader bindings]] for the full API reference.

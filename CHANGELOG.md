@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Which-key auto-resolves Obsidian command names for `:obcommand` mappings** — when a key is mapped to `:obcommand <id><CR>` or `:ob <id><CR>` without an explicit `desc`, the which-key popup now displays Obsidian's native command name instead of the raw ex command string. For example, `:ob app:go-back<CR>` displays as "Navigate back". Explicit `desc` options still take priority. Unknown command IDs fall back to the raw string. Descriptions are automatically localized — Obsidian's built-in commands already have localized names, so descriptions match the user's Obsidian language setting. Works in both editor which-key (leader bindings, `vim.keymap.set`) and global which-key (`:gmap`, `vim.obsidian.keymap.set`). ([#62](https://github.com/saberzero1/motions/issues/62))
+    - Plugin: `src/ui/which-key.ts` (`lookupObsidianCommandName()`, `resolveObCommandDescription()`, `OB_COMMAND_RHS_RE` regex matching both literal spaces and `<Space>` notation), `src/ui/global-which-key.ts` (`describeAction()` obcommand resolution)
+
+### Tests
+
+- 22 unit tests in `test/unit/which-key.test.ts`: `lookupObsidianCommandName()` (4 tests), `describeKeymapEntry()` without app (6 tests), `describeKeymapEntry()` with app and obcommand auto-resolution (12 tests covering `:ob`/`:obcommand` short/long form, `<CR>` variants, `<Space>` separator, unknown commands, label priority, edge cases)
+- 6 e2e tests in `test/specs/which-key-obcommand.e2e.ts`: editor which-key auto-resolution for `:ob` and `:obcommand` (2 tests), explicit `desc` priority (1 test), unknown command fallback (1 test), global which-key auto-resolution via registry API (1 test), global unknown command fallback (1 test)
+
 ## [0.53.0] - 2026-07-13
 
 ### Fixed

@@ -316,9 +316,13 @@ Root cause: the codemirror-vim fork normalizes literal space characters to `<Spa
 
 Fix: added `normalizeVimKey()` mirroring the fork's `normalizeKeyString`, applied at label storage time in `rebuildWhichKey()` and at lookup time in `showLeaderBindings()`/`showCompletions()`. Added `normalizedLeaderKey` for key event comparison in `onKeyPressLeaderOnly()`.
 
+### Automatic obcommand description resolution
+
+Mappings to `:obcommand <id><CR>` or `:ob <id><CR>` without an explicit `desc` now auto-resolve to Obsidian's native command name in the which-key popup. For example, `vim.keymap.set("n", "<leader>r", ":ob app:go-back<CR>")` displays "Navigate back" instead of the raw `:ob app:go-back<CR>` string. This works for both editor which-key (leader bindings) and global which-key (`:gmap` bindings). Explicit `desc` options always take priority. Unknown command IDs (e.g., from uninstalled plugins) fall back to the raw string. Descriptions are automatically localized to match the user's Obsidian language setting. ([#62](https://github.com/saberzero1/motions/issues/62))
+
 ### Limitations
 
-- User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions (shown as the raw rhs key sequence)
+- User-defined mappings via `Vim.map()` appear in completions but without friendly descriptions when the rhs is not an `:obcommand`/`:ob` pattern (shown as the raw rhs key sequence)
 - The overlay does not show during macro playback or when a register prefix (`"a`) is pending
 - Icon IDs are validated at render time — invalid icon names (not in Obsidian's Lucide bundle) result in an empty spacer; no error is thrown
 - Icons in pop-out windows depend on `setIcon()` working with foreign `Document` objects — if Obsidian's API references `document` internally, icons may not render in pop-out windows

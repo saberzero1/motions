@@ -2,7 +2,11 @@ import type { App } from 'obsidian';
 import { setIcon } from 'obsidian';
 import type { GlobalMapEntry } from '../workspace/global-mapping-registry';
 import type { GlobalKeyHandler } from '../workspace/global-key-handler';
-import { resolveIconColor, sortWhichKeyEntries } from './which-key';
+import {
+    lookupObsidianCommandName,
+    resolveIconColor,
+    sortWhichKeyEntries,
+} from './which-key';
 import type { WhichKeyLabelInfo, WhichKeySortOrder } from './which-key';
 
 const DEFAULT_SHOW_DELAY = 500;
@@ -240,7 +244,12 @@ export class GlobalWhichKeyOverlay {
 
     private describeAction(entry: GlobalMapEntry): string {
         const action = entry.action;
-        if (action.type === 'obcommand') return ':ob ' + action.commandId;
+        if (action.type === 'obcommand') {
+            return (
+                lookupObsidianCommandName(this.app, action.commandId) ??
+                ':ob ' + action.commandId
+            );
+        }
         if (action.type === 'ex') return ':' + action.command;
         return '(builtin)';
     }

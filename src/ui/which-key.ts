@@ -137,16 +137,64 @@ function isSpecialKey(key: string): boolean {
     return key.startsWith('<') && key.endsWith('>');
 }
 
-function describeKeymapEntry(entry: {
-    type: string;
-    operator?: string;
-    motion?: string;
-    action?: string;
-    toKeys?: string;
-    label?: string;
-}): string {
+/**
+ * Regex matching `:obcommand <id><CR>` or `:ob <id><CR>` in a mapping RHS.
+ * Captures the command ID.  Handles optional trailing `<CR>`.
+ * The separator may be a literal space OR `<Space>` (codemirror-vim normalises
+ * literal spaces to `<Space>` inside key/toKeys strings).
+ */
+const OB_COMMAND_RHS_RE =
+    /^:ob(?:command)?(?:\s+|<Space>)(.+?)(?:<CR>|<cr>|<Cr>|<cR>)?$/;
+
+/**
+ * Look up an Obsidian command's display name by ID.
+ * Returns the human-readable name (already localised by Obsidian) or `null`
+ * when the command doesn't exist (e.g. the owning plugin is not installed).
+ */
+export function lookupObsidianCommandName(
+    app: App,
+    commandId: string,
+): string | null {
+    const commands = (
+        app as unknown as {
+            commands: {
+                commands: Record<string, { id: string; name: string }>;
+            };
+        }
+    ).commands.commands;
+    return commands[commandId]?.name ?? null;
+}
+
+/**
+ * If `toKeys` is a `:obcommand <id>` / `:ob <id>` mapping, resolve the
+ * command's display name via Obsidian's command registry.  Returns `null`
+ * when `toKeys` doesn't match the pattern or the command is unknown.
+ */
+function resolveObCommandDescription(app: App, toKeys: string): string | null {
+    const m = OB_COMMAND_RHS_RE.exec(toKeys);
+    if (!m) return null;
+    return lookupObsidianCommandName(app, m[1]!.trim());
+}
+
+export function describeKeymapEntry(
+    entry: {
+        type: string;
+        operator?: string;
+        motion?: string;
+        action?: string;
+        toKeys?: string;
+        label?: string;
+    },
+    app?: App,
+): string {
     if (entry.label) return entry.label;
-    if (entry.toKeys) return entry.toKeys;
+    if (entry.toKeys) {
+        if (app) {
+            const resolved = resolveObCommandDescription(app, entry.toKeys);
+            if (resolved) return resolved;
+        }
+        return entry.toKeys;
+    }
     if (entry.operator) return entry.operator;
     if (entry.motion) return entry.motion;
     if (entry.action) return entry.action;
@@ -175,6 +223,7 @@ function buildNextKeyEntries(
         color?: string;
     }>,
     groupLabels?: Map<string, WhichKeyLabelInfo>,
+    app?: App,
 ): WhichKeyEntry[] {
     const groups = new Map<
         string,
@@ -213,7 +262,7 @@ function buildNextKeyEntries(
                     : '';
             const whichEntry: WhichKeyEntry = {
                 key: entry.keys,
-                description: entry.label || describeKeymapEntry(entry),
+                description: entry.label || describeKeymapEntry(entry, app),
                 icon: entry.icon,
                 color: entry.color,
             };
@@ -226,7 +275,7 @@ function buildNextKeyEntries(
             if (singleChar.length > 0) {
                 singleEntries.push({
                     key,
-                    description: describeKeymapEntry(singleChar[0]!),
+                    description: describeKeymapEntry(singleChar[0]!, app),
                 });
             }
             const multiChar = group.filter((e) => e.keys !== key);
@@ -268,9 +317,10 @@ function buildSortedNextKeyEntries(
     }>,
     groupLabels: Map<string, WhichKeyLabelInfo> | undefined,
     sortOrder: WhichKeySortOrder,
+    app?: App,
 ): WhichKeyEntry[] {
     return sortWhichKeyEntries(
-        buildNextKeyEntries(entries, groupLabels),
+        buildNextKeyEntries(entries, groupLabels, app),
         sortOrder,
     );
 }
@@ -535,9 +585,13 @@ export class WhichKeyOverlay {
                 const labelInfo = this.commandLabels.get(
                     normalizeVimKey(this.leaderKey + b.key),
                 );
+                const resolved =
+                    labelInfo?.label ??
+                    resolveObCommandDescription(this.app, b.command) ??
+                    b.command;
                 return {
                     key: prefix ? b.key.slice(prefix.length) : b.key,
-                    description: labelInfo?.label ?? b.command,
+                    description: resolved,
                     icon: labelInfo?.icon,
                     color: labelInfo?.color,
                 };
@@ -556,7 +610,9 @@ export class WhichKeyOverlay {
             return {
                 keys: prefix ? b.key.slice(prefix.length) : b.key,
                 type: 'action' as const,
-                action: b.command,
+                action:
+                    resolveObCommandDescription(this.app, b.command) ??
+                    b.command,
                 label: labelInfo?.label,
                 icon: labelInfo?.icon,
                 color: labelInfo?.color,
@@ -570,6 +626,7 @@ export class WhichKeyOverlay {
             bindingsForGrouping,
             relativeLabels,
             this.sortOrder,
+            this.app,
         );
         this.showOverlay(titlePrefix, entries);
     }
@@ -620,6 +677,7 @@ export class WhichKeyOverlay {
                 filtered,
                 labels,
                 this.sortOrder,
+                this.app,
             );
             entries.push(...grouped);
         } else if (keyBuffer) {
@@ -640,7 +698,11 @@ export class WhichKeyOverlay {
                         const rel = leaderSuffix
                             ? b.key.slice(leaderSuffix.length)
                             : b.key;
-                        leaderBindingMap.set(rel, b.command);
+                        leaderBindingMap.set(
+                            rel,
+                            resolveObCommandDescription(this.app, b.command) ??
+                                b.command,
+                        );
                     }
                 }
             }
@@ -677,6 +739,7 @@ export class WhichKeyOverlay {
                     completionEntries,
                     labels,
                     this.sortOrder,
+                    this.app,
                 );
 
                 if (grouped.length > 0) {
@@ -690,7 +753,8 @@ export class WhichKeyOverlay {
                             labelInfo?.label ?? leaderBindingMap.get(c.suffix);
                         entries.push({
                             key: c.suffix,
-                            description: desc ?? describeKeymapEntry(c),
+                            description:
+                                desc ?? describeKeymapEntry(c, this.app),
                             icon: labelInfo?.icon,
                             color: labelInfo?.color,
                         });
@@ -705,7 +769,7 @@ export class WhichKeyOverlay {
                         labelInfo?.label ?? leaderBindingMap.get(c.suffix);
                     entries.push({
                         key: c.suffix,
-                        description: desc ?? describeKeymapEntry(c),
+                        description: desc ?? describeKeymapEntry(c, this.app),
                         icon: labelInfo?.icon,
                         color: labelInfo?.color,
                     });
