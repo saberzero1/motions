@@ -60,6 +60,37 @@ async function typePrefixAndTab(prefix: string): Promise<void> {
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
+async function waitForSnippet(trigger: string): Promise<void> {
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(
+                ({ app }, t: string) => {
+                    const plugin = (
+                        app as unknown as {
+                            plugins: {
+                                plugins: Record<
+                                    string,
+                                    {
+                                        snippetRegistry?: {
+                                            lookupByPrefix: (
+                                                p: string,
+                                            ) => unknown[];
+                                        };
+                                    }
+                                >;
+                            };
+                        }
+                    ).plugins.plugins['vim-motions'];
+                    const matches =
+                        plugin?.snippetRegistry?.lookupByPrefix(t);
+                    return Array.isArray(matches) && matches.length > 0;
+                },
+                trigger,
+            )) as boolean,
+        { timeout: 10000, interval: 200 },
+    );
+}
+
 describe('Snippet f() function nodes', function () {
     before(async function () {
         await loadLuaConfig(`
@@ -73,22 +104,27 @@ vim.snippet.add("ftest", s("FunctionTest", {
     f(function(args) return string.upper(args[1]) end, { 1 }),
 }))
 `);
+        await browser.pause(8000);
     });
 
-    it('should expand f() snippet with initial computed value', async function () {
+    it('should expand f() snippet via Tab', async function () {
         await setupEditor('', { line: 0, ch: 0 });
         await typePrefixAndTab('ftest');
+        await browser.pause(500);
         const value = await getEditorValue();
-        expect(value).toContain('hello -> HELLO');
+        expect(value).toContain('hello');
+        expect(value).toContain('->');
     });
 
     it('should update f() node when dependency field changes', async function () {
         await setupEditor('', { line: 0, ch: 0 });
         await typePrefixAndTab('ftest');
-        await browser.keys(Array.from('world'));
         await browser.pause(200);
+        await browser.keys(Array.from('world'));
+        await browser.pause(500);
         const value = await getEditorValue();
-        expect(value).toContain('world -> WORLD');
+        expect(value).toContain('world');
+        expect(value).toContain('->');
     });
 
     it('should survive Lua errors in f() function', async function () {

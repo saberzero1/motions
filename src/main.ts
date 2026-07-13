@@ -158,7 +158,7 @@ import { ImSwitcher } from './im/im-switcher';
 import { parseImArgs } from './im/im-process';
 import { expandTilde } from './util/external-fs';
 import { autocompletion } from '@codemirror/autocomplete';
-import { loadSnippets } from './snippets/loader';
+import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
 import { createSnippetTabKeymap } from './snippets/tab-expand';
 import { registerSnippetCommands } from './snippets/commands';
@@ -1229,22 +1229,36 @@ export default class VimMotionsPlugin extends Plugin {
                     true,
                 );
             }
-            void loadSnippets(
-                this.app,
-                {
-                    snippetBundled: this.settings.snippetBundled,
-                    snippetDirectory: this.settings.snippetDirectory,
-                },
+            this.snippetRegistry = loadSnippetsSync(
+                { snippetBundled: this.settings.snippetBundled },
                 this.luaSnippetDefs,
                 this.luaState ?? undefined,
-            ).then(({ registry, errors }) => {
-                this.snippetRegistry = registry;
-                if (errors.length > 0) {
-                    new Notice(
-                        `Snippet errors:\n${errors.map((e) => `${e.file}: ${e.error}`).join('\n')}`,
-                    );
-                }
-            });
+            );
+            if (this.settings.snippetDirectory) {
+                void loadSnippets(
+                    this.app,
+                    {
+                        snippetBundled: this.settings.snippetBundled,
+                        snippetDirectory: this.settings.snippetDirectory,
+                    },
+                    this.luaSnippetDefs,
+                    this.luaState ?? undefined,
+                )
+                    .then(({ registry, errors }) => {
+                        this.snippetRegistry = registry;
+                        if (errors.length > 0) {
+                            new Notice(
+                                `Snippet errors:\n${errors.map((e) => `${e.file}: ${e.error}`).join('\n')}`,
+                            );
+                        }
+                    })
+                    .catch((err: unknown) => {
+                        console.error(
+                            'Vim Motions: snippet loading failed:',
+                            err,
+                        );
+                    });
+            }
         } else {
             this.snippetRegistry = null;
         }
@@ -2778,6 +2792,13 @@ export default class VimMotionsPlugin extends Plugin {
         this.reregisterLeaderFeatures();
         this.rebuildWhichKey();
         this.luaSnippetDefs = luaResult.luaSnippets ?? [];
+        if (this.settings.enableSnippets && this.luaSnippetDefs.length > 0) {
+            this.snippetRegistry = loadSnippetsSync(
+                { snippetBundled: this.settings.snippetBundled },
+                this.luaSnippetDefs,
+                this.luaState ?? undefined,
+            );
+        }
         this.luaLoaded = true;
         this.luaLoading = false;
         this.reloadFeatures();

@@ -35,6 +35,43 @@ async function readSnippetFile(app: App, path: string): Promise<string | null> {
     }
 }
 
+export function loadSnippetsSync(
+    settings: { snippetBundled: boolean },
+    luaSnippets?: LuaSnippetDef[],
+    luaState?: lua_State,
+): SnippetRegistry {
+    const registry = new SnippetRegistry();
+    if (settings.snippetBundled) {
+        registry.loadFile(BUNDLED_GLOBAL, 'bundled');
+        registry.loadFile(BUNDLED_OBSIDIAN_MARKDOWN, 'bundled');
+    }
+    if (luaSnippets && luaSnippets.length > 0) {
+        if (luaState) {
+            const { staticSnippets, dynamicSnippets } =
+                compileLuaSnippetsHybrid(luaSnippets, luaState);
+            registry.loadFile(staticSnippets, 'lua');
+            for (const [trigger, { def, compiled }] of dynamicSnippets) {
+                registry.loadFile(
+                    {
+                        [trigger]: {
+                            prefix: trigger,
+                            body: compiled.staticBody,
+                            description: `[dynamic] ${trigger}`,
+                            context: def.context,
+                        },
+                    },
+                    'lua',
+                );
+                registry.registerDynamic(trigger, compiled);
+            }
+        } else {
+            const compiled = compileLuaSnippets(luaSnippets);
+            registry.loadFile(compiled, 'lua');
+        }
+    }
+    return registry;
+}
+
 export async function loadSnippets(
     app: App,
     settings: { snippetBundled: boolean; snippetDirectory: string },
