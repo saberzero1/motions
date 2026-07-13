@@ -157,6 +157,10 @@ Notifications can be suppressed via **Settings → Vim Motions → Vimrc & key b
 
 Vim engine settings (clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, textwidth) changed via **Settings → Vim Motions → Vim engine** now take effect immediately — each setting's `onChange` handler calls `vim.setOption()` to push the value to the vim engine in addition to persisting it to disk. Previously, these settings only saved to disk and required an Obsidian reload to take effect (the vimrc code path always worked because it called `vim.setOption()` directly). ([#39](https://github.com/saberzero1/motions/issues/39))
 
+Settings-based clipboard and textwidth values are now re-applied on plugin load from saved settings. Previously, these values were only pushed to the vim engine when the user actively changed them in the Settings UI or when a vimrc/Lua config file set them — restarting Obsidian would lose the vim engine state even though the setting was saved to disk. ([#56](https://github.com/saberzero1/motions/issues/56))
+
+Options that require side effects (clipboard → `setClipboardOption()`, textwidth → `setTextwidth()`, guicursor → `parseGuicursor()`) use a `SideEffectOpt` type in the `KNOWN_SET_OPTIONS` table. This ensures all three code paths (vimrc `set`, Lua `vim.opt`, and initial settings load) invoke the same side-effect callback — eliminating the class of bug where an option works in vimrc but silently fails in Lua or vice versa.
+
 ## ~~Scrolloff line height assumption~~ (Fixed)
 
 Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height. Note: `defaultLineHeight` returns an average line height — documents with mixed-height lines (e.g., headings with larger fonts) may not have pixel-perfect scrolloff distances.

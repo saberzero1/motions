@@ -297,7 +297,25 @@ reg.mapCommand('gX', 'action', 'myAction', {});
     vim.defineOption('myoption', defaultValue, 'string', ['alias']);
     ```
 
-2. The vimrc loader handles `set myoption=value` automatically — no changes needed in `loader.ts`.
+2. Add the option to `KNOWN_SET_OPTIONS` in `src/vimrc/loader.ts`. For simple options that only need `this.settings[key] = value`, use a standard `BoolOpt`, `NumOpt`, or `StrOpt` entry. For options that require side effects (e.g., calling a module-level setter, transforming the value before storing), use a `SideEffectOpt`:
+
+    ```typescript
+    // Simple option — handled automatically by applyKnownSetOption:
+    myoption: { type: 'boolean', settingsKey: 'enableMyOption' },
+
+    // Option with side effects — you control the entire apply flow:
+    const myOpt: SideEffectOpt = {
+        type: 'sideEffect',
+        apply: (value, onSettingOverride, directive) => {
+            myModuleLevelSetter(value);
+            onSettingOverride?.('mySettingsKey', value, directive);
+        },
+    };
+    KNOWN_SET_OPTIONS['myoption'] = myOpt;
+    KNOWN_SET_OPTIONS['mo'] = myOpt;  // alias
+    ```
+
+    All options in `KNOWN_SET_OPTIONS` automatically work across all three code paths: vimrc (`set myoption=value`), Lua (`vim.opt.myoption = value`), and the Settings UI. No additional wiring in `loader.ts` or `lua/api.ts` is needed.
 
 ### New Lua API function
 

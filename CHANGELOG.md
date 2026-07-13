@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`vim.opt.clipboard` silently ignored in init.lua** — setting `vim.opt.clipboard = "unnamed"` or `"unnamedplus"` in init.lua had no effect. The Lua `vim.opt` handler only routed options through the `KNOWN_SET_OPTIONS` table, but `clipboard` was special-cased in the vimrc loader and missing from that table. Yanks never synced to the system clipboard when configured via Lua. Same issue affected `vim.opt.textwidth`. ([#56](https://github.com/saberzero1/motions/issues/56))
+    - Plugin: `src/vimrc/loader.ts` (`SideEffectOpt` type, `clipboard`/`textwidth`/`guicursor` added to `KNOWN_SET_OPTIONS`), `src/lua/api.ts` (special-case blocks removed, unified `KNOWN_SET_OPTIONS` path), `src/main.ts` (initial settings load from saved values), `src/lua/loader.ts` (`setOption` callback)
+- **Settings-based clipboard and textwidth not restored on plugin restart** — if a user set clipboard or textwidth via the Settings UI, the value was saved to disk but not re-applied to the vim engine on the next Obsidian startup. The saved `this.settings.clipboard` and `this.settings.textwidth` were never pushed to `vim.setOption()` during plugin load. Fixed by applying saved side-effect options after `registerVimOptions()`.
+    - Plugin: `src/main.ts` (initial settings loop using `KNOWN_SET_OPTIONS` sideEffects)
+
+### Changed
+
+- **Vim option architecture: `SideEffectOpt` type** — options that require side effects beyond `this.settings[key] = value` (clipboard, textwidth, guicursor) are now declared in the `KNOWN_SET_OPTIONS` table with a `sideEffect` type and an `apply()` callback. Previously, these options were special-cased with separate `if` blocks in both the vimrc loader and the Lua `vim.opt` handler — adding a new side-effect option required touching 2-3 files manually, and missing one path caused silent failures. Now there is a single declaration point. The vimrc loader, Lua handler, and initial settings load all route through the same table-driven path.
+    - Plugin: `src/vimrc/loader.ts` (`SideEffectOpt` interface, `applyKnownSetOption` sideEffect handling, special-case blocks removed), `src/lua/api.ts` (unified `KNOWN_SET_OPTIONS` path)
+
+### Tests
+
+- 11 new e2e tests in `test/specs/lua-config.e2e.ts`:
+    - `vim.opt.clipboard = "unnamed"` applies from init.lua (1 test)
+    - `yy`/`yw`/`dd` populate `+` register when clipboard set via Lua (3 tests)
+    - `vim.opt.textwidth` and `vim.opt.tw` alias from init.lua (2 tests)
+    - Dual-config override precedence: Lua overrides vimrc for clipboard, textwidth, scrolloff (3 tests)
+    - Error resilience: unknown Lua option preserves vimrc clipboard; invalid textwidth (`-5`) preserves vimrc value (2 tests)
+
 ### Added
 
 - **Snippets** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution ($CURRENT_YEAR, $TM_FILENAME, $UUID, etc.), and context-aware filtering (prose/code/frontmatter). Ships 40+ Obsidian-adapted snippets (headings, callouts, wikilinks, tables, frontmatter, math, date/time). Three trigger mechanisms: CM6 completion menu, Tab expansion (vim-native), and ex commands (`:snippet name`, `:snippets` picker). Bundled snippets toggleable via settings.

@@ -37,7 +37,16 @@ interface StrOpt {
     validValues?: string[];
 }
 
-type KnownOpt = BoolOpt | NumOpt | StrOpt;
+interface SideEffectOpt {
+    type: 'sideEffect';
+    apply: (
+        value: unknown,
+        onSettingOverride: SettingOverrideFn | undefined,
+        directive: string,
+    ) => void;
+}
+
+type KnownOpt = BoolOpt | NumOpt | StrOpt | SideEffectOpt;
 
 export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     textobjects: { type: 'boolean', settingsKey: 'enableTextObjects' },
@@ -213,6 +222,41 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     },
 };
 
+const clipboardOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const str = typeof value === 'string' ? value : '';
+        setClipboardOption(str);
+        onSettingOverride?.('clipboard', str, directive);
+    },
+};
+const textwidthOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n > 0) {
+            setTextwidth(n);
+            onSettingOverride?.('textwidth', n, directive);
+        }
+    },
+};
+const guicursorOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const str = typeof value === 'string' ? value : '';
+        const partial = parseGuicursor(str);
+        if (Object.keys(partial).length > 0) {
+            onSettingOverride?.('cursorShapes', partial, directive);
+        }
+    },
+};
+
+KNOWN_SET_OPTIONS['clipboard'] = clipboardOpt;
+KNOWN_SET_OPTIONS['clip'] = clipboardOpt;
+KNOWN_SET_OPTIONS['textwidth'] = textwidthOpt;
+KNOWN_SET_OPTIONS['tw'] = textwidthOpt;
+KNOWN_SET_OPTIONS['guicursor'] = guicursorOpt;
+
 function applyKnownSetOption(
     optName: string,
     optValue: string | boolean | number | undefined,
@@ -221,6 +265,20 @@ function applyKnownSetOption(
 ): boolean {
     const spec = KNOWN_SET_OPTIONS[optName];
     if (!spec) return false;
+
+    if (spec.type === 'sideEffect') {
+        spec.apply(
+            optValue,
+            onSettingOverride,
+            `set ${optName}=${String(optValue ?? '')}`,
+        );
+        try {
+            vim.setOption(optName, optValue);
+        } catch {
+            return true;
+        }
+        return true;
+    }
 
     if (spec.type === 'boolean') {
         const enabled = optValue !== false;
@@ -788,38 +846,6 @@ async function loadVimrcFile(
             if (isNoPrefix) {
                 optName = optName.substring(2);
                 optValue = false;
-            }
-
-            if (optName === 'textwidth' || optName === 'tw') {
-                const tw = Number(optValue);
-                if (!isNaN(tw) && tw > 0) {
-                    setTextwidth(tw);
-                    vim.setOption('textwidth', tw);
-                }
-                applied++;
-                continue;
-            }
-
-            if (optName === 'clipboard' || optName === 'clip') {
-                const str = typeof optValue === 'string' ? optValue : '';
-                setClipboardOption(str);
-                vim.setOption('clipboard', str);
-                applied++;
-                continue;
-            }
-
-            if (optName === 'guicursor') {
-                const str = typeof optValue === 'string' ? optValue : '';
-                const partial = parseGuicursor(str);
-                if (Object.keys(partial).length > 0) {
-                    onSettingOverride?.(
-                        'cursorShapes',
-                        partial,
-                        `set guicursor=${str}`,
-                    );
-                }
-                applied++;
-                continue;
             }
 
             const handled = applyKnownSetOption(

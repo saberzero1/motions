@@ -3,7 +3,6 @@ import type { lua_State } from 'fengari';
 import type { MapContext } from '../types/vim-api';
 import type { AutocmdEventData, AutocmdManager } from './autocmd';
 import { KNOWN_SET_OPTIONS } from '../vimrc/loader';
-import { parseGuicursor } from '../vim/options';
 import type { HighlightAttrs, HighlightManager } from './highlight';
 import { injectObsidianApi } from './obsidian-api';
 
@@ -43,6 +42,7 @@ export interface VimApiCallbacks {
     getLeaderKey?: () => string;
     setLeaderKey?: (key: string) => void;
     getOption?: (name: string) => unknown;
+    setOption?: (name: string, value: unknown) => void;
     getAppVersion?: () => string;
     getPluginVersion?: () => string;
     executeCommand?: (id: string) => void;
@@ -563,22 +563,6 @@ export function injectVimApi(
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const key = readLuaString(state, 2);
         if (!key) return 0;
-        if (key === 'guicursor') {
-            const val = readLuaString(state, 3) ?? '';
-            const partial = parseGuicursor(val);
-            if (Object.keys(partial).length > 0) {
-                callbacks.onSettingOverride(
-                    'cursorShapes',
-                    partial,
-                    `vim.opt.guicursor = ${JSON.stringify(val)}`,
-                );
-            } else if (val.length > 0) {
-                console.warn(
-                    `Vim Motions: vim.opt.guicursor: no valid mode:shape segments in "${val}"`,
-                );
-            }
-            return 0;
-        }
         const spec = KNOWN_SET_OPTIONS[key];
         if (!spec) {
             console.warn(`Vim Motions: unknown vim.opt option ${key}`);
@@ -590,6 +574,12 @@ export function injectVimApi(
             value = items.join(',');
         } else {
             value = readLuaValue(state, 3);
+        }
+        if (spec.type === 'sideEffect') {
+            const directive = `vim.opt.${key} = ${formatDirectiveValue(value)}`;
+            spec.apply(value, callbacks.onSettingOverride, directive);
+            callbacks.setOption?.(key, value);
+            return 0;
         }
         callbacks.onSettingOverride(
             spec.settingsKey,

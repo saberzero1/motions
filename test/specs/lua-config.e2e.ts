@@ -4,6 +4,7 @@ import {
     setupEditor,
     vimKeys,
     getEditorValue,
+    getRegisterContent,
     sendVimEscape,
     PAUSE,
 } from '../helpers';
@@ -590,5 +591,244 @@ describe('Lua config support', function () {
                 'vim.obsidian.leader.del("z")\n',
         );
         await assertPluginLoaded();
+    });
+
+    describe('vim.opt.clipboard via Lua', function () {
+        before(async function () {
+            await loadLuaConfig('vim.opt.clipboard = "unnamed"\n');
+        });
+
+        it('should apply clipboard=unnamed from init.lua', async function () {
+            const clip = await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { settings: { clipboard: string } }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.settings?.clipboard;
+            });
+            expect(clip).toBe('unnamed');
+        });
+
+        it('yy should populate the + register when clipboard=unnamed set via Lua', async function () {
+            await setupEditor('lua clipboard test', { line: 0, ch: 0 });
+            await vimKeys('y', 'y');
+            const reg = await getRegisterContent('+');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('lua clipboard test');
+        });
+
+        it('yw should populate the + register when clipboard=unnamed set via Lua', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'w');
+            const reg = await getRegisterContent('+');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('hello');
+        });
+
+        it('dd should populate the + register when clipboard=unnamed set via Lua', async function () {
+            await setupEditor('delete me\nkeep me', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            const reg = await getRegisterContent('+');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('delete me');
+        });
+    });
+
+    it('should apply vim.opt.textwidth from init.lua', async function () {
+        await loadLuaConfig('vim.opt.textwidth = 120\n');
+        const tw = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { textwidth: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.textwidth;
+        });
+        expect(tw).toBe(120);
+    });
+
+    it('should apply vim.opt.tw alias from init.lua', async function () {
+        await loadLuaConfig('vim.opt.tw = 100\n');
+        const tw = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { textwidth: number } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return plugin?.settings?.textwidth;
+        });
+        expect(tw).toBe(100);
+    });
+
+    describe('vimrc + Lua override precedence (lua-vimrc mode)', function () {
+        async function loadDualConfig(
+            vimrcContent: string,
+            luaContent: string,
+        ): Promise<void> {
+            await browser.executeObsidian(async ({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    settings: { configMode: string };
+                                    saveSettings: () => Promise<void>;
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                if (plugin) {
+                    plugin.settings.configMode = 'lua-vimrc';
+                    await plugin.saveSettings();
+                }
+            });
+            await obsidianPage.write('.obsidian.vimrc', vimrcContent);
+            const luaPath = await browser.executeObsidian(({ app }) => {
+                return `${app.vault.configDir}.init.lua`;
+            });
+            await obsidianPage.write(luaPath as string, luaContent);
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+            await browser.waitUntil(
+                async () =>
+                    (await browser.executeObsidian(({ app }) => {
+                        const plugin = (
+                            app as unknown as {
+                                plugins: {
+                                    plugins: Record<
+                                        string,
+                                        { luaLoaded?: boolean }
+                                    >;
+                                };
+                            }
+                        ).plugins.plugins['vim-motions'];
+                        return plugin?.luaLoaded === true;
+                    })) as boolean,
+                { timeout: 15000, interval: 200 },
+            );
+        }
+
+        it('Lua clipboard should override vimrc clipboard', async function () {
+            await loadDualConfig(
+                'set clipboard=unnamed\n',
+                'vim.opt.clipboard = "unnamedplus"\n',
+            );
+            const clip = await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { settings: { clipboard: string } }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.settings?.clipboard;
+            });
+            expect(clip).toBe('unnamedplus');
+        });
+
+        it('Lua textwidth should override vimrc textwidth', async function () {
+            await loadDualConfig(
+                'set textwidth=100\n',
+                'vim.opt.textwidth = 72\n',
+            );
+            const tw = await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { settings: { textwidth: number } }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.settings?.textwidth;
+            });
+            expect(tw).toBe(72);
+        });
+
+        it('Lua scrolloff should override vimrc scrolloff', async function () {
+            await loadDualConfig(
+                'set scrolloff=3\n',
+                'vim.opt.scrolloff = 15\n',
+            );
+            const so = await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { settings: { scrolloffLines: number } }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.settings?.scrolloffLines;
+            });
+            expect(so).toBe(15);
+        });
+
+        it('unknown Lua option should not break vimrc clipboard', async function () {
+            await loadDualConfig(
+                'set clipboard=unnamed\n',
+                'vim.opt.nonexistentoption = "foo"\n',
+            );
+            const clip = await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { settings: { clipboard: string } }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.settings?.clipboard;
+            });
+            expect(clip).toBe('unnamed');
+        });
+
+        it('invalid Lua textwidth should not overwrite valid vimrc textwidth', async function () {
+            await loadDualConfig(
+                'set textwidth=100\n',
+                'vim.opt.textwidth = -5\n',
+            );
+            const tw = await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { settings: { textwidth: number } }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.settings?.textwidth;
+            });
+            expect(tw).toBe(100);
+        });
     });
 });

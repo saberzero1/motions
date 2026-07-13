@@ -44,6 +44,7 @@ import { LeaderRegistry, WhichKeyOverlay } from './ui/which-key';
 import type { WhichKeyLabelInfo } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import { registerVimOptions } from './vim/options';
+import { KNOWN_SET_OPTIONS } from './vimrc/loader';
 import { VimRegistration } from './vim/registration';
 import {
     ChangeList,
@@ -690,6 +691,24 @@ export default class VimMotionsPlugin extends Plugin {
             vim.resetKeymap();
         }
         registerVimOptions(vim, onSettingOverride);
+        for (const [key, savedValue] of Object.entries({
+            clipboard: this.settings.clipboard,
+            textwidth:
+                this.settings.textwidth !== 80
+                    ? this.settings.textwidth
+                    : undefined,
+        })) {
+            if (savedValue === undefined || savedValue === '') continue;
+            const spec = KNOWN_SET_OPTIONS[key];
+            if (spec?.type === 'sideEffect') {
+                spec.apply(savedValue, onSettingOverride, `setting ${key}`);
+                try {
+                    vim.setOption(key, savedValue);
+                } catch {
+                    continue;
+                }
+            }
+        }
         this.registration = new VimRegistration(vim);
 
         this.matcher?.dispose();

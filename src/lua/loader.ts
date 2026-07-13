@@ -439,6 +439,13 @@ export async function loadInitLua(
                 return undefined;
             }
         },
+        setOption: (name, value) => {
+            try {
+                vim.setOption(name, value);
+            } catch {
+                return;
+            }
+        },
         getLineCount: () => {
             const view = app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return 0;
