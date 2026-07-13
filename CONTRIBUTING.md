@@ -539,11 +539,14 @@ npm run test:unit
 
 ## Obsidian API notes
 
-- The CM6 EditorView is at `(view.editor as any).cm` — this returns the CM6 `EditorView`.
-- The CM5-compat adapter (used by codemirror-vim) is at `editorView.cm` where `editorView` is the CM6 EditorView above.
+- The CM6 EditorView is at `(view.editor as any).cm` — use `getEditorView(view)` from `src/util/editor.ts` instead of inline casts.
+- The CM5-compat adapter (used by codemirror-vim) is at `editorView.cm` where `editorView` is the CM6 EditorView above. Use `getCmAdapter(view)` from `src/vim/vim-api.ts`.
 - From the CM5 adapter, access the underlying CM6 EditorView via `adapter.cm6`.
 - Obsidian uses HyperMD node names, not standard Lezer Markdown names (e.g., `header_header-1` not `ATXHeading1`).
 - `app.commands.executeCommandById()` is internal API — works but not in the type definitions. Use `executeCommand(app, id)` and `getCommandRegistry(app)` from `src/util/commands.ts` instead of inline casts.
-- `app.metadataCache.resolvedLinks` is the public link graph.
+- `app.metadataCache.resolvedLinks` is the resolved link graph — use `getResolvedLinks(app)` from `src/util/metadata.ts`.
+- `app.vault.getConfig(key)` is internal API — use `getVaultConfig(app, key)` or `isBuiltinVimEnabled(app)` from `src/util/vault.ts`.
+- `app.keymap.pushScope()`/`popScope()` are internal API — use `pushKeymapScope(app, scope)` / `popKeymapScope(app, scope)` from `src/util/keymap.ts`.
+- Leaf properties (`id`, `pinned`) are internal — use `getLeafId(leaf)`, `isLeafPinned(leaf)`, `getViewFilePath(view)` from `src/util/leaf.ts`.
 - `prepareSimpleSearch()` is the public fuzzy search utility.
 - There is no public navigation history API — use `app:go-back`/`app:go-forward` command IDs.
