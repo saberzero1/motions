@@ -1,4 +1,12 @@
-import type { EditorState } from '@codemirror/state';
+interface DocLike {
+    lineAt(pos: number): { number: number; text: string };
+    line(n: number): { text: string };
+    lines: number;
+}
+
+interface EditorStateLike {
+    doc: DocLike;
+}
 
 export type CursorContextType = 'prose' | 'code' | 'frontmatter';
 
@@ -10,7 +18,7 @@ export interface CursorContext {
 const FENCE_RE = /^(`{3,}|~{3,})\s*(.*)/;
 
 export function detectCursorContext(
-    state: EditorState,
+    state: EditorStateLike,
     pos: number,
 ): CursorContext {
     const doc = state.doc;

@@ -20,6 +20,49 @@ function vim.snippet.rep(index)
     return { type = "rep", index = index }
 end
 
+function vim.snippet.f(fn, deps)
+    return {
+        type = "function",
+        fn = fn,
+        depends_on = deps or {},
+    }
+end
+
+function vim.snippet.d(index, fn, deps)
+    return {
+        type = "dynamic",
+        index = index,
+        fn = fn,
+        depends_on = deps or {},
+    }
+end
+
+function vim.snippet.sn(index, nodes, opts)
+    opts = opts or {}
+    local flat = {}
+    if #nodes > 0 and nodes[1] and type(nodes[1]) == "table" and nodes[1][1] then
+        for _, node in ipairs(nodes[1]) do
+            table.insert(flat, node)
+        end
+    else
+        flat = nodes
+    end
+    return {
+        _is_snippet_node = true,
+        index = index,
+        nodes = flat,
+        stored = opts.stored,
+    }
+end
+
+function vim.snippet.r(index, type_name)
+    return {
+        type = "restore",
+        index = index,
+        type_name = type_name or "",
+    }
+end
+
 function vim.snippet.fmt(format_str, nodes, opts)
     local result = {}
     local node_idx = 1
@@ -65,11 +108,14 @@ end
 `;
 
 export interface LuaSnippetNode {
-    type: 'text' | 'insert' | 'choice' | 'rep';
+    type: 'text' | 'insert' | 'choice' | 'rep' | 'function' | 'dynamic' | 'restore';
     text?: string;
     index?: number;
     placeholder?: string;
     choices?: LuaSnippetNode[];
+    luaFnRef?: number;
+    dependsOn?: number[];
+    snNodes?: LuaSnippetNode[];
 }
 
 export interface LuaSnippetDef {
@@ -78,6 +124,7 @@ export interface LuaSnippetDef {
     nodes: LuaSnippetNode[];
     context?: string;
     description?: string;
+    hasDynamic?: boolean;
 }
 
 function readLuaString(L: lua_State, index: number): string | null {
@@ -89,6 +136,21 @@ function readLuaString(L: lua_State, index: number): string | null {
 function readLuaNumber(L: lua_State, index: number): number | null {
     if (!lua.lua_isnumber(L, index)) return null;
     return lua.lua_tonumber(L, index);
+}
+
+function readNumberArray(L: lua_State, index: number): number[] {
+    if (!lua.lua_istable(L, index)) return [];
+    const tableIndex = lua.lua_absindex(L, index);
+    const len = lauxlib.luaL_len(L, tableIndex);
+    const result: number[] = [];
+    for (let i = 1; i <= len; i++) {
+        lua.lua_rawgeti(L, tableIndex, i);
+        if (lua.lua_isnumber(L, -1)) {
+            result.push(lua.lua_tonumber(L, -1));
+        }
+        lua.lua_pop(L, 1);
+    }
+    return result;
 }
 
 function readSnippetNodeValue(
@@ -104,7 +166,10 @@ function readSnippetNodeValue(
     return null;
 }
 
-function readSnippetNodes(L: lua_State, index: number): LuaSnippetNode[] {
+export function readSnippetNodes(
+    L: lua_State,
+    index: number,
+): LuaSnippetNode[] {
     if (!lua.lua_istable(L, index)) return [];
     const tableIndex = lua.lua_absindex(L, index);
     const len = lauxlib.luaL_len(L, tableIndex);
@@ -155,10 +220,57 @@ function readSnippetNode(L: lua_State, index: number): LuaSnippetNode {
             lua.lua_pop(L, 1);
             return { type: 'rep', index: indexValue };
         }
+        case 'function': {
+            lua.lua_getfield(L, tableIndex, to_luastring('fn'));
+            if (!lua.lua_isfunction(L, -1)) {
+                lua.lua_pop(L, 1);
+                return { type: 'text', text: '[f() error: expected function]' };
+            }
+            const fnRef = lauxlib.luaL_ref(L, lua.LUA_REGISTRYINDEX);
+            lua.lua_getfield(L, tableIndex, to_luastring('depends_on'));
+            const deps = readNumberArray(L, -1);
+            lua.lua_pop(L, 1);
+            return { type: 'function', luaFnRef: fnRef, dependsOn: deps };
+        }
+        case 'dynamic': {
+            lua.lua_getfield(L, tableIndex, to_luastring('index'));
+            const indexValue = readLuaNumber(L, -1) ?? 0;
+            lua.lua_pop(L, 1);
+            lua.lua_getfield(L, tableIndex, to_luastring('fn'));
+            if (!lua.lua_isfunction(L, -1)) {
+                lua.lua_pop(L, 1);
+                return { type: 'text', text: '[d() error: expected function]' };
+            }
+            const fnRef = lauxlib.luaL_ref(L, lua.LUA_REGISTRYINDEX);
+            lua.lua_getfield(L, tableIndex, to_luastring('depends_on'));
+            const deps = readNumberArray(L, -1);
+            lua.lua_pop(L, 1);
+            return {
+                type: 'dynamic',
+                index: indexValue,
+                luaFnRef: fnRef,
+                dependsOn: deps,
+            };
+        }
+        case 'restore': {
+            lua.lua_getfield(L, tableIndex, to_luastring('index'));
+            const indexValue = readLuaNumber(L, -1) ?? 0;
+            lua.lua_pop(L, 1);
+            return { type: 'restore', index: indexValue };
+        }
         default: {
             return { type: 'text', text: '' };
         }
     }
+}
+
+function hasDynamicNodes(nodes: LuaSnippetNode[]): boolean {
+    for (const node of nodes) {
+        if (node.type === 'function' || node.type === 'dynamic') return true;
+        if (node.choices && hasDynamicNodes(node.choices)) return true;
+        if (node.snNodes && hasDynamicNodes(node.snNodes)) return true;
+    }
+    return false;
 }
 
 function readSnippetDef(
@@ -178,7 +290,8 @@ function readSnippetDef(
     lua.lua_getfield(L, tableIndex, to_luastring('description'));
     const description = readLuaString(L, -1) ?? undefined;
     lua.lua_pop(L, 1);
-    return { name, nodes, context, description };
+    const hasDynamic = hasDynamicNodes(nodes);
+    return { name, nodes, context, description, hasDynamic };
 }
 
 export function injectSnippetApi(L: lua_State): LuaSnippetDef[] {
