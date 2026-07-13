@@ -1,4 +1,5 @@
 import type { PickerSource } from '../types';
+import { executeCommand, getCommandRegistry } from '../../util/commands';
 
 export function createCommandsSource(): PickerSource {
     return {
@@ -10,14 +11,7 @@ export function createCommandsSource(): PickerSource {
         description: 'Execute an Obsidian command',
         priority: 3,
         items(app) {
-            const commands = (
-                app as unknown as {
-                    commands: {
-                        commands: Record<string, { id: string; name: string }>;
-                    };
-                }
-            ).commands.commands;
-            return Object.values(commands)
+            return Object.values(getCommandRegistry(app))
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((command) => ({
                     id: command.id,
@@ -29,11 +23,7 @@ export function createCommandsSource(): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { id: string };
-            (
-                app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById(data.id);
+            executeCommand(app, data.id);
         },
         preview(item) {
             const data = item.data as { id: string };

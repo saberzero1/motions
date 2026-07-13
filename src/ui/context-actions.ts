@@ -1,6 +1,7 @@
 import { App, MarkdownView, SuggestModal } from 'obsidian';
 import type { ActionFn } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
+import { executeCommand, getCommandRegistry } from '../util/commands';
 
 interface CommandItem {
     id: string;
@@ -80,11 +81,7 @@ class ContextActionsModal extends SuggestModal<CommandItem> {
     }
 
     onChooseSuggestion(item: CommandItem): void {
-        (
-            this.app as unknown as {
-                commands: { executeCommandById: (id: string) => void };
-            }
-        ).commands.executeCommandById(item.id);
+        executeCommand(this.app, item.id);
     }
 }
 
@@ -99,13 +96,7 @@ export function createContextActionsAction(app: App): ActionFn {
         const lineText = cm.getLine(cursor.line);
         const commandIds = detectContext(lineText);
 
-        const allCommands = (
-            app as unknown as {
-                commands: {
-                    commands: Record<string, { id: string; name: string }>;
-                };
-            }
-        ).commands.commands;
+        const allCommands = getCommandRegistry(app);
 
         const items: CommandItem[] = [];
         for (const id of commandIds) {

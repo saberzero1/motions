@@ -207,6 +207,7 @@ src/
     global-ex-command.ts   # Ex command input outside editor context
     vimrc-file-suggest.ts  # File suggestion for vimrc/Lua config path settings
   util/
+    commands.ts            # executeCommand() and getCommandRegistry() — typed access to Obsidian's internal commands API
     around.ts              # Monkey-patching utility (around pattern)
     external-fs.ts         # External filesystem access helpers
   vimrc/
@@ -537,7 +538,7 @@ npm run test:unit
 - The CM5-compat adapter (used by codemirror-vim) is at `editorView.cm` where `editorView` is the CM6 EditorView above.
 - From the CM5 adapter, access the underlying CM6 EditorView via `adapter.cm6`.
 - Obsidian uses HyperMD node names, not standard Lezer Markdown names (e.g., `header_header-1` not `ATXHeading1`).
-- `app.commands.executeCommandById()` is internal API — works but not in the type definitions.
+- `app.commands.executeCommandById()` is internal API — works but not in the type definitions. Use `executeCommand(app, id)` and `getCommandRegistry(app)` from `src/util/commands.ts` instead of inline casts.
 - `app.metadataCache.resolvedLinks` is the public link graph.
 - `prepareSimpleSearch()` is the public fuzzy search utility.
 - There is no public navigation history API — use `app:go-back`/`app:go-forward` command IDs.

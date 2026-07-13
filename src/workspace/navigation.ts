@@ -15,14 +15,9 @@ import { createContextActionsAction } from '../ui/context-actions';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
+import { executeCommand } from '../util/commands';
 
-export function executeCommand(app: App, commandId: string): void {
-    (
-        app as unknown as {
-            commands: { executeCommandById: (id: string) => void };
-        }
-    ).commands.executeCommandById(commandId);
-}
+export { executeCommand } from '../util/commands';
 
 function createCommandAction(app: App, commandId: string): ActionFn {
     return () => {

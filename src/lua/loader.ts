@@ -33,6 +33,10 @@ import {
     readExternalFile,
     externalFileExists,
 } from '../util/external-fs';
+import {
+    executeCommand as execCmd,
+    getCommandRegistry,
+} from '../util/commands';
 
 export interface LuaLoadResult {
     found: boolean;
@@ -289,11 +293,7 @@ export async function loadInitLua(
             openPicker?.(source, opts);
         },
         executeCommand: (id: string) => {
-            (
-                app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById(id);
+            execCmd(app, id);
         },
         getActiveLeafInfo: () => {
             const leaf = app.workspace.getMostRecentLeaf();
@@ -343,13 +343,7 @@ export async function loadInitLua(
             return app.workspace.getActiveViewOfType(MarkdownView) !== null;
         },
         listCommands: () => {
-            const commands = (
-                app as unknown as {
-                    commands: {
-                        commands: Record<string, { id: string; name: string }>;
-                    };
-                }
-            ).commands.commands;
+            const commands = getCommandRegistry(app);
             return Object.values(commands).map((cmd) => ({
                 id: cmd.id,
                 name: cmd.name,
@@ -590,27 +584,14 @@ export async function loadInitLua(
             };
             const commandId = commandMap[direction];
             if (commandId) {
-                (
-                    app as unknown as {
-                        commands: { executeCommandById: (id: string) => void };
-                    }
-                ).commands.executeCommandById(commandId);
+                execCmd(app, commandId);
             }
         },
         closeActiveLeaf: () => {
-            (
-                app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById('workspace:close');
+            execCmd(app, 'workspace:close');
         },
         splitDirection: (direction: string) => {
-            const commandId = `workspace:split-${direction}`;
-            (
-                app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById(commandId);
+            execCmd(app, `workspace:split-${direction}`);
         },
         getLeafForFile: (path: string) => {
             let found: {

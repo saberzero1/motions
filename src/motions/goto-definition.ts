@@ -2,6 +2,7 @@ import { MarkdownView } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ActionFn } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
+import { executeCommand } from '../util/commands';
 
 const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
 const MD_LINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
@@ -144,11 +145,7 @@ export function createGotoDefinitionSplitAction(
             direction === 'vertical'
                 ? 'workspace:split-vertical'
                 : 'workspace:split-horizontal';
-        (
-            app as unknown as {
-                commands: { executeCommandById: (id: string) => void };
-            }
-        ).commands.executeCommandById(commandId);
+        executeCommand(app, commandId);
         void app.workspace.openLinkText(link.target, sourcePath, false);
     };
 }

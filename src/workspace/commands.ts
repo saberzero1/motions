@@ -7,6 +7,7 @@ import { VimRegistration } from '../vim/registration';
 import { VimInfoModal } from '../ui/vim-info-modal';
 import type { GlobalMappingRegistry } from './global-mapping-registry';
 import type { AutocmdManager } from '../lua/autocmd';
+import { executeCommand, getCommandRegistry } from '../util/commands';
 
 type OpenPicker = (
     source: string,
@@ -20,17 +21,8 @@ interface PickerConfig {
 
 function createObCommand(app: App): ExCommandFn {
     return (_cm, params) => {
-        const commands = (
-            app as unknown as {
-                commands: {
-                    executeCommandById: (id: string) => void;
-                    commands: Record<string, { id: string; name: string }>;
-                };
-            }
-        ).commands;
-
         if (!params.argString?.trim()) {
-            const rows = Object.values(commands.commands)
+            const rows = Object.values(getCommandRegistry(app))
                 .sort((a, b) => a.id.localeCompare(b.id))
                 .map((cmd) => [cmd.id, cmd.name]);
             new VimInfoModal(
@@ -42,7 +34,7 @@ function createObCommand(app: App): ExCommandFn {
             return;
         }
         const commandId = params.argString?.trim() ?? '';
-        commands.executeCommandById(commandId);
+        executeCommand(app, commandId);
     };
 }
 
@@ -50,28 +42,16 @@ function createSidebarCommand(app: App): ExCommandFn {
     return (_cm, params) => {
         const side = (params.argString ?? '').trim().toLowerCase();
         if (side === 'left') {
-            (
-                app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById('app:toggle-left-sidebar');
+            executeCommand(app, 'app:toggle-left-sidebar');
         } else if (side === 'right') {
-            (
-                app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById('app:toggle-right-sidebar');
+            executeCommand(app, 'app:toggle-right-sidebar');
         }
     };
 }
 
 function createExplorerCommand(app: App): ExCommandFn {
     return () => {
-        (
-            app as unknown as {
-                commands: { executeCommandById: (id: string) => void };
-            }
-        ).commands.executeCommandById('file-explorer:reveal-active-file');
+        executeCommand(app, 'file-explorer:reveal-active-file');
     };
 }
 
@@ -131,14 +111,6 @@ function createMarksCommand(app: App): ExCommandFn {
             rows,
         ).open();
     };
-}
-
-function executeCommand(app: App, commandId: string): void {
-    (
-        app as unknown as {
-            commands: { executeCommandById: (id: string) => void };
-        }
-    ).commands.executeCommandById(commandId);
 }
 
 function saveWithEvents(

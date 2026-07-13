@@ -3,6 +3,7 @@ import type { OilManager } from './manager';
 import type { AutocmdManager } from '../lua/autocmd';
 import { getVimApi } from '../vim/vim-api';
 import { OilView } from './oil-view';
+import { executeCommand } from '../util/commands';
 
 interface OilMapping {
     lhs: string;
@@ -253,15 +254,7 @@ export class OilKeybindingManager {
                 if (fileExplorer?.revealInFolder) {
                     fileExplorer.revealInFolder(target);
                 } else {
-                    (
-                        app as unknown as {
-                            commands: {
-                                executeCommandById: (id: string) => void;
-                            };
-                        }
-                    ).commands.executeCommandById(
-                        'file-explorer:reveal-active-file',
-                    );
+                    executeCommand(app, 'file-explorer:reveal-active-file');
                 }
             },
         };

@@ -7,6 +7,7 @@ import type {
 } from '../types/vim-api';
 import type { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
+import { executeCommand } from '../util/commands';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -292,14 +293,6 @@ export const tableRealignAction: ActionFn = (cm) => {
 export const tableRealignEx: ExCommandFn = (cm) => {
     realignTable(cm);
 };
-
-function executeCommand(app: App, commandId: string): void {
-    (
-        app as unknown as {
-            commands: { executeCommandById: (id: string) => void };
-        }
-    ).commands.executeCommandById(commandId);
-}
 
 function createTableCommandAction(app: App, commandId: string): ActionFn {
     return () => executeCommand(app, commandId);

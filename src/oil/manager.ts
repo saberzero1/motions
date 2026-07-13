@@ -7,6 +7,7 @@ import { computeDiff, mergeMultiBufferDiffs, type BufferDiff } from './diff';
 import { validateActions, executeActions } from './actions';
 import type { OilEntry, OilMergedDiff } from './types';
 import { OIL_VIEW_TYPE, type OilView } from './oil-view';
+import { executeCommand } from '../util/commands';
 
 export function entriesToBufferText(entries: OilEntry[]): string {
     if (entries.length === 0) return '';
@@ -214,11 +215,7 @@ export class OilManager {
         if (fileExplorer?.revealInFolder) {
             fileExplorer.revealInFolder(target);
         } else {
-            (
-                this.app as unknown as {
-                    commands: { executeCommandById: (id: string) => void };
-                }
-            ).commands.executeCommandById('file-explorer:reveal-active-file');
+            executeCommand(this.app, 'file-explorer:reveal-active-file');
         }
     }
 

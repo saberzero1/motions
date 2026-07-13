@@ -13,6 +13,7 @@ import VimMotionsPlugin from './main';
 import { isBundledVimActive } from './vim/bundled-vim';
 import { VimrcFileSuggest } from './ui/vimrc-file-suggest';
 import { getVimApi } from './vim/vim-api';
+import { getCommandRegistry } from './util/commands';
 import { setClipboardOption, setTextwidth } from './vim/options';
 import {
     VIMRC_FALLBACK_PATHS,
@@ -312,13 +313,7 @@ class CommandPickerModal extends SuggestModal<ObsidianCommand> {
     constructor(app: App, onPick: (cmd: ObsidianCommand) => void) {
         super(app);
         this.onPick = onPick;
-        const allCommands = (
-            app as unknown as {
-                commands: {
-                    commands: Record<string, { id: string; name: string }>;
-                };
-            }
-        ).commands.commands;
+        const allCommands = getCommandRegistry(app);
         this.commands = Object.values(allCommands).sort((a, b) =>
             a.name.localeCompare(b.name),
         );

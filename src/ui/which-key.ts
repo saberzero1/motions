@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import { MarkdownView, setIcon } from 'obsidian';
 import type { CmAdapter } from '../types/vim-api';
 import { getCmAdapter, getVimApi } from '../vim/vim-api';
+import { getCommandRegistry } from '../util/commands';
 
 export type WhichKeySortOrder = 'which-key' | 'groups-first';
 
@@ -155,14 +156,7 @@ export function lookupObsidianCommandName(
     app: App,
     commandId: string,
 ): string | null {
-    const commands = (
-        app as unknown as {
-            commands: {
-                commands: Record<string, { id: string; name: string }>;
-            };
-        }
-    ).commands.commands;
-    return commands[commandId]?.name ?? null;
+    return getCommandRegistry(app)[commandId]?.name ?? null;
 }
 
 /**
