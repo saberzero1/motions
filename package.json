@@ -63,5 +63,12 @@
             "@codemirror/view": "$@codemirror/view",
             "@codemirror/language": "$@codemirror/language"
         }
+    },
+    "pnpm": {
+        "overrides": {
+            "@codemirror/autocomplete>@codemirror/state": "$@codemirror/state",
+            "@codemirror/autocomplete>@codemirror/view": "$@codemirror/view",
+            "@codemirror/autocomplete>@codemirror/language": "$@codemirror/language"
+        }
     }
 }
