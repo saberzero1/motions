@@ -62,7 +62,7 @@ Full documentation: **https://saberzero1.github.io/motions**
 ## Requirements
 
 - Obsidian v1.6.6 or later
-- Desktop and mobile (physical keyboard recommended on mobile)
+- Desktop or mobile (physical keyboard recommended on mobile)
 
 ## Development
 
@@ -74,7 +74,7 @@ npm run lint     # Lint
 npm run test:e2e # E2E tests (requires nix develop)
 ```
 
-See [AGENTS.md](AGENTS.md) for the full development guide, testing strategy, and contribution guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide, testing strategy, and contribution guidelines.
 
 ## License
 
