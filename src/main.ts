@@ -31,7 +31,7 @@ import {
 import type { DeferredGlobalMap } from './vimrc/loader';
 import { registerDefaultGlobalMappings } from './workspace/global-defaults';
 import { GlobalWhichKeyOverlay } from './ui/global-which-key';
-import { getVimApi, isVimEnabled, getCmAdapter } from './vim/vim-api';
+import { getVimApi, getCmAdapter } from './vim/vim-api';
 import {
     createBundledVimExtension,
     installVimBridge,

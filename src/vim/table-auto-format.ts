@@ -20,7 +20,7 @@ function getVimMode(app: App, editorView?: EditorView): string | null {
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return null;
     const adapter = getCmAdapter(view);
-    return (adapter?.state?.vim as { mode?: string } | undefined)?.mode ?? null;
+    return adapter?.state?.vim?.mode ?? null;
 }
 
 function splitCells(line: string): string[] {
