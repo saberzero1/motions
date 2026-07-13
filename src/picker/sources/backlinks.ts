@@ -2,6 +2,7 @@ import { App, Notice } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import { getResolvedLinks } from '../../util/metadata';
 
 interface BacklinkItem {
     path: string;
@@ -16,11 +17,7 @@ function getBacklinks(app: App): BacklinkItem[] {
         return [];
     }
 
-    const resolvedLinks = (
-        app.metadataCache as unknown as {
-            resolvedLinks: Record<string, Record<string, number>>;
-        }
-    ).resolvedLinks;
+    const resolvedLinks = getResolvedLinks(app);
 
     const items: BacklinkItem[] = [];
     for (const [sourcePath, targets] of Object.entries(resolvedLinks)) {

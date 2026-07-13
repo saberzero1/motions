@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Consolidated `app.commands` access into `src/util/commands.ts`** — extracted `executeCommand(app, id)` and `getCommandRegistry(app)` utility functions, replacing 20 inline `(app as unknown as { commands: ... })` casts across 11 files. All command execution and registry access now goes through the shared module.
-    - Plugin: `src/util/commands.ts` (new), 11 files updated to import from it
+- **Consolidated Obsidian internal API access into `src/util/` utilities** — extracted typed accessor functions for 6 internal Obsidian APIs, replacing ~40 inline `(x as unknown as { ... })` casts across 16 files. Each utility centralizes the unsafe cast in one location and exposes a clean typed function:
+    - `src/util/commands.ts`: `executeCommand(app, id)`, `getCommandRegistry(app)` — 20 casts across 11 files
+    - `src/util/editor.ts`: `getEditorView(view)` — extracts CM6 `EditorView` from `MarkdownView`, replacing 6 inline casts across 5 files
+    - `src/util/leaf.ts`: `getLeafId(leaf)`, `isLeafPinned(leaf)`, `getViewFilePath(view)`, `getViewFileBasename(view)` — 12 casts across 3 files
+    - `src/util/metadata.ts`: `getResolvedLinks(app)` — 2 casts across 2 files
+    - `src/util/vault.ts`: `getVaultConfig(app, key)`, `isBuiltinVimEnabled(app)` — 4 casts across 4 files
+    - `src/util/keymap.ts`: `pushKeymapScope(app, scope)`, `popKeymapScope(app, scope)` — 3 casts in 1 file
 
 ### Tests
 

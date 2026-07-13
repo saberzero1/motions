@@ -8,6 +8,7 @@ import { VimInfoModal } from '../ui/vim-info-modal';
 import type { GlobalMappingRegistry } from './global-mapping-registry';
 import type { AutocmdManager } from '../lua/autocmd';
 import { executeCommand, getCommandRegistry } from '../util/commands';
+import { getResolvedLinks } from '../util/metadata';
 
 type OpenPicker = (
     source: string,
@@ -235,11 +236,7 @@ function createBacklinksCommand(app: App): ExCommandFn {
             new Notice('No active file');
             return;
         }
-        const resolvedLinks = (
-            app.metadataCache as unknown as {
-                resolvedLinks: Record<string, Record<string, number>>;
-            }
-        ).resolvedLinks;
+        const resolvedLinks = getResolvedLinks(app);
         const rows: string[][] = [];
         for (const [sourcePath, targets] of Object.entries(resolvedLinks)) {
             const count = targets[activeFile.path];

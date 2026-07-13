@@ -208,6 +208,11 @@ src/
     vimrc-file-suggest.ts  # File suggestion for vimrc/Lua config path settings
   util/
     commands.ts            # executeCommand() and getCommandRegistry() — typed access to Obsidian's internal commands API
+    editor.ts              # getEditorView() — extract CM6 EditorView from MarkdownView
+    leaf.ts                # getLeafId(), isLeafPinned(), getViewFilePath(), getViewFileBasename() — typed access to internal leaf/view properties
+    metadata.ts            # getResolvedLinks() — typed access to app.metadataCache.resolvedLinks
+    vault.ts               # getVaultConfig(), isBuiltinVimEnabled() — typed access to app.vault.getConfig
+    keymap.ts              # pushKeymapScope(), popKeymapScope() — typed access to app.keymap scope management
     around.ts              # Monkey-patching utility (around pattern)
     external-fs.ts         # External filesystem access helpers
   vimrc/

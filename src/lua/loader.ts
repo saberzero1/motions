@@ -37,6 +37,7 @@ import {
     executeCommand as execCmd,
     getCommandRegistry,
 } from '../util/commands';
+import { getLeafId, isLeafPinned, getViewFilePath } from '../util/leaf';
 
 export interface LuaLoadResult {
     found: boolean;
@@ -299,13 +300,12 @@ export async function loadInitLua(
             const leaf = app.workspace.getMostRecentLeaf();
             if (!leaf?.view) return null;
             return {
-                id: (leaf as unknown as { id?: string }).id ?? '',
+                id: getLeafId(leaf),
                 type:
                     (
                         leaf.view as unknown as { getViewType?: () => string }
                     ).getViewType?.() ?? 'empty',
-                pinned:
-                    (leaf as unknown as { pinned?: boolean }).pinned ?? false,
+                pinned: isLeafPinned(leaf),
                 filePath: app.workspace.getActiveFile()?.path ?? null,
             };
         },
@@ -321,19 +321,15 @@ export async function loadInitLua(
                 if (leaf.getRoot() === rootSplit) {
                     const view = leaf.view;
                     result.push({
-                        id: (leaf as unknown as { id?: string }).id ?? '',
+                        id: getLeafId(leaf),
                         type:
                             (
                                 view as unknown as {
                                     getViewType?: () => string;
                                 }
                             ).getViewType?.() ?? 'empty',
-                        pinned:
-                            (leaf as unknown as { pinned?: boolean }).pinned ??
-                            false,
-                        filePath:
-                            (view as unknown as { file?: { path?: string } })
-                                .file?.path ?? null,
+                        pinned: isLeafPinned(leaf),
+                        filePath: getViewFilePath(view),
                     });
                 }
             });
@@ -603,22 +599,18 @@ export async function loadInitLua(
             app.workspace.iterateAllLeaves((leaf) => {
                 if (found) return;
                 const view = leaf.view;
-                const viewFile = (
-                    view as unknown as { file?: { path?: string } }
-                ).file?.path;
+                const viewFile = getViewFilePath(view);
                 if (viewFile === path) {
                     found = {
-                        id: (leaf as unknown as { id?: string }).id ?? '',
+                        id: getLeafId(leaf),
                         type:
                             (
                                 view as unknown as {
                                     getViewType?: () => string;
                                 }
                             ).getViewType?.() ?? 'empty',
-                        pinned:
-                            (leaf as unknown as { pinned?: boolean }).pinned ??
-                            false,
-                        filePath: viewFile ?? null,
+                        pinned: isLeafPinned(leaf),
+                        filePath: viewFile,
                     };
                 }
             });

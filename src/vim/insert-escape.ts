@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimApi } from '../types/vim-api';
 import { getCmAdapter } from './vim-api';
+import { getEditorView } from '../util/editor';
 
 const DEFAULT_TIMEOUT = 1000;
 
@@ -34,9 +35,8 @@ export class InsertEscapeHandler {
         const attachToView = () => {
             const view = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return;
-            const editorEl = (view.editor as unknown as Record<string, unknown>)
-                .cm as { dom?: HTMLElement } | undefined;
-            const dom = editorEl?.dom;
+            const ev = getEditorView(view);
+            const dom = (ev as unknown as { dom?: HTMLElement } | null)?.dom;
             if (dom) {
                 dom.addEventListener('keydown', onKeydown, true);
             }

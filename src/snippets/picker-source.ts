@@ -5,15 +5,12 @@ import type { PreprocessContext } from './types';
 import { preprocessSnippetBody } from './preprocess';
 import { snippet } from './autocomplete-types';
 import type { EditorView } from '@codemirror/view';
+import { getEditorView } from '../util/editor';
 
 function getActiveEditorView(app: App): EditorView | null {
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return null;
-    const editorView = (view.editor as unknown as Record<string, unknown>)
-        .cm as { cm6?: EditorView } | EditorView | undefined;
-    if (!editorView) return null;
-    if ('cm6' in editorView) return editorView.cm6 ?? null;
-    return editorView as EditorView;
+    return getEditorView(view);
 }
 
 export function createSnippetsPickerSource(

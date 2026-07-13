@@ -2,6 +2,7 @@ import { EditorView } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
 import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
+import { getCmAdapter } from './vim-api';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -18,14 +19,8 @@ function getVimMode(app: App, editorView?: EditorView): string | null {
     }
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return null;
-    const cm = (view.editor as unknown as Record<string, unknown>).cm as Record<
-        string,
-        unknown
-    >;
-    const adapter = cm?.cm as
-        | { state?: { vim?: { mode?: string } } }
-        | undefined;
-    return adapter?.state?.vim?.mode ?? null;
+    const adapter = getCmAdapter(view);
+    return (adapter?.state?.vim as { mode?: string } | undefined)?.mode ?? null;
 }
 
 function splitCells(line: string): string[] {

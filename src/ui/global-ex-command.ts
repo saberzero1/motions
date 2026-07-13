@@ -6,6 +6,7 @@ import type {
 } from '../workspace/global-mapping-registry';
 import { VimInfoModal } from './vim-info-modal';
 import type { OilManager } from '../oil/manager';
+import { getViewFileBasename } from '../util/leaf';
 
 export type GlobalExFn = (app: App, args: string) => void;
 
@@ -92,10 +93,8 @@ export function buildGlobalExCommands(
         app.workspace.iterateAllLeaves((leaf) => {
             if (found) return;
             if (leaf.view.getViewType() === 'markdown') {
-                const file = (
-                    leaf.view as unknown as { file?: { basename: string } }
-                ).file;
-                if (file?.basename.toLowerCase().includes(query)) {
+                const basename = getViewFileBasename(leaf.view);
+                if (basename?.toLowerCase().includes(query)) {
                     app.workspace.setActiveLeaf(leaf, { focus: true });
                     found = true;
                 }

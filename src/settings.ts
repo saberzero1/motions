@@ -14,6 +14,7 @@ import { isBundledVimActive } from './vim/bundled-vim';
 import { VimrcFileSuggest } from './ui/vimrc-file-suggest';
 import { getVimApi } from './vim/vim-api';
 import { getCommandRegistry } from './util/commands';
+import { isBuiltinVimEnabled } from './util/vault';
 import { setClipboardOption, setTextwidth } from './vim/options';
 import {
     VIMRC_FALLBACK_PATHS,
@@ -440,12 +441,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             hollow: 'Hollow',
         };
 
-        const builtinVimOn =
-            (
-                this.app.vault as unknown as {
-                    getConfig: (key: string) => unknown;
-                }
-            ).getConfig('vimMode') === true;
+        const builtinVimOn = isBuiltinVimEnabled(this.app);
 
         return [
             // ── Built-in vim warning ────────────────────────────────
@@ -1803,12 +1799,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             return desc ? `${desc} (${note})` : note;
         };
 
-        const builtinVimOn =
-            (
-                this.app.vault as unknown as {
-                    getConfig: (key: string) => unknown;
-                }
-            ).getConfig('vimMode') === true;
+        const builtinVimOn = isBuiltinVimEnabled(this.app);
 
         if (builtinVimOn) {
             const notice = containerEl.createDiv({

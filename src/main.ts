@@ -162,6 +162,9 @@ import { OilView, createOilViewFactory } from './oil/oil-view';
 import { ImSwitcher } from './im/im-switcher';
 import { parseImArgs } from './im/im-process';
 import { expandTilde } from './util/external-fs';
+import { getLeafId } from './util/leaf';
+import { getEditorView } from './util/editor';
+import { isBuiltinVimEnabled } from './util/vault';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -518,11 +521,7 @@ export default class VimMotionsPlugin extends Plugin {
             createOilViewFactory(this.oilManager, oilCache, this.settings),
         );
 
-        const builtinVimOn = isVimEnabled(
-            this.app as unknown as {
-                vault: { getConfig: (key: string) => unknown };
-            },
-        );
+        const builtinVimOn = isBuiltinVimEnabled(this.app);
 
         if (!builtinVimOn) {
             installVimBridge();
@@ -909,7 +908,7 @@ export default class VimMotionsPlugin extends Plugin {
                                       getViewType?: () => string;
                                   }
                               ).getViewType?.() ?? 'empty',
-                          id: (leaf as unknown as { id?: string }).id ?? '',
+                          id: getLeafId(leaf),
                           filePath:
                               this.app.workspace.getActiveFile()?.path ?? null,
                       }
@@ -940,8 +939,7 @@ export default class VimMotionsPlugin extends Plugin {
                               }
                           ).cm?.dom ?? null)
                         : null;
-                    const leafId =
-                        (leaf as unknown as { id?: string })?.id ?? '';
+                    const leafId = leaf ? getLeafId(leaf) : '';
                     this.imSwitcher?.onLeafChange(leafId);
                     this.imSwitcher?.reattachCompositionListeners(editorEl);
                 }),
@@ -953,7 +951,7 @@ export default class VimMotionsPlugin extends Plugin {
                 if (!this.settings.enableHarpoon) return;
                 if (this.previousLeafId) {
                     this.app.workspace.iterateAllLeaves((leaf) => {
-                        const leafId = (leaf as unknown as { id?: string }).id;
+                        const leafId = getLeafId(leaf);
                         if (
                             leafId === this.previousLeafId &&
                             leaf.view instanceof MarkdownView &&
@@ -995,19 +993,9 @@ export default class VimMotionsPlugin extends Plugin {
                     const mdView =
                         this.app.workspace.getActiveViewOfType(MarkdownView);
                     if (mdView?.file?.path === this.previousFoldFile) {
-                        const editorView = (
-                            mdView.editor as unknown as Record<string, unknown>
-                        ).cm as { cm6?: EditorView } | undefined;
-                        const cm6 = editorView?.cm6 ?? editorView;
-                        if (
-                            cm6 &&
-                            typeof (cm6 as Record<string, unknown>).state ===
-                                'object'
-                        ) {
-                            this.foldStore.capture(
-                                this.previousFoldFile,
-                                cm6 as EditorView,
-                            );
+                        const ev = getEditorView(mdView);
+                        if (ev) {
+                            this.foldStore.capture(this.previousFoldFile, ev);
                             this.foldPersistDirty = true;
                         }
                     }
@@ -1018,20 +1006,10 @@ export default class VimMotionsPlugin extends Plugin {
                 ) {
                     const filePath = newLeaf.view.file.path;
                     this.previousFoldFile = filePath;
-                    const editorView = (
-                        newLeaf.view.editor as unknown as Record<
-                            string,
-                            unknown
-                        >
-                    ).cm as { cm6?: EditorView } | undefined;
-                    const cm6 = editorView?.cm6 ?? editorView;
-                    if (
-                        cm6 &&
-                        typeof (cm6 as Record<string, unknown>).state ===
-                            'object'
-                    ) {
+                    const ev = getEditorView(newLeaf.view);
+                    if (ev) {
                         window.setTimeout(() => {
-                            this.foldStore.restore(filePath, cm6 as EditorView);
+                            this.foldStore.restore(filePath, ev);
                         }, 100);
                     }
                 } else {
@@ -3033,8 +3011,7 @@ export default class VimMotionsPlugin extends Plugin {
         const handler = (event: VimYankEvent) => {
             if (event.operator !== 'y') return;
 
-            const editorView = (mdView.editor as unknown as { cm: EditorView })
-                ?.cm;
+            const editorView = getEditorView(mdView);
             if (!editorView) return;
 
             const state = editorView.state;

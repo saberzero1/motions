@@ -5,18 +5,12 @@ import type { VimRegistration } from '../vim/registration';
 import type { SnippetRegistry } from './registry';
 import type { PreprocessContext } from './types';
 import { preprocessSnippetBody } from './preprocess';
+import { getEditorView as getActiveEditorView } from '../util/editor';
 
 function getEditorView(app: App): EditorView | null {
     const mdView = app.workspace.getActiveViewOfType(MarkdownView);
     if (!mdView) return null;
-    const cmObj = (mdView.editor as unknown as Record<string, unknown>).cm as
-        | Record<string, unknown>
-        | undefined;
-    if (!cmObj) return null;
-    const inner = cmObj.cm as Record<string, unknown> | undefined;
-    if (inner?.cm6) return inner.cm6 as EditorView;
-    if (cmObj.cm6) return cmObj.cm6 as EditorView;
-    return null;
+    return getActiveEditorView(mdView);
 }
 
 export function registerSnippetCommands(

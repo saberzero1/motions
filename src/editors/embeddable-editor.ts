@@ -18,6 +18,7 @@ import {
     type ViewUpdate,
 } from '@codemirror/view';
 import { around } from '../util/around';
+import { pushKeymapScope, popKeymapScope } from '../util/keymap';
 import { isVimEnabled } from '../vim/vim-api';
 import {
     createBundledVimExtension,
@@ -215,9 +216,7 @@ function buildEditorClass(
 ) => EmbeddableMarkdownEditor {
     const BaseCtor = resolveEditorPrototype(app);
 
-    const builtinVimOn = isVimEnabled(
-        app as unknown as { vault: { getConfig: (key: string) => unknown } },
-    );
+    const builtinVimOn = isVimEnabled(app);
 
     class ConcreteEmbeddableEditor extends (BaseCtor as unknown as {
         new (...args: unknown[]): ScrollableMarkdownEditorInstance;
@@ -278,18 +277,14 @@ function buildEditorClass(
             );
 
             this.editor.cm.contentDOM.addEventListener('focusin', () => {
-                (
-                    editorApp.keymap as unknown as { pushScope(s: Scope): void }
-                ).pushScope(self._scope);
+                pushKeymapScope(editorApp, self._scope);
                 (
                     editorApp.workspace as unknown as { activeEditor: unknown }
                 ).activeEditor = self.owner;
             });
 
             this.editor.cm.contentDOM.addEventListener('blur', () => {
-                (
-                    editorApp.keymap as unknown as { popScope(s: Scope): void }
-                ).popScope(self._scope);
+                popKeymapScope(editorApp, self._scope);
                 if (self._loaded && opts.onBlur !== noop) {
                     opts.onBlur(self);
                 }
@@ -369,9 +364,7 @@ function buildEditorClass(
 
         destroy(): void {
             if (this._loaded) this.unload();
-            (
-                this._app.keymap as unknown as { popScope(s: Scope): void }
-            ).popScope(this._scope);
+            popKeymapScope(this._app, this._scope);
             (
                 this._app.workspace as unknown as { activeEditor: unknown }
             ).activeEditor = null;

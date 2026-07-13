@@ -1,6 +1,7 @@
 import { type App, MarkdownView } from 'obsidian';
 import { around } from '../util/around';
 import { getCmAdapter } from './vim-api';
+import { getEditorView } from '../util/editor';
 
 interface VimSel {
     anchor: { line: number; ch: number };
@@ -38,8 +39,7 @@ function getActiveVisualLineState(app: App): VisualLineState | null {
     const vim = cm.state.vim as unknown as VimState;
     if (!vim.visualMode || !vim.visualLine || !vim.sel) return null;
 
-    const editorView = (view.editor as unknown as Record<string, unknown>)
-        .cm as EditorViewLike | undefined;
+    const editorView = getEditorView(view) as EditorViewLike | null;
     if (!editorView?.dispatch) return null;
 
     return { vim, editorView, cm };
