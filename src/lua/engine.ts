@@ -1,8 +1,43 @@
 import { lua, lauxlib, lualib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
+import { Notice } from 'obsidian';
 
 const INSTRUCTION_LIMIT = 1_000_000;
 export const LUA_TIMEOUT_ERROR = 'Lua execution timed out';
+
+export const CALLBACK_INSTRUCTION_LIMIT = 500_000;
+export const SNIPPET_INSTRUCTION_LIMIT = 100_000;
+
+let lastErrorNoticeTime = 0;
+const ERROR_NOTICE_COOLDOWN = 5000;
+
+export function showLuaErrorNotice(message: string): void {
+    const now = Date.now();
+    if (now - lastErrorNoticeTime < ERROR_NOTICE_COOLDOWN) return;
+    lastErrorNoticeTime = now;
+    new Notice(`Vim Motions: ${message}`);
+}
+
+export function withInstructionGuard(
+    L: lua_State,
+    limit: number,
+    fn: () => number,
+): number {
+    lua.lua_sethook(
+        L,
+        (hookState: lua_State) => {
+            lauxlib.luaL_error(hookState, to_luastring(LUA_TIMEOUT_ERROR));
+            return 0;
+        },
+        lua.LUA_MASKCOUNT,
+        limit,
+    );
+    try {
+        return fn();
+    } finally {
+        lua.lua_sethook(L, null, 0, 0);
+    }
+}
 
 export function createSandboxedState(): lua_State {
     const L: lua_State = lauxlib.luaL_newstate();

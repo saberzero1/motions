@@ -1296,8 +1296,9 @@ Only 6 standard libraries are loaded:
 
 ### Execution limits
 
-- **Instruction limit**: 1,000,000 Lua VM instructions per execution. Scripts exceeding this limit are terminated with a timeout error.
-- **Error handling**: Syntax errors and runtime errors are caught and displayed as an Obsidian Notice. The plugin continues to load normally.
+- **Config load instruction limit**: 1,000,000 Lua VM instructions per execution. Scripts exceeding this limit are terminated with a timeout error.
+- **Runtime callback instruction limit**: 500,000 instructions for function keymaps, user commands, autocmd handlers, and timer callbacks. 100,000 instructions for snippet dynamic nodes (`f()`/`d()`). An infinite loop in a callback shows a throttled error Notice (5-second cooldown) and Obsidian remains responsive.
+- **Error handling**: Syntax errors, runtime errors, and instruction limit timeouts are caught and displayed as an Obsidian Notice. The plugin continues to load normally.
 
 ## Error handling
 

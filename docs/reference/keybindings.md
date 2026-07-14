@@ -202,25 +202,27 @@ Jump to search matches forward or backward.
 
 Add, change, or delete surrounding delimiters like brackets, quotes, and tags.
 
-| Keybinding                | Description                                              |
-| ------------------------- | -------------------------------------------------------- |
-| `ds{target}`              | Delete surrounding (`ds"` on `"hello"` → `hello`)        |
-| `dst`                     | Delete surrounding tag                                   |
-| `cs{target}{replacement}` | Change surrounding (`cs"'` → `'hello'`)                  |
-| `cst{replacement}`        | Change surrounding tag                                   |
-| `ys{motion}{replacement}` | Add surround (`ysiw)` on `hello` → `(hello)`)            |
-| `ys{motion}<tag>`         | Surround with HTML tag (`ysiw<em>` → `<em>hello</em>`)   |
-| `ysiwf` + name + Enter    | Surround with function call (`print(hello)`)             |
-| `ysiwF` + name + Enter    | Surround with spaced function call (`print( hello )`)    |
-| `yss{replacement}`        | Surround entire line (`yss"` → `"line content"`)         |
-| `cS` / `yS` / `ySS`       | Newline surround variants (delimiters on separate lines) |
-| `S{replacement}`          | Surround visual selection (visual mode)                  |
-| `S<tag>`                  | Surround selection with tag (visual mode)                |
-| `gS`                      | Newline surround selection (visual mode)                 |
-| `2ds)`, `2cs)`            | Count: delete/change 2nd-level surrounding bracket       |
-| `2ysiw*`                  | Count: repeat delimiter (`**hello**` for Markdown bold)  |
-| `2ds*`                    | Count: delete repeated delimiter (unbold `**hello**`)    |
-| `<C-G>s{char}`            | Insert mode: type inside delimiters, close on Esc        |
+| Keybinding                | Description                                                 |
+| ------------------------- | ----------------------------------------------------------- |
+| `ds{target}`              | Delete surrounding (`ds"` on `"hello"` → `hello`)           |
+| `dst`                     | Delete surrounding tag                                      |
+| `cs{target}{replacement}` | Change surrounding (`cs"'` → `'hello'`)                     |
+| `cst{replacement}`        | Change surrounding tag                                      |
+| `ys{motion}{replacement}` | Add surround (`ysiw)` on `hello` → `(hello)`)               |
+| `ys{motion}<tag>`         | Surround with HTML tag (`ysiw<em>` → `<em>hello</em>`)      |
+| `ysiwf` + name + Enter    | Surround with function call (`print(hello)`)                |
+| `ysiwF` + name + Enter    | Surround with spaced function call (`print( hello )`)       |
+| `dsf`                     | Delete surrounding function call (`print(hello)` → `hello`) |
+| `csf` + name + Enter      | Change surrounding function name (`foo(bar)` → `baz(bar)`)  |
+| `yss{replacement}`        | Surround entire line (`yss"` → `"line content"`)            |
+| `cS` / `yS` / `ySS`       | Newline surround variants (delimiters on separate lines)    |
+| `S{replacement}`          | Surround visual selection (visual mode)                     |
+| `S<tag>`                  | Surround selection with tag (visual mode)                   |
+| `gS`                      | Newline surround selection (visual mode)                    |
+| `2ds)`, `2cs)`            | Count: delete/change 2nd-level surrounding bracket          |
+| `2ysiw*`                  | Count: repeat delimiter (`**hello**` for Markdown bold)     |
+| `2ds*`                    | Count: delete repeated delimiter (unbold `**hello**`)       |
+| `<C-G>s{char}`            | Insert mode: type inside delimiters, close on Esc           |
 
 ## Workspace navigation
 

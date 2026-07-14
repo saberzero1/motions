@@ -4,6 +4,11 @@ import type { MapContext } from '../types/vim-api';
 import type { AutocmdEventData, AutocmdManager } from './autocmd';
 import { KNOWN_SET_OPTIONS } from '../vimrc/loader';
 import type { HighlightAttrs, HighlightManager } from './highlight';
+import {
+    CALLBACK_INSTRUCTION_LIMIT,
+    showLuaErrorNotice,
+    withInstructionGuard,
+} from './engine';
 import { injectObsidianApi } from './obsidian-api';
 
 export interface LuaKeymap {
@@ -842,13 +847,18 @@ export function injectVimApi(
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
             callback = () => {
                 lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
-                const status = lua.lua_pcall(state, 0, 0, 0);
+                const status = withInstructionGuard(
+                    state,
+                    CALLBACK_INSTRUCTION_LIMIT,
+                    () => lua.lua_pcall(state, 0, 0, 0),
+                );
                 if (status !== lua.LUA_OK) {
                     const message = lua.lua_tolstring(state, -1);
                     const error = message
                         ? to_jsstring(message)
                         : 'Lua callback error';
                     console.error(`Vim Motions: ${error}`);
+                    showLuaErrorNotice(error);
                     lua.lua_pop(state, 1);
                 }
             };
@@ -981,13 +991,16 @@ export function injectVimApi(
                 lua.lua_newtable(state);
                 lua.lua_pushstring(state, to_luastring(argString));
                 lua.lua_setfield(state, -2, to_luastring('args'));
-                const status = lua.lua_pcall(state, 1, 0, 0);
+                const status = withInstructionGuard(
+                    state,
+                    CALLBACK_INSTRUCTION_LIMIT,
+                    () => lua.lua_pcall(state, 1, 0, 0),
+                );
                 if (status !== lua.LUA_OK) {
                     const msg = lua.lua_tolstring(state, -1);
-                    console.error(
-                        `Vim Motions: user command ${name}:`,
-                        msg ? to_jsstring(msg) : 'unknown error',
-                    );
+                    const error = msg ? to_jsstring(msg) : 'unknown error';
+                    console.error(`Vim Motions: user command ${name}:`, error);
+                    showLuaErrorNotice(error);
                     lua.lua_pop(state, 1);
                 }
             });
@@ -1043,11 +1056,16 @@ export function injectVimApi(
             const callback = (ev: AutocmdEventData) => {
                 lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
                 pushAutocmdEventData(state, ev);
-                const status = lua.lua_pcall(state, 1, 0, 0);
+                const status = withInstructionGuard(
+                    state,
+                    CALLBACK_INSTRUCTION_LIMIT,
+                    () => lua.lua_pcall(state, 1, 0, 0),
+                );
                 if (status !== lua.LUA_OK) {
                     const msg = lua.lua_tolstring(state, -1);
                     const error = msg ? to_jsstring(msg) : 'Lua callback error';
                     console.error(`Vim Motions: autocmd ${event}: ${error}`);
+                    showLuaErrorNotice(error);
                     lua.lua_pop(state, 1);
                 }
             };

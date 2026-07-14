@@ -39,6 +39,8 @@ Standard vim marks `a`–`z` are buffer-local and exist only while the file is o
 - Set mark `A` with `mA` in any file — it stores the file path and cursor position
 - Navigate to mark `A` from any file with `'A` or `` `A `` — opens the target file and jumps to the saved position
 - Global marks survive closing files, switching tabs, and restarting Obsidian
+- File renames automatically update all global marks pointing to the renamed file
+- File deletes automatically remove global marks pointing to the deleted file
 
 > [!tip]
 > Use global marks to bookmark locations you return to frequently. `mA` for your daily note, `mB` for your current project — then `'A` and `'B` jump there from anywhere.

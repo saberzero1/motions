@@ -207,7 +207,7 @@ Diagnostic findings (spike17 Diag 6):
 - After vimrc load, `vimrcMaps` is empty and `vimrcCommandCount` is 0 — the file was not read successfully
 - The mapping mechanism (`ExCommandDispatcher.map`, `_mapCommand`, `doKeyToKey`) is correct — the issue is in file I/O timing during the `active-leaf-change` handler
 
-Mitigation: vimrc maps are now re-applied 200ms after initial load as a safety net against CM Vim initialization timing.
+Mitigation: vimrc maps are now re-applied 100ms after initial load as a safety net against CM Vim initialization timing. Additionally, vimrc loading triggers via `onLayoutReady` when the workspace is ready, with a simplified retry loop (5×50ms).
 
 Workaround: if vimrc mappings are not applied, reload the plugin via **Settings → Community plugins** (disable then enable). At runtime, mappings can be applied via Obsidian's developer console: `CodeMirrorAdapter.Vim.map('L', '$', 'normal')`.
 
@@ -686,14 +686,12 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 - Visual block `$ S}` — now surrounds each line individually instead of wrapping entire block
 - `dsf` (delete surrounding function call) — implemented with regex-based function name detection
 
-**Remaining deviations** (5 cases):
+**Remaining deviations** (3 cases):
 
-| Category                         | Count | Description                                                                                                                                         |
-| -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `csbBysaBb` chain                | 1     | Fork logic bug: `ysaBb` (add parens around braces) silently fails after `csbB` (change parens to braces). Confirmed not timing (fails at 200ms gap) |
-| Tag `cst`/`yst` (change/add tag) | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification                                                          |
-| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                        |
-| `csf` (function call rename)     | 1     | Deferred — uses same `findSurroundingFunction` infrastructure as `dsf`                                                                              |
+| Category                         | Count | Description                                                                                  |
+| -------------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| Tag `cst`/`yst` (change/add tag) | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification   |
+| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op) |
 
 **Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 81 plugin-level tests including `dsf`.
 
@@ -927,17 +925,17 @@ Function-callback keymaps from `vim.keymap.set` were silently destroyed when `re
 
 `vim.schedule_wrap` inside a `vim.uv.new_timer` callback creates a double-deferred execution chain (timer → setTimeout(0) → callback). `vim.cmd()` called from this innermost callback may fail silently because the active editor context is lost between the two async boundaries. Workaround: call `vim.cmd()` directly in the timer callback without `vim.schedule_wrap`, or use `vim.defer_fn` instead.
 
-### Which-key "leader-only" mode does not detect space as leader
+### ~~Which-key "leader-only" mode does not detect space as leader~~ (Fixed)
 
-When `vim.g.mapleader = " "` and `vim.opt.whichkey = "leader"`, the which-key overlay doesn't appear after pressing space. This works correctly in "all" mode (`vim.opt.whichkey = "all"`). The issue is a key format mismatch: the codemirror-vim fork's `vimKeyFromEvent` emits `'<Space>'` (angle-bracket notation) but `onKeyPressLeaderOnly` compares against `this.leaderKey` which is the literal `' '` character. Fix requires changes in the codemirror-vim fork's event emission.
+When `vim.g.mapleader = " "` and `vim.opt.whichkey = "leader"`, the overlay now appears after pressing space. `onKeyPressLeaderOnly` compares against `this.normalizedLeaderKey`, which normalizes the literal `' '` to `'<Space>'`, matching the codemirror-vim `vimKeyFromEvent` output. No fork-side changes are required for this behavior.
 
 ### `executeLuaForTest` does not support runtime `vim.cmd()`
 
 The test-only Lua executor (`executeLuaForTest` in main.ts) has `handleExCommand: () => {}` (no-op). `vim.cmd()` calls through this path silently do nothing. It also lacks `onLeaderBinding` and runtime handler activation. Use `loadLuaConfig()` (via `loadLuaConfigForTest`) for tests that need runtime Lua behavior.
 
-### No Lua instruction-count hook on runtime callbacks
+### ~~No Lua instruction-count hook on runtime callbacks~~ (Fixed)
 
-The initial Lua load has instruction-count protection (preventing infinite loops). However, runtime `lua_pcall` in callback closures (function keymaps, autocmd handlers, timer callbacks) does not set a `lua_sethook`. An infinite loop in a function-callback keymap would freeze Obsidian permanently with no timeout protection.
+All runtime `lua_pcall` sites (function keymaps, user commands, autocmd handlers, timer callbacks, snippet dynamic nodes) are now wrapped with `withInstructionGuard`, which sets `lua_sethook` with `LUA_MASKCOUNT` before each call and clears it after. The instruction limit is 500,000 for callbacks and 100,000 for snippet nodes. On timeout, a throttled `Notice` is shown (5-second cooldown to prevent spam) and the error is logged. Obsidian remains responsive.
 
 ### Known deviations from Neovim
 
@@ -1030,7 +1028,7 @@ Vim marks (`m{a-z}`, `'{a-z}`) work via codemirror-vim. The plugin adds three en
 ### Limitations
 
 - **Special marks not in picker** — marks `'`, `` ` ``, `.`, `<`, `>` are not shown in the picker or gutter. They require querying fork-internal `getMarkPos()` with complex semantics (jump list, last edit position).
-- **Global mark file rename** — renaming a file does not update persisted global marks pointing to it. The mark becomes stale and shows "File not found" on navigation. Future: hook into Obsidian's rename event.
+- ~~**Global mark file rename**~~ — Fixed. `MarkStore.renamePath()` is called from the `vault.on('rename')` handler, and `MarkStore.removeByPath()` from `vault.on('delete')`, matching the existing harpoon and fold persistence patterns.
 - **Marks set outside vim command pipeline** — marks created programmatically (not via `m{char}`) won't trigger gutter refresh until the next vim command fires `vim-command-done`.
 - **Gutter refresh mechanism** — the gutter reads `cm.state.vim.marks` on each `vim-command-done` event. Position tracking through document edits uses `Decoration.line()` position mapping (`set.map(tr.changes)`), not polling.
 

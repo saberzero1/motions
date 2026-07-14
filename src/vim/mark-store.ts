@@ -47,4 +47,20 @@ export class MarkStore {
     get size(): number {
         return this.marks.size;
     }
+
+    renamePath(oldPath: string, newPath: string): void {
+        for (const mark of this.marks.values()) {
+            if (mark.filePath === oldPath) {
+                mark.filePath = newPath;
+            }
+        }
+    }
+
+    removeByPath(filePath: string): void {
+        for (const [name, mark] of this.marks) {
+            if (mark.filePath === filePath) {
+                this.marks.delete(name);
+            }
+        }
+    }
 }

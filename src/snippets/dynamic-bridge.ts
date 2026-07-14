@@ -12,6 +12,11 @@ import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import type { LuaSnippetNode } from '../lua/snippet-api';
 import { readSnippetNodes } from '../lua/snippet-api';
+import {
+    showLuaErrorNotice,
+    SNIPPET_INSTRUCTION_LIMIT,
+    withInstructionGuard,
+} from '../lua/engine';
 import { preprocessSnippetBody } from './preprocess';
 import type { PreprocessContext } from './types';
 import { compileNode } from './lua-compiler';
@@ -121,13 +126,14 @@ function invokeFunctionNode(
 
         lua.lua_pushnil(L);
 
-        const status = lua.lua_pcall(L, 2, 1, 0);
+        const status = withInstructionGuard(L, SNIPPET_INSTRUCTION_LIMIT, () =>
+            lua.lua_pcall(L, 2, 1, 0),
+        );
         if (status !== lua.LUA_OK) {
             const msg = lua.lua_tolstring(L, -1);
-            console.error(
-                `Vim Motions: snippet f() error:`,
-                msg ? to_jsstring(msg) : 'unknown error',
-            );
+            const error = msg ? to_jsstring(msg) : 'unknown error';
+            console.error(`Vim Motions: snippet f() error:`, error);
+            showLuaErrorNotice(error);
             lua.lua_pop(L, 1);
             return null;
         }
@@ -176,13 +182,14 @@ function invokeDynamicNode(
             lua.lua_pushnil(L);
         }
 
-        const status = lua.lua_pcall(L, 3, 1, 0);
+        const status = withInstructionGuard(L, SNIPPET_INSTRUCTION_LIMIT, () =>
+            lua.lua_pcall(L, 3, 1, 0),
+        );
         if (status !== lua.LUA_OK) {
             const msg = lua.lua_tolstring(L, -1);
-            console.error(
-                `Vim Motions: snippet d() error:`,
-                msg ? to_jsstring(msg) : 'unknown error',
-            );
+            const error = msg ? to_jsstring(msg) : 'unknown error';
+            console.error(`Vim Motions: snippet d() error:`, error);
+            showLuaErrorNotice(error);
             lua.lua_pop(L, 1);
             return null;
         }

@@ -1,6 +1,11 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
-import { evalLua } from './engine';
+import {
+    CALLBACK_INSTRUCTION_LIMIT,
+    evalLua,
+    showLuaErrorNotice,
+    withInstructionGuard,
+} from './engine';
 
 type LuaRef = { L: lua_State; ref: number };
 type TimerHandle = number;
@@ -78,11 +83,16 @@ function invokeLuaCallback(manager: TimerManager, entry: LuaRef): void {
     }
     try {
         lua.lua_rawgeti(entry.L, lua.LUA_REGISTRYINDEX, entry.ref);
-        const status = lua.lua_pcall(entry.L, 0, 0, 0);
+        const status = withInstructionGuard(
+            entry.L,
+            CALLBACK_INSTRUCTION_LIMIT,
+            () => lua.lua_pcall(entry.L, 0, 0, 0),
+        );
         if (status !== lua.LUA_OK) {
             const message = lua.lua_tolstring(entry.L, -1);
             const error = message ? to_jsstring(message) : 'Lua callback error';
             console.error(`Vim Motions: ${error}`);
+            showLuaErrorNotice(error);
             lua.lua_pop(entry.L, 1);
         }
     } catch (error) {

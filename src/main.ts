@@ -939,6 +939,15 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.app.workspace.onLayoutReady(() => {
             this.registerBundledIntegrations();
+            // Trigger vimrc/lua loading early when layout is ready,
+            // rather than waiting for the first active-leaf-change event.
+            // This fires the same active-leaf-change handler below.
+            if (this.vimrcEnabled && !this.vimrcLoaded && !this.vimrcLoading) {
+                const leaf = this.app.workspace.getMostRecentLeaf();
+                if (leaf) {
+                    this.app.workspace.trigger('active-leaf-change', leaf);
+                }
+            }
         });
 
         this.registerEvent(
@@ -1070,6 +1079,8 @@ export default class VimMotionsPlugin extends Plugin {
                 this.harpoonSaveDirty = true;
                 this.foldStore.renamePath(oldPath, file.path);
                 this.foldPersistDirty = true;
+                this.markStore.renamePath(oldPath, file.path);
+                this.markSaveDirty = true;
             }),
         );
         this.registerEvent(
@@ -1078,6 +1089,8 @@ export default class VimMotionsPlugin extends Plugin {
                 this.harpoonSaveDirty = true;
                 this.foldStore.removePath(file.path);
                 this.foldPersistDirty = true;
+                this.markStore.removeByPath(file.path);
+                this.markSaveDirty = true;
             }),
         );
 
@@ -1106,10 +1119,10 @@ export default class VimMotionsPlugin extends Plugin {
                     );
                     for (
                         let attempt = 0;
-                        !vimrcResult.ready && attempt < 10;
+                        !vimrcResult.ready && attempt < 5;
                         attempt++
                     ) {
-                        await new Promise((r) => window.setTimeout(r, 100));
+                        await new Promise((r) => window.setTimeout(r, 50));
                         vimrcResult = await loadVimrc(
                             this.app,
                             vim,
@@ -1164,7 +1177,7 @@ export default class VimMotionsPlugin extends Plugin {
                     if (this.vimrcMaps.length > 0) {
                         window.setTimeout(() => {
                             applyVimrcMaps(vim, this.vimrcMaps);
-                        }, 200);
+                        }, 100);
                     }
                     this.vimrcLoading = false;
                     this.reloadFeatures();

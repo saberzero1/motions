@@ -41,7 +41,7 @@ declare module 'fengari' {
         ) => number;
         lua_sethook: (
             L: lua_State,
-            hook: (L: lua_State) => number,
+            hook: ((L: lua_State) => number) | null,
             mask: number,
             count: number,
         ) => void;

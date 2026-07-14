@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Surround `csf` (change surrounding function name)** — `csf` changes the function name around the cursor. Prompts for the new function name via a `func: ` status bar prompt; press Enter to apply or Escape to cancel. Dot-repeat (`.`) replays with the saved name. Uses the same `findSurroundingFunction` as `dsf` (single-line only). Handles nested calls and method chains.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`target === 'f'` case in change operator, `pendingInput` prompt, `funcResult` fallback in `handleSurroundSubState`)
+
+### Fixed
+
+- **Lua runtime callbacks now have infinite loop protection** — all 5 runtime `lua_pcall` sites (function keymaps, user commands, autocmd handlers, timer callbacks, snippet f()/d() nodes) are now wrapped with `withInstructionGuard`, which sets `lua_sethook` with `LUA_MASKCOUNT` before each call and clears it after. Instruction limit: 500,000 for callbacks, 100,000 for snippet nodes. On timeout, a throttled Notice is shown (5-second cooldown). Obsidian remains responsive.
+    - Plugin: `src/lua/types.d.ts` (type fix), `src/lua/engine.ts` (`withInstructionGuard`, `showLuaErrorNotice`), `src/lua/api.ts` (3 sites), `src/lua/timers.ts` (1 site), `src/snippets/dynamic-bridge.ts` (2 sites)
+- **Global marks updated on file rename/delete** — renaming a file now updates all global marks (`A`–`Z`) pointing to it. Deleting a file removes the marks. Follows the same `vault.on('rename')`/`vault.on('delete')` pattern as harpoon and fold persistence.
+    - Plugin: `src/vim/mark-store.ts` (`renamePath()`, `removeByPath()`), `src/main.ts` (4 lines in event handlers)
+- **Surround `csbBysaBb` chain bug** — chaining `csbB` (change parens to braces) followed by `ysaBb` (add parens around braces) now works correctly. The surround dot-repeat guard was tightened to only use saved replacements when `_surroundType` matches the current operation type (`cs`, `ys`, `yss`), preventing stale state from a prior `cs` operation from silently consuming a subsequent `ys` command.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (tightened `savedReplacement` guards with `_surroundType` match)
+- **Vimrc loading timing improved** — vimrc/Lua config loading now triggers via `onLayoutReady` when the workspace is ready, rather than waiting for the first `active-leaf-change` event. Retry loop reduced from 10×100ms to 5×50ms. Deferred map reapplication reduced from 200ms to 100ms.
+    - Plugin: `src/main.ts` (`onLayoutReady` hook, simplified retry, reduced delay)
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: Lua infinite loop protection → Fixed; Global mark rename → Fixed; Which-key space leader → Fixed (bug already resolved, corrected root cause description); Surround deviations → 5→3 (csbBysaBb chain fixed, csf implemented)
+- `DIFFERENCES.md` (fork): Added `csf` section; updated surround summary
+
 ## [0.55.0] - 2026-07-13
 
 ### Changed

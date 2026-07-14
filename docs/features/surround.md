@@ -45,8 +45,12 @@ When prompted for a tag, typing `<` allows you to enter the tag name.
 
 The `f` and `F` targets in replacement position allow you to wrap text in a function call.
 
-- **`f`**: Wraps the target in `functionName()`.
-- **`F`**: Wraps the target in `functionName( )` with internal spacing.
+- **`ysiwf`** + name + Enter: Wraps the target in `functionName()`.
+- **`ysiwF`** + name + Enter: Wraps the target in `functionName( )` with internal spacing.
+- **`dsf`**: Deletes the surrounding function call, keeping the arguments (`print(hello)` → `hello`).
+- **`csf`** + name + Enter: Changes the surrounding function name (`foo(bar)` → `baz(bar)`).
+
+`dsf` and `csf` use `findSurroundingFunction` which scans the current line for `identifier(` patterns. Nested calls, method chains (`obj.method()`), and no-arg functions (`func()`) are supported. Multi-line function calls are not detected (single-line only).
 
 ## Count-prefix
 
@@ -141,12 +145,7 @@ The surround implementation is verified against [nvim-surround](https://github.c
 
 **Known gaps** (tracked as deviations):
 
-- Count-prefixed `ds`/`cs` with aliases (`2dsb`, `3csbr`) — count iteration doesn't work correctly
-- `dsf` (delete surrounding function call) — not yet implemented (nvim-surround extension)
-- `cst<tag>` / `ysiwtdiv` — tag input via golden test dispatch
-- `ds}` doesn't preserve inner spaces (strips them like `ds(`)
-- `ys` with line-crossing motions (`ysjb`, `ys2jB`)
-- `ySS`/`VSB` newline/linewise surround variants
-- Visual block `$` surround, chained `cs` operations
+- `cst<tag>` / `ysiwtdiv` — tag input via golden test dispatch needs re-verification
+- `ds<` semantic difference — fork treats `<` as angle bracket; nvim-surround treats it as tag prompt
 
 See [[known-limitations#Surround nvim-surround parity gaps]] for the full deviation list.
