@@ -15,6 +15,7 @@ check:
     npm run lint
     tsc --noEmit
     npm run build
+    npm run test:unit
 
 lint:
     prettier . --check --write

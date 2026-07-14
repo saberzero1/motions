@@ -1,4 +1,5 @@
-export class MarkdownView {}
+export class View {}
+export class MarkdownView extends View {}
 export class App {
     vault = {
         getFiles: () => [],
