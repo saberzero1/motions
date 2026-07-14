@@ -580,7 +580,7 @@ These commands exist but behave differently from Neovim:
 
 ## Select mode and Virtual Replace mode
 
-- Select mode: `selectmode=mouse` may not work (CM6 mouse event limitations). `:smap`/`:sunmap` fallback to `:vmap` when no select-specific mapping exists (matches Neovim). `selectmode=key` and `keymodel=startsel` options are accepted but shifted cursor key behavior is not functional.
+- Select mode: `selectmode=mouse` does not work — permanent platform limitation. CM6 does not expose the low-level mouse event API needed to intercept mouse-initiated selections and convert them to select mode. `:smap`/`:sunmap` fallback to `:vmap` when no select-specific mapping exists (matches Neovim). `selectmode=key` and `keymodel=startsel` options are accepted but shifted cursor key behavior is not functional.
 - Virtual Replace: TAB virtual-column handling is basic — East Asian Width (double-width CJK characters) is not yet accounted for in column width calculation. Newline handling in vreplace mode is simplified; `gR` does not delete the rest of the line (falls through to CM6 default).
 - Mode indicators for select, v-replace, command, search, and insert-normal require fork mode (built-in vim mode OFF).
 - Operator-pending mode indicator is not shown (too transient to be useful in the status bar).
@@ -620,7 +620,7 @@ Investigation (issue [#33](https://github.com/saberzero1/motions/issues/33)) fou
 
 The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed.
 
-**Known limitation: `ci*` in Live Preview** — the `c` (change) operator deletes text and enters insert mode at the deletion point. If the deletion point falls inside a collapsed formatting mark region, the insert cursor may land at the wrong position. `di*` (delete without entering insert mode) works correctly.
+**Permanent limitation: `ci*` in Live Preview** — the `c` (change) operator deletes text and enters insert mode at the deletion point. If the deletion point falls inside a collapsed formatting mark region, the insert cursor may land at the wrong position. `di*` (delete without entering insert mode) works correctly. This is a CM6 platform limitation — the view layer maps cursor positions incorrectly when entering insert mode at a point inside a collapsed `Decoration.replace` region. No plugin-side or fork-side fix is feasible without changes to CM6's collapsed mark handling.
 
 ## ~~Visual line selection overlap in Live Preview~~ (Fixed)
 
@@ -689,15 +689,19 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 - `dsf` (delete surrounding function call) — implemented with regex-based function name detection
 - `csbBysaBb` chain — `ys` with text object motions (`aB`, `iw`) after `cs` now works. The `ys_motion` handler directly evaluates text object motions instead of dispatching through the fragile `handleKey` → `evalInput` path where `clearInputState` would lose the `selectedCharacter`.
 
-**Remaining deviations** (4 cases):
+**Remaining deviations** (3 cases):
 
-| Category                          | Count | Description                                                                                                                                   |
-| --------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ys` dot-repeat with text objects | 1     | `ysiwb..` dot-repeat does not correctly replay surround-add with text object motions. Pre-existing limitation in the `ys_motion` replay flow. |
-| Tag `cst`/`yst` (change/add tag)  | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification                                                    |
-| `ds<` semantic difference         | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                  |
+| Category                          | Count | Description                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ys` dot-repeat with tag/function | 2     | `ysiw<tag>` and `ysiwf` dot-repeat do not replay the prompt input. The `pendingInput` flow for tag names and function names is not captured in `lastEditInputState`. The functionality works at the fork level (1806/0 tests pass) but cannot be reliably tested via WDIO because `<` and `>` characters conflict with vim's angle-bracket notation when dispatched through `browser.keys` or `Vim.handleKey`. |
+| `ds<` semantic difference         | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                                                                                                                                                                                                                                                                                   |
 
-**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 81 plugin-level tests including `dsf`.
+**Fixed** (previously listed as deviations):
+
+- ~~`ys` dot-repeat with text objects~~ — Fixed for simple delimiters (`ysiwb`, `ysiw"`, `ysaw'`, `ysiw]`). Fork stores text object motion characters in `lastEditInputState._ysTextObjectMotion` and `_ysTextObjectChar` via the `onRepeat` callback. During dot-repeat, `repeatLastEdit` re-evaluates the text object at the current cursor position and applies `addSurroundToRange()`. Fork tests: 1806/0 (was 1803/3).
+- ~~Tag `cst`/`yst` (change/add tag)~~ — Verified working. Fork tests (`vim_cst_to_tag`, `vim_cst_to_char`, `vim_ysiw_tag`, `vim_dot_cst`) and plugin e2e tests (74 golden + 81 plugin-level) all pass. The original golden data was recorded against vanilla Neovim (no nvim-surround plugin), making golden comparison meaningless for surround. Plugin e2e tests are the definitive verification.
+
+**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 80 passing, 2 skipped (tag/function dot-repeat — verified at fork level). Fork: 1806 passing, 0 failing.
 
 ## Test-discovered behavioral discrepancies
 

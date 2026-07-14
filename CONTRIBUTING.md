@@ -536,6 +536,7 @@ npm run test:unit
 - Outer-scope variables are **not** available inside `executeObsidian` callbacks — use hardcoded values.
 - Use `editor.focus()` to focus the editor, **not** `$('.cm-content').click()`.
 - For Vim key sequences that may conflict with browser keys, use `Vim.handleKey(adapter, key)` inside `executeObsidian` instead of `browser.keys`.
+- Special characters `<` and `>` cannot be reliably dispatched through `browser.keys` or `Vim.handleKey` in WDIO — they conflict with vim's angle-bracket notation parser. The fork's own test suite (`test/vim_test.js`) sends these as DOM `keydown` events with proper `keyCode`/`key` properties via its `typeKey` helper. For features requiring `<`/`>` (e.g., surround tag operations), verify behavior via fork tests and skip the plugin e2e test with a reference to the fork test name.
 - Spike/discovery tests go in `test/specs/spikes/`.
 
 ## Obsidian API notes

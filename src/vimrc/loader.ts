@@ -408,7 +408,7 @@ async function readVimrcFile(app: App, path: string): Promise<string | null> {
         // fully ready during early `active-leaf-change` events.
         const delays = [50, 100, 200];
         for (const delay of delays) {
-            await new Promise((r) => setTimeout(r, delay));
+            await new Promise((r) => window.setTimeout(r, delay));
             const retry = await app.vault.adapter.read(path);
             if (retry !== null && retry.trim().length > 0) {
                 return retry;

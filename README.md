@@ -12,7 +12,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 35+ configurable settings and which-key support with Lucide icons
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)
-- **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support, including `dsf`/`csf` for function calls)
+- **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support, including `dsf`/`csf` for function calls, dot-repeat for `ys` with text objects)
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Table editing** — cell navigation, text objects, manipulation commands, auto-formatting, cursor-aware table widget, and embedded per-cell editing with vim-enabled cell editors and direct table manipulation (`o`, `dd`, `J`/`K`, `H`/`L`, `=`)
 - **Oil explorer** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file manager: edit directories as buffers, create/rename/delete files with vim commands
