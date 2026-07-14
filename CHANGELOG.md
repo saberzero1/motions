@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Table cell edits not rendered immediately in embedded mode** — editing a table cell and pressing Escape or Tab wrote the change to the document but did not visually update the rendered table widget until the user navigated away or switched cells. The `tableRenderField` StateField's `update()` method has a "D12 guard" (`activeEditTableRange`) that, when set, maps old decorations instead of rebuilding them on `docChanged`. This guard was correctly cleared for table operations (`o`, `dd`, `J`, `K`, etc.) via `executeTableOp()` and for full table exit via `exitTable()`, but `exitCellEdit()` — the path taken when closing a cell editor — never cleared it. The dispatch from `closeCellEditor()` triggered `docChanged` while the guard was still active, causing `prev.map(tr.changes)` (position-only shift) instead of `buildDecorations()` (full HTML rebuild). Fixed by adding `setActiveEditTableRange(null)` before `closeCellEditor()` and replacing the immediate `highlightCell()` with `refreshAfterOp()` — the same pattern used by all other table mutation paths. ([#61](https://github.com/saberzero1/motions/issues/61))
+    - Plugin: `src/vim/table-nav-controller.ts` (`exitCellEdit()`)
+
 ## [0.56.0] - 2026-07-14
 
 ### Added

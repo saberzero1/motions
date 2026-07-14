@@ -195,10 +195,10 @@ class TableNavController implements PluginValue {
     }
 
     private exitCellEdit(): void {
+        setActiveEditTableRange(null);
         closeCellEditor(this.view);
         this.removeCellEditKeyHandler();
         this.state = 'table-nav';
-        this.highlightCell();
         if (this.navKeyHandler) {
             this.widgetEl?.addEventListener(
                 'keydown',
@@ -211,6 +211,7 @@ class TableNavController implements PluginValue {
                 true,
             );
         }
+        this.refreshAfterOp();
     }
 
     private navKeyHandler: ((e: KeyboardEvent) => void) | null = null;
