@@ -10,3 +10,11 @@ bump version:
 tag version:
     git tag -a "{{version}}" -m "Release version {{version}}"
     git push origin tag "{{version}}"
+
+check:
+    npm run lint
+    tsc --noEmit
+    npm run build
+
+lint:
+    prettier . --check --write

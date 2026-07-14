@@ -1108,7 +1108,7 @@ Verified with `:normal!` (headless `-c` flags), Vimscript `feedkeys("...", "tx")
 
 **Status**: Working. Desktop only (macOS, Windows, Linux). Requires an external IM switching binary (e.g., `macism`, `im-select`, `fcitx5-remote`, `ibus`).
 
-The plugin can automatically switch input methods when entering/leaving insert mode. Enable in **Settings → Vim Motions → Input method**. The Lua API (`vim.obsidian.im`) provides programmatic control for advanced use cases.
+The plugin can automatically switch input methods when entering/leaving insert mode. Enable in **Settings → Vim Motions → Input method**. The Lua API (`vim.obsidian.im`) provides programmatic control for advanced use cases. All 7 IM settings are available in both the legacy settings tab (Obsidian <1.13) and the new searchable settings UI (Obsidian 1.13+).
 
 Limitations:
 

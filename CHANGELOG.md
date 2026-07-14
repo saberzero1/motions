@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Settings parity between pre-1.13 and post-1.13 Settings UI** — all plugin settings are now exposed in both the legacy `PluginSettingTab.display()` method (Obsidian <1.13) and the new `getSettingDefinitions()` API (Obsidian 1.13+). Previously, 22 settings were missing from the legacy UI and 9 from the new UI:
+    - **Added to legacy settings** (pre-1.13): Input method section (7 settings: enable, binary path, obtain/switch args, normal mode IM, restore behavior, default insert IM), Fuzzy picker for buffers, Picker leader mappings, Picker matching engine, Third-party integrations (Omnisearch, Obsidian Tasks, Dataview), Show config load notifications, Which-key popup delay, 7 mode prompts (visual line, visual block, select, virtual replace, command, search, insert-normal)
+    - **Added to new settings** (1.13+): Snippets group (4 settings: enable, bundled, directory, trigger mode), File explorer group (4 settings: oil explorer, show hidden files, confirm delete threshold, default sort order), Workspace navigation view types
+    - Plugin: `src/settings.ts` (`display()` and `getSettingDefinitions()`)
 - **Lua runtime callbacks now have infinite loop protection** — all 5 runtime `lua_pcall` sites (function keymaps, user commands, autocmd handlers, timer callbacks, snippet f()/d() nodes) are now wrapped with `withInstructionGuard`, which sets `lua_sethook` with `LUA_MASKCOUNT` before each call and clears it after. Instruction limit: 500,000 for callbacks, 100,000 for snippet nodes. On timeout, a throttled Notice is shown (5-second cooldown). Obsidian remains responsive.
     - Plugin: `src/lua/types.d.ts` (type fix), `src/lua/engine.ts` (`withInstructionGuard`, `showLuaErrorNotice`), `src/lua/api.ts` (3 sites), `src/lua/timers.ts` (1 site), `src/snippets/dynamic-bridge.ts` (2 sites)
 - **Global marks updated on file rename/delete** — renaming a file now updates all global marks (`A`–`Z`) pointing to it. Deleting a file removes the marks. Follows the same `vault.on('rename')`/`vault.on('delete')` pattern as harpoon and fold persistence.

@@ -646,6 +646,14 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         },
                     },
                     {
+                        name: 'Workspace navigation view types',
+                        desc: 'Comma-separated view types where scroll and count keys are intercepted. Leave empty for defaults (markdown, graph, pdf, canvas, empty, image). Plugin views not in this list receive their own keystrokes.',
+                        control: {
+                            type: 'text' as const,
+                            key: 'workspaceNavViewTypes',
+                        },
+                    },
+                    {
                         name: 'Fuzzy picker for buffers',
                         desc: this.describeOverride(
                             'picker',
@@ -1686,6 +1694,100 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                       },
                   ]
                 : []),
+
+            // ── Snippets ─────────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Snippets',
+                items: [
+                    {
+                        name: 'Enable snippets',
+                        desc: 'Enable snippet expansion with tabstop navigation, variables, and completion.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableSnippets',
+                        },
+                    },
+                    {
+                        name: 'Bundled snippets',
+                        desc: 'Include built-in Obsidian Markdown snippets (headings, callouts, wikilinks, tables, etc.).',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'snippetBundled',
+                        },
+                    },
+                    {
+                        name: 'Snippet directory',
+                        desc: 'Path to a directory containing user snippet JSON files. Supports ~ for home directory and absolute paths (desktop only).',
+                        control: {
+                            type: 'text' as const,
+                            key: 'snippetDirectory',
+                            placeholder: '~/snippets',
+                        },
+                    },
+                    {
+                        name: 'Trigger mode',
+                        desc: 'How snippets are triggered: completion menu (type prefix to see suggestions), tab expansion (type prefix + tab), or both.',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'snippetTriggerMode',
+                            options: {
+                                both: 'Both',
+                                completion: 'Completion menu only',
+                                tab: 'Tab expansion only',
+                            },
+                        },
+                    },
+                ],
+            },
+
+            // ── File explorer ────────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'File explorer',
+                items: [
+                    {
+                        name: 'Oil explorer',
+                        desc: 'Enable the oil-style file explorer (:oil command).',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'oilExplorer',
+                        },
+                    },
+                    {
+                        name: 'Show hidden files',
+                        desc: 'Show dotfiles and hidden folders in oil views.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'oilShowHiddenFiles',
+                        },
+                    },
+                    {
+                        name: 'Confirm delete threshold',
+                        desc: 'Show confirmation dialog when deleting this many files or more.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'oilConfirmDeleteThreshold',
+                            min: 1,
+                            max: 20,
+                            step: 1,
+                        },
+                    },
+                    {
+                        name: 'Default sort order',
+                        desc: 'Default sort order for oil directory listings.',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'oilDefaultSort',
+                            options: {
+                                name: 'Name',
+                                mtime: 'Modified time',
+                                size: 'Size',
+                            },
+                        },
+                    },
+                ],
+            },
         ];
     }
 
@@ -2134,6 +2236,113 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
+        new Setting(containerEl)
+            .setName('Fuzzy picker for buffers')
+            .setDesc(
+                describeOverride(
+                    'picker',
+                    'Use the unified fuzzy picker for :buffers/:ls (files and commands always use the picker).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.picker)
+                    .setDisabled(isOverridden('picker'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.picker = value;
+                        this.plugin.vimrcOverrides?.delete('picker');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Picker leader mappings')
+            .setDesc(
+                'Enable default <leader>f* picker mappings and which-key labels.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.pickerLeaderMappings)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pickerLeaderMappings = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Picker matching engine')
+            .setDesc(
+                'Fuzzy matching engine for the picker. uFuzzy is a fast pure-JS matcher with filename-aware ranking. Obsidian uses the built-in API.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        ufuzzy: 'uFuzzy',
+                        obsidian: 'Obsidian built-in',
+                    })
+                    .setValue(this.plugin.settings.pickerMatcherEngine)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pickerMatcherEngine = value as
+                            | 'ufuzzy'
+                            | 'obsidian';
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        // ── Third-party integrations ────────────────────────────────────
+
+        new Setting(containerEl)
+            .setName('Third-party integrations')
+            .setHeading();
+
+        new Setting(containerEl)
+            .setName('Omnisearch')
+            .setDesc(
+                'Register Omnisearch as a picker source for full-text vault search.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.pickerOmnisearch)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pickerOmnisearch = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Obsidian Tasks')
+            .setDesc(
+                'Register Obsidian Tasks as a picker source for navigating tasks.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.pickerTasks)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pickerTasks = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Dataview')
+            .setDesc(
+                'Register Dataview as a picker source for browsing indexed pages.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.pickerDataview)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pickerDataview = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
         // ── Vim engine ──────────────────────────────────────────────
 
         new Setting(containerEl).setName('Vim engine').setHeading();
@@ -2363,6 +2572,34 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }
                 });
             });
+
+        new Setting(containerEl)
+            .setName('Line number display')
+            .setDesc(
+                describeOverride(
+                    'linenumbermode',
+                    'How to display line numbers when both absolute and relative are enabled. Hybrid: single column (Neovim default). Dual: absolute and relative in separate columns.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        hybrid: 'Hybrid (single column)',
+                        dual: 'Dual (abs | rel)',
+                        'dual-rel-abs': 'Dual (rel | abs)',
+                    })
+                    .setValue(this.plugin.settings.linenumbermode)
+                    .setDisabled(isOverridden('linenumbermode'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.linenumbermode = value as
+                            | 'hybrid'
+                            | 'dual'
+                            | 'dual-rel-abs';
+                        this.plugin.vimrcOverrides?.delete('linenumbermode');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureLineNumberGutter();
+                    }),
+            );
 
         new Setting(containerEl)
             .setName('Cursor line highlight')
@@ -2964,6 +3201,160 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+        new Setting(containerEl)
+            .setName('Visual line mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.visualLine',
+                    'Status bar text for visual line mode (V).',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.visualLine)
+                    .setDisabled(isOverridden('modePrompts.visualLine'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.visualLine =
+                            value || DEFAULT_MODE_PROMPTS.visualLine;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.visualLine',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        new Setting(containerEl)
+            .setName('Visual block mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.visualBlock',
+                    'Status bar text for visual block mode (Ctrl-V).',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.visualBlock)
+                    .setDisabled(isOverridden('modePrompts.visualBlock'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.visualBlock =
+                            value || DEFAULT_MODE_PROMPTS.visualBlock;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.visualBlock',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        new Setting(containerEl)
+            .setName('Select mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.select',
+                    'Status bar text for select mode.',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.select)
+                    .setDisabled(isOverridden('modePrompts.select'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.select =
+                            value || DEFAULT_MODE_PROMPTS.select;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.select',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        new Setting(containerEl)
+            .setName('Virtual replace mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.vreplace',
+                    'Status bar text for virtual replace mode.',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.vreplace)
+                    .setDisabled(isOverridden('modePrompts.vreplace'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.vreplace =
+                            value || DEFAULT_MODE_PROMPTS.vreplace;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.vreplace',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        new Setting(containerEl)
+            .setName('Command mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.command',
+                    'Status bar text for command-line mode.',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.command)
+                    .setDisabled(isOverridden('modePrompts.command'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.command =
+                            value || DEFAULT_MODE_PROMPTS.command;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.command',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        new Setting(containerEl)
+            .setName('Search mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.search',
+                    'Status bar text for search mode.',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.search)
+                    .setDisabled(isOverridden('modePrompts.search'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.search =
+                            value || DEFAULT_MODE_PROMPTS.search;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.search',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+        new Setting(containerEl)
+            .setName('Insert-normal mode prompt')
+            .setDesc(
+                describeOverride(
+                    'modePrompts.insertNormal',
+                    'Status bar text when in normal mode via Ctrl-O from insert.',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(prompts.insertNormal)
+                    .setDisabled(isOverridden('modePrompts.insertNormal'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.modePrompts.insertNormal =
+                            value || DEFAULT_MODE_PROMPTS.insertNormal;
+                        this.plugin.vimrcOverrides?.delete(
+                            'modePrompts.insertNormal',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
 
         // ── Cursor shapes ────────────────────────────────────────────
 
@@ -3021,105 +3412,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('Vimrc & key bindings').setHeading();
 
-        new Setting(containerEl)
-            .setName('Configuration mode')
-            .setDesc(
-                describeOverride(
-                    'configMode',
-                    'How the plugin loads configuration files. Lua + Vimrc loads both with Lua taking precedence on conflicts.',
-                ),
-            )
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOptions({
-                        'lua-vimrc': 'Lua + Vimrc (recommended)',
-                        lua: 'Lua only',
-                        vimrc: 'Vimrc only',
-                        settings: 'Settings only',
-                    })
-                    .setValue(this.plugin.settings.configMode)
-                    .setDisabled(isOverridden('configMode'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.configMode = value as
-                            | 'lua-vimrc'
-                            | 'lua'
-                            | 'vimrc'
-                            | 'settings';
-                        this.plugin.vimrcOverrides?.delete('configMode');
-                        this.plugin.luaOverrides?.delete('configMode');
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        const luaSetting = new Setting(containerEl)
-            .setName('Custom init.lua path')
-            .setDesc(
-                `Path to an init.lua file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/init.lua). Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
-            )
-            .addText((text) => {
-                text.setPlaceholder(LUA_FALLBACK_PATHS[0]!)
-                    .setValue(this.plugin.settings.luaConfigPath)
-                    .setDisabled(
-                        ['vimrc', 'settings'].includes(
-                            this.plugin.settings.configMode,
-                        ),
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.luaConfigPath = value;
-                        await this.plugin.saveSettings();
-                    });
-                new VimrcFileSuggest(this.app, text.inputEl);
-            });
-        void resolveLuaConfigPath(
-            this.app,
-            this.plugin.settings.luaConfigPath || undefined,
-        ).then(({ path, found }) => {
-            const statusEl = luaSetting.descEl.createSpan();
-            if (found) {
-                statusEl.setText(` Currently using: ${path}`);
-                statusEl.addClass('vim-motions-config-path-active');
-            } else if (this.plugin.settings.luaConfigPath) {
-                statusEl.setText(
-                    ` File not found: ${this.plugin.settings.luaConfigPath}`,
-                );
-                statusEl.addClass('vim-motions-config-path-error');
-            }
-        });
-
-        const vimrcSetting = new Setting(containerEl)
-            .setName('Custom vimrc path')
-            .setDesc(
-                `Path to a vimrc file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/vimrc). Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
-            )
-            .addText((text) => {
-                text.setPlaceholder(VIMRC_FALLBACK_PATHS[0]!)
-                    .setValue(this.plugin.settings.vimrcPath)
-                    .setDisabled(
-                        ['lua', 'settings'].includes(
-                            this.plugin.settings.configMode,
-                        ),
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.vimrcPath = value;
-                        await this.plugin.saveSettings();
-                    });
-                new VimrcFileSuggest(this.app, text.inputEl);
-            });
-        void resolveVimrcPath(
-            this.app,
-            this.plugin.settings.vimrcPath || undefined,
-        ).then(({ path, found }) => {
-            const statusEl = vimrcSetting.descEl.createSpan();
-            if (found) {
-                statusEl.setText(` Currently using: ${path}`);
-                statusEl.addClass('vim-motions-config-path-active');
-            } else if (this.plugin.settings.vimrcPath) {
-                statusEl.setText(
-                    ` File not found: ${this.plugin.settings.vimrcPath}`,
-                );
-                statusEl.addClass('vim-motions-config-path-error');
-            }
-        });
+        const configContainer = containerEl.createDiv();
+        this.renderConfigSettings(
+            configContainer,
+            describeOverride,
+            isOverridden,
+        );
 
         new Setting(containerEl).setName('Leader key bindings').setHeading();
         new Setting(containerEl).setDesc(
@@ -3190,6 +3488,33 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        new Setting(containerEl)
+            .setName('Which-key popup delay')
+            .setDesc(
+                describeOverride(
+                    'whichKeyDelay',
+                    'Delay in milliseconds before the which-key popup appears (0\u20132000). ' +
+                        'Only applies to the initial popup \u2014 subsequent keystrokes update the popup instantly.',
+                ),
+            )
+            .addText((text) => {
+                text.setValue(String(this.plugin.settings.whichKeyDelay));
+                text.inputEl.type = 'number';
+                text.inputEl.min = '0';
+                text.inputEl.max = '2000';
+                text.setDisabled(isOverridden('whichKeyDelay'));
+                text.onChange(async (value) => {
+                    const n = Number(value);
+                    const clamped = Number.isNaN(n)
+                        ? 500
+                        : Math.max(0, Math.min(2000, Math.floor(n)));
+                    this.plugin.settings.whichKeyDelay = clamped;
+                    this.plugin.vimrcOverrides?.delete('whichKeyDelay');
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                });
+            });
 
         new Setting(containerEl)
             .setName('Which-key sort order')
@@ -3317,6 +3642,271 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        // ── Input method ─────────────────────────────────────────────
+
+        if (Platform.isDesktop) {
+            new Setting(containerEl).setName('Input method').setHeading();
+
+            const imContainer = containerEl.createDiv();
+            this.renderImSettings(imContainer);
+        }
+    }
+
+    private renderConfigSettings(
+        container: HTMLElement,
+        describeOverride: (key: string, desc?: string) => string,
+        isOverridden: (key: string) => boolean,
+    ): void {
+        container.empty();
+
+        new Setting(container)
+            .setName('Configuration mode')
+            .setDesc(
+                describeOverride(
+                    'configMode',
+                    'How the plugin loads configuration files. Lua + Vimrc loads both with Lua taking precedence on conflicts.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        'lua-vimrc': 'Lua + Vimrc (recommended)',
+                        lua: 'Lua only',
+                        vimrc: 'Vimrc only',
+                        settings: 'Settings only',
+                    })
+                    .setValue(this.plugin.settings.configMode)
+                    .setDisabled(isOverridden('configMode'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.configMode = value as
+                            | 'lua-vimrc'
+                            | 'lua'
+                            | 'vimrc'
+                            | 'settings';
+                        this.plugin.vimrcOverrides?.delete('configMode');
+                        this.plugin.luaOverrides?.delete('configMode');
+                        await this.plugin.saveSettings();
+                        this.renderConfigSettings(
+                            container,
+                            describeOverride,
+                            isOverridden,
+                        );
+                    }),
+            );
+
+        const luaSetting = new Setting(container)
+            .setName('Custom init.lua path')
+            .setDesc(
+                `Path to an init.lua file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/init.lua). Leave empty to search: ${getLuaFallbackPaths(this.app).join(', ')}.`,
+            )
+            .addText((text) => {
+                text.setPlaceholder(LUA_FALLBACK_PATHS[0]!)
+                    .setValue(this.plugin.settings.luaConfigPath)
+                    .setDisabled(
+                        ['vimrc', 'settings'].includes(
+                            this.plugin.settings.configMode,
+                        ),
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.luaConfigPath = value;
+                        await this.plugin.saveSettings();
+                    });
+                new VimrcFileSuggest(this.app, text.inputEl);
+            });
+        void resolveLuaConfigPath(
+            this.app,
+            this.plugin.settings.luaConfigPath || undefined,
+        ).then(({ path, found }) => {
+            const statusEl = luaSetting.descEl.createSpan();
+            if (found) {
+                statusEl.setText(` Currently using: ${path}`);
+                statusEl.addClass('vim-motions-config-path-active');
+            } else if (this.plugin.settings.luaConfigPath) {
+                statusEl.setText(
+                    ` File not found: ${this.plugin.settings.luaConfigPath}`,
+                );
+                statusEl.addClass('vim-motions-config-path-error');
+            }
+        });
+
+        const vimrcSetting = new Setting(container)
+            .setName('Custom vimrc path')
+            .setDesc(
+                `Path to a vimrc file. Vault-relative or absolute (desktop only, e.g. ~/.config/obsidian/vimrc). Leave empty to search: ${getVimrcFallbackPaths(this.app).join(', ')}.`,
+            )
+            .addText((text) => {
+                text.setPlaceholder(VIMRC_FALLBACK_PATHS[0]!)
+                    .setValue(this.plugin.settings.vimrcPath)
+                    .setDisabled(
+                        ['lua', 'settings'].includes(
+                            this.plugin.settings.configMode,
+                        ),
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.vimrcPath = value;
+                        await this.plugin.saveSettings();
+                    });
+                new VimrcFileSuggest(this.app, text.inputEl);
+            });
+        void resolveVimrcPath(
+            this.app,
+            this.plugin.settings.vimrcPath || undefined,
+        ).then(({ path, found }) => {
+            const statusEl = vimrcSetting.descEl.createSpan();
+            if (found) {
+                statusEl.setText(` Currently using: ${path}`);
+                statusEl.addClass('vim-motions-config-path-active');
+            } else if (this.plugin.settings.vimrcPath) {
+                statusEl.setText(
+                    ` File not found: ${this.plugin.settings.vimrcPath}`,
+                );
+                statusEl.addClass('vim-motions-config-path-error');
+            }
+        });
+
+        new Setting(container)
+            .setName('Show config load notifications')
+            .setDesc(
+                'Show a notification when vimrc or init.lua is loaded on startup. Error notifications are always shown regardless of this setting.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.showConfigNotifications)
+                    .setDisabled(this.plugin.settings.configMode === 'settings')
+                    .onChange(async (value) => {
+                        this.plugin.settings.showConfigNotifications = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+    }
+
+    private renderImSettings(container: HTMLElement): void {
+        container.empty();
+
+        new Setting(container)
+            .setName('Enable input method switching')
+            .setDesc(
+                'Automatically switch input methods when entering/leaving insert mode. Requires an external IM switching binary (e.g. macism, fcitx5-remote, im-select). Desktop only.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.imEnabled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imEnabled = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        this.renderImSettings(container);
+                    }),
+            );
+
+        if (!this.plugin.settings.imEnabled) return;
+
+        new Setting(container)
+            .setName('IM binary path')
+            .setDesc(
+                'Absolute path to the input method switching binary (e.g. /opt/homebrew/bin/macism, /usr/bin/fcitx5-remote, C:\\im-select\\im-select.exe). Tilde (~) paths are supported.',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('/opt/homebrew/bin/macism')
+                    .setValue(this.plugin.settings.imBinaryPath)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imBinaryPath = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(container)
+            .setName('Obtain IM arguments')
+            .setDesc(
+                'Arguments to query the current input method. Leave empty if the binary returns the current IM when invoked without arguments (macism, im-select). For fcitx5-remote use: -n',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('')
+                    .setValue(this.plugin.settings.imObtainArgs)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imObtainArgs = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(container)
+            .setName('Switch IM arguments')
+            .setDesc(
+                'Arguments to switch the input method. Use {im} as a placeholder for the IM identifier. For macism/im-select: {im} \u2014 For fcitx5-remote: -s {im} \u2014 For ibus: engine {im}',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('{im}')
+                    .setValue(this.plugin.settings.imSwitchArgs)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imSwitchArgs = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(container)
+            .setName('Normal mode IM')
+            .setDesc(
+                'IM identifier to switch to in normal mode (e.g. com.apple.keylayout.ABC, keyboard-us, 1033).',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('com.apple.keylayout.ABC')
+                    .setValue(this.plugin.settings.imDefaultNormalIm)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imDefaultNormalIm = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(container)
+            .setName('Insert mode IM behavior')
+            .setDesc(
+                'Restore: switch back to the IM that was active before leaving insert mode. Default: always switch to a fixed IM when entering insert mode.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        restore: 'Restore previous IM',
+                        default: 'Use fixed default IM',
+                    })
+                    .setValue(this.plugin.settings.imRestoreBehavior)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imRestoreBehavior = value as
+                            | 'restore'
+                            | 'default';
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        this.renderImSettings(container);
+                    }),
+            );
+
+        if (this.plugin.settings.imRestoreBehavior === 'default') {
+            new Setting(container)
+                .setName('Default insert mode IM')
+                .setDesc(
+                    this.plugin.settings.imDefaultInsertIm === ''
+                        ? '\u26a0\ufe0f Set a default insert IM identifier, otherwise no IM switch will occur on InsertEnter.'
+                        : 'IM identifier to switch to when entering insert mode.',
+                )
+                .addText((text) =>
+                    text
+                        .setPlaceholder('com.apple.inputmethod.SCIM.ITABC')
+                        .setValue(this.plugin.settings.imDefaultInsertIm)
+                        .onChange(async (value) => {
+                            this.plugin.settings.imDefaultInsertIm = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+        }
     }
 
     private renderGroupLabels(container: HTMLElement): void {

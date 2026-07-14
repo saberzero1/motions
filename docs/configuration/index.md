@@ -21,7 +21,7 @@ See [[vimrc]] for the vimrc reference.
 
 ## Settings UI
 
-Open **Settings → Vim Motions** to access all configurable items organized into 12 groups. On Obsidian 1.13+, all settings are indexed by Obsidian's global settings search — type a setting name in the search bar to find it instantly.
+Open **Settings → Vim Motions** to access all configurable items. All settings are available in both the legacy settings tab (Obsidian <1.13) and the new searchable settings UI (Obsidian 1.13+), where they are indexed by Obsidian's global settings search — type a setting name in the search bar to find it instantly.
 
 See the [[settings|Settings reference]] for a complete list of all options with types, defaults, ranges, Lua, and vimrc equivalents.
 
