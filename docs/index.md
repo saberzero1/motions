@@ -29,17 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.56.0
+## What's new in 0.57.0
 
-- **Surround `csf` (change surrounding function name)** — `csf` changes the function name around the cursor, prompting for the new name via a `func: ` status bar prompt. Dot-repeat replays with the saved name. Handles nested calls and method chains.
-- **Oil which-key integration** — the which-key popup now shows Oil-specific keybindings with descriptions when an Oil view is active. Press `g?` to toggle a help overlay listing all Oil keybindings.
-- **IM platform presets** — a settings dropdown auto-fills binary path, arguments, and default IM for common tools: macism (macOS), im-select (Windows), fcitx5-remote (Linux), ibus (Linux). `:IMToggle` / `:IMStatus` ex commands added. Per-editor IM state is now persisted across sessions.
-- **Special marks in picker** — the `:marks` picker now shows special marks (`'`, `.`, `<`, `>`) alongside buffer and global marks.
-- **`:grep` regex support** — `:grep` now uses JavaScript `RegExp` for pattern matching, matching Neovim's behavior. Invalid patterns gracefully fall back to substring matching.
-- **Surround dot-repeat improvements** — `ys` with text object motions (`ysiwb`, `ysiw"`, etc.) now correctly dot-repeats on a different word. EasyMotion operator-pending motions (`d<leader><leader>w{label}`) also dot-repeat to the same relative position.
-- **Vimrc hot-reload** — the vimrc file is now watched for changes and re-applied without a plugin reload. Loading reliability improved with exponential backoff retries.
-- **Lua runtime infinite loop protection** — all Lua callback sites (keymaps, autocmds, timers, snippet nodes) are guarded with instruction limits. Obsidian remains responsive even if user Lua code loops infinitely.
-- **Global marks track file renames/deletes** — renaming a file updates all global marks pointing to it; deleting removes them.
-- **Settings parity** — all plugin settings are now exposed in both the legacy (pre-1.13) and new (1.13+) Settings UI.
+- **Table cell edits rendered immediately in embedded mode** — editing a table cell and pressing Escape or Tab now visually updates the rendered table widget instantly, without needing to navigate away first. ([#61](https://github.com/saberzero1/motions/issues/61))
+- **Visual-line mode highlight on replaced widget blocks** — visual-line mode (`V`) now correctly highlights replaced widget blocks (MathJax `$$`, note embeds `![[note]]`, table widgets) that lack `.cm-line` elements. A new `LinewiseWidgetHighlight` ViewPlugin toggles selection styling on widget elements whose document range overlaps the visual-line selection. ([#57](https://github.com/saberzero1/motions/issues/57))
 
 See the [[changelog|full changelog]] for details.
