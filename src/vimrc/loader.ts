@@ -8,7 +8,8 @@ import {
     setClipboardOption,
     parseGuicursor,
 } from '../vim/options';
-import { parseLine } from './parser';
+import { parseLine, parseVimrc } from './parser';
+import type { VimrcCommand } from './parser';
 import {
     isAbsolutePath,
     readExternalFile,
@@ -499,6 +500,7 @@ export interface VimrcLoadResult {
         icon?: string;
         color?: string;
     }>;
+    pendingExCommands: string[];
 }
 
 export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
@@ -515,75 +517,34 @@ export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
     }
 }
 
-export async function loadVimrc(
-    app: App,
-    vim: VimApi,
-    leaderRegistry?: LeaderRegistry,
-    onSettingOverride?: (
-        key: string,
-        value: unknown,
-        directive?: string,
-    ) => void,
-    customPath?: string,
-): Promise<VimrcLoadResult> {
-    const { path, found } = await resolveVimrcPath(app, customPath);
-
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
-    const cm = view ? getCmAdapter(view) : null;
-    if (!cm) {
-        return {
-            found,
-            ready: false,
-            commandCount: 0,
-            path,
-            maps: [],
-            globalMaps: [],
-            globalUnmaps: [],
-            globalWhichKeyLabels: [],
-            globalWhichKeyGroups: [],
-        };
-    }
-
-    registerVimrcExCommands(vim);
-
-    const result = await loadVimrcFile(
-        app,
-        vim,
-        cm,
-        path,
-        '\\',
-        leaderRegistry,
-        onSettingOverride,
-    );
-
-    return {
-        found: found && result.found,
-        ready: true,
-        commandCount: result.commandCount,
-        path,
-        maps: result.deferredMaps,
-        globalMaps: result.deferredGlobalMaps,
-        globalUnmaps: result.globalUnmaps,
-        globalWhichKeyLabels: result.globalWhichKeyLabels,
-        globalWhichKeyGroups: result.globalWhichKeyGroups,
-    };
-}
-
-interface DeferredMap {
-    lhs: string;
-    rhs: string;
-    noremap: boolean;
-    context?: 'normal' | 'visual' | 'insert';
-}
-
-export interface DeferredGlobalMap {
-    lhs: string;
-    rhs: string;
-    noremap: boolean;
-}
-
-interface LoadFileResult {
+export interface ParsedVimrcResult {
     found: boolean;
+    commands: VimrcCommand[];
+    path: string;
+}
+
+export async function readAndParseVimrcFile(
+    app: App,
+    path: string,
+): Promise<ParsedVimrcResult> {
+    const content = await readVimrcFile(app, path);
+    if (content === null) {
+        return { found: false, commands: [], path };
+    }
+    const rawCommands = parseVimrc(content);
+    const commands: VimrcCommand[] = [];
+    for (const cmd of rawCommands) {
+        if (cmd.type === 'source' && cmd.path) {
+            const sub = await readAndParseVimrcFile(app, cmd.path);
+            commands.push(...sub.commands);
+            continue;
+        }
+        commands.push(cmd);
+    }
+    return { found: true, commands, path };
+}
+
+interface ApplyResult {
     commandCount: number;
     deferredMaps: DeferredMap[];
     deferredGlobalMaps: DeferredGlobalMap[];
@@ -600,60 +561,17 @@ interface LoadFileResult {
         icon?: string;
         color?: string;
     }>;
+    pendingExCommands: string[];
 }
 
-function extractIconColorFromArgs(args: string[]): {
-    label: string;
-    icon?: string;
-    color?: string;
-} {
-    let icon: string | undefined;
-    let color: string | undefined;
-    let end = args.length;
-    while (end > 0) {
-        const token = args[end - 1];
-        if (token?.startsWith('icon=')) {
-            icon = token.slice('icon='.length);
-            end -= 1;
-            continue;
-        }
-        if (token?.startsWith('color=')) {
-            color = token.slice('color='.length);
-            end -= 1;
-            continue;
-        }
-        break;
-    }
-    const label = args.slice(0, end).join(' ');
-    return { label, icon, color };
-}
-
-async function loadVimrcFile(
-    app: App,
+export function applyVimrcCommands(
+    commands: VimrcCommand[],
     vim: VimApi,
-    cm: CmAdapter,
-    path: string,
-    leaderKey = '\\',
+    cm: CmAdapter | null,
+    leaderKey: string,
     leaderRegistry?: LeaderRegistry,
-    onSettingOverride?: (
-        key: string,
-        value: unknown,
-        directive?: string,
-    ) => void,
-): Promise<LoadFileResult> {
-    const content = await readVimrcFile(app, path);
-    if (content === null) {
-        return {
-            found: false,
-            commandCount: 0,
-            deferredMaps: [],
-            deferredGlobalMaps: [],
-            globalUnmaps: [],
-            globalWhichKeyLabels: [],
-            globalWhichKeyGroups: [],
-        };
-    }
-
+    onSettingOverride?: SettingOverrideFn,
+): ApplyResult {
     let currentLeader = leaderKey;
     let applied = 0;
     const deferredMaps: DeferredMap[] = [];
@@ -671,6 +589,7 @@ async function loadVimrcFile(
         icon?: string;
         color?: string;
     }> = [];
+    const pendingExCommands: string[] = [];
 
     vim.defineEx('whichkeygroup', 'whichkeyg', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
@@ -700,14 +619,11 @@ async function loadVimrcFile(
         );
     });
 
-    for (const rawLine of content.split('\n')) {
-        const trimmed = rawLine.trim();
-        if (!trimmed || trimmed.startsWith('"')) continue;
-
-        const parsed = parseLine(trimmed);
+    for (const parsed of commands) {
+        const processedLine = parsed.raw.replace(/<leader>/gi, currentLeader);
 
         if (
-            parsed?.type === 'let' &&
+            parsed.type === 'let' &&
             parsed.key?.startsWith('g:mode_prompt_') &&
             typeof parsed.value === 'string'
         ) {
@@ -730,7 +646,7 @@ async function loadVimrcFile(
                 onSettingOverride?.(
                     `modePrompts.${camelMode}`,
                     parsed.value,
-                    trimmed,
+                    parsed.raw,
                 );
                 applied++;
                 continue;
@@ -738,7 +654,7 @@ async function loadVimrcFile(
         }
 
         if (
-            parsed?.type === 'let' &&
+            parsed.type === 'let' &&
             parsed.key === 'mapleader' &&
             parsed.value
         ) {
@@ -748,28 +664,7 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'source' && parsed.path) {
-            const sub = await loadVimrcFile(
-                app,
-                vim,
-                cm,
-                parsed.path,
-                currentLeader,
-                leaderRegistry,
-                onSettingOverride,
-            );
-            applied += sub.commandCount;
-            deferredMaps.push(...sub.deferredMaps);
-            deferredGlobalMaps.push(...sub.deferredGlobalMaps);
-            globalUnmaps.push(...sub.globalUnmaps);
-            globalWhichKeyLabels.push(...sub.globalWhichKeyLabels);
-            globalWhichKeyGroups.push(...sub.globalWhichKeyGroups);
-            continue;
-        }
-
-        const processedLine = trimmed.replace(/<leader>/gi, currentLeader);
-
-        if (parsed?.type === 'map' && parsed.lhs && parsed.rhs) {
+        if (parsed.type === 'map' && parsed.lhs && parsed.rhs) {
             const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
             const rhs = parsed.rhs.replace(/<leader>/gi, currentLeader);
             if (leaderRegistry) leaderRegistry.addBinding(lhs, rhs);
@@ -783,7 +678,22 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'gmap' && parsed.lhs && parsed.rhs) {
+        if (parsed.type === 'unmap' && parsed.lhs) {
+            const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
+            if (cm) {
+                try {
+                    vim.unmap(lhs, parsed.context);
+                } catch {
+                    /* skip */
+                }
+            } else {
+                pendingExCommands.push(processedLine);
+            }
+            applied++;
+            continue;
+        }
+
+        if (parsed.type === 'gmap' && parsed.lhs && parsed.rhs) {
             const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
             const rhs = parsed.rhs.replace(/<leader>/gi, currentLeader);
             deferredGlobalMaps.push({
@@ -795,14 +705,14 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'gunmap' && parsed.lhs) {
+        if (parsed.type === 'gunmap' && parsed.lhs) {
             const lhs = parsed.lhs.replace(/<leader>/gi, currentLeader);
             globalUnmaps.push(lhs);
             applied++;
             continue;
         }
 
-        if (parsed?.type === 'gwhichkeylabel' && parsed.lhs && parsed.rhs) {
+        if (parsed.type === 'gwhichkeylabel' && parsed.lhs && parsed.rhs) {
             const key = parsed.lhs.replace(/<leader>/gi, currentLeader);
             globalWhichKeyLabels.push({
                 key,
@@ -814,7 +724,7 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'gwhichkeygroup' && parsed.lhs && parsed.rhs) {
+        if (parsed.type === 'gwhichkeygroup' && parsed.lhs && parsed.rhs) {
             const key = parsed.lhs.replace(/<leader>/gi, currentLeader);
             globalWhichKeyGroups.push({
                 key,
@@ -826,7 +736,7 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'surroundmap' && parsed.lhs && parsed.rhs) {
+        if (parsed.type === 'surroundmap' && parsed.lhs && parsed.rhs) {
             const [open, close] = parsed.rhs.split('\x00');
             if (open && close) {
                 if (typeof vim.registerSurroundPair !== 'function') {
@@ -848,7 +758,7 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'surroundunmap' && parsed.lhs) {
+        if (parsed.type === 'surroundunmap' && parsed.lhs) {
             if (typeof vim.unregisterSurroundPair === 'function') {
                 vim.unregisterSurroundPair(parsed.lhs);
             }
@@ -856,16 +766,14 @@ async function loadVimrcFile(
             continue;
         }
 
-        if (parsed?.type === 'set') {
+        if (parsed.type === 'set') {
             let optName = parsed.key ?? '';
             let optValue: string | boolean | number | undefined = parsed.value;
-
             const isNoPrefix = !optValue && optName.startsWith('no');
             if (isNoPrefix) {
                 optName = optName.substring(2);
                 optValue = false;
             }
-
             const handled = applyKnownSetOption(
                 optName,
                 optValue,
@@ -876,31 +784,182 @@ async function loadVimrcFile(
                 applied++;
                 continue;
             }
-
-            try {
-                vim.handleEx(cm, processedLine);
-            } catch {
-                /* intentional: skip unknown set options */
+            if (cm) {
+                try {
+                    vim.handleEx(cm, processedLine);
+                } catch {
+                    /* skip unknown set options */
+                }
+            } else {
+                pendingExCommands.push(processedLine);
             }
             applied++;
             continue;
         }
 
-        try {
-            vim.handleEx(cm, processedLine);
+        // exmap: does NOT need cm — only calls vim.defineEx (global)
+        if (parsed.type === 'exmap' && parsed.name && parsed.args) {
+            const exName = parsed.name;
+            const exArgs = parsed.args;
+            vim.defineEx(exName, '', (cm2) => {
+                vim.handleEx(cm2, exArgs);
+            });
             applied++;
-        } catch {
-            /* intentional: skip malformed vimrc lines */
+            continue;
+        }
+
+        // obcommand: standalone lines go through handleEx which structurally needs cm
+        if (parsed.type === 'obcommand' && parsed.args) {
+            if (cm) {
+                try {
+                    vim.handleEx(cm, processedLine);
+                } catch {
+                    /* skip */
+                }
+            } else {
+                pendingExCommands.push(processedLine);
+            }
+            applied++;
+            continue;
+        }
+
+        // source: already flattened by readAndParseVimrcFile — defensive skip
+        if (parsed.type === 'source') {
+            continue;
+        }
+
+        // unknown: catch-all, needs cm
+        if (cm) {
+            try {
+                vim.handleEx(cm, processedLine);
+                applied++;
+            } catch {
+                /* skip malformed vimrc lines */
+            }
+        } else {
+            pendingExCommands.push(processedLine);
+            applied++;
         }
     }
 
     return {
-        found: true,
         commandCount: applied,
         deferredMaps,
         deferredGlobalMaps,
         globalUnmaps,
         globalWhichKeyLabels,
         globalWhichKeyGroups,
+        pendingExCommands,
     };
+}
+
+export function applyPendingExCommands(
+    vim: VimApi,
+    cm: CmAdapter,
+    commands: string[],
+): void {
+    for (const cmd of commands) {
+        try {
+            vim.handleEx(cm, cmd);
+        } catch {
+            /* skip malformed deferred commands */
+        }
+    }
+}
+
+export async function loadVimrc(
+    app: App,
+    vim: VimApi,
+    leaderRegistry?: LeaderRegistry,
+    onSettingOverride?: (
+        key: string,
+        value: unknown,
+        directive?: string,
+    ) => void,
+    customPath?: string,
+): Promise<VimrcLoadResult> {
+    const { path } = await resolveVimrcPath(app, customPath);
+
+    const parsed = await readAndParseVimrcFile(app, path);
+    if (!parsed.found) {
+        return {
+            found: false,
+            ready: true,
+            commandCount: 0,
+            path,
+            maps: [],
+            globalMaps: [],
+            globalUnmaps: [],
+            globalWhichKeyLabels: [],
+            globalWhichKeyGroups: [],
+            pendingExCommands: [],
+        };
+    }
+
+    registerVimrcExCommands(vim);
+
+    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    const cm = view ? getCmAdapter(view) : null;
+    const leaderKey = leaderRegistry?.getLeaderKey() ?? '\\';
+
+    const result = applyVimrcCommands(
+        parsed.commands,
+        vim,
+        cm,
+        leaderKey,
+        leaderRegistry,
+        onSettingOverride,
+    );
+
+    return {
+        found: true,
+        ready: true,
+        commandCount: result.commandCount,
+        path,
+        maps: result.deferredMaps,
+        globalMaps: result.deferredGlobalMaps,
+        globalUnmaps: result.globalUnmaps,
+        globalWhichKeyLabels: result.globalWhichKeyLabels,
+        globalWhichKeyGroups: result.globalWhichKeyGroups,
+        pendingExCommands: result.pendingExCommands,
+    };
+}
+
+interface DeferredMap {
+    lhs: string;
+    rhs: string;
+    noremap: boolean;
+    context?: 'normal' | 'visual' | 'insert';
+}
+
+export interface DeferredGlobalMap {
+    lhs: string;
+    rhs: string;
+    noremap: boolean;
+}
+
+function extractIconColorFromArgs(args: string[]): {
+    label: string;
+    icon?: string;
+    color?: string;
+} {
+    let icon: string | undefined;
+    let color: string | undefined;
+    let end = args.length;
+    while (end > 0) {
+        const token = args[end - 1];
+        if (token?.startsWith('icon=')) {
+            icon = token.slice('icon='.length);
+            end -= 1;
+            continue;
+        }
+        if (token?.startsWith('color=')) {
+            color = token.slice('color='.length);
+            end -= 1;
+            continue;
+        }
+        break;
+    }
+    const label = args.slice(0, end).join(' ');
+    return { label, icon, color };
 }

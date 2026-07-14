@@ -25,6 +25,17 @@ export function getVimApi(): VimApi | null {
     return null;
 }
 
+export function getCmAdapterFromEditorView(
+    editorView: EditorView,
+): CmAdapter | null {
+    if (!isBundledVimActive()) return null;
+    try {
+        return getBundledCmAdapter(editorView);
+    } catch {
+        return null;
+    }
+}
+
 export function getCmAdapter(view: MarkdownView): CmAdapter | null {
     try {
         const editorView = (view.editor as unknown as Record<string, unknown>)

@@ -19,7 +19,11 @@ import { createSmartOpenLineAction } from './actions/open-line';
 import { registerTextObjects } from './text-objects/register';
 import { VimModeTracker } from './vim/mode-tracker';
 import { ScrolloffManager, createScrolloffExtension } from './vim/scrolloff';
-import { loadVimrc, applyVimrcMaps } from './vimrc/loader';
+import {
+    loadVimrc,
+    applyVimrcMaps,
+    applyPendingExCommands,
+} from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
@@ -254,6 +258,7 @@ export default class VimMotionsPlugin extends Plugin {
     vimrcLoaded = false;
     vimrcRetried = false;
     vimrcCommandCount = 0;
+    private pendingVimrcExCommands: string[] = [];
     private luaLoading = false;
     private luaMapOperations: LuaLoadResult['mapOperations'] = [];
     luaOverrides: Map<string, string> = new Map();
@@ -1104,39 +1109,37 @@ export default class VimMotionsPlugin extends Plugin {
                     if (this.vimrcLoaded) {
                         applyVimrcMaps(vim, this.vimrcMaps);
                         this.applyLuaPendingExCommands(vim);
+                        if (this.pendingVimrcExCommands.length > 0) {
+                            const view =
+                                this.app.workspace.getActiveViewOfType(
+                                    MarkdownView,
+                                );
+                            const cm = view ? getCmAdapter(view) : null;
+                            if (cm) {
+                                applyPendingExCommands(
+                                    vim,
+                                    cm,
+                                    this.pendingVimrcExCommands,
+                                );
+                                this.pendingVimrcExCommands = [];
+                            }
+                        }
                         return;
                     }
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
                     const customVimrcPath =
                         this.settings.vimrcPath || undefined;
-                    let vimrcResult = await loadVimrc(
+                    const vimrcResult = await loadVimrc(
                         this.app,
                         vim,
                         this.leaderRegistry ?? undefined,
                         onSettingOverride,
                         customVimrcPath,
                     );
-                    for (
-                        let attempt = 0;
-                        !vimrcResult.ready && attempt < 5;
-                        attempt++
-                    ) {
-                        await new Promise((r) => window.setTimeout(r, 50));
-                        vimrcResult = await loadVimrc(
-                            this.app,
-                            vim,
-                            this.leaderRegistry ?? undefined,
-                            onSettingOverride,
-                            customVimrcPath,
-                        );
-                        this.vimrcRetried = true;
-                    }
                     this.vimrcCommandCount = vimrcResult.commandCount;
-                    if (!vimrcResult.ready) {
-                        this.vimrcLoading = false;
-                        return;
-                    }
+                    this.pendingVimrcExCommands =
+                        vimrcResult.pendingExCommands ?? [];
                     const vimrcFound = vimrcResult.found;
                     if (!vimrcFound && this.settings.configMode === 'vimrc') {
                         // Error-like: user chose vimrc-only but file is missing — always show.

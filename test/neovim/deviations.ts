@@ -118,10 +118,9 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         fields: ['content'],
     },
     {
-        testPattern: 'csbB then ysaBb chain',
-        description:
-            'aB text object does not match when cursor is on the opening brace at column 0',
-        reason: 'After csbB places cursor at 0:0 on the opening {, the aB text object fails to find the surrounding braces. This is a codemirror-vim bracket matching limitation, not a surround chain bug.',
+        testPattern: 'ysiwb then . dot-repeat adds layers',
+        description: 'ys dot-repeat does not replay surround-add correctly',
+        reason: 'Pre-existing: dot-repeat of ys with text object motions (iw, aB) does not correctly restore the surround state. The ys_motion handler creates ys_replacement state but dot-repeat replay does not complete the motion dispatch.',
         fields: ['content'],
     },
     {

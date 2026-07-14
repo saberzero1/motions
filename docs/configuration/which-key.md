@@ -332,3 +332,10 @@ gmap <leader>q :obcommand workspace:close
 If the command ID doesn't exist (e.g., from an uninstalled plugin), the description falls back to the raw command string. Resolved names are automatically localized — Obsidian's built-in commands already have translated names, so descriptions match your Obsidian language setting.
 
 See [[lua-config#Leader bindings]] for the full API reference.
+
+## Oil explorer context
+
+When the Oil file explorer is open and Obsidian's built-in vim mode is disabled (fork mode), the which-key popup shows Oil-specific keybindings (`g.`, `gs`, `gf`, `g?`) alongside standard bindings. Press `g?` in Oil to toggle a static help overlay listing all Oil keybindings.
+
+> [!info] Fork mode only
+> Oil which-key integration requires fork mode (built-in vim disabled). With built-in vim enabled, the embedded Oil editor does not have access to the fork's CM adapter.

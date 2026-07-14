@@ -218,7 +218,7 @@ src/
     external-fs.ts         # External filesystem access helpers
   vimrc/
     parser.ts              # Line-by-line .obsidian.vimrc parser
-    loader.ts              # Loads and applies vimrc commands
+    loader.ts              # Two-phase vimrc loader: readAndParseVimrcFile (no CM needed) → applyVimrcCommands (14 types explicit)
 ```
 
 ## Adding a new feature

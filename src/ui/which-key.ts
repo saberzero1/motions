@@ -1,7 +1,12 @@
 import type { App } from 'obsidian';
 import { MarkdownView, setIcon } from 'obsidian';
 import type { CmAdapter } from '../types/vim-api';
-import { getCmAdapter, getVimApi } from '../vim/vim-api';
+import {
+    getCmAdapter,
+    getCmAdapterFromEditorView,
+    getVimApi,
+} from '../vim/vim-api';
+import { OilView } from '../oil/oil-view';
 import { getCommandRegistry } from '../util/commands';
 
 export type WhichKeySortOrder = 'which-key' | 'groups-first';
@@ -343,9 +348,13 @@ function getKeyBuffer(adapter: CmAdapter): string {
 }
 
 function getEditorContainer(app: App): HTMLElement | null {
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) return null;
-    return view.contentEl;
+    const mdView = app.workspace.getActiveViewOfType(MarkdownView);
+    if (mdView) return mdView.contentEl;
+    const leaf = app.workspace.getMostRecentLeaf();
+    if (leaf?.view instanceof OilView) {
+        return leaf.view.containerEl;
+    }
+    return null;
 }
 
 export class WhichKeyOverlay {
@@ -407,26 +416,39 @@ export class WhichKeyOverlay {
         };
         this.commandDoneHandler = doneHandler;
 
-        this.leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
-            this.detachAdapter();
-            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-            if (!view) return;
-            const adapter = getCmAdapter(view);
-            if (!adapter) return;
+        const attachAdapter = (adapter: CmAdapter) => {
             this.lastAdapter = adapter;
             adapter.on('vim-keypress', handler);
             adapter.on('vim-command-done', doneHandler);
+        };
+
+        const tryAttach = () => {
+            const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (mdView) {
+                const adapter = getCmAdapter(mdView);
+                if (adapter) {
+                    attachAdapter(adapter);
+                    return;
+                }
+            }
+            const leaf = this.app.workspace.getMostRecentLeaf();
+            if (leaf?.view instanceof OilView) {
+                const editorView = leaf.view.getEditorView();
+                if (editorView) {
+                    const adapter = getCmAdapterFromEditorView(editorView);
+                    if (adapter) {
+                        attachAdapter(adapter);
+                    }
+                }
+            }
+        };
+
+        this.leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
+            this.detachAdapter();
+            tryAttach();
         });
 
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (view) {
-            const adapter = getCmAdapter(view);
-            if (adapter) {
-                this.lastAdapter = adapter;
-                adapter.on('vim-keypress', handler);
-                adapter.on('vim-command-done', doneHandler);
-            }
-        }
+        tryAttach();
     }
 
     private detachAdapter(): void {

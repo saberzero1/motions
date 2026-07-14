@@ -207,7 +207,7 @@ Diagnostic findings (spike17 Diag 6):
 - After vimrc load, `vimrcMaps` is empty and `vimrcCommandCount` is 0 — the file was not read successfully
 - The mapping mechanism (`ExCommandDispatcher.map`, `_mapCommand`, `doKeyToKey`) is correct — the issue is in file I/O timing during the `active-leaf-change` handler
 
-Mitigation: vimrc maps are now re-applied 100ms after initial load as a safety net against CM Vim initialization timing. Additionally, vimrc loading triggers via `onLayoutReady` when the workspace is ready, with a simplified retry loop (5×50ms).
+Mitigation: vimrc loading now uses a two-phase approach — file reading/parsing is decoupled from command application. `readAndParseVimrcFile` parses the vimrc without needing a CM adapter; `applyVimrcCommands` applies all commands, deferring cm-dependent ones (unknown `set` options, standalone `obcommand`, catch-all lines) to `pendingExCommands` which are applied when a CM adapter becomes available on the next `active-leaf-change`. The previous 5×50ms retry loop has been removed. Maps are still re-applied 100ms after initial load as a safety net against CM Vim keymap initialization timing.
 
 Workaround: if vimrc mappings are not applied, reload the plugin via **Settings → Community plugins** (disable then enable). At runtime, mappings can be applied via Obsidian's developer console: `CodeMirrorAdapter.Vim.map('L', '$', 'normal')`.
 
@@ -668,7 +668,7 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 
 ## Surround nvim-surround parity gaps
 
-**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **73 pass, 1 remaining deviation (chained `csbBysaBb` — fork logic bug in cs→ys chain).** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
+**Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **74 pass.** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
 
 **Fixed in this release**:
 
@@ -685,14 +685,15 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 - `ySS`/`VSB` newline indentation — single-line content no longer gets extra 2-space indent, matching nvim-surround
 - Visual block `$ S}` — now surrounds each line individually instead of wrapping entire block
 - `dsf` (delete surrounding function call) — implemented with regex-based function name detection
+- `csbBysaBb` chain — `ys` with text object motions (`aB`, `iw`) after `cs` now works. The `ys_motion` handler directly evaluates text object motions instead of dispatching through the fragile `handleKey` → `evalInput` path where `clearInputState` would lose the `selectedCharacter`.
 
 **Remaining deviations** (4 cases):
 
-| Category                         | Count | Description                                                                                                                                         |
-| -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `csbBysaBb` chain                | 1     | `aB` text object does not match when cursor is on the opening brace at column 0. After `csbB` places cursor at `0:0`, the subsequent `ysaBb` fails. |
-| Tag `cst`/`yst` (change/add tag) | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification                                                          |
-| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                        |
+| Category                          | Count | Description                                                                                                                                   |
+| --------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ys` dot-repeat with text objects | 1     | `ysiwb..` dot-repeat does not correctly replay surround-add with text object motions. Pre-existing limitation in the `ys_motion` replay flow. |
+| Tag `cst`/`yst` (change/add tag)  | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification                                                    |
+| `ds<` semantic difference         | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                  |
 
 **Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 81 plugin-level tests including `dsf`.
 

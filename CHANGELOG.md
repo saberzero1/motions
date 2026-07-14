@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Surround `csf` (change surrounding function name)** — `csf` changes the function name around the cursor. Prompts for the new function name via a `func: ` status bar prompt; press Enter to apply or Escape to cancel. Dot-repeat (`.`) replays with the saved name. Uses the same `findSurroundingFunction` as `dsf` (single-line only). Handles nested calls and method chains.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`target === 'f'` case in change operator, `pendingInput` prompt, `funcResult` fallback in `handleSurroundSubState`)
+- **Oil which-key integration** — the which-key popup now shows Oil-specific keybindings (`g.`, `gs`, `gf`, `g?`) when an Oil view is active. Requires fork mode (built-in vim disabled).
+    - Plugin: `src/ui/which-key.ts` (oil view detection via `OilView` + `getCmAdapterFromEditorView`), `src/vim/vim-api.ts` (`getCmAdapterFromEditorView` function)
+- **Oil `g?` help overlay** — press `g?` in Oil to toggle a help overlay listing all Oil keybindings with descriptions. Entries are derived from `OIL_MAPPINGS` to prevent drift. Dismissible via `g?` (toggle) or Escape.
+    - Plugin: `src/oil/keybindings.ts` (`g?` mapping, `showOilHelp` method), `styles.css` (oil help overlay styles)
 
 ### Fixed
 
@@ -18,16 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/types.d.ts` (type fix), `src/lua/engine.ts` (`withInstructionGuard`, `showLuaErrorNotice`), `src/lua/api.ts` (3 sites), `src/lua/timers.ts` (1 site), `src/snippets/dynamic-bridge.ts` (2 sites)
 - **Global marks updated on file rename/delete** — renaming a file now updates all global marks (`A`–`Z`) pointing to it. Deleting a file removes the marks. Follows the same `vault.on('rename')`/`vault.on('delete')` pattern as harpoon and fold persistence.
     - Plugin: `src/vim/mark-store.ts` (`renamePath()`, `removeByPath()`), `src/main.ts` (4 lines in event handlers)
+- **Surround `csbBysaBb` chain now works** — `ys` with text object motions (`aB`, `iw`, `a"`, etc.) after `cs` or standalone now correctly applies the surround. The `ys_motion` handler directly evaluates text object motions instead of dispatching through `handleKey` → `evalInput`, where `clearInputState` would lose the `selectedCharacter`. 74/74 nvim-surround golden comparison tests now pass (up from 73/74).
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`ys_motion` handler, `operatorArgs` on surround state), `~/Repos/codemirror-vim/src/types.ts` (`operatorArgs` field)
 - **Surround dot-repeat cross-type leak prevention** — the surround dot-repeat guard was tightened to only use saved replacements when `_surroundType` matches the current operation type (`cs`, `ys`, `yss`), preventing stale state from a prior `cs` operation from silently consuming a subsequent `ys` command.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (tightened `savedReplacement` guards with `_surroundType` match)
-    - Note: the `csbBysaBb` chain test still fails — root cause is the `aB` text object not matching when cursor is on the opening brace at column 0 (tracked in deviations)
-- **Vimrc loading timing improved** — vimrc/Lua config loading now triggers via `onLayoutReady` when the workspace is ready, rather than waiting for the first `active-leaf-change` event. Retry loop reduced from 10×100ms to 5×50ms. Deferred map reapplication reduced from 200ms to 100ms.
-    - Plugin: `src/main.ts` (`onLayoutReady` hook, simplified retry, reduced delay)
+- **Vimrc loading decoupled from CM adapter** — vimrc parsing no longer requires a CM adapter. `loadVimrc` now uses a two-phase approach: `readAndParseVimrcFile` reads and parses the file without needing an editor (reusing `parseVimrc` from `parser.ts`), then `applyVimrcCommands` applies all 14 `VimrcCommand` types with explicit handling — `exmap` is applied eagerly (no CM needed), unknown commands deferred to `pendingExCommands` and applied when a CM adapter becomes available. The 5×50ms retry loop has been removed. The 100ms safety-net map reapplication is kept for CM Vim keymap init timing.
+    - Plugin: `src/vimrc/loader.ts` (`readAndParseVimrcFile`, `applyVimrcCommands`, `applyPendingExCommands`, refactored `loadVimrc`), `src/main.ts` (retry loop removed, `pendingVimrcExCommands` field, deferred application in `active-leaf-change` handler)
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: Lua infinite loop protection → Fixed; Global mark rename → Fixed; Which-key space leader → Fixed (bug already resolved, corrected root cause description); Surround deviations → 5→4 (csf implemented, csbBysaBb root cause identified as aB text object limitation)
-- `DIFFERENCES.md` (fork): Added `csf` section; updated surround summary
+- `KNOWN_LIMITATIONS.md`: Surround deviations updated — `csbBysaBb` chain → Fixed; `ys` dot-repeat with text objects → new pre-existing deviation; deviation count maintained at 4. Vimrc timing section updated to reflect decoupled loading.
+- `DIFFERENCES.md` (fork): Added `csf` section; updated surround summary; added `ys_motion` text object fix
+- `docs/features/oil-explorer.md`: Added `g?` to oil ex commands table
+- `docs/configuration/which-key.md`: Added Oil explorer context section (fork mode only)
 
 ## [0.55.0] - 2026-07-13
 

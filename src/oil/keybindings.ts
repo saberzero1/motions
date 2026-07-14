@@ -52,6 +52,12 @@ const OIL_MAPPINGS: OilMapping[] = [
         exName: 'oilreveal',
         exShort: 'oilrev',
     },
+    {
+        lhs: 'g?',
+        actionName: 'oilHelp',
+        exName: 'oilhelp',
+        exShort: 'oilh',
+    },
 ];
 
 export class OilKeybindingManager {
@@ -227,6 +233,11 @@ export class OilKeybindingManager {
                 void navigator.clipboard.writeText(entry.path);
                 new Notice(`Oil: yanked ${entry.path}`);
             },
+            oilHelp: () => {
+                const view = getActiveOilView();
+                if (!view) return;
+                this.showOilHelp(view);
+            },
             oilRevealInExplorer: () => {
                 const view = getActiveOilView();
                 if (!view) return;
@@ -260,7 +271,70 @@ export class OilKeybindingManager {
         };
     }
 
+    private showOilHelp(view: OilView): void {
+        const existing = view.containerEl.querySelector(
+            '.vim-motions-oil-help',
+        );
+        if (existing) {
+            existing.remove();
+            return;
+        }
+
+        const DESCRIPTIONS: Record<string, string> = {
+            oilOpenEntry: 'Open file/folder',
+            oilParent: 'Go to parent directory',
+            oilRoot: 'Go to vault root',
+            oilRefresh: 'Refresh',
+            oilClose: 'Close oil',
+            oilToggleHidden: 'Toggle hidden files',
+            oilCycleSort: 'Cycle sort order',
+            oilYankPath: 'Yank file path',
+            oilRevealInExplorer: 'Reveal in file explorer',
+            oilHelp: 'Toggle this help',
+        };
+
+        const overlay = createDiv({ cls: 'vim-motions-oil-help' });
+        overlay.createDiv({
+            cls: 'vim-motions-oil-help-title',
+            text: 'Oil keybindings',
+        });
+
+        const grid = overlay.createDiv({ cls: 'vim-motions-oil-help-grid' });
+        for (const m of OIL_MAPPINGS) {
+            const row = grid.createDiv({ cls: 'vim-motions-oil-help-row' });
+            row.createSpan({
+                cls: 'vim-motions-oil-help-key',
+                text: m.lhs,
+            });
+            row.createSpan({
+                cls: 'vim-motions-oil-help-desc',
+                text: DESCRIPTIONS[m.actionName] ?? m.exName,
+            });
+        }
+
+        view.containerEl.appendChild(overlay);
+
+        const doc = view.containerEl.ownerDocument;
+        const escHandler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                doc.removeEventListener('keydown', escHandler);
+            }
+        };
+        doc.addEventListener('keydown', escHandler);
+
+        const cleanup = () => {
+            overlay.remove();
+            doc.removeEventListener('keydown', escHandler);
+        };
+        this.helpCleanup = cleanup;
+    }
+
+    private helpCleanup: (() => void) | null = null;
+
     destroy(): void {
         if (this.applied) this.remove();
+        this.helpCleanup?.();
+        this.helpCleanup = null;
     }
 }
