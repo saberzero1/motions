@@ -58,6 +58,47 @@ export class VimBufferMarkProvider implements MarkProvider {
     }
 }
 
+export class SpecialMarkProvider implements MarkProvider {
+    private static readonly SPECIAL_MARKS = ["'", '.', '<', '>'];
+
+    getMarks(app: App): MarkEntry[] {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return [];
+        const cm = getCmAdapter(view);
+        if (!cm) return [];
+
+        const marks = cm.state.vim?.marks;
+        if (!marks) return [];
+
+        const entries: MarkEntry[] = [];
+        for (const name of SpecialMarkProvider.SPECIAL_MARKS) {
+            const marker = marks[name];
+            if (!marker) continue;
+            const pos = marker.find();
+            if (!pos) continue;
+
+            const lineText = cm.getLine(pos.line);
+            entries.push({
+                name,
+                category: 'special',
+                line: pos.line,
+                ch: pos.ch,
+                preview: lineText ? lineText.slice(0, 60).trim() : '',
+            });
+        }
+
+        return entries;
+    }
+
+    navigateTo(mark: MarkEntry, app: App): void {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (view) {
+            view.editor.setCursor(mark.line, mark.ch);
+            view.editor.focus();
+        }
+    }
+}
+
 export class GlobalMarkProvider implements MarkProvider {
     constructor(private store: MarkStore) {}
 

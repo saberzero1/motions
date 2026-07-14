@@ -3,6 +3,13 @@ import { adjustRangeForVisualMode } from './delimiter';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 
+const FENCE_OPEN = /^((?:>\s*)*)```/;
+const FENCE_CLOSE = /^((?:>\s*)*)```\s*$/;
+
+function blockquoteDepth(prefix: string): number {
+    return (prefix.match(/>/g) ?? []).length;
+}
+
 export function findFenceLines(cm: {
     getLine: (n: number) => string;
     lastLine: () => number;
@@ -12,12 +19,18 @@ export function findFenceLines(cm: {
     let i = 0;
     while (i <= last) {
         const text = cm.getLine(i);
-        if (/^```/.test(text)) {
+        const openMatch = FENCE_OPEN.exec(text);
+        if (openMatch) {
+            const openDepth = blockquoteDepth(openMatch[1] ?? '');
             const openLine = i;
             i += 1;
             while (i <= last) {
                 const closeText = cm.getLine(i);
-                if (/^```\s*$/.test(closeText)) {
+                const closeMatch = FENCE_CLOSE.exec(closeText);
+                if (
+                    closeMatch &&
+                    blockquoteDepth(closeMatch[1] ?? '') === openDepth
+                ) {
                     pairs.push({ openLine, closeLine: i });
                     break;
                 }

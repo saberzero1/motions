@@ -393,6 +393,13 @@ Execute commands via the `:` command line, grouped by function.
 | `:HarpoonNext`     | `:HarpoonN` | Next pin                                               |
 | `:HarpoonPrev`     | `:HarpoonP` | Previous pin                                           |
 
+### Input method
+
+| Command     | Short  | Description                          |
+| ----------- | ------ | ------------------------------------ |
+| `:IMToggle` | `:IMT` | Toggle input method switching on/off |
+| `:IMStatus` | `:IMS` | Show current input method identifier |
+
 ### Utility
 
 | Command                            | Description                            |

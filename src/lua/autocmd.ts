@@ -130,8 +130,16 @@ export class AutocmdManager {
     private previousLeafFilePath: string | null = null;
     private leafEnterDebounceTimer: number | null = null;
     private cmdlinePrefix: string | null = null;
+    private pendingInitialBufEnterPath: string | null = null;
 
     constructor(private L: lua_State | null) {}
+
+    fireInitialBufEnter(): void {
+        if (this.pendingInitialBufEnterPath) {
+            this.fire('BufEnter', { file: this.pendingInitialBufEnterPath });
+            this.pendingInitialBufEnterPath = null;
+        }
+    }
 
     setReloadCallback(callback: (() => void) | null): void {
         this.reloadCallback = callback;
@@ -279,7 +287,7 @@ export class AutocmdManager {
 
         if (initialFilePath) {
             this.lastFilePath = initialFilePath;
-            this.fire('BufEnter', { file: initialFilePath });
+            this.pendingInitialBufEnterPath = initialFilePath;
         }
 
         const focusGainedCleanup = callbacks.onFocusGained(() => {

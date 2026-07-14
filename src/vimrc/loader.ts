@@ -399,7 +399,23 @@ async function readVimrcFile(app: App, path: string): Promise<string | null> {
         return readExternalFile(path);
     }
     try {
-        return await app.vault.adapter.read(path);
+        const content = await app.vault.adapter.read(path);
+        if (content !== null && content.trim().length > 0) {
+            return content;
+        }
+        // File exists but read returned empty — retry with backoff.
+        // This handles the timing issue where the vault adapter is not
+        // fully ready during early `active-leaf-change` events.
+        const delays = [50, 100, 200];
+        for (const delay of delays) {
+            await new Promise((r) => setTimeout(r, delay));
+            const retry = await app.vault.adapter.read(path);
+            if (retry !== null && retry.trim().length > 0) {
+                return retry;
+            }
+        }
+        // All retries returned empty — the file is genuinely empty.
+        return content;
     } catch {
         return null;
     }

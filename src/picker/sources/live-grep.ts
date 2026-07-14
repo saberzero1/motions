@@ -1,4 +1,4 @@
-import { App, MarkdownView, prepareSimpleSearch } from 'obsidian';
+import { App, MarkdownView } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
@@ -18,7 +18,16 @@ export function createLiveGrepSource(): PickerSource {
             return [];
         },
         async search(query: string, app: App) {
-            const search = prepareSimpleSearch(query);
+            let re: RegExp | null = null;
+            try {
+                re = new RegExp(query, 'i');
+            } catch {
+                re = null;
+            }
+            const match = re
+                ? (text: string) => re.test(text)
+                : (text: string) =>
+                      text.toLowerCase().includes(query.toLowerCase());
             const files = app.vault.getMarkdownFiles();
             const results: PickerItem[] = [];
 
@@ -31,8 +40,7 @@ export function createLiveGrepSource(): PickerSource {
                     if (results.length >= MAX_RESULTS) break;
                     const line = lines[i];
                     if (!line) continue;
-                    const lineResult = search(line);
-                    if (lineResult) {
+                    if (match(line)) {
                         const preview =
                             line.length > 80 ? line.slice(0, 80) : line;
                         results.push({

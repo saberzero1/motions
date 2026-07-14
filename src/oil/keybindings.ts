@@ -10,6 +10,7 @@ interface OilMapping {
     actionName: string;
     exName: string;
     exShort: string;
+    desc: string;
 }
 
 const OIL_MAPPINGS: OilMapping[] = [
@@ -18,45 +19,70 @@ const OIL_MAPPINGS: OilMapping[] = [
         actionName: 'oilOpenEntry',
         exName: 'oilopen',
         exShort: 'oilo',
+        desc: 'Open file/folder',
     },
-    { lhs: '-', actionName: 'oilParent', exName: 'oilparent', exShort: 'oilp' },
-    { lhs: '~', actionName: 'oilRoot', exName: 'oilroot', exShort: 'oilro' },
+    {
+        lhs: '-',
+        actionName: 'oilParent',
+        exName: 'oilparent',
+        exShort: 'oilp',
+        desc: 'Go to parent directory',
+    },
+    {
+        lhs: '~',
+        actionName: 'oilRoot',
+        exName: 'oilroot',
+        exShort: 'oilro',
+        desc: 'Go to vault root',
+    },
     {
         lhs: '<C-l>',
         actionName: 'oilRefresh',
         exName: 'oilrefresh',
         exShort: 'oilref',
+        desc: 'Refresh',
     },
-    { lhs: 'q', actionName: 'oilClose', exName: 'oilclose', exShort: 'oilcl' },
+    {
+        lhs: 'q',
+        actionName: 'oilClose',
+        exName: 'oilclose',
+        exShort: 'oilcl',
+        desc: 'Close oil',
+    },
     {
         lhs: 'g.',
         actionName: 'oilToggleHidden',
         exName: 'oiltogglehidden',
         exShort: 'oilt',
+        desc: 'Toggle hidden files',
     },
     {
         lhs: 'gs',
         actionName: 'oilCycleSort',
         exName: 'oilcyclesort',
         exShort: 'oilcy',
+        desc: 'Cycle sort order',
     },
     {
         lhs: 'y.',
         actionName: 'oilYankPath',
         exName: 'oilyankpath',
         exShort: 'oily',
+        desc: 'Yank file path',
     },
     {
         lhs: 'gf',
         actionName: 'oilRevealInExplorer',
         exName: 'oilreveal',
         exShort: 'oilrev',
+        desc: 'Reveal in file explorer',
     },
     {
         lhs: 'g?',
         actionName: 'oilHelp',
         exName: 'oilhelp',
         exShort: 'oilh',
+        desc: 'Toggle help',
     },
 ];
 
@@ -280,19 +306,6 @@ export class OilKeybindingManager {
             return;
         }
 
-        const DESCRIPTIONS: Record<string, string> = {
-            oilOpenEntry: 'Open file/folder',
-            oilParent: 'Go to parent directory',
-            oilRoot: 'Go to vault root',
-            oilRefresh: 'Refresh',
-            oilClose: 'Close oil',
-            oilToggleHidden: 'Toggle hidden files',
-            oilCycleSort: 'Cycle sort order',
-            oilYankPath: 'Yank file path',
-            oilRevealInExplorer: 'Reveal in file explorer',
-            oilHelp: 'Toggle this help',
-        };
-
         const overlay = createDiv({ cls: 'vim-motions-oil-help' });
         overlay.createDiv({
             cls: 'vim-motions-oil-help-title',
@@ -308,7 +321,7 @@ export class OilKeybindingManager {
             });
             row.createSpan({
                 cls: 'vim-motions-oil-help-desc',
-                text: DESCRIPTIONS[m.actionName] ?? m.exName,
+                text: m.desc,
             });
         }
 
@@ -331,6 +344,11 @@ export class OilKeybindingManager {
     }
 
     private helpCleanup: (() => void) | null = null;
+
+    getCommandLabels(): Array<{ key: string; label: string }> {
+        if (!this.applied) return [];
+        return OIL_MAPPINGS.map((m) => ({ key: m.lhs, label: m.desc }));
+    }
 
     destroy(): void {
         if (this.applied) this.remove();

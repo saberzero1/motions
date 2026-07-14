@@ -186,6 +186,22 @@ export class ImSwitcher {
         this.isComposing = false;
     }
 
+    loadPersistedState(state: Record<string, string>): void {
+        for (const [leafId, imId] of Object.entries(state)) {
+            if (imId && isValidImIdentifier(imId)) {
+                this.savedImByLeaf.set(leafId, imId);
+            }
+        }
+    }
+
+    getPersistedState(): Record<string, string> {
+        const state: Record<string, string> = {};
+        for (const [leafId, imId] of this.savedImByLeaf) {
+            state[leafId] = imId;
+        }
+        return state;
+    }
+
     private debouncedSwitch(fn: () => void): void {
         if (this.destroyed) return;
         if (this.isComposing) {

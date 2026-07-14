@@ -145,18 +145,16 @@ async function readLuaFile(app: App, path: string): Promise<string | null> {
     }
 }
 
-export async function loadInitLua(
-    app: App,
-    vim: VimApi,
-    leaderRegistry?: LeaderRegistry,
+export interface LoadInitLuaOptions {
+    leaderRegistry?: LeaderRegistry;
     onSettingOverride?: (
         key: string,
         value: unknown,
         directive?: string,
-    ) => void,
-    customPath?: string,
-    bufferKeymapManager?: BufferKeymapManager,
-    openPicker?: (source: string, opts?: { query?: string }) => void,
+    ) => void;
+    customPath?: string;
+    bufferKeymapManager?: BufferKeymapManager;
+    openPicker?: (source: string, opts?: { query?: string }) => void;
     oilCallbacks?: Pick<
         VimApiCallbacks,
         | 'oilOpen'
@@ -169,8 +167,8 @@ export async function loadInitLua(
         | 'oilYankPath'
         | 'oilReveal'
         | 'oilOpenEntry'
-    >,
-    onPickerKeymapChange?: (keymap: Record<string, string[]>) => void,
+    >;
+    onPickerKeymapChange?: (keymap: Record<string, string[]>) => void;
     globalRegistry?: {
         addMapping: (
             keys: string,
@@ -184,9 +182,26 @@ export async function loadInitLua(
         ) => void;
         removeMapping: (keys: string) => boolean;
         setLabel: (keys: string, label: string) => void;
-    },
-    imSwitcher?: ImSwitcher | null,
+    };
+    imSwitcher?: ImSwitcher | null;
+}
+
+export async function loadInitLua(
+    app: App,
+    vim: VimApi,
+    options: LoadInitLuaOptions = {},
 ): Promise<LuaLoadResult> {
+    const {
+        leaderRegistry,
+        onSettingOverride,
+        customPath,
+        bufferKeymapManager,
+        openPicker,
+        oilCallbacks,
+        onPickerKeymapChange,
+        globalRegistry,
+        imSwitcher,
+    } = options;
     const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
     const highlightManager = new HighlightManager(doc);

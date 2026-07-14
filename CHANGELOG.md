@@ -11,13 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Surround `csf` (change surrounding function name)** — `csf` changes the function name around the cursor. Prompts for the new function name via a `func: ` status bar prompt; press Enter to apply or Escape to cancel. Dot-repeat (`.`) replays with the saved name. Uses the same `findSurroundingFunction` as `dsf` (single-line only). Handles nested calls and method chains.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`target === 'f'` case in change operator, `pendingInput` prompt, `funcResult` fallback in `handleSurroundSubState`)
-- **Oil which-key integration** — the which-key popup now shows Oil-specific keybindings (`g.`, `gs`, `gf`, `g?`) when an Oil view is active. Requires fork mode (built-in vim disabled).
-    - Plugin: `src/ui/which-key.ts` (oil view detection via `OilView` + `getCmAdapterFromEditorView`), `src/vim/vim-api.ts` (`getCmAdapterFromEditorView` function)
+- **Oil which-key integration** — the which-key popup now shows Oil-specific keybindings (`-`, `Enter`, `~`, `g.`, `gs`, `y.`, `gf`, `g?`, `q`, `Ctrl-l`) with descriptions when an Oil view is active. Descriptions are single-sourced from the `OIL_MAPPINGS` array and fed into the which-key `commandLabels` map via `getCommandLabels()`.
+    - Plugin: `src/oil/keybindings.ts` (`desc` field on `OilMapping`, `getCommandLabels()` method), `src/main.ts` (oil labels injected into `rebuildWhichKey()`)
 - **Oil `g?` help overlay** — press `g?` in Oil to toggle a help overlay listing all Oil keybindings with descriptions. Entries are derived from `OIL_MAPPINGS` to prevent drift. Dismissible via `g?` (toggle) or Escape.
     - Plugin: `src/oil/keybindings.ts` (`g?` mapping, `showOilHelp` method), `styles.css` (oil help overlay styles)
+- **IM platform presets** — a settings dropdown auto-fills binary path, arguments, and default IM for common tools: macism (macOS), im-select (Windows), fcitx5-remote (Linux), ibus (Linux). Values are editable after selection.
+    - Plugin: `src/settings.ts` (`imPreset` setting, `IM_PRESETS` data, preset dropdown in both legacy and searchable settings UI)
+- **`:IMToggle` / `:IMStatus` ex commands** — `:IMToggle` enables/disables IM switching and saves the setting. `:IMStatus` queries the current IM identifier and displays it via a Notice.
+    - Plugin: `src/main.ts` (`registerImExCommands()`)
+- **IM session persistence** — per-editor IM state is persisted to plugin settings via `saveData()` (30-second interval + immediate save on unload). On plugin load, the persisted state is restored so the first `InsertEnter` uses the correct IM instead of the default.
+    - Plugin: `src/im/im-switcher.ts` (`loadPersistedState()`, `getPersistedState()`), `src/settings.ts` (`persistedImState` field), `src/main.ts` (load/save wiring)
+- **Special marks in picker** — the `:marks` picker now shows special marks (`'`, `.`, `<`, `>`) under a "Special marks" group between buffer and global marks.
+    - Plugin: `src/picker/sources/mark-providers.ts` (`SpecialMarkProvider`), `src/main.ts` (registered as third provider)
+- **`:grep` regex support** — `:grep` now uses JavaScript `RegExp` for pattern matching instead of Obsidian's `prepareSimpleSearch`. Invalid regex patterns gracefully fall back to substring matching. This matches Neovim's `:grep` behavior where the pattern is a regex.
+    - Plugin: `src/picker/sources/grep.ts` (`createMatcher()` with `RegExp` + fallback), `src/picker/sources/live-grep.ts` (same pattern)
+
+### Changed
+
+- **`loadInitLua()` parameter refactor** — the function signature was refactored from 11 positional parameters to `(app, vim, options?)` with a `LoadInitLuaOptions` interface. All callers updated.
+    - Plugin: `src/lua/loader.ts` (`LoadInitLuaOptions` interface, destructured options), `src/main.ts` (caller updated)
 
 ### Fixed
 
+- **Vimrc loading reliability** — `readVimrcFile` now retries with exponential backoff (50ms, 100ms, 200ms) when the vault adapter returns empty content during early `active-leaf-change` events. The arbitrary 100ms safety-net timeout for map re-application has been removed. This addresses the intermittent issue where `nmap L $` or `set textwidth` commands were silently dropped on plugin load.
+    - Plugin: `src/vimrc/loader.ts` (`readVimrcFile` retry logic), `src/main.ts` (removed 100ms setTimeout)
+- **Vimrc soft-reload** — the vimrc file is now watched via `vault.on('modify')`. When modified, maps and settings are re-applied without a plugin reload. Previous vimrc-sourced maps are unmapped before re-application to prevent accumulation. `exmap` definitions from the initial load persist (documented as known limitation).
+    - Plugin: `src/main.ts` (`softReloadVimrc()`, `vimrcMapKeys` tracking, `vault.on('modify')` handler)
+- **BufEnter initial fire destroying buffer-local keymaps** — function-callback keymaps registered in `BufEnter` autocmd handlers during the initial synthetic `BufEnter` were destroyed by the subsequent `reloadFeatures()` → `vim.resetKeymap()` call. Fixed by deferring the initial `BufEnter` fire until after `reloadFeatures()` and `applyLuaMaps()` complete. The `AutocmdManager` now stores the initial file path in `pendingInitialBufEnterPath` and exposes `fireInitialBufEnter()` to fire it at the correct lifecycle point.
+    - Plugin: `src/lua/autocmd.ts` (`pendingInitialBufEnterPath`, `fireInitialBufEnter()`), `src/main.ts` (call after reload)
+- **Blockquote fenced code block detection** — `findFenceLines` now matches fences prefixed with blockquote markers (`> ``` `). The regex was updated from `/^```/` to `/^(?:>\s*)*```/` with blockquote depth matching to ensure open/close fences are at the same nesting level. This fixes multi-line text objects and smart list continuation incorrectly matching delimiters inside blockquote code blocks.
+    - Plugin: `src/text-objects/code-block.ts` (`FENCE_OPEN`/`FENCE_CLOSE` regexes, `blockquoteDepth()`)
+- **EasyMotion operator-pending dot-repeat** — `d<leader><leader>w{label}` followed by `.` now replays the delete to the same relative position. The fork stores the resolved async motion position as a relative offset in `lastEditInputState._asyncMotionTarget` after `applyOperator` succeeds. During dot-repeat, `repeatLastEdit` detects this stored target and applies the operator directly instead of re-executing the async motion overlay.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`_asyncMotionTarget` storage in async `.then()`, `repeatCommand()` offset replay)
 - **Settings parity between pre-1.13 and post-1.13 Settings UI** — all plugin settings are now exposed in both the legacy `PluginSettingTab.display()` method (Obsidian <1.13) and the new `getSettingDefinitions()` API (Obsidian 1.13+). Previously, 22 settings were missing from the legacy UI and 9 from the new UI:
     - **Added to legacy settings** (pre-1.13): Input method section (7 settings: enable, binary path, obtain/switch args, normal mode IM, restore behavior, default insert IM), Fuzzy picker for buffers, Picker leader mappings, Picker matching engine, Third-party integrations (Omnisearch, Obsidian Tasks, Dataview), Show config load notifications, Which-key popup delay, 7 mode prompts (visual line, visual block, select, virtual replace, command, search, insert-normal)
     - **Added to new settings** (1.13+): Snippets group (4 settings: enable, bundled, directory, trigger mode), File explorer group (4 settings: oil explorer, show hidden files, confirm delete threshold, default sort order), Workspace navigation view types
@@ -35,10 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: Surround deviations updated — `csbBysaBb` chain → Fixed; `ys` dot-repeat with text objects → new pre-existing deviation; deviation count maintained at 4. Vimrc timing section updated to reflect decoupled loading.
-- `DIFFERENCES.md` (fork): Added `csf` section; updated surround summary; added `ys_motion` text object fix
+- `KNOWN_LIMITATIONS.md`: EasyMotion dot-repeat → Fixed; blockquote fence detection → Fixed; grep regex → Fixed; special marks in picker → Fixed; IM presets/persistence/ex commands → Implemented; `loadInitLua` refactor → Implemented; vimrc hot-reload → updated to soft-reload; vimrc loading reliability → updated with retry logic
+- `DIFFERENCES.md` (fork): Added `csf` section; updated surround summary; added `ys_motion` text object fix; added async motion dot-repeat (`_asyncMotionTarget`)
 - `docs/features/oil-explorer.md`: Added `g?` to oil ex commands table
 - `docs/configuration/which-key.md`: Added Oil explorer context section (fork mode only)
+- `docs/configuration/settings.md`: Added IM preset row to Input method table
+- `docs/features/ex-commands.md`: Added `:IMToggle` and `:IMStatus` to ex commands reference
+- `CHANGELOG.md`: Added entries for all 13 implemented items across Phases 1–6
 
 ## [0.55.0] - 2026-07-13
 

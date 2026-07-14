@@ -22,7 +22,9 @@ import { ScrolloffManager, createScrolloffExtension } from './vim/scrolloff';
 import {
     loadVimrc,
     applyVimrcMaps,
+    applyVimrcCommands,
     applyPendingExCommands,
+    readAndParseVimrcFile,
 } from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
@@ -152,6 +154,7 @@ import { createRecentSource, trackRecentFile } from './picker/sources/recent';
 import { createMarksSource } from './picker/sources/marks';
 import {
     VimBufferMarkProvider,
+    SpecialMarkProvider,
     GlobalMarkProvider,
 } from './picker/sources/mark-providers';
 import { createRegistersSource } from './picker/sources/registers';
@@ -259,6 +262,8 @@ export default class VimMotionsPlugin extends Plugin {
     vimrcRetried = false;
     vimrcCommandCount = 0;
     private pendingVimrcExCommands: string[] = [];
+    private vimrcMapKeys: Set<string> = new Set();
+    private vimrcWatchPath: string | null = null;
     private luaLoading = false;
     private luaMapOperations: LuaLoadResult['mapOperations'] = [];
     luaOverrides: Map<string, string> = new Map();
@@ -501,6 +506,11 @@ export default class VimMotionsPlugin extends Plugin {
                     timeoutMs: 5000,
                 },
             });
+            if (this.settings.persistedImState) {
+                this.imSwitcher.loadPersistedState(
+                    this.settings.persistedImState,
+                );
+            }
             this.imSwitcher.primeCache();
         }
 
@@ -788,6 +798,7 @@ export default class VimMotionsPlugin extends Plugin {
         pickerRegistry.register(
             createMarksSource([
                 new VimBufferMarkProvider(),
+                new SpecialMarkProvider(),
                 new GlobalMarkProvider(this.markStore),
             ]),
             true,
@@ -1161,6 +1172,10 @@ export default class VimMotionsPlugin extends Plugin {
                         }
                     }
                     this.vimrcMaps = vimrcResult.maps;
+                    this.vimrcMapKeys = new Set(
+                        vimrcResult.maps.map((m) => m.lhs),
+                    );
+                    this.vimrcWatchPath = vimrcFound ? vimrcResult.path : null;
                     this.vimrcGlobalMaps = vimrcResult.globalMaps;
                     this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
                     this.vimrcGlobalWhichKeyLabels =
@@ -1177,11 +1192,6 @@ export default class VimMotionsPlugin extends Plugin {
                     this.reregisterLeaderFeatures();
                     this.rebuildWhichKey();
                     this.vimrcLoaded = true;
-                    if (this.vimrcMaps.length > 0) {
-                        window.setTimeout(() => {
-                            applyVimrcMaps(vim, this.vimrcMaps);
-                        }, 100);
-                    }
                     this.vimrcLoading = false;
                     this.reloadFeatures();
                     const luaResult = await this.loadLuaConfigInternal(
@@ -1198,6 +1208,18 @@ export default class VimMotionsPlugin extends Plugin {
                             `Vim Motions: no config files found (searched ${vimrcResult.path}, ${luaResult?.path ?? 'init.lua'}).`,
                         );
                     }
+                }),
+            );
+
+            this.registerEvent(
+                this.app.vault.on('modify', async (file) => {
+                    if (
+                        !this.vimrcLoaded ||
+                        !this.vimrcWatchPath ||
+                        file.path !== this.vimrcWatchPath
+                    )
+                        return;
+                    await this.softReloadVimrc(vim, onSettingOverride);
                 }),
             );
         }
@@ -1278,6 +1300,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         this.registerHarpoonExCommands();
+        this.registerImExCommands();
 
         if (this.settings.enableSnippets) {
             if (this.registration) {
@@ -1784,6 +1807,15 @@ export default class VimMotionsPlugin extends Plugin {
         );
         this.registerInterval(
             window.setInterval(() => {
+                if (this.imSwitcher) {
+                    this.settings.persistedImState =
+                        this.imSwitcher.getPersistedState();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
                 if (this.foldPersistDirty) {
                     this.foldPersistDirty = false;
                     (
@@ -1885,6 +1917,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         this.registerHarpoonExCommands();
+        this.registerImExCommands();
         this.registration.beginLeaderScope();
         if (
             this.settings.enableEasyMotion &&
@@ -2094,6 +2127,14 @@ export default class VimMotionsPlugin extends Plugin {
                     label: entry.label,
                     icon: entry.icon,
                     color: entry.color,
+                });
+            }
+        }
+        for (const entry of this.oilKeybindingManager?.getCommandLabels() ??
+            []) {
+            if (entry.key && entry.label) {
+                commandLabels.set(normalizeVimKey(entry.key), {
+                    label: entry.label,
                 });
             }
         }
@@ -2314,6 +2355,93 @@ export default class VimMotionsPlugin extends Plugin {
         vim.defineEx('HarpoonPrev', 'HarpoonP', () => {
             const item = this.harpoonStore.selectPrev();
             if (item) void navigateToHarpoonPin(this.app, item);
+        });
+    }
+
+    private async softReloadVimrc(
+        vim: import('./types/vim-api').VimApi,
+        onSettingOverride: (
+            key: string,
+            value: unknown,
+            directive?: string,
+        ) => void,
+    ): Promise<void> {
+        const path = this.vimrcWatchPath;
+        if (!path) return;
+
+        const parsed = await readAndParseVimrcFile(this.app, path);
+        if (!parsed.found || parsed.commands.length === 0) return;
+
+        for (const key of this.vimrcMapKeys) {
+            try {
+                vim.unmap(key, 'normal');
+            } catch {
+                /* may not exist */
+            }
+        }
+        this.vimrcMapKeys.clear();
+
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const cm = view ? getCmAdapter(view) : null;
+        const leaderKey = this.leaderRegistry?.getLeaderKey() ?? '\\';
+
+        const result = applyVimrcCommands(
+            parsed.commands,
+            vim,
+            cm,
+            leaderKey,
+            this.leaderRegistry ?? undefined,
+            onSettingOverride,
+        );
+
+        this.vimrcMaps = result.deferredMaps;
+        this.vimrcMapKeys = new Set(result.deferredMaps.map((m) => m.lhs));
+        this.vimrcCommandCount = result.commandCount;
+        applyVimrcMaps(vim, this.vimrcMaps);
+
+        if (result.pendingExCommands.length > 0 && cm) {
+            applyPendingExCommands(vim, cm, result.pendingExCommands);
+        }
+
+        this.vimrcGlobalMaps = result.deferredGlobalMaps;
+        this.vimrcGlobalWhichKeyLabels = result.globalWhichKeyLabels;
+        this.vimrcGlobalWhichKeyGroups = result.globalWhichKeyGroups;
+        this.applyGlobalMaps();
+        this.reregisterLeaderFeatures();
+        this.rebuildWhichKey();
+
+        if (this.settings.showConfigNotifications) {
+            new Notice(
+                `Vim Motions: reloaded ${result.commandCount} command${result.commandCount === 1 ? '' : 's'} from ${path}.`,
+            );
+        }
+    }
+
+    private registerImExCommands(): void {
+        const vim = getVimApi();
+        if (!vim) return;
+
+        vim.defineEx('IMToggle', 'IMT', () => {
+            this.settings.imEnabled = !this.settings.imEnabled;
+            void this.saveSettings();
+            this.reloadFeatures();
+            new Notice(
+                `Input method switching: ${this.settings.imEnabled ? 'enabled' : 'disabled'}`,
+            );
+        });
+
+        vim.defineEx('IMStatus', 'IMS', () => {
+            if (!this.imSwitcher) {
+                new Notice('Input method switching is not enabled.');
+                return;
+            }
+            void this.imSwitcher.get().then((imId) => {
+                new Notice(
+                    imId
+                        ? `Current IM: ${imId}`
+                        : 'Could not query input method.',
+                );
+            });
         });
     }
 
@@ -2717,22 +2845,20 @@ export default class VimMotionsPlugin extends Plugin {
             oilReveal: () => oilMgr?.revealAtCursor(),
             oilOpenEntry: () => oilMgr?.openEntryAtCursor(),
         };
-        const luaResult = await loadInitLua(
-            this.app,
-            vim,
-            this.leaderRegistry ?? undefined,
-            onLuaSettingOverride,
-            customLuaPath,
-            this.bufferKeymapManager,
-            this.openPicker ?? undefined,
+        const luaResult = await loadInitLua(this.app, vim, {
+            leaderRegistry: this.leaderRegistry ?? undefined,
+            onSettingOverride: onLuaSettingOverride,
+            customPath: customLuaPath,
+            bufferKeymapManager: this.bufferKeymapManager,
+            openPicker: this.openPicker ?? undefined,
             oilCallbacks,
-            (keymap) => {
+            onPickerKeymapChange: (keymap) => {
                 const s = this.settings.pickerKeymap;
                 Object.assign(s, keymap);
             },
-            this.globalRegistry ?? undefined,
-            this.imSwitcher,
-        );
+            globalRegistry: this.globalRegistry ?? undefined,
+            imSwitcher: this.imSwitcher,
+        });
 
         this.luaCommandCount = luaResult.commandCount;
         if (!luaResult.found) {
@@ -2883,6 +3009,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaLoading = false;
         this.reloadFeatures();
         this.applyLuaMaps(vim);
+        this.autocmdManager?.fireInitialBufEnter();
         return luaResult;
     }
 
@@ -3316,6 +3443,11 @@ export default class VimMotionsPlugin extends Plugin {
             (
                 this.settings as unknown as Record<string, unknown>
             ).persistedFolds = this.foldStore.save();
+            void this.saveSettings();
+        }
+        if (this.imSwitcher) {
+            this.settings.persistedImState =
+                this.imSwitcher.getPersistedState();
             void this.saveSettings();
         }
         this.matcher?.dispose();

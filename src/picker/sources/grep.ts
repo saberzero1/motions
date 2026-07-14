@@ -1,4 +1,4 @@
-import { App, MarkdownView, prepareSimpleSearch } from 'obsidian';
+import { App, MarkdownView } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
@@ -17,8 +17,28 @@ function truncatePreview(text: string): string {
     return text.length > 80 ? text.slice(0, 80) : text;
 }
 
+function createMatcher(
+    query: string,
+): (text: string) => { score: number } | null {
+    try {
+        const re = new RegExp(query, 'i');
+        return (text: string) => {
+            const m = re.exec(text);
+            if (!m) return null;
+            return { score: -m.index };
+        };
+    } catch {
+        const lower = query.toLowerCase();
+        return (text: string) => {
+            const idx = text.toLowerCase().indexOf(lower);
+            if (idx === -1) return null;
+            return { score: -idx };
+        };
+    }
+}
+
 async function searchVault(app: App, query: string): Promise<GrepResult[]> {
-    const search = prepareSimpleSearch(query);
+    const search = createMatcher(query);
     const files = app.vault.getMarkdownFiles();
     const results: GrepResult[] = [];
 

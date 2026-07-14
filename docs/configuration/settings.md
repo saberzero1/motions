@@ -221,15 +221,16 @@ Bundled picker sources for popular community plugins. Sources register automatic
 
 ## Input method
 
-| Name                          | Type     | Default   | Range/Options                                 | Description                                                                                                          |
-| ----------------------------- | -------- | --------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Enable input method switching | toggle   | `false`   |                                               | Automatically switch input methods when entering/leaving insert mode. Desktop only.                                  |
-| IM binary path                | text     |           |                                               | Absolute path to the IM switching binary (e.g., `/opt/homebrew/bin/macism`, `/usr/bin/fcitx5-remote`). Supports `~`. |
-| Obtain IM arguments           | text     |           |                                               | Arguments to query the current IM. Empty for macism/im-select. `-n` for fcitx5-remote.                               |
-| Switch IM arguments           | text     | `{im}`    |                                               | Arguments to switch IM. Use `{im}` as placeholder. `-s {im}` for fcitx5-remote. `engine {im}` for ibus.              |
-| Normal mode IM                | text     |           |                                               | IM identifier to switch to in normal mode (e.g., `com.apple.keylayout.ABC`, `keyboard-us`, `1033`).                  |
-| Insert mode IM behavior       | dropdown | `restore` | `Restore previous IM`, `Use fixed default IM` | Restore: switch back to the IM before leaving insert. Default: always switch to a fixed IM.                          |
-| Default insert mode IM        | text     |           |                                               | IM identifier for insert mode (only when behavior is "Use fixed default IM").                                        |
+| Name                          | Type     | Default   | Range/Options                                                                              | Description                                                                                                          |
+| ----------------------------- | -------- | --------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Enable input method switching | toggle   | `false`   |                                                                                            | Automatically switch input methods when entering/leaving insert mode. Desktop only.                                  |
+| IM preset                     | dropdown | `custom`  | `Custom`, `macism (macOS)`, `im-select (Windows)`, `fcitx5-remote (Linux)`, `ibus (Linux)` | Auto-fill binary path and arguments for common IM tools. Values are editable after selection.                        |
+| IM binary path                | text     |           |                                                                                            | Absolute path to the IM switching binary (e.g., `/opt/homebrew/bin/macism`, `/usr/bin/fcitx5-remote`). Supports `~`. |
+| Obtain IM arguments           | text     |           |                                                                                            | Arguments to query the current IM. Empty for macism/im-select. `-n` for fcitx5-remote.                               |
+| Switch IM arguments           | text     | `{im}`    |                                                                                            | Arguments to switch IM. Use `{im}` as placeholder. `-s {im}` for fcitx5-remote. `engine {im}` for ibus.              |
+| Normal mode IM                | text     |           |                                                                                            | IM identifier to switch to in normal mode (e.g., `com.apple.keylayout.ABC`, `keyboard-us`, `1033`).                  |
+| Insert mode IM behavior       | dropdown | `restore` | `Restore previous IM`, `Use fixed default IM`                                              | Restore: switch back to the IM before leaving insert. Default: always switch to a fixed IM.                          |
+| Default insert mode IM        | text     |           |                                                                                            | IM identifier for insert mode (only when behavior is "Use fixed default IM").                                        |
 
 > [!tip]
 > The Lua API `vim.obsidian.im` provides programmatic control. Set `vim.obsidian.im.auto = false` in your `init.lua` to disable auto-wiring and handle switching entirely via autocmds.

@@ -36,7 +36,7 @@ Visual mode (`v` + easymotion) also works — the fork updates the visual select
 
 **Remaining limitations**:
 
-- Dot-repeat (`.`) does not replay operator-pending easymotion operations
+- ~~Dot-repeat (`.`) does not replay operator-pending easymotion operations~~ — Fixed. The fork now stores the resolved async motion position as a relative offset in `lastEditInputState._asyncMotionTarget`. During dot-repeat, `repeatLastEdit` applies the operator with the stored offset instead of re-executing the async motion overlay.
 - Char-based easymotions (`f`, `F`, `s`, `t`, `T`) in operator-pending mode require an intermediate search-character keypress which adds complexity to the async flow
 
 **Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows.
@@ -69,7 +69,7 @@ This limit exists for performance — scanning the entire document on every keys
 
 The multi-line text object scanner uses a simple forward/backward search for the nearest delimiter. It has no nesting awareness. Overlapping or nested delimiters across lines (e.g., bold inside italic spanning multiple lines) may produce incorrect selections.
 
-Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded. Fenced code blocks inside blockquotes (` > ``` `) are also not detected — `findFenceLines` only matches fences at the start of a line (`/^```/`). This affects all features that use `findFenceLines` for code block detection (text objects, smart list continuation).
+Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded. Fenced code blocks inside blockquotes (` > ``` `) are now detected — `findFenceLines` matches fences with blockquote prefixes (`/^(?:>\s*)*```/`) and ensures open/close fences have matching blockquote depth.
 
 ## ~~Smart list continuation and frontmatter~~ (Fixed)
 
@@ -117,9 +117,11 @@ The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping t
 
 **First-render learning lag**: On the very first load after plugin install, the suppressor needs to observe one table widget render to learn its constructor. The first table may briefly flash as a widget before being suppressed on the next render cycle. This one-time learning is cached for the session.
 
-## Vimrc hot-reload
+## Vimrc soft-reload
 
-Changing the vimrc file requires reloading the plugin. The vimrc is loaded once during the first `active-leaf-change` event after plugin load. Other settings (text objects, navigation, operators, etc.) hot-reload immediately via `reloadFeatures()`, but vimrc parsing involves one-shot setup (exmap definitions, leader key state) that is not designed for re-entry.
+Vimrc maps and settings are soft-reloaded when the vimrc file is modified — changes to `nmap`, `set`, and other map/setting commands take effect without reloading the plugin. The plugin watches the vimrc file via `vault.on('modify')` and re-applies maps and settings on change.
+
+**Limitation**: `exmap` definitions (custom ex commands defined via `exmap name command`) are only parsed during the initial load. Adding new `exmap` entries requires a plugin reload. Existing `exmap` definitions survive soft-reload.
 
 ### Config file resolution
 
@@ -207,7 +209,7 @@ Diagnostic findings (spike17 Diag 6):
 - After vimrc load, `vimrcMaps` is empty and `vimrcCommandCount` is 0 — the file was not read successfully
 - The mapping mechanism (`ExCommandDispatcher.map`, `_mapCommand`, `doKeyToKey`) is correct — the issue is in file I/O timing during the `active-leaf-change` handler
 
-Mitigation: vimrc loading now uses a two-phase approach — file reading/parsing is decoupled from command application. `readAndParseVimrcFile` parses the vimrc without needing a CM adapter; `applyVimrcCommands` applies all commands, deferring cm-dependent ones (unknown `set` options, standalone `obcommand`, catch-all lines) to `pendingExCommands` which are applied when a CM adapter becomes available on the next `active-leaf-change`. The previous 5×50ms retry loop has been removed. Maps are still re-applied 100ms after initial load as a safety net against CM Vim keymap initialization timing.
+Mitigation: vimrc loading now uses a two-phase approach — file reading/parsing is decoupled from command application. `readAndParseVimrcFile` parses the vimrc without needing a CM adapter; `applyVimrcCommands` applies all commands, deferring cm-dependent ones (unknown `set` options, standalone `obcommand`, catch-all lines) to `pendingExCommands` which are applied when a CM adapter becomes available on the next `active-leaf-change`. The previous 5×50ms retry loop has been removed. `readVimrcFile` now retries with exponential backoff (50ms, 100ms, 200ms) when the vault adapter returns empty content during early lifecycle events.
 
 Workaround: if vimrc mappings are not applied, reload the plugin via **Settings → Community plugins** (disable then enable). At runtime, mappings can be applied via Obsidian's developer console: `CodeMirrorAdapter.Vim.map('L', '$', 'normal')`.
 
@@ -1029,7 +1031,7 @@ Vim marks (`m{a-z}`, `'{a-z}`) work via codemirror-vim. The plugin adds three en
 
 ### Limitations
 
-- **Special marks not in picker** — marks `'`, `` ` ``, `.`, `<`, `>` are not shown in the picker or gutter. They require querying fork-internal `getMarkPos()` with complex semantics (jump list, last edit position).
+- ~~**Special marks not in picker**~~ — Fixed. Special marks (`'`, `.`, `<`, `>`) are now shown in the `:marks` picker under a "Special marks" group. They are read from `cm.state.vim.marks` like buffer marks.
 - ~~**Global mark file rename**~~ — Fixed. `MarkStore.renamePath()` is called from the `vault.on('rename')` handler, and `MarkStore.removeByPath()` from `vault.on('delete')`, matching the existing harpoon and fold persistence patterns.
 - **Marks set outside vim command pipeline** — marks created programmatically (not via `m{char}`) won't trigger gutter refresh until the next vim command fires `vim-command-done`.
 - **Gutter refresh mechanism** — the gutter reads `cm.state.vim.marks` on each `vim-command-done` event. Position tracking through document edits uses `Decoration.line()` position mapping (`set.map(tr.changes)`), not polling.
@@ -1061,11 +1063,11 @@ The picker supports two fuzzy matching engines selectable via **Settings → Vim
 - **uFuzzy** (default): Pure JavaScript matcher (7.5KB) with filename-aware ranking. Prefers exact filename matches over partial path matches (e.g., `Header.tsx` ranks above `header/utils.ts` for query `"Header"`). Supports typo tolerance via single-error mode, configurable fuzziness, and multi-word queries.
 - **obsidian**: Obsidian's built-in `prepareFuzzySearch` API. Zero bundle cost (maintained by Obsidian). May be slower than uFuzzy on very large vaults — the Obsidian docs note performance issues beyond a few thousand items.
 
-Matching is `prepareSimpleSearch`-based for grep (fuzzy, not regex). Live grep debounces at 200ms with generation-based cancellation.
+Matching is `RegExp`-based for grep (with fallback to substring matching for invalid patterns). Live grep debounces at 200ms with generation-based cancellation.
 
 ### Limitations
 
-- **`:grep` is fuzzy, not regex** — `prepareSimpleSearch` from Obsidian is used for vault content search. `:grep n.v` will not match "nav" — the `.` is not treated as a regex wildcard. Regex grep is a future consideration.
+- ~~**`:grep` is fuzzy, not regex**~~ — Fixed. `:grep` now uses JavaScript `RegExp` for pattern matching, matching Neovim's `:grep` behavior (which uses the external `grepprg`). Invalid regex patterns gracefully fall back to substring matching.
 - **`:marks` shows buffer + global marks** — buffer-local marks (`a`–`z`) are read from the active editor's vim state. Global marks (`A`–`Z`) are read from the plugin's persisted `MarkStore`. `:marks` in a non-editor view shows only global marks (no active editor for buffer marks).
 - **Live grep iterates all files synchronously** — `cachedRead()` is fast but iterating 10K+ files on each keystroke (debounced) may cause brief UI pauses on very large vaults. MAX_RESULTS=100 cap limits result set size.
 - **Frecency persistence** — frecency data is stored in plugin settings via `saveData()`, debounced to 30 seconds. Data loss on crash is possible for the last 30 seconds of interactions.
@@ -1122,15 +1124,15 @@ Limitations:
 
 The following IM switching improvements are planned but not yet implemented:
 
-- **Platform presets**: A settings dropdown to auto-fill binary path and arguments for common tools (macOS macism, Linux fcitx5, Windows im-select). Currently configuration is manual with documentation examples.
-- **Session persistence**: The per-editor saved IM cache does not survive Obsidian restarts. The first `InsertEnter` after restart in `restore` mode uses whatever IM is active rather than restoring the previous session's IM. After one insert→normal→insert cycle, restore works normally.
-- **`:IMToggle`/`:IMStatus` ex commands**: Quick toggle and status commands for the command line. Currently users can toggle via settings or `vim.obsidian.im.enabled = false` in Lua.
+- ~~**Platform presets**~~: Implemented. A settings dropdown auto-fills binary path, arguments, and default IM for macism (macOS), im-select (Windows), fcitx5-remote (Linux), and ibus (Linux). Values are editable after selection.
+- ~~**Session persistence**~~: Implemented. The per-editor IM cache is persisted to plugin settings via `saveData()` (30-second interval + save on unload). The saved IM is restored on plugin load.
+- ~~**`:IMToggle`/`:IMStatus` ex commands**~~: Implemented. `:IMToggle` enables/disables IM switching. `:IMStatus` shows the current IM identifier via a Notice.
 - **Content-type aware switching**: IM switching based on cursor context (e.g., auto-switch to English inside math blocks or code blocks) independently of vim mode. Users can implement this today by combining `vim.obsidian.im` with cursor position checks in Lua autocmds.
 - **`CmdlineEnter`/`CmdlineLeave` for global ex command modal**: The global `:` modal in non-editor views (Obsidian `SuggestModal`) does not fire cmdline autocmd events. Only the codemirror-vim editor dialog fires them.
 - **`CmdlineChanged` event**: An autocmd event that fires on each keystroke in the command-line prompt. Not needed for IM switching but useful for advanced Lua scripting.
 - **`cmdline` text in event data**: Including the actual command text in `CmdlineLeave`'s event data. Currently only `cmdtype` (`:`, `/`, `?`) is provided.
 - **Composition listeners on search dialog input**: The composition guard currently covers only the editor DOM element. CJK composition in the `/` search input is not tracked. This is acceptable because `CmdlineLeave` fires when the dialog closes (abandoning any active composition), but a more complete solution would track composition in the search input too.
-- **`loadInitLua()` parameter refactor**: The function signature has grown to 11 parameters. Candidate for refactoring to an options object in a future cleanup pass.
+- ~~**`loadInitLua()` parameter refactor**~~: Implemented. The function now takes `(app, vim, options?)` with a `LoadInitLuaOptions` interface.
 
 ## Intentionally not supported
 

@@ -198,12 +198,14 @@ export interface VimMotionsSettings {
     };
 
     imEnabled: boolean;
+    imPreset: 'custom' | 'macism' | 'im-select' | 'fcitx5-remote' | 'ibus';
     imBinaryPath: string;
     imObtainArgs: string;
     imSwitchArgs: string;
     imDefaultNormalIm: string;
     imRestoreBehavior: 'restore' | 'default';
     imDefaultInsertIm: string;
+    persistedImState: Record<string, string>;
 
     enableSnippets: boolean;
     snippetBundled: boolean;
@@ -293,12 +295,14 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     },
 
     imEnabled: false,
+    imPreset: 'custom' as const,
     imBinaryPath: '',
     imObtainArgs: '',
     imSwitchArgs: '{im}',
     imDefaultNormalIm: '',
     imRestoreBehavior: 'restore' as const,
     imDefaultInsertIm: '',
+    persistedImState: {},
 
     enableSnippets: true,
     snippetBundled: true,
@@ -1616,6 +1620,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                               },
                               ...(this.plugin.settings.imEnabled
                                   ? [
+                                        {
+                                            name: 'IM preset',
+                                            desc: 'Select a preset to auto-fill binary path and arguments for common IM tools.',
+                                            control: {
+                                                type: 'dropdown' as const,
+                                                key: 'imPreset',
+                                                options: {
+                                                    custom: 'Custom',
+                                                    macism: 'macism (macOS)',
+                                                    'im-select':
+                                                        'im-select (Windows)',
+                                                    'fcitx5-remote':
+                                                        'fcitx5-remote (Linux)',
+                                                    ibus: 'ibus (Linux)',
+                                                },
+                                            },
+                                        },
                                         {
                                             name: 'IM binary path',
                                             desc: 'Absolute path to the input method switching binary (e.g. /opt/homebrew/bin/macism, /usr/bin/fcitx5-remote, C:\\im-select\\im-select.exe). Tilde (~) paths are supported.',
@@ -3801,6 +3822,79 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         if (!this.plugin.settings.imEnabled) return;
+
+        const IM_PRESETS: Record<
+            string,
+            {
+                binary: string;
+                obtainArgs: string;
+                switchArgs: string;
+                normalIm: string;
+            }
+        > = {
+            macism: {
+                binary: 'macism',
+                obtainArgs: '',
+                switchArgs: '{im}',
+                normalIm: 'com.apple.keylayout.ABC',
+            },
+            'im-select': {
+                binary: 'im-select.exe',
+                obtainArgs: '',
+                switchArgs: '{im}',
+                normalIm: '1033',
+            },
+            'fcitx5-remote': {
+                binary: 'fcitx5-remote',
+                obtainArgs: '-n',
+                switchArgs: '-s {im}',
+                normalIm: 'keyboard-us',
+            },
+            ibus: {
+                binary: 'ibus',
+                obtainArgs: 'engine',
+                switchArgs: 'engine {im}',
+                normalIm: 'xkb:us::eng',
+            },
+        };
+
+        new Setting(container)
+            .setName('IM preset')
+            .setDesc(
+                'Select a preset to auto-fill binary path and arguments for common IM tools. Values are editable after selection.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        custom: 'Custom',
+                        macism: 'macism (macOS)',
+                        'im-select': 'im-select (Windows)',
+                        'fcitx5-remote': 'fcitx5-remote (Linux)',
+                        ibus: 'ibus (Linux)',
+                    })
+                    .setValue(this.plugin.settings.imPreset)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imPreset = value as
+                            | 'custom'
+                            | 'macism'
+                            | 'im-select'
+                            | 'fcitx5-remote'
+                            | 'ibus';
+                        const preset = IM_PRESETS[value];
+                        if (preset) {
+                            this.plugin.settings.imBinaryPath = preset.binary;
+                            this.plugin.settings.imObtainArgs =
+                                preset.obtainArgs;
+                            this.plugin.settings.imSwitchArgs =
+                                preset.switchArgs;
+                            this.plugin.settings.imDefaultNormalIm =
+                                preset.normalIm;
+                        }
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        this.renderImSettings(container);
+                    }),
+            );
 
         new Setting(container)
             .setName('IM binary path')

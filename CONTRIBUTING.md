@@ -549,5 +549,5 @@ npm run test:unit
 - `app.vault.getConfig(key)` is internal API — use `getVaultConfig(app, key)` or `isBuiltinVimEnabled(app)` from `src/util/vault.ts`.
 - `app.keymap.pushScope()`/`popScope()` are internal API — use `pushKeymapScope(app, scope)` / `popKeymapScope(app, scope)` from `src/util/keymap.ts`.
 - Leaf properties (`id`, `pinned`) are internal — use `getLeafId(leaf)`, `isLeafPinned(leaf)`, `getViewFilePath(view)` from `src/util/leaf.ts`.
-- `prepareSimpleSearch()` is the public fuzzy search utility.
+- `prepareSimpleSearch()` is Obsidian's public fuzzy search utility (used by picker filter, not `:grep`). `:grep` uses `RegExp` matching with substring fallback.
 - There is no public navigation history API — use `app:go-back`/`app:go-forward` command IDs.
