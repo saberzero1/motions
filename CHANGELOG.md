@@ -18,14 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/types.d.ts` (type fix), `src/lua/engine.ts` (`withInstructionGuard`, `showLuaErrorNotice`), `src/lua/api.ts` (3 sites), `src/lua/timers.ts` (1 site), `src/snippets/dynamic-bridge.ts` (2 sites)
 - **Global marks updated on file rename/delete** — renaming a file now updates all global marks (`A`–`Z`) pointing to it. Deleting a file removes the marks. Follows the same `vault.on('rename')`/`vault.on('delete')` pattern as harpoon and fold persistence.
     - Plugin: `src/vim/mark-store.ts` (`renamePath()`, `removeByPath()`), `src/main.ts` (4 lines in event handlers)
-- **Surround `csbBysaBb` chain bug** — chaining `csbB` (change parens to braces) followed by `ysaBb` (add parens around braces) now works correctly. The surround dot-repeat guard was tightened to only use saved replacements when `_surroundType` matches the current operation type (`cs`, `ys`, `yss`), preventing stale state from a prior `cs` operation from silently consuming a subsequent `ys` command.
+- **Surround dot-repeat cross-type leak prevention** — the surround dot-repeat guard was tightened to only use saved replacements when `_surroundType` matches the current operation type (`cs`, `ys`, `yss`), preventing stale state from a prior `cs` operation from silently consuming a subsequent `ys` command.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (tightened `savedReplacement` guards with `_surroundType` match)
+    - Note: the `csbBysaBb` chain test still fails — root cause is the `aB` text object not matching when cursor is on the opening brace at column 0 (tracked in deviations)
 - **Vimrc loading timing improved** — vimrc/Lua config loading now triggers via `onLayoutReady` when the workspace is ready, rather than waiting for the first `active-leaf-change` event. Retry loop reduced from 10×100ms to 5×50ms. Deferred map reapplication reduced from 200ms to 100ms.
     - Plugin: `src/main.ts` (`onLayoutReady` hook, simplified retry, reduced delay)
 
 ### Documentation
 
-- `KNOWN_LIMITATIONS.md`: Lua infinite loop protection → Fixed; Global mark rename → Fixed; Which-key space leader → Fixed (bug already resolved, corrected root cause description); Surround deviations → 5→3 (csbBysaBb chain fixed, csf implemented)
+- `KNOWN_LIMITATIONS.md`: Lua infinite loop protection → Fixed; Global mark rename → Fixed; Which-key space leader → Fixed (bug already resolved, corrected root cause description); Surround deviations → 5→4 (csf implemented, csbBysaBb root cause identified as aB text object limitation)
 - `DIFFERENCES.md` (fork): Added `csf` section; updated surround summary
 
 ## [0.55.0] - 2026-07-13

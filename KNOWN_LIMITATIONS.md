@@ -686,12 +686,13 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 - Visual block `$ S}` — now surrounds each line individually instead of wrapping entire block
 - `dsf` (delete surrounding function call) — implemented with regex-based function name detection
 
-**Remaining deviations** (3 cases):
+**Remaining deviations** (4 cases):
 
-| Category                         | Count | Description                                                                                  |
-| -------------------------------- | ----- | -------------------------------------------------------------------------------------------- |
-| Tag `cst`/`yst` (change/add tag) | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification   |
-| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op) |
+| Category                         | Count | Description                                                                                                                                         |
+| -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `csbBysaBb` chain                | 1     | `aB` text object does not match when cursor is on the opening brace at column 0. After `csbB` places cursor at `0:0`, the subsequent `ysaBb` fails. |
+| Tag `cst`/`yst` (change/add tag) | 2     | Surround suite requires nvim-surround plugin and separate recording; needs re-verification                                                          |
+| `ds<` semantic difference        | 1     | Intentional: fork treats `<` as angle bracket; nvim-surround treats it as tag prompt (no-op)                                                        |
 
 **Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 81 plugin-level tests including `dsf`.
 

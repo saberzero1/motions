@@ -115,6 +115,38 @@ describe('Lua config support', function () {
         await assertPluginLoaded();
     });
 
+    it('should survive infinite loop in runtime callback', async function () {
+        await loadLuaConfig(
+            'vim.keymap.set("n", "<leader>Z", function() while true do end end)\n',
+        );
+        await assertPluginLoaded();
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            view.editor.focus();
+            Vim.handleKey(adapter, '\\');
+            Vim.handleKey(adapter, 'Z');
+        });
+        await browser.pause(500);
+        await assertPluginLoaded();
+    });
+
     it('should handle conditional config with vim.vault_name()', async function () {
         await loadLuaConfig(
             'if vim.vault_name() ~= "" then\n  vim.opt.scrolloff = 15\nelse\n  vim.opt.scrolloff = 99\nend\n',
