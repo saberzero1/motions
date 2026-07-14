@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-07-14
+
 ### Added
 
 - **Surround `csf` (change surrounding function name)** — `csf` changes the function name around the cursor. Prompts for the new function name via a `func: ` status bar prompt; press Enter to apply or Escape to cancel. Dot-repeat (`.`) replays with the saved name. Uses the same `findSurroundingFunction` as `dsf` (single-line only). Handles nested calls and method chains.

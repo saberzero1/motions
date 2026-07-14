@@ -29,12 +29,17 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.55.0
+## What's new in 0.56.0
 
-- **Sign column migrated to dedicated gutter column** — vim mark indicators now render in a proper CM6 gutter column instead of CSS overlays. Fixes marks cascading into wrong lines, overlapping on multi-mark lines, and inheriting heading font sizes. Gutter layout matches Neovim: sign column → line numbers → fold column → content. Runtime reconfiguration via `:set signcolumn=yes/auto/no`. ([#59](https://github.com/saberzero1/motions/issues/59))
-- **Dual line number display** — new `linenumbermode` option shows absolute and relative line numbers in separate side-by-side gutter columns. `set number relativenumber linenumbermode=dual` renders both simultaneously. Configurable via Settings UI, vimrc, or `vim.opt.linenumbermode` in Lua.
-- **`statuscolumn` API** — Neovim-compatible format string for user-configurable gutter layout: `%l` (line number), `%r` (relative number), `%s` (signs), `%C` (folds), `%=` (separator), and literal text. When set, replaces all individual gutter columns with a unified layout. Configurable via `vim.opt.statuscolumn` in Lua or `set statuscolumn` in vimrc. ([#59](https://github.com/saberzero1/motions/issues/59))
-- **Global vs local mark colors** — global marks (`A`–`Z`) and local marks (`a`–`z`) render in distinct colors. Click-to-navigate on mark labels moves the cursor to the marked line.
-- **Status bar duplication fix** — fixed vim mode indicator and chord display being duplicated when non-default clipboard or textwidth settings were saved. ([#63](https://github.com/saberzero1/motions/issues/63))
+- **Surround `csf` (change surrounding function name)** — `csf` changes the function name around the cursor, prompting for the new name via a `func: ` status bar prompt. Dot-repeat replays with the saved name. Handles nested calls and method chains.
+- **Oil which-key integration** — the which-key popup now shows Oil-specific keybindings with descriptions when an Oil view is active. Press `g?` to toggle a help overlay listing all Oil keybindings.
+- **IM platform presets** — a settings dropdown auto-fills binary path, arguments, and default IM for common tools: macism (macOS), im-select (Windows), fcitx5-remote (Linux), ibus (Linux). `:IMToggle` / `:IMStatus` ex commands added. Per-editor IM state is now persisted across sessions.
+- **Special marks in picker** — the `:marks` picker now shows special marks (`'`, `.`, `<`, `>`) alongside buffer and global marks.
+- **`:grep` regex support** — `:grep` now uses JavaScript `RegExp` for pattern matching, matching Neovim's behavior. Invalid patterns gracefully fall back to substring matching.
+- **Surround dot-repeat improvements** — `ys` with text object motions (`ysiwb`, `ysiw"`, etc.) now correctly dot-repeats on a different word. EasyMotion operator-pending motions (`d<leader><leader>w{label}`) also dot-repeat to the same relative position.
+- **Vimrc hot-reload** — the vimrc file is now watched for changes and re-applied without a plugin reload. Loading reliability improved with exponential backoff retries.
+- **Lua runtime infinite loop protection** — all Lua callback sites (keymaps, autocmds, timers, snippet nodes) are guarded with instruction limits. Obsidian remains responsive even if user Lua code loops infinitely.
+- **Global marks track file renames/deletes** — renaming a file updates all global marks pointing to it; deleting removes them.
+- **Settings parity** — all plugin settings are now exposed in both the legacy (pre-1.13) and new (1.13+) Settings UI.
 
 See the [[changelog|full changelog]] for details.
