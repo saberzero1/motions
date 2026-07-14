@@ -18,6 +18,10 @@
     color: inherit;
 }
 
+.cm-editor .cm-vim-linewise-widget-selection {
+    background-color: var(--text-selection, rgba(0, 100, 200, 0.2));
+}
+
 /* --- Status bar --- */
 
 .vim-motions-hidden {

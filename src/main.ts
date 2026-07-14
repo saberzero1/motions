@@ -121,6 +121,7 @@ import { createHarpoonSource } from './picker/sources/harpoon';
 import type { VimYankEvent, CmAdapter } from './types/vim-api';
 
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
+import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
 import { loadInitLua } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
@@ -1786,6 +1787,7 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
+        this.registerEditorExtension(linewiseWidgetHighlightExtension());
 
         this.registerInterval(
             window.setInterval(() => {

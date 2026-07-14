@@ -67,7 +67,8 @@ src/
     changelist.ts          # Change list tracking
     yank-highlight.ts      # Yank highlight flash effect
     visual-line-command-fix.ts  # Visual line command edge-case fixes
-    fold-sync.ts           # Fold state synchronization
+    linewise-widget-highlight.ts  # Visual-line highlight for replaced widget blocks
+    fold-sync.ts               # Fold state synchronization
     mark-store.ts          # Mark persistence across sessions
     sign-column.ts         # Sign column (mark indicators via gutter() + GutterMarker + Compartment)
     mark-gutter.ts         # Mark gutter refresh scheduling (delegates to sign-column)

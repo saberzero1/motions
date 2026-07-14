@@ -644,6 +644,18 @@ Actions that read from the CM6 selection in visual mode (`joinLines`, `replace`)
 
 **Test coverage**: 8 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, register content verification, and mid-column visual-line with checkbox content. 10 spike tests (`spike23-visual-line-hotkey-commands.e2e.ts`) verifying command execution via `executeCommandById`, hotkey path, and selection state inspection.
 
+## ~~Visual-line mode highlight missing on replaced widget blocks~~ (Fixed)
+
+**Status**: Fixed. Replaced widget blocks (MathJax, embeds, etc.) now receive visual-line highlight. ([#57](https://github.com/saberzero1/motions/issues/57))
+
+In visual-line mode (`V`), the fork's `linewiseVisualHighlight` ViewPlugin uses `Decoration.line()` to apply `.cm-vim-linewise-selection` to each `.cm-line` element. When Obsidian's Live Preview replaces content with rendered widgets (block MathJax `$$`, note embeds `![[note]]`, plugin table widgets), the `.cm-line` elements are removed from the DOM and replaced by widget container elements. `Decoration.line()` silently drops decorations for lines inside replaced ranges, leaving those widget blocks visually unhighlighted during selection.
+
+Fixed by adding a plugin-side `LinewiseWidgetHighlight` ViewPlugin (`src/vim/linewise-widget-highlight.ts`) that supplements the fork's line-level highlighting. On each CM6 update during visual-line mode, the plugin scans `contentDOM` direct children for non-`.cm-line` elements (widget containers), maps them to document positions via `view.posAtDOM()`, and toggles `cm-vim-linewise-widget-selection` on widgets whose document range overlaps the visual-line selection. The class is removed on mode exit and `destroy()`.
+
+The fix is generic — it highlights any replaced widget type based on DOM structure (non-`.cm-line` direct child of `contentDOM` with non-zero height), not specific widget classes. `Decoration.mark()` was validated as non-viable (marks only wrap text content nodes, which replaced widgets lack). The fork's `linewiseVisualHighlight` remains unchanged.
+
+**Test coverage**: spike24 (`spike24-visual-line-widget-highlight.e2e.ts`) — 12 tests covering MathJax, embed, and code block DOM structure discovery; visual-line highlight verification; decoration facet analysis; `posAtDOM()` reliability on MathJax and embed widgets; `Decoration.mark()` validation; and `update()` trigger verification during cursor-only selection.
+
 ## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
 
 **Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison.
