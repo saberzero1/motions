@@ -175,7 +175,7 @@ Use `set <option>=<value>`.
 | `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                  | `grouped`                             |
 | `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)      | `which-key`                           |
 | `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                           | `on`                                  |
-| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception              | (empty — uses defaults)               |
+| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception              | (empty — uses defaults: markdown, graph, pdf, canvas, empty, image, bases) |
 | `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)    | `number`                              |
 | `signcolumn`            | `scl`    | Sign column visibility (`auto[:N]`/`yes[:N]`/`no`)     | `auto`                                |
 | `linenumbermode`        | `lnm`    | Line number display (deprecated — use `statuscolumn`)  | `hybrid`                              |

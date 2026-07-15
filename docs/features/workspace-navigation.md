@@ -134,16 +134,16 @@ Keys like `j`, `k`, `1`–`9`, `H`, `L`, and scroll commands pass through to the
 
 ### Customizing the view type whitelist
 
-By default, content-interaction keys (scrolling, count prefix, tab shortcuts) are intercepted in these view types: `markdown`, `graph`, `pdf`, `canvas`, `empty`, `image`. All other view types are treated as plugin views.
+By default, content-interaction keys (scrolling, count prefix, tab shortcuts) are intercepted in these view types: `markdown`, `graph`, `pdf`, `canvas`, `empty`, `image`, `bases`. All other view types are treated as plugin views.
 
 Override this in **Settings → Vim Motions → Workspace navigation view types** or via vimrc/Lua:
 
 ```vim
-set workspacenavviewtypes=markdown,graph,pdf,canvas,empty,image,excalidraw
+set workspacenavviewtypes=markdown,graph,pdf,canvas,empty,image,bases,excalidraw
 ```
 
 ```lua
-vim.opt.workspacenavviewtypes = "markdown,graph,pdf,canvas,empty,image,excalidraw"
+vim.opt.workspacenavviewtypes = "markdown,graph,pdf,canvas,empty,image,bases,excalidraw"
 ```
 
 ## Configuration

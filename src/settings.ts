@@ -656,7 +656,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                     {
                         name: 'Workspace navigation view types',
-                        desc: 'Comma-separated view types where scroll and count keys are intercepted. Leave empty for defaults (markdown, graph, pdf, canvas, empty, image). Plugin views not in this list receive their own keystrokes.',
+                        desc: 'Comma-separated view types where scroll and count keys are intercepted. Leave empty for defaults (markdown, graph, pdf, canvas, empty, image, bases). Plugin views not in this list receive their own keystrokes.',
                         control: {
                             type: 'text' as const,
                             key: 'workspaceNavViewTypes',

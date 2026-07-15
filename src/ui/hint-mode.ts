@@ -306,10 +306,15 @@ function hintActivate(
 
     if (target.targetType === 'pane') {
         if (target.leaf) {
-            app.workspace.setActiveLeaf(target.leaf, { focus: true });
-            const mdView = app.workspace.getActiveViewOfType(MarkdownView);
-            if (mdView) {
-                mdView.editor.focus();
+            if (openInNewPane) {
+                void app.workspace.duplicateLeaf(target.leaf, 'tab');
+            } else {
+                app.workspace.setActiveLeaf(target.leaf, { focus: true });
+                const mdView =
+                    app.workspace.getActiveViewOfType(MarkdownView);
+                if (mdView) {
+                    mdView.editor.focus();
+                }
             }
         }
         return !inModal;

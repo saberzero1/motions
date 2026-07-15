@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hint mode `F` on pane targets opens in same tab instead of new tab** — pressing `F` in hint mode on a pane target (`.workspace-leaf-content`) behaved identically to `f` (focus the pane) instead of opening the pane's content in a new tab. The `hintActivate()` function ignored the `openInNewPane` parameter for `targetType === 'pane'`, always calling `setActiveLeaf()`. Now calls `workspace.duplicateLeaf(leaf, 'tab')` when `openInNewPane` is true. Link targets were unaffected — `openLinkText()` already used the parameter correctly. ([#70](https://github.com/saberzero1/motions/issues/70))
+    - Plugin: `src/ui/hint-mode.ts` (`hintActivate` pane branch)
+- **`j`/`k` and other standard-gate keys not working in Bases views** — Obsidian Bases views (`.base` files) use the view type `"bases"`, which was missing from the default `GLOBAL_NAV_VIEW_TYPES` set. The `isPluginLeafActive()` check treated Bases as a plugin view and blocked standard-gate keys (`j`/`k` scroll, `H`/`L` tab switch, count-prefix digits). ([#70](https://github.com/saberzero1/motions/issues/70))
+    - Plugin: `src/workspace/global-key-handler.ts` (added `'bases'` to `GLOBAL_NAV_VIEW_TYPES`), `src/settings.ts` (updated default list in description)
+
+### Tests
+
+- 1 new e2e test in `test/specs/hint-mode.e2e.ts`: `F` on pane target calls `duplicateLeaf` (spy-based verification)
+- 1 new e2e test in `test/specs/global-nav.e2e.ts`: `H` from bases view switches to previous tab (creates `.base` file, verifies standard-gate key interception)
+
+### Documentation
+
+- `CHANGELOG.md`: Added entries for hint mode `F` pane fix and Bases view type fix
+- `KNOWN_LIMITATIONS.md`: Updated hint mode target classification (pane `F` → `duplicateLeaf`); updated workspace navigation view type list to include `bases`
+- `docs/features/hint-mode.md`: Updated pane target behavior description
+- `docs/features/workspace-navigation.md`: Added `bases` to default view types
+- `docs/configuration/settings.md`: Updated workspace navigation view types default list
+- `docs/configuration/vimrc.md`: Updated default view types in description
+- `docs/configuration/lua-config.md`: Updated default view types in examples
+
 ## [0.60.1] - 2026-07-15
 
 ### Fixed

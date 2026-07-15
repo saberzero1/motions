@@ -37,7 +37,7 @@ In the Markdown editor, hint mode is triggered via `<leader><leader>h` or a conf
 
 The plugin classifies targets during discovery to ensure context-appropriate behavior:
 
-- **Panes**: Workspace leaf content. Activating focuses the pane.
+- **Panes**: Workspace leaf content. Activating (`f`) focuses the pane. Opening new (`F`) duplicates the pane into a new tab.
 - **Tabs**: Workspace tab headers. Can be closed via `df`.
 - **Links**: Wikilinks, Markdown links, and external URLs. Opened via Obsidian's internal link resolver.
 - **Inputs**: Text fields, textareas, and dropdowns. Activating focuses the element.

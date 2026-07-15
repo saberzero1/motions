@@ -410,12 +410,12 @@ The standalone ex command modal (`:` in non-editor views) supports 34 commands t
 When workspace navigation is enabled, the global key handler uses a three-gate interception system:
 
 - **Structural keys** (`<C-w>*`, `gt`/`gT`, `<C-o>`/`<C-i>`, `:`) — always intercepted in non-editor views, regardless of view type. These let you navigate between panes/tabs even in plugin views.
-- **Content keys** (`j`/`k` scroll, count-prefix digits, `H`/`L`, scroll commands) — only intercepted in whitelisted view types (markdown, graph, pdf, canvas, empty, image). In plugin views (Spaced Repetition, Excalidraw, etc.), these keys pass through to the plugin.
+- **Content keys** (`j`/`k` scroll, count-prefix digits, `H`/`L`, scroll commands) — only intercepted in whitelisted view types (markdown, graph, pdf, canvas, empty, image, bases). In plugin views (Spaced Repetition, Excalidraw, etc.), these keys pass through to the plugin.
 - **Hint keys** (`f`, `F`, `yf`, `df`) — intercepted unless an editor or input is focused.
 
 **Trade-off**: In plugin views, pressing `g` followed by a standard-gated key (e.g., `gg` for scroll-to-top) will consume the keystrokes without effect, because the `g` prefix enters the handler due to structural completions (`gt`/`gT`). Use `<C-w>` sequences for workspace navigation in plugin views.
 
-**Customization**: The view type whitelist can be overridden via **Settings → Vim Motions → Workspace navigation view types** or `set workspacenavviewtypes=markdown,graph,pdf,canvas,empty,image` in vimrc.
+**Customization**: The view type whitelist can be overridden via **Settings → Vim Motions → Workspace navigation view types** or `set workspacenavviewtypes=markdown,graph,pdf,canvas,empty,image,bases` in vimrc.
 
 ## Hint mode actions
 
@@ -453,7 +453,7 @@ Yank and close are not mapped to editor key sequences (they conflict with vim's 
 
 Each hint target is classified by type during discovery, before label assignment. The classification determines per-action behavior:
 
-- `.workspace-leaf-content` → `pane` (focus via `setActiveLeaf`)
+- `.workspace-leaf-content` → `pane` (focus via `setActiveLeaf`; `F` action duplicates the leaf into a new tab via `duplicateLeaf`)
 - `.workspace-tab-header` → `tab` (close via `leaf.detach()`)
 - `a[href]`, `[data-href]`, `.cm-underline` → `link` (navigate via `openLinkText`)
 - `input`, `textarea`, `select`, `[contenteditable]` → `input` (focus; `<select>` cycles to next option)

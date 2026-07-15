@@ -166,7 +166,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `whichkeysort` | string | `"which-key"` | `"which-key"`, `"groups-first"` | `vim.opt.whichkeysort = "which-key"` |
 | `whichkeyicons` | boolean | `true` | | `vim.opt.whichkeyicons = true` |
 | `whichkeydelay` | number | `500` | 0–2000 ms | `vim.opt.whichkeydelay = 300` |
-| `workspacenavviewtypes` | string | `""` | Comma-separated view types | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
+| `workspacenavviewtypes` | string | `""` | Comma-separated view types (defaults: markdown, graph, pdf, canvas, empty, image, bases) | `vim.opt.workspacenavviewtypes = "markdown,graph"` |
 | `guicursor` | string | `"n:block,i:bar,v:block,r:underline,o:underline"` | see Cursor shapes | `vim.opt.guicursor = "n:bar,i:block"` |
 | `cursorlineopt` | string | `"number"` | `"number"`, `"line"`, `"both"` | `vim.opt.cursorlineopt = "both"` |
 | `signcolumn` | string | `"auto"` | `"auto[:N]"`, `"yes[:N]"`, `"no"` | `vim.opt.signcolumn = "auto:3"` |

@@ -631,6 +631,148 @@ describe('Hint mode', function () {
             expect(overlayGone).toBe(true);
         });
 
+        it('F on pane target should call duplicateLeaf', async function () {
+            await obsidianPage.loadWorkspaceLayout({
+                main: {
+                    id: 'split-root',
+                    type: 'split',
+                    children: [
+                        {
+                            id: 'left-tabs',
+                            type: 'tabs',
+                            children: [
+                                {
+                                    id: 'md-leaf',
+                                    type: 'leaf',
+                                    state: {
+                                        type: 'markdown',
+                                        state: {
+                                            file: 'Welcome.md',
+                                            mode: 'source',
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            id: 'right-tabs',
+                            type: 'tabs',
+                            children: [
+                                {
+                                    id: 'graph-leaf',
+                                    type: 'leaf',
+                                    state: { type: 'graph', state: {} },
+                                },
+                            ],
+                        },
+                    ],
+                    direction: 'vertical',
+                },
+                active: 'graph-leaf',
+                lastOpenFiles: [],
+            });
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const called = (await browser.executeObsidian(({ app }) => {
+                let duplicateCalled = false;
+                const original = app.workspace.duplicateLeaf.bind(
+                    app.workspace,
+                );
+                app.workspace.duplicateLeaf = ((...args: unknown[]) => {
+                    duplicateCalled = true;
+                    return (original as Function)(...args);
+                }) as typeof app.workspace.duplicateLeaf;
+                (window as unknown as Record<string, unknown>)
+                    .__hintTestDuplicateCalled = () => duplicateCalled;
+                (window as unknown as Record<string, unknown>)
+                    .__hintTestRestore = () => {
+                    app.workspace.duplicateLeaf = original;
+                };
+                return true;
+            })) as boolean;
+            expect(called).toBe(true);
+
+            await browser.keys(['F']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+            expect(hasOverlay).toBe(true);
+
+            const paneLabel = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return '';
+                const labels = overlay.querySelectorAll(
+                    '.vim-motions-hint-label',
+                );
+                const panes = activeDocument.querySelectorAll(
+                    '.workspace-leaf-content',
+                );
+                const panePositions = Array.from(panes).map((pane) => {
+                    const editor =
+                        pane.querySelector('.cm-editor') ??
+                        pane.querySelector('.markdown-preview-view');
+                    if (editor) {
+                        const r = editor.getBoundingClientRect();
+                        return {
+                            left: r.left + window.scrollX + 8,
+                            top: r.top + window.scrollY + 8,
+                        };
+                    }
+                    const r = pane.getBoundingClientRect();
+                    return {
+                        left: r.left + window.scrollX,
+                        top: r.top + window.scrollY,
+                    };
+                });
+
+                for (const label of Array.from(labels)) {
+                    const style = (label as HTMLElement).style;
+                    const labelLeft = parseFloat(
+                        style.getPropertyValue('--vim-motions-hint-left'),
+                    );
+                    const labelTop = parseFloat(
+                        style.getPropertyValue('--vim-motions-hint-top'),
+                    );
+                    for (const pos of panePositions) {
+                        if (
+                            Math.abs(labelLeft - pos.left) < 2 &&
+                            Math.abs(labelTop - pos.top) < 2
+                        ) {
+                            return label.textContent ?? '';
+                        }
+                    }
+                }
+                return '';
+            })) as string;
+            expect(paneLabel.length).toBeGreaterThan(0);
+
+            for (const ch of paneLabel) {
+                await browser.keys([ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+            const wasCalled = (await browser.executeObsidian(() => {
+                const fn = (
+                    window as unknown as Record<string, unknown>
+                ).__hintTestDuplicateCalled as () => boolean;
+                const restore = (
+                    window as unknown as Record<string, unknown>
+                ).__hintTestRestore as () => void;
+                const result = fn?.() ?? false;
+                restore?.();
+                return result;
+            })) as boolean;
+
+            expect(wasCalled).toBe(true);
+        });
+
         it('yg from graph view should reset without overlay', async function () {
             await browser.keys(['y']);
             await browser.pause(PAUSE.KEY_GAP);

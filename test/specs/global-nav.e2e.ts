@@ -377,6 +377,76 @@ describe('Global workspace navigation', function () {
         });
     });
 
+    describe('Scroll in bases view', function () {
+        before(async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const exists = await app.vault.adapter.exists('TestBase.base');
+                if (!exists) {
+                    await app.vault.adapter.write('TestBase.base', '{}');
+                }
+            });
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+        });
+
+        after(async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const exists = await app.vault.adapter.exists('TestBase.base');
+                if (exists) {
+                    await app.vault.adapter.remove('TestBase.base');
+                }
+            });
+        });
+
+        it('H from bases view should switch to previous tab', async function () {
+            await obsidianPage.loadWorkspaceLayout({
+                main: {
+                    id: 'bases-root',
+                    type: 'split',
+                    children: [
+                        {
+                            id: 'bases-tab-group',
+                            type: 'tabs',
+                            children: [
+                                {
+                                    id: 'bases-md-leaf',
+                                    type: 'leaf',
+                                    state: {
+                                        type: 'markdown',
+                                        state: {
+                                            file: 'Welcome.md',
+                                            mode: 'source',
+                                        },
+                                    },
+                                },
+                                {
+                                    id: 'bases-leaf',
+                                    type: 'leaf',
+                                    state: {
+                                        type: 'bases',
+                                        state: { file: 'TestBase.base' },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    direction: 'vertical',
+                },
+                active: 'bases-leaf',
+                lastOpenFiles: [],
+            });
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const before = await getActiveViewType();
+            expect(before).toBe('bases');
+
+            await browser.keys(['H']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveViewType();
+            expect(after).toBe('markdown');
+        });
+    });
+
     describe('Global ex command line', function () {
         beforeEach(async function () {
             await loadTwoTabs();

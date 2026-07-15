@@ -19,6 +19,7 @@ const GLOBAL_NAV_VIEW_TYPES = new Set([
     'canvas',
     'empty',
     'image',
+    'bases',
 ]);
 
 function isEditorOrInputFocused(doc: Document): boolean {
