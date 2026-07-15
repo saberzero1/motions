@@ -1391,3 +1391,31 @@ settings:
         font-size: var(--font-smallest);
     }
 }
+
+/* ── Textarea vim overlay ──────────────────────────────────── */
+
+.vim-motions-textarea-hidden {
+    visibility: hidden !important;
+    position: absolute !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+.vim-motions-textarea-overlay {
+    display: inline-block;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    overflow: hidden;
+}
+
+.vim-motions-textarea-overlay .cm-editor {
+    background: var(--background-primary);
+}
+
+.vim-motions-textarea-overlay .cm-editor .cm-scroller {
+    padding: var(--size-4-1) var(--size-4-2);
+}
+
+.vim-motions-textarea-overlay .cm-editor .cm-gutters {
+    display: none;
+}

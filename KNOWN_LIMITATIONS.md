@@ -1242,6 +1242,32 @@ The following are intentionally not implemented in v1:
 
 `:snippet <name>` and `:snippets` (picker) commands are registered but expansion via the test harness's `Vim.handleEx()` bridge does not produce visible results. The commands work correctly when typed directly in the ex command line. The issue is that `getActiveEditorView(app)` returns a view reference that differs from the adapter's CM6 view when invoked through the programmatic `handleEx` path. This is a test infrastructure limitation, not a user-facing bug.
 
+## Vim keybindings in text areas
+
+**Status**: Experimental (disabled by default). ([#69](https://github.com/saberzero1/motions/issues/69))
+
+When enabled (**Settings → Vim Motions → Vim features → Vim keybindings in text areas**), focused `<textarea>` elements are replaced with a vim-enabled CodeMirror 6 editor overlay. The editor starts in insert mode — typing works immediately. Press Escape to enter normal mode for full vim editing (motions, operators, text objects, ex commands). A second Escape blurs the overlay and restores the original textarea. Content is continuously synced back to the hidden textarea (100ms debounce) with synthetic `input` and `change` events for host plugin compatibility.
+
+Desktop only. Configurable via `vim.opt.vimtextareas = true` in Lua or `set vimtextareas` in vimrc.
+
+### Scope
+
+- Only `<textarea>` elements are replaced. `<input>`, `<select>`, and `contenteditable` elements are not affected.
+- The plugin's own UI elements (picker, oil explorer, vim command-line panel) are never replaced.
+- Disabled, readonly, and textareas inside existing CM6 editors or table cell editors are skipped.
+
+### Limitations
+
+- **`<input>` elements not supported** — only `<textarea>` elements are replaced. Inputs have too many conflicts with host plugin keyboard handling (Enter to submit, Tab to navigate, picker keybindings).
+- **No `contenteditable` support** — contenteditable divs conflict with CM6 internals (which uses contenteditable itself).
+- **No `<iframe>` support** — cross-origin iframe textareas are inaccessible; same-origin iframes would need per-document observer installation.
+- **Framework re-render conflicts** — plugins using React, Svelte, or other frameworks may re-render the textarea, removing the CM6 overlay. The manager detects removal but does not retry replacement.
+- **Programmatic value changes not detected** — if a host plugin sets `textarea.value` programmatically while the CM6 overlay is active, the overlay does not pick up the change. The synced value on blur will overwrite the programmatic change.
+- **Popout windows not supported** — the `focusin` listener is installed on the main document only. Textareas in popout windows are not detected.
+- **`maxlength` not enforced** — textareas with a `maxlength` attribute are not constrained in the CM6 overlay. Content exceeding `maxlength` will be truncated on sync-back by the browser.
+- **Source-mode markdown highlighting** — the CM6 overlay uses Obsidian's source-mode rendering, which applies markdown syntax highlighting. This is cosmetic and does not affect the synced content.
+- **`workspace.activeEditor` not set** — the overlay uses `skipActiveEditor: true` to avoid interfering with Obsidian's editor tracking. Plugins that check `workspace.activeEditor` will not see the textarea overlay as the active editor.
+
 ### Dynamic node (`d()`) test registration timing
 
 Lua-defined `d()` snippets registered via `loadLuaConfig` in e2e tests may not appear in the snippet registry because `reloadFeatures()` called after Lua config load is short-circuited by the autocmd manager's `isFiring()` guard. The snippet registry IS rebuilt directly in `loadLuaConfigInternal` (bypassing `reloadFeatures`), but `d()` snippets defined in a test-specific `loadLuaConfig` call may not trigger this path correctly. The `f()` node tests pass because they benefit from the direct registry rebuild added to address this issue. This is a test lifecycle timing issue, not a runtime bug — real users defining `d()` snippets in `.obsidian.init.lua` will have them loaded correctly during normal plugin initialization.

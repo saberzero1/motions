@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Vim keybindings in text areas** — focused `<textarea>` elements (e.g., flashcard edit modals from Spaced Repetition) are replaced with a vim-enabled CodeMirror 6 editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode with full vim support. Second Escape blurs the overlay and re-dispatches Escape to the parent UI (modal close, etc.). Content syncs back to the hidden textarea continuously (100ms debounce) with synthetic `input`/`change` events. Desktop only, disabled by default. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (new), `src/editors/embeddable-editor.ts` (`skipActiveEditor` option), `src/main.ts` (registration), `src/settings.ts` (`enableVimTextareas`), `src/vim/options.ts` (`vimtextareas`/`vta`), `src/vimrc/loader.ts` (`KNOWN_SET_OPTIONS`), `styles.css` (overlay + hidden styles)
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: Added "Vim keybindings in text areas" section with scope, limitations (no input/contenteditable/iframe support, framework re-render conflicts, programmatic value detection, popout windows, maxlength enforcement)
+- `docs/configuration/settings.md`: Added "Vim keybindings in text areas" setting to Vim features table
+- `docs/configuration/vimrc.md`: Added `vimtextareas`/`vta` to boolean options table
+- `docs/configuration/lua-config.md`: Added `vimtextareas` to `vim.opt` table
+
 ## [0.59.0] - 2026-07-15
 
 ### Fixed

@@ -26,6 +26,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Fully remappable keybindings** — every keybinding can be customized via Lua or vimrc across all contexts (editor, oil explorer, picker, workspace)
 - **Folding** — full Neovim-style fold commands: `zf` (create), `zd` (delete), `zE` (eliminate all), `zm`/`zr` (incremental level), custom fold providers for frontmatter and callouts, descriptive fold placeholder text, fold-aware navigation (auto-unfold on `]h`), cross-session fold persistence, and optional fold column gutter (`set foldcolumn`) with click-to-fold
 - **Input method switching** — automatic IM switching for CJK users when entering/leaving insert mode. Supports macism, im-select, fcitx5-remote, ibus, and any external binary. Platform presets for one-click setup, per-editor state with session persistence, composition guard, `:IMToggle`/`:IMStatus` ex commands, Lua API (`vim.obsidian.im`). Desktop only.
+- **Vim in text areas** — focused `<textarea>` elements in modals and plugin UIs are replaced with a vim-enabled editor overlay. Starts in insert mode for transparent typing; press Escape for full vim editing. Experimental, disabled by default. Desktop only.
 - **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation

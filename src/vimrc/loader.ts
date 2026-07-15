@@ -237,6 +237,8 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         settingsKey: 'snippetTriggerMode',
         validValues: ['completion', 'tab', 'both'],
     },
+    vimtextareas: { type: 'boolean', settingsKey: 'enableVimTextareas' },
+    vta: { type: 'boolean', settingsKey: 'enableVimTextareas' },
 };
 
 const clipboardOpt: SideEffectOpt = {

@@ -211,6 +211,8 @@ export interface VimMotionsSettings {
     snippetBundled: boolean;
     snippetDirectory: string;
     snippetTriggerMode: 'completion' | 'tab' | 'both';
+
+    enableVimTextareas: boolean;
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -308,6 +310,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     snippetBundled: true,
     snippetDirectory: '',
     snippetTriggerMode: 'both' as const,
+
+    enableVimTextareas: false,
 };
 
 interface ObsidianCommand {
@@ -365,6 +369,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableEasyMotion',
         'enableHintMode',
         'enableHarpoon',
+        'enableVimTextareas',
         'foldAwareNavigation',
         'foldPersistence',
         'enableStatusBar',
@@ -689,6 +694,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                         },
                     },
+                    ...(Platform.isDesktop
+                        ? [
+                              {
+                                  name: 'Vim keybindings in text areas',
+                                  desc: this.describeOverride(
+                                      'enableVimTextareas',
+                                      'Replace focused text areas with a vim-enabled editor. The editor starts in insert mode \u2014 press Escape for normal mode. Experimental.',
+                                  ),
+                                  control: {
+                                      type: 'toggle' as const,
+                                      key: 'enableVimTextareas' as const,
+                                      disabled: () =>
+                                          this.isOverridden(
+                                              'enableVimTextareas',
+                                          ),
+                                  },
+                              },
+                          ]
+                        : []),
                 ],
             },
 

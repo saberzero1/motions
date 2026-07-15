@@ -171,6 +171,7 @@ import { OilCache } from './oil/cache';
 import { OilKeybindingManager } from './oil/keybindings';
 import { OilManager } from './oil/manager';
 import { OilView, createOilViewFactory } from './oil/oil-view';
+import { TextareaVimManager } from './vim/textarea-vim-manager';
 import { ImSwitcher } from './im/im-switcher';
 import { parseImArgs } from './im/im-process';
 import { expandTilde } from './util/external-fs';
@@ -215,6 +216,7 @@ export default class VimMotionsPlugin extends Plugin {
     private previousFoldFile: string | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
+    private textareaVimManager: TextareaVimManager | null = null;
     private globalRegistry: GlobalMappingRegistry | null = null;
     private globalWhichKeyOverlay: GlobalWhichKeyOverlay | null = null;
     private vimrcGlobalMaps: DeferredGlobalMap[] = [];
@@ -1652,6 +1654,18 @@ export default class VimMotionsPlugin extends Plugin {
             this.rebuildGlobalWhichKey();
         }
 
+        if (this.settings.enableVimTextareas && !Platform.isMobile) {
+            this.textareaVimManager = new TextareaVimManager(
+                this.app,
+                this.settings.cursorShapes,
+            );
+            this.textareaVimManager.install();
+            this.register(() => {
+                this.textareaVimManager?.destroy();
+                this.textareaVimManager = null;
+            });
+        }
+
         // --- Leader bindings from settings UI ---
         this.registration.beginLeaderScope();
         this.applySettingsLeaderBindings(
@@ -1993,6 +2007,20 @@ export default class VimMotionsPlugin extends Plugin {
             this.globalKeyHandler.openPicker = this.openPicker ?? undefined;
             this.globalKeyHandler.install();
             this.rebuildGlobalWhichKey();
+        }
+
+        this.textareaVimManager?.destroy();
+        this.textareaVimManager = null;
+        if (this.settings.enableVimTextareas && !Platform.isMobile) {
+            this.textareaVimManager = new TextareaVimManager(
+                this.app,
+                this.settings.cursorShapes,
+            );
+            this.textareaVimManager.install();
+            this.register(() => {
+                this.textareaVimManager?.destroy();
+                this.textareaVimManager = null;
+            });
         }
 
         this.scrolloffManager?.setup(this.settings.scrolloffLines);

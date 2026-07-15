@@ -86,6 +86,7 @@ src/
     table-embedded-editor.ts   # Embedded editor within table widgets
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing
+    textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay)
   text-objects/
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)
     link.ts                # [[wikilink]] and [text](url) text objects

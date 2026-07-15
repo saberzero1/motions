@@ -382,6 +382,16 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}whichkeyicons`,
         );
     });
+
+    vim.defineOption('vimtextareas', false, 'boolean', ['vta'], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'enableVimTextareas',
+            enabled,
+            `set ${enabled ? '' : 'no'}vimtextareas`,
+        );
+    });
     registered = true;
 }
 

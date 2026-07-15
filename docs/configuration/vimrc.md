@@ -142,6 +142,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `markgutter`        | —     | Alias for `signcolumn` (compat)       | on      |
 | `snippets`          | —     | Enable snippet expansion              | on      |
 | `snippetbundled`    | —     | Include bundled Obsidian snippets     | on      |
+| `vimtextareas`      | `vta` | Vim keybindings in text areas         | off     |
 
 ## Number options
 

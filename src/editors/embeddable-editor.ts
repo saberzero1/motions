@@ -129,6 +129,13 @@ export interface EmbeddableEditorOptions {
     extensions?: Extension[];
     cursorShapes?: CursorShapes;
     cursorLocation?: { anchor: number; head: number };
+    /**
+     * When true, the editor will NOT set `workspace.activeEditor` on
+     * focus or clear it on destroy.  Use for lightweight overlays
+     * (textarea replacements) that should not interfere with
+     * Obsidian's editor tracking.
+     */
+    skipActiveEditor?: boolean;
 
     onEnter?: (
         editor: EmbeddableMarkdownEditor,
@@ -152,6 +159,7 @@ const defaultOptions: Required<EmbeddableEditorOptions> = {
     extensions: [],
     cursorShapes: undefined!,
     cursorLocation: { anchor: 0, head: 0 },
+    skipActiveEditor: false,
     onEnter: noopFalse,
     onEscape: noop,
     onSubmit: noop,
@@ -278,9 +286,13 @@ function buildEditorClass(
 
             this.editor.cm.contentDOM.addEventListener('focusin', () => {
                 pushKeymapScope(editorApp, self._scope);
-                (
-                    editorApp.workspace as unknown as { activeEditor: unknown }
-                ).activeEditor = self.owner;
+                if (!opts.skipActiveEditor) {
+                    (
+                        editorApp.workspace as unknown as {
+                            activeEditor: unknown;
+                        }
+                    ).activeEditor = self.owner;
+                }
             });
 
             this.editor.cm.contentDOM.addEventListener('blur', () => {
@@ -365,9 +377,11 @@ function buildEditorClass(
         destroy(): void {
             if (this._loaded) this.unload();
             popKeymapScope(this._app, this._scope);
-            (
-                this._app.workspace as unknown as { activeEditor: unknown }
-            ).activeEditor = null;
+            if (!this._opts.skipActiveEditor) {
+                (
+                    this._app.workspace as unknown as { activeEditor: unknown }
+                ).activeEditor = null;
+            }
             this.containerEl.empty();
             super.destroy();
         }

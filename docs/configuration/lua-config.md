@@ -146,6 +146,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `expandtab`               | boolean | `true`                         |                                               | `vim.opt.expandtab = true`               |
 | `cursorline`              | boolean | `true`                         |                                               | `vim.opt.cursorline = true`              |
 | `foldcolumn`              | boolean | `false`                        |                                               | `vim.opt.foldcolumn = true`              |
+| `vimtextareas`            | boolean | `false`                        |                                               | `vim.opt.vimtextareas = true`            |
 | `scrolloff`               | number  | `5`                            | 0–9999                                        | `vim.opt.scrolloff = 8`                  |
 | `scanlimit`               | number  | `20`                           | 5–200                                         | `vim.opt.scanlimit = 20`                 |
 | `labelfontsize`           | number  | `14`                           | 10–20                                         | `vim.opt.labelfontsize = 14`             |
