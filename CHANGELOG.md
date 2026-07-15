@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.60.1] - 2026-07-15
 
-## [0.60.1] - 2026-07-15
-
 ### Fixed
 
 - **Textarea vim setting not visible in legacy settings UI** — the "Vim keybindings in text areas" toggle was only added to the new `getSettingDefinitions()` API (Obsidian 1.13+). Users on Obsidian <1.13 could not find or enable the setting. Added the toggle to the legacy `display()` method in the "Vim features" section. ([#69](https://github.com/saberzero1/motions/issues/69))
