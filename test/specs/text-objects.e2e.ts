@@ -44,7 +44,7 @@ describe('Markdown text objects (Phase 1.1)', function () {
             expect(await getEditorValue()).toBe('Hello  world');
         });
 
-        it.skip('ci* should change inside bold (known Live Preview limitation: c operator insert position affected by collapsed marks)', async function () {
+        it('ci* should change inside bold', async function () {
             await setupEditor('Hello **bold text** world', { line: 0, ch: 12 });
             await vimKeys('c', 'i', '*');
             await browser.keys('new'.split(''));

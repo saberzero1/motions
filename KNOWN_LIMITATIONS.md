@@ -639,7 +639,9 @@ Investigation (issue [#33](https://github.com/saberzero1/motions/issues/33)) fou
 
 The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed.
 
-**Permanent limitation: `ci*` in Live Preview** — the `c` (change) operator deletes text and enters insert mode at the deletion point. If the deletion point falls inside a collapsed formatting mark region, the insert cursor may land at the wrong position. `di*` (delete without entering insert mode) works correctly. This is a CM6 platform limitation — the view layer maps cursor positions incorrectly when entering insert mode at a point inside a collapsed `Decoration.replace` region. No plugin-side or fork-side fix is feasible without changes to CM6's collapsed mark handling.
+~~**Permanent limitation: `ci*` in Live Preview**~~ — Investigation (spike27) found that `ci*` works correctly in Live Preview for multi-character content (`**bold text**` → `ci*` → type replacement → correct result). On the active line, Obsidian uses `Decoration.mark` (visible text nodes), not `Decoration.replace` — the cursor is not displaced by collapsed decorations. The original limitation was overstated based on early testing with a transaction filter that has since been removed.
+
+**Test coverage**: `test/specs/text-objects.e2e.ts` — `ci*` unskipped and passing for multi-character bold content.
 
 ## ~~Visual line selection overlap in Live Preview~~ (Fixed)
 
@@ -1045,17 +1047,15 @@ See `docs/configuration/remapping.md` for the full remapping guide with examples
 - ~~Which-key integration for oil keybindings (showing oil bindings in the which-key popup) is planned but not yet implemented~~ — Fixed. Oil command labels are registered in the which-key overlay's `commandLabels` map. When oil bindings are dynamically mapped (on `OilEnter`), they appear in `vim.getCompletions()` and the which-key overlay displays descriptive labels instead of raw ex command strings. When leaving oil, bindings are unmapped and disappear from completions.
 - ~~Help command (`g?` in oil context) is planned but not yet implemented~~ — Implemented. `g?` opens a `VimInfoModal` listing all oil keybindings in a Key/Action table, following the same pattern used by `:marks`, `:buffers`, and `:registers` when the picker is disabled. Dismissible via Escape.
 
-### Which-key and `g?` in non-editor context
+### ~~Which-key and `g?` in non-editor context~~ (Fixed)
 
-When Oil is opened from a non-editor context (e.g., all editor leaves are closed and Oil is the only view), the which-key overlay cannot attach to the Oil editor's vim adapter. The `WhichKeyOverlay.tryAttach()` method relies on `active-leaf-change` to detect the Oil view's embedded CM6 editor, but when no prior editor context exists, the adapter attachment fails silently. In this state, which-key completions do not appear when pressing partial key sequences (e.g., `g`), and `g?` does not trigger the help modal because the vim engine's key events don't reach the which-key handler.
+Investigation (spike25) found that `WhichKeyOverlay.tryAttach()` correctly attaches to Oil's embedded CM6 editor via `getCmAdapterFromEditorView()`, even when Oil is the only view (no prior MarkdownView). The which-key overlay works in Oil-only contexts.
 
-When Oil is opened from an editor context (`:Oil` typed in a markdown editor), both which-key and `g?` work correctly.
+### ~~Which-key "all" mode intercepts multi-key Oil bindings~~ (Fixed)
 
-### Which-key "all" mode intercepts multi-key Oil bindings
+When which-key mode is set to "All partial keys" and the popup delay is non-zero (default 500ms), pressing `g` in Oil started a delayed timer. The overlay appeared between the `g` and the second keystroke (`?`, `.`, `s`, `f`), disrupting the vim key sequence completion. Fixed by bypassing the popup delay timer when the active view is an OilView — the overlay shows immediately (matching delay=0 behavior), which allows the vim engine to process multi-key bindings (`g?`, `g.`, `gs`, `gf`) without interference. The overlay still appears for partial sequences in Oil, preserving discoverability for operator-pending keys (`d`, `c`, `y`, etc.).
 
-When which-key mode is set to "All partial keys", pressing `g` in Oil opens the which-key completions overlay. The subsequent `?` keystroke (intended to complete the `g?` binding) is consumed by the which-key overlay as a navigation input rather than being passed to the vim engine. This prevents `g?` (and other `g`-prefixed Oil bindings like `g.`, `gs`, `gf`) from being triggered via sequential DOM keypresses when the which-key overlay is visible.
-
-Workaround: use "Leader key only" which-key mode, or invoke `:oilhelp` directly from the ex command line.
+**Test coverage**: `test/specs/oil-which-key.e2e.ts` — 4 tests covering `g?` help modal, `g.` non-interception, no stale overlay after `g?`, and leader-mode control.
 
 | `vim.lsp.*` / `vim.treesitter.*` | Not applicable to Obsidian |
 | Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred |

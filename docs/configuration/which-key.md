@@ -340,8 +340,5 @@ When the Oil file explorer is open and Obsidian's built-in vim mode is disabled 
 > [!info] Fork mode only
 > Oil which-key integration requires fork mode (built-in vim disabled). With built-in vim enabled, the embedded Oil editor does not have access to the fork's CM adapter.
 
-> [!warning] Non-editor context
-> When Oil is opened without any prior editor context (e.g., all editor leaves are closed), the which-key overlay cannot attach to Oil's embedded editor adapter. In this state, which-key completions and `g?` do not work. Open a markdown file first, then use `:Oil` from the editor to ensure correct initialization.
-
-> [!warning] "All partial keys" mode
-> In "All partial keys" mode, pressing `g` opens the which-key completions overlay, which intercepts the subsequent `?` keystroke before it reaches the vim engine. This prevents `g?` and other `g`-prefixed Oil bindings from triggering. Use "Leader key only" mode or invoke `:oilhelp` directly.
+> [!tip] Instant overlay in Oil
+> In "All partial keys" mode, the which-key popup delay is automatically bypassed when an Oil view is active. The overlay appears immediately on partial keys, allowing multi-key bindings (`g?`, `g.`, `gs`, `gf`) to complete without interference. This matches the delay=0 behavior and preserves operator-pending hints (`d`, `c`, `y`) in Oil.

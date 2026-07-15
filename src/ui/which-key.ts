@@ -564,7 +564,10 @@ export class WhichKeyOverlay {
             return;
         }
 
-        if (this.showDelay > 0) {
+        const isOilActive =
+            this.app.workspace.getMostRecentLeaf()?.view instanceof OilView;
+
+        if (this.showDelay > 0 && !isOilActive) {
             this.showTimer = window.setTimeout(() => {
                 this.showCompletionsIfPartial(capturedAdapter);
             }, this.showDelay);

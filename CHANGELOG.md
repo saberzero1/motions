@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Which-key "all" mode intercepting multi-key Oil bindings** — in "All partial keys" mode, the popup delay timer (default 500ms) caused the which-key overlay to appear between the `g` and second keystroke (`?`, `.`, `s`, `f`), disrupting Oil's `g?` help modal and other `g`-prefixed bindings. Fixed by bypassing the popup delay timer when the active view is an OilView — the overlay shows immediately, allowing multi-key bindings to complete without interference. Operator-pending hints (`d`, `c`, `y`) still work normally in Oil.
+    - Plugin: `src/ui/which-key.ts` (`onKeyPressGeneral` Oil context check)
+- **`ci*` marked as permanent Live Preview limitation** — investigation found that `ci*` (change inside bold) works correctly in Live Preview for multi-character content. On the active line, Obsidian uses `Decoration.mark` (visible text nodes), not `Decoration.replace` — the cursor is not displaced by collapsed decorations. The original limitation was overstated based on early testing with a transaction filter that has since been removed.
+    - Plugin: `test/specs/text-objects.e2e.ts` (unskipped `ci*` test, now passing)
+
+### Tests
+
+- 4 new e2e tests in `test/specs/oil-which-key.e2e.ts`: `g?` opens Oil help modal with which-key "all" mode, `g.` not intercepted, no stale overlay after `g?`, leader-mode control
+- 1 unskipped e2e test in `test/specs/text-objects.e2e.ts`: `ci*` on multi-character bold content
+
+### Documentation
+
+- `CHANGELOG.md`: Added entries for which-key + Oil fix and `ci*` limitation resolution
+- `KNOWN_LIMITATIONS.md`: Which-key + Oil non-editor context → Fixed; which-key "all" mode Oil interception → Fixed; `ci*` Live Preview → resolved (was overstated)
+- `docs/configuration/which-key.md`: Updated Oil explorer context section — removed non-editor and "all" mode warnings
+- `docs/features/text-objects.md`: Removed `ci*` limitation note if present
+
 ## [0.61.0] - 2026-07-15
 
 ### Fixed
