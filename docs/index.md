@@ -26,13 +26,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 65 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.59.0
+## What's new in 0.60.0
 
-- **Format-on-exit table alignment** — replaced mid-edit `|` keystroke interception with format-on-exit: tables are only realigned when the cursor leaves the table range. Typing `|` no longer causes cursor jumps ([#66](https://github.com/saberzero1/motions/issues/66)), and escaped pipes (`\|`) are handled correctly in raw/cursor-aware modes ([#67](https://github.com/saberzero1/motions/issues/67)).
-- **Absolute line number highlight** — the current-line highlight now follows the cursor when only absolute line numbers are enabled (`set number` without `set relativenumber`) ([#68](https://github.com/saberzero1/motions/issues/68)).
-- **Neovim-style modal styling** — all modal dialogs (`:` ex command, `:marks`, `:buffers`, `:registers`, `:outline`, `:vimgrep`, `gra`, Oil confirm) now use Neovim-inspired styling with accent borders, floating titles, monospace font, and full theme compatibility.
+- **Vim keybindings in text areas** — focused `<textarea>` elements (e.g., flashcard edit modals from Spaced Repetition) are replaced with a vim-enabled CodeMirror 6 editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode with full vim support. Content syncs back continuously. Desktop only, disabled by default. ([#69](https://github.com/saberzero1/motions/issues/69))
 
 See the [[changelog|full changelog]] for details.

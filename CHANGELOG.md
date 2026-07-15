@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-07-15
+
 ### Added
 
 - **Vim keybindings in text areas** — focused `<textarea>` elements (e.g., flashcard edit modals from Spaced Repetition) are replaced with a vim-enabled CodeMirror 6 editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode with full vim support. Second Escape blurs the overlay and re-dispatches Escape to the parent UI (modal close, etc.). Content syncs back to the hidden textarea continuously (100ms debounce) with synthetic `input`/`change` events. Desktop only, disabled by default. ([#69](https://github.com/saberzero1/motions/issues/69))

@@ -1395,10 +1395,10 @@ settings:
 /* ── Textarea vim overlay ──────────────────────────────────── */
 
 .vim-motions-textarea-hidden {
-    visibility: hidden !important;
-    position: absolute !important;
-    height: 0 !important;
-    overflow: hidden !important;
+    visibility: hidden;
+    position: absolute;
+    height: 0;
+    overflow: hidden;
 }
 
 .vim-motions-textarea-overlay {
