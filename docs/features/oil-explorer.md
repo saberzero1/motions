@@ -52,7 +52,7 @@ All oil keybindings can be remapped via Lua or vimrc. Each keybinding maps to an
 | `:oilcyclesort`    | `:oilcy`  | `gs`        | Cycle sort order                 |
 | `:oilyankpath`     | `:oily`   | `y.`        | Yank file path to clipboard      |
 | `:oilreveal`       | `:oilrev` | `gf`        | Reveal in Obsidian file explorer |
-| `:oilhelp`         | `:oilh`   | `g?`        | Toggle keybinding help overlay   |
+| `:oilhelp`         | `:oilh`   | `g?`        | Show keybinding help modal       |
 
 ### Remap via Lua (recommended)
 

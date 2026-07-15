@@ -4,6 +4,7 @@ import type { AutocmdManager } from '../lua/autocmd';
 import { getVimApi } from '../vim/vim-api';
 import { OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
+import { VimInfoModal } from '../ui/vim-info-modal';
 
 interface OilMapping {
     lhs: string;
@@ -260,9 +261,8 @@ export class OilKeybindingManager {
                 new Notice(`Oil: yanked ${entry.path}`);
             },
             oilHelp: () => {
-                const view = getActiveOilView();
-                if (!view) return;
-                this.showOilHelp(view);
+                if (!getActiveOilView()) return;
+                this.showOilHelp();
             },
             oilRevealInExplorer: () => {
                 const view = getActiveOilView();
@@ -297,53 +297,15 @@ export class OilKeybindingManager {
         };
     }
 
-    private showOilHelp(view: OilView): void {
-        const existing = view.containerEl.querySelector(
-            '.vim-motions-oil-help',
-        );
-        if (existing) {
-            existing.remove();
-            return;
-        }
-
-        const overlay = createDiv({ cls: 'vim-motions-oil-help' });
-        overlay.createDiv({
-            cls: 'vim-motions-oil-help-title',
-            text: 'Oil keybindings',
-        });
-
-        const grid = overlay.createDiv({ cls: 'vim-motions-oil-help-grid' });
-        for (const m of OIL_MAPPINGS) {
-            const row = grid.createDiv({ cls: 'vim-motions-oil-help-row' });
-            row.createSpan({
-                cls: 'vim-motions-oil-help-key',
-                text: m.lhs,
-            });
-            row.createSpan({
-                cls: 'vim-motions-oil-help-desc',
-                text: m.desc,
-            });
-        }
-
-        view.containerEl.appendChild(overlay);
-
-        const doc = view.containerEl.ownerDocument;
-        const escHandler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                overlay.remove();
-                doc.removeEventListener('keydown', escHandler);
-            }
-        };
-        doc.addEventListener('keydown', escHandler);
-
-        const cleanup = () => {
-            overlay.remove();
-            doc.removeEventListener('keydown', escHandler);
-        };
-        this.helpCleanup = cleanup;
+    private showOilHelp(): void {
+        const rows = OIL_MAPPINGS.map((m) => [m.lhs, m.desc]);
+        new VimInfoModal(
+            this.app,
+            'Oil keybindings',
+            [{ header: 'Key' }, { header: 'Action' }],
+            rows,
+        ).open();
     }
-
-    private helpCleanup: (() => void) | null = null;
 
     getCommandLabels(): Array<{ key: string; label: string }> {
         return OIL_MAPPINGS.map((m) => ({ key: m.lhs, label: m.desc }));
@@ -351,7 +313,5 @@ export class OilKeybindingManager {
 
     destroy(): void {
         if (this.applied) this.remove();
-        this.helpCleanup?.();
-        this.helpCleanup = null;
     }
 }

@@ -20,13 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Live grep UI blocking on large vaults** — the live grep picker source now uses chunked async iteration (50 files per chunk) with event loop yields between chunks, preventing UI freezes during searches on vaults with many files. Functionally identical results.
     - Plugin: `src/picker/sources/live-grep.ts` (chunked iteration with `window.setTimeout(0)` yields)
 
-### Documentation
+### Changed
 
-- `KNOWN_LIMITATIONS.md`: Table escaped pipes → Fixed; `g?` oil help command → Fixed (was listed as "planned but not yet implemented"); oil which-key integration → Fixed; surround `ys` dot-repeat with tag/function → clarified as working at runtime (test infrastructure limitation only); vimrc timing section updated with improved retry mechanism
+- **Oil `g?` help uses `VimInfoModal`** — `g?` in Oil now opens a modal dialog (Key/Action table) instead of a custom DOM overlay. This follows the same pattern used by `:marks`, `:buffers`, and `:registers` when the picker is disabled. Dismissible via Escape.
+    - Plugin: `src/oil/keybindings.ts` (`showOilHelp` rewritten to use `VimInfoModal`), `styles.css` (removed `.vim-motions-oil-help*` CSS)
 
 ### Tests
 
 - 5 e2e tests in `test/specs/table-escaped-pipes.e2e.ts` (new): `di|` with `\|` content, `\\|` as real pipe boundary, `]|` navigation skipping `\|`, `yi|` yanking cell with `\|`, `:tablerealign` preserving `\|` cell content
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: Table escaped pipes → Fixed; `g?` oil help command → Fixed (was listed as "planned but not yet implemented"); oil which-key integration → Fixed; surround `ys` dot-repeat with tag/function → clarified as working at runtime (test infrastructure limitation only); vimrc timing section updated with improved retry mechanism
+- `KNOWN_LIMITATIONS.md`: Added two new Oil limitations — which-key/`g?` not working in non-editor context (no prior editor leaf), and which-key "all" mode intercepting multi-key Oil bindings (`g?`, `g.`, `gs`, `gf`)
 
 ## [0.57.0] - 2026-07-14
 

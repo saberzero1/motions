@@ -1031,7 +1031,19 @@ See `docs/configuration/remapping.md` for the full remapping guide with examples
 **Remaining limitations**:
 
 - ~~Which-key integration for oil keybindings (showing oil bindings in the which-key popup) is planned but not yet implemented~~ — Fixed. Oil command labels are registered in the which-key overlay's `commandLabels` map. When oil bindings are dynamically mapped (on `OilEnter`), they appear in `vim.getCompletions()` and the which-key overlay displays descriptive labels instead of raw ex command strings. When leaving oil, bindings are unmapped and disappear from completions.
-- ~~Help command (`g?` in oil context) is planned but not yet implemented~~ — Implemented. `g?` opens the `showOilHelp()` overlay showing all oil keybindings in a grid layout.
+- ~~Help command (`g?` in oil context) is planned but not yet implemented~~ — Implemented. `g?` opens a `VimInfoModal` listing all oil keybindings in a Key/Action table, following the same pattern used by `:marks`, `:buffers`, and `:registers` when the picker is disabled. Dismissible via Escape.
+
+### Which-key and `g?` in non-editor context
+
+When Oil is opened from a non-editor context (e.g., all editor leaves are closed and Oil is the only view), the which-key overlay cannot attach to the Oil editor's vim adapter. The `WhichKeyOverlay.tryAttach()` method relies on `active-leaf-change` to detect the Oil view's embedded CM6 editor, but when no prior editor context exists, the adapter attachment fails silently. In this state, which-key completions do not appear when pressing partial key sequences (e.g., `g`), and `g?` does not trigger the help modal because the vim engine's key events don't reach the which-key handler.
+
+When Oil is opened from an editor context (`:Oil` typed in a markdown editor), both which-key and `g?` work correctly.
+
+### Which-key "all" mode intercepts multi-key Oil bindings
+
+When which-key mode is set to "All partial keys", pressing `g` in Oil opens the which-key completions overlay. The subsequent `?` keystroke (intended to complete the `g?` binding) is consumed by the which-key overlay as a navigation input rather than being passed to the vim engine. This prevents `g?` (and other `g`-prefixed Oil bindings like `g.`, `gs`, `gf`) from being triggered via sequential DOM keypresses when the which-key overlay is visible.
+
+Workaround: use "Leader key only" which-key mode, or invoke `:oilhelp` directly from the ex command line.
 
 | `vim.lsp.*` / `vim.treesitter.*` | Not applicable to Obsidian |
 | Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred |
