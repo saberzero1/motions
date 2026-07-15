@@ -3,7 +3,6 @@ import { Annotation, type Extension } from '@codemirror/state';
 import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import {
-    TABLE_RE,
     findTableRanges,
     splitCellsEscapeAware,
     realignTableLines,

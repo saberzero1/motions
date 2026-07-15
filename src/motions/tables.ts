@@ -8,11 +8,7 @@ import type {
 import type { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
 import { executeCommand } from '../util/commands';
-import {
-    findUnescapedPipes,
-    splitCellsEscapeAware,
-    realignTableLines,
-} from '../vim/table-utils';
+import { findUnescapedPipes, realignTableLines } from '../vim/table-utils';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
