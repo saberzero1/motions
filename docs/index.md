@@ -35,5 +35,6 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Vimrc file I/O timing** — `readVimrcFile()` now uses `stat()` as a readiness probe before `read()`, distinguishing genuinely empty files from timing-empty reads with extended backoff. The same pattern is applied to the Lua config loader.
 - **Oil which-key labels not appearing** — `getCommandLabels()` now always returns Oil keybinding labels regardless of whether the vim mappings are currently active.
 - **Live grep UI blocking on large vaults** — the live grep picker source now uses chunked async iteration with event loop yields between chunks, preventing UI freezes during searches on large vaults.
+- **Oil `g?` help modal** — `g?` in Oil now opens a `VimInfoModal` (Key/Action table) instead of a custom overlay, matching the pattern used by `:marks`, `:buffers`, and `:registers`.
 
 See the [[changelog|full changelog]] for details.
