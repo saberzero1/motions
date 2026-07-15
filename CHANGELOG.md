@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-07-15
+
 ### Fixed
 
 - **Hint mode `F` on pane targets opens in same tab instead of new tab** — pressing `F` in hint mode on a pane target (`.workspace-leaf-content`) behaved identically to `f` (focus the pane) instead of opening the pane's content in a new tab. The `hintActivate()` function ignored the `openInNewPane` parameter for `targetType === 'pane'`, always calling `setActiveLeaf()`. Now calls `workspace.duplicateLeaf(leaf, 'tab')` when `openInNewPane` is true. Link targets were unaffected — `openLinkText()` already used the parameter correctly. ([#70](https://github.com/saberzero1/motions/issues/70))

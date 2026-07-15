@@ -310,8 +310,7 @@ function hintActivate(
                 void app.workspace.duplicateLeaf(target.leaf, 'tab');
             } else {
                 app.workspace.setActiveLeaf(target.leaf, { focus: true });
-                const mdView =
-                    app.workspace.getActiveViewOfType(MarkdownView);
+                const mdView = app.workspace.getActiveViewOfType(MarkdownView);
                 if (mdView) {
                     mdView.editor.focus();
                 }

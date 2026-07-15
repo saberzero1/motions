@@ -29,8 +29,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 65 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.60.0
+## What's new in 0.61.0
 
-- **Vim keybindings in text areas** — focused `<textarea>` elements (e.g., flashcard edit modals from Spaced Repetition) are replaced with a vim-enabled CodeMirror 6 editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode with full vim support. Content syncs back continuously. Desktop only, disabled by default. ([#69](https://github.com/saberzero1/motions/issues/69))
+- **Hint mode `F` on pane targets opens in new tab** — pressing `F` in hint mode on a pane target now correctly opens the pane's content in a new tab via `duplicateLeaf`, instead of behaving identically to `f`. ([#70](https://github.com/saberzero1/motions/issues/70))
+- **`j`/`k` and standard-gate keys work in Bases views** — Obsidian Bases views (`.base` files) are now recognized as a standard view type, so `j`/`k` scroll, `H`/`L` tab switch, and count-prefix digits work correctly. ([#70](https://github.com/saberzero1/motions/issues/70))
 
 See the [[changelog|full changelog]] for details.

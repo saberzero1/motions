@@ -682,10 +682,12 @@ describe('Hint mode', function () {
                     duplicateCalled = true;
                     return (original as Function)(...args);
                 }) as typeof app.workspace.duplicateLeaf;
-                (window as unknown as Record<string, unknown>)
-                    .__hintTestDuplicateCalled = () => duplicateCalled;
-                (window as unknown as Record<string, unknown>)
-                    .__hintTestRestore = () => {
+                (
+                    window as unknown as Record<string, unknown>
+                ).__hintTestDuplicateCalled = () => duplicateCalled;
+                (
+                    window as unknown as Record<string, unknown>
+                ).__hintTestRestore = () => {
                     app.workspace.duplicateLeaf = original;
                 };
                 return true;
@@ -759,12 +761,10 @@ describe('Hint mode', function () {
             await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 
             const wasCalled = (await browser.executeObsidian(() => {
-                const fn = (
-                    window as unknown as Record<string, unknown>
-                ).__hintTestDuplicateCalled as () => boolean;
-                const restore = (
-                    window as unknown as Record<string, unknown>
-                ).__hintTestRestore as () => void;
+                const fn = (window as unknown as Record<string, unknown>)
+                    .__hintTestDuplicateCalled as () => boolean;
+                const restore = (window as unknown as Record<string, unknown>)
+                    .__hintTestRestore as () => void;
                 const result = fn?.() ?? false;
                 restore?.();
                 return result;
