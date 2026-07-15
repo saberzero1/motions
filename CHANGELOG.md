@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.60.1] - 2026-07-15
+
+## [0.60.1] - 2026-07-15
+
+### Fixed
+
+- **Textarea vim setting not visible in legacy settings UI** — the "Vim keybindings in text areas" toggle was only added to the new `getSettingDefinitions()` API (Obsidian 1.13+). Users on Obsidian <1.13 could not find or enable the setting. Added the toggle to the legacy `display()` method in the "Vim features" section. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/settings.ts` (added `enableVimTextareas` toggle to legacy settings UI)
+- **Textarea vim overlay grows with content instead of fixed size** — the CM6 editor overlay expanded vertically as content grew, unlike the original textarea which had a fixed height with scrollbar. Changed the wrapper to use `height` + `maxHeight` (copied from the original textarea's computed size) and added `overflow: auto` to the CM6 scroller, so content scrolls within the original textarea's dimensions. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (`height` + `maxHeight` instead of `minHeight`), `styles.css` (`overflow: auto` on `.cm-scroller`)
+- **Textarea vim overlay text larger than original** — the CM6 editor used Obsidian's default editor font size instead of inheriting from the original textarea. Added `font-size: inherit` to `.vim-motions-textarea-overlay .cm-editor` so the overlay matches the original element's font size. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `styles.css` (`font-size: inherit` on `.cm-editor`)
+- **Removed `!important` from textarea hidden styles** — the `.vim-motions-textarea-hidden` CSS class used `!important` on all four properties, which is not allowed by the project's CSS conventions.
+    - Plugin: `styles.css`
+
 ## [0.60.0] - 2026-07-15
 
 ### Added

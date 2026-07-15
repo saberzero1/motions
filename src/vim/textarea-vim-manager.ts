@@ -86,7 +86,7 @@ export class TextareaVimManager {
         this.cancelPendingFocus();
         this.focusTimer = window.setTimeout(() => {
             this.focusTimer = null;
-            if (document.activeElement !== target) return;
+            if (activeDocument.activeElement !== target) return;
             if (target.classList.contains(REPLACED_CLASS)) return;
             this.replace(target);
         }, DEBOUNCE_FOCUS_MS);
@@ -103,7 +103,8 @@ export class TextareaVimManager {
 
         const wrapper = createDiv({ cls: OVERLAY_CLASS });
         wrapper.style.width = computed.width;
-        wrapper.style.minHeight = computed.height;
+        wrapper.style.height = computed.height;
+        wrapper.style.maxHeight = computed.height;
         wrapper.style.fontSize = computed.fontSize;
         wrapper.style.fontFamily = computed.fontFamily;
         wrapper.style.lineHeight = computed.lineHeight;
@@ -151,7 +152,7 @@ export class TextareaVimManager {
                 }
             });
             const observeTarget =
-                parentContainer.parentElement ?? document.body;
+                parentContainer.parentElement ?? activeDocument.body;
             observer.observe(observeTarget, { childList: true });
         }
 
@@ -224,7 +225,7 @@ export class TextareaVimManager {
         const { wrapper } = this.active;
         window.requestAnimationFrame(() => {
             if (!this.active) return;
-            const newFocus = document.activeElement;
+            const newFocus = activeDocument.activeElement;
             if (newFocus && wrapper.contains(newFocus)) return;
             const { originalEl, editor } = this.active;
             this.syncNow(originalEl, editor);

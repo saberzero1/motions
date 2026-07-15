@@ -2388,6 +2388,30 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
+        if (Platform.isDesktop) {
+            new Setting(containerEl)
+                .setName('Vim keybindings in text areas')
+                .setDesc(
+                    describeOverride(
+                        'enableVimTextareas',
+                        'Replace focused text areas with a vim-enabled editor. The editor starts in insert mode \u2014 press Escape for normal mode. Experimental.',
+                    ),
+                )
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(this.plugin.settings.enableVimTextareas)
+                        .setDisabled(isOverridden('enableVimTextareas'))
+                        .onChange(async (value) => {
+                            this.plugin.settings.enableVimTextareas = value;
+                            this.plugin.vimrcOverrides?.delete(
+                                'enableVimTextareas',
+                            );
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+        }
+
         // ── Vim engine ──────────────────────────────────────────────
 
         new Setting(containerEl).setName('Vim engine').setHeading();

@@ -1410,10 +1410,12 @@ settings:
 
 .vim-motions-textarea-overlay .cm-editor {
     background: var(--background-primary);
+    font-size: inherit;
 }
 
 .vim-motions-textarea-overlay .cm-editor .cm-scroller {
     padding: var(--size-4-1) var(--size-4-2);
+    overflow: auto;
 }
 
 .vim-motions-textarea-overlay .cm-editor .cm-gutters {
