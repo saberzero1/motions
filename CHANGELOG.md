@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-07-15
+
 ### Fixed
 
 - **Table escaped pipes** — cells containing escaped pipes (`\|`) no longer corrupt cell boundaries during navigation, text object operations, or embedded cell editing write-back. All pipe-boundary detection across 7 files now uses shared escape-aware utilities (`findUnescapedPipes()` / `splitCellsEscapeAware()`) in `table-utils.ts`. Escaped pipes (`\|`) are treated as cell content; `\\|` (escaped backslash + real pipe) is correctly treated as a boundary via backslash-parity checking.

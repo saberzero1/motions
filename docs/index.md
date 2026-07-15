@@ -29,9 +29,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.57.0
+## What's new in 0.58.0
 
-- **Table cell edits rendered immediately in embedded mode** — editing a table cell and pressing Escape or Tab now visually updates the rendered table widget instantly, without needing to navigate away first. ([#61](https://github.com/saberzero1/motions/issues/61))
-- **Visual-line mode highlight on replaced widget blocks** — visual-line mode (`V`) now correctly highlights replaced widget blocks (MathJax `$$`, note embeds `![[note]]`, table widgets) that lack `.cm-line` elements. A new `LinewiseWidgetHighlight` ViewPlugin toggles selection styling on widget elements whose document range overlaps the visual-line selection. ([#57](https://github.com/saberzero1/motions/issues/57))
+- **Table escaped pipes** — cells containing escaped pipes (`\|`) no longer corrupt cell boundaries during navigation, text object operations, or embedded cell editing write-back. All pipe-boundary detection now uses shared escape-aware utilities.
+- **Vimrc file I/O timing** — `readVimrcFile()` now uses `stat()` as a readiness probe before `read()`, distinguishing genuinely empty files from timing-empty reads with extended backoff. The same pattern is applied to the Lua config loader.
+- **Oil which-key labels not appearing** — `getCommandLabels()` now always returns Oil keybinding labels regardless of whether the vim mappings are currently active.
+- **Live grep UI blocking on large vaults** — the live grep picker source now uses chunked async iteration with event loop yields between chunks, preventing UI freezes during searches on large vaults.
 
 See the [[changelog|full changelog]] for details.
