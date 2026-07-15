@@ -18,21 +18,9 @@ import {
     findTableRanges,
     cursorInRange,
     splitCellsEscapeAware,
+    parseAlignments,
+    type Alignment,
 } from './table-utils';
-
-type Alignment = 'left' | 'center' | 'right' | null;
-
-function parseAlignments(sepLine: string): Alignment[] {
-    return splitCellsEscapeAware(sepLine).map((cell) => {
-        const t = cell.trim();
-        const l = t.startsWith(':');
-        const r = t.endsWith(':');
-        if (l && r) return 'center';
-        if (r) return 'right';
-        if (l) return 'left';
-        return null;
-    });
-}
 
 function parseTable(lines: string[]): {
     headers: string[];
@@ -142,7 +130,7 @@ class TableRenderWidget extends WidgetType {
             th.setAttribute('data-row', '0');
             th.setAttribute('data-col', String(i));
             const align = alignments[i];
-            if (align) th.setAttribute('align', align);
+            if (align && align !== 'none') th.setAttribute('align', align);
             const cellWrapper = doc.createElement('div');
             cellWrapper.className = 'table-cell-wrapper';
             renderCell(
@@ -166,7 +154,7 @@ class TableRenderWidget extends WidgetType {
                 td.setAttribute('data-row', String(rowIndex + headerRowCount));
                 td.setAttribute('data-col', String(i));
                 const align = alignments[i];
-                if (align) td.setAttribute('align', align);
+                if (align && align !== 'none') td.setAttribute('align', align);
                 const cellWrapper = doc.createElement('div');
                 cellWrapper.className = 'table-cell-wrapper';
                 renderCell(

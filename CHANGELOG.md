@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Absolute line number highlight not updating on cursor movement** — when only absolute line numbers were enabled (`set number` without `set relativenumber`), the `vim-motions-line-num-current` highlight (bold current line number) did not follow the cursor. The `lineMarkerChange` callback in both the standalone line number gutter and the unified `statuscolumn` gutter only checked `update.docChanged` in absolute mode, ignoring `update.selectionSet` (cursor movement). Relative and hybrid modes were unaffected because they already included `update.selectionSet`. The highlight only updated incidentally when entering special content (MathJax, images) that triggered `docChanged` or `viewportChanged`. ([#68](https://github.com/saberzero1/motions/issues/68))
     - Plugin: `src/vim/line-number-gutter.ts` (`lineMarkerChange` absolute branch), `src/vim/statuscolumn.ts` (`lineMarkerChange` `!hasRelative` branch)
+- **Typing `|` moves cursor to the left of `|`** — typing `|` anywhere in insert mode triggered the table auto-format inputHandler, which intercepted the keystroke and repositioned the cursor even on non-table lines (any line matching `/^\s*\|/`). The mid-edit interception caused cursor jumps, making it impossible to type `|` normally in an empty document or at the start of a line. ([#66](https://github.com/saberzero1/motions/issues/66))
+- **Tables do not handle escaped `|` characters correctly** — in raw/cursor-aware table modes, escaped pipes (`\|`) inside cells were treated as cell boundaries during mid-edit auto-formatting, causing the cursor to jump and live preview to render extra cells. The auto-format inputHandler ran `realignTableLines()` after every `|` keystroke, which repositioned the cursor based on the realigned table structure — even when the `|` was escaped. Wikilinks (`[[page|alias]]`) inside raw table cells also triggered incorrect cell boundary detection. ([#67](https://github.com/saberzero1/motions/issues/67))
+    - Root cause for both: `table-auto-format.ts` intercepted every `|` keystroke in insert mode and ran column realignment mid-edit.
+    - Fix: Replaced mid-edit `|` interception with format-on-exit — tables are only realigned when the cursor leaves the table range. A CM6 `ViewPlugin` tracks cursor entry/exit from table ranges and dispatches `realignTableLines()` via `queueMicrotask` when the cursor exits a dirty (edited) table. Uses `Annotation.define<boolean>()` as a re-entrancy guard. The `||` → separator row auto-generation is preserved as a standalone inputHandler.
+    - Plugin: `src/vim/table-format-on-exit.ts` (new: format-on-exit ViewPlugin + separator handler), `src/vim/table-utils.ts` (added `realignTableLines()`, `parseAlignments()`, `buildSepCell()`, `findTableBounds()`, canonical `Alignment` type), `src/vim/table-auto-format.ts` (deleted), `src/vim/table-cursor-fix.ts` (deleted), `src/vim/table-operations.ts` (refactored to use shared `realignTableLines()`), `src/motions/tables.ts` (refactored to use shared `realignTableLines()`, removed 5 duplicate helpers), `src/vim/table-render-widget.ts` (uses canonical `Alignment` type), `src/vim/table-nav-controller.ts` (added `tableRealign()` in `doRefreshAfterOp()` for embedded cell edit alignment), `src/vim/table-cell-editor.ts` (removed `createTableAutoFormatExtension` dependency), `src/motions/register.ts` (removed `tableAwareMoveUp` override on `k`), `src/main.ts` (replaced auto-format/cursor-fix registration with format-on-exit)
 
 ### Changed
 
@@ -22,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `KNOWN_LIMITATIONS.md`: Absolute line number highlight not updating on cursor movement → Fixed
+- `KNOWN_LIMITATIONS.md`: Table auto-formatting → updated to describe format-on-exit behavior; typing `|` cursor jump (#66) → Fixed; escaped `\|` handling (#67) → Fixed
+- `docs/features/tables.md`: Auto-formatting section rewritten to describe format-on-exit behavior
 
 ## [0.58.0] - 2026-07-15
 

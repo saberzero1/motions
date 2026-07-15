@@ -29,6 +29,11 @@ import {
     tableRealign,
 } from './table-operations';
 
+let realignAfterCellEdit = false;
+export function setRealignAfterCellEdit(value: boolean): void {
+    realignAfterCellEdit = value;
+}
+
 type NavState = 'inactive' | 'table-nav' | 'cell-edit';
 
 let controllerEnabled = false;
@@ -197,7 +202,8 @@ class TableNavController implements PluginValue {
 
     private exitCellEdit(): void {
         setActiveEditTableRange(null);
-        closeCellEditor(this.view);
+        const { changed } = closeCellEditor(this.view);
+        if (changed) realignAfterCellEdit = true;
         this.removeCellEditKeyHandler();
         this.state = 'table-nav';
         if (this.navKeyHandler) {
@@ -411,7 +417,21 @@ class TableNavController implements PluginValue {
             return;
         }
         this.activeTable = best;
-        setActiveEditTableRange({ from: best.from, to: best.to });
+        if (realignAfterCellEdit) {
+            realignAfterCellEdit = false;
+            tableRealign(this.view, best);
+            const refreshedTables = findTableRanges(this.view.state);
+            const refreshed = refreshedTables.find(
+                (t) => Math.abs(t.from - best.from) < 200,
+            );
+            if (refreshed) {
+                this.activeTable = refreshed;
+            }
+        }
+        setActiveEditTableRange({
+            from: this.activeTable.from,
+            to: this.activeTable.to,
+        });
 
         this.removeKeyHandler();
         this.widgetEl = this.findWidgetEl();

@@ -30,7 +30,6 @@ import {
     tablePrevRowMotion,
     registerTableActions,
 } from './tables';
-import { tableAwareMoveUp } from '../vim/table-cursor-fix';
 
 export function registerNavigationMotions(reg: VimRegistration): void {
     reg.defineMotion('nextHeading', nextHeading);
@@ -122,11 +121,6 @@ export function registerTableMotions(reg: VimRegistration): void {
     reg.defineMotion('tablePrevRow', tablePrevRowMotion);
     reg.mapCommand('[r', 'motion', 'tablePrevRow', {});
     exCommandFromMotion(reg, 'tableprevrow', '', tablePrevRowMotion);
-    reg.defineMotion('tableAwareMoveUp', tableAwareMoveUp);
-    reg.mapCommand('k', 'motion', 'tableAwareMoveUp', {
-        forward: false,
-        linewise: true,
-    });
 }
 
 export { registerTableActions };

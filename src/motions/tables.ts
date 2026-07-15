@@ -8,7 +8,11 @@ import type {
 import type { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
 import { executeCommand } from '../util/commands';
-import { findUnescapedPipes, splitCellsEscapeAware } from '../vim/table-utils';
+import {
+    findUnescapedPipes,
+    splitCellsEscapeAware,
+    realignTableLines,
+} from '../vim/table-utils';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -181,100 +185,24 @@ function findTableBounds(
     return { start, end };
 }
 
-type ColumnAlignment = 'left' | 'center' | 'right' | 'none';
-
-function parseSeparatorAlignments(line: string): ColumnAlignment[] {
-    const cells = splitCellsEscapeAware(line);
-    return cells.map((cell) => {
-        const trimmed = cell.trim();
-        const leftColon = trimmed.startsWith(':');
-        const rightColon = trimmed.endsWith(':');
-        if (leftColon && rightColon) return 'center';
-        if (rightColon) return 'right';
-        if (leftColon) return 'left';
-        return 'none';
-    });
-}
-
-function buildSeparatorCell(width: number, alignment: ColumnAlignment): string {
-    const dashes = '-'.repeat(Math.max(width, 3));
-    switch (alignment) {
-        case 'left':
-            return `:${dashes.slice(1)}`;
-        case 'right':
-            return `${dashes.slice(1)}:`;
-        case 'center':
-            return `:${dashes.slice(2)}:`;
-        default:
-            return dashes;
-    }
-}
-
-function splitTableCells(line: string): string[] {
-    return splitCellsEscapeAware(line);
-}
-
 export function realignTable(cm: CmAdapter): void {
     const cursor = cm.getCursor();
     const bounds = findTableBounds(cm, cursor.line);
     if (!bounds) return;
 
-    const rows: string[][] = [];
-    let separatorIdx = -1;
-    let alignments: ColumnAlignment[] = [];
-
+    const lines: string[] = [];
     for (let line = bounds.start; line <= bounds.end; line++) {
-        const text = cm.getLine(line);
-        if (isSeparatorLine(text)) {
-            separatorIdx = line - bounds.start;
-            alignments = parseSeparatorAlignments(text);
-            rows.push([]);
-        } else {
-            rows.push(splitTableCells(text).map((c) => c.trim()));
-        }
+        lines.push(cm.getLine(line));
     }
 
-    const colCount = Math.max(...rows.map((r) => r.length));
-    if (colCount <= 0) return;
-
-    const colWidths: number[] = Array.from({ length: colCount }, () => 3);
-    for (const row of rows) {
-        for (let col = 0; col < row.length; col++) {
-            const cell = row[col];
-            if (cell !== undefined && cell.length > (colWidths[col] ?? 0)) {
-                colWidths[col] = cell.length;
-            }
-        }
-    }
-
-    while (alignments.length < colCount) {
-        alignments.push('none');
-    }
-
-    const newLines: string[] = [];
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (row === undefined) continue;
-
-        if (i === separatorIdx) {
-            const sepCells = colWidths.map((w, col) =>
-                buildSeparatorCell(w, alignments[col] ?? 'none'),
-            );
-            newLines.push(`| ${sepCells.join(' | ')} |`);
-            continue;
-        }
-
-        const paddedCells = colWidths.map((w, col) => {
-            const content = row[col] ?? '';
-            return content.padEnd(w);
-        });
-        newLines.push(`| ${paddedCells.join(' | ')} |`);
-    }
+    const newLines = realignTableLines(lines);
+    const newText = newLines.join('\n');
+    if (newText === lines.join('\n')) return;
 
     const from = { line: bounds.start, ch: 0 };
     const lastLineText = cm.getLine(bounds.end);
     const to = { line: bounds.end, ch: lastLineText.length };
-    cm.replaceRange(newLines.join('\n'), from, to);
+    cm.replaceRange(newText, from, to);
 
     const newCursorLine = Math.min(
         cursor.line,

@@ -1,6 +1,6 @@
 ---
 title: Tables
-description: Table cell navigation, text objects, manipulation commands, auto-formatting, and cursor-aware table widget for Live Preview.
+description: Table cell navigation, text objects, manipulation commands, format-on-exit auto-alignment, and cursor-aware table widget for Live Preview.
 tags:
     - features
     - keybindings
@@ -63,8 +63,9 @@ A suite of manipulation commands is available under the `<Leader>t` prefix for s
 
 Vim Motions includes built-in auto-formatting for tables:
 
-- **Realignment**: Typing `|` in insert mode on a table line triggers an automatic realignment of the table columns.
+- **Format-on-exit**: When you edit a table in raw Markdown and move the cursor outside the table, the table columns are automatically realigned. No formatting happens while you are typing inside the table, so the cursor stays where you expect it.
 - **Separator generation**: Typing `||` on a new line immediately below a table header row generates a correctly formatted separator row matching the header's column count.
+- **Manual realignment**: Use `<Leader>tr` or `:tablerealign` to realign at any time.
 
 ## Table widget in Live Preview
 

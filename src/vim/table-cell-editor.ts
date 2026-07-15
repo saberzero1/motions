@@ -4,7 +4,6 @@ import {
     createEmbeddableEditor,
     type EmbeddableMarkdownEditor,
 } from '../editors/embeddable-editor';
-import { createTableAutoFormatExtension } from './table-auto-format';
 import { getCellDocumentRange } from './table-utils';
 
 export interface CellEditorHandle {
@@ -42,7 +41,7 @@ export function openCellEditor(
     const editor = createEmbeddableEditor(app, editorContainer, {
         value: originalText,
         cls: 'vim-table-cell-editor-inner',
-        extensions: [createTableAutoFormatExtension(app)],
+        extensions: [],
         onEscape,
     });
 

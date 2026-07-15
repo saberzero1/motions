@@ -90,7 +90,11 @@ Documents without frontmatter are unaffected — both paths fall back to `cm.fir
 
 `:tablerealign` (or `<Leader>tr`) reformats a table so all columns have uniform width, respecting `:---`/`---:`/`:---:` alignment markers in separator rows.
 
-Auto-format: typing `|` in insert mode on a table line triggers automatic column realignment. Typing `||` on a new line within a table generates a separator row matching the header's column count.
+Auto-format: ~~typing `|` in insert mode on a table line triggers automatic column realignment~~ — replaced with format-on-exit. Tables are now automatically realigned when the cursor leaves the table range after editing. No formatting happens mid-edit, so the cursor stays where you expect it. Typing `||` on a new line within a table generates a separator row matching the header's column count. Manual realignment is available via `<Leader>tr` or `:tablerealign`. ([#66](https://github.com/saberzero1/motions/issues/66), [#67](https://github.com/saberzero1/motions/issues/67))
+
+~~Typing `|` moves cursor to the left of `|`~~ — Fixed. The mid-edit `|` interception that caused cursor jumps has been removed. ([#66](https://github.com/saberzero1/motions/issues/66))
+
+~~Escaped `\|` characters treated as cell boundaries during editing~~ — Fixed. Escaped pipes, wikilinks (`[[page|alias]]`), and other `|`-containing inline syntax are no longer mishandled during table editing because the auto-format no longer runs mid-edit. ([#67](https://github.com/saberzero1/motions/issues/67))
 
 The following are intentionally not implemented:
 

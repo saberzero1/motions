@@ -11,7 +11,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 - **[[text-objects|Text objects]]** — 12 Markdown-aware text objects for bold, italic, code, math, links, blockquotes, callouts, code blocks, tags, and table cells. Work with all standard Vim operators (`d`, `c`, `y`, `v`).
 - **[[structural-navigation|Structural navigation]]** — jump between headings (`]h`/`[h`), list items (`]l`/`[l`), links (`]n`/`[n`), and open buffers (`]b`/`[b`). Works with counts and operators.
-- **[[tables|Tables]]** — cell navigation (`]c`/`[c`), row navigation (`]r`/`[r`), cell text objects (`i|`/`a|`), table manipulation (`<Leader>t` prefix), auto-formatting, and a cursor-aware table widget for Live Preview.
+- **[[tables|Tables]]** — cell navigation (`]c`/`[c`), row navigation (`]r`/`[r`), cell text objects (`i|`/`a|`), table manipulation (`<Leader>t` prefix), format-on-exit auto-alignment, and a cursor-aware table widget for Live Preview.
 - **[[hardwrap|Hard-wrap formatting]]** — `gq`/`gw` operators with Markdown-aware line wrapping. Preserves blockquote, list, and nested structural prefixes on continuation lines.
 
 ## Jump navigation

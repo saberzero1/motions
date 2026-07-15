@@ -81,8 +81,7 @@ src/
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
     table-nav-controller.ts    # Table cell navigation controller
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
-    table-auto-format.ts   # Auto-format tables on edit
-    table-cursor-fix.ts    # Cursor positioning in table cells
+    table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     table-cell-editor.ts   # Per-cell editing with vim-enabled editor
     table-embedded-editor.ts   # Embedded editor within table widgets
     table-render-widget.ts     # CM6 decoration widget for rendered tables

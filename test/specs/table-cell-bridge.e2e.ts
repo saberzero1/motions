@@ -193,6 +193,14 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
     });
 
     describe('Cursor movement through table via DOM keys (j/k)', function () {
+        before(async function () {
+            await enableAlwaysRawMode();
+        });
+
+        after(async function () {
+            await enableAlwaysRawMode();
+        });
+
         it('j should move through each row of the table', async function () {
             await setupEditor('Text above\n' + TABLE_CONTENT + '\nText below', {
                 line: 0,
@@ -250,6 +258,14 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
     });
 
     describe('Cursor movement through Welcome.md table via DOM keys', function () {
+        before(async function () {
+            await enableAlwaysRawMode();
+        });
+
+        after(async function () {
+            await enableAlwaysRawMode();
+        });
+
         it('j should move through empty-cell table without getting stuck', async function () {
             const doc = [
                 'This is your new _vault_.',
@@ -300,6 +316,14 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
     });
 
     describe('Cursor movement over separator row via DOM keys', function () {
+        before(async function () {
+            await enableAlwaysRawMode();
+        });
+
+        after(async function () {
+            await enableAlwaysRawMode();
+        });
+
         it('k should move up through separator row', async function () {
             await setupEditor('x\n' + TABLE_CONTENT, { line: 3, ch: 2 });
             await sendVimEscape();
@@ -356,6 +380,14 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
     });
 
     describe('Welcome.md exact reproduction', function () {
+        before(async function () {
+            await enableAlwaysRawMode();
+        });
+
+        after(async function () {
+            await enableAlwaysRawMode();
+        });
+
         it('k from last row should traverse entire table to text above', async function () {
             const doc = [
                 'This is your new _vault_.',
@@ -474,6 +506,14 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
     });
 
     describe('Navigation after insert-mode table edit', function () {
+        before(async function () {
+            await enableAlwaysRawMode();
+        });
+
+        after(async function () {
+            await enableAlwaysRawMode();
+        });
+
         it('k should work after insert-mode edit in table cell', async function () {
             const doc = [
                 'Text above.',
@@ -587,7 +627,7 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
             );
         });
 
-        it('k should cross separator row after insert-mode edit', async function () {
+        it('k should move through separator row after insert-mode edit', async function () {
             const doc = [
                 'Text above.',
                 '',
@@ -668,7 +708,7 @@ describe('Cursor-aware table widget toggle — Live Preview', function () {
                 },
             )) as number[];
 
-            expect(result).toEqual([2, 1, 0, 0]);
+            expect(result).toEqual([3, 2, 1, 0]);
         });
     });
 

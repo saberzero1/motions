@@ -67,11 +67,7 @@ import {
     tableRenderField,
     setTableRenderEnabled,
 } from './vim/table-render-widget';
-import { createTableAutoFormatExtension } from './vim/table-auto-format';
-import {
-    installTableCursorFix,
-    createTableCursorFixExtension,
-} from './vim/table-cursor-fix';
+import { createTableFormatOnExitExtension } from './vim/table-format-on-exit';
 import {
     tableEmbeddedField,
     setEmbeddedModeEnabled,
@@ -206,7 +202,6 @@ export default class VimMotionsPlugin extends Plugin {
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
     private uninstallTableSuppressor: (() => void) | null = null;
-    private uninstallTableCursorFix: (() => void) | null = null;
     private uninstallVisualLineFix: (() => void) | null = null;
     private yankHighlightCleanup: (() => void) | null = null;
     private markGutterCleanup: (() => void) | null = null;
@@ -1694,10 +1689,8 @@ export default class VimMotionsPlugin extends Plugin {
 
         if (this.settings.enableTableNav) {
             this.registerEditorExtension(
-                createTableAutoFormatExtension(this.app),
+                createTableFormatOnExitExtension(this.app),
             );
-            this.registerEditorExtension(createTableCursorFixExtension());
-            this.uninstallTableCursorFix = installTableCursorFix();
         }
 
         this.registerEditorExtension(yankHighlightExtension());
@@ -2025,8 +2018,6 @@ export default class VimMotionsPlugin extends Plugin {
         this.rebuildExSuggest();
         this.rebuildWhichKey();
 
-        this.uninstallTableCursorFix?.();
-        this.uninstallTableCursorFix = null;
         this.uninstallTableSuppressor?.();
         this.uninstallTableSuppressor = null;
         if (this.settings.tableWidgetMode !== 'off') {
@@ -2041,9 +2032,6 @@ export default class VimMotionsPlugin extends Plugin {
         );
         setEmbeddedModeEnabled(isEmbedded);
         setTableEmbeddedMode(isEmbedded);
-        if (this.settings.enableTableNav) {
-            this.uninstallTableCursorFix = installTableCursorFix();
-        }
         if (this.pickerAPI) {
             this.registerBundledIntegrations();
         }
@@ -3481,8 +3469,6 @@ export default class VimMotionsPlugin extends Plugin {
         this.globalKeyHandler = null;
         this.globalRegistry = null;
         this.cleanupHintModeWindows();
-        this.uninstallTableCursorFix?.();
-        this.uninstallTableCursorFix = null;
         this.uninstallTableSuppressor?.();
         this.uninstallTableSuppressor = null;
         this.uninstallVisualLineFix?.();

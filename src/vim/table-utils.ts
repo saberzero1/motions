@@ -106,6 +106,102 @@ function findCellBoundariesLocal(line: string): number[] {
     return findUnescapedPipes(line);
 }
 
+export type Alignment = 'left' | 'center' | 'right' | 'none';
+
+export function parseAlignments(line: string): Alignment[] {
+    return splitCellsEscapeAware(line).map((cell) => {
+        const t = cell.trim();
+        const l = t.startsWith(':');
+        const r = t.endsWith(':');
+        if (l && r) return 'center';
+        if (r) return 'right';
+        if (l) return 'left';
+        return 'none';
+    });
+}
+
+export function buildSepCell(width: number, align: Alignment): string {
+    const d = '-'.repeat(Math.max(width, 3));
+    switch (align) {
+        case 'left':
+            return `:${d.slice(1)}`;
+        case 'right':
+            return `${d.slice(1)}:`;
+        case 'center':
+            return `:${d.slice(2)}:`;
+        default:
+            return d;
+    }
+}
+
+/**
+ * Realign a table given its lines as strings.
+ * Pure function: takes `string[]`, returns `string[]`.
+ */
+export function realignTableLines(lines: string[]): string[] {
+    const rows: string[][] = [];
+    let sepIdx = -1;
+    let alignments: Alignment[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const text = lines[i];
+        if (text === undefined) continue;
+        if (SEPARATOR_RE.test(text)) {
+            sepIdx = i;
+            alignments = parseAlignments(text);
+            rows.push([]);
+        } else {
+            rows.push(splitCellsEscapeAware(text).map((c) => c.trim()));
+        }
+    }
+
+    const colCount = Math.max(...rows.map((r) => r.length));
+    if (colCount <= 0) return lines;
+
+    const colWidths: number[] = Array.from({ length: colCount }, () => 3);
+    for (const row of rows) {
+        for (let col = 0; col < row.length; col++) {
+            const cell = row[col];
+            if (cell !== undefined && cell.length > (colWidths[col] ?? 0)) {
+                colWidths[col] = cell.length;
+            }
+        }
+    }
+
+    while (alignments.length < colCount) alignments.push('none');
+
+    return rows.map((row, i) => {
+        if (i === sepIdx) {
+            const cells = colWidths.map((w, col) =>
+                buildSepCell(w, alignments[col] ?? 'none'),
+            );
+            return `| ${cells.join(' | ')} |`;
+        }
+        const cells = colWidths.map((w, col) => (row[col] ?? '').padEnd(w));
+        return `| ${cells.join(' | ')} |`;
+    });
+}
+
+/**
+ * Find the bounds (start/end line numbers) of the table containing `lineNum`.
+ * Works on CM6 doc-like objects with `.line(n)` and `.lines`.
+ */
+export function findTableBounds(
+    doc: { line(n: number): { text: string }; lines: number },
+    lineNum: number,
+): { start: number; end: number } | null {
+    const lineObj = doc.line(lineNum);
+    if (!TABLE_RE.test(lineObj.text)) return null;
+
+    let start = lineNum;
+    while (start > 1 && TABLE_RE.test(doc.line(start - 1).text)) start--;
+
+    let end = lineNum;
+    while (end < doc.lines && TABLE_RE.test(doc.line(end + 1).text)) end++;
+
+    return { start, end };
+}
+
 export function getCellDocumentRange(
     doc: { line(n: number): { from: number; text: string } },
     tableFromLine: number,

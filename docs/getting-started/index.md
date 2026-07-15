@@ -17,7 +17,7 @@ Obsidian's built-in Vim mode provides basic motions and operators, but lacks Mar
 
 - **[[text-objects|Markdown text objects]]** — `i*`, `il`, `iC`, `iB`, `io`, `i|` and more — operate on bold, links, code blocks, blockquotes, callouts, and table cells
 - **[[structural-navigation|Structural navigation]]** — `]h`/`[h` for headings, `]l`/`[l` for lists, `]n`/`[n` for links, `]b`/`[b` for buffers
-- **[[tables|Table editing]]** — cell navigation, text objects, manipulation commands, auto-formatting, and a cursor-aware table widget
+- **[[tables|Table editing]]** — cell navigation, text objects, manipulation commands, format-on-exit auto-alignment, and a cursor-aware table widget
 - **[[hardwrap|Hard-wrap formatting]]** — `gq`/`gw` operators with Markdown-aware prefix preservation
 - **[[easymotion|EasyMotion]]** — jump to any visible position with two keystrokes, with operator-pending support
 - **[[hint-mode|Hint mode]]** — Vimium-style keyboard navigation for the entire Obsidian UI

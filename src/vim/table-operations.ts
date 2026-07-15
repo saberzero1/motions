@@ -1,6 +1,10 @@
 import type { EditorView } from '@codemirror/view';
 import type { TableRange } from './table-utils';
-import { SEPARATOR_RE, splitCellsEscapeAware } from './table-utils';
+import {
+    SEPARATOR_RE,
+    splitCellsEscapeAware,
+    realignTableLines,
+} from './table-utils';
 
 function buildRow(cells: string[]): string {
     return `| ${cells.join(' | ')} |`;
@@ -203,59 +207,7 @@ export function tableMoveColLeft(
 }
 
 export function tableRealign(view: EditorView, table: TableRange): void {
-    const rows: string[][] = [];
-    let sepIdx = -1;
-    type Align = 'left' | 'center' | 'right' | 'none';
-    let alignments: Align[] = [];
-
-    for (let i = 0; i < table.lines.length; i++) {
-        const text = table.lines[i] ?? '';
-        if (SEPARATOR_RE.test(text)) {
-            sepIdx = i;
-            alignments = splitCellsEscapeAware(text).map((cell) => {
-                const t = cell.trim();
-                const l = t.startsWith(':');
-                const r = t.endsWith(':');
-                if (l && r) return 'center';
-                if (r) return 'right';
-                if (l) return 'left';
-                return 'none';
-            });
-            rows.push([]);
-        } else {
-            rows.push(splitCellsEscapeAware(text).map((c) => c.trim()));
-        }
-    }
-
-    const colCount = Math.max(...rows.map((r) => r.length));
-    if (colCount <= 0) return;
-
-    const colWidths = Array.from({ length: colCount }, () => 3);
-    for (const row of rows) {
-        for (let c = 0; c < row.length; c++) {
-            if ((row[c]?.length ?? 0) > (colWidths[c] ?? 0)) {
-                colWidths[c] = row[c]!.length;
-            }
-        }
-    }
-    while (alignments.length < colCount) alignments.push('none');
-
-    const newLines = rows.map((row, i) => {
-        if (i === sepIdx) {
-            const cells = colWidths.map((w, c) => {
-                const a = alignments[c] ?? 'none';
-                const d = '-'.repeat(Math.max(w, 3));
-                if (a === 'left') return `:${d.slice(1)}`;
-                if (a === 'right') return `${d.slice(1)}:`;
-                if (a === 'center') return `:${d.slice(2)}:`;
-                return d;
-            });
-            return `| ${cells.join(' | ')} |`;
-        }
-        const cells = colWidths.map((w, c) => (row[c] ?? '').padEnd(w));
-        return `| ${cells.join(' | ')} |`;
-    });
-
+    const newLines = realignTableLines(table.lines);
     const newText = newLines.join('\n');
     if (newText === table.lines.join('\n')) return;
     view.dispatch({
