@@ -103,14 +103,11 @@ class TableRenderWidget extends WidgetType {
         this.component = new Component();
         this.component.load();
 
-        const doc = view.dom.ownerDocument;
-        const container = doc.createElement('div');
-        container.className =
-            'cm-embed-block markdown-rendered vim-table-rendered';
+        const container = createDiv({
+            cls: 'cm-embed-block markdown-rendered vim-table-rendered',
+        });
 
-        const wrapper = doc.createElement('div');
-        wrapper.className = 'table-wrapper';
-        container.appendChild(wrapper);
+        const wrapper = container.createDiv({ cls: 'table-wrapper' });
 
         const { headers, alignments, rows } = parseTable(this.lines);
         const separatorIndex = this.lines.findIndex((line) =>
@@ -118,21 +115,17 @@ class TableRenderWidget extends WidgetType {
         );
         const headerRowCount = separatorIndex >= 0 ? separatorIndex + 1 : 1;
 
-        const table = doc.createElement('table');
-        wrapper.appendChild(table);
+        const table = wrapper.createEl('table');
 
-        const thead = doc.createElement('thead');
-        table.appendChild(thead);
-        const headerRow = doc.createElement('tr');
-        thead.appendChild(headerRow);
+        const thead = table.createEl('thead');
+        const headerRow = thead.createEl('tr');
         for (let i = 0; i < headers.length; i++) {
-            const th = doc.createElement('th');
-            th.setAttribute('data-row', '0');
-            th.setAttribute('data-col', String(i));
+            const th = headerRow.createEl('th', {
+                attr: { 'data-row': '0', 'data-col': String(i) },
+            });
             const align = alignments[i];
             if (align && align !== 'none') th.setAttribute('align', align);
-            const cellWrapper = doc.createElement('div');
-            cellWrapper.className = 'table-cell-wrapper';
+            const cellWrapper = th.createDiv({ cls: 'table-cell-wrapper' });
             renderCell(
                 cellWrapper,
                 headers[i] ?? '',
@@ -140,23 +133,22 @@ class TableRenderWidget extends WidgetType {
                 app,
                 this.component,
             );
-            th.appendChild(cellWrapper);
-            headerRow.appendChild(th);
         }
 
-        const tbody = doc.createElement('tbody');
-        table.appendChild(tbody);
+        const tbody = table.createEl('tbody');
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
             const row = rows[rowIndex] ?? [];
-            const tr = doc.createElement('tr');
+            const tr = tbody.createEl('tr');
             for (let i = 0; i < Math.max(row.length, headers.length); i++) {
-                const td = doc.createElement('td');
-                td.setAttribute('data-row', String(rowIndex + headerRowCount));
-                td.setAttribute('data-col', String(i));
+                const td = tr.createEl('td', {
+                    attr: {
+                        'data-row': String(rowIndex + headerRowCount),
+                        'data-col': String(i),
+                    },
+                });
                 const align = alignments[i];
                 if (align && align !== 'none') td.setAttribute('align', align);
-                const cellWrapper = doc.createElement('div');
-                cellWrapper.className = 'table-cell-wrapper';
+                const cellWrapper = td.createDiv({ cls: 'table-cell-wrapper' });
                 renderCell(
                     cellWrapper,
                     row[i] ?? '',
@@ -164,10 +156,7 @@ class TableRenderWidget extends WidgetType {
                     app,
                     this.component,
                 );
-                td.appendChild(cellWrapper);
-                tr.appendChild(td);
             }
-            tbody.appendChild(tr);
         }
 
         return container;

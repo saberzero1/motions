@@ -5,33 +5,27 @@ import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
 import { AutocmdManager } from '../../../src/lua/autocmd';
 
-function createMockDoc(): { doc: Document; styles: HTMLStyleElement[] } {
-    const styles: HTMLStyleElement[] = [];
-    const setParent = (el: HTMLStyleElement, parent: ParentNode | null) => {
-        (el as unknown as { parentNode: ParentNode | null }).parentNode =
-            parent;
-    };
+class MockCSSStyleSheet {
+    private css = '';
+    replaceSync(text: string): void {
+        this.css = text;
+    }
+    getCss(): string {
+        return this.css;
+    }
+}
+
+(globalThis as Record<string, unknown>).CSSStyleSheet = MockCSSStyleSheet;
+
+function createMockDoc(): { doc: Document; getSheetCss: () => string } {
     const doc = {
-        createElement: (tag: string) => {
-            const el = {
-                id: '',
-                textContent: '',
-            } as HTMLStyleElement;
-            if (tag === 'style') styles.push(el);
-            return el;
-        },
-        head: {
-            appendChild: (el: HTMLStyleElement) => {
-                const parent = {
-                    removeChild: (child: HTMLStyleElement) => {
-                        if (child === el) setParent(el, null);
-                    },
-                };
-                setParent(el, parent as unknown as ParentNode);
-            },
-        },
+        adoptedStyleSheets: [] as MockCSSStyleSheet[],
     } as unknown as Document;
-    return { doc, styles };
+    const getSheetCss = () =>
+        (doc.adoptedStyleSheets as unknown as MockCSSStyleSheet[])
+            .map((s) => s.getCss())
+            .join('\n');
+    return { doc, getSheetCss };
 }
 
 describe('HighlightManager', () => {
@@ -45,26 +39,24 @@ describe('HighlightManager', () => {
     });
 
     it('writes EasyMotionTarget fg to root vars', () => {
-        const { doc, styles } = createMockDoc();
+        const { doc, getSheetCss } = createMockDoc();
         const manager = new HighlightManager(doc);
         manager.setHighlight('EasyMotionTarget', { fg: '#00ff00' });
-        expect(styles[0]?.textContent).toContain(
-            '--vim-motions-em-fg: #00ff00',
-        );
+        expect(getSheetCss()).toContain('--vim-motions-em-fg: #00ff00');
     });
 
     it('writes StatusLineNormal bg to root vars', () => {
-        const { doc, styles } = createMockDoc();
+        const { doc, getSheetCss } = createMockDoc();
         const manager = new HighlightManager(doc);
         manager.setHighlight('StatusLineNormal', { bg: '#282a36' });
-        expect(styles[0]?.textContent).toContain('--vim-pl-normal-bg: #282a36');
+        expect(getSheetCss()).toContain('--vim-pl-normal-bg: #282a36');
     });
 
     it('creates CSS class for user highlight groups', () => {
-        const { doc, styles } = createMockDoc();
+        const { doc, getSheetCss } = createMockDoc();
         const manager = new HighlightManager(doc);
         manager.setHighlight('UserGroup', { fg: '#fff', italic: true });
-        expect(styles[0]?.textContent).toContain('.vim-hl-UserGroup');
+        expect(getSheetCss()).toContain('.vim-hl-UserGroup');
     });
 
     it('resolves linked groups', () => {
@@ -96,21 +88,23 @@ describe('HighlightManager', () => {
     });
 
     it('destroys styles and clears groups', () => {
-        const { doc, styles } = createMockDoc();
+        const { doc } = createMockDoc();
         const manager = new HighlightManager(doc);
         manager.setHighlight('MyGroup', { fg: '#ff0000' });
         manager.destroy();
-        expect(styles[0]?.parentNode).toBeNull();
+        expect(
+            (doc.adoptedStyleSheets as unknown as MockCSSStyleSheet[]).length,
+        ).toBe(0);
         expect(manager.getHighlight('MyGroup')).toBeNull();
     });
 
     it('renders root vars and user classes together', () => {
-        const { doc, styles } = createMockDoc();
+        const { doc, getSheetCss } = createMockDoc();
         const manager = new HighlightManager(doc);
         manager.setHighlight('EasyMotionTarget', { fg: '#00ff00' });
         manager.setHighlight('UserGroup', { fg: '#fff' });
-        expect(styles[0]?.textContent).toContain(':root');
-        expect(styles[0]?.textContent).toContain('.vim-hl-UserGroup');
+        expect(getSheetCss()).toContain(':root');
+        expect(getSheetCss()).toContain('.vim-hl-UserGroup');
     });
 });
 

@@ -112,55 +112,54 @@ export class GlobalWhichKeyOverlay {
 
         const keyPrefix = chord.replace(/^\d+/, '');
 
-        const overlay = doc.createElement('div');
-        overlay.className = 'vim-motions-which-key';
+        const overlay = container.createDiv({
+            cls: 'vim-motions-which-key',
+        });
 
-        const title = doc.createElement('div');
-        title.className = 'vim-motions-which-key-title';
-        title.textContent = chord + ' \u2026';
-        overlay.appendChild(title);
+        overlay.createDiv({
+            cls: 'vim-motions-which-key-title',
+            text: chord + ' \u2026',
+        });
 
-        const grid = doc.createElement('div');
-        grid.className = 'vim-motions-which-key-grid';
+        const grid = overlay.createDiv({
+            cls: 'vim-motions-which-key-grid',
+        });
 
         const entries = this.buildEntries(keyPrefix, completions);
         for (const entry of entries) {
-            const row = doc.createElement('div');
-            row.className = entry.group
-                ? 'vim-motions-which-key-row vim-motions-which-key-group'
-                : 'vim-motions-which-key-row';
+            const row = grid.createDiv({
+                cls: entry.group
+                    ? 'vim-motions-which-key-row vim-motions-which-key-group'
+                    : 'vim-motions-which-key-row',
+            });
 
-            const keySpan = doc.createElement('span');
-            keySpan.className = 'vim-motions-which-key-key';
-            keySpan.textContent = entry.key;
-            row.appendChild(keySpan);
+            row.createSpan({
+                cls: 'vim-motions-which-key-key',
+                text: entry.key,
+            });
 
-            const sepSpan = doc.createElement('span');
-            sepSpan.className = 'vim-motions-which-key-sep';
-            sepSpan.textContent = '\u279C';
-            row.appendChild(sepSpan);
+            row.createSpan({
+                cls: 'vim-motions-which-key-sep',
+                text: '\u279C',
+            });
 
             if (this.showIcons) {
-                const iconSpan = doc.createElement('span');
-                iconSpan.className = 'vim-motions-which-key-icon';
+                const iconSpan = row.createSpan({
+                    cls: 'vim-motions-which-key-icon',
+                });
                 iconSpan.style.color = resolveIconColor(entry.color);
                 const iconId = entry.icon?.trim();
                 if (iconId) {
                     setIcon(iconSpan, iconId);
                 }
-                row.appendChild(iconSpan);
             }
 
-            const cmdSpan = doc.createElement('span');
-            cmdSpan.className = 'vim-motions-which-key-cmd';
-            cmdSpan.textContent = entry.description;
-            row.appendChild(cmdSpan);
-
-            grid.appendChild(row);
+            row.createSpan({
+                cls: 'vim-motions-which-key-cmd',
+                text: entry.description,
+            });
         }
 
-        overlay.appendChild(grid);
-        container.appendChild(overlay);
         this.overlay = overlay;
 
         const statusBar = doc.querySelector<HTMLElement>('.status-bar');

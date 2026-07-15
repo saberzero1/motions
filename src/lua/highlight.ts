@@ -19,7 +19,7 @@ export interface HighlightAttrs {
 
 export class HighlightManager {
     private groups = new Map<string, HighlightAttrs>();
-    private styleEl: HTMLStyleElement | null = null;
+    private sheet: CSSStyleSheet | null = null;
     private doc: Document | null = null;
 
     private static readonly PLUGIN_GROUPS: Record<string, string> = {
@@ -106,20 +106,25 @@ export class HighlightManager {
     }
 
     destroy(): void {
-        if (this.styleEl?.parentNode) {
-            this.styleEl.parentNode.removeChild(this.styleEl);
+        if (this.sheet && this.doc) {
+            const sheets = this.doc.adoptedStyleSheets;
+            this.doc.adoptedStyleSheets = sheets.filter(
+                (s) => s !== this.sheet,
+            );
         }
-        this.styleEl = null;
+        this.sheet = null;
         this.groups.clear();
     }
 
     private updateStyles(): void {
         if (!this.doc) return;
 
-        if (!this.styleEl) {
-            this.styleEl = this.doc.createElement('style');
-            this.styleEl.id = 'vim-motions-highlights';
-            this.doc.head.appendChild(this.styleEl);
+        if (!this.sheet) {
+            this.sheet = new CSSStyleSheet();
+            this.doc.adoptedStyleSheets = [
+                ...this.doc.adoptedStyleSheets,
+                this.sheet,
+            ];
         }
 
         const rules: string[] = [];
@@ -148,7 +153,7 @@ export class HighlightManager {
             parts.push(`:root { ${rootVars.join(' ')} }`);
         }
         parts.push(...rules);
-        this.styleEl.textContent = parts.join('\n');
+        this.sheet.replaceSync(parts.join('\n'));
     }
 
     private attrsToCSS(attrs: HighlightAttrs): string {
