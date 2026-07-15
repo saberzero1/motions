@@ -171,6 +171,14 @@ Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the act
 
 The scrolloff value accepts 0–9999 (previously capped at 20). Setting `set scrolloff=999` in your vimrc keeps the cursor vertically centered while scrolling, matching standard Vim behavior. The Settings UI uses a validated number input field instead of a slider. The scroll margin is clamped to half the viewport height at runtime, mirroring Vim's silent cap of `scrolloff` to `(window_height - 1) / 2`. ([#40](https://github.com/saberzero1/motions/issues/40), [#48](https://github.com/saberzero1/motions/issues/48))
 
+## ~~Absolute line number highlight not updating on cursor movement~~ (Fixed)
+
+**Status**: Fixed. `lineMarkerChange` now includes `update.selectionSet` in absolute mode. ([#68](https://github.com/saberzero1/motions/issues/68))
+
+When only absolute line numbers were enabled (`set number` without `set relativenumber`), the `vim-motions-line-num-current` CSS class (bold highlight on the current line number) did not update when the cursor moved. The highlight stayed stuck on whichever line was current when the document was last modified, only updating incidentally when entering special content (MathJax, images) that triggered `docChanged` or `viewportChanged`.
+
+Root cause: the `lineMarkerChange` callback in the CM6 `gutter()` configuration — in both the standalone line number gutter (`src/vim/line-number-gutter.ts`) and the unified `statuscolumn` gutter (`src/vim/statuscolumn.ts`) — returned `update.docChanged` (without `update.selectionSet`) when the mode was absolute-only. This was an optimization assuming the displayed text doesn't change on cursor movement (true for absolute numbers), but it forgot that the `isCurrent` flag on each `LineNumberMarker` also changes — without a re-render, the CSS class was never added/removed. Relative and hybrid modes were unaffected because they already included `update.selectionSet` (the displayed numbers change on every cursor move).
+
 ## `set` option scope
 
 All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".

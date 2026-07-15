@@ -375,6 +375,7 @@ function createStatusColumnGutter(
         lineMarkerChange(update) {
             if (!hasRelative) {
                 return (
+                    update.selectionSet ||
                     update.docChanged ||
                     update.viewportChanged ||
                     update.transactions.some((tr) =>

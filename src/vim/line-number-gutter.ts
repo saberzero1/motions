@@ -100,7 +100,7 @@ function createLineNumberGutter(
         },
         lineMarkerChange(update) {
             if (mode === 'absolute') {
-                return update.docChanged;
+                return update.docChanged || update.selectionSet;
             }
             return update.selectionSet || update.docChanged;
         },
