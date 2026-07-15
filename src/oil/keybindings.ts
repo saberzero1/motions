@@ -346,7 +346,6 @@ export class OilKeybindingManager {
     private helpCleanup: (() => void) | null = null;
 
     getCommandLabels(): Array<{ key: string; label: string }> {
-        if (!this.applied) return [];
         return OIL_MAPPINGS.map((m) => ({ key: m.lhs, label: m.desc }));
     }
 

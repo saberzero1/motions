@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Table escaped pipes** — cells containing escaped pipes (`\|`) no longer corrupt cell boundaries during navigation, text object operations, or embedded cell editing write-back. All pipe-boundary detection across 7 files now uses shared escape-aware utilities (`findUnescapedPipes()` / `splitCellsEscapeAware()`) in `table-utils.ts`. Escaped pipes (`\|`) are treated as cell content; `\\|` (escaped backslash + real pipe) is correctly treated as a boundary via backslash-parity checking.
+    - Plugin: `src/vim/table-utils.ts` (new: `findUnescapedPipes()`, `splitCellsEscapeAware()`, `countPrecedingBackslashes()`), `src/vim/table-render-widget.ts`, `src/vim/table-operations.ts`, `src/vim/table-auto-format.ts`, `src/vim/table-nav-controller.ts`, `src/text-objects/table-cell.ts`, `src/motions/tables.ts` (all updated to use shared utilities)
+- **Vimrc file I/O timing** — `readVimrcFile()` now uses `stat()` as a readiness probe before `read()`, distinguishing genuinely empty files (`stat.size === 0`, no retry) from timing-empty reads (`stat.size > 0`, retry with extended backoff 50/100/200/400ms). `fileExists()` uses `stat()` instead of a full `read()`. On retry exhaustion, a user-facing Notice is shown. The `vimrcLoading` flag is now wrapped in `try/finally` so a failed `loadVimrc()` call no longer permanently blocks future retry attempts. The same `stat()`+retry pattern is applied to `readLuaFile()` in the Lua config loader.
+    - Plugin: `src/vimrc/loader.ts` (`readVimrcFile`, `fileExists`), `src/lua/loader.ts` (`readLuaFile`), `src/main.ts` (`try/finally` around vimrc loading)
+- **Oil which-key labels not appearing** — `getCommandLabels()` in `OilKeybindingManager` returned empty when oil bindings were not yet applied (the `if (!this.applied) return []` guard prevented labels from being registered during `rebuildWhichKey()`). Labels are now always returned — they are static metadata from `OIL_MAPPINGS`, valid regardless of whether the vim mappings are currently active.
+    - Plugin: `src/oil/keybindings.ts` (removed `applied` guard from `getCommandLabels()`)
+- **Live grep UI blocking on large vaults** — the live grep picker source now uses chunked async iteration (50 files per chunk) with event loop yields between chunks, preventing UI freezes during searches on vaults with many files. Functionally identical results.
+    - Plugin: `src/picker/sources/live-grep.ts` (chunked iteration with `window.setTimeout(0)` yields)
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: Table escaped pipes → Fixed; `g?` oil help command → Fixed (was listed as "planned but not yet implemented"); oil which-key integration → Fixed; surround `ys` dot-repeat with tag/function → clarified as working at runtime (test infrastructure limitation only); vimrc timing section updated with improved retry mechanism
+
+### Tests
+
+- 5 e2e tests in `test/specs/table-escaped-pipes.e2e.ts` (new): `di|` with `\|` content, `\\|` as real pipe boundary, `]|` navigation skipping `\|`, `yi|` yanking cell with `\|`, `:tablerealign` preserving `\|` cell content
+
 ## [0.57.0] - 2026-07-14
 
 ### Fixed

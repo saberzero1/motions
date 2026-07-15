@@ -1140,74 +1140,87 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     if (this.vimrcLoading) return;
                     this.vimrcLoading = true;
-                    const customVimrcPath =
-                        this.settings.vimrcPath || undefined;
-                    const vimrcResult = await loadVimrc(
-                        this.app,
-                        vim,
-                        this.leaderRegistry ?? undefined,
-                        onSettingOverride,
-                        customVimrcPath,
-                    );
-                    this.vimrcCommandCount = vimrcResult.commandCount;
-                    this.pendingVimrcExCommands =
-                        vimrcResult.pendingExCommands ?? [];
-                    const vimrcFound = vimrcResult.found;
-                    if (!vimrcFound && this.settings.configMode === 'vimrc') {
-                        // Error-like: user chose vimrc-only but file is missing — always show.
-                        new Notice(
-                            `Vim Motions: vimrc not found (searched ${vimrcResult.path}).`,
+                    try {
+                        const customVimrcPath =
+                            this.settings.vimrcPath || undefined;
+                        const vimrcResult = await loadVimrc(
+                            this.app,
+                            vim,
+                            this.leaderRegistry ?? undefined,
+                            onSettingOverride,
+                            customVimrcPath,
                         );
-                    } else if (
-                        vimrcFound &&
-                        this.settings.showConfigNotifications
-                    ) {
-                        if (vimrcResult.commandCount === 0) {
+                        this.vimrcCommandCount = vimrcResult.commandCount;
+                        this.pendingVimrcExCommands =
+                            vimrcResult.pendingExCommands ?? [];
+                        const vimrcFound = vimrcResult.found;
+                        if (
+                            !vimrcFound &&
+                            this.settings.configMode === 'vimrc'
+                        ) {
+                            // Error-like: user chose vimrc-only but file is missing — always show.
                             new Notice(
-                                `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                                `Vim Motions: vimrc not found (searched ${vimrcResult.path}).`,
                             );
-                        } else {
-                            new Notice(
-                                `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
+                        } else if (
+                            vimrcFound &&
+                            this.settings.showConfigNotifications
+                        ) {
+                            if (vimrcResult.commandCount === 0) {
+                                new Notice(
+                                    `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                                );
+                            } else {
+                                new Notice(
+                                    `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
+                                );
+                            }
+                        }
+                        this.vimrcMaps = vimrcResult.maps;
+                        this.vimrcMapKeys = new Set(
+                            vimrcResult.maps.map((m) => m.lhs),
+                        );
+                        this.vimrcWatchPath = vimrcFound
+                            ? vimrcResult.path
+                            : null;
+                        this.vimrcGlobalMaps = vimrcResult.globalMaps;
+                        this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
+                        this.vimrcGlobalWhichKeyLabels =
+                            vimrcResult.globalWhichKeyLabels;
+                        this.vimrcGlobalWhichKeyGroups =
+                            vimrcResult.globalWhichKeyGroups;
+                        applyVimrcMaps(vim, this.vimrcMaps);
+                        this.applyGlobalMaps();
+                        if (this.registration && this.leaderRegistry) {
+                            this.registration.unmapDefaultBinding(
+                                this.leaderRegistry.getLeaderKey(),
                             );
                         }
-                    }
-                    this.vimrcMaps = vimrcResult.maps;
-                    this.vimrcMapKeys = new Set(
-                        vimrcResult.maps.map((m) => m.lhs),
-                    );
-                    this.vimrcWatchPath = vimrcFound ? vimrcResult.path : null;
-                    this.vimrcGlobalMaps = vimrcResult.globalMaps;
-                    this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
-                    this.vimrcGlobalWhichKeyLabels =
-                        vimrcResult.globalWhichKeyLabels;
-                    this.vimrcGlobalWhichKeyGroups =
-                        vimrcResult.globalWhichKeyGroups;
-                    applyVimrcMaps(vim, this.vimrcMaps);
-                    this.applyGlobalMaps();
-                    if (this.registration && this.leaderRegistry) {
-                        this.registration.unmapDefaultBinding(
-                            this.leaderRegistry.getLeaderKey(),
+                        this.reregisterLeaderFeatures();
+                        this.rebuildWhichKey();
+                        this.vimrcLoaded = true;
+                        this.reloadFeatures();
+                        const luaResult = await this.loadLuaConfigInternal(
+                            vim,
+                            onLuaSettingOverride,
                         );
-                    }
-                    this.reregisterLeaderFeatures();
-                    this.rebuildWhichKey();
-                    this.vimrcLoaded = true;
-                    this.vimrcLoading = false;
-                    this.reloadFeatures();
-                    const luaResult = await this.loadLuaConfigInternal(
-                        vim,
-                        onLuaSettingOverride,
-                    );
-                    if (
-                        this.settings.configMode === 'lua-vimrc' &&
-                        !vimrcFound &&
-                        !luaResult?.found &&
-                        this.settings.showConfigNotifications
-                    ) {
-                        new Notice(
-                            `Vim Motions: no config files found (searched ${vimrcResult.path}, ${luaResult?.path ?? 'init.lua'}).`,
+                        if (
+                            this.settings.configMode === 'lua-vimrc' &&
+                            !vimrcFound &&
+                            !luaResult?.found &&
+                            this.settings.showConfigNotifications
+                        ) {
+                            new Notice(
+                                `Vim Motions: no config files found (searched ${vimrcResult.path}, ${luaResult?.path ?? 'init.lua'}).`,
+                            );
+                        }
+                    } catch (e) {
+                        console.warn(
+                            'Vim Motions: vimrc loading failed, will retry on next leaf change',
+                            e,
                         );
+                    } finally {
+                        this.vimrcLoading = false;
                     }
                 }),
             );

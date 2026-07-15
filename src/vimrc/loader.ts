@@ -1,4 +1,4 @@
-import { MarkdownView } from 'obsidian';
+import { MarkdownView, Notice } from 'obsidian';
 import type { App } from 'obsidian';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
@@ -387,8 +387,8 @@ async function fileExists(app: App, path: string): Promise<boolean> {
         return externalFileExists(path);
     }
     try {
-        await app.vault.adapter.read(path);
-        return true;
+        const stat = await app.vault.adapter.stat(path);
+        return stat !== null;
     } catch {
         return false;
     }
@@ -398,15 +398,30 @@ async function readVimrcFile(app: App, path: string): Promise<string | null> {
     if (isAbsolutePath(path)) {
         return readExternalFile(path);
     }
+
+    // Readiness probe: verify file exists in vault index before reading
+    let stat: { size: number } | null = null;
+    try {
+        stat = await app.vault.adapter.stat(path);
+    } catch {
+        // stat() failed — vault adapter not ready or file doesn't exist
+    }
+    if (!stat) return null;
+
     try {
         const content = await app.vault.adapter.read(path);
         if (content !== null && content.trim().length > 0) {
             return content;
         }
-        // File exists but read returned empty — retry with backoff.
-        // This handles the timing issue where the vault adapter is not
-        // fully ready during early `active-leaf-change` events.
-        const delays = [50, 100, 200];
+
+        // File exists (stat succeeded) but read returned empty — timing issue.
+        if (stat.size === 0) {
+            // File is genuinely empty — no retry needed
+            return content;
+        }
+
+        // File has content (stat.size > 0) but read returned empty — retry
+        const delays = [50, 100, 200, 400];
         for (const delay of delays) {
             await new Promise((r) => window.setTimeout(r, delay));
             const retry = await app.vault.adapter.read(path);
@@ -414,9 +429,17 @@ async function readVimrcFile(app: App, path: string): Promise<string | null> {
                 return retry;
             }
         }
-        // All retries returned empty — the file is genuinely empty.
+
+        // All retries exhausted on a non-empty file
+        console.warn(
+            `Vim Motions: vimrc file "${path}" has ${stat.size} bytes but read returned empty after retries`,
+        );
+        new Notice(
+            'Vim Motions: vimrc found but could not be read — try reloading the plugin.',
+        );
         return content;
-    } catch {
+    } catch (e) {
+        console.warn(`Vim Motions: failed to read vimrc "${path}"`, e);
         return null;
     }
 }

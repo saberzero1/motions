@@ -8,6 +8,7 @@ import type {
 import type { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
 import { executeCommand } from '../util/commands';
+import { findUnescapedPipes, splitCellsEscapeAware } from '../vim/table-utils';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -21,11 +22,7 @@ export function isSeparatorLine(text: string): boolean {
 }
 
 export function findCellBoundaries(line: string): number[] {
-    const positions: number[] = [];
-    for (let i = 0; i < line.length; i++) {
-        if (line[i] === '|') positions.push(i);
-    }
-    return positions;
+    return findUnescapedPipes(line);
 }
 
 function findNextCellStart(line: string, cursorCh: number): number | null {
@@ -187,7 +184,7 @@ function findTableBounds(
 type ColumnAlignment = 'left' | 'center' | 'right' | 'none';
 
 function parseSeparatorAlignments(line: string): ColumnAlignment[] {
-    const cells = line.split('|').slice(1, -1);
+    const cells = splitCellsEscapeAware(line);
     return cells.map((cell) => {
         const trimmed = cell.trim();
         const leftColon = trimmed.startsWith(':');
@@ -214,7 +211,7 @@ function buildSeparatorCell(width: number, alignment: ColumnAlignment): string {
 }
 
 function splitTableCells(line: string): string[] {
-    return line.split('|').slice(1, -1);
+    return splitCellsEscapeAware(line);
 }
 
 export function realignTable(cm: CmAdapter): void {

@@ -1,5 +1,6 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
 import { adjustRangeForVisualMode } from './delimiter';
+import { findUnescapedPipes } from '../vim/table-utils';
 
 const TABLE_RE = /^\s*\|/;
 
@@ -9,10 +10,7 @@ function findSurroundingPipes(
     line: string,
     ch: number,
 ): { left: number; right: number } | null {
-    const pipes: number[] = [];
-    for (let i = 0; i < line.length; i++) {
-        if (line[i] === '|') pipes.push(i);
-    }
+    const pipes = findUnescapedPipes(line);
     if (pipes.length < 2) return null;
 
     let leftIdx = -1;

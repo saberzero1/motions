@@ -51,12 +51,59 @@ export function cursorInRange(
     return state.selection.ranges.some((r) => r.from <= to && r.to >= from);
 }
 
-function findCellBoundariesLocal(line: string): number[] {
+/**
+ * Count consecutive backslashes immediately before position `i` in `line`.
+ */
+function countPrecedingBackslashes(line: string, i: number): number {
+    let count = 0;
+    let j = i - 1;
+    while (j >= 0 && line[j] === '\\') {
+        count++;
+        j--;
+    }
+    return count;
+}
+
+/**
+ * Find positions of unescaped pipe characters in a line.
+ * A pipe is escaped if preceded by an odd number of backslashes.
+ * Returns array of 0-based indices of real pipe delimiters.
+ */
+export function findUnescapedPipes(line: string): number[] {
     const positions: number[] = [];
     for (let i = 0; i < line.length; i++) {
-        if (line[i] === '|') positions.push(i);
+        if (line[i] === '|') {
+            const backslashes = countPrecedingBackslashes(line, i);
+            if (backslashes % 2 === 0) {
+                // Even number of backslashes (including 0) = pipe is NOT escaped
+                positions.push(i);
+            }
+        }
     }
     return positions;
+}
+
+/**
+ * Split a table row into cells, respecting escaped pipes (\|).
+ * Handles \\| (escaped backslash + real pipe) via parity check.
+ * Returns the array of cell contents (excluding leading/trailing empty segments).
+ */
+export function splitCellsEscapeAware(line: string): string[] {
+    const pipes = findUnescapedPipes(line);
+    if (pipes.length < 2) return [];
+    const cells: string[] = [];
+    for (let i = 0; i < pipes.length - 1; i++) {
+        const from = pipes[i];
+        const to = pipes[i + 1];
+        if (from !== undefined && to !== undefined) {
+            cells.push(line.substring(from + 1, to));
+        }
+    }
+    return cells;
+}
+
+function findCellBoundariesLocal(line: string): number[] {
+    return findUnescapedPipes(line);
 }
 
 export function getCellDocumentRange(

@@ -13,16 +13,17 @@ import {
     editorInfoField,
     MarkdownRenderer,
 } from 'obsidian';
-import { SEPARATOR_RE, findTableRanges, cursorInRange } from './table-utils';
+import {
+    SEPARATOR_RE,
+    findTableRanges,
+    cursorInRange,
+    splitCellsEscapeAware,
+} from './table-utils';
 
 type Alignment = 'left' | 'center' | 'right' | null;
 
-function splitCells(line: string): string[] {
-    return line.split('|').slice(1, -1);
-}
-
 function parseAlignments(sepLine: string): Alignment[] {
-    return splitCells(sepLine).map((cell) => {
+    return splitCellsEscapeAware(sepLine).map((cell) => {
         const t = cell.trim();
         const l = t.startsWith(':');
         const r = t.endsWith(':');
@@ -38,7 +39,7 @@ function parseTable(lines: string[]): {
     alignments: Alignment[];
     rows: string[][];
 } {
-    const headers = splitCells(lines[0] ?? '').map((c) => c.trim());
+    const headers = splitCellsEscapeAware(lines[0] ?? '').map((c) => c.trim());
     let sepIdx = -1;
     for (let i = 0; i < lines.length; i++) {
         if (SEPARATOR_RE.test(lines[i] ?? '')) {
@@ -51,7 +52,7 @@ function parseTable(lines: string[]): {
     for (let i = sepIdx >= 0 ? sepIdx + 1 : 1; i < lines.length; i++) {
         const line = lines[i];
         if (line === undefined || SEPARATOR_RE.test(line)) continue;
-        rows.push(splitCells(line).map((c) => c.trim()));
+        rows.push(splitCellsEscapeAware(line).map((c) => c.trim()));
     }
     return { headers, alignments, rows };
 }

@@ -1,17 +1,13 @@
 import type { EditorView } from '@codemirror/view';
 import type { TableRange } from './table-utils';
-import { SEPARATOR_RE } from './table-utils';
-
-function splitCells(line: string): string[] {
-    return line.split('|').slice(1, -1);
-}
+import { SEPARATOR_RE, splitCellsEscapeAware } from './table-utils';
 
 function buildRow(cells: string[]): string {
     return `| ${cells.join(' | ')} |`;
 }
 
 function getColCount(table: TableRange): number {
-    return splitCells(table.lines[0] ?? '').length;
+    return splitCellsEscapeAware(table.lines[0] ?? '').length;
 }
 
 function lineFrom(view: EditorView, table: TableRange, row: number): number {
@@ -132,7 +128,7 @@ export function tableAddColAfter(
     const changes: { from: number; to: number; insert: string }[] = [];
     for (let i = 0; i < table.lines.length; i++) {
         const line = view.state.doc.line(firstLine + i);
-        const cells = splitCells(line.text);
+        const cells = splitCellsEscapeAware(line.text);
         const isSep = SEPARATOR_RE.test(line.text);
         const newCell = isSep ? ' --- ' : '     ';
         cells.splice(col + 1, 0, newCell);
@@ -150,7 +146,7 @@ export function tableAddColBefore(
     const changes: { from: number; to: number; insert: string }[] = [];
     for (let i = 0; i < table.lines.length; i++) {
         const line = view.state.doc.line(firstLine + i);
-        const cells = splitCells(line.text);
+        const cells = splitCellsEscapeAware(line.text);
         const isSep = SEPARATOR_RE.test(line.text);
         const newCell = isSep ? ' --- ' : '     ';
         cells.splice(col, 0, newCell);
@@ -170,7 +166,7 @@ export function tableDeleteCol(
     const changes: { from: number; to: number; insert: string }[] = [];
     for (let i = 0; i < table.lines.length; i++) {
         const line = view.state.doc.line(firstLine + i);
-        const cells = splitCells(line.text);
+        const cells = splitCellsEscapeAware(line.text);
         cells.splice(col, 1);
         changes.push({ from: line.from, to: line.to, insert: buildRow(cells) });
     }
@@ -188,7 +184,7 @@ export function tableMoveColRight(
     const changes: { from: number; to: number; insert: string }[] = [];
     for (let i = 0; i < table.lines.length; i++) {
         const line = view.state.doc.line(firstLine + i);
-        const cells = splitCells(line.text);
+        const cells = splitCellsEscapeAware(line.text);
         const temp = cells[col] ?? '';
         cells[col] = cells[col + 1] ?? '';
         cells[col + 1] = temp;
@@ -216,7 +212,7 @@ export function tableRealign(view: EditorView, table: TableRange): void {
         const text = table.lines[i] ?? '';
         if (SEPARATOR_RE.test(text)) {
             sepIdx = i;
-            alignments = splitCells(text).map((cell) => {
+            alignments = splitCellsEscapeAware(text).map((cell) => {
                 const t = cell.trim();
                 const l = t.startsWith(':');
                 const r = t.endsWith(':');
@@ -227,7 +223,7 @@ export function tableRealign(view: EditorView, table: TableRange): void {
             });
             rows.push([]);
         } else {
-            rows.push(splitCells(text).map((c) => c.trim()));
+            rows.push(splitCellsEscapeAware(text).map((c) => c.trim()));
         }
     }
 

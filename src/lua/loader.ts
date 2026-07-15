@@ -138,8 +138,38 @@ async function readLuaFile(app: App, path: string): Promise<string | null> {
     if (isAbsolutePath(path)) {
         return readExternalFile(path);
     }
+
+    let stat: { size: number } | null = null;
     try {
-        return await app.vault.adapter.read(path);
+        stat = await app.vault.adapter.stat(path);
+    } catch {
+        // stat() failed
+    }
+    if (!stat) return null;
+
+    try {
+        const content = await app.vault.adapter.read(path);
+        if (content !== null && content.trim().length > 0) {
+            return content;
+        }
+
+        if (stat.size === 0) {
+            return content;
+        }
+
+        const delays = [50, 100, 200, 400];
+        for (const delay of delays) {
+            await new Promise((r) => window.setTimeout(r, delay));
+            const retry = await app.vault.adapter.read(path);
+            if (retry !== null && retry.trim().length > 0) {
+                return retry;
+            }
+        }
+
+        console.warn(
+            `Vim Motions: init.lua "${path}" has ${stat.size} bytes but read returned empty after retries`,
+        );
+        return content;
     } catch {
         return null;
     }

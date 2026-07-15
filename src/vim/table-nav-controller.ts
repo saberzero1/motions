@@ -11,6 +11,7 @@ import {
     cursorInRange,
     type TableRange,
     SEPARATOR_RE,
+    splitCellsEscapeAware,
 } from './table-utils';
 import { setActiveEditTableRange } from './table-render-widget';
 import { openCellEditor, closeCellEditor } from './table-cell-editor';
@@ -498,7 +499,7 @@ class TableNavController implements PluginValue {
 
     private getColumnCount(): number {
         if (!this.activeTable || !this.activeTable.lines[0]) return 0;
-        return this.activeTable.lines[0].split('|').length - 2; // exclude leading/trailing empty
+        return splitCellsEscapeAware(this.activeTable.lines[0]).length;
     }
 
     private getApp(): App | null {

@@ -35,6 +35,9 @@ Table text objects allow you to operate on the content of individual cells using
 
 The `a|` variant includes the surrounding pipes and padding.
 
+> [!tip]
+> Escaped pipes (`\|`) inside table cells are treated as cell content, not boundaries. For example, `| foo \| bar | baz |` is a two-column table where the first cell contains `foo \| bar`. `\\|` (escaped backslash followed by pipe) is treated as a real boundary.
+
 ## Table manipulation
 
 ![[keybindings#Table manipulation]]

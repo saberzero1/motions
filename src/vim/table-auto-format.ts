@@ -3,6 +3,7 @@ import type { Extension } from '@codemirror/state';
 import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import { getCmAdapter } from './vim-api';
+import { splitCellsEscapeAware } from './table-utils';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -23,14 +24,10 @@ function getVimMode(app: App, editorView?: EditorView): string | null {
     return adapter?.state?.vim?.mode ?? null;
 }
 
-function splitCells(line: string): string[] {
-    return line.split('|').slice(1, -1);
-}
-
 type Alignment = 'left' | 'center' | 'right' | 'none';
 
 function parseAlignments(line: string): Alignment[] {
-    return splitCells(line).map((cell) => {
+    return splitCellsEscapeAware(line).map((cell) => {
         const t = cell.trim();
         const l = t.startsWith(':');
         const r = t.endsWith(':');
@@ -84,7 +81,7 @@ function realignTableLines(lines: string[]): string[] {
             alignments = parseAlignments(text);
             rows.push([]);
         } else {
-            rows.push(splitCells(text).map((c) => c.trim()));
+            rows.push(splitCellsEscapeAware(text).map((c) => c.trim()));
         }
     }
 
@@ -138,7 +135,7 @@ export function createTableAutoFormatExtension(app: App): Extension {
             const bounds = findTableBounds(doc, lineNum);
             if (bounds && bounds.start < lineNum) {
                 const headerLine = doc.line(bounds.start);
-                const colCount = splitCells(headerLine.text).length;
+                const colCount = splitCellsEscapeAware(headerLine.text).length;
                 if (colCount > 0) {
                     const sepCells = Array.from(
                         { length: colCount },

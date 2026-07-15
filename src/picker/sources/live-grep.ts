@@ -28,29 +28,55 @@ export function createLiveGrepSource(): PickerSource {
                 ? (text: string) => re.test(text)
                 : (text: string) =>
                       text.toLowerCase().includes(query.toLowerCase());
+            const CHUNK_SIZE = 50;
             const files = app.vault.getMarkdownFiles();
             const results: PickerItem[] = [];
 
-            for (const file of files) {
+            for (
+                let chunkStart = 0;
+                chunkStart < files.length;
+                chunkStart += CHUNK_SIZE
+            ) {
                 if (results.length >= MAX_RESULTS) break;
 
-                const content = await app.vault.cachedRead(file);
-                const lines = content.split('\n');
-                for (let i = 0; i < lines.length; i++) {
+                const chunkEnd = Math.min(
+                    chunkStart + CHUNK_SIZE,
+                    files.length,
+                );
+                for (let fi = chunkStart; fi < chunkEnd; fi++) {
                     if (results.length >= MAX_RESULTS) break;
-                    const line = lines[i];
-                    if (!line) continue;
-                    if (match(line)) {
-                        const preview =
-                            line.length > 80 ? line.slice(0, 80) : line;
-                        results.push({
-                            id: `${file.path}:${i + 1}`,
-                            label: file.basename,
-                            description: `L${i + 1}: ${preview}`,
-                            filterValue: `${file.basename} ${preview}`,
-                            data: { path: file.path, line: i + 1 },
-                        });
+                    const file = files[fi]!;
+                    const content = await app.vault.cachedRead(file);
+                    const lines = content.split('\n');
+                    for (let i = 0; i < lines.length; i++) {
+                        if (results.length >= MAX_RESULTS) break;
+                        const line = lines[i];
+                        if (!line) continue;
+                        if (match(line)) {
+                            const preview =
+                                line.length > 80 ? line.slice(0, 80) : line;
+                            results.push({
+                                id: `${file.path}:${i + 1}`,
+                                label: file.basename,
+                                description: `L${i + 1}: ${preview}`,
+                                filterValue: `${file.basename} ${preview}`,
+                                data: {
+                                    path: file.path,
+                                    line: i + 1,
+                                },
+                            });
+                        }
                     }
+                }
+
+                // Yield to event loop between chunks to prevent UI blocking
+                if (
+                    chunkStart + CHUNK_SIZE < files.length &&
+                    results.length < MAX_RESULTS
+                ) {
+                    await new Promise((resolve) =>
+                        window.setTimeout(resolve, 0),
+                    );
                 }
             }
 

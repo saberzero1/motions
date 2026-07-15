@@ -335,7 +335,7 @@ See [[lua-config#Leader bindings]] for the full API reference.
 
 ## Oil explorer context
 
-When the Oil file explorer is open and Obsidian's built-in vim mode is disabled (fork mode), the which-key popup shows Oil-specific keybindings (`g.`, `gs`, `gf`, `g?`) alongside standard bindings. Press `g?` in Oil to toggle a static help overlay listing all Oil keybindings.
+When the Oil file explorer is open and Obsidian's built-in vim mode is disabled (fork mode), the which-key popup shows Oil-specific keybindings (`g.`, `gs`, `gf`, `g?`) with descriptive labels alongside standard bindings. Oil bindings appear as individual completions when typing partial keys — they are dynamically mapped on `OilEnter` and removed on `OilLeave`, so they only appear in which-key while an Oil view is active. Press `g?` in Oil to toggle a static help overlay listing all Oil keybindings.
 
 > [!info] Fork mode only
 > Oil which-key integration requires fork mode (built-in vim disabled). With built-in vim enabled, the embedded Oil editor does not have access to the fork's CM adapter.

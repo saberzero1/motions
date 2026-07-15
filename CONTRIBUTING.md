@@ -78,7 +78,7 @@ src/
     fold-column.ts         # Fold column gutter (▸/▾ indicators with click-to-fold)
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
-    table-utils.ts         # Table parsing and cell utilities
+    table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
     table-nav-controller.ts    # Table cell navigation controller
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-auto-format.ts   # Auto-format tables on edit
