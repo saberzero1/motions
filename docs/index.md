@@ -29,9 +29,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 65 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.61.0
+## What's new in 0.62.0
 
-- **Hint mode `F` on pane targets opens in new tab** — pressing `F` in hint mode on a pane target now correctly opens the pane's content in a new tab via `duplicateLeaf`, instead of behaving identically to `f`. ([#70](https://github.com/saberzero1/motions/issues/70))
-- **`j`/`k` and standard-gate keys work in Bases views** — Obsidian Bases views (`.base` files) are now recognized as a standard view type, so `j`/`k` scroll, `H`/`L` tab switch, and count-prefix digits work correctly. ([#70](https://github.com/saberzero1/motions/issues/70))
+- **Textarea vim overlay height fixed** — the 0.60.1 height fix could collapse the CM6 overlay to near-zero when the original textarea used dynamic sizing. Now uses adaptive height calculation with a sensible minimum and viewport-capped maximum. ([#69](https://github.com/saberzero1/motions/issues/69))
+- **Which-key no longer intercepts Oil multi-key bindings** — in "All partial keys" mode, the popup delay timer no longer disrupts `g?`, `g.`, `gs`, `gf` and other `g`-prefixed Oil bindings. The overlay now shows immediately in Oil views, letting multi-key sequences complete without interference.
+- **`ci*` works in Live Preview** — `ci*` (change inside bold) was incorrectly marked as a permanent Live Preview limitation. It works correctly for multi-character content; the limitation has been removed.
 
 See the [[changelog|full changelog]] for details.

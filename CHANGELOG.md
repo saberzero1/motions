@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-07-15
+
 ### Fixed
 
 - **Textarea vim overlay height collapses to near-zero after 0.60.1** — the 0.60.1 fix for unbounded textarea growth replaced `minHeight` with fixed `height` + `maxHeight` copied from the original textarea's computed size. When the original textarea used dynamic height (e.g., `height: auto` or content-dependent sizing), the captured height could be very small, trapping the CM6 overlay at a tiny fixed size with content hidden. Fixed by using adaptive height calculation: `minHeight = max(cssHeight, scrollHeight, 100px)` ensures a reasonable minimum, and `maxHeight = max(effectiveHeight, 50vh)` caps growth at half the viewport with scrollbar overflow. The wrapper's CSS `overflow` changed from `hidden` to `auto` so content exceeding `maxHeight` scrolls instead of being clipped. ([#69](https://github.com/saberzero1/motions/issues/69))
