@@ -65,6 +65,31 @@ class SearchResultsModal extends SuggestModal<SearchResult> {
         super(app);
         this.results = results;
         this.setPlaceholder('Select result\u2026');
+        this.setInstructions([
+            { command: 'Enter', purpose: 'open' },
+            { command: 'Esc', purpose: 'cancel' },
+        ]);
+        const { modalEl } = this;
+        modalEl.addClass('vim-motions-prompt-modal-container');
+        const childEls = modalEl.children;
+        if (childEls.length === 3) {
+            const input = childEls[0];
+            const results = childEls[1];
+            const instructions = childEls[2];
+            if (input) {
+                input.addClass('vim-motions-prompt-modal-input');
+                input.createSpan({
+                    text: 'Search results',
+                    cls: 'vim-motions-prompt-modal-title',
+                });
+            }
+            if (results) {
+                results.addClass('vim-motions-prompt-modal-results');
+            }
+            if (instructions) {
+                instructions.addClass('vim-motions-prompt-modal-instructions');
+            }
+        }
     }
 
     getSuggestions(query: string): SearchResult[] {
@@ -80,39 +105,16 @@ class SearchResultsModal extends SuggestModal<SearchResult> {
     renderSuggestion(item: SearchResult, el: HTMLElement): void {
         el.createDiv({
             text: item.file.basename,
-            cls: 'vim-motions-search-file',
+            cls: 'vim-motions-prompt-modal-suggestion-label',
         });
-        if (item.lineNumber > 0) {
-            const preview = el.createEl('small', {
-                cls: 'vim-motions-search-preview',
-            });
-            preview.appendText(`L${item.lineNumber}: `);
-            this.renderHighlighted(preview, item.linePreview, item.matches);
-        }
-    }
-
-    private renderHighlighted(
-        container: HTMLElement,
-        text: string,
-        matches: [number, number][],
-    ): void {
-        if (matches.length === 0) {
-            container.appendText(text);
-            return;
-        }
-        let cursor = 0;
-        for (const [start, end] of matches) {
-            if (start > text.length) break;
-            if (start > cursor) {
-                container.appendText(text.slice(cursor, start));
-            }
-            const clampedEnd = Math.min(end, text.length);
-            container.createEl('mark', { text: text.slice(start, clampedEnd) });
-            cursor = clampedEnd;
-        }
-        if (cursor < text.length) {
-            container.appendText(text.slice(cursor));
-        }
+        const desc =
+            item.lineNumber > 0
+                ? `L${item.lineNumber}: ${item.linePreview}`
+                : item.file.path;
+        el.createDiv({
+            text: desc,
+            cls: 'vim-motions-prompt-modal-suggestion-description',
+        });
     }
 
     onChooseSuggestion(item: SearchResult): void {

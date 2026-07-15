@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Neovim-style modal styling for `GlobalExCommandModal` and `VimInfoModal`** — the ex command modal (`:` in non-editor views) and the info modal (`:marks`, `:buffers`, `:registers`, Oil `g?`) now use Neovim-inspired styling: transparent container, accent border (`--color-accent`), floating title label positioned on the top border, monospace font, and hidden Obsidian chrome (close button, modal header). `GlobalExCommandModal` uses a prompt-modal pattern with three styled sections (input, results, instructions) and two-column suggestion rows showing `:command` + description. All 40+ ex commands now have `description` fields. `VimInfoModal` uses an info-modal pattern with an accent-bordered inner wrapper. Both patterns use `--modal-background`, `--font-monospace`, and `--color-accent` CSS variables for full theme compatibility.
+    - Plugin: `src/ui/global-ex-command.ts` (`description` field on `GlobalExEntry` and `ExSuggestion`, prompt-modal container styling, two-column `renderSuggestion`), `src/ui/vim-info-modal.ts` (info-modal container styling, floating title, inner wrapper), `styles.css` (new prompt-modal and info-modal CSS sections)
+- **Neovim-style modal styling extended to remaining modals** — `OutlineModal` (`:outline`/`gO`), `SearchResultsModal` (`:vimgrep`), `ContextActionsModal` (`gra`), and `OilConfirmModal` (Oil destructive commit) now use the same Neovim-inspired styling as `GlobalExCommandModal` and `VimInfoModal`. `OutlineModal` shows heading text + line number, `SearchResultsModal` shows filename + line preview, `ContextActionsModal` shows command name + command ID. `OilConfirmModal` uses the info-modal pattern with accent-bordered buttons. Removed 3 unused CSS classes (`vim-motions-search-file`, `vim-motions-search-preview`, `vim-motions-outline-item`).
+    - Plugin: `src/ui/outline-modal.ts`, `src/workspace/vault-search.ts`, `src/ui/context-actions.ts`, `src/oil/manager.ts`, `styles.css`
+
 ## [0.58.0] - 2026-07-15
 
 ### Fixed

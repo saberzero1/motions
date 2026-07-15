@@ -310,7 +310,19 @@ class OilConfirmModal extends Modal {
 
     onOpen(): void {
         const { contentEl } = this;
-        contentEl.createEl('h3', { text: 'Confirm oil changes' });
+        if (contentEl.parentElement) {
+            contentEl.parentElement.addClass(
+                'vim-motions-info-modal-container',
+            );
+        }
+        contentEl.addClass('vim-motions-oil-confirm-modal');
+        contentEl.createSpan({
+            text: 'Confirm changes',
+            cls: 'vim-motions-info-modal-title',
+        });
+        const innerEl = contentEl.createDiv({
+            cls: 'vim-motions-info-modal-inner',
+        });
 
         const summary: string[] = [];
         if (this.diff.creates.length > 0)
@@ -322,46 +334,61 @@ class OilConfirmModal extends Modal {
         if (this.diff.deletes.length > 0)
             summary.push(`Delete ${this.diff.deletes.length}`);
 
-        contentEl.createEl('p', { text: summary.join(', ') + '.' });
+        innerEl.createEl('p', {
+            text: summary.join(', ') + '.',
+            cls: 'vim-motions-oil-confirm-summary',
+        });
 
         if (this.diff.deletes.length > 0) {
-            contentEl.createEl('h4', { text: 'Files to delete' });
-            const ul = contentEl.createEl('ul');
+            innerEl.createEl('h4', {
+                text: 'Files to delete',
+                cls: 'vim-motions-oil-confirm-section-title',
+            });
+            const ul = innerEl.createEl('ul', {
+                cls: 'vim-motions-oil-confirm-list',
+            });
             for (const del of this.diff.deletes) {
                 ul.createEl('li', { text: del.entry.path });
             }
         }
 
         if (this.diff.moves.length > 0) {
-            contentEl.createEl('h4', { text: 'Files to move' });
-            const ul = contentEl.createEl('ul');
+            innerEl.createEl('h4', {
+                text: 'Files to move',
+                cls: 'vim-motions-oil-confirm-section-title',
+            });
+            const ul = innerEl.createEl('ul', {
+                cls: 'vim-motions-oil-confirm-list',
+            });
             for (const move of this.diff.moves) {
                 const dest = move.newParentPath
                     ? `${move.newParentPath}/${move.newName}`
                     : move.newName;
                 ul.createEl('li', {
-                    text: `${move.entry.path} → ${dest}`,
+                    text: `${move.entry.path} \u2192 ${dest}`,
                 });
             }
         }
 
-        const btnContainer = contentEl.createDiv({
-            cls: 'modal-button-container',
+        const btnContainer = innerEl.createDiv({
+            cls: 'vim-motions-oil-confirm-buttons',
         });
         const confirmBtn = btnContainer.createEl('button', {
             text: 'Confirm',
-            cls: 'mod-cta',
+            cls: 'vim-motions-oil-confirm-btn-confirm',
         });
         confirmBtn.addEventListener('click', () => {
             this.resolve(true);
             this.close();
         });
-        btnContainer
-            .createEl('button', { text: 'Cancel' })
-            .addEventListener('click', () => {
-                this.resolve(false);
-                this.close();
-            });
+        const cancelBtn = btnContainer.createEl('button', {
+            text: 'Cancel',
+            cls: 'vim-motions-oil-confirm-btn-cancel',
+        });
+        cancelBtn.addEventListener('click', () => {
+            this.resolve(false);
+            this.close();
+        });
         window.requestAnimationFrame(() => confirmBtn.focus());
     }
 

@@ -14,6 +14,7 @@ export interface GlobalExEntry {
     name: string;
     shortName: string;
     fn: GlobalExFn;
+    description?: string;
 }
 
 type OpenPicker = (
@@ -168,44 +169,211 @@ export function buildGlobalExCommands(
     };
 
     return [
-        { name: 'quit', shortName: 'q', fn: cmd('workspace:close') },
-        { name: 'write', shortName: 'w', fn: cmd('editor:save-file') },
-        { name: 'wq', shortName: '', fn: writeQuit },
-        { name: 'xit', shortName: 'x', fn: writeQuit },
-        { name: 'xall', shortName: 'xa', fn: writeQuit },
-        { name: 'update', shortName: 'up', fn: cmd('editor:save-file') },
-        { name: 'wall', shortName: 'wa', fn: cmd('editor:save-file') },
-        { name: 'edit', shortName: 'e', fn: editFile },
-        { name: 'enew', shortName: 'ene', fn: enew },
-        { name: 'find', shortName: 'fin', fn: findFile },
-        { name: 'bnext', shortName: 'bn', fn: cmd('workspace:next-tab') },
+        {
+            name: 'quit',
+            shortName: 'q',
+            fn: cmd('workspace:close'),
+            description: 'Close the current pane',
+        },
+        {
+            name: 'write',
+            shortName: 'w',
+            fn: cmd('editor:save-file'),
+            description: 'Save the current file',
+        },
+        {
+            name: 'wq',
+            shortName: '',
+            fn: writeQuit,
+            description: 'Save the current file and close the pane',
+        },
+        {
+            name: 'xit',
+            shortName: 'x',
+            fn: writeQuit,
+            description: 'Save the current file and close the pane',
+        },
+        {
+            name: 'xall',
+            shortName: 'xa',
+            fn: writeQuit,
+            description: 'Save all files and close all panes',
+        },
+        {
+            name: 'update',
+            shortName: 'up',
+            fn: cmd('editor:save-file'),
+            description: 'Save the current file',
+        },
+        {
+            name: 'wall',
+            shortName: 'wa',
+            fn: cmd('editor:save-file'),
+            description: 'Save all files',
+        },
+        {
+            name: 'edit',
+            shortName: 'e',
+            fn: editFile,
+            description: 'Open a file in the current pane',
+        },
+        {
+            name: 'enew',
+            shortName: 'ene',
+            fn: enew,
+            description: 'Create a new untitled file',
+        },
+        {
+            name: 'find',
+            shortName: 'fin',
+            fn: findFile,
+            description: 'Find and open a file by name',
+        },
+        {
+            name: 'bnext',
+            shortName: 'bn',
+            fn: cmd('workspace:next-tab'),
+            description: 'Switch to the next buffer',
+        },
         {
             name: 'bprevious',
             shortName: 'bp',
             fn: cmd('workspace:previous-tab'),
+            description: 'Switch to the previous buffer',
         },
-        { name: 'buffer', shortName: 'b', fn: bufferSwitch },
-        { name: 'bfirst', shortName: 'bf', fn: bufferFirstLast(true) },
-        { name: 'blast', shortName: 'bl', fn: bufferFirstLast(false) },
-        { name: 'bdelete', shortName: 'bd', fn: cmd('workspace:close') },
-        { name: 'bclose', shortName: 'bc', fn: cmd('workspace:close') },
-        { name: 'bwipeout', shortName: 'bw', fn: cmd('workspace:close') },
-        { name: 'only', shortName: 'on', fn: closeOthers },
-        { name: 'quitall', shortName: 'qa', fn: closeAll },
-        { name: 'split', shortName: 'sp', fn: splitCmd(false) },
-        { name: 'vsplit', shortName: 'vs', fn: splitCmd(true) },
-        { name: 'tabnew', shortName: 'tabn', fn: tabNew },
-        { name: 'tabedit', shortName: 'tabe', fn: tabNew },
-        { name: 'tabclose', shortName: 'tabc', fn: cmd('workspace:close') },
-        { name: 'tabonly', shortName: 'tabo', fn: closeOthers },
-        { name: 'tabfirst', shortName: 'tabf', fn: bufferFirstLast(true) },
-        { name: 'tablast', shortName: 'tabl', fn: bufferFirstLast(false) },
-        { name: 'sidebar', shortName: 'sid', fn: sidebar },
-        { name: 'explorer', shortName: 'exp', fn: explorer },
-        { name: 'ob', shortName: '', fn: ob },
-        { name: 'back', shortName: 'bac', fn: cmd('app:go-back') },
-        { name: 'forward', shortName: 'fo', fn: cmd('app:go-forward') },
-        { name: 'version', shortName: 've', fn: version },
+        {
+            name: 'buffer',
+            shortName: 'b',
+            fn: bufferSwitch,
+            description: 'Switch to a buffer by name',
+        },
+        {
+            name: 'bfirst',
+            shortName: 'bf',
+            fn: bufferFirstLast(true),
+            description: 'Switch to the first buffer',
+        },
+        {
+            name: 'blast',
+            shortName: 'bl',
+            fn: bufferFirstLast(false),
+            description: 'Switch to the last buffer',
+        },
+        {
+            name: 'bdelete',
+            shortName: 'bd',
+            fn: cmd('workspace:close'),
+            description: 'Close the current buffer',
+        },
+        {
+            name: 'bclose',
+            shortName: 'bc',
+            fn: cmd('workspace:close'),
+            description: 'Close the current buffer',
+        },
+        {
+            name: 'bwipeout',
+            shortName: 'bw',
+            fn: cmd('workspace:close'),
+            description: 'Close the current buffer',
+        },
+        {
+            name: 'only',
+            shortName: 'on',
+            fn: closeOthers,
+            description: 'Close all other panes',
+        },
+        {
+            name: 'quitall',
+            shortName: 'qa',
+            fn: closeAll,
+            description: 'Close all panes',
+        },
+        {
+            name: 'split',
+            shortName: 'sp',
+            fn: splitCmd(false),
+            description: 'Split the current pane horizontally',
+        },
+        {
+            name: 'vsplit',
+            shortName: 'vs',
+            fn: splitCmd(true),
+            description: 'Split the current pane vertically',
+        },
+        {
+            name: 'tabnew',
+            shortName: 'tabn',
+            fn: tabNew,
+            description: 'Open a new tab',
+        },
+        {
+            name: 'tabedit',
+            shortName: 'tabe',
+            fn: tabNew,
+            description: 'Open a new tab',
+        },
+        {
+            name: 'tabclose',
+            shortName: 'tabc',
+            fn: cmd('workspace:close'),
+            description: 'Close the current tab',
+        },
+        {
+            name: 'tabonly',
+            shortName: 'tabo',
+            fn: closeOthers,
+            description: 'Close all other tabs',
+        },
+        {
+            name: 'tabfirst',
+            shortName: 'tabf',
+            fn: bufferFirstLast(true),
+            description: 'Switch to the first tab',
+        },
+        {
+            name: 'tablast',
+            shortName: 'tabl',
+            fn: bufferFirstLast(false),
+            description: 'Switch to the last tab',
+        },
+        {
+            name: 'sidebar',
+            shortName: 'sid',
+            fn: sidebar,
+            description:
+                'Toggle the left or right sidebar (use "left" or "right" as argument)',
+        },
+        {
+            name: 'explorer',
+            shortName: 'exp',
+            fn: explorer,
+            description: 'Reveal the active file in the file explorer',
+        },
+        {
+            name: 'ob',
+            shortName: '',
+            fn: ob,
+            description: 'Execute an Obsidian command (use ":ob <commandId>")',
+        },
+        {
+            name: 'back',
+            shortName: 'bac',
+            fn: cmd('app:go-back'),
+            description: 'Go back in navigation history',
+        },
+        {
+            name: 'forward',
+            shortName: 'fo',
+            fn: cmd('app:go-forward'),
+            description: 'Go forward in navigation history',
+        },
+        {
+            name: 'version',
+            shortName: 've',
+            fn: version,
+            description: 'Show the version of the Vim Motions plugin',
+        },
         {
             name: 'gmaps',
             shortName: '',
@@ -232,6 +400,7 @@ export function buildGlobalExCommands(
                     rows,
                 ).open();
             },
+            description: 'List all global mappings',
         },
         {
             name: 'gmap',
@@ -264,6 +433,7 @@ export function buildGlobalExCommands(
                     gate: 'standard',
                 });
             },
+            description: 'Add a global mapping (e.g., :gmap <key> <:command>)',
         },
         {
             name: 'gunmap',
@@ -279,6 +449,7 @@ export function buildGlobalExCommands(
                     new Notice(`No global mapping for: ${key}`);
                 }
             },
+            description: 'Remove a global mapping (e.g., :gunmap <key>)',
         },
         ...(openPicker
             ? ([
@@ -286,46 +457,55 @@ export function buildGlobalExCommands(
                       name: 'files',
                       shortName: '',
                       fn: () => openPicker('files'),
+                      description: 'Open the file picker',
                   },
                   {
                       name: 'commands',
                       shortName: '',
                       fn: () => openPicker('commands'),
+                      description: 'Open the command picker',
                   },
                   {
                       name: 'buffers',
                       shortName: 'buf',
                       fn: () => openPicker('buffers'),
+                      description: 'Open the buffer picker',
                   },
                   {
                       name: 'headings',
                       shortName: '',
                       fn: () => openPicker('headings'),
+                      description: 'Open the headings picker',
                   },
                   {
                       name: 'outline',
                       shortName: '',
                       fn: () => openPicker('outline'),
+                      description: 'Open the outline picker',
                   },
                   {
                       name: 'backlinks',
                       shortName: 'backl',
                       fn: () => openPicker('backlinks'),
+                      description: 'Open the backlinks picker',
                   },
                   {
                       name: 'tags',
                       shortName: '',
                       fn: () => openPicker('tags'),
+                      description: 'Open the tags picker',
                   },
                   {
                       name: 'recent',
                       shortName: '',
                       fn: () => openPicker('recent'),
+                      description: 'Open the recent files picker',
                   },
                   {
                       name: 'resume',
                       shortName: 'res',
                       fn: () => openPicker('resume'),
+                      description: 'Resume the last picker',
                   },
                   {
                       name: 'grep',
@@ -334,16 +514,20 @@ export function buildGlobalExCommands(
                           const query = args.trim();
                           if (query) openPicker('grep', { query });
                       },
+                      description:
+                          'Open the grep picker with an optional query',
                   },
                   {
                       name: 'livegrep',
                       shortName: 'liveg',
                       fn: () => openPicker('livegrep'),
+                      description: 'Open the live grep picker',
                   },
                   {
                       name: 'registers',
                       shortName: 'reg',
                       fn: () => openPicker('registers'),
+                      description: 'Open the registers picker',
                   },
               ] satisfies GlobalExEntry[])
             : []),
@@ -369,6 +553,8 @@ export function buildGlobalExCommands(
                           }
                           void oilManager.openOil(dirPath);
                       },
+                      description:
+                          'Open the Oil file manager in a directory (default: current file directory)',
                   },
               ] satisfies GlobalExEntry[])
             : []),
@@ -401,6 +587,7 @@ export function matchCommand(
 interface ExSuggestion {
     command: string;
     fullInput: string;
+    description: string;
 }
 
 export function executeGlobalExCommand(
@@ -437,6 +624,27 @@ export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
             { command: 'Enter', purpose: 'execute' },
             { command: 'Esc', purpose: 'cancel' },
         ]);
+        const { modalEl } = this;
+        modalEl.addClass('vim-motions-prompt-modal-container');
+        const childEls = modalEl.children;
+        if (childEls.length === 3) {
+            const input = childEls[0];
+            const results = childEls[1];
+            const instructions = childEls[2];
+            if (input) {
+                input.addClass('vim-motions-prompt-modal-input');
+                input.createSpan({
+                    text: 'Ex commands',
+                    cls: 'vim-motions-prompt-modal-title',
+                });
+            }
+            if (results) {
+                results.addClass('vim-motions-prompt-modal-results');
+            }
+            if (instructions) {
+                instructions.addClass('vim-motions-prompt-modal-instructions');
+            }
+        }
     }
 
     getSuggestions(query: string): ExSuggestion[] {
@@ -445,6 +653,7 @@ export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
             return this.entries.map((e) => ({
                 command: e.name,
                 fullInput: e.name,
+                description: e.description ?? '',
             }));
         }
 
@@ -463,11 +672,19 @@ export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
                 command: e.name,
                 fullInput:
                     spaceIdx === -1 ? e.name : e.name + q.slice(spaceIdx),
+                description: e.description ?? '',
             }));
     }
 
     renderSuggestion(item: ExSuggestion, el: HTMLElement): void {
-        el.createDiv({ text: ':' + item.command });
+        el.createDiv({
+            text: ':' + item.command,
+            cls: 'vim-motions-prompt-modal-suggestion-label',
+        });
+        el.createDiv({
+            text: item.description ?? '',
+            cls: 'vim-motions-prompt-modal-suggestion-description',
+        });
     }
 
     onChooseSuggestion(item: ExSuggestion): void {

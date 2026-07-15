@@ -13,6 +13,31 @@ export class OutlineModal extends SuggestModal<HeadingItem> {
         super(app);
         this.headings = headings;
         this.setPlaceholder('Jump to heading\u2026');
+        this.setInstructions([
+            { command: 'Enter', purpose: 'jump' },
+            { command: 'Esc', purpose: 'cancel' },
+        ]);
+        const { modalEl } = this;
+        modalEl.addClass('vim-motions-prompt-modal-container');
+        const childEls = modalEl.children;
+        if (childEls.length === 3) {
+            const input = childEls[0];
+            const results = childEls[1];
+            const instructions = childEls[2];
+            if (input) {
+                input.addClass('vim-motions-prompt-modal-input');
+                input.createSpan({
+                    text: 'Outline',
+                    cls: 'vim-motions-prompt-modal-title',
+                });
+            }
+            if (results) {
+                results.addClass('vim-motions-prompt-modal-results');
+            }
+            if (instructions) {
+                instructions.addClass('vim-motions-prompt-modal-instructions');
+            }
+        }
     }
 
     getSuggestions(query: string): HeadingItem[] {
@@ -24,9 +49,13 @@ export class OutlineModal extends SuggestModal<HeadingItem> {
 
     renderSuggestion(item: HeadingItem, el: HTMLElement): void {
         const indent = '\u00A0\u00A0'.repeat(item.level - 1);
-        el.createSpan({
+        el.createDiv({
             text: indent + '#'.repeat(item.level) + ' ' + item.heading,
-            cls: 'vim-motions-outline-item',
+            cls: 'vim-motions-prompt-modal-suggestion-label',
+        });
+        el.createDiv({
+            text: `L${item.line + 1}`,
+            cls: 'vim-motions-prompt-modal-suggestion-description',
         });
     }
 

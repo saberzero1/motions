@@ -65,6 +65,31 @@ class ContextActionsModal extends SuggestModal<CommandItem> {
         super(app);
         this.items = items;
         this.setPlaceholder('Run action\u2026');
+        this.setInstructions([
+            { command: 'Enter', purpose: 'run' },
+            { command: 'Esc', purpose: 'cancel' },
+        ]);
+        const { modalEl } = this;
+        modalEl.addClass('vim-motions-prompt-modal-container');
+        const childEls = modalEl.children;
+        if (childEls.length === 3) {
+            const input = childEls[0];
+            const results = childEls[1];
+            const instructions = childEls[2];
+            if (input) {
+                input.addClass('vim-motions-prompt-modal-input');
+                input.createSpan({
+                    text: 'Actions',
+                    cls: 'vim-motions-prompt-modal-title',
+                });
+            }
+            if (results) {
+                results.addClass('vim-motions-prompt-modal-results');
+            }
+            if (instructions) {
+                instructions.addClass('vim-motions-prompt-modal-instructions');
+            }
+        }
     }
 
     getSuggestions(query: string): CommandItem[] {
@@ -77,7 +102,14 @@ class ContextActionsModal extends SuggestModal<CommandItem> {
     }
 
     renderSuggestion(item: CommandItem, el: HTMLElement): void {
-        el.createSpan({ text: item.name });
+        el.createDiv({
+            text: item.name,
+            cls: 'vim-motions-prompt-modal-suggestion-label',
+        });
+        el.createDiv({
+            text: item.id,
+            cls: 'vim-motions-prompt-modal-suggestion-description',
+        });
     }
 
     onChooseSuggestion(item: CommandItem): void {

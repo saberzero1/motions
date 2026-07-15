@@ -207,6 +207,50 @@
     z-index: 1000;
 }
 
+/* --- Modal for motions info --- */
+
+.vim-motions-info-modal-container.modal {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    margin-top: 20px;
+}
+
+.vim-motions-info-modal-container.modal .modal-header-button.clickable-icon {
+    display: none;
+}
+
+.vim-motions-info-modal .modal-header {
+    display: none;
+}
+
+.vim-motions-info-modal-inner {
+    border: 1px solid var(--color-accent);
+    background-color: var(--modal-background);
+}
+
+.vim-motions-info-modal-title {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-monospace);
+    font-size: 14px;
+    color: var(--color-accent);
+    background: var(--modal-background);
+    padding: 0 8px;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.vim-motions-infor-modal.modal-content h2 {
+    margin: 0;
+    text-align: center;
+}
+
 .vim-motions-info-modal table {
     width: 100%;
     border-collapse: collapse;
@@ -233,6 +277,84 @@
 .vim-motions-info-modal tr:hover {
     background: var(--background-modifier-hover);
 }
+
+/* --- Prompt modal --- */
+
+.vim-motions-prompt-modal-container {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    padding-top: 20px;
+    display: flex;
+    gap: 12px;
+    width: min(var(--dialog-max-width), calc(var(--dialog-width) * 2));
+    max-width: var(--dialog-max-width);
+}
+
+.vim-motions-prompt-modal-input,
+.vim-motions-prompt-modal-results,
+.vim-motions-prompt-modal-instructions {
+    border: 1px solid var(--color-accent);
+    background-color: var(--modal-background);
+    max-width: var(--dialog-max-width);
+}
+
+.vim-motions-prompt-modal-input .search-input-clear-button {
+    display: none;
+}
+
+.vim-motions-prompt-modal-results {
+    padding: 0;
+}
+
+.vim-motions-prompt-modal-results .suggestion-item {
+    display: flex;
+    flex-direction: row;
+}
+
+.vim-motions-prompt-modal-results
+    .suggestion-item
+    .vim-motions-prompt-modal-suggestion-label {
+    width: 25%;
+    text-align: start;
+    font-family: var(--font-monospace);
+    font-size: 14px;
+}
+
+.vim-motions-prompt-modal-results
+    .suggestion-item
+    .vim-motions-prompt-modal-suggestion-description {
+    width: 75%;
+    text-align: end;
+    color: var(--text-muted);
+    font-family: var(--font-monospace);
+    font-size: 14px;
+}
+
+.vim-motions-prompt-modal-instructions .prompt-instructions {
+    font-family: var(--font-monospace);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.vim-motions-prompt-modal-container .vim-motions-prompt-modal-title {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-monospace);
+    font-size: 14px;
+    color: var(--color-accent);
+    background: var(--modal-background);
+    padding: 0 8px;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+/* --- Which-key --- */
 
 .vim-motions-which-key {
     position: absolute;
@@ -323,25 +445,68 @@
     text-align: center;
 }
 
-.vim-motions-search-file {
-    font-weight: 600;
-    font-size: 14px;
+/* --- Oil confirm modal --- */
+
+.vim-motions-oil-confirm-modal .modal-header {
+    display: none;
 }
 
-.vim-motions-search-preview {
-    display: block;
-    color: var(--text-muted);
-    font-family: var(--font-monospace);
-    font-size: 12px;
-    white-space: pre;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 500px;
-}
-
-.vim-motions-outline-item {
+.vim-motions-oil-confirm-summary {
     font-family: var(--font-monospace);
     font-size: 13px;
+    padding: 8px 12px 4px;
+    margin: 0;
+}
+
+.vim-motions-oil-confirm-section-title {
+    font-family: var(--font-monospace);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 4px 12px 2px;
+    margin: 0;
+}
+
+.vim-motions-oil-confirm-list {
+    list-style: none;
+    padding: 0 12px 4px;
+    margin: 0;
+    font-family: var(--font-monospace);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.vim-motions-oil-confirm-list li::before {
+    content: '  ';
+}
+
+.vim-motions-oil-confirm-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.vim-motions-oil-confirm-btn-confirm,
+.vim-motions-oil-confirm-btn-cancel {
+    font-family: var(--font-monospace);
+    font-size: 13px;
+    padding: 4px 16px;
+    border: 1px solid var(--color-accent);
+    background: var(--modal-background);
+    color: var(--text-normal);
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.vim-motions-oil-confirm-btn-confirm:hover {
+    background: var(--color-accent);
+    color: var(--text-on-accent);
+}
+
+.vim-motions-oil-confirm-btn-cancel:hover {
+    background: var(--background-modifier-hover);
 }
 
 .vim-motions-ex-suggest {

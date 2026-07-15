@@ -18,15 +18,26 @@ export class VimInfoModal extends Modal {
 
     onOpen(): void {
         const { contentEl } = this;
+        if (contentEl.parentElement) {
+            contentEl.parentElement.addClass(
+                'vim-motions-info-modal-container',
+            );
+        }
         contentEl.addClass('vim-motions-info-modal');
-        contentEl.createEl('h2', { text: this.title });
+        contentEl.createSpan({
+            text: this.title,
+            cls: 'vim-motions-info-modal-title',
+        });
+        const innerEl = contentEl.createDiv({
+            cls: 'vim-motions-info-modal-inner',
+        });
 
         if (this.rows.length === 0) {
-            contentEl.createEl('p', { text: 'Nothing to show.' });
+            innerEl.createEl('p', { text: 'Nothing to show.' });
             return;
         }
 
-        const table = contentEl.createEl('table');
+        const table = innerEl.createEl('table');
         const thead = table.createEl('thead');
         const headerRow = thead.createEl('tr');
         for (const col of this.columns) {
