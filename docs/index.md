@@ -29,12 +29,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 64 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.58.0
+## What's new in 0.59.0
 
-- **Table escaped pipes** — cells containing escaped pipes (`\|`) no longer corrupt cell boundaries during navigation, text object operations, or embedded cell editing write-back. All pipe-boundary detection now uses shared escape-aware utilities.
-- **Vimrc file I/O timing** — `readVimrcFile()` now uses `stat()` as a readiness probe before `read()`, distinguishing genuinely empty files from timing-empty reads with extended backoff. The same pattern is applied to the Lua config loader.
-- **Oil which-key labels not appearing** — `getCommandLabels()` now always returns Oil keybinding labels regardless of whether the vim mappings are currently active.
-- **Live grep UI blocking on large vaults** — the live grep picker source now uses chunked async iteration with event loop yields between chunks, preventing UI freezes during searches on large vaults.
-- **Oil `g?` help modal** — `g?` in Oil now opens a `VimInfoModal` (Key/Action table) instead of a custom overlay, matching the pattern used by `:marks`, `:buffers`, and `:registers`.
+- **Format-on-exit table alignment** — replaced mid-edit `|` keystroke interception with format-on-exit: tables are only realigned when the cursor leaves the table range. Typing `|` no longer causes cursor jumps ([#66](https://github.com/saberzero1/motions/issues/66)), and escaped pipes (`\|`) are handled correctly in raw/cursor-aware modes ([#67](https://github.com/saberzero1/motions/issues/67)).
+- **Absolute line number highlight** — the current-line highlight now follows the cursor when only absolute line numbers are enabled (`set number` without `set relativenumber`) ([#68](https://github.com/saberzero1/motions/issues/68)).
+- **Neovim-style modal styling** — all modal dialogs (`:` ex command, `:marks`, `:buffers`, `:registers`, `:outline`, `:vimgrep`, `gra`, Oil confirm) now use Neovim-inspired styling with accent borders, floating titles, monospace font, and full theme compatibility.
 
 See the [[changelog|full changelog]] for details.

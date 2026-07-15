@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-07-15
+
 ### Fixed
 
 - **Absolute line number highlight not updating on cursor movement** — when only absolute line numbers were enabled (`set number` without `set relativenumber`), the `vim-motions-line-num-current` highlight (bold current line number) did not follow the cursor. The `lineMarkerChange` callback in both the standalone line number gutter and the unified `statuscolumn` gutter only checked `update.docChanged` in absolute mode, ignoring `update.selectionSet` (cursor movement). Relative and hybrid modes were unaffected because they already included `update.selectionSet`. The highlight only updated incidentally when entering special content (MathJax, images) that triggered `docChanged` or `viewportChanged`. ([#68](https://github.com/saberzero1/motions/issues/68))
