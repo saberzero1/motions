@@ -1405,7 +1405,7 @@ settings:
     display: inline-block;
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
-    overflow: hidden;
+    overflow: auto;
 }
 
 .vim-motions-textarea-overlay .cm-editor {

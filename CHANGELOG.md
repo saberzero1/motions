@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Textarea vim overlay height collapses to near-zero after 0.60.1** — the 0.60.1 fix for unbounded textarea growth replaced `minHeight` with fixed `height` + `maxHeight` copied from the original textarea's computed size. When the original textarea used dynamic height (e.g., `height: auto` or content-dependent sizing), the captured height could be very small, trapping the CM6 overlay at a tiny fixed size with content hidden. Fixed by using adaptive height calculation: `minHeight = max(cssHeight, scrollHeight, 100px)` ensures a reasonable minimum, and `maxHeight = max(effectiveHeight, 50vh)` caps growth at half the viewport with scrollbar overflow. The wrapper's CSS `overflow` changed from `hidden` to `auto` so content exceeding `maxHeight` scrolls instead of being clipped. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (adaptive height calculation with `MIN_HEIGHT_PX` floor), `styles.css` (`overflow: auto` on `.vim-motions-textarea-overlay`)
 - **Which-key "all" mode intercepting multi-key Oil bindings** — in "All partial keys" mode, the popup delay timer (default 500ms) caused the which-key overlay to appear between the `g` and second keystroke (`?`, `.`, `s`, `f`), disrupting Oil's `g?` help modal and other `g`-prefixed bindings. Fixed by bypassing the popup delay timer when the active view is an OilView — the overlay shows immediately, allowing multi-key bindings to complete without interference. Operator-pending hints (`d`, `c`, `y`) still work normally in Oil.
     - Plugin: `src/ui/which-key.ts` (`onKeyPressGeneral` Oil context check)
 - **`ci*` marked as permanent Live Preview limitation** — investigation found that `ci*` (change inside bold) works correctly in Live Preview for multi-character content. On the active line, Obsidian uses `Decoration.mark` (visible text nodes), not `Decoration.replace` — the cursor is not displaced by collapsed decorations. The original limitation was overstated based on early testing with a transaction filter that has since been removed.
@@ -21,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: Added entries for which-key + Oil fix and `ci*` limitation resolution
-- `KNOWN_LIMITATIONS.md`: Which-key + Oil non-editor context → Fixed; which-key "all" mode Oil interception → Fixed; `ci*` Live Preview → resolved (was overstated)
+- `CHANGELOG.md`: Added entries for which-key + Oil fix, `ci*` limitation resolution, and textarea height fix
+- `KNOWN_LIMITATIONS.md`: Which-key + Oil non-editor context → Fixed; which-key "all" mode Oil interception → Fixed; `ci*` Live Preview → resolved (was overstated); textarea overlay height collapse → Fixed
 - `docs/configuration/which-key.md`: Updated Oil explorer context section — removed non-editor and "all" mode warnings
 - `docs/features/text-objects.md`: Removed `ci*` limitation note if present
 

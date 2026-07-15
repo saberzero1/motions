@@ -1250,6 +1250,14 @@ When enabled (**Settings → Vim Motions → Vim features → Vim keybindings in
 
 Desktop only. Configurable via `vim.opt.vimtextareas = true` in Lua or `set vimtextareas` in vimrc.
 
+### Sizing
+
+The CM6 overlay uses adaptive height calculation to match the original textarea's dimensions. The wrapper's `minHeight` is set to the largest of the textarea's CSS height, its `scrollHeight` (actual content height), and a 100px floor. The `maxHeight` is capped at `max(effectiveHeight, 50vh)` — the overlay can grow with content up to half the viewport, then scrolls. The wrapper uses `overflow: auto` so content exceeding `maxHeight` gets a scrollbar.
+
+~~Textarea vim overlay height collapses to near-zero~~ — Fixed. The 0.60.1 fix for unbounded growth locked `height` + `maxHeight` to the textarea's computed height, which could be very small for textareas with dynamic height (`height: auto` or content-dependent sizing). Replaced with the adaptive `minHeight`/`maxHeight` approach described above. ([#69](https://github.com/saberzero1/motions/issues/69))
+
+~~Textarea vim overlay grows unbounded with content~~ — Fixed in 0.60.1 (replaced with the adaptive height approach above). ([#69](https://github.com/saberzero1/motions/issues/69))
+
 ### Scope
 
 - Only `<textarea>` elements are replaced. `<input>`, `<select>`, and `contenteditable` elements are not affected.

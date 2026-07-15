@@ -195,7 +195,7 @@ src/
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
     bundled/               # Bundled Obsidian-specific snippets
   editors/
-    embeddable-editor.ts   # Reusable embeddable editor component (used by table cell editor)
+    embeddable-editor.ts   # Reusable embeddable editor component (used by table cell editor and textarea vim overlay)
   keybindings/
     action-registry.ts     # Centralized action registry for cross-context keybindings
   ui/

@@ -10,6 +10,7 @@ import type { CursorShapes } from '../settings';
 
 const DEBOUNCE_FOCUS_MS = 150;
 const DEBOUNCE_SYNC_MS = 100;
+const MIN_HEIGHT_PX = 100;
 const REPLACED_CLASS = 'vim-motions-replaced';
 const OVERLAY_CLASS = 'vim-motions-textarea-overlay';
 const HIDDEN_CLASS = 'vim-motions-textarea-hidden';
@@ -103,8 +104,15 @@ export class TextareaVimManager {
 
         const wrapper = createDiv({ cls: OVERLAY_CLASS });
         wrapper.style.width = computed.width;
-        wrapper.style.height = computed.height;
-        wrapper.style.maxHeight = computed.height;
+        const cssHeight = parseFloat(computed.height) || 0;
+        const contentHeight = el.scrollHeight;
+        const effectiveHeight = Math.max(
+            cssHeight,
+            contentHeight,
+            MIN_HEIGHT_PX,
+        );
+        wrapper.style.minHeight = `${effectiveHeight}px`;
+        wrapper.style.maxHeight = `max(${effectiveHeight}px, 50vh)`;
         wrapper.style.fontSize = computed.fontSize;
         wrapper.style.fontFamily = computed.fontFamily;
         wrapper.style.lineHeight = computed.lineHeight;
