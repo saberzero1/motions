@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `styles.css` (table cell editor CSS)
 - **Table widget wikilink color loss after cell edit** — editing a cell containing a wikilink and exiting could cause the wikilink to lose its accent color in the re-rendered table widget. Mitigated by deferring `Component.unload()` in `TableRenderWidget.destroy()` by 500ms to allow `MarkdownRenderer.render()` async post-processing to complete before the Component is torn down. Note: this is a partial fix — the issue may still occur in some cases due to Obsidian metadata cache timing. ([#19](https://github.com/saberzero1/motions/issues/19))
     - Plugin: `src/vim/table-render-widget.ts` (deferred unload)
+- **Textarea vim overlay content not synced on rapid teardown** — clicking "Save" via hint mode (`f` key) on a modal while a debounced content sync was pending could close the modal before the CM6 overlay flushed its content to the hidden `<textarea>`. The host plugin (e.g., Spaced Repetition) read the textarea's stale value and saved incomplete content. Root cause: `teardownActive()` cancelled the pending 100ms sync timer and destroyed the editor without flushing. The `handleBlur()` and `handleEscapeAndRedispatch()` paths already called `syncNow()` before teardown, but the MutationObserver path (modal removed from DOM) went straight to `teardownActive()`. Fixed by adding a `syncNow()` call in `teardownActive()` immediately after cancelling the timer but before destroying the editor. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (`syncNow` flush in `teardownActive`)
 
 ### Documentation
 
-- `CHANGELOG.md`: Added entries for embedded table cell editor cursor shapes, font size/line height, and wikilink color fixes
-- `KNOWN_LIMITATIONS.md`: Added Live Preview rendering, cursor shapes, visual mode highlighting, and wikilink color loss limitations under "Table cell vim modality"
+- `CHANGELOG.md`: Added entries for embedded table cell editor cursor shapes, font size/line height, wikilink color fixes, and textarea sync-on-teardown fix
+- `KNOWN_LIMITATIONS.md`: Added Live Preview rendering, cursor shapes, visual mode highlighting, and wikilink color loss limitations under "Table cell vim modality"; textarea content sync race condition → Fixed
 - `docs/features/tables.md`: Added Live Preview callout for cell editors
 
 ## [0.63.0] - 2026-07-16

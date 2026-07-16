@@ -1310,6 +1310,12 @@ The CM6 overlay uses adaptive height calculation to match the original textarea'
 - The plugin's own UI elements (picker, oil explorer, vim command-line panel) are never replaced.
 - Disabled, readonly, and textareas inside existing CM6 editors or table cell editors are skipped.
 
+### Content sync
+
+Content is synced from the CM6 overlay to the hidden textarea via a debounced timer (100ms). A final `syncNow()` flush is performed in `teardownActive()` before the editor is destroyed, ensuring no edits are lost on rapid teardown (e.g., hint-mode clicking Save while a sync is pending).
+
+~~Textarea content not synced when modal closed via hint mode~~ — Fixed. The `teardownActive()` method cancelled the pending sync timer and destroyed the editor without flushing. When the MutationObserver detected modal removal (e.g., after clicking Save via hint mode `f`), the debounced sync never completed and the host plugin read stale `textarea.value`. Now `syncNow()` is called before `editor.destroy()` in all teardown paths. ([#69](https://github.com/saberzero1/motions/issues/69))
+
 ### Limitations
 
 - **`<input>` elements not supported** — only `<textarea>` elements are replaced. Inputs have too many conflicts with host plugin keyboard handling (Enter to submit, Tab to navigate, picker keybindings).

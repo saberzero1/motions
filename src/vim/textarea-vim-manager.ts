@@ -248,6 +248,16 @@ export class TextareaVimManager {
         this.active = null;
 
         if (syncTimer !== null) window.clearTimeout(syncTimer);
+
+        // Flush any pending content to the original textarea before destroying
+        // the editor — otherwise rapid teardown (e.g. hint-mode clicking Save
+        // while a debounced sync is pending) loses the latest edits.
+        try {
+            this.syncNow(originalEl, editor);
+        } catch {
+            /* editor may already be detached */
+        }
+
         observer?.disconnect();
 
         try {
