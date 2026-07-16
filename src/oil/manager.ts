@@ -8,6 +8,7 @@ import { validateActions, executeActions } from './actions';
 import type { OilEntry, OilMergedDiff } from './types';
 import { OIL_VIEW_TYPE, type OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
+import { navigateWithJump } from '../workspace/navigate';
 
 export function entriesToBufferText(entries: OilEntry[]): string {
     if (entries.length === 0) return '';
@@ -227,7 +228,7 @@ export class OilManager {
         if (entry.type === 'folder') {
             void this.navigateToDirectory(entry.path);
         } else {
-            void this.app.workspace.openLinkText(entry.path, '');
+            void navigateWithJump(this.app, entry.path, '');
         }
     }
 

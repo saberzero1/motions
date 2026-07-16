@@ -3,6 +3,7 @@ import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import { getResolvedLinks } from '../../util/metadata';
+import { navigateWithJump } from '../../workspace/navigate';
 
 interface BacklinkItem {
     path: string;
@@ -55,7 +56,7 @@ export function createBacklinksSource(): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { path: string };
-            void app.workspace.openLinkText(data.path, '');
+            void navigateWithJump(app, data.path, '');
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string };

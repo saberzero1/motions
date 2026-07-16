@@ -1,6 +1,7 @@
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import { navigateWithJump } from '../../workspace/navigate';
 
 const MAX_RECENTS = 50;
 const recentFiles: string[] = [];
@@ -39,7 +40,7 @@ export function createRecentSource(): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { path: string };
-            void app.workspace.openLinkText(data.path, '');
+            void navigateWithJump(app, data.path, '');
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string };

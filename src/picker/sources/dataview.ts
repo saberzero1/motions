@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readFilePreview } from './preview-utils';
 import { openInSplit } from './split-open';
+import { navigateWithJump } from '../../workspace/navigate';
 
 interface DataviewPage {
     file: {
@@ -88,7 +89,7 @@ export function createDataviewSource(): PickerSource {
 
         onSelect(item, app) {
             const data = item.data as { path: string };
-            void app.workspace.openLinkText(data.path, '');
+            void navigateWithJump(app, data.path, '');
         },
 
         onSelectSplit(item, app, direction: SplitDirection) {

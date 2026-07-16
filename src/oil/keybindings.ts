@@ -5,6 +5,7 @@ import { getVimApi } from '../vim/vim-api';
 import { OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
 import { VimInfoModal } from '../ui/vim-info-modal';
+import { navigateWithJump } from '../workspace/navigate';
 
 interface OilMapping {
     lhs: string;
@@ -196,7 +197,7 @@ export class OilKeybindingManager {
                 if (entry.type === 'folder') {
                     void manager.navigateToDirectory(entry.path);
                 } else {
-                    void app.workspace.openLinkText(entry.path, '');
+                    void navigateWithJump(app, entry.path, '');
                 }
             },
             oilParent: () => {

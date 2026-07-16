@@ -2,6 +2,7 @@ import { App, MarkdownView } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
+import { navigateWithJump } from '../../workspace/navigate';
 
 interface TaskLike {
     description: string;
@@ -137,12 +138,9 @@ export function createTasksSource(): PickerSource {
 
         onSelect(item, app) {
             const data = item.data as { path: string; line: number };
-            void app.workspace.openLinkText(data.path, '').then(() => {
-                const view = app.workspace.getActiveViewOfType(MarkdownView);
-                if (view) {
-                    view.editor.setCursor(data.line, 0);
-                    view.editor.focus();
-                }
+            void navigateWithJump(app, data.path, '', {
+                line: data.line,
+                ch: 0,
             });
         },
 

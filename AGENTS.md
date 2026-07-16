@@ -155,8 +155,9 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 ### Test file organization
 
 - `test/specs/vim-builtin/` — Tier 1 tests (built-in CM Vim behavior). Use `testWithNeovim()` as primary format.
-- `test/specs/` — Tier 2 tests (plugin features: text objects, navigation, workspace, operators, vimrc, settings).
+- `test/specs/` — Tier 2 tests (plugin features: text objects, navigation, workspace, operators, vimrc, settings, jump list, table cell vim mode).
 - `test/specs/spikes/` — exploratory/R&D tests.
+- `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, etc.).
 - `test/neovim/` — Neovim comparison infrastructure (client, compare, golden, deviations, wrapper, definitions, recording).
 - `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`).
 
@@ -280,6 +281,7 @@ When making a change, update these docs pages:
 | Text objects          | `features/text-objects.md`          | Vim features (textobjects), Advanced (scanlimit)                                |
 | Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                                       |
 | Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                                            |
+| Jump list             | `features/quality-of-life.md`       | Jump navigation (jumplist, jumplistsize)                                        |
 | Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                 |
 | EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                    |
 | Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                              |

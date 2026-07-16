@@ -355,11 +355,20 @@ function buildEditorClass(
                     },
                     {
                         key: 'Escape',
-                        run: () => {
-                            this._opts.onEscape(this);
-                            return true;
+                        run: (view: EditorView) => {
+                            const adapter = (
+                                view as unknown as Record<string, unknown>
+                            ).cm as
+                                | { state?: { vim?: { mode?: string } } }
+                                | undefined;
+                            const vimMode = adapter?.state?.vim?.mode ?? null;
+                            if (vimMode === 'normal') {
+                                this._opts.onEscape(this);
+                                return true;
+                            }
+                            return false;
                         },
-                        preventDefault: true,
+                        preventDefault: false,
                     },
                 ]),
             );

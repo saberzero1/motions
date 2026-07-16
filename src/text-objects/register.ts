@@ -17,6 +17,7 @@ import {
 } from './code-block';
 import { createInnerTagMotion, createAroundTagMotion } from './tag';
 import { tableCellTextObject } from './table-cell';
+import { tableRowTextObject } from './table-row';
 
 export function registerTextObjects(
     reg: VimRegistration,
@@ -141,4 +142,11 @@ export function registerTextObjects(
     });
     reg.defineMotion('tableCellAround', tableCellTextObject);
     reg.mapCommand('a|', 'motion', 'tableCellAround', {});
+
+    reg.defineMotion('tableRowInner', tableRowTextObject);
+    reg.mapCommand('ir', 'motion', 'tableRowInner', {
+        textObjectInner: true,
+    });
+    reg.defineMotion('tableRowAround', tableRowTextObject);
+    reg.mapCommand('ar', 'motion', 'tableRowAround', {});
 }

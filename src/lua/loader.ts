@@ -38,6 +38,7 @@ import {
     getCommandRegistry,
 } from '../util/commands';
 import { getLeafId, isLeafPinned, getViewFilePath } from '../util/leaf';
+import { navigateWithJump } from '../workspace/navigate';
 
 export interface LuaLoadResult {
     found: boolean;
@@ -391,7 +392,7 @@ export async function loadInitLua(
             }));
         },
         openFile: (path: string) => {
-            void app.workspace.openLinkText(path, '');
+            void navigateWithJump(app, path, '');
         },
         getCurrentFile: () => {
             const file = app.workspace.getActiveFile();

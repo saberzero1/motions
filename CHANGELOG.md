@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cross-note vim jump list** — `<C-o>` and `<C-i>` now navigate backward/forward through a cross-note jump history. Jumps are recorded when navigating between notes via `gd`/`gD`, picker file selection (all 12 sources), harpoon, oil, hint mode, `:e`/`:find`/`:tabnew`/`:buffer`/`:bfirst`/`:blast`, structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Within-buffer jumps (G, gg, /, ?) continue to use the fork's built-in jump list. Standalone EasyMotion jumps (not operator-pending) are also recorded. The jump list persists across sessions, handles file rename/delete, and supports count prefixes (`3<C-o>`). New `:jumps` ex command displays the list. New `jumplist` (boolean, default true) and `jumplistsize` (number, default 200) vim options.
+    - Plugin: `src/vim/jumplist.ts` (new: `JumpList` class), `src/workspace/navigate.ts` (new: `navigateWithJump`/`navigateWithJumpFile`/`navigateWithJumpSetActive` wrappers), `src/workspace/global-defaults.ts` (`createJumpListWalkOverride`), `src/vim/jumplist-bridge.ts` (new: CM6 ViewPlugin for fork bridge), `src/vim/options.ts` (`jumplist`/`jumplistsize`), `src/easymotion/register.ts` (jump recording), `src/main.ts` (lifecycle, persistence, rename/delete handlers)
+    - 43 navigation call sites migrated across 23 files (goto-definition, picker sources, oil, harpoon, hint mode, global-ex-command, Lua API, buffer cycling, workspace commands, vault search)
+- **Table cell vim modality (embedded mode)** — cell editors in embedded table widget mode now support a two-Escape pattern: first Escape exits insert → normal mode within the cell editor, second Escape exits the cell editor back to table-nav mode. Entry mode semantics: `i` (insert at start), `a` (append at end), `c` (clear + insert), `s` (substitute). Vim registers are shared between cell editors and the main editor. Status bar reflects cell editor vim mode when active.
+    - Plugin: `src/editors/embeddable-editor.ts` (mode-aware Escape keymap), `src/vim/table-nav-controller.ts` (entry mode dispatch via `handleKey`), `src/vim/mode-tracker.ts` (cell editor mode sync)
+- **`ir`/`ar` table row text objects** — `ir` selects inner row content (between first and last `|`, excluding pipes), `ar` selects the entire row including pipes. Works in raw markdown mode. Follows the same pattern as `i|`/`a|` cell text objects.
+    - Plugin: `src/text-objects/table-row.ts` (new), `src/text-objects/register.ts`
+
+### Fixed
+
+- **`jumpListWalk` action override lost after `reloadFeatures()`** — the `defineActionOverride('jumpListWalk', ...)` applied during `onload()` was wiped by `reloadFeatures()` (called during vimrc loading) because `unregisterAll()` restored the original action and the override was not re-registered. Fixed by adding the override to `reloadFeatures()` alongside the existing `newLineAndEnterInsertMode` override.
+    - Plugin: `src/main.ts` (added `jumpListWalk` override to `reloadFeatures()`)
+- **First character swallowed when entering table cell editor** — pressing `i` in table-nav mode opened the cell editor and immediately dispatched `handleKey(adapter, 'i')`, but the vim extension on the cell editor's CM6 instance hadn't finished initializing. The dispatched `i` was either a no-op (vim not ready) or treated as typed text. Fixed by deferring the `handleKey` dispatch via `setTimeout(fn, 0)`.
+    - Plugin: `src/vim/table-nav-controller.ts` (deferred `handleKey` in `enterCellEdit`)
+
+### Tests
+
+- 27 unit tests in `test/unit/jumplist.test.ts`: `JumpList` class — record, deduplication, jumpOlder/jumpNewer with count, handleRename, handleDelete with index adjustment, serialize/deserialize, max size eviction, forward history truncation, onRecord callback
+- 10 e2e tests in `test/specs/jump-list.e2e.ts`: within-buffer G/gg/count `<C-o>`, cross-note `gd` → `<C-o>` → `<C-i>`, jump list data structure verification, `:jumps` modal, jumplist setting toggle, deleted file resilience
+- 4 e2e tests in `test/specs/table-cell-vim-mode.e2e.ts`: `dir`/`dar`/`yir` table row text objects, `ir` no-op on non-table content
+- 9 skipped e2e tests for embedded table cell editing (two-Escape, entry modes, register sharing) — test-environment limitation where CM6 table widget rendering does not activate through `registerEditorExtension` in WDIO; features verified manually
+
+### Documentation
+
+- `CHANGELOG.md`: Added entries for cross-note jump list, table cell vim modality, ir/ar text objects, jumpListWalk override fix, cell editor first-character fix
+- `KNOWN_LIMITATIONS.md`: Cross-note jump list → Implemented (with cross-window limitation noted); table cell vim modality → documented two-Escape pattern and entry modes; ir/ar text objects → documented
+- `README.md`: Added cross-note jump list to features list
+- `CONTRIBUTING.md`: Added jumplist.ts, navigate.ts, table-row.ts, jumplist-bridge.ts to codebase structure
+- `docs/reference/keybindings.md`: Added `<C-o>`/`<C-i>` jump list, `:jumps`, `ir`/`ar` text objects
+- `docs/features/tables.md`: Added vim modality in cell editors section, table row text objects
+- `docs/configuration/settings.md`: Added `jumplist` and `jumplistsize` settings
+- `docs/configuration/vimrc.md`: Added `jumplist`/`jumplistsize` options
+
 ## [0.62.0] - 2026-07-15
 
 ### Fixed

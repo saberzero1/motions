@@ -1,6 +1,10 @@
 import { MarkdownView } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ActionFn } from '../types/vim-api';
+import {
+    navigateWithJump,
+    navigateWithJumpSetActive,
+} from '../workspace/navigate';
 
 function getMarkdownLeaves(
     app: App,
@@ -30,7 +34,7 @@ function createBufferNavAction(app: App, direction: 1 | -1): ActionFn {
                 (p) => p !== currentPath && p.endsWith('.md'),
             );
             if (nextRecent) {
-                void app.workspace.openLinkText(nextRecent, '', false);
+                void navigateWithJump(app, nextRecent, '');
             }
             return;
         }
@@ -42,7 +46,7 @@ function createBufferNavAction(app: App, direction: 1 | -1): ActionFn {
             leaves.length;
         const target = leaves[targetIdx];
         if (target) {
-            app.workspace.setActiveLeaf(target, { focus: true });
+            navigateWithJumpSetActive(app, target, { focus: true });
         }
     };
 }

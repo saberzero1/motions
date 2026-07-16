@@ -3,6 +3,7 @@ import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import type { ModePrompts } from '../settings';
 import { getCmAdapter, getVimApi } from './vim-api';
+import { getActiveCellEditor, hasActiveCellEditor } from './table-cell-editor';
 
 const DEFAULT_MODE_LABELS: Record<string, string> = {
     normal: 'NORMAL',
@@ -50,6 +51,8 @@ export class VimModeTracker {
     private lastAdapter: CmAdapter | null = null;
     private dialogHandler: (() => void) | null = null;
     private preDialogMode: string | null = null;
+    private cellEditorActive = false;
+    private cellEditorTimer: number | null = null;
     constructor(plugin: Plugin, options?: VimModeTrackerOptions) {
         this.modeLabels = options?.modePrompts
             ? { ...options.modePrompts }
@@ -80,18 +83,8 @@ export class VimModeTracker {
 
     attach(app: App): void {
         const modeHandler = (mode: VimModeChange) => {
-            if (mode.mode === 'visual' && mode.subMode === 'linewise') {
-                this.currentMode = 'visualLine';
-            } else if (mode.mode === 'visual' && mode.subMode === 'blockwise') {
-                this.currentMode = 'visualBlock';
-            } else if (
-                mode.mode === 'normal' &&
-                mode.subMode?.startsWith('ctrl-o')
-            ) {
-                this.currentMode = 'insertNormal';
-            } else {
-                this.currentMode = mode.mode;
-            }
+            if (this.cellEditorActive || hasActiveCellEditor()) return;
+            this.currentMode = this.resolveMode(mode.mode, mode.subMode);
             this.syncRecordingState();
             this.updateDisplay();
             this.syncChord();
@@ -147,6 +140,8 @@ export class VimModeTracker {
                 attachToAdapter(adapter);
             }
         }
+
+        this.startCellEditorMonitor();
     }
 
     private detachFromAdapter(): void {
@@ -172,6 +167,53 @@ export class VimModeTracker {
             }
             this.lastAdapter = null;
         }
+    }
+
+    private startCellEditorMonitor(): void {
+        if (this.cellEditorTimer !== null) return;
+        this.cellEditorTimer = window.setInterval(() => {
+            const active = hasActiveCellEditor();
+            if (!active) {
+                if (this.cellEditorActive) {
+                    this.cellEditorActive = false;
+                    const fallback = this.lastAdapter?.state?.vim?.mode;
+                    if (fallback) {
+                        this.currentMode = this.resolveMode(fallback);
+                    }
+                    this.syncRecordingState();
+                    this.updateDisplay();
+                }
+                return;
+            }
+
+            const handle = getActiveCellEditor();
+            const editorView = handle?.editor.getEditorView();
+            if (!editorView) return;
+            const adapter = (editorView as unknown as Record<string, unknown>)
+                .cm as { state?: { vim?: { mode?: string } } } | undefined;
+            const mode = adapter?.state?.vim?.mode ?? null;
+            if (!mode) return;
+            const resolved = this.resolveMode(mode);
+            if (!this.cellEditorActive || resolved !== this.currentMode) {
+                this.cellEditorActive = true;
+                this.currentMode = resolved;
+                this.syncRecordingState();
+                this.updateDisplay();
+            }
+        }, 50);
+    }
+
+    private resolveMode(mode: string, subMode?: string | null): string {
+        if (mode === 'visual' && subMode === 'linewise') {
+            return 'visualLine';
+        }
+        if (mode === 'visual' && subMode === 'blockwise') {
+            return 'visualBlock';
+        }
+        if (mode === 'normal' && subMode?.startsWith('ctrl-o')) {
+            return 'insertNormal';
+        }
+        return mode;
     }
 
     /**
@@ -238,6 +280,10 @@ export class VimModeTracker {
 
     destroy(): void {
         this.detachFromAdapter();
+        if (this.cellEditorTimer !== null) {
+            window.clearInterval(this.cellEditorTimer);
+            this.cellEditorTimer = null;
+        }
         this.statusBarEl.remove();
         this.chordBarEl?.remove();
     }

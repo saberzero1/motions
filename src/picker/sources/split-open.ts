@@ -1,6 +1,10 @@
 import type { App } from 'obsidian';
 import { TFile } from 'obsidian';
 import type { SplitDirection } from '../types';
+import {
+    navigateWithJump,
+    navigateWithJumpFile,
+} from '../../workspace/navigate';
 
 export function openInSplit(
     app: App,
@@ -9,13 +13,13 @@ export function openInSplit(
 ): void {
     const file = app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
-        void app.workspace.openLinkText(path, '');
+        void navigateWithJump(app, path, '');
         return;
     }
 
     if (direction === 'tab') {
         const newLeaf = app.workspace.getLeaf('tab');
-        void newLeaf.openFile(file, { active: true });
+        void navigateWithJumpFile(app, newLeaf, file);
     } else {
         const activeLeaf = app.workspace.getMostRecentLeaf();
         if (activeLeaf) {
@@ -23,9 +27,9 @@ export function openInSplit(
                 activeLeaf,
                 direction === 'vertical' ? 'vertical' : 'horizontal',
             );
-            void newLeaf.openFile(file, { active: true });
+            void navigateWithJumpFile(app, newLeaf, file);
         } else {
-            void app.workspace.openLinkText(path, '');
+            void navigateWithJump(app, path, '');
         }
     }
 }

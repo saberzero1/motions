@@ -7,6 +7,7 @@ import type {
 import { VimInfoModal } from './vim-info-modal';
 import type { OilManager } from '../oil/manager';
 import { getViewFileBasename } from '../util/leaf';
+import { navigateWithJump } from '../workspace/navigate';
 
 export type GlobalExFn = (app: App, args: string) => void;
 
@@ -51,7 +52,7 @@ export function buildGlobalExCommands(
 
     const editFile: GlobalExFn = (_app, args) => {
         const filename = args.trim();
-        if (filename) void app.workspace.openLinkText(filename, '');
+        if (filename) void navigateWithJump(app, filename, '');
     };
 
     const enew: GlobalExFn = () => {
@@ -62,7 +63,7 @@ export function buildGlobalExCommands(
                 return;
             }
             void app.vault.create(name, '').then(() => {
-                void app.workspace.openLinkText(name, '');
+                void navigateWithJump(app, name, '');
             });
         };
         tryCreate(0);
@@ -81,7 +82,7 @@ export function buildGlobalExCommands(
                 f.path.toLowerCase().includes(query),
         );
         if (match) {
-            void app.workspace.openLinkText(match.path, '');
+            void navigateWithJump(app, match.path, '');
         } else {
             new Notice(`File not found: ${query}`);
         }
@@ -128,7 +129,8 @@ export function buildGlobalExCommands(
     const tabNew: GlobalExFn = (_app, args) => {
         const filename = args.trim();
         app.workspace.getLeaf(true);
-        if (filename) void app.workspace.openLinkText(filename, '');
+        if (filename)
+            void navigateWithJump(app, filename, '', { newTab: true });
     };
 
     const sidebar: GlobalExFn = (_app, args) => {

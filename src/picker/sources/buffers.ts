@@ -2,6 +2,7 @@ import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { MarkdownView } from 'obsidian';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import { navigateWithJumpSetActive } from '../../workspace/navigate';
 
 export function createBuffersSource(): PickerSource {
     return {
@@ -43,7 +44,7 @@ export function createBuffersSource(): PickerSource {
                 if (path === data.path) target = leaf;
             });
             if (target) {
-                app.workspace.setActiveLeaf(target, { focus: true });
+                navigateWithJumpSetActive(app, target, { focus: true });
             }
         },
         onSelectSplit(item, app, direction: SplitDirection) {

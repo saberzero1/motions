@@ -2,7 +2,7 @@ import { MarkdownView } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ActionFn } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
-import { executeCommand } from '../util/commands';
+import { navigateWithJump } from '../workspace/navigate';
 
 const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
 const MD_LINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
@@ -93,7 +93,7 @@ export function createGotoDefinitionAction(app: App): ActionFn {
         if (link.isExternal) {
             window.open(link.target);
         } else {
-            void app.workspace.openLinkText(link.target, sourcePath);
+            void navigateWithJump(app, link.target, sourcePath);
         }
     };
 }
@@ -115,7 +115,9 @@ export function createGotoDefinitionNewTabAction(app: App): ActionFn {
         if (link.isExternal) {
             window.open(link.target);
         } else {
-            void app.workspace.openLinkText(link.target, sourcePath, true);
+            void navigateWithJump(app, link.target, sourcePath, {
+                newTab: true,
+            });
         }
     };
 }
@@ -141,11 +143,8 @@ export function createGotoDefinitionSplitAction(
         }
 
         const sourcePath = view.file?.path ?? '';
-        const commandId =
-            direction === 'vertical'
-                ? 'workspace:split-vertical'
-                : 'workspace:split-horizontal';
-        executeCommand(app, commandId);
-        void app.workspace.openLinkText(link.target, sourcePath, false);
+        void navigateWithJump(app, link.target, sourcePath, {
+            split: direction,
+        });
     };
 }

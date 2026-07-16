@@ -115,6 +115,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                           | —                       | Key combination to trigger hint mode from anywhere.           |
 | Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`     | `set labelfontsize`     | Font size for EasyMotion and hint mode labels.                |
 | Harpoon file pinning        | toggle | `true`                       | —             | `vim.opt.harpoon`           | `set harpoon`           | Pin files to numbered slots for instant switching.            |
+| Jump list                   | toggle | `true`                       | —             | `vim.opt.jumplist`          | `set jumplist`          | Use vim-style jump list for `<C-o>`/`<C-i>`.                  |
+| Jump list size              | number | `200`                        | 1–1000        | `vim.opt.jumplistsize`      | `set jumplistsize`      | Maximum number of entries in the jump list.                   |
 
 ## Snippets
 

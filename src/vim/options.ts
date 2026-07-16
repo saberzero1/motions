@@ -4,6 +4,8 @@ import { isValidSignColumnValue } from './sign-column';
 
 let textwidthValue = 80;
 let statuscolumnValue = '';
+let jumpListEnabled = true;
+let jumpListSize = 200;
 
 export function getTextwidth(): number {
     return textwidthValue;
@@ -14,6 +16,14 @@ export function setTextwidth(value: number): void {
         textwidthValue = value;
         textwidthSetExplicitly = true;
     }
+}
+
+export function isJumpListEnabled(): boolean {
+    return jumpListEnabled;
+}
+
+export function getJumpListSize(): number {
+    return jumpListSize;
 }
 
 let textwidthSetExplicitly = false;
@@ -146,6 +156,22 @@ export function registerVimOptions(
         if (value === undefined) return;
         const enabled = !!value;
         notify('enableTableNav', enabled, `set ${enabled ? '' : 'no'}tablenav`);
+    });
+    vim.defineOption('jumplist', true, 'boolean', [], (value) => {
+        if (value === undefined) return jumpListEnabled;
+        const enabled = !!value;
+        jumpListEnabled = enabled;
+        notify('jumplist', enabled, `set ${enabled ? '' : 'no'}jumplist`);
+        return undefined;
+    });
+    vim.defineOption('jumplistsize', 200, 'number', [], (value) => {
+        if (value === undefined) return jumpListSize;
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n > 0) {
+            jumpListSize = n;
+            notify('jumplistsize', n, `set jumplistsize=${n}`);
+        }
+        return undefined;
     });
     vim.defineOption('workspacenav', true, 'boolean', ['wn'], (value) => {
         if (value === undefined) return;

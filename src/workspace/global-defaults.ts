@@ -1,4 +1,4 @@
-import { MarkdownView } from 'obsidian';
+import { MarkdownView, TFile } from 'obsidian';
 import type { App } from 'obsidian';
 import type {
     GlobalMappingRegistry,
@@ -7,6 +7,9 @@ import type {
 import { executeCommand } from './navigation';
 import { GlobalExCommandModal } from '../ui/global-ex-command';
 import type { OilManager } from '../oil/manager';
+import { isJumpListEnabled } from '../vim/options';
+import type { JumpEntry, JumpList } from '../vim/jumplist';
+import type { ActionFn } from '../types/vim-api';
 
 export const LINE_HEIGHT = 40;
 
@@ -72,6 +75,80 @@ function findLargestScrollable(root: Element): HTMLElement | null {
 
 function closeOtherTabs(app: App): void {
     closeAllTabs(app);
+}
+
+async function openJumpEntry(app: App, entry: JumpEntry): Promise<void> {
+    const file = app.vault.getAbstractFileByPath(entry.filePath);
+    if (!(file instanceof TFile)) return;
+
+    let targetLeaf: ReturnType<typeof app.workspace.getLeaf> | null = null;
+    app.workspace.iterateAllLeaves((leaf) => {
+        if (
+            !targetLeaf &&
+            leaf.view instanceof MarkdownView &&
+            leaf.view.file?.path === entry.filePath
+        ) {
+            targetLeaf = leaf;
+        }
+    });
+
+    if (targetLeaf) {
+        app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+    } else {
+        const leaf =
+            app.workspace.getLeaf(false) ?? app.workspace.getMostRecentLeaf();
+        if (!leaf) return;
+        await leaf.openFile(file);
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view || view.file?.path !== entry.filePath) return;
+
+    const maxLine = view.editor.lineCount() - 1;
+    const line = Math.min(entry.line, Math.max(0, maxLine));
+    const maxCol = view.editor.getLine(line).length;
+    const col = Math.min(entry.ch, Math.max(0, maxCol));
+    view.editor.setCursor(line, col);
+    view.editor.focus();
+}
+
+export function createJumpListWalkOverride(
+    original: ActionFn,
+    app: App,
+    jumpList: JumpList,
+): ActionFn {
+    const override: ActionFn & { __jumpListOverride?: boolean } = (
+        cm,
+        actionArgs,
+        vim,
+    ) => {
+        if (!isJumpListEnabled()) {
+            original(cm, actionArgs, vim);
+            return;
+        }
+
+        const forward = actionArgs.forward === true;
+        const count = Math.max(1, actionArgs.repeat || 1);
+        const currentFile = app.workspace.getActiveFile()?.path ?? '';
+
+        const candidate = forward
+            ? jumpList.peekNewer(count)
+            : jumpList.peekOlder(count);
+
+        if (candidate && candidate.filePath !== currentFile) {
+            const entry = forward
+                ? jumpList.jumpNewer(count)
+                : jumpList.jumpOlder(count);
+            if (entry) {
+                void openJumpEntry(app, entry);
+            }
+        } else {
+            original(cm, actionArgs, vim);
+        }
+    };
+    override.__jumpListOverride = true;
+    return override;
 }
 
 function gotoNthTab(app: App, n: number): void {
@@ -234,18 +311,9 @@ export function registerDefaultGlobalMappings(
         'standard',
         'scrollFullPageUp',
     );
-    add(
-        '<C-o>',
-        { type: 'obcommand', commandId: 'app:go-back' },
-        'structural',
-        'goBack',
-    );
-    add(
-        '<C-i>',
-        { type: 'obcommand', commandId: 'app:go-forward' },
-        'structural',
-        'goForward',
-    );
+    // <C-o> and <C-i> are handled via defineActionOverride('jumpListWalk')
+    // in main.ts — not here — because they fire from within the editor
+    // where the global key handler's structural gate doesn't intercept.
     add(
         '<C-w>h',
         { type: 'obcommand', commandId: 'editor:focus-left' },

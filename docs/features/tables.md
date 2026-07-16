@@ -109,6 +109,27 @@ The rendered table widget processes cell content through Obsidian's markdown ren
 | `Tab` / `Shift-Tab`       | Save cell, move to next / previous cell |
 | `Escape` (in normal mode) | Save cell, return to table navigation   |
 
+### Vim modality in cell editors
+
+When using **Embedded** mode, cell editors support full Vim modality. This allows you to use Normal, Insert, and Visual modes within a single table cell.
+
+- **Two-Escape pattern**: When editing a cell in Insert mode, the first `Escape` transitions to Vim Normal mode within the cell editor. A second `Escape` exits the cell editor and returns to table navigation mode.
+- **Entry semantics**: The key used to enter the cell determines the initial Vim state:
+    - `i` or `Enter`: Starts in Insert mode at the current position.
+    - `a`: Appends text (starts in Insert mode at the end of the cell).
+    - `c`: Clears the cell and enters Insert mode.
+    - `s`: Substitutes the cell content (clears and enters Insert mode).
+- **Register sharing**: Vim registers are shared between cell editors and the main document. You can yank text in one cell and paste it into another cell or elsewhere in your note.
+
+### Table row text objects
+
+In raw Markdown mode, you can operate on entire table rows using the `ir` and `ar` text objects:
+
+- `ir`: Selects the **inner row** content (everything between the first and last `|` pipes, excluding the pipes themselves).
+- `ar`: Selects the **around row** content (the entire line including the leading and trailing pipes).
+
+These text objects are useful for quickly deleting, changing, or yanking whole rows while editing the Markdown source.
+
 > [!info]
 > You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**.
 

@@ -126,6 +126,7 @@ export interface VimMotionsSettings {
         line: number;
         ch: number;
     }[];
+    persistedJumpList?: { filePath: string; line: number; ch: number }[];
     harpoonPins?: ({ filePath: string; row: number; col: number } | null)[];
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;

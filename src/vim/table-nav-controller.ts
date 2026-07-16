@@ -15,6 +15,7 @@ import {
 } from './table-utils';
 import { setActiveEditTableRange } from './table-render-widget';
 import { openCellEditor, closeCellEditor } from './table-cell-editor';
+import { getCmAdapterFromEditorView, getVimApi } from './vim-api';
 import {
     tableAddRowAfter,
     tableAddRowBefore,
@@ -161,7 +162,13 @@ class TableNavController implements PluginValue {
         this.view.focus();
     }
 
-    private enterCellEdit(): void {
+    private enterCellEdit(
+        entryMode:
+            | 'insert'
+            | 'insert-append'
+            | 'change'
+            | 'substitute' = 'insert',
+    ): void {
         if (!this.widgetEl || !this.activeTable) return;
 
         const app = this.getApp();
@@ -198,6 +205,31 @@ class TableNavController implements PluginValue {
             );
         }
         this.installCellEditKeyHandler();
+
+        const cellView = handle.editor.getEditorView();
+        if (cellView) {
+            window.setTimeout(() => {
+                const adapter = getCmAdapterFromEditorView(cellView);
+                const vimApi = getVimApi();
+                if (adapter && vimApi) {
+                    switch (entryMode) {
+                        case 'insert':
+                            vimApi.handleKey(adapter, 'i');
+                            break;
+                        case 'insert-append':
+                            vimApi.handleKey(adapter, 'A');
+                            break;
+                        case 'change':
+                            vimApi.handleKey(adapter, 'c');
+                            vimApi.handleKey(adapter, 'c');
+                            break;
+                        case 'substitute':
+                            vimApi.handleKey(adapter, 'S');
+                            break;
+                    }
+                }
+            }, 0);
+        }
     }
 
     private exitCellEdit(): void {
@@ -334,11 +366,19 @@ class TableNavController implements PluginValue {
                 break;
             }
             case 'i':
+                this.enterCellEdit('insert');
+                break;
             case 'a':
+                this.enterCellEdit('insert-append');
+                break;
             case 'c':
+                this.enterCellEdit('change');
+                break;
             case 's':
+                this.enterCellEdit('substitute');
+                break;
             case 'Enter':
-                this.enterCellEdit();
+                this.enterCellEdit('insert');
                 break;
             case 'Escape':
                 this.exitTable();
@@ -481,7 +521,7 @@ class TableNavController implements PluginValue {
                     }
                 }
             }
-            this.enterCellEdit();
+            this.enterCellEdit('insert');
         }
         // Escape in cell-edit is handled by the embeddable editor's onEscape
     }

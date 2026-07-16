@@ -2,6 +2,7 @@ import { App, MarkdownView } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
+import { navigateWithJump } from '../../workspace/navigate';
 
 interface GrepResult {
     path: string;
@@ -101,15 +102,9 @@ export function createGrepSource(query: string): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { path: string; line: number };
-            void app.workspace.openLinkText(data.path, '').then(() => {
-                if (data.line > 0) {
-                    const view =
-                        app.workspace.getActiveViewOfType(MarkdownView);
-                    if (view) {
-                        view.editor.setCursor(data.line - 1, 0);
-                        view.editor.focus();
-                    }
-                }
+            void navigateWithJump(app, data.path, '', {
+                line: data.line - 1,
+                ch: 0,
             });
         },
         onSelectSplit(item, app, direction: SplitDirection) {

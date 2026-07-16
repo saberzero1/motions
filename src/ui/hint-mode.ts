@@ -1,5 +1,6 @@
 import { MarkdownView, Notice, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
+import { navigateWithJump } from '../workspace/navigate';
 
 export const HOME_ROW = 'asdfghjkl';
 export const ALL_KEYS = 'abcdefghijklmnopqrstuvwxyz';
@@ -341,7 +342,9 @@ function hintActivate(
 
     if (isInternalLink) {
         const activeFile = app.workspace.getActiveFile()?.path ?? '';
-        void app.workspace.openLinkText(linkHref, activeFile, openInNewPane);
+        void navigateWithJump(app, linkHref, activeFile, {
+            newTab: openInNewPane,
+        });
         return !inModal;
     }
 

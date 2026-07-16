@@ -2,6 +2,7 @@ import { App, MarkdownView, Notice } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
+import { navigateWithJump } from '../../workspace/navigate';
 
 interface HeadingItem {
     heading: string;
@@ -105,9 +106,10 @@ export function createHeadingsSource(): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { path: string; line: number };
-            void app.workspace
-                .openLinkText(data.path, '')
-                .then(() => jumpToLine(app, data.line));
+            void navigateWithJump(app, data.path, '', {
+                line: data.line,
+                ch: 0,
+            });
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string; line: number };
@@ -141,9 +143,10 @@ export function createOutlineSource(): PickerSource {
         },
         onSelect(item, app) {
             const data = item.data as { path: string; line: number };
-            void app.workspace
-                .openLinkText(data.path, '')
-                .then(() => jumpToLine(app, data.line));
+            void navigateWithJump(app, data.path, '', {
+                line: data.line,
+                ch: 0,
+            });
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string; line: number };

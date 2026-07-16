@@ -1,11 +1,6 @@
-import {
-    App,
-    MarkdownView,
-    SuggestModal,
-    TFile,
-    prepareSimpleSearch,
-} from 'obsidian';
+import { App, SuggestModal, TFile, prepareSimpleSearch } from 'obsidian';
 import type { ExCommandFn } from '../types/vim-api';
+import { navigateWithJump } from './navigate';
 
 interface SearchResult {
     file: TFile;
@@ -118,16 +113,11 @@ class SearchResultsModal extends SuggestModal<SearchResult> {
     }
 
     onChooseSuggestion(item: SearchResult): void {
-        void this.app.workspace.openLinkText(item.file.path, '').then(() => {
-            if (item.lineNumber > 0) {
-                const view =
-                    this.app.workspace.getActiveViewOfType(MarkdownView);
-                if (view) {
-                    view.editor.setCursor(item.lineNumber - 1, 0);
-                    view.editor.focus();
-                }
-            }
-        });
+        const options =
+            item.lineNumber > 0
+                ? { line: item.lineNumber - 1, ch: 0 }
+                : undefined;
+        void navigateWithJump(this.app, item.file.path, '', options);
     }
 }
 

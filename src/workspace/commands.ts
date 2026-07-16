@@ -9,6 +9,8 @@ import type { GlobalMappingRegistry } from './global-mapping-registry';
 import type { AutocmdManager } from '../lua/autocmd';
 import { executeCommand, getCommandRegistry } from '../util/commands';
 import { getResolvedLinks } from '../util/metadata';
+import type { JumpList } from '../vim/jumplist';
+import { navigateWithJump, navigateWithJumpSetActive } from './navigate';
 
 type OpenPicker = (
     source: string,
@@ -109,6 +111,32 @@ function createMarksCommand(app: App): ExCommandFn {
             app,
             'Marks',
             [{ header: 'Mark' }, { header: 'Line' }, { header: 'Col' }],
+            rows,
+        ).open();
+    };
+}
+
+function createJumpsCommand(app: App, jumpList: JumpList): ExCommandFn {
+    return () => {
+        const entries = jumpList.getEntries();
+        const idx = jumpList.getIndex();
+        const rows = entries.map((entry, i) => [
+            i === idx ? '>' : ' ',
+            String(i),
+            String(entry.line + 1),
+            String(entry.ch),
+            entry.filePath,
+        ]);
+        new VimInfoModal(
+            app,
+            'Jumps',
+            [
+                { header: '' },
+                { header: 'Jump' },
+                { header: 'Line' },
+                { header: 'Col' },
+                { header: 'File' },
+            ],
             rows,
         ).open();
     };
@@ -282,7 +310,7 @@ function createEditCommand(app: App): ExCommandFn {
     return (_cm, params) => {
         const filename = (params.argString ?? '').trim();
         if (!filename) return;
-        void app.workspace.openLinkText(filename, '');
+        void navigateWithJump(app, filename, '');
     };
 }
 
@@ -307,7 +335,7 @@ function createEnewCommand(app: App): ExCommandFn {
                 return;
             }
             void app.vault.create(name, '').then(() => {
-                void app.workspace.openLinkText(name, '');
+                void navigateWithJump(app, name, '');
             });
         };
         tryCreate(0);
@@ -330,7 +358,7 @@ function createSaveAsCommand(app: App): ExCommandFn {
             return;
         }
         void app.vault.create(newPath, content).then(() => {
-            void app.workspace.openLinkText(newPath, '');
+            void navigateWithJump(app, newPath, '');
         });
     };
 }
@@ -380,7 +408,7 @@ function createFindCommand(app: App): ExCommandFn {
                 f.path.toLowerCase().includes(query),
         );
         if (match) {
-            void app.workspace.openLinkText(match.path, '');
+            void navigateWithJump(app, match.path, '');
         } else {
             new Notice(`File not found: ${query}`);
         }
@@ -422,7 +450,7 @@ function createBufferCommand(app: App): ExCommandFn {
         });
         const match = leaves.find((l) => l.name.toLowerCase().includes(query));
         if (match) {
-            app.workspace.setActiveLeaf(match.leaf, { focus: true });
+            navigateWithJumpSetActive(app, match.leaf, { focus: true });
         } else {
             new Notice(`No buffer matching: ${query}`);
         }
@@ -436,7 +464,7 @@ function createBufferFirstLast(app: App, first: boolean): ExCommandFn {
             if (leaf.view.getViewType() === 'markdown') leaves.push(leaf);
         });
         const target = first ? leaves[0] : leaves[leaves.length - 1];
-        if (target) app.workspace.setActiveLeaf(target, { focus: true });
+        if (target) navigateWithJumpSetActive(app, target, { focus: true });
     };
 }
 
@@ -474,7 +502,7 @@ function createTabNewCommand(app: App): ExCommandFn {
         const filename = (params.argString ?? '').trim();
         app.workspace.getLeaf(true);
         if (filename) {
-            void app.workspace.openLinkText(filename, '');
+            void navigateWithJump(app, filename, '', { newTab: true });
         }
     };
 }
@@ -530,6 +558,7 @@ export function registerExCommands(
     oilManager?: OilManager,
     picker?: PickerConfig,
     onMarksChanged?: () => void,
+    jumpList?: JumpList,
 ): void {
     const backlinksCommand = createBacklinksCommand(app);
     const grepCommand = createGrepCommand(app);
@@ -702,6 +731,9 @@ export function registerExCommands(
 
     reg.defineEx('version', 've', createVersionCommand(app));
     reg.defineEx('delmarks', 'delm', createDelmarksCommand(onMarksChanged));
+    if (jumpList) {
+        reg.defineEx('jumps', 'ju', createJumpsCommand(app, jumpList));
+    }
 
     reg.defineEx('gmaps', '', () => {
         if (!globalRegistry) return;

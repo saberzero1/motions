@@ -6,6 +6,7 @@ import type {
     PickerMatcher,
     PickerSource,
 } from '../types';
+import { navigateWithJump } from '../../workspace/navigate';
 
 function normalizeTag(tag: string): string {
     const trimmed = tag.trim();
@@ -111,7 +112,7 @@ export function createTagsSource(
                 },
                 onSelect(fileItem) {
                     const fileData = fileItem.data as { path: string };
-                    void app.workspace.openLinkText(fileData.path, '');
+                    void navigateWithJump(app, fileData.path, '');
                 },
             };
             PickerModal.open(

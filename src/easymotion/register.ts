@@ -3,6 +3,7 @@ import { MarkdownView } from 'obsidian';
 import type { CmAdapter } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
 import { getVimApi } from '../vim/vim-api';
+import { getJumpListInstance } from '../workspace/navigate';
 import { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
 import type { Target } from './types';
@@ -302,9 +303,23 @@ const EXTRA_DEFS: ExtraEasyMotionDef[] = [
     },
 ];
 
-/**
- * Register easymotion motions and actions.
- */
+function recordJumpOnResolve(
+    app: App,
+    cm: CmAdapter,
+    factory: (cm: CmAdapter) => Promise<{ line: number; ch: number } | null>,
+): Promise<{ line: number; ch: number } | null> {
+    const fromPos = cm.getCursor();
+    const filePath =
+        app.workspace.getActiveViewOfType(MarkdownView)?.file?.path;
+    return factory(cm).then((result) => {
+        if (result && filePath) {
+            const jumpList = getJumpListInstance();
+            jumpList?.recordJump(filePath, fromPos.line, fromPos.ch);
+        }
+        return result;
+    });
+}
+
 export function registerEasyMotion(
     reg: VimRegistration,
     app: App,
@@ -326,7 +341,7 @@ export function registerEasyMotion(
         const motionFactory = def.createTrigger(app, chars, opts);
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
-            return motionFactory(cm);
+            return recordJumpOnResolve(app, cm, motionFactory);
         });
         const keys = leader + leader + def.keySuffix;
         reg.mapCommand(keys, 'motion', def.name, {});
@@ -339,7 +354,7 @@ export function registerEasyMotion(
         const motionFactory = def.createTrigger(app, chars, opts);
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
-            return motionFactory(cm);
+            return recordJumpOnResolve(app, cm, motionFactory);
         });
     }
 

@@ -1,5 +1,9 @@
 import { type App, MarkdownView, TFile, Notice } from 'obsidian';
 import type { HarpoonItem } from './harpoon-store';
+import {
+    navigateWithJumpFile,
+    navigateWithJumpSetActive,
+} from '../workspace/navigate';
 
 export async function navigateToHarpoonPin(
     app: App,
@@ -23,10 +27,10 @@ export async function navigateToHarpoonPin(
     });
 
     if (targetLeaf) {
-        app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+        navigateWithJumpSetActive(app, targetLeaf, { focus: true });
     } else {
         const leaf = app.workspace.getLeaf(false);
-        await leaf.openFile(file);
+        await navigateWithJumpFile(app, leaf, file);
     }
 
     await new Promise((resolve) => window.setTimeout(resolve, 50));

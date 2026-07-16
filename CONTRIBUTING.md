@@ -82,6 +82,8 @@ src/
     table-nav-controller.ts    # Table cell navigation controller
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
+    jumplist.ts            # Cross-note jump list data structure
+    jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
     table-cell-editor.ts   # Per-cell editing with vim-enabled editor
     table-embedded-editor.ts   # Embedded editor within table widgets
     table-render-widget.ts     # CM6 decoration widget for rendered tables
@@ -93,6 +95,7 @@ src/
     code-block.ts          # Fenced code block text objects
     blockquote.ts          # Blockquote and callout text objects
     table-cell.ts          # Table cell text object (i| / a|)
+    table-row.ts           # Table row text object (ir / ar)
     tag.ts                 # HTML/Markdown tag text objects
     register.ts            # Wires all text objects to keybindings
   motions/
@@ -110,6 +113,7 @@ src/
     open-line.ts           # Open-line action implementation
   workspace/
     navigation.ts          # Pane/tab/fold/gd/gx/gO/grn/grr/gra/gf/hint-mode keybindings
+    navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation
     global-key-handler.ts  # Global key event handling (outside editor)
@@ -552,4 +556,4 @@ npm run test:unit
 - `app.keymap.pushScope()`/`popScope()` are internal API — use `pushKeymapScope(app, scope)` / `popKeymapScope(app, scope)` from `src/util/keymap.ts`.
 - Leaf properties (`id`, `pinned`) are internal — use `getLeafId(leaf)`, `isLeafPinned(leaf)`, `getViewFilePath(view)` from `src/util/leaf.ts`.
 - `prepareSimpleSearch()` is Obsidian's public fuzzy search utility (used by picker filter, not `:grep`). `:grep` uses `RegExp` matching with substring fallback.
-- There is no public navigation history API — use `app:go-back`/`app:go-forward` command IDs.
+- There is no public navigation history API — the plugin provides its own cross-note jump list (`src/vim/jumplist.ts`) that intercepts the fork's `jumpListWalk` action via `defineActionOverride`. Use `navigateWithJump()`/`navigateWithJumpFile()`/`navigateWithJumpSetActive()` from `src/workspace/navigate.ts` for all user-initiated navigation to ensure jumps are recorded. Obsidian's native `app:go-back`/`app:go-forward` are still available via `:back`/`:forward` ex commands.

@@ -24,6 +24,7 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 | `iB` / `aB`         | Inside/around blockquotes (`>`)                                      |
 | `io` / `ao`         | Inside/around callouts (`> [!type]`)                                 |
 | `it` / `at`         | Inside/around HTML/XML tags                                          |
+| `ir` / `ar`         | Inside/around table row (raw markdown only)                          |
 | `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                        |
 
 ## Structural navigation
@@ -228,40 +229,40 @@ Add, change, or delete surrounding delimiters like brackets, quotes, and tags.
 
 Navigate Obsidian panes, tabs, and history following Neovim conventions.
 
-| Keybinding          | Description                                         | Global |
-| ------------------- | --------------------------------------------------- | ------ |
-| `<C-w>h/j/k/l`      | Focus pane left/down/up/right                       | Yes    |
-| `<C-w>v`            | Split vertical                                      | Yes    |
-| `<C-w>s`            | Split horizontal                                    | Yes    |
-| `<C-w>c` / `<C-w>q` | Close current tab                                   | Yes    |
-| `<C-w>o`            | Close all other tabs                                | Yes    |
-| `gt` / `gT`         | Next/previous tab                                   | Yes    |
-| `Ngt`               | Go to Nth tab (e.g., `3gt` goes to tab 3)           | Yes    |
-| `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3) | —      |
-| `H` / `L`           | Previous/next tab (non-editor views only)           | Yes    |
-| `Ctrl-o` / `Ctrl-i` | Navigate back/forward in history (non-editor views) | Yes    |
-| `gd`                | Go to definition — open the link under the cursor   | —      |
-| `gD`                | Open link under cursor in a new tab                 | —      |
-| `<C-w>gd`           | Open link under cursor in a horizontal split        | —      |
-| `<C-w>gD`           | Open link under cursor in a vertical split          | —      |
-| `gx`                | Open URL under cursor in browser                    | —      |
-| `gf`                | Open file switcher (quick open)                     | —      |
-| `grn`               | Rename current note                                 | —      |
-| `grr`               | Show backlinks to current note                      | —      |
-| `gra`               | Show context-aware actions for cursor position      | —      |
-| `gO`                | Open document outline (searchable heading list)     | —      |
-| `g<C-g>`            | Show document statistics (words, lines, characters) | —      |
-| `gp` / `gP`         | Paste and move cursor past pasted text              | —      |
-| `ga`                | Show character info under cursor (codepoint, hex)   | —      |
-| `g;` / `g,`         | Jump to older/newer change position                 | —      |
-| `za`                | Toggle fold at cursor                               | —      |
-| `zc` / `zo`         | Fold / unfold at cursor                             | —      |
-| `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                    | —      |
-| `zM` / `zR`         | Fold all / unfold all                               | —      |
-| `zf{motion}`        | Create fold over motion range                       | —      |
-| `zd` / `zD`         | Delete fold at cursor                               | —      |
-| `zE`                | Eliminate all folds                                 | —      |
-| `zm` / `zr`         | Fold more / fold less (by heading level)            | —      |
+| Keybinding          | Description                                                   | Global |
+| ------------------- | ------------------------------------------------------------- | ------ |
+| `<C-w>h/j/k/l`      | Focus pane left/down/up/right                                 | Yes    |
+| `<C-w>v`            | Split vertical                                                | Yes    |
+| `<C-w>s`            | Split horizontal                                              | Yes    |
+| `<C-w>c` / `<C-w>q` | Close current tab                                             | Yes    |
+| `<C-w>o`            | Close all other tabs                                          | Yes    |
+| `gt` / `gT`         | Next/previous tab                                             | Yes    |
+| `Ngt`               | Go to Nth tab (e.g., `3gt` goes to tab 3)                     | Yes    |
+| `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3)           | —      |
+| `H` / `L`           | Previous/next tab (non-editor views only)                     | Yes    |
+| `Ctrl-o` / `Ctrl-i` | Jump backward / forward through jump history (supports count) | Yes    |
+| `gd`                | Go to definition — open the link under the cursor             | —      |
+| `gD`                | Open link under cursor in a new tab                           | —      |
+| `<C-w>gd`           | Open link under cursor in a horizontal split                  | —      |
+| `<C-w>gD`           | Open link under cursor in a vertical split                    | —      |
+| `gx`                | Open URL under cursor in browser                              | —      |
+| `gf`                | Open file switcher (quick open)                               | —      |
+| `grn`               | Rename current note                                           | —      |
+| `grr`               | Show backlinks to current note                                | —      |
+| `gra`               | Show context-aware actions for cursor position                | —      |
+| `gO`                | Open document outline (searchable heading list)               | —      |
+| `g<C-g>`            | Show document statistics (words, lines, characters)           | —      |
+| `gp` / `gP`         | Paste and move cursor past pasted text                        | —      |
+| `ga`                | Show character info under cursor (codepoint, hex)             | —      |
+| `g;` / `g,`         | Jump to older/newer change position                           | —      |
+| `za`                | Toggle fold at cursor                                         | —      |
+| `zc` / `zo`         | Fold / unfold at cursor                                       | —      |
+| `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                              | —      |
+| `zM` / `zR`         | Fold all / unfold all                                         | —      |
+| `zf{motion}`        | Create fold over motion range                                 | —      |
+| `zd` / `zD`         | Delete fold at cursor                                         | —      |
+| `zE`                | Eliminate all folds                                           | —      |
+| `zm` / `zr`         | Fold more / fold less (by heading level)                      | —      |
 
 ## Select mode
 
@@ -374,6 +375,7 @@ Execute commands via the `:` command line, grouped by function.
 | `:grep {query}` | `:gre`   | Search vault content (pre-computed results)  |
 | `:livegrep`     | `:liveg` | Real-time vault content search               |
 | `:resume`       | `:res`   | Reopen last picker with same query           |
+| `:jumps`        |          | Display the jump list                        |
 | `:Picker`       | `:Pick`  | Open meta-picker listing all sources         |
 | `:snippets`     |          | Search and insert snippets                   |
 | `:snippet name` | `:snip`  | Insert a snippet by name                     |

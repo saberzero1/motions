@@ -26,6 +26,48 @@ This document tracks known limitations, architectural constraints, and intention
 
 **Additional test coverage**: 5 fork tests (posFromIndex clamping, negative offset, valid offset, marker doc-shrink, gg/G with stale jumpList) + 3 plugin e2e tests (gg/G after document switch, gg/G after reloadFeatures on shorter document).
 
+## Cross-note jump list
+
+**Status**: Implemented.
+
+The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>`. Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 12 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Within-buffer jumps (G, gg, /, ?) are handled by the fork's built-in jump list and delegate to the original `jumpListWalk` action.
+
+The plugin-level jump list is cross-note only — it stores `{ filePath, line, ch }` entries and only records when the source and destination files differ. The `jumpListWalk` action override peeks at the next entry: if it points to a different file, the override navigates cross-note; otherwise, it delegates to the fork's within-buffer handler.
+
+New settings: `set jumplist` / `set nojumplist` (boolean, default true), `set jumplistsize=N` (number, default 200). Persists across sessions via `saveData()`. Handles file rename/delete via `vault.on('rename')`/`vault.on('delete')`.
+
+`:jumps` ex command displays the jump list in a `VimInfoModal`.
+
+**Remaining limitations**:
+
+- **Cross-window (popout) jumps**: The jump list tracks positions across notes within the main Obsidian window but does not yet support jumps between the main window and popout windows.
+- **E2E test coverage for cross-note `<C-o>`/`<C-i>`**: The embedded table widget tests for two-Escape, entry modes, and register sharing require the CM6 table widget rendering pipeline to fully activate through `registerEditorExtension` in the WDIO test environment. This lifecycle does not complete in the headless test environment, so these tests are skipped. The features are verified via manual testing. The `jumpListWalk` action override and within-buffer jump delegation are covered by passing E2E tests.
+
+## Table cell vim modality (embedded mode)
+
+**Status**: Implemented.
+
+Cell editors in embedded table widget mode (`set tablewidget=embedded`) now support full vim modality:
+
+- **Two-Escape pattern**: First Escape exits insert → normal mode within the cell editor. Second Escape exits the cell editor back to table-nav mode. This replaces the previous behavior where a single Escape immediately closed the cell editor.
+- **Entry mode semantics**: `i` enters insert mode at cell start, `a` appends at cell end, `c` clears cell content and enters insert, `s` substitutes cell content (same as `c` for cells).
+- **Register sharing**: Vim registers are shared between cell editors and the main editor via the fork's `vimGlobalState` singleton. Yank in one cell, paste in another.
+- **Status bar sync**: The mode tracker reads vim mode from the cell editor's CM6 instance when a cell editor is active, so the status bar reflects the cell editor's mode (insert/normal/visual).
+- **`ir`/`ar` table row text objects**: `ir` selects inner row content (between first and last `|`, excluding pipes), `ar` selects the entire row including pipes. Works in raw markdown mode only — inside cell editors, the content doesn't match `TABLE_RE` so these are no-ops (correct behavior).
+
+**Implementation notes**:
+
+- The Escape handler in `embeddable-editor.ts` uses the `adapter.state.vim.mode` pattern (proven in `table-format-on-exit.ts`) to check vim mode. When the cell editor is in normal mode, Escape fires `onEscape()` to exit. When in insert/visual mode, Escape returns `false` to let the vim extension handle the mode transition.
+- Entry mode dispatch uses `vim.handleKey(adapter, key)` deferred via `setTimeout(fn, 0)` to ensure the vim extension has initialized on the cell editor's CM6 instance before dispatching keys.
+- The `ir`/`ar` text objects follow the `tableCellTextObject` pattern: return `[VimPos, VimPos]` range, branch on `motionArgs.textObjectInner`, call `adjustRangeForVisualMode()`.
+
+**Remaining limitations**:
+
+- **Cross-cell vim motions**: `w` at end of cell does not jump to the next cell. Motions stop at cell boundaries. Tab/Shift-Tab navigate between cells.
+- **Visual block mode across cells**: `<C-v>` operates within a single cell editor only.
+- **Ex commands from cell editors**: `:w` saves the main document (expected). `:q` closes the main tab (documented as expected behavior for v1).
+- **Fine-grained undo**: Cell edits are atomic in the main document's undo stack. Individual keystrokes within a cell editor are not separately undoable in the main editor.
+
 ## EasyMotion operator-pending mode
 
 **Status**: Working via fork's async motion support.

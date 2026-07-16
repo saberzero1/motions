@@ -2,6 +2,7 @@ import { App, MarkdownView } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
+import { navigateWithJump } from '../../workspace/navigate';
 
 interface OmnisearchResult {
     score: number;
@@ -92,7 +93,7 @@ export function createOmnisearchSource(): PickerSource {
 
         onSelect(item, app) {
             const data = item.data as { path: string; offset: number };
-            void app.workspace.openLinkText(data.path, '').then(() => {
+            void navigateWithJump(app, data.path, '').then(() => {
                 if (data.offset > 0) {
                     const view =
                         app.workspace.getActiveViewOfType(MarkdownView);

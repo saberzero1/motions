@@ -35,7 +35,10 @@ import {
     normalizeKeyString,
 } from './workspace/global-mapping-registry';
 import type { DeferredGlobalMap } from './vimrc/loader';
-import { registerDefaultGlobalMappings } from './workspace/global-defaults';
+import {
+    registerDefaultGlobalMappings,
+    createJumpListWalkOverride,
+} from './workspace/global-defaults';
 import { GlobalWhichKeyOverlay } from './ui/global-which-key';
 import { getVimApi, getCmAdapter } from './vim/vim-api';
 import {
@@ -61,6 +64,7 @@ import {
     createOlderChangeMotion,
     createNewerChangeMotion,
 } from './vim/changelist';
+import { JumpList } from './vim/jumplist';
 import { VimInfoModal } from './ui/vim-info-modal';
 import { installTableWidgetSuppressor } from './vim/table-widget-suppressor';
 import {
@@ -192,12 +196,14 @@ import {
     setActiveDynamicContext,
 } from './snippets/dynamic-bridge';
 import { snippetState } from './snippets/autocomplete-types';
+import { setJumpListInstance } from './workspace/navigate';
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
     registration: VimRegistration | null = null;
     leaderRegistry: LeaderRegistry | null = null;
     changeList: ChangeList = new ChangeList();
+    jumpList: JumpList = new JumpList();
     modeTracker: VimModeTracker | null = null;
     scrolloffManager: ScrolloffManager | null = null;
     insertEscapeHandler: InsertEscapeHandler | null = null;
@@ -212,6 +218,7 @@ export default class VimMotionsPlugin extends Plugin {
     private markSaveDirty = false;
     private harpoonSaveDirty = false;
     private foldPersistDirty = false;
+    private jumpListSaveDirty = false;
     private previousLeafId: string | null = null;
     private previousFoldFile: string | null = null;
     exSuggest: ExCommandSuggest | null = null;
@@ -473,6 +480,11 @@ export default class VimMotionsPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
+        this.jumpList = new JumpList(() => {
+            this.jumpListSaveDirty = true;
+        });
+        this.jumpList.deserialize(this.settings.persistedJumpList ?? []);
+        setJumpListInstance(this.jumpList);
         this.markStore.load(this.settings.persistedMarks ?? []);
         this.harpoonStore.load(this.settings.harpoonPins ?? []);
         this.foldStore.load(
@@ -1095,6 +1107,8 @@ export default class VimMotionsPlugin extends Plugin {
                 this.foldPersistDirty = true;
                 this.markStore.renamePath(oldPath, file.path);
                 this.markSaveDirty = true;
+                this.jumpList.handleRename(oldPath, file.path);
+                this.jumpListSaveDirty = true;
             }),
         );
         this.registerEvent(
@@ -1105,6 +1119,8 @@ export default class VimMotionsPlugin extends Plugin {
                 this.foldPersistDirty = true;
                 this.markStore.removeByPath(file.path);
                 this.markSaveDirty = true;
+                this.jumpList.handleDelete(file.path);
+                this.jumpListSaveDirty = true;
             }),
         );
 
@@ -1264,6 +1280,10 @@ export default class VimMotionsPlugin extends Plugin {
                 ),
         );
 
+        this.registration.defineActionOverride('jumpListWalk', (original) =>
+            createJumpListWalkOverride(original, this.app, this.jumpList),
+        );
+
         // --- Feature registrations ---
         if (this.settings.enableTextObjects) {
             registerTextObjects(
@@ -1308,6 +1328,7 @@ export default class VimMotionsPlugin extends Plugin {
                     isPickerEnabled: () => this.settings.picker,
                 },
                 this.triggerMarkGutterRefresh,
+                this.jumpList,
             );
         }
         this.registerHarpoonExCommands();
@@ -1829,6 +1850,15 @@ export default class VimMotionsPlugin extends Plugin {
         );
         this.registerInterval(
             window.setInterval(() => {
+                if (this.jumpListSaveDirty) {
+                    this.jumpListSaveDirty = false;
+                    this.settings.persistedJumpList = this.jumpList.serialize();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
                 if (this.imSwitcher) {
                     this.settings.persistedImState =
                         this.imSwitcher.getPersistedState();
@@ -1887,6 +1917,12 @@ export default class VimMotionsPlugin extends Plugin {
                 ),
         );
 
+        if (this.jumpList) {
+            this.registration.defineActionOverride('jumpListWalk', (original) =>
+                createJumpListWalkOverride(original, this.app, this.jumpList),
+            );
+        }
+
         if (this.leaderRegistry) {
             this.registration.unmapDefaultBinding(
                 this.leaderRegistry.getLeaderKey(),
@@ -1936,6 +1972,7 @@ export default class VimMotionsPlugin extends Plugin {
                     isPickerEnabled: () => this.settings.picker,
                 },
                 this.triggerMarkGutterRefresh,
+                this.jumpList,
             );
         }
         this.registerHarpoonExCommands();
@@ -3467,6 +3504,11 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.harpoonSaveDirty) {
             this.harpoonSaveDirty = false;
             this.settings.harpoonPins = this.harpoonStore.save();
+            void this.saveSettings();
+        }
+        if (this.jumpListSaveDirty) {
+            this.jumpListSaveDirty = false;
+            this.settings.persistedJumpList = this.jumpList.serialize();
             void this.saveSettings();
         }
         if (this.foldPersistDirty) {

@@ -1,6 +1,7 @@
 import { type App, MarkdownView, TFile, Notice } from 'obsidian';
 import { getCmAdapter } from '../../vim/vim-api';
 import type { MarkStore } from '../../vim/mark-store';
+import { navigateWithJumpFile } from '../../workspace/navigate';
 
 export interface MarkEntry {
     name: string;
@@ -137,7 +138,7 @@ export class GlobalMarkProvider implements MarkProvider {
             app.workspace.setActiveLeaf(targetLeaf, { focus: true });
         } else {
             const leaf = app.workspace.getLeaf('tab');
-            await leaf.openFile(file);
+            await navigateWithJumpFile(app, leaf, file);
             targetLeaf = leaf;
         }
 
