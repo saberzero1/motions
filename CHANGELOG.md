@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-07-16
+
 ### Added
 
 - **Cross-note vim jump list** — `<C-o>` and `<C-i>` now navigate backward/forward through a cross-note jump history. Jumps are recorded when navigating between notes via `gd`/`gD`, picker file selection (all 12 sources), harpoon, oil, hint mode, `:e`/`:find`/`:tabnew`/`:buffer`/`:bfirst`/`:blast`, structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Within-buffer jumps (G, gg, /, ?) continue to use the fork's built-in jump list. Standalone EasyMotion jumps (not operator-pending) are also recorded. The jump list persists across sessions, handles file rename/delete, and supports count prefixes (`3<C-o>`). New `:jumps` ex command displays the list. New `jumplist` (boolean, default true) and `jumplistsize` (number, default 200) vim options.

@@ -29,10 +29,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 65 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.62.0
+## What's new in 0.63.0
 
-- **Textarea vim overlay height fixed** — the 0.60.1 height fix could collapse the CM6 overlay to near-zero when the original textarea used dynamic sizing. Now uses adaptive height calculation with a sensible minimum and viewport-capped maximum. ([#69](https://github.com/saberzero1/motions/issues/69))
-- **Which-key no longer intercepts Oil multi-key bindings** — in "All partial keys" mode, the popup delay timer no longer disrupts `g?`, `g.`, `gs`, `gf` and other `g`-prefixed Oil bindings. The overlay now shows immediately in Oil views, letting multi-key sequences complete without interference.
-- **`ci*` works in Live Preview** — `ci*` (change inside bold) was incorrectly marked as a permanent Live Preview limitation. It works correctly for multi-character content; the limitation has been removed.
+- **Cross-note jump list** — `<C-o>` and `<C-i>` now navigate backward/forward through a cross-note jump history. Jumps are recorded on `gd`/`gD`, picker selection, harpoon, oil, hint mode, EasyMotion, and 40+ other navigation paths. Persists across sessions. New `:jumps` ex command and `jumplist`/`jumplistsize` settings.
+- **Table cell vim modality** — cell editors in embedded table widget mode now support a two-Escape pattern: first Escape exits insert → normal mode within the cell, second Escape returns to table-nav mode. Entry via `i`, `a`, `c`, `s` with correct cursor semantics.
+- **`ir`/`ar` table row text objects** — `ir` selects inner row content (between first and last `|`), `ar` selects the entire row including pipes.
+- **Hint mode `F` on file explorer fixed** — pressing `F` in hint mode on file explorer entries and other generic targets now correctly opens in a new tab instead of the current tab. ([#70](https://github.com/saberzero1/motions/issues/70))
+- **Jump list override preserved across vimrc reload** — the `jumpListWalk` action override is no longer lost when `reloadFeatures()` runs during vimrc loading.
+- **First character no longer swallowed in table cell editor** — pressing `i` to enter a cell editor no longer drops the entry keystroke.
 
 See the [[changelog|full changelog]] for details.
