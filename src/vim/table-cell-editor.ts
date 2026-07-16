@@ -5,6 +5,7 @@ import {
     type EmbeddableMarkdownEditor,
 } from '../editors/embeddable-editor';
 import { getCellDocumentRange } from './table-utils';
+import type { CursorShape, CursorShapes } from '../settings';
 
 export interface CellEditorHandle {
     editor: EmbeddableMarkdownEditor;
@@ -16,6 +17,49 @@ export interface CellEditorHandle {
 }
 
 let activeHandle: CellEditorHandle | null = null;
+let cellEditorCursorShapes: CursorShapes | undefined;
+let cursorSheet: CSSStyleSheet | null = null;
+
+function shapeCSS(shape: CursorShape): string {
+    switch (shape) {
+        case 'block':
+            return 'background: var(--interactive-accent) !important; color: var(--text-on-accent) !important; outline: none !important;';
+        case 'bar':
+            return 'background: transparent !important; width: 2px !important; border-left: 2px solid var(--interactive-accent) !important; outline: none !important;';
+        case 'underline':
+            return 'background: transparent !important; border-bottom: 2px solid var(--interactive-accent) !important; outline: none !important;';
+        case 'hollow':
+            return 'background: transparent !important; outline: solid 1px var(--interactive-accent) !important;';
+    }
+}
+
+function updateCursorStyleSheet(shapes: CursorShapes): void {
+    if (!cursorSheet) {
+        cursorSheet = new CSSStyleSheet();
+        document.adoptedStyleSheets = [
+            ...document.adoptedStyleSheets,
+            cursorSheet,
+        ];
+    }
+
+    const S = '.vim-table-cell-editor .cm-editor';
+    const rules = [
+        `${S} .cm-fat-cursor { ${shapeCSS(shapes.normal)} }`,
+        `${S} .cm-scroller:not(.cm-vimMode) .cm-line { caret-color: var(--caret-color, var(--text-normal)) !important; }`,
+        `${S} .cm-scroller:not(.cm-vimMode) .cm-cursorLayer { display: block !important; }`,
+    ];
+
+    cursorSheet.replaceSync(rules.join('\n'));
+}
+
+export function setCellEditorCursorShapes(
+    shapes: CursorShapes | undefined,
+): void {
+    cellEditorCursorShapes = shapes;
+    if (shapes) {
+        updateCursorStyleSheet(shapes);
+    }
+}
 
 export function openCellEditor(
     cellEl: HTMLElement, // the <td> or <th>
@@ -42,6 +86,7 @@ export function openCellEditor(
         value: originalText,
         cls: 'vim-table-cell-editor-inner',
         extensions: [],
+        cursorShapes: cellEditorCursorShapes,
         onEscape,
     });
 
@@ -98,4 +143,13 @@ export function getActiveCellEditor(): CellEditorHandle | null {
 
 export function hasActiveCellEditor(): boolean {
     return activeHandle !== null;
+}
+
+export function destroyCellEditorCursorSheet(): void {
+    if (cursorSheet) {
+        document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+            (s) => s !== cursorSheet,
+        );
+        cursorSheet = null;
+    }
 }

@@ -84,7 +84,7 @@ src/
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
-    table-cell-editor.ts   # Per-cell editing with vim-enabled editor
+    table-cell-editor.ts   # Per-cell editing with vim-enabled editor + dynamic cursor stylesheet
     table-embedded-editor.ts   # Embedded editor within table widgets
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Embedded table cell editor cursor shapes** — cell editors in embedded table widget mode now display correct cursor shapes (block for normal, bar for insert) matching the user's configured `cursorShapes` settings. Previously, insert mode showed no cursor and normal mode showed a hollow block due to two issues: (1) `cursorShapes` was not passed to `createEmbeddableEditor()` in `table-cell-editor.ts`, and (2) the cell editor's CM6 instance does not receive `.cm-focused` from Obsidian, causing the fork's unfocused-cursor rule to apply. Fixed with a module-level setter (`setCellEditorCursorShapes`) wired in both `onload()` and `reloadFeatures()`, a `pendingCursorShapes` stash in `embeddable-editor.ts` to handle the super-before-assignment timing issue, and a dynamic `CSSStyleSheet` (via `document.adoptedStyleSheets`) that generates cursor CSS from the user's configured shapes. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Plugin: `src/vim/table-cell-editor.ts` (setter, dynamic stylesheet), `src/editors/embeddable-editor.ts` (`pendingCursorShapes` stash), `src/main.ts` (setter calls + cleanup)
+- **Embedded table cell editor font size and line height mismatch** — the cell editor text appeared larger than surrounding rendered table text in some themes, and cell height increased when entering edit mode. Added `font-size: inherit`, `font-family: inherit`, `line-height: inherit` to `.vim-table-cell-editor .cm-editor`, `font-size: inherit` to `.cm-content`, and `padding: 0` + `line-height: var(--table-line-height, var(--line-height-tight))` to `.cm-line`. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Plugin: `styles.css` (table cell editor CSS)
+- **Table widget wikilink color loss after cell edit** — editing a cell containing a wikilink and exiting could cause the wikilink to lose its accent color in the re-rendered table widget. Mitigated by deferring `Component.unload()` in `TableRenderWidget.destroy()` by 500ms to allow `MarkdownRenderer.render()` async post-processing to complete before the Component is torn down. Note: this is a partial fix — the issue may still occur in some cases due to Obsidian metadata cache timing. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Plugin: `src/vim/table-render-widget.ts` (deferred unload)
+
+### Documentation
+
+- `CHANGELOG.md`: Added entries for embedded table cell editor cursor shapes, font size/line height, and wikilink color fixes
+- `KNOWN_LIMITATIONS.md`: Added Live Preview rendering, cursor shapes, visual mode highlighting, and wikilink color loss limitations under "Table cell vim modality"
+- `docs/features/tables.md`: Added Live Preview callout for cell editors
+
 ## [0.63.0] - 2026-07-16
 
 ### Added

@@ -198,6 +198,10 @@ let CachedEditorClass:
       ) => EmbeddableMarkdownEditor)
     | null = null;
 
+// Stashed before super() so buildLocalExtensions() can read it during
+// base-class construction (before this._opts is assigned).
+let pendingCursorShapes: CursorShapes | undefined;
+
 /**
  * Create an EmbeddableMarkdownEditor instance.
  *
@@ -243,6 +247,8 @@ function buildEditorClass(
                 ...defaultOptions,
                 ...options,
             };
+
+            pendingCursorShapes = opts.cursorShapes;
 
             super(editorApp, container, {
                 app: editorApp,
@@ -320,16 +326,15 @@ function buildEditorClass(
             const extensions = super.buildLocalExtensions();
 
             if (!builtinVimOn && isBundledVimActive()) {
-                extensions.push(
-                    createBundledVimExtension(this._opts.cursorShapes),
-                );
+                const shapes = this._opts?.cursorShapes ?? pendingCursorShapes;
+                extensions.push(createBundledVimExtension(shapes));
             }
 
-            if (this._opts.extensions.length > 0) {
+            if (this._opts?.extensions?.length > 0) {
                 extensions.push(...this._opts.extensions);
             }
 
-            if (this._opts.placeholder) {
+            if (this._opts?.placeholder) {
                 extensions.push(placeholder(this._opts.placeholder));
             }
 

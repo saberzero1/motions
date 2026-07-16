@@ -77,6 +77,10 @@ import {
     setEmbeddedModeEnabled,
     setTableEmbeddedMode,
 } from './vim/table-embedded-editor';
+import {
+    setCellEditorCursorShapes,
+    destroyCellEditorCursorSheet,
+} from './vim/table-cell-editor';
 import { EditorView } from '@codemirror/view';
 import {
     yankHighlightExtension,
@@ -1720,6 +1724,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         setEmbeddedModeEnabled(isEmbedded);
         setTableEmbeddedMode(isEmbedded);
+        setCellEditorCursorShapes(this.settings.cursorShapes);
         this.registerEditorExtension(tableEmbeddedField);
 
         if (this.settings.enableTableNav) {
@@ -2097,6 +2102,7 @@ export default class VimMotionsPlugin extends Plugin {
         );
         setEmbeddedModeEnabled(isEmbedded);
         setTableEmbeddedMode(isEmbedded);
+        setCellEditorCursorShapes(this.settings.cursorShapes);
         if (this.pickerAPI) {
             this.registerBundledIntegrations();
         }
@@ -3490,6 +3496,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        destroyCellEditorCursorSheet();
         setActiveDynamicContext(null);
         activeDocument.body.classList.remove('vim-motions-line-numbers-active');
         this.markGutterCleanup?.();

@@ -121,6 +121,9 @@ When using **Embedded** mode, cell editors support full Vim modality. This allow
     - `s`: Substitutes the cell content (clears and enters Insert mode).
 - **Register sharing**: Vim registers are shared between cell editors and the main document. You can yank text in one cell and paste it into another cell or elsewhere in your note.
 
+> [!info] Cell editors use Live Preview
+> Cell editors use Obsidian's Live Preview rendering. Markdown syntax like wikilink brackets (`[[` `]]`) and formatting marks (`**`, `*`) is hidden during editing, but the underlying text is preserved. This matches the behavior of the main editor in Live Preview mode.
+
 ### Table row text objects
 
 In raw Markdown mode, you can operate on entire table rows using the `ir` and `ar` text objects:

@@ -163,8 +163,11 @@ class TableRenderWidget extends WidgetType {
     }
 
     destroy(): void {
-        this.component?.unload();
+        const comp = this.component;
         this.component = null;
+        if (comp) {
+            window.setTimeout(() => comp.unload(), 500);
+        }
     }
 
     ignoreEvent(): boolean {

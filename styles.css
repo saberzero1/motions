@@ -1158,6 +1158,9 @@ settings:
 
 .vim-table-cell-editor .cm-editor {
     background: var(--background-primary);
+    font-size: inherit;
+    font-family: inherit;
+    line-height: inherit;
 }
 
 .vim-table-cell-editor .cm-editor .cm-scroller {
@@ -1167,6 +1170,12 @@ settings:
 .vim-table-cell-editor .cm-editor .cm-content {
     padding: 0;
     min-height: unset;
+    font-size: inherit;
+}
+
+.vim-table-cell-editor .cm-editor .cm-line {
+    padding: 0;
+    line-height: var(--table-line-height, var(--line-height-tight));
 }
 
 /* --- Yank highlight --- */
