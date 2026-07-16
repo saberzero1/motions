@@ -12,12 +12,12 @@ Hint mode provides Vimium-style keyboard navigation for the entire Obsidian inte
 
 When a non-editor view is focused (such as the Graph view, a PDF, Canvas, or the File Explorer), the following bindings are available:
 
-| Key  | Action   | Behavior                                                                            |
-| ---- | -------- | ----------------------------------------------------------------------------------- |
-| `f`  | Activate | Click buttons, focus panes, navigate links, or focus inputs.                        |
-| `F`  | Open new | Open a link or pane in a new pane. Falls back to activation for other targets.      |
-| `yf` | Yank     | Copy the URL for links, the note path for tabs, or display text for other elements. |
-| `df` | Close    | Close the targeted tab or pane.                                                     |
+| Key  | Action   | Behavior                                                                                    |
+| ---- | -------- | ------------------------------------------------------------------------------------------- |
+| `f`  | Activate | Click buttons, focus panes, navigate links, or focus inputs.                                |
+| `F`  | Open new | Open a link, pane, or file explorer item in a new tab. Uses Ctrl+click for generic targets. |
+| `yf` | Yank     | Copy the URL for links, the note path for tabs, or display text for other elements.         |
+| `df` | Close    | Close the targeted tab or pane.                                                             |
 
 ### Count support
 

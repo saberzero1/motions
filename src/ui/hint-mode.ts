@@ -378,10 +378,7 @@ function hintActivate(
 }
 
 function hintOpenNew(app: App, target: HintTarget): boolean {
-    if (target.targetType === 'link' || target.targetType === 'pane') {
-        return hintActivate(app, target, true);
-    }
-    return hintActivate(app, target, false);
+    return hintActivate(app, target, true);
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {

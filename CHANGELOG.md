@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Hint mode `F` on file explorer and other generic targets opens in current tab instead of new tab** — pressing `F` in hint mode on a file in the left sidebar file explorer (`.nav-file-title`) opened it in the current tab, identical to `f`. The `hintOpenNew()` function only passed `openInNewPane=true` for `link` and `pane` target types; all other targets (`generic`, `button`, `input`) fell through to `openInNewPane=false`, bypassing the existing Ctrl+Meta click path that Obsidian interprets as "open in new tab". Simplified `hintOpenNew()` to always pass `openInNewPane=true` — the Ctrl+Meta click dispatch at line 344 already handles all non-link, non-pane targets correctly. ([#70](https://github.com/saberzero1/motions/issues/70))
+    - Plugin: `src/ui/hint-mode.ts` (`hintOpenNew` simplified to unconditional `openInNewPane=true`)
 - **`jumpListWalk` action override lost after `reloadFeatures()`** — the `defineActionOverride('jumpListWalk', ...)` applied during `onload()` was wiped by `reloadFeatures()` (called during vimrc loading) because `unregisterAll()` restored the original action and the override was not re-registered. Fixed by adding the override to `reloadFeatures()` alongside the existing `newLineAndEnterInsertMode` override.
     - Plugin: `src/main.ts` (added `jumpListWalk` override to `reloadFeatures()`)
 - **First character swallowed when entering table cell editor** — pressing `i` in table-nav mode opened the cell editor and immediately dispatched `handleKey(adapter, 'i')`, but the vim extension on the cell editor's CM6 instance hadn't finished initializing. The dispatched `i` was either a no-op (vim not ready) or treated as typed text. Fixed by deferring the `handleKey` dispatch via `setTimeout(fn, 0)`.
@@ -33,11 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: Added entries for cross-note jump list, table cell vim modality, ir/ar text objects, jumpListWalk override fix, cell editor first-character fix
-- `KNOWN_LIMITATIONS.md`: Cross-note jump list → Implemented (with cross-window limitation noted); table cell vim modality → documented two-Escape pattern and entry modes; ir/ar text objects → documented
+- `CHANGELOG.md`: Added entries for cross-note jump list, table cell vim modality, ir/ar text objects, jumpListWalk override fix, cell editor first-character fix, hint mode `F` file explorer fix
+- `KNOWN_LIMITATIONS.md`: Cross-note jump list → Implemented (with cross-window limitation noted); table cell vim modality → documented two-Escape pattern and entry modes; ir/ar text objects → documented; hint mode `F` → updated behavior table (all targets now open in new tab)
 - `README.md`: Added cross-note jump list to features list
 - `CONTRIBUTING.md`: Added jumplist.ts, navigate.ts, table-row.ts, jumplist-bridge.ts to codebase structure
 - `docs/reference/keybindings.md`: Added `<C-o>`/`<C-i>` jump list, `:jumps`, `ir`/`ar` text objects
+- `docs/features/hint-mode.md`: Updated `F` action description to include file explorer and generic targets
 - `docs/features/tables.md`: Added vim modality in cell editors section, table row text objects
 - `docs/configuration/settings.md`: Added `jumplist` and `jumplistsize` settings
 - `docs/configuration/vimrc.md`: Added `jumplist`/`jumplistsize` options

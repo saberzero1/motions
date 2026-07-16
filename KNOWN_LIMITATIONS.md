@@ -467,12 +467,12 @@ When workspace navigation is enabled, the global key handler uses a three-gate i
 
 When a non-editor view (graph, PDF, canvas, etc.) is focused, full vimium-style hint bindings are available:
 
-| Key  | Action   | Behavior                                                             |
-| ---- | -------- | -------------------------------------------------------------------- |
-| `f`  | Activate | Click button, focus pane, navigate link, focus input                 |
-| `F`  | Open new | Open link/pane in new pane; fallback to activate for other targets   |
-| `yf` | Yank     | Copy URL for links, note path for tabs, display text for others      |
-| `df` | Close    | Close tab/pane via `leaf.detach()`; Notice for non-closeable targets |
+| Key  | Action   | Behavior                                                                                                          |
+| ---- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `f`  | Activate | Click button, focus pane, navigate link, focus input                                                              |
+| `F`  | Open new | Open target in new tab (Ctrl+Meta click for generic targets, `openLinkText` for links, `duplicateLeaf` for panes) |
+| `yf` | Yank     | Copy URL for links, note path for tabs, display text for others                                                   |
+| `df` | Close    | Close tab/pane via `leaf.detach()`; Notice for non-closeable targets                                              |
 
 Count prefix works: `3f` activates three targets sequentially (overlay re-shown between each). `3yf` yanks three URLs. `3df` closes three tabs.
 
