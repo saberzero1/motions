@@ -12,6 +12,7 @@ import {
     type TableRange,
     SEPARATOR_RE,
     splitCellsEscapeAware,
+    getCellDocumentRange,
 } from './table-utils';
 import { setActiveEditTableRange } from './table-render-widget';
 import { openCellEditor, closeCellEditor } from './table-cell-editor';
@@ -180,6 +181,13 @@ class TableNavController implements PluginValue {
         const doc = this.view.state.doc;
         const tableFirstLine = doc.lineAt(this.activeTable.from).number;
 
+        const cellRange = getCellDocumentRange(
+            doc,
+            tableFirstLine,
+            this.activeRow,
+            this.activeCol,
+        );
+
         const handle = openCellEditor(
             cell,
             this.activeRow,
@@ -187,6 +195,7 @@ class TableNavController implements PluginValue {
             tableFirstLine,
             app,
             () => this.exitCellEdit(),
+            cellRange?.text,
         );
         if (!handle) return;
 

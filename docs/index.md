@@ -29,13 +29,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 65 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.63.0
+## What's new in 0.64.0
 
-- **Cross-note jump list** — `<C-o>` and `<C-i>` now navigate backward/forward through a cross-note jump history. Jumps are recorded on `gd`/`gD`, picker selection, harpoon, oil, hint mode, EasyMotion, and 40+ other navigation paths. Persists across sessions. New `:jumps` ex command and `jumplist`/`jumplistsize` settings.
-- **Table cell vim modality** — cell editors in embedded table widget mode now support a two-Escape pattern: first Escape exits insert → normal mode within the cell, second Escape returns to table-nav mode. Entry via `i`, `a`, `c`, `s` with correct cursor semantics.
-- **`ir`/`ar` table row text objects** — `ir` selects inner row content (between first and last `|`), `ar` selects the entire row including pipes.
-- **Hint mode `F` on file explorer fixed** — pressing `F` in hint mode on file explorer entries and other generic targets now correctly opens in a new tab instead of the current tab. ([#70](https://github.com/saberzero1/motions/issues/70))
-- **Jump list override preserved across vimrc reload** — the `jumpListWalk` action override is no longer lost when `reloadFeatures()` runs during vimrc loading.
-- **First character no longer swallowed in table cell editor** — pressing `i` to enter a cell editor no longer drops the entry keystroke.
+- **Embedded table cell editor cursor shapes** — cell editors now display correct cursor shapes (block for normal, bar for insert) matching the user's `cursorShapes` settings. Dynamic CSS via `adoptedStyleSheets` ensures visibility regardless of focus state. ([#19](https://github.com/saberzero1/motions/issues/19))
+- **Table cell editor font and line height** — cell editor text now inherits the table's font size, font family, and line height, preventing visual mismatch when entering edit mode. ([#19](https://github.com/saberzero1/motions/issues/19))
+- **Table cell editor preserves markdown syntax** — editing a cell containing `[[wikilinks]]`, `**bold**`, or other markdown no longer strips the syntax. The editor now reads raw markdown from the document source and re-renders cell content with `MarkdownRenderer` on close. ([#19](https://github.com/saberzero1/motions/issues/19))
+- **Textarea vim overlay content synced on teardown** — closing a modal via hint mode while a debounced sync was pending no longer loses unsaved content in the textarea overlay. ([#69](https://github.com/saberzero1/motions/issues/69))
 
 See the [[changelog|full changelog]] for details.

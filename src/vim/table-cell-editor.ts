@@ -1,4 +1,4 @@
-import { type App } from 'obsidian';
+import { type App, Component, MarkdownRenderer } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import {
     createEmbeddableEditor,
@@ -14,6 +14,7 @@ export interface CellEditorHandle {
     originalText: string;
     tableFromLine: number;
     wrapperEl: HTMLElement;
+    app: App;
 }
 
 let activeHandle: CellEditorHandle | null = null;
@@ -68,13 +69,14 @@ export function openCellEditor(
     tableFromLine: number,
     app: App,
     onEscape: () => void,
+    rawMarkdown?: string,
 ): CellEditorHandle | null {
     closeCellEditor(null); // close any previous
 
     const wrapper = cellEl.querySelector<HTMLElement>('.table-cell-wrapper');
     if (!wrapper) return null;
 
-    const originalText = wrapper.textContent?.trim() ?? '';
+    const originalText = rawMarkdown ?? wrapper.textContent?.trim() ?? '';
 
     // Clear rendered content, create editor container
     wrapper.textContent = '';
@@ -100,6 +102,7 @@ export function openCellEditor(
         originalText,
         tableFromLine,
         wrapperEl: wrapper,
+        app,
     };
     return activeHandle;
 }
@@ -109,18 +112,20 @@ export function closeCellEditor(mainView: EditorView | null): {
 } {
     if (!activeHandle) return { changed: false };
 
-    const { editor, row, col, originalText, tableFromLine, wrapperEl } =
+    const { editor, row, col, originalText, tableFromLine, wrapperEl, app } =
         activeHandle;
     const newText = editor.getValue().trim();
     const changed = newText !== originalText;
 
-    // Detach editor from DOM before write-back (D12 guard)
     try {
         editor.destroy();
     } catch {
         /* */
     }
-    wrapperEl.textContent = originalText; // restore temporarily until widget re-renders
+
+    const displayText = changed ? newText : originalText;
+    wrapperEl.textContent = displayText;
+    rerenderCellContent(wrapperEl, displayText, app);
 
     if (changed && mainView) {
         const doc = mainView.state.doc;
@@ -152,4 +157,35 @@ export function destroyCellEditorCursorSheet(): void {
         );
         cursorSheet = null;
     }
+}
+
+function rerenderCellContent(
+    wrapper: HTMLElement,
+    markdown: string,
+    app: App,
+): void {
+    if (!markdown) return;
+
+    const comp = new Component();
+    comp.load();
+    const sourcePath = app.workspace.getActiveFile()?.path ?? '';
+
+    MarkdownRenderer.render(app, markdown, wrapper, sourcePath, comp)
+        .then(() => {
+            const p = wrapper.querySelector(':scope > p');
+            if (wrapper.children.length === 1 && p) {
+                while (p.firstChild) {
+                    wrapper.appendChild(p.firstChild);
+                }
+                p.remove();
+            }
+            const first = wrapper.firstChild;
+            if (
+                first?.nodeType === Node.TEXT_NODE &&
+                first.textContent === markdown
+            ) {
+                first.remove();
+            }
+        })
+        .catch(() => {});
 }
