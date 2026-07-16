@@ -782,6 +782,28 @@ The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode.
 
 **Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 80 passing, 2 skipped (tag/function dot-repeat — verified at fork level). Fork: 1806 passing, 0 failing.
 
+## `gr` replace-with-register parity gaps
+
+**Status**: Core functionality implemented. See `src/operators/replace-with-register.ts`.
+
+The `gr` operator implements the three primary mappings from [inkarkat/vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister):
+
+- `["x]gr{motion}` — replace motion range with register contents (characterwise)
+- `["x]grr` — replace current line (linewise; operator double-press)
+- `{Visual}["x]gr` — replace visual selection with register contents
+
+The replaced text is discarded into the black-hole register; the source register is preserved.
+
+**Remaining gaps**:
+
+- **Blockwise visual mode (`<C-V>` + `gr`)**: The operator has no blockwise branch. Selecting a block with `<C-V>` and then pressing `gr` falls through to the characterwise path, which produces incorrect results. The original plugin handles two sub-cases: if the register contains a single line, it duplicates that line to match the block height; if it contains multiple lines, it pastes blockwise. Neither case is implemented.
+
+- **`[count]grr` multi-line replacement**: `[count]grr` should replace `[count]` lines. Whether codemirror-vim's operator framework extends the range correctly for a count on a doubled key (e.g., `2grr`) is unverified — there are no e2e tests covering this case. The original plugin had a known bug here as well.
+
+- **Dot-repeat with named register**: `.` repeat after `["x]gr{motion}` is expected to re-use register `x`. codemirror-vim's native operator repeat does not have an explicit register-registration hook (equivalent to repeat.vim integration). Whether the named register is preserved across dot-repeat is unverified — there are no e2e tests for this case.
+
+**Test coverage**: `test/specs/operators.e2e.ts` — `grr` (single line), `griw`, `"agriw`, visual `gr`. Blockwise, count variants, and dot-repeat with named registers are not covered.
+
 ## Test-discovered behavioral discrepancies
 
 These were found by translating edge-case tests from Neovim's legacy test suite and replit/codemirror-vim. Each has a corresponding `it.skip()` test with a `// BUG:` comment.
