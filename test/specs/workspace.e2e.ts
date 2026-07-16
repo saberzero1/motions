@@ -431,17 +431,20 @@ describe('Workspace navigation (Phase 2)', function () {
         await browser.pause(200);
     });
 
-    it('gra should open context actions modal without error', async function () {
+    it(':contextactions ex command should open context actions modal without error', async function () {
+        // gra key binding was removed when gr became the replaceWithRegister
+        // operator. contextActions is now accessible via the :contextactions
+        // ex command.
         const result = await browser.executeObsidian(({ app, obsidian }) => {
             try {
                 const Vim = (
                     window as unknown as Record<string, unknown> & {
                         CodeMirrorAdapter?: {
                             Vim?: {
-                                handleKey: (
+                                handleEx: (
                                     cm: unknown,
-                                    key: string,
-                                ) => boolean;
+                                    input: string,
+                                ) => void;
                             };
                         };
                     }
@@ -458,9 +461,7 @@ describe('Workspace navigation (Phase 2)', function () {
                     .cm as Record<string, unknown>;
                 const adapter = cm?.cm;
                 if (!adapter) return { error: 'No adapter' };
-                Vim.handleKey(adapter, 'g');
-                Vim.handleKey(adapter, 'r');
-                Vim.handleKey(adapter, 'a');
+                Vim.handleEx(adapter, 'contextactions');
                 return { success: true };
             } catch (e) {
                 return { error: String(e) };

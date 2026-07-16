@@ -205,10 +205,10 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 | `:documentoutline`      | `gO`        | Open document outline           |
 | `:openurl`              | `gx`        | Open URL under cursor           |
 | `:docstats`             | `g<C-g>`    | Show document statistics        |
-| `:renamenote`           | `grn`       | Rename current note             |
-| `:showbacklinks`        | `grr`       | Show backlinks                  |
+| `:renamenote`           | —           | Rename current note             |
+| `:showbacklinks`        | —           | Show backlinks                  |
 | `:opengotofile`         | `gf`        | Open file switcher              |
-| `:contextactions`       | `gra`       | Show context actions            |
+| `:contextactions`       | —           | Show context actions            |
 | `:charinfo`             | `ga`        | Show character info             |
 
 ### Hint mode

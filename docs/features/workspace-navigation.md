@@ -36,9 +36,20 @@ Vim Motions adds several document-level commands for quick access to Obsidian fe
 - `g<C-g>`: Show document statistics (word count, character count).
 - `ga`: Show information about the character under the cursor.
 - `gp` and `gP`: Paste and move cursor past pasted text.
-- `grn`: Rename the current file.
-- `grr`: Show backlinks for the current file.
-- `gra`: Show context actions (code actions).
+
+> [!info] Workspace actions formerly on `grn`/`grr`/`gra`
+> In earlier versions, `grn` (rename note), `grr` (show backlinks), and `gra`
+> (context actions) were available as key bindings. These have been moved to ex
+> commands — `:renamenote`, `:showbacklinks`, `:contextactions` — because the
+> `gr` prefix is now used for the [[keybindings#Replace-with-register operator|replace-with-register operator]].
+> You can re-bind them in your vimrc or Lua config if you prefer key bindings:
+>
+> ```vim
+> " .obsidian.vimrc
+> nnoremap grn :renamenote<CR>
+> nnoremap grr :showbacklinks<CR>
+> nnoremap gra :contextactions<CR>
+> ```
 
 ## Folds
 

@@ -311,12 +311,16 @@ export function registerWorkspaceNavigation(
         'workspace:edit-file-title',
     );
     reg.defineAction('renameNote', renameNoteAction);
-    reg.mapCommand('grn', 'action', 'renameNote', {});
+    // grn key binding removed: `gr` is now the replaceWithRegister operator,
+    // so `grn` would apply that operator to the `n` (next search match) motion.
+    // renameNote remains accessible via :renamenote ex command.
     exCommandFromAction(reg, 'renamenote', 'ren', renameNoteAction);
 
     const showBacklinksAction = createCommandAction(app, 'backlink:open');
     reg.defineAction('showBacklinks', showBacklinksAction);
-    reg.mapCommand('grr', 'action', 'showBacklinks', {});
+    // grr key binding removed: `grr` now invokes the replaceWithRegister
+    // operator in linewise mode (replacing the current line). showBacklinks
+    // remains accessible via :showbacklinks ex command.
     exCommandFromAction(reg, 'showbacklinks', '', showBacklinksAction);
 
     const openGotoFileAction = createCommandAction(app, 'switcher:open');
@@ -326,7 +330,9 @@ export function registerWorkspaceNavigation(
 
     const contextActionsAction = createContextActionsAction(app);
     reg.defineAction('contextActions', contextActionsAction);
-    reg.mapCommand('gra', 'action', 'contextActions', {});
+    // gra key binding removed: `gr` is now the replaceWithRegister operator,
+    // so `gra` would begin a text-object sequence (e.g. `graw` = replace a word).
+    // contextActions remains accessible via :contextactions ex command.
     exCommandFromAction(reg, 'contextactions', 'con', contextActionsAction);
 
     const pasteBeforeAction: ActionFn = (cm, actionArgs) =>

@@ -154,6 +154,38 @@ Reformat paragraphs with Markdown-aware line wrapping.
 | `gqip` / `gwip`    | Reformat paragraph                              |
 | Visual `gq` / `gw` | Reformat selected lines                         |
 
+## Replace-with-register operator
+
+Replace text covered by a motion with the contents of a register, discarding
+the replaced text (not written back to any register). The register supplying the
+replacement is preserved, so you can paste the same text repeatedly without
+re-yanking.
+
+| Keybinding          | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `gr{motion}`        | Replace `{motion}` text with unnamed register (`"`)            |
+| `grr`               | Replace current line with unnamed register (linewise)          |
+| `"a gr{motion}`     | Replace `{motion}` text with register `a`                      |
+| Visual `gr`         | Replace selection with unnamed register                        |
+
+**Example usage:**
+
+```vim
+yiw        " yank inner word
+griw       " replace next inner word (register preserved — repeat!)
+grr        " replace current line
+grap       " replace a paragraph
+"agr$      " replace to end of line using register a
+```
+
+> [!info]
+> `gr{motion}` is not a Neovim built-in — it originates from the
+> `vim-ReplaceWithRegister` plugin. In Neovim 0.10+, the `gr` prefix is used
+> for LSP actions (`grn` rename, `grr` references, `gra` code action). Since
+> Obsidian has no LSP, this plugin repurposes `gr` for replace-with-register
+> and exposes the former `grn`/`grr`/`gra` workspace actions as ex commands
+> (`:renamenote`, `:showbacklinks`, `:contextactions`).
+
 ## EasyMotion find motions
 
 Jump to specific characters forward, backward, or in both directions.
@@ -247,9 +279,6 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `<C-w>gD`           | Open link under cursor in a vertical split                    | —      |
 | `gx`                | Open URL under cursor in browser                              | —      |
 | `gf`                | Open file switcher (quick open)                               | —      |
-| `grn`               | Rename current note                                           | —      |
-| `grr`               | Show backlinks to current note                                | —      |
-| `gra`               | Show context-aware actions for cursor position                | —      |
 | `gO`                | Open document outline (searchable heading list)               | —      |
 | `g<C-g>`            | Show document statistics (words, lines, characters)           | —      |
 | `gp` / `gP`         | Paste and move cursor past pasted text                        | —      |

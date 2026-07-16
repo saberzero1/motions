@@ -706,7 +706,9 @@ describe('Workspace extended', function () {
             await browser.pause(200);
         });
 
-        it('grn should trigger rename without error', async function () {
+        it(':renamenote ex command should trigger rename without error', async function () {
+            // grn key binding was removed when gr became the replaceWithRegister
+            // operator. renameNote is now accessible via the :renamenote ex command.
             const result = await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
@@ -714,10 +716,10 @@ describe('Workspace extended', function () {
                             window as unknown as Record<string, unknown> & {
                                 CodeMirrorAdapter?: {
                                     Vim?: {
-                                        handleKey: (
+                                        handleEx: (
                                             cm: unknown,
-                                            key: string,
-                                        ) => boolean;
+                                            input: string,
+                                        ) => void;
                                     };
                                 };
                             }
@@ -733,9 +735,7 @@ describe('Workspace extended', function () {
                         ).cm as Record<string, unknown>;
                         const adapter = cm?.cm;
                         if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'g');
-                        Vim.handleKey(adapter, 'r');
-                        Vim.handleKey(adapter, 'n');
+                        Vim.handleEx(adapter, 'renamenote');
                         return { success: true };
                     } catch (e) {
                         return { error: String(e) };
@@ -748,7 +748,10 @@ describe('Workspace extended', function () {
             await browser.pause(200);
         });
 
-        it('grr should show backlinks without error', async function () {
+        it(':showbacklinks ex command should show backlinks without error', async function () {
+            // grr key binding was removed when gr became the replaceWithRegister
+            // operator (grr = replace current line with register). showBacklinks
+            // is now accessible via the :showbacklinks ex command.
             const result = await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
@@ -756,10 +759,10 @@ describe('Workspace extended', function () {
                             window as unknown as Record<string, unknown> & {
                                 CodeMirrorAdapter?: {
                                     Vim?: {
-                                        handleKey: (
+                                        handleEx: (
                                             cm: unknown,
-                                            key: string,
-                                        ) => boolean;
+                                            input: string,
+                                        ) => void;
                                     };
                                 };
                             }
@@ -775,9 +778,7 @@ describe('Workspace extended', function () {
                         ).cm as Record<string, unknown>;
                         const adapter = cm?.cm;
                         if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'g');
-                        Vim.handleKey(adapter, 'r');
-                        Vim.handleKey(adapter, 'r');
+                        Vim.handleEx(adapter, 'showbacklinks');
                         return { success: true };
                     } catch (e) {
                         return { error: String(e) };

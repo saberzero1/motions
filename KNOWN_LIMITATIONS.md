@@ -374,7 +374,7 @@ Grouping applies to all completions — not just leader-scoped bindings. Any mul
 Groups are labeled with a generic `+N keys` text by default. Custom labels can be configured via **Settings → Vim Motions → Which-key group labels** using the full key prefix:
 
 - Leader-relative groups: use the leader character + prefix (e.g. `\t` for table commands under leader `\`)
-- Non-leader groups: use the raw prefix (e.g. `gr` for LSP commands, `cs` for surround changes)
+- Non-leader groups: use the raw prefix (e.g. `gr` for the replace-with-register operator, `cs` for surround changes)
 - `<leader>` token: expanded to the actual leader key (e.g. `<leader>t` resolves to `\t` with default leader)
 
 Built-in features register default labels (Table, EasyMotion) that user entries can override. Whitespace in the prefix field is trimmed.

@@ -323,3 +323,124 @@ describe('Hard-wrap operators (gq/gw)', function () {
         });
     });
 });
+
+describe('Replace-with-register operator (gr)', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+    });
+
+    describe('grr (linewise)', function () {
+        it('grr should replace current line with yanked line', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('hello\nworld');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            // Yank first line ('hello'), then move to second line and replace it
+            await vimKeys('y', 'y', 'j', 'g', 'r', 'r');
+            const value = await getEditorValue();
+            expect(value).toBe('hello\nhello');
+        });
+
+        it('grr should preserve the register after replacing', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('source\ntarget');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            // Yank first line, move to second line, replace it
+            await vimKeys('y', 'y', 'j', 'g', 'r', 'r');
+            // Apply again: register should still contain 'source'
+            await vimKeys('g', 'r', 'r');
+            const value = await getEditorValue();
+            // Both lines should now be 'source'
+            expect(value).toBe('source\nsource');
+        });
+    });
+
+    describe('griw (inner word)', function () {
+        it('griw should replace inner word with register contents', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                // yank 'foo', then replace 'bar' with it
+                view.editor.setValue('foo baz\nbar baz');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            // Yank 'foo' (inner word on line 1), move to line 2, replace 'bar'
+            await vimKeys('y', 'i', 'w', 'j', '0', 'g', 'r', 'i', 'w');
+            const value = await getEditorValue();
+            expect(value).toBe('foo baz\nfoo baz');
+        });
+
+        it('griw should preserve the register after replacing', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('new old old');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            // Yank 'new', replace first 'old', then replace second 'old'
+            await vimKeys('y', 'i', 'w', 'w', 'g', 'r', 'i', 'w', 'w', 'g', 'r', 'i', 'w');
+            const value = await getEditorValue();
+            expect(value).toBe('new new new');
+        });
+    });
+
+    describe('gr with named register', function () {
+        it('"agriw should replace inner word with register a contents', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('replacement target');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            // Yank 'replacement' into register a, move to 'target', replace it
+            await vimKeys('"', 'a', 'y', 'i', 'w', 'w', '"', 'a', 'g', 'r', 'i', 'w');
+            const value = await getEditorValue();
+            expect(value).toBe('replacement replacement');
+        });
+    });
+
+    describe('gr in visual mode', function () {
+        it('visual gr should replace selection with register contents', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('hello world');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+            });
+            await browser.pause(300);
+            // Yank 'hello', then visually select 'world' and replace
+            await vimKeys('y', 'i', 'w', 'w', 'v', 'i', 'w', 'g', 'r');
+            const value = await getEditorValue();
+            expect(value).toBe('hello hello');
+        });
+    });
+});
