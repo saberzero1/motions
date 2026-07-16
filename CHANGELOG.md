@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Block cursor displays wrong character after editor refocus in Live Preview** — when the editor lost and regained focus (e.g., opening/closing DevTools), Obsidian's Live Preview re-expanded hidden markdown formatting (like `## ` in headings) after focus returned. The block cursor's `requestMeasure` ran in the same frame as the decoration change, before the browser reflowed the new DOM — causing `coordsAtPos()` to read stale layout coordinates and the cursor to display the wrong character. Fixed in the codemirror-vim fork by adding `focusChanged` to the block cursor's redraw trigger and scheduling a deferred `requestAnimationFrame` re-measure on focus gain, ensuring the cursor reads post-reflow coordinates. ([#71](https://github.com/saberzero1/motions/issues/71))
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (`focusChanged` trigger, deferred `requestAnimationFrame` re-measure), `~/Repos/codemirror-vim/src/index.ts` (focus event handler on `contentDOM`)
+
 ### Added
 
 - **Replace-with-register operator (`gr{motion}`)** — implements the `gr` operator from [vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister). `gr{motion}` replaces the text covered by {motion} with register contents, discarding the replaced text (register preserved). Supports `grr` (linewise), `"xgr{motion}` (named registers), `{Visual}gr` (visual charwise and linewise), `[count]grr`, and dot-repeat. Blockwise visual mode is a documented no-op for v1. ([#72](https://github.com/saberzero1/motions/issues/72))
@@ -19,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: Added replace-with-register operator entry
-- `KNOWN_LIMITATIONS.md`: Updated `gr` replace-with-register parity section — removed `[count]grr` and dot-repeat gaps (confirmed working), updated test coverage line
+- `CHANGELOG.md`: Added replace-with-register operator entry; added block cursor refocus fix entry
+- `KNOWN_LIMITATIONS.md`: Updated `gr` replace-with-register parity section — removed `[count]grr` and dot-repeat gaps (confirmed working), updated test coverage line; added block cursor refocus → Fixed
 - `README.md`: Added replace-with-register to features list
 - `CONTRIBUTING.md`: Added `replace-with-register.ts` to codebase structure, updated workspace navigation description
 - `AGENTS.md`: Updated workspace navigation description

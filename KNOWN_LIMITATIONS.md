@@ -95,6 +95,17 @@ This approach is decoration-source-agnostic — it works for any type of hidden 
 
 Label collision detection in `renderLabels()` ensures that labels for nearby visible targets do not overlap. When a new label's bounding box intersects a previously placed label, it is offset vertically below it. Label dimensions are estimated from the CSS (14px monospace font, 1px 3px padding).
 
+## ~~Block cursor displays wrong character after editor refocus~~ (Fixed)
+
+**Status**: Fixed in the codemirror-vim fork. ([#71](https://github.com/saberzero1/motions/issues/71))
+
+When the editor lost and regained focus (e.g., opening/closing DevTools, switching windows), the vim block cursor could display the wrong character. This occurred because Obsidian's Live Preview re-expands hidden markdown formatting (like `## ` in headings) when the editor regains focus, but the block cursor's `requestMeasure` ran in the same animation frame — before the browser reflowed the newly expanded decorations. `coordsAtPos()` returned stale layout coordinates from the pre-reflow DOM, causing the cursor to render the character from the old visual position.
+
+Fixed with two changes in the fork:
+
+1. `BlockCursorPlugin.update()` now includes `update.focusChanged` in its redraw trigger, ensuring the cursor re-measures on focus transitions.
+2. On focus gain, a deferred `requestAnimationFrame` schedules a second `requestMeasure` that runs after the browser has reflowed the decoration DOM changes.
+
 ## Smart asterisk disambiguation
 
 `i*` tries `**bold**` first, then falls back to `*italic*`. In the case of `***bold italic***`, the `**` pair is always matched first, making it impossible to select only the italic portion with `i*`. Use `i_` for underscore italic as a workaround.
