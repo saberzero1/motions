@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Replace-with-register operator (`gr{motion}`)** — implements the `gr` operator from [vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister). `gr{motion}` replaces the text covered by {motion} with register contents, discarding the replaced text (register preserved). Supports `grr` (linewise), `"xgr{motion}` (named registers), `{Visual}gr` (visual charwise and linewise), `[count]grr`, and dot-repeat. Blockwise visual mode is a documented no-op for v1. ([#72](https://github.com/saberzero1/motions/issues/72))
+    - Plugin: `src/operators/replace-with-register.ts` (new: operator implementation), `src/operators/register.ts` (new: `registerReplaceWithRegister()` export), `src/main.ts` (independent gating via `enableReplaceWithRegister`), `src/workspace/navigation.ts` (conditional `grn`/`grr`/`gra` → `<leader>rn`/`<leader>rb`/`<leader>ra` relocation), `src/settings.ts` (`enableReplaceWithRegister` setting in both UI versions), `src/vimrc/loader.ts` (`replacewithregister`/`rwr` options), `src/types/vim-api.d.ts` (`getRegister()` type)
+- **`enableReplaceWithRegister` setting** — boolean toggle (default: `true`) gating the `gr` operator independently from `enableHardWrap`. When enabled, `grn`/`grr`/`gra` workspace bindings are relocated to `<leader>rn`/`<leader>rb`/`<leader>ra` under a "Notes" which-key group. When disabled, legacy `grn`/`grr`/`gra` bindings are restored. Configurable via Settings UI (both pre-1.13 and post-1.13), `:set replacewithregister` / `:set rwr` in vimrc, or `vim.opt.replacewithregister` in Lua.
+
+### Tests
+
+- 22 e2e tests in `test/specs/operators.e2e.ts` for replace-with-register: `grr` (single, multi-line, count), `griw`, `gr$`, `grl`, `gri'`, `gr}`, named registers (`"agriw`, `"a3grr`), visual `gr` (charwise and linewise `V`), register type coercion (linewise↔charwise), cursor positioning, dot-repeat (`griw`, `grr`, `3grr`+`.`), multi-line register expansion, text object at line boundary. 4 skipped blockwise visual mode tests documenting expected behavior for future implementation.
+
+### Documentation
+
+- `CHANGELOG.md`: Added replace-with-register operator entry
+- `KNOWN_LIMITATIONS.md`: Updated `gr` replace-with-register parity section — removed `[count]grr` and dot-repeat gaps (confirmed working), updated test coverage line
+- `README.md`: Added replace-with-register to features list
+- `CONTRIBUTING.md`: Added `replace-with-register.ts` to codebase structure, updated workspace navigation description
+- `AGENTS.md`: Updated workspace navigation description
+- `docs/reference/keybindings.md`: Added replace-with-register section, updated workspace nav with `<leader>r*` bindings
+- `docs/features/workspace-navigation.md`: Updated migration note with new `<leader>r*` defaults
+- `docs/features/ex-commands.md`: Updated default-key column for relocated commands
+- `docs/configuration/settings.md`: Added `enableReplaceWithRegister` to Vim features group
+- `docs/configuration/vimrc.md`: Added `replacewithregister`/`rwr` to boolean options
+- `docs/configuration/lua-config.md`: Added `replacewithregister` to vim.opt table
+
 ## [0.64.0] - 2026-07-16
 
 ### Fixed

@@ -14,7 +14,10 @@ import {
     registerTableActions,
     registerBufferNavigation,
 } from './motions/register';
-import { registerOperators } from './operators/register';
+import {
+    registerOperators,
+    registerReplaceWithRegister,
+} from './operators/register';
 import { createSmartOpenLineAction } from './actions/open-line';
 import { registerTextObjects } from './text-objects/register';
 import { VimModeTracker } from './vim/mode-tracker';
@@ -1312,11 +1315,15 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
         }
+        if (this.settings.enableReplaceWithRegister) {
+            registerReplaceWithRegister(this.registration);
+        }
         if (this.settings.enableWorkspaceNav) {
             registerWorkspaceNavigation(
                 this.registration,
                 this.app,
                 this.leaderRegistry,
+                this.settings.enableReplaceWithRegister,
             );
             registerExCommands(
                 this.registration,
@@ -1957,11 +1964,15 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
         }
+        if (this.settings.enableReplaceWithRegister) {
+            registerReplaceWithRegister(this.registration);
+        }
         if (this.settings.enableWorkspaceNav && this.leaderRegistry) {
             registerWorkspaceNavigation(
                 this.registration,
                 this.app,
                 this.leaderRegistry,
+                this.settings.enableReplaceWithRegister,
             );
             registerExCommands(
                 this.registration,
@@ -2342,6 +2353,15 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         this.leaderRegistry.addGroupLabel('f', 'Find', true, 'search', 'green');
+        if (this.settings.enableReplaceWithRegister) {
+            this.leaderRegistry.addGroupLabel(
+                'r',
+                'Notes',
+                true,
+                'file-text',
+                'purple',
+            );
+        }
     }
 
     registerBundledIntegrations(): void {

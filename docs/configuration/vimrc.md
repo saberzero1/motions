@@ -120,30 +120,31 @@ surroundmap m $$ $$
 
 Use `set <option>` to enable, `set no<option>` to disable.
 
-| Option              | Alias | Description                             | Default |
-| ------------------- | ----- | --------------------------------------- | ------- |
-| `textobjects`       | `to`  | Markdown-aware text objects             | on      |
-| `navigation`        | `nav` | Heading, list, and link navigation      | on      |
-| `hardwrap`          | `hw`  | `gq`/`gw` hard-wrap operators           | on      |
-| `listcontinuation`  | `lc`  | Smart list continuation on `o`/`O`      | on      |
-| `tablenav`          | `tn`  | Table cell navigation                   | on      |
-| `workspacenav`      | `wn`  | Pane/tab/sidebar control                | on      |
-| `number`            | `nu`  | Show absolute line numbers              | off     |
-| `relativenumber`    | `rnu` | Show relative line numbers              | off     |
-| `easymotion`        | `em`  | EasyMotion/Hop navigation               | on      |
-| `easymotiondimming` | `emd` | Dim non-target text during EasyMotion   | on      |
-| `hintmode`          | `hm`  | Vimium-style hint labels                | on      |
-| `statusbar`         | `sb`  | Vim mode in status bar                  | on      |
-| `chorddisplay`      | `cd`  | Pending keystrokes in status bar        | on      |
-| `powerline`         | `pl`  | Colored powerline status bar            | off     |
-| `expandtab`         | `et`  | Use spaces instead of tabs              | on      |
-| `cursorline`        | `cul` | Cursor line highlight                   | on      |
-| `foldcolumn`        | `fdc` | Fold column indicators                  | off     |
-| `markgutter`        | —     | Alias for `signcolumn` (compat)         | on      |
-| `snippets`          | —     | Enable snippet expansion                | on      |
-| `snippetbundled`    | —     | Include bundled Obsidian snippets       | on      |
-| `vimtextareas`      | `vta` | Vim keybindings in text areas           | off     |
-| `jumplist`          | —     | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
+| Option                | Alias | Description                             | Default |
+| --------------------- | ----- | --------------------------------------- | ------- |
+| `textobjects`         | `to`  | Markdown-aware text objects             | on      |
+| `replacewithregister` | `rwr` | Replace-with-register operator          | on      |
+| `navigation`          | `nav` | Heading, list, and link navigation      | on      |
+| `hardwrap`            | `hw`  | `gq`/`gw` hard-wrap operators           | on      |
+| `listcontinuation`    | `lc`  | Smart list continuation on `o`/`O`      | on      |
+| `tablenav`            | `tn`  | Table cell navigation                   | on      |
+| `workspacenav`        | `wn`  | Pane/tab/sidebar control                | on      |
+| `number`              | `nu`  | Show absolute line numbers              | off     |
+| `relativenumber`      | `rnu` | Show relative line numbers              | off     |
+| `easymotion`          | `em`  | EasyMotion/Hop navigation               | on      |
+| `easymotiondimming`   | `emd` | Dim non-target text during EasyMotion   | on      |
+| `hintmode`            | `hm`  | Vimium-style hint labels                | on      |
+| `statusbar`           | `sb`  | Vim mode in status bar                  | on      |
+| `chorddisplay`        | `cd`  | Pending keystrokes in status bar        | on      |
+| `powerline`           | `pl`  | Colored powerline status bar            | off     |
+| `expandtab`           | `et`  | Use spaces instead of tabs              | on      |
+| `cursorline`          | `cul` | Cursor line highlight                   | on      |
+| `foldcolumn`          | `fdc` | Fold column indicators                  | off     |
+| `markgutter`          | —     | Alias for `signcolumn` (compat)         | on      |
+| `snippets`            | —     | Enable snippet expansion                | on      |
+| `snippetbundled`      | —     | Include bundled Obsidian snippets       | on      |
+| `vimtextareas`        | `vta` | Vim keybindings in text areas           | off     |
+| `jumplist`            | —     | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
 
 ## Number options
 

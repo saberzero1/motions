@@ -108,11 +108,12 @@ src/
     register.ts            # Wires all motions to keybindings
   operators/
     hardwrap.ts            # gq/gw Markdown-aware hard-wrap
-    register.ts            # Wires operators to keybindings
+    replace-with-register.ts  # gr{motion} replace text with register contents
+    register.ts            # Wires operators (gq/gw, gr) to keybindings
   actions/
     open-line.ts           # Open-line action implementation
   workspace/
-    navigation.ts          # Pane/tab/fold/gd/gx/gO/grn/grr/gra/gf/hint-mode keybindings
+    navigation.ts          # Pane/tab/fold/gd/gx/gO/gf/hint-mode keybindings + <leader>r* note actions
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation

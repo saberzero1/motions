@@ -136,6 +136,7 @@ export interface VimMotionsSettings {
     enableEasyMotion: boolean;
     easyMotionDimming: boolean;
     enableHardWrap: boolean;
+    enableReplaceWithRegister: boolean;
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'off' | 'cursor' | 'always' | 'embedded';
@@ -237,6 +238,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableEasyMotion: true,
     easyMotionDimming: true,
     enableHardWrap: true,
+    enableReplaceWithRegister: true,
     listContinuationOnOpen: true,
     enableTableNav: true,
     tableWidgetMode: 'cursor',
@@ -362,6 +364,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'enableTextObjects',
         'enableNavigation',
         'enableHardWrap',
+        'enableReplaceWithRegister',
         'listContinuationOnOpen',
         'enableTableNav',
         'tableWidgetMode',
@@ -529,6 +532,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             type: 'toggle' as const,
                             key: 'enableHardWrap',
                             disabled: () => this.isOverridden('enableHardWrap'),
+                        },
+                    },
+                    {
+                        name: 'Replace-with-register operator (gr)',
+                        desc: this.describeOverride(
+                            'enableReplaceWithRegister',
+                            'Enable gr{motion} operator to replace text with register contents. ' +
+                                'When enabled, grn/grr/gra workspace bindings are relocated to ' +
+                                '<leader>rn/<leader>rb/<leader>ra.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableReplaceWithRegister',
+                            disabled: () =>
+                                this.isOverridden('enableReplaceWithRegister'),
                         },
                     },
                     {
@@ -2075,6 +2093,30 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableHardWrap = value;
                         this.plugin.vimrcOverrides?.delete('enableHardWrap');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Replace-with-register operator (gr)')
+            .setDesc(
+                describeOverride(
+                    'enableReplaceWithRegister',
+                    'Enable gr{motion} operator to replace text with register contents. ' +
+                        'When enabled, grn/grr/gra workspace bindings are relocated to ' +
+                        '<leader>rn/<leader>rb/<leader>ra.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableReplaceWithRegister)
+                    .setDisabled(isOverridden('enableReplaceWithRegister'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableReplaceWithRegister = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'enableReplaceWithRegister',
+                        );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),

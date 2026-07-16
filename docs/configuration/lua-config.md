@@ -130,6 +130,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | Option                    | Type    | Default                        | Valid range / values                          | Example                                  |
 | ------------------------- | ------- | ------------------------------ | --------------------------------------------- | ---------------------------------------- |
 | `textobjects`             | boolean | `true`                         |                                               | `vim.opt.textobjects = true`             |
+| `replacewithregister`     | boolean | `true`                         |                                               | `vim.opt.replacewithregister = true`     |
 | `navigation`              | boolean | `true`                         |                                               | `vim.opt.navigation = true`              |
 | `hardwrap`                | boolean | `true`                         |                                               | `vim.opt.hardwrap = true`                |
 | `listcontinuation`        | boolean | `true`                         |                                               | `vim.opt.listcontinuation = true`        |

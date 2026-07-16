@@ -284,6 +284,12 @@ export interface VimApi {
                 blockwise: boolean;
             }
         >;
+        getRegister?(name: string): {
+            toString(): string;
+            keyBuffer: string[];
+            linewise: boolean;
+            blockwise: boolean;
+        };
     };
 
     getKeymap(context?: string): Array<{

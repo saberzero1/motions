@@ -168,6 +168,7 @@ export function registerWorkspaceNavigation(
     reg: VimRegistration,
     app: App,
     leaderRegistry: LeaderRegistry,
+    enableReplaceWithRegister = true,
 ): void {
     const focusLeft = createCommandAction(app, 'editor:focus-left');
     reg.defineAction('focusPaneLeft', focusLeft);
@@ -311,12 +312,20 @@ export function registerWorkspaceNavigation(
         'workspace:edit-file-title',
     );
     reg.defineAction('renameNote', renameNoteAction);
-    reg.mapCommand('grn', 'action', 'renameNote', {});
+    if (enableReplaceWithRegister) {
+        reg.mapCommand('<leader>rn', 'action', 'renameNote', {});
+    } else {
+        reg.mapCommand('grn', 'action', 'renameNote', {});
+    }
     exCommandFromAction(reg, 'renamenote', 'ren', renameNoteAction);
 
     const showBacklinksAction = createCommandAction(app, 'backlink:open');
     reg.defineAction('showBacklinks', showBacklinksAction);
-    reg.mapCommand('grr', 'action', 'showBacklinks', {});
+    if (enableReplaceWithRegister) {
+        reg.mapCommand('<leader>rb', 'action', 'showBacklinks', {});
+    } else {
+        reg.mapCommand('grr', 'action', 'showBacklinks', {});
+    }
     exCommandFromAction(reg, 'showbacklinks', '', showBacklinksAction);
 
     const openGotoFileAction = createCommandAction(app, 'switcher:open');
@@ -326,7 +335,11 @@ export function registerWorkspaceNavigation(
 
     const contextActionsAction = createContextActionsAction(app);
     reg.defineAction('contextActions', contextActionsAction);
-    reg.mapCommand('gra', 'action', 'contextActions', {});
+    if (enableReplaceWithRegister) {
+        reg.mapCommand('<leader>ra', 'action', 'contextActions', {});
+    } else {
+        reg.mapCommand('gra', 'action', 'contextActions', {});
+    }
     exCommandFromAction(reg, 'contextactions', 'con', contextActionsAction);
 
     const pasteBeforeAction: ActionFn = (cm, actionArgs) =>

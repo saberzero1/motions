@@ -56,6 +56,11 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     nav: { type: 'boolean', settingsKey: 'enableNavigation' },
     hardwrap: { type: 'boolean', settingsKey: 'enableHardWrap' },
     hw: { type: 'boolean', settingsKey: 'enableHardWrap' },
+    replacewithregister: {
+        type: 'boolean',
+        settingsKey: 'enableReplaceWithRegister',
+    },
+    rwr: { type: 'boolean', settingsKey: 'enableReplaceWithRegister' },
     listcontinuation: {
         type: 'boolean',
         settingsKey: 'listContinuationOnOpen',
