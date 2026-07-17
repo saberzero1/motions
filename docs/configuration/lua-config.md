@@ -32,6 +32,43 @@ Any absolute path (starting with `/`, `~`, or a drive letter) is read directly f
 > [!tip] Obsidian Sync
 > Obsidian Sync skips dotfiles. Use a non-dotfile name like `init.lua` (the first candidate in the fallback chain) to ensure your Lua config syncs across devices.
 
+## Multi-file configs with require()
+
+Split your configuration across multiple files by placing Lua modules in a `lua/` directory at the vault root:
+
+```
+<vault>/
+  lua/
+    keymaps.lua
+    utils/
+      strings.lua
+  init.lua
+```
+
+```lua
+-- init.lua
+local keymaps = require("keymaps")      -- loads lua/keymaps.lua
+local strings = require("utils.strings") -- loads lua/utils/strings.lua
+
+keymaps.setup()
+```
+
+```lua
+-- lua/keymaps.lua
+local M = {}
+
+function M.setup()
+    vim.g.mapleader = " "
+    vim.keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save" })
+end
+
+return M
+```
+
+Modules are cached in `package.loaded` — calling `require("keymaps")` twice returns the same table. `load(chunk)` is available for dynamic string compilation. `dofile` and `loadfile` remain disabled.
+
+Security: module names containing `..`, absolute paths (`/`, `\`), or null bytes are rejected.
+
 ## Example init.lua
 
 ```lua
@@ -758,19 +795,34 @@ vim.obsidian.pick('resume')
 
 ### vim.ob.fs — Vault filesystem
 
-| Function                                                 | Description                           |
-| -------------------------------------------------------- | ------------------------------------- |
-| `vim.ob.fs.files(pattern?)`                              | Markdown files matching optional glob |
-| `vim.ob.fs.all_files()`                                  | All files in vault                    |
-| `vim.ob.fs.folders()`                                    | All folders                           |
-| `vim.ob.fs.exists(path)`                                 | Check if file exists                  |
-| `vim.ob.fs.stat(path?)`                                  | File stats `{ctime, mtime, size}`     |
-| `vim.ob.fs.create(path, content?)`                       | Create new file                       |
-| `vim.ob.fs.write(content)` or `write(path, content)`     | Overwrite file content                |
-| `vim.ob.fs.append(content)` or `append(path, content)`   | Append to file                        |
-| `vim.ob.fs.rename(new_path)` or `rename(path, new_path)` | Rename (updates backlinks)            |
-| `vim.ob.fs.move(dest)` or `move(path, dest)`             | Move to folder or new path            |
-| `vim.ob.fs.trash(path?)`                                 | Move to trash (user preference)       |
+| Function                                                 | Description                           | Async |
+| -------------------------------------------------------- | ------------------------------------- | ----- |
+| `vim.ob.fs.read(path)`                                   | Read file content as string           | Yes   |
+| `vim.ob.fs.readlines(path)`                              | Read file content as table of lines   | Yes   |
+| `vim.ob.fs.files(pattern?)`                              | Markdown files matching optional glob | No    |
+| `vim.ob.fs.all_files()`                                  | All files in vault                    | No    |
+| `vim.ob.fs.folders()`                                    | All folders                           | No    |
+| `vim.ob.fs.exists(path)`                                 | Check if file exists                  | No    |
+| `vim.ob.fs.stat(path?)`                                  | File stats `{ctime, mtime, size}`     | No    |
+| `vim.ob.fs.create(path, content?)`                       | Create new file                       | No    |
+| `vim.ob.fs.write(content)` or `write(path, content)`     | Overwrite file content                | No    |
+| `vim.ob.fs.append(content)` or `append(path, content)`   | Append to file                        | No    |
+| `vim.ob.fs.rename(new_path)` or `rename(path, new_path)` | Rename (updates backlinks)            | No    |
+| `vim.ob.fs.move(dest)` or `move(path, dest)`             | Move to folder or new path            | No    |
+| `vim.ob.fs.trash(path?)`                                 | Move to trash (user preference)       | No    |
+
+Async functions yield the Lua coroutine internally and resume when the operation completes. They work in keymap callbacks, autocmd handlers, timer callbacks, user commands, and at the top level of `init.lua`. They are blocked in snippet `f()`/`d()` nodes. Errors from async functions are catchable with `pcall`.
+
+```lua
+local content = vim.ob.fs.read("notes/todo.md")
+vim.notify("File has " .. #content .. " chars")
+
+local lines = vim.ob.fs.readlines("notes/todo.md")
+vim.notify("File has " .. #lines .. " lines")
+
+local ok, err = pcall(vim.ob.fs.read, "nonexistent.md")
+if not ok then vim.notify("Error: " .. err) end
+```
 
 > Write operations silently reject paths inside `.obsidian/`. Write/append/rename/move/trash default to the current file when path is omitted.
 
@@ -1153,7 +1205,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `require()`, `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 6 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`). The `io`, `os`, `debug`, and `package` libraries are not available. Global functions `load`, `dofile`, `loadfile`, `require`, `rawget`, `rawset`, and `rawequal` are disabled.
+> The following Neovim APIs are not available: `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 6 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`). The `io`, `os`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile`, `loadfile`, `rawget`, `rawset`, and `rawequal` are disabled.
 
 ## Keymapping mode reference
 
@@ -1284,14 +1336,14 @@ Only 6 standard libraries are loaded:
 
 ### Not available
 
-| Library/function               | Reason                                  |
-| ------------------------------ | --------------------------------------- |
-| `io`                           | Stripped from fork (file system access) |
-| `os`                           | Not loaded by plugin (security)         |
-| `debug`                        | Not loaded by plugin (security)         |
-| `package` / `require()`        | Stripped from fork (no module system)   |
-| `load`, `dofile`, `loadfile`   | Disabled (no code loading)              |
-| `rawget`, `rawset`, `rawequal` | Disabled (sandbox integrity)            |
+| Library/function               | Reason                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| `io`                           | Stripped from fork (file system access)                                                      |
+| `os`                           | Not loaded by plugin (security)                                                              |
+| `debug`                        | Not loaded by plugin (security)                                                              |
+| `package` (native)             | Stripped from fork; plugin provides `package.loaded`/`package.path` and a custom `require()` |
+| `dofile`, `loadfile`           | Disabled (no direct file loading)                                                            |
+| `rawget`, `rawset`, `rawequal` | Disabled (sandbox integrity)                                                                 |
 
 > [!info] Fork vs plugin
 > The [fengari fork](https://github.com/saberzero1/fengari) retains browser-safe `os` functions (`os.date`, `os.time`, etc.) and the `debug` library in its compiled VM. However, the plugin's sandbox deliberately does not load these libraries. Only the 6 libraries listed above are available to Lua scripts.

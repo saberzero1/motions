@@ -9,6 +9,7 @@ import {
     showLuaErrorNotice,
     withInstructionGuard,
 } from './engine';
+import { type CoroutineRunner } from './coroutine-runner';
 import { injectObsidianApi } from './obsidian-api';
 
 export interface LuaKeymap {
@@ -173,6 +174,8 @@ export interface VimApiCallbacks {
     imSetAuto?: (value: boolean) => void;
     autocmdManager: AutocmdManager;
     highlightManager?: HighlightManager;
+    runner?: CoroutineRunner;
+    fsRead?: (path: string) => Promise<string>;
 }
 
 export const MODE_PROMPT_MAP: Record<string, string> = {
@@ -774,7 +777,13 @@ export function injectVimApi(
     lua.lua_setfield(L, vimTableIndex, to_luastring('log'));
     lua.lua_pop(L, 1);
 
-    injectObsidianApi(L, vimTableIndex, callbacks, getLeaderKey);
+    injectObsidianApi(
+        L,
+        vimTableIndex,
+        callbacks,
+        getLeaderKey,
+        callbacks.runner,
+    );
 
     lua.lua_newtable(L);
     const keymapIndex = lua.lua_gettop(L);
@@ -845,23 +854,41 @@ export function injectVimApi(
         if (rhsIsFn) {
             lua.lua_pushvalue(state, 3);
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
-            callback = () => {
-                lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
-                const status = withInstructionGuard(
-                    state,
-                    CALLBACK_INSTRUCTION_LIMIT,
-                    () => lua.lua_pcall(state, 0, 0, 0),
-                );
-                if (status !== lua.LUA_OK) {
-                    const message = lua.lua_tolstring(state, -1);
-                    const error = message
-                        ? to_jsstring(message)
-                        : 'Lua callback error';
-                    console.error(`Vim Motions: ${error}`);
-                    showLuaErrorNotice(error);
-                    lua.lua_pop(state, 1);
-                }
-            };
+            const runner = callbacks.runner;
+            callback = runner
+                ? () => {
+                      void runner
+                          .invokeAsyncCapable(
+                              ref,
+                              () => 0,
+                              CALLBACK_INSTRUCTION_LIMIT,
+                          )
+                          .then((result) => {
+                              if (!result.ok) {
+                                  console.error(`Vim Motions: ${result.error}`);
+                                  showLuaErrorNotice(
+                                      result.error ?? 'Lua callback error',
+                                  );
+                              }
+                          });
+                  }
+                : () => {
+                      lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                      const status = withInstructionGuard(
+                          state,
+                          CALLBACK_INSTRUCTION_LIMIT,
+                          () => lua.lua_pcall(state, 0, 0, 0),
+                      );
+                      if (status !== lua.LUA_OK) {
+                          const message = lua.lua_tolstring(state, -1);
+                          const error = message
+                              ? to_jsstring(message)
+                              : 'Lua callback error';
+                          console.error(`Vim Motions: ${error}`);
+                          showLuaErrorNotice(error);
+                          lua.lua_pop(state, 1);
+                      }
+                  };
         }
 
         for (const mode of modes) {
@@ -986,22 +1013,57 @@ export function injectVimApi(
         if (lua.lua_isfunction(state, 2)) {
             lua.lua_pushvalue(state, 2);
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+            const runner = callbacks.runner;
             callbacks.defineExCommand?.(name, (argString: string) => {
-                lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
-                lua.lua_newtable(state);
-                lua.lua_pushstring(state, to_luastring(argString));
-                lua.lua_setfield(state, -2, to_luastring('args'));
-                const status = withInstructionGuard(
-                    state,
-                    CALLBACK_INSTRUCTION_LIMIT,
-                    () => lua.lua_pcall(state, 1, 0, 0),
-                );
-                if (status !== lua.LUA_OK) {
-                    const msg = lua.lua_tolstring(state, -1);
-                    const error = msg ? to_jsstring(msg) : 'unknown error';
-                    console.error(`Vim Motions: user command ${name}:`, error);
-                    showLuaErrorNotice(error);
-                    lua.lua_pop(state, 1);
+                if (runner) {
+                    void runner
+                        .invokeAsyncCapable(
+                            ref,
+                            (thread) => {
+                                lua.lua_newtable(thread);
+                                lua.lua_pushstring(
+                                    thread,
+                                    to_luastring(argString),
+                                );
+                                lua.lua_setfield(
+                                    thread,
+                                    -2,
+                                    to_luastring('args'),
+                                );
+                                return 1;
+                            },
+                            CALLBACK_INSTRUCTION_LIMIT,
+                        )
+                        .then((result) => {
+                            if (!result.ok) {
+                                console.error(
+                                    `Vim Motions: user command ${name}: ${result.error}`,
+                                );
+                                showLuaErrorNotice(
+                                    result.error ?? 'unknown error',
+                                );
+                            }
+                        });
+                } else {
+                    lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                    lua.lua_newtable(state);
+                    lua.lua_pushstring(state, to_luastring(argString));
+                    lua.lua_setfield(state, -2, to_luastring('args'));
+                    const status = withInstructionGuard(
+                        state,
+                        CALLBACK_INSTRUCTION_LIMIT,
+                        () => lua.lua_pcall(state, 1, 0, 0),
+                    );
+                    if (status !== lua.LUA_OK) {
+                        const msg = lua.lua_tolstring(state, -1);
+                        const error = msg ? to_jsstring(msg) : 'unknown error';
+                        console.error(
+                            `Vim Motions: user command ${name}:`,
+                            error,
+                        );
+                        showLuaErrorNotice(error);
+                        lua.lua_pop(state, 1);
+                    }
                 }
             });
         } else {
@@ -1049,26 +1111,53 @@ export function injectVimApi(
             );
         }
         const callbackIndex = lua.lua_gettop(state);
+        const runner = callbacks.runner;
         let lastId = 0;
         for (const event of events) {
             lua.lua_pushvalue(state, callbackIndex);
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
-            const callback = (ev: AutocmdEventData) => {
-                lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
-                pushAutocmdEventData(state, ev);
-                const status = withInstructionGuard(
-                    state,
-                    CALLBACK_INSTRUCTION_LIMIT,
-                    () => lua.lua_pcall(state, 1, 0, 0),
-                );
-                if (status !== lua.LUA_OK) {
-                    const msg = lua.lua_tolstring(state, -1);
-                    const error = msg ? to_jsstring(msg) : 'Lua callback error';
-                    console.error(`Vim Motions: autocmd ${event}: ${error}`);
-                    showLuaErrorNotice(error);
-                    lua.lua_pop(state, 1);
-                }
-            };
+            const callback = runner
+                ? (ev: AutocmdEventData) => {
+                      void runner
+                          .invokeAsyncCapable(
+                              ref,
+                              (thread) => {
+                                  pushAutocmdEventData(thread, ev);
+                                  return 1;
+                              },
+                              CALLBACK_INSTRUCTION_LIMIT,
+                          )
+                          .then((result) => {
+                              if (!result.ok) {
+                                  console.error(
+                                      `Vim Motions: autocmd ${event}: ${result.error}`,
+                                  );
+                                  showLuaErrorNotice(
+                                      result.error ?? 'Lua callback error',
+                                  );
+                              }
+                          });
+                  }
+                : (ev: AutocmdEventData) => {
+                      lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                      pushAutocmdEventData(state, ev);
+                      const status = withInstructionGuard(
+                          state,
+                          CALLBACK_INSTRUCTION_LIMIT,
+                          () => lua.lua_pcall(state, 1, 0, 0),
+                      );
+                      if (status !== lua.LUA_OK) {
+                          const msg = lua.lua_tolstring(state, -1);
+                          const error = msg
+                              ? to_jsstring(msg)
+                              : 'Lua callback error';
+                          console.error(
+                              `Vim Motions: autocmd ${event}: ${error}`,
+                          );
+                          showLuaErrorNotice(error);
+                          lua.lua_pop(state, 1);
+                      }
+                  };
             lastId = autocmdManager.register(event, {
                 group,
                 pattern,

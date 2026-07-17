@@ -7,6 +7,7 @@ export default defineConfig({
             include: ['test/bench/**/*.bench.ts'],
         },
         globals: true,
+        setupFiles: ['test/unit/setup.ts'],
     },
     resolve: {
         alias: {

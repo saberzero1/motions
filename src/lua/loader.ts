@@ -11,7 +11,7 @@ import type { App } from 'obsidian';
 import type { VimApi } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
-import { createSandboxedState, evalLua } from './engine';
+import { createSandboxedState, evalLuaAsync } from './engine';
 import {
     injectVimApi,
     LuaKeymap,
@@ -28,6 +28,8 @@ import { HighlightManager } from './highlight';
 import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
 import type { lua_State } from 'fengari';
 import type { ImSwitcher } from '../im/im-switcher';
+import { CoroutineRunner } from './coroutine-runner';
+import { injectPackageAndRequire } from './package';
 import {
     isAbsolutePath,
     readExternalFile,
@@ -84,6 +86,7 @@ export interface LuaLoadResult {
     state: lua_State | null;
     autocmdManager: AutocmdManager | null;
     timerManager: TimerManager | null;
+    runner: CoroutineRunner | null;
     highlightManager: HighlightManager | null;
     luaSnippets: LuaSnippetDef[];
 }
@@ -259,6 +262,7 @@ export async function loadInitLua(
             state: null,
             autocmdManager: null,
             timerManager: null,
+            runner: null,
             highlightManager,
         };
     }
@@ -305,6 +309,7 @@ export async function loadInitLua(
     let runtimeExHandler: ((command: string) => void) | null = null;
 
     const L = createSandboxedState();
+    const runner = new CoroutineRunner(L);
     const autocmdManager = new AutocmdManager(L);
     const { globals } = injectVimApi(L, {
         highlightManager,
@@ -922,6 +927,21 @@ export async function loadInitLua(
         imSetAuto: (value: boolean) => {
             imSwitcher?.setAutoWire(value);
         },
+        runner,
+        fsRead: async (path: string) => {
+            if (isAbsolutePath(path)) {
+                const content = await readExternalFile(path);
+                if (content === null) {
+                    throw new Error(`file not found: ${path}`);
+                }
+                return content;
+            }
+            try {
+                return await app.vault.adapter.read(path);
+            } catch {
+                throw new Error(`file not found: ${path}`);
+            }
+        },
     });
 
     injectVimFn(L, {
@@ -1050,10 +1070,11 @@ export async function loadInitLua(
     });
 
     injectStdlib(L);
-    const timerManager = injectTimers(L);
+    const timerManager = injectTimers(L, runner);
+    injectPackageAndRequire(L, app.vault.configDir);
     const luaSnippets = injectSnippetApi(L);
 
-    const result = evalLua(L, content);
+    const result = await evalLuaAsync(L, content, runner);
     const initialFilePath = app.workspace.getActiveFile()?.path ?? null;
     autocmdManager.activate(
         {
@@ -1157,6 +1178,7 @@ export async function loadInitLua(
             state: L,
             autocmdManager,
             timerManager,
+            runner,
             highlightManager,
             activateRuntimeExHandler: (handler) => {
                 runtimeExHandler = handler;
@@ -1187,6 +1209,7 @@ export async function loadInitLua(
         state: L,
         autocmdManager,
         timerManager,
+        runner,
         highlightManager,
         activateRuntimeExHandler: (handler) => {
             runtimeExHandler = handler;

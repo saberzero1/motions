@@ -8,12 +8,14 @@ import {
     replaceLeaderKey,
 } from './api';
 import type { VimApiCallbacks } from './api';
+import type { CoroutineRunner } from './coroutine-runner';
 
 export function injectObsidianApi(
     L: lua_State,
     vimTableIndex: number,
     callbacks: VimApiCallbacks,
     getLeaderKey: () => string,
+    runner?: CoroutineRunner,
 ): void {
     lua.lua_newtable(L);
     const obsidianIndex = lua.lua_gettop(L);
@@ -997,6 +999,40 @@ export function injectObsidianApi(
         return 0;
     });
     lua.lua_setfield(L, obsFsIndex, to_luastring('trash'));
+
+    if (runner && callbacks.fsRead) {
+        const fsReadCallback = callbacks.fsRead;
+        lua.lua_pushjsfunction(L, (state: lua_State) => {
+            const path = readLuaString(state, 1);
+            if (!path) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring('vim.obsidian.fs.read expects a path string'),
+                );
+            }
+            const promise = fsReadCallback(path);
+            return runner.yieldWithPromise(state, promise);
+        });
+        lua.lua_setfield(L, obsFsIndex, to_luastring('read'));
+
+        const fsReadLinesCallback = callbacks.fsRead;
+        lua.lua_pushjsfunction(L, (state: lua_State) => {
+            const path = readLuaString(state, 1);
+            if (!path) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring(
+                        'vim.obsidian.fs.readlines expects a path string',
+                    ),
+                );
+            }
+            const promise = fsReadLinesCallback(path).then((content) =>
+                content.split('\n'),
+            );
+            return runner.yieldWithPromise(state, promise);
+        });
+        lua.lua_setfield(L, obsFsIndex, to_luastring('readlines'));
+    }
 
     lua.lua_setfield(L, obsidianIndex, to_luastring('fs'));
 

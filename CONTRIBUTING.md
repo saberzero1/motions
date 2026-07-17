@@ -134,7 +134,9 @@ src/
     placeholder.ts         # Descriptive fold placeholder text
     fold-level.ts          # Fold level tracking
   lua/
-    engine.ts              # Fengari Lua 5.3 VM setup and library loading
+    engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync
+    coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
+    package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua config file loader
     api.ts                 # vim.keymap, vim.opt, vim.g, vim.cmd, vim.notify, etc.
     fn.ts                  # vim.fn.* function library (27 functions)

@@ -47,7 +47,23 @@ declare module 'fengari' {
         ) => void;
         lua_rawgeti: (L: lua_State, index: number, n: number) => void;
         lua_rawseti: (L: lua_State, index: number, n: number) => void;
+        lua_newthread: (L: lua_State) => lua_State;
+        lua_resume: (
+            L: lua_State,
+            from: lua_State | null,
+            nargs: number,
+        ) => number;
+        lua_yieldk: (
+            L: lua_State,
+            nresults: number,
+            ctx: number,
+            k: ((L: lua_State, status: number, ctx: number) => number) | null,
+        ) => number;
+        lua_status: (L: lua_State) => number;
+        lua_xmove: (from: lua_State, to: lua_State, n: number) => void;
+        lua_isyieldable: (L: lua_State) => boolean;
         LUA_OK: number;
+        LUA_YIELD: number;
         LUA_ERRRUN: number;
         LUA_ERRSYNTAX: number;
         LUA_MASKCOUNT: number;

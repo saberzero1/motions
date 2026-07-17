@@ -6,6 +6,7 @@ import {
     showLuaErrorNotice,
     withInstructionGuard,
 } from './engine';
+import type { CoroutineRunner } from './coroutine-runner';
 
 type LuaRef = { L: lua_State; ref: number };
 type TimerHandle = number;
@@ -76,27 +77,47 @@ export class TimerManager {
     }
 }
 
-function invokeLuaCallback(manager: TimerManager, entry: LuaRef): void {
+function invokeLuaCallback(
+    manager: TimerManager,
+    entry: LuaRef,
+    runner?: CoroutineRunner,
+): void {
     if (manager.isDestroyed()) {
         manager.unref(entry);
         return;
     }
-    try {
-        lua.lua_rawgeti(entry.L, lua.LUA_REGISTRYINDEX, entry.ref);
-        const status = withInstructionGuard(
-            entry.L,
-            CALLBACK_INSTRUCTION_LIMIT,
-            () => lua.lua_pcall(entry.L, 0, 0, 0),
-        );
-        if (status !== lua.LUA_OK) {
-            const message = lua.lua_tolstring(entry.L, -1);
-            const error = message ? to_jsstring(message) : 'Lua callback error';
-            console.error(`Vim Motions: ${error}`);
-            showLuaErrorNotice(error);
-            lua.lua_pop(entry.L, 1);
+    if (runner) {
+        void runner
+            .invokeAsyncCapable(entry.ref, () => 0, CALLBACK_INSTRUCTION_LIMIT)
+            .then((result) => {
+                if (!result.ok) {
+                    console.error(`Vim Motions: ${result.error}`);
+                    showLuaErrorNotice(result.error ?? 'Lua callback error');
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+    } else {
+        try {
+            lua.lua_rawgeti(entry.L, lua.LUA_REGISTRYINDEX, entry.ref);
+            const status = withInstructionGuard(
+                entry.L,
+                CALLBACK_INSTRUCTION_LIMIT,
+                () => lua.lua_pcall(entry.L, 0, 0, 0),
+            );
+            if (status !== lua.LUA_OK) {
+                const message = lua.lua_tolstring(entry.L, -1);
+                const error = message
+                    ? to_jsstring(message)
+                    : 'Lua callback error';
+                console.error(`Vim Motions: ${error}`);
+                showLuaErrorNotice(error);
+                lua.lua_pop(entry.L, 1);
+            }
+        } catch (error) {
+            console.error(error);
         }
-    } catch (error) {
-        console.error(error);
     }
 }
 
@@ -178,7 +199,10 @@ function getTimerStartArgs(L: lua_State): {
     return { delayIndex: 2, repeatIndex: 3, callbackIndex: 4 };
 }
 
-export function injectTimers(L: lua_State): TimerManager {
+export function injectTimers(
+    L: lua_State,
+    runner?: CoroutineRunner,
+): TimerManager {
     const manager = new TimerManager();
 
     lua.lua_getglobal(L, to_luastring('vim'));
@@ -198,7 +222,7 @@ export function injectTimers(L: lua_State): TimerManager {
         let timerId = 0;
         const handle = safeSetTimeout(() => {
             manager.untrackTimer(timerId);
-            invokeLuaCallback(manager, entry);
+            invokeLuaCallback(manager, entry, runner);
             manager.unref(entry);
         }, 0);
         timerId = manager.trackTimer(handle);
@@ -254,7 +278,7 @@ export function injectTimers(L: lua_State): TimerManager {
         const handle = safeSetTimeout(() => {
             manager.untrackTimer(timerId);
             timerState.active = false;
-            invokeLuaCallback(manager, entry);
+            invokeLuaCallback(manager, entry, runner);
             if (timerState.refEntry) {
                 manager.unref(timerState.refEntry);
                 timerState.refEntry = null;
@@ -334,7 +358,7 @@ export function injectTimers(L: lua_State): TimerManager {
                     manager.untrackTimer(timeoutId);
                     timerState.active = false;
                     if (timerState.refEntry) {
-                        invokeLuaCallback(manager, timerState.refEntry);
+                        invokeLuaCallback(manager, timerState.refEntry, runner);
                         manager.unref(timerState.refEntry);
                         timerState.refEntry = null;
                     }
@@ -347,11 +371,11 @@ export function injectTimers(L: lua_State): TimerManager {
                     manager.untrackTimer(timeoutId);
                     timerState.timeoutId = null;
                     if (timerState.refEntry) {
-                        invokeLuaCallback(manager, timerState.refEntry);
+                        invokeLuaCallback(manager, timerState.refEntry, runner);
                     }
                     const intervalHandle = safeSetInterval(() => {
                         if (!timerState.refEntry) return;
-                        invokeLuaCallback(manager, timerState.refEntry);
+                        invokeLuaCallback(manager, timerState.refEntry, runner);
                     }, repeat);
                     const intervalId = manager.trackTimer(intervalHandle);
                     timerState.intervalId = intervalId;

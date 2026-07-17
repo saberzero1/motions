@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Coroutine↔Promise bridge for async Lua execution** — Lua callbacks (keymap functions, autocmd handlers, timer callbacks, user commands) can now call async APIs that yield the coroutine and resume when the Promise resolves. The bridge uses fengari's `lua_yieldk` continuations with a `CoroutineRunner` managing thread lifecycle, instruction hooks, timeouts (10s), and concurrency limits (16 concurrent operations). `pcall` correctly catches async errors across yield/resume boundaries.
+    - Plugin: `src/lua/coroutine-runner.ts` (new: `CoroutineRunner` + `AsyncRegistry`), `src/lua/engine.ts` (`evalLuaAsync`, `INSTRUCTION_LIMIT` export), `src/lua/types.d.ts` (7 new fengari type declarations: `lua_newthread`, `lua_resume`, `lua_yieldk`, `lua_status`, `lua_xmove`, `lua_isyieldable`, `LUA_YIELD`)
+- **`vim.ob.fs.read(path)` and `vim.ob.fs.readlines(path)`** — read vault files from Lua. `read` returns a string, `readlines` returns a table of lines. Both yield internally via the coroutine bridge. Errors are catchable with `pcall`. Works in keymap callbacks, autocmd handlers, timer callbacks, and user commands. Also works at top level in `init.lua`. Blocked in snippet `f()`/`d()` nodes (raises "async APIs cannot be called from snippet nodes").
+    - Plugin: `src/lua/obsidian-api.ts` (`read`/`readlines` C-functions), `src/lua/loader.ts` (`fsRead` callback via `adapter.read` + `readExternalFile` for absolute paths), `src/lua/api.ts` (`fsRead` on `VimApiCallbacks`)
+- **`require()` for multi-file Lua configs** — `require('mymodule')` loads `lua/mymodule.lua` from the vault root. Dot-separated names resolve to subdirectories (`require('utils.strings')` → `lua/utils/strings.lua`). Modules are cached in `package.loaded`. Circular requires detected via sentinel. Security: path traversal (`..`), absolute paths, and backslash paths are rejected.
+    - Plugin: `src/lua/package.ts` (new: `package` table, sandboxed `load()`, Lua-implemented `require()`), `src/lua/engine.ts` (`load` kept in disabled list with re-enable note)
+- **`load(chunk)` re-enabled with sandboxing** — `load()` compiles a string chunk and returns the compiled function (or `nil` + error). `dofile` and `loadfile` remain disabled. The instruction count hook applies to loaded code.
+    - Plugin: `src/lua/package.ts` (`injectSandboxedLoad`)
+- **`evalLuaAsync` for async init.lua execution** — top-level `init.lua` code can now call async APIs like `vim.ob.fs.read`. The init.lua chunk runs inside a coroutine via `evalLuaAsync`, which compiles on the main state and delegates to `invokeAsyncCapable`. `autocmdManager.activate()` fires only after all yields complete.
+    - Plugin: `src/lua/engine.ts` (`evalLuaAsync`), `src/lua/loader.ts` (`evalLua` → `await evalLuaAsync`)
+
+### Changed
+
+- **Callback sites refactored for async capability** — all 4 Lua callback invocation sites now use `CoroutineRunner.invokeAsyncCapable` when a runner is available, with fallback to the original `lua_pcall` path when not. Existing sync callbacks work identically.
+    - Plugin: `src/lua/api.ts` (keymap, user command, autocmd callbacks), `src/lua/timers.ts` (`invokeLuaCallback` + 5 call sites)
+- **Snippet async guard** — `f()` and `d()` snippet node evaluations are wrapped with `runner.setAsyncBlocked(true/false)` to prevent async API calls during snippet expansion.
+    - Plugin: `src/snippets/dynamic-bridge.ts` (guards in `recomputeIfNeeded` and `expandDynamicSnippet`)
+
+### Tests
+
+- 8 spike tests in `~/Repos/fengari/test/coroutine-promise-bridge.test.js`: `lua_yieldk` continuations, `lua_isyieldable`, `pcall` across yield, instruction hooks, error propagation, sequential yields, Lua-level vs C-level coroutines
+- 11 unit tests in `test/unit/lua/coroutine-runner.test.ts`: sync path, yield/resume, rejected Promise, pcall error catch, instruction limit, timeout, concurrency limit, destroyAll, sequential async, snippet guard, thread-targeted hooks
+- 7 unit tests in `test/unit/lua/eval-lua-async.test.ts`: sync code, syntax errors, top-level async, sequential async, pcall at top level, side effects across yield, instruction limit
+- 6 unit tests in `test/unit/lua/fs-read.test.ts`: file read, pcall error catch, empty file, readlines, sequential reads, snippet guard
+- 10 unit tests in `test/unit/lua/package-require.test.ts`: module loading, caching, subdirectory resolution, circular require, missing module, path traversal, syntax error, runtime error, load() compilation, load() error
+- 22 e2e tests in `test/specs/lua-require.e2e.ts`: functional behavior (7), error handling (4), sandbox security (11)
+
+### Documentation
+
+- `CHANGELOG.md`: Added coroutine bridge, async Lua APIs, require(), load(), evalLuaAsync entries
+- `KNOWN_LIMITATIONS.md`: Vault file reading → Implemented; coroutine bridge item 1 → Implemented (Phases 1–3); require() item 2 → Implemented; load() item 6 → Implemented; fengari improvement opportunities priority table updated
+- `README.md`: Updated Lua configuration feature bullet with async file reading and multi-file configs
+- `CONTRIBUTING.md`: Added `coroutine-runner.ts` and `package.ts` to codebase structure
+- `AGENTS.md`: Updated fengari fork section with async bridge, require(), and load() capabilities
+- `docs/configuration/lua-config.md`: Added `vim.ob.fs.read`/`readlines` to fs table, added `require()` and `load()` sections, updated unsupported APIs list
+
 ## [0.65.0] - 2026-07-17
 
 ### Fixed

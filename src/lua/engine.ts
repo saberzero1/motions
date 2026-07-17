@@ -1,8 +1,9 @@
 import { lua, lauxlib, lualib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import { Notice } from 'obsidian';
+import type { CoroutineRunner } from './coroutine-runner';
 
-const INSTRUCTION_LIMIT = 1_000_000;
+export const INSTRUCTION_LIMIT = 1_000_000;
 export const LUA_TIMEOUT_ERROR = 'Lua execution timed out';
 
 export const CALLBACK_INSTRUCTION_LIMIT = 500_000;
@@ -63,7 +64,7 @@ export function createSandboxedState(): lua_State {
     for (const name of [
         'dofile',
         'loadfile',
-        'load',
+        'load', // re-enabled as sandboxed version by package.ts
         'rawget',
         'rawset',
         'rawequal',
@@ -101,4 +102,27 @@ export function evalLua(
         return { ok: false, error };
     }
     return { ok: true };
+}
+
+export async function evalLuaAsync(
+    L: lua_State,
+    code: string,
+    runner: CoroutineRunner,
+): Promise<{ ok: boolean; error?: string }> {
+    const loadStatus = lauxlib.luaL_loadstring(L, to_luastring(code));
+    if (loadStatus !== lua.LUA_OK) {
+        const msg = lua.lua_tolstring(L, -1);
+        const error = msg ? to_jsstring(msg) : 'Lua syntax error';
+        lua.lua_pop(L, 1);
+        return { ok: false, error };
+    }
+
+    const chunkRef = lauxlib.luaL_ref(L, lua.LUA_REGISTRYINDEX);
+    const result = await runner.invokeAsyncCapable(
+        chunkRef,
+        () => 0,
+        INSTRUCTION_LIMIT,
+    );
+    lauxlib.luaL_unref(L, lua.LUA_REGISTRYINDEX, chunkRef);
+    return result;
 }

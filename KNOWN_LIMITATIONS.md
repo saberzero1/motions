@@ -1135,9 +1135,9 @@ When which-key mode is set to "All partial keys" and the popup delay is non-zero
 | `vim.lsp.*` / `vim.treesitter.*` | Not applicable to Obsidian |
 | Async Lua (coroutine ↔ Promise bridge) | Deferred — `vim.schedule`, `vim.defer_fn`, and `vim.uv` timer subset are available; full coroutine bridge remains deferred |
 
-### Vault file reading
+### ~~Vault file reading~~ (Implemented)
 
-`vim.ob.fs.read(path)` is not available — Obsidian's `vault.cachedRead()` is asynchronous and the Lua runtime cannot block on Promises. To read the current file's content, use `vim.api.nvim_buf_get_lines(0, 0, -1, false)`. Reading other files from Lua requires a future async/coroutine extension.
+`vim.ob.fs.read(path)` is now available in async-capable callback contexts (keymap callbacks, autocmd handlers, timer callbacks, user commands). The function yields the Lua coroutine internally and resumes when the vault read completes. `vim.ob.fs.readlines(path)` returns a table of lines. Both functions are catchable with `pcall`. Async APIs cannot be called from snippet `f()`/`d()` nodes or at the top level of `init.lua` (Phase 2). To read the current file's content synchronously, `vim.api.nvim_buf_get_lines(0, 0, -1, false)` remains available.
 
 **Test coverage**: 12 golden comparison tests (Neovim 0.12.2), 43 integration e2e tests covering settings, keymaps, error recovery (syntax/runtime/infinite loop), conditional config, coexistence with vimrc, disabled state, runtime `vim.cmd()` execution (8 tests), leader binding + which-key integration (9 tests), space-as-leader (7 tests), and documentation example validation (10 tests).
 
@@ -1360,3 +1360,176 @@ Content is synced from the CM6 overlay to the hidden textarea via a debounced ti
 ### Dynamic node (`d()`) test registration timing
 
 Lua-defined `d()` snippets registered via `loadLuaConfig` in e2e tests may not appear in the snippet registry because `reloadFeatures()` called after Lua config load is short-circuited by the autocmd manager's `isFiring()` guard. The snippet registry IS rebuilt directly in `loadLuaConfigInternal` (bypassing `reloadFeatures`), but `d()` snippets defined in a test-specific `loadLuaConfig` call may not trigger this path correctly. The `f()` node tests pass because they benefit from the direct registry rebuild added to address this issue. This is a test lifecycle timing issue, not a runtime bug — real users defining `d()` snippets in `.obsidian.init.lua` will have them loaded correctly during normal plugin initialization.
+
+## Fengari fork improvement opportunities
+
+The plugin uses a [browser-only fork of fengari](https://github.com/saberzero1/fengari) for the Lua 5.3 runtime. The fork strips all Node.js dependencies but inherits several upstream limitations and introduces its own constraints. This section tracks potential improvements to the fork that would expand the Lua API surface, improve spec compliance, or unlock new features.
+
+See `~/Repos/fengari/DIFFERENCES.md` for the full list of changes from upstream.
+
+### 1. Coroutine↔Promise bridge (async Lua execution)
+
+**Status**: Implemented (Phase 1–3). Callback contexts (keymap, autocmd, timer, user command) are async-capable. Init.lua async (Phase 4) and `require()` (Phase 5) remain deferred.
+
+**Current state**: The fengari Lua VM is synchronous — `lua_pcall` runs Lua code to completion before returning to JS. Obsidian's vault API (`app.vault.read()`, `app.vault.cachedRead()`) is asynchronous (returns Promises). This mismatch blocks:
+
+- `vim.ob.fs.read(path)` — reading vault files from Lua (documented in "Vault file reading" limitation above)
+- Async `require()` — loading multi-file Lua configs from the vault
+- Future HTTP/fetch APIs
+- Chaining multiple async operations in Lua
+
+**Approach**: Fengari supports `lua_yieldk` and `lua_resume`. The pattern would be:
+
+1. Lua code calls a C-function (e.g., `vim.ob.fs.read`) that yields the current coroutine
+2. The JS host receives the yield with a Promise attached
+3. The JS host `await`s the Promise
+4. The JS host calls `lua_resume` with the resolved value
+5. Lua code continues as if the function returned synchronously
+
+**Challenges**:
+
+- Restructuring `engine.ts` execution from "run to completion" to "run, yield on async, resume when ready"
+- All Lua code that calls async APIs must run inside a coroutine (top-level `init.lua` would need implicit wrapping)
+- Error handling across the yield/resume boundary
+- Instruction count hooks (`lua_sethook` with `LUA_MASKCOUNT`) must persist across yield/resume cycles
+- Interaction with `vim.schedule` / `vim.defer_fn` / `vim.uv` timer callbacks that already use JS async primitives
+
+**Blocks**: Async file reading, `require()` for vault Lua modules, HTTP APIs, streaming operations.
+
+### 2. Custom `require()` for vault Lua files
+
+**Status**: Implemented. Users can split `init.lua` config across multiple files.
+
+`require('mymodule')` loads `.obsidian/lua/mymodule.lua` from the vault. Dot-separated names resolve to subdirectories (`require('utils.strings')` → `.obsidian/lua/utils/strings.lua`). Modules are cached in `package.loaded` — second `require` returns the same table. Circular requires are detected via a sentinel value in `package.loaded`.
+
+`load(chunk)` is re-enabled as a sandboxed version (string compilation only, no file access). `dofile` and `loadfile` remain disabled.
+
+Security: module names containing `..`, absolute paths, or null bytes are rejected with `"path traversal not allowed"`.
+
+```lua
+-- .obsidian/lua/keymaps.lua
+local M = {}
+function M.setup()
+    vim.keymap.set('n', '<leader>f', ':find<CR>')
+end
+return M
+
+-- init.lua
+local keymaps = require('keymaps')
+keymaps.setup()
+```
+
+### 3. 32-bit integer limitation
+
+**Status**: Inherited from upstream. Not yet addressed.
+
+**Current state**: Fengari uses 32-bit integers (`LUA_INT_TYPE=LUA_INT_LONG` equivalent) because JavaScript's `Number` type is a 64-bit float that cannot accurately represent integers beyond 2^53. Standard Lua 5.3 uses 64-bit integers.
+
+**Impact**:
+
+- `vim.uv.hrtime()` nanosecond timestamps overflow after ~2.1 seconds
+- Bitwise operations on values > 2^31 produce incorrect results
+- User Lua scripts ported from Neovim that assume 64-bit integer arithmetic may silently produce wrong results
+- Unix timestamps will overflow in 2038
+
+**Exploration paths**:
+
+- **53-bit integers via `Number`**: Change `LUA_INT_TYPE` to use full 53-bit `Number` precision. Covers all practical use cases without performance penalty. Not full 64-bit but sufficient for timestamps, counters, and typical arithmetic.
+- **64-bit integers via `BigInt`**: Full Lua 5.3 compliance. `BigInt` is available in all modern browsers/Electron. Tradeoff: `BigInt` operations are slower than `Number` operations, and `BigInt` cannot be mixed with `Number` in arithmetic expressions (requires explicit conversion at the JS↔Lua boundary).
+
+**Blocks**: Spec compliance, Neovim config portability, correct bitwise operations.
+
+### 4. `__gc` metamethods via FinalizationRegistry
+
+**Status**: Inherited from upstream. Not yet addressed.
+
+**Current state**: `__gc` metamethods are not called because fengari relies on JavaScript's garbage collector. Lua userdata objects are never finalized.
+
+**Impact**:
+
+- `vim.uv.new_timer()` objects leak if users forget `timer:close()` — no automatic cleanup
+- Future Lua-side resource wrappers (file handles, DOM references) cannot implement RAII patterns
+- Idiomatic Lua code using `__gc` for cleanup silently skips the finalizer
+
+**Approach**: Use JavaScript's [`FinalizationRegistry`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry) to invoke `__gc` when userdata becomes unreachable. GC timing is non-deterministic (matching Lua's own semantics — `__gc` is never guaranteed to run at a specific time).
+
+**Blocks**: Timer cleanup, resource management, future RAII patterns.
+
+### 5. JavaScript RegExp exposed to Lua
+
+**Status**: Not started. Low effort, medium impact.
+
+**Current state**: Lua's built-in `string.find` / `string.match` / `string.gsub` use Lua patterns, which are less powerful than regular expressions. The plugin runs in a browser with native ECMAScript regex — this is an advantage over Neovim, where implementing ECMAScript regex in Lua is impractical (mini.snippets explicitly punted on snippet transforms for this reason).
+
+**Approach**: Expose a `vim.regex(pattern, flags?)` Lua function that wraps JavaScript's `RegExp`:
+
+```lua
+local re = vim.regex("([A-Z][a-z]+)", "g")
+local matches = re:match("HelloWorld")  -- {"Hello", "World"}
+local result = re:replace("HelloWorld", "$1-")  -- "Hello-World-"
+```
+
+Implementation is a C-function (JS function in fengari) that creates a `RegExp` object and wraps `exec`/`test`/`match`/`replace` methods. This would also power snippet variable/placeholder transforms (`${1/regex/format/}`) from the Lua side.
+
+**Blocks**: Snippet transforms, advanced text processing in Lua configs.
+
+### 6. Re-enable `load()` with sandboxing
+
+**Status**: Implemented (as part of `require()` support, item 2).
+
+`load(chunk)` is available for string-only compilation. Returns the compiled function on success, or `nil` + error message on syntax error. `dofile` and `loadfile` remain disabled. The instruction count hook applies to loaded code. The sandboxed `load` is implemented in `src/lua/package.ts`.
+
+### 7. `string.format` performance (sprintf-js replacement)
+
+**Status**: Not started. Low effort, low-medium impact.
+
+**Current state**: `string.format` is implemented via the `sprintf-js` npm package (the fork's sole runtime dependency). This package hasn't been updated since 2021 and parses format strings on every call.
+
+**Impact**: `string.format` is one of the most-used Lua stdlib functions. Every `vim.notify`, `vim.inspect` output, and formatted log message goes through it. In hot paths (autocmd handlers, snippet recomputation), repeated format string parsing adds unnecessary overhead.
+
+**Approach**: Replace sprintf-js with a purpose-built format function handling only Lua's format specifiers (`%d`, `%s`, `%f`, `%q`, `%x`, `%o`, `%e`, `%g`, `%c`, `%%`). Lua's format is a strict subset of C's `printf`. A custom implementation could cache parsed format strings for repeated calls.
+
+### 8. Lua error message quality
+
+**Status**: Not started. Low effort, medium impact.
+
+**Current state**: When Lua code errors inside fengari, error messages sometimes include JavaScript stack traces mixed with Lua line information. This makes debugging `init.lua` configs harder for users.
+
+**Approach**:
+
+- Strip JS stack frames from error messages exposed to Lua `pcall`/`xpcall`
+- Ensure Lua source file name and line number are formatted consistently with PUC-Rio Lua (e.g., `init.lua:42: attempt to index a nil value`)
+- Improve `debug.traceback` output to produce cleaner Lua-only stack traces
+
+### 9. Weak tables via WeakRef
+
+**Status**: Inherited from upstream. High effort, low-medium impact.
+
+**Current state**: Weak tables (`setmetatable({}, {__mode = 'v'})` or `__mode = 'k'`) are not supported. Tables always hold strong references. This breaks idiomatic Lua patterns for caches, observers, and memoization.
+
+**Approach**: Use JavaScript's `WeakRef` and `FinalizationRegistry` to implement weak reference semantics. Every Lua value stored in a weak table would be wrapped in a `WeakRef`. This is architecturally complex — the performance implications of wrapping every table value need investigation.
+
+**Blocks**: Idiomatic Lua cache patterns, observer patterns, memoization.
+
+### 10. `collectgarbage("count")` diagnostic
+
+**Status**: Inherited from upstream. Low effort, low impact.
+
+**Current state**: `collectgarbage()` is a no-op. There is no way to query approximate memory usage from Lua.
+
+**Approach**: Implement `collectgarbage("count")` to return approximate memory usage (could estimate from Lua object count or use `performance.memory` if available in Electron). Other modes (`collect`, `step`, `stop`, `restart`) remain no-ops. This enables users to diagnose memory issues in long-running Lua scripts.
+
+### Priority summary
+
+| #   | Improvement                            | Effort | Impact   | Blocks                                        |
+| --- | -------------------------------------- | ------ | -------- | --------------------------------------------- |
+| 1   | Coroutine↔Promise bridge              | High   | Critical | Async file read, `require()`, HTTP, streaming |
+| 2   | Custom `require()` for vault Lua files | Medium | High     | Multi-file configs, config modularity         |
+| 3   | 32-bit → 53-bit integers               | Medium | High     | Spec compliance, config portability           |
+| 4   | `__gc` via FinalizationRegistry        | Medium | Medium   | Timer cleanup, resource management            |
+| 5   | JS RegExp exposed to Lua               | Low    | Medium   | Snippet transforms, text processing           |
+| 6   | Re-enable `load()` with sandboxing     | Low    | Medium   | Dynamic code generation, metaprogramming      |
+| 7   | sprintf-js replacement                 | Low    | Low-Med  | Performance in hot paths                      |
+| 8   | Error message quality                  | Low    | Medium   | User debugging experience                     |
+| 9   | Weak tables via WeakRef                | High   | Low-Med  | Idiomatic Lua patterns                        |
+| 10  | `collectgarbage("count")`              | Low    | Low      | Memory diagnostics                            |

@@ -20,6 +20,7 @@ import {
 import { preprocessSnippetBody } from './preprocess';
 import type { PreprocessContext } from './types';
 import { compileNode } from './lua-compiler';
+import type { CoroutineRunner } from '../lua/coroutine-runner';
 
 const DYNAMIC_DEBOUNCE_MS = 50;
 const MAX_LUA_EXEC_MS = 100;
@@ -40,6 +41,7 @@ export interface DynamicSnippetDef {
     dynamicNodes: DynamicNodeMeta[];
     luaState: lua_State;
     staticFieldCount: number;
+    runner?: CoroutineRunner;
 }
 
 export class DynamicSnippetContext {
@@ -271,131 +273,142 @@ class DynamicSnippetPluginValue {
                 [];
             let newRanges = [...active.ranges];
 
-            for (const nodeFieldIndex of changedNodeFields) {
-                const nodeMeta = ctx.def.dynamicNodes.find(
-                    (n) => n.fieldIndex === nodeFieldIndex,
-                );
-                if (!nodeMeta) continue;
-
-                if (performance.now() - startTime > MAX_LUA_EXEC_MS) {
-                    console.warn(
-                        'Vim Motions: snippet dynamic recomputation timed out',
+            const snippetRunner = ctx.def.runner;
+            if (snippetRunner) snippetRunner.setAsyncBlocked(true);
+            try {
+                for (const nodeFieldIndex of changedNodeFields) {
+                    const nodeMeta = ctx.def.dynamicNodes.find(
+                        (n) => n.fieldIndex === nodeFieldIndex,
                     );
-                    break;
-                }
+                    if (!nodeMeta) continue;
 
-                if (nodeMeta.kind === 'function') {
-                    const newText = invokeFunctionNode(
-                        ctx.def.luaState,
-                        nodeMeta.luaFnRef,
-                        fieldValues,
-                        nodeMeta.dependsOn,
-                    );
-                    if (newText === null) continue;
-
-                    const targetRanges = active.ranges.filter(
-                        (r) => r.field === nodeFieldIndex,
-                    );
-                    for (const r of targetRanges) {
-                        const currentText = this.view.state.sliceDoc(
-                            r.from,
-                            r.to,
+                    if (performance.now() - startTime > MAX_LUA_EXEC_MS) {
+                        console.warn(
+                            'Vim Motions: snippet dynamic recomputation timed out',
                         );
-                        if (currentText !== newText) {
+                        break;
+                    }
+
+                    if (nodeMeta.kind === 'function') {
+                        const newText = invokeFunctionNode(
+                            ctx.def.luaState,
+                            nodeMeta.luaFnRef,
+                            fieldValues,
+                            nodeMeta.dependsOn,
+                        );
+                        if (newText === null) continue;
+
+                        const targetRanges = active.ranges.filter(
+                            (r) => r.field === nodeFieldIndex,
+                        );
+                        for (const r of targetRanges) {
+                            const currentText = this.view.state.sliceDoc(
+                                r.from,
+                                r.to,
+                            );
+                            if (currentText !== newText) {
+                                changes.push({
+                                    from: r.from,
+                                    to: r.to,
+                                    insert: newText,
+                                });
+                                newRanges = newRanges.map((range) =>
+                                    range.field === r.field &&
+                                    range.from === r.from &&
+                                    range.to === r.to
+                                        ? new FieldRange(
+                                              range.field,
+                                              range.from,
+                                              range.from + newText.length,
+                                          )
+                                        : range,
+                                );
+                            }
+                        }
+                    } else if (nodeMeta.kind === 'dynamic') {
+                        const subNodes = invokeDynamicNode(
+                            ctx.def.luaState,
+                            nodeMeta.luaFnRef,
+                            fieldValues,
+                            nodeMeta.dependsOn,
+                            nodeMeta.restoreState,
+                        );
+                        if (subNodes === null) continue;
+
+                        if (nodeMeta.subFieldRange) {
+                            const restored = new Map<number, string>();
+                            for (
+                                let i = 0;
+                                i < nodeMeta.subFieldRange.count;
+                                i++
+                            ) {
+                                const absField =
+                                    nodeMeta.subFieldRange.start + i;
+                                const text = fieldValues.get(absField);
+                                if (text !== undefined) restored.set(i, text);
+                            }
+                            nodeMeta.restoreState = restored;
+                        }
+
+                        const compiled = compileSubSnippet(
+                            subNodes,
+                            nodeMeta,
+                            ctx.def.staticFieldCount,
+                        );
+
+                        const targetRanges = active.ranges.filter(
+                            (r) => r.field === nodeFieldIndex,
+                        );
+                        const r = targetRanges[0];
+                        if (r) {
                             changes.push({
                                 from: r.from,
                                 to: r.to,
-                                insert: newText,
+                                insert: compiled.text,
                             });
-                            newRanges = newRanges.map((range) =>
-                                range.field === r.field &&
-                                range.from === r.from &&
-                                range.to === r.to
-                                    ? new FieldRange(
-                                          range.field,
-                                          range.from,
-                                          range.from + newText.length,
-                                      )
-                                    : range,
+
+                            nodeMeta.subFieldRange = {
+                                start: compiled.fieldStart,
+                                count: compiled.fieldCount,
+                            };
+
+                            newRanges = rebuildRangesForDynamic(
+                                newRanges,
+                                nodeFieldIndex,
+                                r.from,
+                                compiled,
                             );
                         }
                     }
-                } else if (nodeMeta.kind === 'dynamic') {
-                    const subNodes = invokeDynamicNode(
-                        ctx.def.luaState,
-                        nodeMeta.luaFnRef,
-                        fieldValues,
-                        nodeMeta.dependsOn,
-                        nodeMeta.restoreState,
-                    );
-                    if (subNodes === null) continue;
-
-                    if (nodeMeta.subFieldRange) {
-                        const restored = new Map<number, string>();
-                        for (let i = 0; i < nodeMeta.subFieldRange.count; i++) {
-                            const absField = nodeMeta.subFieldRange.start + i;
-                            const text = fieldValues.get(absField);
-                            if (text !== undefined) restored.set(i, text);
-                        }
-                        nodeMeta.restoreState = restored;
-                    }
-
-                    const compiled = compileSubSnippet(
-                        subNodes,
-                        nodeMeta,
-                        ctx.def.staticFieldCount,
-                    );
-
-                    const targetRanges = active.ranges.filter(
-                        (r) => r.field === nodeFieldIndex,
-                    );
-                    const r = targetRanges[0];
-                    if (r) {
-                        changes.push({
-                            from: r.from,
-                            to: r.to,
-                            insert: compiled.text,
-                        });
-
-                        nodeMeta.subFieldRange = {
-                            start: compiled.fieldStart,
-                            count: compiled.fieldCount,
-                        };
-
-                        newRanges = rebuildRangesForDynamic(
-                            newRanges,
-                            nodeFieldIndex,
-                            r.from,
-                            compiled,
-                        );
-                    }
                 }
-            }
 
-            if (changes.length === 0) return;
+                if (changes.length === 0) return;
 
-            const mappedRanges = applyChangesAndRemapRanges(
-                this.view.state,
-                changes,
-                newRanges,
-            );
+                const mappedRanges = applyChangesAndRemapRanges(
+                    this.view.state,
+                    changes,
+                    newRanges,
+                );
 
-            if (mappedRanges) {
-                this.view.dispatch(
-                    this.view.state.update({
-                        changes,
-                        selection: fieldSelectionCompat(
-                            mappedRanges.ranges,
-                            active.active,
-                        ),
-                        effects: setActive.of(
-                            new ActiveSnippet(
+                if (mappedRanges) {
+                    this.view.dispatch(
+                        this.view.state.update({
+                            changes,
+                            selection: fieldSelectionCompat(
                                 mappedRanges.ranges,
                                 active.active,
                             ),
-                        ),
-                    }),
-                );
+                            effects: setActive.of(
+                                new ActiveSnippet(
+                                    mappedRanges.ranges,
+                                    active.active,
+                                ),
+                            ),
+                        }),
+                    );
+                }
+            } finally {
+                if (snippetRunner) snippetRunner.setAsyncBlocked(false);
             }
         } catch (error) {
             console.error(
@@ -578,18 +591,24 @@ export function expandDynamicSnippet(
             }
         }
 
-        for (const node of ctx.def.dynamicNodes) {
-            if (node.kind === 'function') {
-                const text = invokeFunctionNode(
-                    ctx.def.luaState,
-                    node.luaFnRef,
-                    fieldValues,
-                    node.dependsOn,
-                );
-                if (text !== null) {
-                    ctx.fieldCache.set(node.fieldIndex, text);
+        const expandRunner = ctx.def.runner;
+        if (expandRunner) expandRunner.setAsyncBlocked(true);
+        try {
+            for (const node of ctx.def.dynamicNodes) {
+                if (node.kind === 'function') {
+                    const text = invokeFunctionNode(
+                        ctx.def.luaState,
+                        node.luaFnRef,
+                        fieldValues,
+                        node.dependsOn,
+                    );
+                    if (text !== null) {
+                        ctx.fieldCache.set(node.fieldIndex, text);
+                    }
                 }
             }
+        } finally {
+            if (expandRunner) expandRunner.setAsyncBlocked(false);
         }
     }
 }
