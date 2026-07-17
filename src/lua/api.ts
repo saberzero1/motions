@@ -11,6 +11,7 @@ import {
 } from './engine';
 import { type CoroutineRunner } from './coroutine-runner';
 import { injectObsidianApi } from './obsidian-api';
+import { injectRegex } from './regex';
 
 export interface LuaKeymap {
     mode: MapContext;
@@ -1504,6 +1505,8 @@ export function injectVimApi(
         createErrorStub(L, message as string);
         lua.lua_setfield(L, vimTableIndex, to_luastring(key as string));
     }
+
+    injectRegex(L, vimTableIndex);
 
     lua.lua_pushvalue(L, vimTableIndex);
     lua.lua_setglobal(L, to_luastring('vim'));

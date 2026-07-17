@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`vim.regex()` — ECMAScript regular expressions in Lua** — `vim.regex(pattern, flags?)` creates a regex object exposing `match_str`, `match_line`, `match_pos`, `replace`, and `test` methods. Uses JavaScript's `RegExp` engine (not Vim regex syntax). Returns 0-based byte offsets matching Neovim's `vim.regex()` convention. Invalid patterns raise a Lua error catchable with `pcall`.
+    - Plugin: `src/lua/regex.ts` (new), `src/lua/api.ts` (registration via `injectRegex`)
+
+### Changed
+
+- **Fengari fork: `sprintf-js` replaced with custom formatter** — the `sprintf-js` npm dependency (sole runtime dependency) has been replaced with a purpose-built `luaSprintf` function in the fork's `src/lstrlib.js`. The fork now ships with zero runtime dependencies. Output is byte-identical to the previous implementation for all standard format patterns.
+    - Fork: `~/Repos/fengari/src/lstrlib.js`, `~/Repos/fengari/package.json`, `~/Repos/fengari/DIFFERENCES.md`
+- **Fengari fork: integers widened from 32-bit to 53-bit** — `math.maxinteger` is now `9007199254740991` (2^53 - 1). Arithmetic operations use full 53-bit `Number` precision. `string.packsize("j")` returns 8 (was 4). `tonumber("1099511627776")` now returns the integer (was `nil`). Bitwise operations remain 32-bit (JavaScript platform limitation). See `~/Repos/fengari/DIFFERENCES.md` § "Integer widening" for the full change list and remaining limitations.
+    - Fork: `~/Repos/fengari/src/luaconf.js`, `~/Repos/fengari/src/llimits.js`, `~/Repos/fengari/src/lvm.js`, `~/Repos/fengari/src/lobject.js`, `~/Repos/fengari/src/lstrlib.js`, `~/Repos/fengari/src/ltable.js`, `~/Repos/fengari/src/lapi.js`, `~/Repos/fengari/src/ldo.js`, `~/Repos/fengari/src/lmathlib.js`, `~/Repos/fengari/src/lbaselib.js`
+
 - **Coroutine↔Promise bridge for async Lua execution** — Lua callbacks (keymap functions, autocmd handlers, timer callbacks, user commands) can now call async APIs that yield the coroutine and resume when the Promise resolves. The bridge uses fengari's `lua_yieldk` continuations with a `CoroutineRunner` managing thread lifecycle, instruction hooks, timeouts (10s), and concurrency limits (16 concurrent operations). `pcall` correctly catches async errors across yield/resume boundaries.
     - Plugin: `src/lua/coroutine-runner.ts` (new: `CoroutineRunner` + `AsyncRegistry`), `src/lua/engine.ts` (`evalLuaAsync`, `INSTRUCTION_LIMIT` export), `src/lua/types.d.ts` (7 new fengari type declarations: `lua_newthread`, `lua_resume`, `lua_yieldk`, `lua_status`, `lua_xmove`, `lua_isyieldable`, `LUA_YIELD`)
 - **`vim.ob.fs.read(path)` and `vim.ob.fs.readlines(path)`** — read vault files from Lua. `read` returns a string, `readlines` returns a table of lines. Both yield internally via the coroutine bridge. Errors are catchable with `pcall`. Works in keymap callbacks, autocmd handlers, timer callbacks, and user commands. Also works at top level in `init.lua`. Blocked in snippet `f()`/`d()` nodes (raises "async APIs cannot be called from snippet nodes").
@@ -29,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 8 tests in `~/Repos/fengari/test/53bit-integers.test.js`: sprintf replacement (format specifiers, flags, hex float), 53-bit integer constants/boundaries, wide arithmetic, string parsing/formatting, table keying, pack/unpack with SZINT=8, 32-bit bitwise verification, wide for-loop
+- 9 unit tests in `test/unit/lua/regex.test.ts`: constructor validation, `match_str` (offsets + nil), `match_line` alias, `match_pos` from offset, `replace` with captures + global flag, `test` boolean, flags (case-insensitive), invalid pattern error, missing pattern error
 - 8 spike tests in `~/Repos/fengari/test/coroutine-promise-bridge.test.js`: `lua_yieldk` continuations, `lua_isyieldable`, `pcall` across yield, instruction hooks, error propagation, sequential yields, Lua-level vs C-level coroutines
 - 11 unit tests in `test/unit/lua/coroutine-runner.test.ts`: sync path, yield/resume, rejected Promise, pcall error catch, instruction limit, timeout, concurrency limit, destroyAll, sequential async, snippet guard, thread-targeted hooks
 - 7 unit tests in `test/unit/lua/eval-lua-async.test.ts`: sync code, syntax errors, top-level async, sequential async, pcall at top level, side effects across yield, instruction limit
@@ -38,12 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: Added coroutine bridge, async Lua APIs, require(), load(), evalLuaAsync entries
-- `KNOWN_LIMITATIONS.md`: Vault file reading → Implemented; coroutine bridge item 1 → Implemented (Phases 1–3); require() item 2 → Implemented; load() item 6 → Implemented; fengari improvement opportunities priority table updated
-- `README.md`: Updated Lua configuration feature bullet with async file reading and multi-file configs
-- `CONTRIBUTING.md`: Added `coroutine-runner.ts` and `package.ts` to codebase structure
-- `AGENTS.md`: Updated fengari fork section with async bridge, require(), and load() capabilities
-- `docs/configuration/lua-config.md`: Added `vim.ob.fs.read`/`readlines` to fs table, added `require()` and `load()` sections, updated unsupported APIs list
+- `CHANGELOG.md`: Added fengari fork improvements (sprintf, 53-bit integers), `vim.regex()`, coroutine bridge, async Lua APIs, require(), load(), evalLuaAsync entries
+- `KNOWN_LIMITATIONS.md`: 32-bit integer limitation → Implemented (widened to 53-bit), hrtime overflow claim corrected; JS RegExp item 5 → Implemented; sprintf item 7 → Implemented (zero deps); vault file reading → Implemented; coroutine bridge item 1 → Implemented (Phases 1–3); require() item 2 → Implemented; load() item 6 → Implemented; fengari improvement opportunities priority table updated
+- `README.md`: Updated Lua configuration feature bullet with `vim.regex()`, async file reading and multi-file configs
+- `CONTRIBUTING.md`: Added `regex.ts`, `coroutine-runner.ts` and `package.ts` to codebase structure
+- `AGENTS.md`: Updated fengari fork section — sprintf-js removed (zero deps), 53-bit integers, `vim.regex()`, async bridge, require(), and load() capabilities
+- `docs/configuration/lua-config.md`: Added `vim.regex()` API reference section, `vim.ob.fs.read`/`readlines` to fs table, `require()` and `load()` sections, updated unsupported APIs list
+- `~/Repos/fengari/DIFFERENCES.md`: Added "Integer widening" section, sprintf replacement documentation, updated behavioral differences table, updated files modified list
 
 ## [0.65.0] - 2026-07-17
 

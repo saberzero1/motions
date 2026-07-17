@@ -1419,25 +1419,25 @@ local keymaps = require('keymaps')
 keymaps.setup()
 ```
 
-### 3. 32-bit integer limitation
+### 3. ~~32-bit integer limitation~~ (Widened to 53-bit)
 
-**Status**: Inherited from upstream. Not yet addressed.
+**Status**: Implemented. Integers widened from 32-bit to 53-bit using JavaScript `Number` precision. `math.maxinteger = 9007199254740991` (2^53 - 1).
 
-**Current state**: Fengari uses 32-bit integers (`LUA_INT_TYPE=LUA_INT_LONG` equivalent) because JavaScript's `Number` type is a 64-bit float that cannot accurately represent integers beyond 2^53. Standard Lua 5.3 uses 64-bit integers.
+**What changed**:
 
-**Impact**:
+- `LUA_MAXINTEGER` / `LUA_MININTEGER` widened to ±(2^53 - 1) (symmetric bounds)
+- All `|0` arithmetic truncation removed from the VM, lobject, lbaselib, lmathlib
+- `string.pack`/`unpack` `SZINT` changed from 4 to 8 — `string.packsize("j")` returns 8
+- Table keying, API validation, and string parsing updated for 53-bit range
+- `sprintf-js` dependency replaced with custom formatter (zero runtime dependencies)
 
-- `vim.uv.hrtime()` nanosecond timestamps overflow after ~2.1 seconds
-- Bitwise operations on values > 2^31 produce incorrect results
-- User Lua scripts ported from Neovim that assume 64-bit integer arithmetic may silently produce wrong results
-- Unix timestamps will overflow in 2038
+**Remaining limitations**:
 
-**Exploration paths**:
-
-- **53-bit integers via `Number`**: Change `LUA_INT_TYPE` to use full 53-bit `Number` precision. Covers all practical use cases without performance penalty. Not full 64-bit but sufficient for timestamps, counters, and typical arithmetic.
-- **64-bit integers via `BigInt`**: Full Lua 5.3 compliance. `BigInt` is available in all modern browsers/Electron. Tradeoff: `BigInt` operations are slower than `Number` operations, and `BigInt` cannot be mixed with `Number` in arithmetic expressions (requires explicit conversion at the JS↔Lua boundary).
-
-**Blocks**: Spec compliance, Neovim config portability, correct bitwise operations.
+- Bitwise operations (`&`, `|`, `^`, `~`, `<<`, `>>`) remain 32-bit — this is a JavaScript platform limitation. Values > 2^31 are silently truncated in bitwise ops.
+- Multiplication precision: `a * b` where both operands > 2^26 may exceed 2^53, silently losing precision. Standard Lua wraps via 2's complement; this fork loses bits.
+- `math.ult` semantics may differ from standard Lua for negative inputs due to symmetric (not 2's complement) bounds.
+- Hex string parsing (`tonumber("0x...", 16)`) for values > 2^53 may lose precision (no explicit overflow check, matching PUC-Rio Lua design).
+- `vim.uv.hrtime()` uses `lua_pushnumber` (float), not `lua_pushinteger`. It already had 53-bit precision before this change — the integer widening does not affect hrtime. The previous claim about "2.1 second overflow" was inaccurate.
 
 ### 4. `__gc` metamethods via FinalizationRegistry
 
@@ -1457,21 +1457,24 @@ keymaps.setup()
 
 ### 5. JavaScript RegExp exposed to Lua
 
-**Status**: Not started. Low effort, medium impact.
+**Status**: Implemented. ECMAScript regex is available via `vim.regex()`.
 
 **Current state**: Lua's built-in `string.find` / `string.match` / `string.gsub` use Lua patterns, which are less powerful than regular expressions. The plugin runs in a browser with native ECMAScript regex — this is an advantage over Neovim, where implementing ECMAScript regex in Lua is impractical (mini.snippets explicitly punted on snippet transforms for this reason).
 
-**Approach**: Expose a `vim.regex(pattern, flags?)` Lua function that wraps JavaScript's `RegExp`:
+**API**: `vim.regex(pattern, flags?)` returns a table that closes over a JavaScript `RegExp` instance and exposes:
+
+- `re:match_str(str)` / `re:match_line(str)` → 0-based `start`, `end` byte offsets, or `nil`
+- `re:match_pos(str, start?)` → match starting from offset (default 0), returns 0-based `start`, `end` or `nil`
+- `re:replace(str, repl)` → returns new string
+- `re:test(str)` → boolean
 
 ```lua
 local re = vim.regex("([A-Z][a-z]+)", "g")
-local matches = re:match("HelloWorld")  -- {"Hello", "World"}
-local result = re:replace("HelloWorld", "$1-")  -- "Hello-World-"
+local start_idx, end_idx = re:match_str("HelloWorld")
+local result = re:replace("HelloWorld", "$1-")
 ```
 
-Implementation is a C-function (JS function in fengari) that creates a `RegExp` object and wraps `exec`/`test`/`match`/`replace` methods. This would also power snippet variable/placeholder transforms (`${1/regex/format/}`) from the Lua side.
-
-**Blocks**: Snippet transforms, advanced text processing in Lua configs.
+**Known limitation**: No ReDoS protection is applied. User-supplied patterns can be expensive.
 
 ### 6. Re-enable `load()` with sandboxing
 

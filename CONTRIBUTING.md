@@ -144,6 +144,7 @@ src/
     autocmd.ts             # vim.api.nvim_create_autocmd and augroups
     highlight.ts           # vim.api.nvim_set_hl highlight groups
     stdlib.ts              # vim.tbl_*, vim.split, vim.trim, vim.inspect, vim.json, etc.
+    regex.ts               # vim.regex() — ECMAScript RegExp wrapper (match_str, match_pos, replace, test)
     obsidian-api.ts        # vim.obsidian / vim.ob namespace (including vim.obsidian.im)
     timers.ts              # vim.schedule, vim.defer_fn, vim.uv timers
     strftime.ts            # os.date-compatible time formatting

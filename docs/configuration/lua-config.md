@@ -397,6 +397,32 @@ A subset of Neovim's `vim.*` utility functions is available for table manipulati
 | `vim.json.encode(value)` | Encode Lua value to JSON string | `vim.json.encode({a=1})` → `'{"a":1}'` |
 | `vim.json.decode(str)`   | Decode JSON string to Lua value | `vim.json.decode('{"x":42}').x` → `42` |
 
+## Regular expressions
+
+`vim.regex(pattern, flags?)` creates a regex object wrapping JavaScript's `RegExp`. This uses ECMAScript regex syntax, not Vim regex syntax.
+
+| Method                         | Description                                                            | Example                                                  |
+| ------------------------------ | ---------------------------------------------------------------------- | -------------------------------------------------------- |
+| `vim.regex(pattern, flags?)`   | Create a regex object. `flags` is optional (e.g. `"g"`, `"i"`, `"gi"`) | `local re = vim.regex("\\d+")`                           |
+| `re:match_str(str)`            | Returns 0-based start, end byte offsets of first match, or `nil`       | `vim.regex("hello"):match_str("hello world")` → `0, 5`   |
+| `re:match_line(str)`           | Alias for `match_str`                                                  | `vim.regex("world"):match_line("hello world")` → `6, 11` |
+| `re:match_pos(str, start?)`    | Match starting from byte offset (default 0)                            | `vim.regex("o"):match_pos("hello world", 5)` → `7, 8`    |
+| `re:replace(str, replacement)` | Replace match(es). Use `"g"` flag for global replace                   | `vim.regex("o", "g"):replace("foo", "0")` → `"f00"`      |
+| `re:test(str)`                 | Returns `true` if pattern matches, `false` otherwise                   | `vim.regex("^hello"):test("hello world")` → `true`       |
+
+Invalid patterns raise a Lua error catchable with `pcall`:
+
+```lua
+local ok, err = pcall(vim.regex, "[invalid")
+-- ok = false, err contains "invalid regular expression"
+```
+
+> [!info] ECMAScript regex, not Vim regex
+> `vim.regex()` uses JavaScript's `RegExp` engine (ECMAScript syntax), not Vim's regex syntax. This means patterns like `\d`, `\w`, `[A-Z]`, and lookahead/lookbehind work as in JavaScript. Vim-specific atoms like `\v`, `\m`, `\zs` are not supported.
+
+> [!info] Return value convention
+> All match methods return **0-based** byte offsets, matching Neovim's `vim.regex():match_str()` convention. This differs from Lua's `string.find()` which returns 1-based indices.
+
 ## Notifications
 
 | Function                       | Description                                                                                       | Example                                     |
