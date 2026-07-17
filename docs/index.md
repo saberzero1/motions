@@ -26,14 +26,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 65 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 66 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.64.0
+## What's new in 0.65.0
 
-- **Embedded table cell editor cursor shapes** — cell editors now display correct cursor shapes (block for normal, bar for insert) matching the user's `cursorShapes` settings. Dynamic CSS via `adoptedStyleSheets` ensures visibility regardless of focus state. ([#19](https://github.com/saberzero1/motions/issues/19))
-- **Table cell editor font and line height** — cell editor text now inherits the table's font size, font family, and line height, preventing visual mismatch when entering edit mode. ([#19](https://github.com/saberzero1/motions/issues/19))
-- **Table cell editor preserves markdown syntax** — editing a cell containing `[[wikilinks]]`, `**bold**`, or other markdown no longer strips the syntax. The editor now reads raw markdown from the document source and re-renders cell content with `MarkdownRenderer` on close. ([#19](https://github.com/saberzero1/motions/issues/19))
-- **Textarea vim overlay content synced on teardown** — closing a modal via hint mode while a debounced sync was pending no longer loses unsaved content in the textarea overlay. ([#69](https://github.com/saberzero1/motions/issues/69))
+- **Replace-with-register operator (`gr{motion}`)** — replaces text covered by a motion with register contents without clobbering the register ([vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister) parity). Supports `grr` (linewise), `"xgr{motion}` (named registers), visual `gr`, count, and dot-repeat. New `enableReplaceWithRegister` setting (default: on) toggles the operator independently. ([#72](https://github.com/saberzero1/motions/issues/72))
+- **Block cursor displays correct character after editor refocus** — the block cursor no longer shows the wrong character after the editor loses and regains focus in Live Preview (e.g., opening/closing DevTools). Fixed in the codemirror-vim fork with a deferred re-measure on focus gain. ([#71](https://github.com/saberzero1/motions/issues/71))
 
 See the [[changelog|full changelog]] for details.

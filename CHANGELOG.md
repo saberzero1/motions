@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-07-17
+
 ### Fixed
 
 - **Block cursor displays wrong character after editor refocus in Live Preview** — when the editor lost and regained focus (e.g., opening/closing DevTools), Obsidian's Live Preview re-expanded hidden markdown formatting (like `## ` in headings) after focus returned. The block cursor's `requestMeasure` ran in the same frame as the decoration change, before the browser reflowed the new DOM — causing `coordsAtPos()` to read stale layout coordinates and the cursor to display the wrong character. Fixed in the codemirror-vim fork by adding `focusChanged` to the block cursor's redraw trigger and scheduling a deferred `requestAnimationFrame` re-measure on focus gain, ensuring the cursor reads post-reflow coordinates. ([#71](https://github.com/saberzero1/motions/issues/71))
