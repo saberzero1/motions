@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-07-18
+
 ### Added
 
 - **Flash motions — enhanced f/F/t/T with labels** — when pressing `f{char}` and 2+ matches exist in the viewport, jump labels appear on all matches. Single match auto-jumps (stock Vim behavior preserved). Works with operators (`df{char}{label}`, `cf`, `yf`), visual mode (`vf{char}{label}`), and `;`/`,` repeat. Multi-line search enabled by default (configurable via `set flashmultiline`). Inspired by [flash.nvim](https://github.com/folke/flash.nvim).
@@ -40,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - 1 new e2e test in `test/specs/textarea-vim.e2e.ts`: Escape from normal mode returns to textarea without closing modal — verifies overlay removed, modal still present, textarea restored, content synced
-
 - 6 spike tests in `test/specs/spikes/spike-flash-override.e2e.ts`: defineMotion override, async motion, operator-pending, getMotion, recordLastCharacterSearch
 - 17 baseline tests in `test/specs/flash-baseline.e2e.ts`: stock f/F/t/T with flash disabled (regression guards)
 - 9 e2e tests in `test/specs/flash-char-mode.e2e.ts`: autojump, multi-match labels, escape cancel, settings toggle, multi_line, operator-pending, semicolon repeat
