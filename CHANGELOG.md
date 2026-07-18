@@ -34,8 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Flash labeler** — `FlashLabeler` class with distance-based assignment (closest targets get home-row labels), label reuse across narrowing (labels stay stable as match set shrinks), and conflict skipping via `skipChars` set.
 - **EasyMotion dimming description** — updated to "Dim non-target text when EasyMotion or flash is active" since both features share the dimming overlay.
+- **Textarea vim overlay Escape no longer closes parent modal** — pressing Escape in normal mode within the textarea overlay now tears down the overlay and returns focus to the original textarea, but no longer re-dispatches a synthetic Escape keydown to the parent UI. Previously, the second Escape closed the host modal (e.g., Spaced Repetition's edit flashcard dialog), which could cause data loss if the user hadn't clicked Save. The new behavior follows a symmetric context stack: modal → vim overlay → modal → user closes modal manually. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (removed synthetic Escape dispatch from `handleEscapeAndRedispatch`)
 
 ### Tests
+
+- 1 new e2e test in `test/specs/textarea-vim.e2e.ts`: Escape from normal mode returns to textarea without closing modal — verifies overlay removed, modal still present, textarea restored, content synced
 
 - 6 spike tests in `test/specs/spikes/spike-flash-override.e2e.ts`: defineMotion override, async motion, operator-pending, getMotion, recordLastCharacterSearch
 - 17 baseline tests in `test/specs/flash-baseline.e2e.ts`: stock f/F/t/T with flash disabled (regression guards)
@@ -60,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md`: Updated flash motions feature bullet with incremental search + post-commit search labels
 - `CONTRIBUTING.md`: Added flash/ module, search-counter.ts, updated jump-mode.ts description
 - `AGENTS.md`: Updated flash motions page ownership with all settings
+- `KNOWN_LIMITATIONS.md`: Textarea Escape behavior updated — no longer re-dispatches to parent, symmetric context stack documented
+- `README.md`: Updated textarea feature description with new Escape behavior
 - `CHANGELOG.md`: This entry
 
 ## [0.66.0] - 2026-07-18
@@ -275,7 +281,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Vim keybindings in text areas** — focused `<textarea>` elements (e.g., flashcard edit modals from Spaced Repetition) are replaced with a vim-enabled CodeMirror 6 editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode with full vim support. Second Escape blurs the overlay and re-dispatches Escape to the parent UI (modal close, etc.). Content syncs back to the hidden textarea continuously (100ms debounce) with synthetic `input`/`change` events. Desktop only, disabled by default. ([#69](https://github.com/saberzero1/motions/issues/69))
+- **Vim keybindings in text areas** — focused `<textarea>` elements (e.g., flashcard edit modals from Spaced Repetition) are replaced with a vim-enabled CodeMirror 6 editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode with full vim support. Second Escape tears down the overlay and returns focus to the original textarea (modal stays open). Content syncs back to the hidden textarea continuously (100ms debounce) with synthetic `input`/`change` events. Desktop only, disabled by default. ([#69](https://github.com/saberzero1/motions/issues/69))
     - Plugin: `src/vim/textarea-vim-manager.ts` (new), `src/editors/embeddable-editor.ts` (`skipActiveEditor` option), `src/main.ts` (registration), `src/settings.ts` (`enableVimTextareas`), `src/vim/options.ts` (`vimtextareas`/`vta`), `src/vimrc/loader.ts` (`KNOWN_SET_OPTIONS`), `styles.css` (overlay + hidden styles)
 
 ### Documentation

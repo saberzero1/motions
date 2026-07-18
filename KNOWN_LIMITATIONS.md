@@ -1345,7 +1345,7 @@ The following are intentionally not implemented in v1:
 
 **Status**: Experimental (disabled by default). ([#69](https://github.com/saberzero1/motions/issues/69))
 
-When enabled (**Settings → Vim Motions → Vim features → Vim keybindings in text areas**), focused `<textarea>` elements are replaced with a vim-enabled CodeMirror 6 editor overlay. The editor starts in insert mode — typing works immediately. Press Escape to enter normal mode for full vim editing (motions, operators, text objects, ex commands). A second Escape blurs the overlay and restores the original textarea. Content is continuously synced back to the hidden textarea (100ms debounce) with synthetic `input` and `change` events for host plugin compatibility.
+When enabled (**Settings → Vim Motions → Vim features → Vim keybindings in text areas**), focused `<textarea>` elements are replaced with a vim-enabled CodeMirror 6 editor overlay. The editor starts in insert mode — typing works immediately. Press Escape to enter normal mode for full vim editing (motions, operators, text objects, ex commands). A second Escape tears down the overlay and returns focus to the original textarea within the modal — the modal itself stays open. Content is synced back to the hidden textarea continuously (100ms debounce) with synthetic `input` and `change` events for host plugin compatibility, plus a final flush on teardown.
 
 Desktop only. Configurable via `vim.opt.vimtextareas = true` in Lua or `set vimtextareas` in vimrc.
 
@@ -1368,6 +1368,15 @@ The CM6 overlay uses adaptive height calculation to match the original textarea'
 Content is synced from the CM6 overlay to the hidden textarea via a debounced timer (100ms). A final `syncNow()` flush is performed in `teardownActive()` before the editor is destroyed, ensuring no edits are lost on rapid teardown (e.g., hint-mode clicking Save while a sync is pending).
 
 ~~Textarea content not synced when modal closed via hint mode~~ — Fixed. The `teardownActive()` method cancelled the pending sync timer and destroyed the editor without flushing. When the MutationObserver detected modal removal (e.g., after clicking Save via hint mode `f`), the debounced sync never completed and the host plugin read stale `textarea.value`. Now `syncNow()` is called before `editor.destroy()` in all teardown paths. ([#69](https://github.com/saberzero1/motions/issues/69))
+
+### Escape behavior
+
+The Escape key follows a symmetric context stack: modal → vim overlay → modal.
+
+1. **Insert mode → Escape**: Enters normal mode within the overlay (vim handles it).
+2. **Normal mode → Escape**: Syncs content, tears down the overlay, focuses the original textarea. The modal stays open — the user can continue interacting with the modal or press Escape again to close it via the host plugin's own handler.
+
+~~Second Escape closes the parent modal~~ — Changed. Previously, the second Escape re-dispatched a synthetic `Escape` keydown to the parent UI after teardown, which closed the host modal (e.g., Spaced Repetition's edit dialog) and could cause data loss. Now the overlay simply returns focus to the modal context without propagating the key event. ([#69](https://github.com/saberzero1/motions/issues/69))
 
 ### Limitations
 

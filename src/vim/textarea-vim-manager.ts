@@ -218,14 +218,6 @@ export class TextareaVimManager {
         this.syncNow(originalEl, editor);
         this.teardownActive();
         originalEl.focus();
-        originalEl.dispatchEvent(
-            new KeyboardEvent('keydown', {
-                key: 'Escape',
-                code: 'Escape',
-                bubbles: true,
-                cancelable: true,
-            }),
-        );
     }
 
     private handleBlur(): void {

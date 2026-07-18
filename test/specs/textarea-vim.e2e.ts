@@ -81,6 +81,12 @@ async function getTextareaValue(id: string): Promise<string> {
     }, id)) as string;
 }
 
+async function isModalPresent(id: string): Promise<boolean> {
+    return (await browser.executeObsidian((_ctx, elId: string) => {
+        return !!document.getElementById(`${elId}-modal`);
+    }, id)) as boolean;
+}
+
 async function isElementHidden(id: string): Promise<boolean> {
     return (await browser.executeObsidian((_ctx, elId: string) => {
         const el = document.getElementById(elId);
@@ -224,5 +230,36 @@ describe('Textarea vim replacement', function () {
         await browser.pause(300);
 
         expect(await hasOverlay()).toBe(false);
+    });
+
+    it('Escape from normal mode returns to textarea without closing modal', async function () {
+        await injectTextarea('test-ta', 'keep this');
+        await focusElement('test-ta');
+        await browser.pause(400);
+
+        expect(await hasOverlay()).toBe(true);
+        expect(await isModalPresent('test-ta')).toBe(true);
+
+        // Type some text (starts in insert mode)
+        await browser.keys(['!', '!']);
+        await browser.pause(150);
+
+        // First Escape: insert → normal
+        await browser.keys(['Escape']);
+        await browser.pause(200);
+        expect(await hasOverlay()).toBe(true);
+
+        // Second Escape: normal → teardown overlay, return to textarea
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+
+        // Overlay is gone but modal is still present
+        expect(await hasOverlay()).toBe(false);
+        expect(await isModalPresent('test-ta')).toBe(true);
+        expect(await isElementHidden('test-ta')).toBe(false);
+
+        // Content was synced before teardown
+        const value = await getTextareaValue('test-ta');
+        expect(value).toContain('!!');
     });
 });
