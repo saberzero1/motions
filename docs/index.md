@@ -9,7 +9,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 - **[[text-objects|Markdown text objects]]** — operate on bold, italic, code, math, links, blockquotes, code blocks, tables, and more with standard Vim operators
 - **[[structural-navigation|Structural navigation]]** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
-- **[[lua-config|Lua configuration]]** — `.obsidian.init.lua` with `vim.keymap.set`, `vim.opt` (including `guicursor`), `vim.fn`, `vim.api` (buffer APIs, `nvim_set_hl`), `vim.ob` (68 Obsidian-specific functions: metadata, filesystem, UI, cursor, surround, leader), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.schedule`/`vim.uv` timers, 17 autocommand events, buffer-local keymaps, `vim.obsidian.keymap` (global keymaps), `vim.obsidian.whichkey` (which-key labels), and fuzzy picker API
+- **[[lua-config|Lua configuration]]** — `.obsidian.init.lua` with `vim.keymap.set`, `vim.opt` (including `guicursor`), `vim.fn`, `vim.api` (buffer APIs, `nvim_set_hl`), `vim.ob` (68 Obsidian-specific functions: metadata, filesystem, UI, cursor, surround, leader), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.regex` (ECMAScript RegExp), `vim.schedule`/`vim.uv` timers, 19 autocommand events, buffer-local keymaps, `vim.obsidian.keymap` (global keymaps), `vim.obsidian.whichkey` (which-key labels), async file reading (`vim.ob.fs.read`), multi-file configs via `require()`, and fuzzy picker API
 - **[[vimrc|Built-in vimrc]]** — `.obsidian.vimrc` loader with 35+ configurable settings
 - **[[easymotion|EasyMotion / Hop]]** — jump to any visible position with two keystrokes
 - **[[workspace-navigation|Workspace keyboard control]]** — navigate panes, tabs, and sidebar without a mouse
@@ -29,9 +29,15 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 66 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.65.0
+## What's new in 0.66.0
 
-- **Replace-with-register operator (`gr{motion}`)** — replaces text covered by a motion with register contents without clobbering the register ([vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister) parity). Supports `grr` (linewise), `"xgr{motion}` (named registers), visual `gr`, count, and dot-repeat. New `enableReplaceWithRegister` setting (default: on) toggles the operator independently. ([#72](https://github.com/saberzero1/motions/issues/72))
-- **Block cursor displays correct character after editor refocus** — the block cursor no longer shows the wrong character after the editor loses and regains focus in Live Preview (e.g., opening/closing DevTools). Fixed in the codemirror-vim fork with a deferred re-measure on focus gain. ([#71](https://github.com/saberzero1/motions/issues/71))
+- **Async Lua execution** — Lua callbacks (keymaps, autocmds, timers, user commands) can now call async APIs via a coroutine↔Promise bridge. Top-level `init.lua` code supports async too. 10s timeout, 16-coroutine concurrency limit, `pcall`-compatible error handling.
+- **`vim.ob.fs.read(path)` / `readlines(path)`** — read vault files from Lua. Both yield internally via the coroutine bridge and are catchable with `pcall`.
+- **`require()` for multi-file Lua configs** — `require('mymodule')` loads `lua/mymodule.lua` from the vault root. Dot-separated names resolve to subdirectories. Module caching, circular-require detection, and path-traversal security.
+- **`vim.regex()` — ECMAScript regular expressions in Lua** — `vim.regex(pattern, flags?)` creates a regex object with `match_str`, `match_line`, `match_pos`, `replace`, and `test` methods. Returns 0-based byte offsets matching Neovim's convention.
+- **`load()` re-enabled** — `load(chunk)` compiles a Lua string and returns the compiled function (sandboxed; `dofile`/`loadfile` remain disabled).
+- **Fengari fork: 53-bit integers** — `math.maxinteger` is now `9007199254740991` (2^53 − 1). `string.packsize("j")` returns 8. Bitwise operations remain 32-bit.
+- **Fengari fork: `__gc` userdata finalization** — `__gc` metamethods on userdata are invoked via `FinalizationRegistry` when unreachable from JavaScript.
+- **Fengari fork: zero runtime dependencies** — `sprintf-js` replaced with a custom `luaSprintf` formatter. Byte-identical output, no external packages.
 
 See the [[changelog|full changelog]] for details.

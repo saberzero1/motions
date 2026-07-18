@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-07-18
+
 ### Added
 
 - **`vim.regex()` — ECMAScript regular expressions in Lua** — `vim.regex(pattern, flags?)` creates a regex object exposing `match_str`, `match_line`, `match_pos`, `replace`, and `test` methods. Uses JavaScript's `RegExp` engine (not Vim regex syntax). Returns 0-based byte offsets matching Neovim's `vim.regex()` convention. Invalid patterns raise a Lua error catchable with `pcall`.
@@ -24,7 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: `~/Repos/fengari/src/lstrlib.js`, `~/Repos/fengari/package.json`, `~/Repos/fengari/DIFFERENCES.md`
 - **Fengari fork: integers widened from 32-bit to 53-bit** — `math.maxinteger` is now `9007199254740991` (2^53 - 1). Arithmetic operations use full 53-bit `Number` precision. `string.packsize("j")` returns 8 (was 4). `tonumber("1099511627776")` now returns the integer (was `nil`). Bitwise operations remain 32-bit (JavaScript platform limitation). See `~/Repos/fengari/DIFFERENCES.md` § "Integer widening" for the full change list and remaining limitations.
     - Fork: `~/Repos/fengari/src/luaconf.js`, `~/Repos/fengari/src/llimits.js`, `~/Repos/fengari/src/lvm.js`, `~/Repos/fengari/src/lobject.js`, `~/Repos/fengari/src/lstrlib.js`, `~/Repos/fengari/src/ltable.js`, `~/Repos/fengari/src/lapi.js`, `~/Repos/fengari/src/ldo.js`, `~/Repos/fengari/src/lmathlib.js`, `~/Repos/fengari/src/lbaselib.js`
-
 - **Coroutine↔Promise bridge for async Lua execution** — Lua callbacks (keymap functions, autocmd handlers, timer callbacks, user commands) can now call async APIs that yield the coroutine and resume when the Promise resolves. The bridge uses fengari's `lua_yieldk` continuations with a `CoroutineRunner` managing thread lifecycle, instruction hooks, timeouts (10s), and concurrency limits (16 concurrent operations). `pcall` correctly catches async errors across yield/resume boundaries.
     - Plugin: `src/lua/coroutine-runner.ts` (new: `CoroutineRunner` + `AsyncRegistry`), `src/lua/engine.ts` (`evalLuaAsync`, `INSTRUCTION_LIMIT` export), `src/lua/types.d.ts` (7 new fengari type declarations: `lua_newthread`, `lua_resume`, `lua_yieldk`, `lua_status`, `lua_xmove`, `lua_isyieldable`, `LUA_YIELD`)
 - **`vim.ob.fs.read(path)` and `vim.ob.fs.readlines(path)`** — read vault files from Lua. `read` returns a string, `readlines` returns a table of lines. Both yield internally via the coroutine bridge. Errors are catchable with `pcall`. Works in keymap callbacks, autocmd handlers, timer callbacks, and user commands. Also works at top level in `init.lua`. Blocked in snippet `f()`/`d()` nodes (raises "async APIs cannot be called from snippet nodes").
@@ -35,9 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/package.ts` (`injectSandboxedLoad`)
 - **`evalLuaAsync` for async init.lua execution** — top-level `init.lua` code can now call async APIs like `vim.ob.fs.read`. The init.lua chunk runs inside a coroutine via `evalLuaAsync`, which compiles on the main state and delegates to `invokeAsyncCapable`. `autocmdManager.activate()` fires only after all yields complete.
     - Plugin: `src/lua/engine.ts` (`evalLuaAsync`), `src/lua/loader.ts` (`evalLua` → `await evalLuaAsync`)
-
-### Changed
-
 - **Callback sites refactored for async capability** — all 4 Lua callback invocation sites now use `CoroutineRunner.invokeAsyncCapable` when a runner is available, with fallback to the original `lua_pcall` path when not. Existing sync callbacks work identically.
     - Plugin: `src/lua/api.ts` (keymap, user command, autocmd callbacks), `src/lua/timers.ts` (`invokeLuaCallback` + 5 call sites)
 - **Snippet async guard** — `f()` and `d()` snippet node evaluations are wrapped with `runner.setAsyncBlocked(true/false)` to prevent async API calls during snippet expansion.
