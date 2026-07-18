@@ -131,6 +131,10 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `workspacenav`        | `wn`  | Pane/tab/sidebar control                | on      |
 | `number`              | `nu`  | Show absolute line numbers              | off     |
 | `relativenumber`      | `rnu` | Show relative line numbers              | off     |
+| `flash`               | —     | Flash-style f/F/t/T labels              | on      |
+| `flashmultiline`      | `fml` | Flash searches beyond current line      | on      |
+| `flashjump`           | —     | Flash bidirectional jump mode (s)       | off     |
+| `flashcleverf`        | —     | Clever-f repetition                     | off     |
 | `easymotion`          | `em`  | EasyMotion/Hop navigation               | on      |
 | `easymotiondimming`   | `emd` | Dim non-target text during EasyMotion   | on      |
 | `hintmode`            | `hm`  | Vimium-style hint labels                | on      |
@@ -170,7 +174,8 @@ Use `set <option>=<value>`.
 | ----------------------- | -------- | ------------------------------------------------------ | -------------------------------------------------------------------------- |
 | `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)        | (off)                                                                      |
 | `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                   | (off)                                                                      |
-| `easymotionlabels`      | `eml`    | Characters for EasyMotion labels                       | `asdghklqwertyuiopzxcvbnmfj`                                               |
+| `flashjumpkey`          | —        | Key to trigger flash jump mode                         | `s`                                                                        |
+| `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels             | `asdghklqwertyuiopzxcvbnmfj`                                               |
 | `hintlabels`            | `hl`     | Characters for hint mode labels                        | `asdfghjkl`                                                                |
 | `guicursor`             | —        | Per-mode cursor shapes                                 | (block/bar/block/underline/underline)                                      |
 | `tablewidget`           | —        | Table widget mode (`off`/`cursor`/`always`/`embedded`) | `cursor`                                                                   |

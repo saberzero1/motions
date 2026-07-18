@@ -8,6 +8,7 @@ import {
 } from './settings';
 
 import { registerEasyMotion } from './easymotion/register';
+import { registerFlash } from './flash/register';
 import {
     registerNavigationMotions,
     registerTableMotions,
@@ -1556,6 +1557,9 @@ export default class VimMotionsPlugin extends Plugin {
                 },
             });
         }
+        if (!Platform.isMobile && vim) {
+            registerFlash(this.registration, this.app, this.settings, vim);
+        }
         this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && !Platform.isMobile) {
             registerEasyMotion(
@@ -1993,6 +1997,9 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.registerHarpoonExCommands();
         this.registerImExCommands();
+        if (!Platform.isMobile) {
+            registerFlash(this.registration, this.app, this.settings, vim);
+        }
         this.registration.beginLeaderScope();
         if (
             this.settings.enableEasyMotion &&

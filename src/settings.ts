@@ -135,6 +135,11 @@ export interface VimMotionsSettings {
     modePrompts: ModePrompts;
     enableEasyMotion: boolean;
     easyMotionDimming: boolean;
+    enableFlash: boolean;
+    flashMultiLine: boolean;
+    flashJumpEnabled: boolean;
+    flashJumpKey: string;
+    flashCleverF: boolean;
     enableHardWrap: boolean;
     enableReplaceWithRegister: boolean;
     listContinuationOnOpen: boolean;
@@ -237,6 +242,11 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     modePrompts: { ...DEFAULT_MODE_PROMPTS },
     enableEasyMotion: true,
     easyMotionDimming: true,
+    enableFlash: true,
+    flashMultiLine: true,
+    flashJumpEnabled: false,
+    flashJumpKey: 's',
+    flashCleverF: false,
     enableHardWrap: true,
     enableReplaceWithRegister: true,
     listContinuationOnOpen: true,
@@ -371,6 +381,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'yankHighlightMode',
         'enableWorkspaceNav',
         'enableEasyMotion',
+        'enableFlash',
+        'flashMultiLine',
+        'flashJumpEnabled',
+        'flashJumpKey',
+        'flashCleverF',
         'enableHintMode',
         'enableHarpoon',
         'enableVimTextareas',
@@ -987,10 +1002,71 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         },
                     },
                     {
+                        name: 'Flash-style f/F/t/T',
+                        desc: this.describeOverride(
+                            'enableFlash',
+                            'Show labels on all visible matches when pressing f/F/t/T. Single match auto-jumps.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableFlash',
+                            disabled: () => this.isOverridden('enableFlash'),
+                        },
+                    },
+                    {
+                        name: 'Flash multi-line',
+                        desc: this.describeOverride(
+                            'flashMultiLine',
+                            'Search beyond the current line for f/F/t/T matches (flash.nvim behavior).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'flashMultiLine',
+                            disabled: () => this.isOverridden('flashMultiLine'),
+                        },
+                    },
+                    {
+                        name: 'Flash jump mode (s)',
+                        desc: this.describeOverride(
+                            'flashJumpEnabled',
+                            'Enable bidirectional character jump with a configurable key (default: s). Normal mode only.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'flashJumpEnabled',
+                            disabled: () =>
+                                this.isOverridden('flashJumpEnabled'),
+                        },
+                    },
+                    {
+                        name: 'Flash jump key',
+                        desc: this.describeOverride(
+                            'flashJumpKey',
+                            'Key to trigger flash jump mode (default: s). Overrides the default binding for this key.',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'flashJumpKey',
+                            disabled: () => this.isOverridden('flashJumpKey'),
+                        },
+                    },
+                    {
+                        name: 'Flash clever-f',
+                        desc: this.describeOverride(
+                            'flashCleverF',
+                            'Pressing f/F again after a flash jump repeats the search (like clever-f.vim).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'flashCleverF',
+                            disabled: () => this.isOverridden('flashCleverF'),
+                        },
+                    },
+                    {
                         name: 'EasyMotion dimming',
                         desc: this.describeOverride(
                             'easyMotionDimming',
-                            'Dim non-target text when EasyMotion is active.',
+                            'Dim non-target text when EasyMotion or flash is active.',
                         ),
                         control: {
                             type: 'toggle' as const,

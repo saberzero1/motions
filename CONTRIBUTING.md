@@ -60,7 +60,8 @@ src/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations
     bundled-vim.ts         # Bundled vim fork registration as CM6 extension
-    mode-tracker.ts        # Status bar mode indicator + macro recording
+    mode-tracker.ts        # Status bar mode indicator + macro recording + search match counter
+    search-counter.ts      # Search match counter (hlslens-style [3/15])
     scrolloff.ts           # CSS scroll-padding based scrolloff
     options.ts             # Vim option registration (clipboard, tabstop, etc.)
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
@@ -127,6 +128,12 @@ src/
     labels.ts              # Label generation and assignment
     keypress.ts            # Keypress handling during label selection
     types.ts               # EasyMotion type definitions
+  flash/
+    register.ts            # Flash registration (motion overrides, jump mode binding)
+    char-mode.ts           # Enhanced f/F/t/T with label overlays
+    jump-mode.ts           # Standalone bidirectional jump (s key)
+    labeler.ts             # Distance-based label assignment with reuse and conflict skip
+    state.ts               # Flash active flag, clever-f state tracking
   fold/
     commands.ts            # Fold commands (zf, zd, zE, zm, zr, etc.)
     provider.ts            # Fold providers (frontmatter, callouts, custom)

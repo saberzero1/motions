@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Flash motions — enhanced f/F/t/T with labels** — when pressing `f{char}` and 2+ matches exist in the viewport, jump labels appear on all matches. Single match auto-jumps (stock Vim behavior preserved). Works with operators (`df{char}{label}`, `cf`, `yf`), visual mode (`vf{char}{label}`), and `;`/`,` repeat. Multi-line search enabled by default (configurable via `set flashmultiline`). Inspired by [flash.nvim](https://github.com/folke/flash.nvim).
+    - Plugin: `src/flash/char-mode.ts` (core motion override), `src/flash/register.ts` (registration with original capture), `src/flash/labeler.ts` (distance-based label assignment with reuse + conflict skip), `src/flash/state.ts` (active flag, clever-f state)
+- **Flash jump mode (s)** — bidirectional character jump bound to a configurable key (default: `s`). Press `s{char}` to search both directions with labels. Disabled by default (`set flashjump` to enable). Normal mode only — visual `s` retains `c` mapping.
+    - Plugin: `src/flash/jump-mode.ts`
+- **Flash clever-f** — when enabled (`set flashcleverf`), pressing `f{same-char}` after a flash jump falls through to stock `f` behavior (acts as `;`). Uses a 5-second timeout window.
+    - Plugin: `src/flash/char-mode.ts` (clever-f check), `src/flash/state.ts` (last search tracking)
+- **Search match counter** — hlslens-style `[3/15]` indicator in the status bar showing the current match index and total count after `/` search and `n`/`N` navigation. Hides when cursor moves off a match or mode changes from normal. General feature, not flash-specific.
+    - Plugin: `src/vim/search-counter.ts` (new), `src/vim/mode-tracker.ts` (status bar integration)
+- **codemirror-vim fork API additions** — `getMotion(name)` retrieves a motion function by name (for capturing originals before override). `recordLastCharacterSearch(increment, args)` sets the `;`/`,` repeat state from plugin code.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js`
+
+### Changed
+
+- **Flash labeler** — `FlashLabeler` class with distance-based assignment (closest targets get home-row labels), label reuse across narrowing (labels stay stable as match set shrinks), and conflict skipping via `skipChars` set.
+- **EasyMotion dimming description** — updated to "Dim non-target text when EasyMotion or flash is active" since both features share the dimming overlay.
+
+### Tests
+
+- 6 spike tests in `test/specs/spikes/spike-flash-override.e2e.ts`: defineMotion override, async motion, operator-pending, getMotion, recordLastCharacterSearch
+- 17 baseline tests in `test/specs/flash-baseline.e2e.ts`: stock f/F/t/T with flash disabled (regression guards)
+- 9 e2e tests in `test/specs/flash-char-mode.e2e.ts`: autojump, multi-match labels, escape cancel, settings toggle, multi_line, operator-pending, semicolon repeat
+- 7 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: jump mode setting, autojump, labels, no-match, escape, default key, clever-f
+- 3 e2e tests in `test/specs/search-counter.e2e.ts`: count after search, update after n, hide when cleared
+- operator-combos.e2e.ts updated to disable flash (stock f/F/t/T behavior preserved)
+
+### Documentation
+
+- `docs/features/flash.md`: New feature page — usage, multi-line, operator-pending, visual, jump mode, clever-f, configuration
+- `docs/features/index.md`: Added flash motions link
+- `docs/features/easymotion.md`: Added cross-reference to flash
+- `docs/configuration/settings.md`: Added flash, flashmultiline, flashjump, flashjumpkey, flashcleverf settings
+- `docs/configuration/vimrc.md`: Added flash boolean and string options
+- `docs/configuration/lua-config.md`: Added flash vim.opt entries
+- `docs/reference/keybindings.md`: Added flash motions and jump mode sections
+- `KNOWN_LIMITATIONS.md`: Added flash motions section (Phase 1 + Phase 2 limitations)
+- `README.md`: Added flash motions to features list
+- `CONTRIBUTING.md`: Added flash/ module and search-counter.ts to codebase structure
+- `AGENTS.md`: Added flash motions to page ownership table
+- `CHANGELOG.md`: This entry
+
 ## [0.66.0] - 2026-07-18
 
 ### Added

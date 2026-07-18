@@ -187,6 +187,29 @@ grap       " replace a paragraph
 > bindings (`<leader>rn`, `<leader>rb`, `<leader>ra`) and ex commands
 > (`:renamenote`, `:showbacklinks`, `:contextactions`).
 
+## Flash motions
+
+Enhanced character search — when multiple matches are visible, labels appear for direct jumping.
+
+| Keybinding | Description                                                    |
+| ---------- | -------------------------------------------------------------- |
+| `f{char}`  | Find `{char}` forward — autojump on single match, labels on 2+ |
+| `F{char}`  | Find `{char}` backward                                         |
+| `t{char}`  | Till before `{char}` forward                                   |
+| `T{char}`  | Till after `{char}` backward                                   |
+
+Flash works with operators (`df`, `cf`, `yf`) and visual mode (`vf`). Repeat with `;` and `,`.
+
+### Flash jump mode
+
+Bidirectional character search (disabled by default, enable with `set flashjump`).
+
+| Keybinding | Description                                             |
+| ---------- | ------------------------------------------------------- |
+| `s{char}`  | Search `{char}` bidirectionally — labels on all matches |
+
+The trigger key is configurable via `set flashjumpkey=<key>`. Normal mode only.
+
 ## EasyMotion find motions
 
 Jump to specific characters forward, backward, or in both directions.

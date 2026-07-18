@@ -76,6 +76,12 @@
     font-size: 12px;
 }
 
+.vim-motions-search-count {
+    font-family: var(--font-monospace);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
 .vim-motions-statusbar-end {
     margin-right: auto;
 }

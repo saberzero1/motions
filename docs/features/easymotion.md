@@ -69,4 +69,7 @@ To remap EasyMotion triggers in your `.obsidian.vimrc`, use the internal command
 
 ---
 
+> [!tip]
+> Looking for enhanced `f`/`F`/`t`/`T`? See [[flash|Flash motions]] — labels appear on all visible matches when you press `f{char}`, with automatic single-match jumping.
+
 See [[known-limitations#EasyMotion]] for detailed technical limitations.

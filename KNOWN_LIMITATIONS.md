@@ -72,6 +72,25 @@ Cell editors in embedded table widget mode (`set tablewidget=embedded`) now supp
 - **Visual mode highlighting in cell editors**: Entering visual mode (`v`) in a cell editor does not show selection highlighting. The selection collapses when navigating with motions. This is caused by the cell editor's CM6 instance not receiving `.cm-focused`, which triggers the fork's `hideNativeSelection` theme rule (`.cm-vimMode:not(.cm-vimVisual) .cm-line ::selection { background-color: transparent }`) to suppress native selection rendering, while the fork's `linewiseVisualHighlight` plugin relies on the editor being focused to draw custom selection decorations. ([#19](https://github.com/saberzero1/motions/issues/19))
 - ~~**Wikilink and formatting loss after cell edit**~~: Fixed. Two issues: (1) the cell editor read the cell's initial value from `wrapper.textContent` (the rendered DOM), which strips markdown syntax — `[[note-a]]` became `note-a`. Now reads raw markdown from the document source via `getCellDocumentRange()`. (2) On cell editor close, the cell content was restored as plain `textContent` without re-rendering. Now uses `MarkdownRenderer.render()` to restore proper inline formatting (wikilinks, bold, italic, code) after the editor is destroyed. ([#19](https://github.com/saberzero1/motions/issues/19))
 
+## Flash motions
+
+**Status**: Working (Phase 1 + Phase 2).
+
+Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches when 2+ matches exist. Single-match cases autojump (stock Vim behavior preserved).
+
+**Known limitations**:
+
+- **No macro recording**: Flash label selection is not recorded in macros. Macros capture the search character (`f{char}`) but not the label keypress. This is the same limitation as EasyMotion.
+- **No dot-repeat for label selection**: After `df{char}{label}`, pressing `.` replays the delete-to-char operator but does not replay the label selection. The operator applies to the same relative offset.
+- **No remote operations**: flash.nvim's remote mode (`yr{target}` to yank at a distance without moving cursor) is not implemented. This requires vim state manipulation not available in the codemirror-vim fork.
+- **No treesitter mode**: flash.nvim's treesitter node selection is not feasible — CM6 uses Lezer, not treesitter, and does not expose node selection APIs.
+- **Count prefix ignored with labels**: `3f{char}` with 2+ matches shows labels (count ignored). With a single match or flash disabled, count works normally.
+- **Multi-line `t` column 0**: When `flashmultiline` is enabled and `t{char}` finds a match at column 0 of a line, that target is excluded (the "before" position would wrap to the previous line).
+- **Programmatic Escape**: Flash labels can only be dismissed by DOM keyboard events (real keypresses). Programmatic `Vim.handleKey(adapter, '<Esc>')` does not reach the label handler. This mirrors the same limitation in EasyMotion.
+- **Jump mode key binding is registration-time**: Changing `flashjumpkey` at runtime requires a plugin reload or settings change that triggers `reloadFeatures()`. The key is bound via `mapCommand` during registration.
+- **Jump mode overrides `s`**: When enabled, `s` in normal mode triggers flash jump instead of substitute (`cl`). Visual mode `s` retains its default `c` mapping.
+- **clever-f 5s timeout**: The clever-f repeat detection uses a 5-second window. After 5 seconds, `f{same-char}` is treated as a new flash search.
+
 ## EasyMotion operator-pending mode
 
 **Status**: Working via fork's async motion support.

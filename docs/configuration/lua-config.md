@@ -175,6 +175,10 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `workspacenav`            | boolean | `true`                         |                                               | `vim.opt.workspacenav = true`            |
 | `number`                  | boolean | `false`                        |                                               | `vim.opt.number = true`                  |
 | `relativenumber`          | boolean | `false`                        |                                               | `vim.opt.relativenumber = true`          |
+| `flash`                   | boolean | `true`                         |                                               | `vim.opt.flash = true`                   |
+| `flashmultiline`          | boolean | `true`                         |                                               | `vim.opt.flashmultiline = true`          |
+| `flashjump`               | boolean | `false`                        |                                               | `vim.opt.flashjump = true`               |
+| `flashcleverf`            | boolean | `false`                        |                                               | `vim.opt.flashcleverf = true`            |
 | `easymotion`              | boolean | `true`                         |                                               | `vim.opt.easymotion = true`              |
 | `easymotiondimming`       | boolean | `true`                         |                                               | `vim.opt.easymotiondimming = true`       |
 | `hintmode`                | boolean | `true`                         |                                               | `vim.opt.hintmode = true`                |
@@ -195,6 +199,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `numberwidth`             | number  | `2`                            | 1–20                                          | `vim.opt.numberwidth = 2`                |
 | `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"`            | `vim.opt.clipboard = "unnamedplus"`      |
 | `insertmodeescape`        | string  | `""`                           |                                               | `vim.opt.insertmodeescape = "jk"`        |
+| `flashjumpkey`            | string  | `"s"`                          |                                               | `vim.opt.flashjumpkey = "s"`             |
 | `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                               | `vim.opt.easymotionlabels = "asdf"`      |
 | `hintlabels`              | string  | `"asdfghjkl"`                  |                                               | `vim.opt.hintlabels = "asdf"`            |
 | `tablewidget`             | string  | `"cursor"`                     | `"off"`, `"cursor"`, `"always"`, `"embedded"` | `vim.opt.tablewidget = "cursor"`         |

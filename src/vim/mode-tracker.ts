@@ -4,6 +4,7 @@ import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import type { ModePrompts } from '../settings';
 import { getCmAdapter, getVimApi } from './vim-api';
 import { getActiveCellEditor, hasActiveCellEditor } from './table-cell-editor';
+import { countSearchMatches, formatSearchCount } from './search-counter';
 
 const DEFAULT_MODE_LABELS: Record<string, string> = {
     normal: 'NORMAL',
@@ -43,6 +44,7 @@ export interface VimModeTrackerOptions {
 export class VimModeTracker {
     private statusBarEl: HTMLElement;
     private chordBarEl: HTMLElement | null = null;
+    private searchCountEl: HTMLElement | null = null;
     private modeLabels: Record<string, string>;
     private currentMode = 'normal';
     private recording: string | null = null;
@@ -66,7 +68,11 @@ export class VimModeTracker {
             this.chordBarEl = plugin.addStatusBarItem();
             this.chordBarEl.addClass('vim-motions-chord');
         }
-        const lastEl = this.chordBarEl ?? this.statusBarEl;
+        this.searchCountEl = plugin.addStatusBarItem();
+        this.searchCountEl.addClass('vim-motions-search-count');
+        this.searchCountEl.hide();
+        const lastEl =
+            this.searchCountEl ?? this.chordBarEl ?? this.statusBarEl;
         lastEl.addClass('vim-motions-statusbar-end');
         const statusBar = this.statusBarEl.parentElement;
         if (statusBar) {
@@ -85,6 +91,9 @@ export class VimModeTracker {
         const modeHandler = (mode: VimModeChange) => {
             if (this.cellEditorActive || hasActiveCellEditor()) return;
             this.currentMode = this.resolveMode(mode.mode, mode.subMode);
+            if (mode.mode !== 'normal') {
+                this.hideSearchCount();
+            }
             this.syncRecordingState();
             this.updateDisplay();
             this.syncChord();
@@ -237,12 +246,38 @@ export class VimModeTracker {
     }
 
     private syncChord(): void {
-        if (!this.chordBarEl) return;
+        if (this.chordBarEl) {
+            const adapter = this.lastAdapter;
+            if (adapter) {
+                const vim = adapter.state.vim;
+                const chord =
+                    (vim as unknown as { status?: string })?.status ?? '';
+                this.chordBarEl.setText(chord);
+            }
+        }
+        this.syncSearchCount();
+    }
+
+    private syncSearchCount(): void {
+        if (!this.searchCountEl) return;
         const adapter = this.lastAdapter;
-        if (!adapter) return;
-        const vim = adapter.state.vim;
-        const chord = (vim as unknown as { status?: string })?.status ?? '';
-        this.chordBarEl.setText(chord);
+        if (!adapter) {
+            this.hideSearchCount();
+            return;
+        }
+        const count = countSearchMatches(adapter);
+        if (count && count.total > 0 && count.cursorOnMatch) {
+            this.searchCountEl.setText(formatSearchCount(count));
+            this.searchCountEl.show();
+        } else {
+            this.hideSearchCount();
+        }
+    }
+
+    private hideSearchCount(): void {
+        if (!this.searchCountEl) return;
+        this.searchCountEl.setText('');
+        this.searchCountEl.hide();
     }
 
     setGlobalChord(text: string): void {
@@ -286,5 +321,6 @@ export class VimModeTracker {
         }
         this.statusBarEl.remove();
         this.chordBarEl?.remove();
+        this.searchCountEl?.remove();
     }
 }

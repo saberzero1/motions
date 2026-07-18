@@ -332,6 +332,39 @@ export function registerVimOptions(
         notify('foldcolumn', !!value, `set ${value ? '' : 'no'}foldcolumn`);
     });
 
+    vim.defineOption('flash', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        notify('enableFlash', !!value, `set ${value ? '' : 'no'}flash`);
+    });
+    vim.defineOption('flashmultiline', true, 'boolean', ['fml'], (value) => {
+        if (value === undefined) return;
+        notify(
+            'flashMultiLine',
+            !!value,
+            `set ${value ? '' : 'no'}flashmultiline`,
+        );
+    });
+
+    vim.defineOption('flashjump', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        notify(
+            'flashJumpEnabled',
+            !!value,
+            `set ${value ? '' : 'no'}flashjump`,
+        );
+    });
+    vim.defineOption('flashjumpkey', 's', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str) {
+            notify('flashJumpKey', str, `set flashjumpkey=${str}`);
+        }
+    });
+    vim.defineOption('flashcleverf', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        notify('flashCleverF', !!value, `set ${value ? '' : 'no'}flashcleverf`);
+    });
+
     vim.defineOption(
         'easymotionlabels',
         'asdghklqwertyuiopzxcvbnmfj',

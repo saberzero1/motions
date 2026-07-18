@@ -284,6 +284,7 @@ When making a change, update these docs pages:
 | Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                                            |
 | Jump list             | `features/quality-of-life.md`       | Jump navigation (jumplist, jumplistsize)                                        |
 | Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                 |
+| Flash motions         | `features/flash.md`                 | Jump navigation (flash, flashmultiline, flashjump, flashjumpkey, flashcleverf)  |
 | EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                    |
 | Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                              |
 | Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                                     |
