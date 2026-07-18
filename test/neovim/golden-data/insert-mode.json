@@ -1,7 +1,7 @@
 {
     "suite": "insert-mode",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.271Z",
+    "recorded_at": "2026-07-18T16:12:28.569Z",
     "cases": [
         {
             "name": "Escape from insert should allow x to delete",

@@ -1,7 +1,7 @@
 {
     "suite": "bracket-commands",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.660Z",
+    "recorded_at": "2026-07-18T16:12:28.565Z",
     "cases": [
         {
             "name": "[( should jump to previous unmatched (",

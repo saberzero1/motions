@@ -1,7 +1,7 @@
 {
     "suite": "normal-scroll",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.592Z",
+    "recorded_at": "2026-07-18T16:12:28.570Z",
     "cases": [
         {
             "name": "Ctrl-A should increment number",

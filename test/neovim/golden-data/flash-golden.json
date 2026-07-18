@@ -1,362 +1,229 @@
 {
-    "suite": "text-objects-builtin",
+    "suite": "flash-golden",
     "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-18T16:12:28.505Z",
+    "recorded_at": "2026-07-18T16:14:46.353Z",
     "cases": [
         {
-            "name": "diw should delete inner word",
-            "initial": {
-                "content": "hello world foo",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "diw",
-            "result": {
-                "content": "hello  foo",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "daw should delete a word with space",
-            "initial": {
-                "content": "hello world foo",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                }
-            },
-            "keys": "daw",
-            "result": {
-                "content": "hello foo",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "diW should delete inner WORD",
-            "initial": {
-                "content": "hello foo-bar baz",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "diW",
-            "result": {
-                "content": "hello  baz",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "daW should delete a WORD with space",
-            "initial": {
-                "content": "hello foo-bar baz",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                }
-            },
-            "keys": "daW",
-            "result": {
-                "content": "hello baz",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di( should delete inside parens",
-            "initial": {
-                "content": "call(arg1, arg2)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "di(",
-            "result": {
-                "content": "call()",
-                "cursor": {
-                    "line": 0,
-                    "ch": 5
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "da( should delete including parens",
-            "initial": {
-                "content": "call(arg1, arg2) end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "da(",
-            "result": {
-                "content": "call end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 4
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di\" should delete inside quotes",
-            "initial": {
-                "content": "say \"hello world\" end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "di\"",
-            "result": {
-                "content": "say \"\" end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 5
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "da\" should delete including quotes",
-            "initial": {
-                "content": "say \"hello world\" end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "da\"",
-            "result": {
-                "content": "say end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 4
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di' should delete inside single quotes",
-            "initial": {
-                "content": "say 'hello' end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                }
-            },
-            "keys": "di'",
-            "result": {
-                "content": "say '' end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 5
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di{ should delete inside braces",
-            "initial": {
-                "content": "obj{ key: val }",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "di{",
-            "result": {
-                "content": "obj{}",
-                "cursor": {
-                    "line": 0,
-                    "ch": 4
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "da{ should delete including braces",
-            "initial": {
-                "content": "obj{ key: val } end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                }
-            },
-            "keys": "da{",
-            "result": {
-                "content": "obj end",
-                "cursor": {
-                    "line": 0,
-                    "ch": 3
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di[ should delete inside brackets",
-            "initial": {
-                "content": "arr[1, 2, 3]",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                }
-            },
-            "keys": "di[",
-            "result": {
-                "content": "arr[]",
-                "cursor": {
-                    "line": 0,
-                    "ch": 4
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "diw on whitespace",
-            "initial": {
-                "content": "hello   world",
-                "cursor": {
-                    "line": 0,
-                    "ch": 6
-                }
-            },
-            "keys": "diw",
-            "result": {
-                "content": "helloworld",
-                "cursor": {
-                    "line": 0,
-                    "ch": 5
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "daw at end of line",
+            "name": "f should find char forward",
             "initial": {
                 "content": "hello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 6
+                    "ch": 0
                 }
             },
-            "keys": "daw",
+            "keys": "fw",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "F should find char backward",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "Fo",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "t should move to before char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "tw",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "T should move to after char backward",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "To",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "2f should find second occurrence",
+            "initial": {
+                "content": "abcabcabc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2fa",
+            "result": {
+                "content": "abcabcabc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "f not found should not move",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "fz",
             "result": {
                 "content": "hello",
                 "cursor": {
                     "line": 0,
-                    "ch": 4
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di( with nested parens",
-            "initial": {
-                "content": "(outer (inner) more)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 10
-                }
-            },
-            "keys": "di(",
-            "result": {
-                "content": "(outer () more)",
-                "cursor": {
-                    "line": 0,
-                    "ch": 8
-                },
-                "mode": "normal"
-            }
-        },
-        {
-            "name": "di( across lines",
-            "initial": {
-                "content": "(\nhello\n)",
-                "cursor": {
-                    "line": 1,
-                    "ch": 0
-                }
-            },
-            "keys": "di(",
-            "result": {
-                "content": "(\n)",
-                "cursor": {
-                    "line": 1,
                     "ch": 0
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "di{ with nested braces",
+            "name": "f should not cross lines",
             "initial": {
-                "content": "{ outer { inner } more }",
+                "content": "hello\nworld",
                 "cursor": {
                     "line": 0,
-                    "ch": 12
+                    "ch": 0
                 }
             },
-            "keys": "di{",
+            "keys": "fw",
             "result": {
-                "content": "{ outer {} more }",
+                "content": "hello\nworld",
                 "cursor": {
                     "line": 0,
-                    "ch": 9
+                    "ch": 0
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "di[ with nested brackets",
+            "name": "df should delete through char",
             "initial": {
-                "content": "[outer [inner] more]",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 10
+                    "ch": 0
                 }
             },
-            "keys": "di[",
+            "keys": "dfo",
             "result": {
-                "content": "[outer [] more]",
+                "content": " world",
                 "cursor": {
                     "line": 0,
-                    "ch": 8
+                    "ch": 0
                 },
                 "mode": "normal"
             }
         },
         {
-            "name": "diW with mixed punctuation",
+            "name": "dt should delete up to char",
             "initial": {
-                "content": "hello foo.bar,baz end",
+                "content": "hello world",
                 "cursor": {
                     "line": 0,
-                    "ch": 10
+                    "ch": 0
                 }
             },
-            "keys": "diW",
+            "keys": "dto",
             "result": {
-                "content": "hello  end",
+                "content": "o world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cf should change through char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "cfoX\u001b",
+            "result": {
+                "content": "X world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yf then p should yank through char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yfop",
+            "result": {
+                "content": "hhelloello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "; should repeat f forward",
+            "initial": {
+                "content": "abcabcabc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "fa;",
+            "result": {
+                "content": "abcabcabc",
                 "cursor": {
                     "line": 0,
                     "ch": 6
@@ -365,20 +232,115 @@
             }
         },
         {
-            "name": "d2aw should delete 2 words",
+            "name": ", should repeat f backward",
             "initial": {
-                "content": "one two three four",
+                "content": "abcabcabc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "fc,",
+            "result": {
+                "content": "abcabcabc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "; should repeat t forward",
+            "initial": {
+                "content": "xaxbxaxbx",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "tb;",
+            "result": {
+                "content": "xaxbxaxbx",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "3f should find third occurrence",
+            "initial": {
+                "content": "axaxaxax",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "3fa",
+            "result": {
+                "content": "axaxaxax",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dF should delete backward through char",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                }
+            },
+            "keys": "dFo",
+            "result": {
+                "content": "hello wd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "f at end of line should not move",
+            "initial": {
+                "content": "abcde",
                 "cursor": {
                     "line": 0,
                     "ch": 4
                 }
             },
-            "keys": "d2aw",
+            "keys": "fa",
             "result": {
-                "content": "one four",
+                "content": "abcde",
                 "cursor": {
                     "line": 0,
                     "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "F at start of line should not move",
+            "initial": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Fz",
+            "result": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
                 },
                 "mode": "normal"
             }
