@@ -2932,6 +2932,154 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
+            .setName('Flash-style f/F/t/T')
+            .setDesc(
+                describeOverride(
+                    'enableFlash',
+                    'Show labels on all visible matches when pressing f/F/t/T. Single match auto-jumps.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableFlash)
+                    .setDisabled(isOverridden('enableFlash'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableFlash = value;
+                        this.plugin.vimrcOverrides?.delete('enableFlash');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Flash multi-line')
+            .setDesc(
+                describeOverride(
+                    'flashMultiLine',
+                    'Search beyond the current line for f/F/t/T matches (flash.nvim behavior).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.flashMultiLine)
+                    .setDisabled(isOverridden('flashMultiLine'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.flashMultiLine = value;
+                        this.plugin.vimrcOverrides?.delete('flashMultiLine');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Flash jump mode (s)')
+            .setDesc(
+                describeOverride(
+                    'flashJumpEnabled',
+                    'Enable bidirectional character jump with a configurable key (default: s). Normal mode only.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.flashJumpEnabled)
+                    .setDisabled(isOverridden('flashJumpEnabled'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.flashJumpEnabled = value;
+                        this.plugin.vimrcOverrides?.delete('flashJumpEnabled');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Flash jump key')
+            .setDesc(
+                describeOverride(
+                    'flashJumpKey',
+                    'Key to trigger flash jump mode (default: s). Overrides the default binding for this key.',
+                ),
+            )
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.settings.flashJumpKey)
+                    .setDisabled(isOverridden('flashJumpKey'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.flashJumpKey = value;
+                        this.plugin.vimrcOverrides?.delete('flashJumpKey');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Flash clever-f')
+            .setDesc(
+                describeOverride(
+                    'flashCleverF',
+                    'Pressing f/F again after a flash jump repeats the search (like clever-f.vim).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.flashCleverF)
+                    .setDisabled(isOverridden('flashCleverF'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.flashCleverF = value;
+                        this.plugin.vimrcOverrides?.delete('flashCleverF');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Flash min pattern length')
+            .setDesc(
+                describeOverride(
+                    'flashMinPatternLength',
+                    'Minimum characters before labels appear in jump mode (1 = immediate).',
+                ),
+            )
+            .addText((text) => {
+                text.setValue(
+                    String(this.plugin.settings.flashMinPatternLength),
+                );
+                text.inputEl.type = 'number';
+                text.inputEl.min = '1';
+                text.inputEl.max = '10';
+                text.setDisabled(isOverridden('flashMinPatternLength'));
+                text.onChange(async (value) => {
+                    const n = Number(value);
+                    const clamped = Number.isNaN(n)
+                        ? 1
+                        : Math.max(1, Math.min(10, Math.floor(n)));
+                    this.plugin.settings.flashMinPatternLength = clamped;
+                    this.plugin.vimrcOverrides?.delete('flashMinPatternLength');
+                    await this.plugin.saveSettings();
+                    this.plugin.reloadFeatures();
+                });
+            });
+
+        new Setting(containerEl)
+            .setName('Flash search labels')
+            .setDesc(
+                describeOverride(
+                    'flashSearch',
+                    'Show labels on search matches after committing a / or ? search.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.flashSearch)
+                    .setDisabled(isOverridden('flashSearch'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.flashSearch = value;
+                        this.plugin.vimrcOverrides?.delete('flashSearch');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
             .setName('Harpoon file pinning')
             .setDesc(
                 describeOverride(

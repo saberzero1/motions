@@ -75,6 +75,7 @@ export default defineConfig(
                     brands: [
                         'EasyMotion',
                         'Dataview',
+                        'f/F/t/T',
                         'Live Preview',
                         'Markdown',
                         'o/O',
