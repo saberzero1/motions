@@ -83,6 +83,14 @@ export function createSandboxedState(): lua_State {
         INSTRUCTION_LIMIT,
     );
 
+    lua.lua_atnativeerror(L, (errState: lua_State) => {
+        const jsError = lua.lua_touserdata(errState, 1);
+        const message =
+            jsError instanceof Error ? jsError.message : String(jsError);
+        lua.lua_pushstring(errState, to_luastring(message));
+        return 1;
+    });
+
     return L;
 }
 

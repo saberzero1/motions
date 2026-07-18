@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`vim.regex()` — ECMAScript regular expressions in Lua** — `vim.regex(pattern, flags?)` creates a regex object exposing `match_str`, `match_line`, `match_pos`, `replace`, and `test` methods. Uses JavaScript's `RegExp` engine (not Vim regex syntax). Returns 0-based byte offsets matching Neovim's `vim.regex()` convention. Invalid patterns raise a Lua error catchable with `pcall`.
     - Plugin: `src/lua/regex.ts` (new), `src/lua/api.ts` (registration via `injectRegex`)
+- **Fengari fork: `__gc` metamethods via FinalizationRegistry** — `__gc` metamethods on userdata are now invoked when the userdata becomes unreachable from JavaScript. Registration happens at `lua_setmetatable` time (only when the metatable contains `__gc`). Finalizers are drained at three points: outermost `luaD_pcall` return, `collectgarbage("collect")`, and `lua_close`. Errors in `__gc` are silently swallowed (PUC-Rio semantics). Finalization order is unspecified. Tables with `__gc` are not finalized (userdata only). Environments without `FinalizationRegistry` gracefully degrade (no registration, no errors).
+    - Fork: `~/Repos/fengari/src/lstate.js` (finalizer infrastructure on `global_State`, `drainFinalizers`, `lua_close` drain + unregister), `~/Repos/fengari/src/lapi.js` (`lua_setmetatable` split `LUA_TUSERDATA`/`LUA_TTABLE`, FR registration), `~/Repos/fengari/src/ldo.js` (drain point in `luaD_pcall`), `~/Repos/fengari/src/lbaselib.js` (`collectgarbage("collect")` drain integration)
+- **Fengari fork: `collectgarbage()` no longer crashes** — all 8 `collectgarbage` modes now return safe values instead of throwing `luaL_error("lua_gc not implemented")`. `"count"` returns `0, 0` (no memory tracking). `"collect"` drains the `__gc` finalizer queue. `"isrunning"` returns `false`. All other modes return `0`. Previously, any Lua code calling `collectgarbage()` crashed the entire init sequence.
+    - Fork: `~/Repos/fengari/src/lbaselib.js`
+- **Native JS error propagation via `lua_atnativeerror`** — the plugin now installs a `lua_atnativeerror` handler that converts native JS errors (TypeError, RangeError, etc.) to extractable Lua strings. Previously, native JS errors thrown inside fengari C functions were pushed as `lightuserdata` and lost — `lua_tolstring` returned `null`, producing generic "Unknown Lua error" messages. The handler extracts `Error.message` (or `String(e)` for non-Error values) and pushes it as a Lua string. Covers all threads including coroutines (handler is on `global_State`).
+    - Plugin: `src/lua/engine.ts` (`lua_atnativeerror` handler in `createSandboxedState`), `src/lua/types.d.ts` (`lua_touserdata`, `lua_atnativeerror`, `lua_pushinteger` type declarations)
 
 ### Changed
 
@@ -39,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 11 tests in `~/Repos/fengari/test/collectgarbage.test.js`: all 8 modes return safe values, pcall succeeds, invalid mode errors
+- 7 tests in `~/Repos/fengari/test/atnativeerror.test.js`: TypeError/RangeError extraction, string/number throws, pure Lua error unaffected, handler covers coroutine threads, without-handler baseline
+- 10 tests in `~/Repos/fengari/test/gc-finalizers.test.js`: userdata `__gc` drain, no-overhead without `__gc`, tables not registered, error swallowing, metatable nil/change unregister, recursive drain guard, `lua_close` drain, post-close guard, no-FR graceful degradation
 - 8 tests in `~/Repos/fengari/test/53bit-integers.test.js`: sprintf replacement (format specifiers, flags, hex float), 53-bit integer constants/boundaries, wide arithmetic, string parsing/formatting, table keying, pack/unpack with SZINT=8, 32-bit bitwise verification, wide for-loop
 - 9 unit tests in `test/unit/lua/regex.test.ts`: constructor validation, `match_str` (offsets + nil), `match_line` alias, `match_pos` from offset, `replace` with captures + global flag, `test` boolean, flags (case-insensitive), invalid pattern error, missing pattern error
 - 8 spike tests in `~/Repos/fengari/test/coroutine-promise-bridge.test.js`: `lua_yieldk` continuations, `lua_isyieldable`, `pcall` across yield, instruction hooks, error propagation, sequential yields, Lua-level vs C-level coroutines
@@ -50,12 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: Added fengari fork improvements (sprintf, 53-bit integers), `vim.regex()`, coroutine bridge, async Lua APIs, require(), load(), evalLuaAsync entries
-- `KNOWN_LIMITATIONS.md`: 32-bit integer limitation → Implemented (widened to 53-bit), hrtime overflow claim corrected; JS RegExp item 5 → Implemented; sprintf item 7 → Implemented (zero deps); vault file reading → Implemented; coroutine bridge item 1 → Implemented (Phases 1–3); require() item 2 → Implemented; load() item 6 → Implemented; fengari improvement opportunities priority table updated
-- `README.md`: Updated Lua configuration feature bullet with `vim.regex()`, async file reading and multi-file configs
+- `CHANGELOG.md`: Added fengari fork improvements (sprintf, 53-bit integers, `__gc`, `collectgarbage`, `atnativeerror`), `vim.regex()`, coroutine bridge, async Lua APIs, require(), load(), evalLuaAsync entries
+- `KNOWN_LIMITATIONS.md`: 32-bit integer limitation → Implemented (widened to 53-bit), hrtime overflow claim corrected; JS RegExp item 5 → Implemented; sprintf item 7 → Implemented (zero deps); vault file reading → Implemented; coroutine bridge item 1 → Implemented (Phases 1–3); require() item 2 → Implemented; load() item 6 → Implemented; `__gc` item 4 → Implemented (userdata via FinalizationRegistry); error message quality item 8 → Implemented (atnativeerror handler); `collectgarbage` item 10 → Implemented (safe no-ops); fengari improvement opportunities priority table updated (9/10 implemented, only weak tables remaining)
+- `README.md`: Updated Lua configuration feature bullet with `vim.regex()`, async file reading, multi-file configs, and `__gc` userdata finalization
 - `CONTRIBUTING.md`: Added `regex.ts`, `coroutine-runner.ts` and `package.ts` to codebase structure
-- `AGENTS.md`: Updated fengari fork section — sprintf-js removed (zero deps), 53-bit integers, `vim.regex()`, async bridge, require(), and load() capabilities
-- `docs/configuration/lua-config.md`: Added `vim.regex()` API reference section, `vim.ob.fs.read`/`readlines` to fs table, `require()` and `load()` sections, updated unsupported APIs list
+- `AGENTS.md`: Updated fengari fork section — sprintf-js removed (zero deps), 53-bit integers, `vim.regex()`, async bridge, require(), load(), `__gc` via FinalizationRegistry, `collectgarbage` safe no-ops, native error propagation via `atnativeerror`
+- `docs/configuration/lua-config.md`: Added `vim.regex()` API reference section, `vim.ob.fs.read`/`readlines` to fs table, `require()` and `load()` sections, `collectgarbage` behavior, updated unsupported APIs list
+- `~/Repos/fengari/DIFFERENCES.md`: Updated behavioral differences table (`collectgarbage`, `__gc`), updated inherited limitations (collectgarbage and `__gc` addressed)
 - `~/Repos/fengari/DIFFERENCES.md`: Added "Integer widening" section, sprintf replacement documentation, updated behavioral differences table, updated files modified list
 
 ## [0.65.0] - 2026-07-17

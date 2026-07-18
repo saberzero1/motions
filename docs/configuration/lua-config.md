@@ -1233,6 +1233,19 @@ Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sand
 > [!info] Obsidian is not Neovim
 > The following Neovim APIs are not available: `vim.lsp`, `vim.treesitter`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 6 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`). The `io`, `os`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile`, `loadfile`, `rawget`, `rawset`, and `rawequal` are disabled.
 
+### `collectgarbage` behavior
+
+`collectgarbage()` is available with all standard modes. Since fengari has no garbage collector, behavior differs from PUC-Rio Lua:
+
+| Mode          | Behavior                                                   |
+| ------------- | ---------------------------------------------------------- |
+| `"collect"`   | Drains the `__gc` finalizer queue for unreachable userdata |
+| `"count"`     | Returns `0, 0` (no memory tracking)                        |
+| `"isrunning"` | Returns `false`                                            |
+| Other modes   | No-op, returns `0`                                         |
+
+`__gc` metamethods on userdata are supported via `FinalizationRegistry`. Finalizers fire when userdata becomes unreachable from JavaScript and the queue is drained (at `collectgarbage("collect")`, outermost pcall return, or plugin unload). Finalization timing is non-deterministic and ordering is unspecified. `__gc` on tables is not supported. Errors in `__gc` are silently swallowed.
+
 ## Keymapping mode reference
 
 | Mode string | Context          | Description                    |

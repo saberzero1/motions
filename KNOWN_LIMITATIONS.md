@@ -1441,19 +1441,16 @@ keymaps.setup()
 
 ### 4. `__gc` metamethods via FinalizationRegistry
 
-**Status**: Inherited from upstream. Not yet addressed.
+**Status**: Implemented (userdata only). Tables with `__gc` are not finalized.
 
-**Current state**: `__gc` metamethods are not called because fengari relies on JavaScript's garbage collector. Lua userdata objects are never finalized.
+`__gc` metamethods on userdata are invoked via JavaScript's [`FinalizationRegistry`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry). When userdata with a `__gc` metamethod becomes unreachable from JavaScript, the `FinalizationRegistry` callback queues the finalizer. The queue is drained at three points: (1) when the outermost `luaD_pcall` returns (VM idle), (2) when `collectgarbage("collect")` is called, (3) during `lua_close` (plugin unload). Finalizer errors are silently swallowed (PUC-Rio semantics). Finalization order is unspecified. `__gc` cannot yield.
 
-**Impact**:
+**Remaining limitations**:
 
-- `vim.uv.new_timer()` objects leak if users forget `timer:close()` — no automatic cleanup
-- Future Lua-side resource wrappers (file handles, DOM references) cannot implement RAII patterns
-- Idiomatic Lua code using `__gc` for cleanup silently skips the finalizer
-
-**Approach**: Use JavaScript's [`FinalizationRegistry`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry) to invoke `__gc` when userdata becomes unreachable. GC timing is non-deterministic (matching Lua's own semantics — `__gc` is never guaranteed to run at a specific time).
-
-**Blocks**: Timer cleanup, resource management, future RAII patterns.
+- Timer handles (`vim.uv.new_timer()`) are Lua tables, not userdata — `__gc` does not help with timer cleanup. Use `timer:close()` explicitly, or rely on `TimerManager.destroyAll()` at plugin unload.
+- `__gc` on tables is not supported (userdata only).
+- Finalization timing is non-deterministic — `FinalizationRegistry` callbacks fire between event loop turns, not during synchronous Lua execution.
+- Finalization order is unspecified — `FinalizationRegistry` provides no ordering guarantees.
 
 ### 5. JavaScript RegExp exposed to Lua
 
@@ -1484,25 +1481,13 @@ local result = re:replace("HelloWorld", "$1-")
 
 ### 7. `string.format` performance (sprintf-js replacement)
 
-**Status**: Not started. Low effort, low-medium impact.
-
-**Current state**: `string.format` is implemented via the `sprintf-js` npm package (the fork's sole runtime dependency). This package hasn't been updated since 2021 and parses format strings on every call.
-
-**Impact**: `string.format` is one of the most-used Lua stdlib functions. Every `vim.notify`, `vim.inspect` output, and formatted log message goes through it. In hot paths (autocmd handlers, snippet recomputation), repeated format string parsing adds unnecessary overhead.
-
-**Approach**: Replace sprintf-js with a purpose-built format function handling only Lua's format specifiers (`%d`, `%s`, `%f`, `%q`, `%x`, `%o`, `%e`, `%g`, `%c`, `%%`). Lua's format is a strict subset of C's `printf`. A custom implementation could cache parsed format strings for repeated calls.
+**Status**: Implemented. Custom `luaSprintf` replaces `sprintf-js`. The fork now has zero runtime dependencies.
 
 ### 8. Lua error message quality
 
-**Status**: Not started. Low effort, medium impact.
+**Status**: Implemented. Native JS errors are now extractable via `pcall`.
 
-**Current state**: When Lua code errors inside fengari, error messages sometimes include JavaScript stack traces mixed with Lua line information. This makes debugging `init.lua` configs harder for users.
-
-**Approach**:
-
-- Strip JS stack frames from error messages exposed to Lua `pcall`/`xpcall`
-- Ensure Lua source file name and line number are formatted consistently with PUC-Rio Lua (e.g., `init.lua:42: attempt to index a nil value`)
-- Improve `debug.traceback` output to produce cleaner Lua-only stack traces
+The plugin installs a `lua_atnativeerror` handler that converts native JS errors (TypeError, RangeError, etc.) to Lua strings containing the error `.message`. Previously, native JS errors thrown inside fengari C functions were pushed as `lightuserdata` and lost — `lua_tolstring` returned `null`, producing generic "Unknown Lua error" messages. The handler is installed plugin-side in `engine.ts` on the `global_State`, covering all threads including coroutines. `debug.traceback` already produces clean Lua-only stack traces (no changes needed).
 
 ### 9. Weak tables via WeakRef
 
@@ -1516,23 +1501,21 @@ local result = re:replace("HelloWorld", "$1-")
 
 ### 10. `collectgarbage("count")` diagnostic
 
-**Status**: Inherited from upstream. Low effort, low impact.
+**Status**: Implemented. All `collectgarbage` modes return safe values without error.
 
-**Current state**: `collectgarbage()` is a no-op. There is no way to query approximate memory usage from Lua.
-
-**Approach**: Implement `collectgarbage("count")` to return approximate memory usage (could estimate from Lua object count or use `performance.memory` if available in Electron). Other modes (`collect`, `step`, `stop`, `restart`) remain no-ops. This enables users to diagnose memory issues in long-running Lua scripts.
+`collectgarbage("count")` returns `0, 0` (no memory tracking — fengari has no GC). `collectgarbage("collect")` drains the `__gc` finalizer queue. `collectgarbage("isrunning")` returns `false`. All other modes return `0`. Previously, ALL modes threw `luaL_error("lua_gc not implemented")`, crashing any Lua code that called `collectgarbage()`.
 
 ### Priority summary
 
-| #   | Improvement                            | Effort | Impact   | Blocks                                        |
-| --- | -------------------------------------- | ------ | -------- | --------------------------------------------- |
-| 1   | Coroutine↔Promise bridge              | High   | Critical | Async file read, `require()`, HTTP, streaming |
-| 2   | Custom `require()` for vault Lua files | Medium | High     | Multi-file configs, config modularity         |
-| 3   | 32-bit → 53-bit integers               | Medium | High     | Spec compliance, config portability           |
-| 4   | `__gc` via FinalizationRegistry        | Medium | Medium   | Timer cleanup, resource management            |
-| 5   | JS RegExp exposed to Lua               | Low    | Medium   | Snippet transforms, text processing           |
-| 6   | Re-enable `load()` with sandboxing     | Low    | Medium   | Dynamic code generation, metaprogramming      |
-| 7   | sprintf-js replacement                 | Low    | Low-Med  | Performance in hot paths                      |
-| 8   | Error message quality                  | Low    | Medium   | User debugging experience                     |
-| 9   | Weak tables via WeakRef                | High   | Low-Med  | Idiomatic Lua patterns                        |
-| 10  | `collectgarbage("count")`              | Low    | Low      | Memory diagnostics                            |
+| #   | Improvement                            | Effort | Impact   | Status         |
+| --- | -------------------------------------- | ------ | -------- | -------------- |
+| 1   | Coroutine↔Promise bridge              | High   | Critical | ✅ Implemented |
+| 2   | Custom `require()` for vault Lua files | Medium | High     | ✅ Implemented |
+| 3   | 32-bit → 53-bit integers               | Medium | High     | ✅ Implemented |
+| 4   | `__gc` via FinalizationRegistry        | Medium | Medium   | ✅ Implemented |
+| 5   | JS RegExp exposed to Lua               | Low    | Medium   | ✅ Implemented |
+| 6   | Re-enable `load()` with sandboxing     | Low    | Medium   | ✅ Implemented |
+| 7   | sprintf-js replacement                 | Low    | Low-Med  | ✅ Implemented |
+| 8   | Error message quality                  | Low    | Medium   | ✅ Implemented |
+| 9   | Weak tables via WeakRef                | High   | Low-Med  | Not started    |
+| 10  | `collectgarbage("count")`              | Low    | Low      | ✅ Implemented |

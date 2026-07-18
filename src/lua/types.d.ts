@@ -62,6 +62,12 @@ declare module 'fengari' {
         lua_status: (L: lua_State) => number;
         lua_xmove: (from: lua_State, to: lua_State, n: number) => void;
         lua_isyieldable: (L: lua_State) => boolean;
+        lua_touserdata: (L: lua_State, index: number) => unknown;
+        lua_atnativeerror: (
+            L: lua_State,
+            fn: (L: lua_State) => number,
+        ) => ((L: lua_State) => number) | null;
+        lua_pushinteger: (L: lua_State, value: number) => void;
         LUA_OK: number;
         LUA_YIELD: number;
         LUA_ERRRUN: number;
