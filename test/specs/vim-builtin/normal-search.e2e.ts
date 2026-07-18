@@ -14,6 +14,17 @@ describe('Normal mode — search and find (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (app as unknown as Record<string, unknown>)
+                .plugins as Record<string, unknown> | undefined;
+            const internal = (plugin?.plugins as Record<string, unknown>)?.[
+                'vim-motions'
+            ] as { settings: Record<string, unknown> } | undefined;
+            if (internal?.settings) {
+                internal.settings.enableFlash = false;
+                internal.settings.flashSearch = false;
+            }
+        });
         await startNvim();
     });
 
