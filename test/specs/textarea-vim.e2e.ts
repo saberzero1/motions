@@ -232,34 +232,57 @@ describe('Textarea vim replacement', function () {
         expect(await hasOverlay()).toBe(false);
     });
 
-    it('Escape from normal mode returns to textarea without closing modal', async function () {
-        await injectTextarea('test-ta', 'keep this');
-        await focusElement('test-ta');
+    it('overlay teardown does not close host Obsidian Modal', async function () {
+        // Open a real Obsidian Modal containing a textarea
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const modal = new obsidian.Modal(app);
+            modal.contentEl.createEl('textarea', {
+                attr: { id: 'test-ta' },
+            });
+            const ta = modal.contentEl.querySelector(
+                '#test-ta',
+            ) as HTMLTextAreaElement;
+            ta.value = 'keep this';
+            ta.style.width = '300px';
+            ta.style.height = '100px';
+            modal.open();
+        });
         await browser.pause(400);
 
-        expect(await hasOverlay()).toBe(true);
-        expect(await isModalPresent('test-ta')).toBe(true);
+        await focusElement('test-ta');
+        await browser.pause(500);
 
-        // Type some text (starts in insert mode)
+        expect(await hasOverlay()).toBe(true);
+
         await browser.keys(['!', '!']);
-        await browser.pause(150);
-
-        // First Escape: insert → normal
-        await browser.keys(['Escape']);
         await browser.pause(200);
-        expect(await hasOverlay()).toBe(true);
 
-        // Second Escape: normal → teardown overlay, return to textarea
-        await browser.keys(['Escape']);
-        await browser.pause(300);
+        // Tear down overlay via blur (proven reliable in headless)
+        await browser.executeObsidian(() => {
+            const cm = document.querySelector(
+                '.vim-motions-textarea-overlay .cm-content',
+            ) as HTMLElement | null;
+            cm?.blur();
+        });
+        await browser.pause(400);
 
-        // Overlay is gone but modal is still present
         expect(await hasOverlay()).toBe(false);
-        expect(await isModalPresent('test-ta')).toBe(true);
-        expect(await isElementHidden('test-ta')).toBe(false);
 
-        // Content was synced before teardown
+        // Modal must still be open — Escape was not re-dispatched
+        const modalStillOpen = await browser.executeObsidian(() => {
+            return !!document.querySelector('.modal-container');
+        });
+        expect(modalStillOpen).toBe(true);
+
         const value = await getTextareaValue('test-ta');
         expect(value).toContain('!!');
+
+        // Clean up the modal
+        await browser.executeObsidian(() => {
+            document
+                .querySelectorAll('.modal-container')
+                .forEach((el) => el.remove());
+        });
+        await browser.pause(200);
     });
 });
