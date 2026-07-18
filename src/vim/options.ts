@@ -345,6 +345,31 @@ export function registerVimOptions(
         );
     });
 
+    vim.defineOption(
+        'flashminpatternlength',
+        1,
+        'number',
+        ['fmpl'],
+        (value) => {
+            if (value === undefined) return;
+            const num =
+                typeof value === 'number'
+                    ? value
+                    : parseInt(value as string, 10);
+            if (!isNaN(num) && num >= 0 && num <= 10) {
+                notify(
+                    'flashMinPatternLength',
+                    num,
+                    `set flashminpatternlength=${num}`,
+                );
+            }
+        },
+    );
+    vim.defineOption('flashsearch', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        notify('flashSearch', !!value, `set ${value ? '' : 'no'}flashsearch`);
+    });
+
     vim.defineOption('flashjump', false, 'boolean', [], (value) => {
         if (value === undefined) return;
         notify(

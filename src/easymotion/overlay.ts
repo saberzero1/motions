@@ -30,6 +30,52 @@ export interface OverlayHandle {
     updateLabels: (targets: LabeledTarget[]) => void;
 }
 
+export function showMatchHighlights(
+    cm: CmAdapter,
+    targets: Target[],
+): OverlayHandle | null {
+    const view = cm.cm6;
+    if (!view) return null;
+
+    const wrapper = createDiv({ cls: 'vim-motions-easymotion' });
+    view.scrollDOM.appendChild(wrapper);
+
+    const container = createDiv();
+    wrapper.appendChild(container);
+
+    function render(items: Target[]) {
+        container.empty();
+        const scrollRect = view.scrollDOM.getBoundingClientRect();
+        const scrollLeft = view.scrollDOM.scrollLeft;
+        const scrollTop = view.scrollDOM.scrollTop;
+
+        for (const target of items) {
+            const offset = cm.indexFromPos({
+                line: target.line,
+                ch: target.ch,
+            });
+            const coords = view.coordsAtPos(offset);
+            if (!coords) continue;
+
+            const left = coords.left - scrollRect.left + scrollLeft;
+            const top = coords.top - scrollRect.top + scrollTop;
+
+            const el = container.createSpan({
+                cls: 'vim-motions-flash-match',
+            });
+            el.style.setProperty('--vim-motions-em-left', `${left}px`);
+            el.style.setProperty('--vim-motions-em-top', `${top}px`);
+        }
+    }
+
+    render(targets);
+
+    return {
+        cleanup: () => wrapper.remove(),
+        updateLabels: () => {},
+    };
+}
+
 export function showOverlay(
     cm: CmAdapter,
     targets: LabeledTarget[],

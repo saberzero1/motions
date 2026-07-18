@@ -3,60 +3,43 @@ import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimPos, VimState } from '../types/vim-api';
 import { isEasyMotionActive } from '../easymotion/register';
 import { isFlashActive, setFlashActive } from './state';
-import { findCharTargets } from '../easymotion/targets';
-import type { Target, LabeledTarget } from '../easymotion/types';
-import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
-import { waitForKey } from '../easymotion/keypress';
-import { assignFlashLabels } from './labeler';
+import { findSubstringTargets } from '../easymotion/targets';
+import type { Target } from '../easymotion/types';
+import {
+    filterVisibleTargets,
+    showOverlay,
+    showMatchHighlights,
+} from '../easymotion/overlay';
+import { FlashLabeler } from './labeler';
 import { getJumpListInstance } from '../workspace/navigate';
 
-function waitForFlashJumpLabel(
-    labels: LabeledTarget[],
-    onNarrow: (remaining: LabeledTarget[]) => void,
-): Promise<LabeledTarget | null> {
-    return new Promise((resolve) => {
-        let prefix = '';
-        const handler = (e: KeyboardEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
+function computeSkipChars(
+    cm: CmAdapter,
+    targets: Target[],
+    pattern: string,
+    labelChars: string,
+): Set<string> {
+    const skip = new Set<string>();
+    const labelSet = new Set([...labelChars].map((c) => c.toLowerCase()));
+    const patternLen = pattern.length;
 
-            if (e.key === 'Escape') {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(null);
-                return;
+    for (const t of targets) {
+        const text = cm.getLine(t.line);
+        const afterIdx = t.ch + patternLen;
+        if (afterIdx < text.length) {
+            const nextChar = text[afterIdx]!.toLowerCase();
+            if (labelSet.has(nextChar)) {
+                skip.add(nextChar);
             }
+        }
+    }
 
-            if (e.key === 'Backspace') {
-                if (prefix.length > 0) {
-                    prefix = '';
-                    onNarrow(labels);
-                }
-                return;
-            }
-
-            if (e.key.length !== 1) return;
-
-            const typed = prefix + e.key;
-            const exact = labels.find((t) => t.label === typed);
-            if (exact) {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(exact);
-                return;
-            }
-
-            const remaining = labels.filter((t) => t.label.startsWith(typed));
-            if (remaining.length > 0) {
-                prefix = typed;
-                onNarrow(remaining);
-            }
-        };
-
-        activeDocument.addEventListener('keydown', handler, true);
-    });
+    return skip;
 }
 
 interface FlashJumpOptions {
     enabled: () => boolean;
+    minPatternLength: () => number;
     labels: () => string;
     dimming: () => boolean;
     fontSize: () => number;
@@ -72,66 +55,164 @@ export function createFlashJumpMotion(
     vimState: VimState,
     inputState: unknown,
 ) => Promise<VimPos | null> | null {
-    return (cm, head) => {
-        if (isFlashActive() || isEasyMotionActive()) {
+    return (cm) => {
+        if (!opts.enabled() || isFlashActive() || isEasyMotionActive()) {
             return null;
         }
 
         setFlashActive(true);
 
-        return waitForKey()
-            .then((char) => {
-                if (!char || char.length !== 1) {
-                    setFlashActive(false);
-                    return null;
-                }
+        return new Promise<VimPos | null>((resolve) => {
+            let pattern = '';
+            const labeler = new FlashLabeler();
+            let currentOverlay: { cleanup: () => void } | null = null;
 
-                const rawTargets = findCharTargets(cm, char, 'bidirectional');
+            const cleanup = () => {
+                activeDocument.removeEventListener('keydown', handler, true);
+                currentOverlay?.cleanup();
+                currentOverlay = null;
+                setFlashActive(false);
+            };
+
+            const updateDisplay = () => {
+                currentOverlay?.cleanup();
+                currentOverlay = null;
+
+                if (!pattern) return;
+
+                const rawTargets = findSubstringTargets(
+                    cm,
+                    pattern,
+                    'bidirectional',
+                );
                 const targets = filterVisibleTargets(cm, rawTargets);
 
                 if (targets.length === 0) {
-                    setFlashActive(false);
-                    return null;
+                    cleanup();
+                    resolve(null);
+                    return;
+                }
+
+                const minLen = opts.minPatternLength();
+                if ([...pattern].length < minLen) {
+                    currentOverlay = showMatchHighlights(cm, targets);
+                    return;
                 }
 
                 if (targets.length === 1) {
-                    setFlashActive(false);
                     const target = targets[0]!;
+                    cleanup();
                     maybeRecordJump(opts.app, cm, target);
-                    return { line: target.line, ch: target.ch };
+                    resolve({ line: target.line, ch: target.ch });
+                    return;
                 }
 
                 const cursor = cm.getCursor();
-                const labeled = assignFlashLabels(
+                const skipChars = computeSkipChars(
+                    cm,
+                    targets,
+                    pattern,
+                    opts.labels(),
+                );
+                const labeled = labeler.assign(
                     targets,
                     opts.labels(),
                     cursor.line,
                     cursor.ch,
+                    skipChars,
                 );
 
-                const overlay = showOverlay(cm, labeled, {
+                currentOverlay = showOverlay(cm, labeled, {
                     shade: opts.dimming(),
                     fontSize: opts.fontSize(),
                 });
-                if (!overlay) {
-                    setFlashActive(false);
-                    return null;
+            };
+
+            const handler = (e: KeyboardEvent) => {
+                if (e.isComposing) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (e.key === 'Escape') {
+                    cleanup();
+                    resolve(null);
+                    return;
                 }
 
-                return waitForFlashJumpLabel(labeled, (remaining) =>
-                    overlay.updateLabels(remaining),
-                ).then((match) => {
-                    overlay.cleanup();
-                    setFlashActive(false);
-                    if (!match) return null;
-                    maybeRecordJump(opts.app, cm, match);
-                    return { line: match.line, ch: match.ch };
-                });
-            })
-            .catch(() => {
-                setFlashActive(false);
-                return null;
-            });
+                if (e.key === 'Enter') {
+                    const rawTargets = findSubstringTargets(
+                        cm,
+                        pattern,
+                        'bidirectional',
+                    );
+                    const targets = filterVisibleTargets(cm, rawTargets);
+                    if (targets.length > 0) {
+                        const target = targets[0]!;
+                        cleanup();
+                        maybeRecordJump(opts.app, cm, target);
+                        resolve({ line: target.line, ch: target.ch });
+                    } else {
+                        cleanup();
+                        resolve(null);
+                    }
+                    return;
+                }
+
+                if (e.key === 'Backspace') {
+                    if ([...pattern].length > 0) {
+                        const chars = [...pattern];
+                        chars.pop();
+                        pattern = chars.join('');
+                        labeler.reset(opts.labels());
+                        updateDisplay();
+                    }
+                    return;
+                }
+
+                if (e.key.length !== 1) return;
+
+                const minLen = opts.minPatternLength();
+                if ([...pattern].length >= minLen && currentOverlay) {
+                    const overlayEl = activeDocument.querySelector(
+                        '.vim-motions-easymotion-label',
+                    );
+                    if (overlayEl) {
+                        const rawTargets = findSubstringTargets(
+                            cm,
+                            pattern,
+                            'bidirectional',
+                        );
+                        const targets = filterVisibleTargets(cm, rawTargets);
+                        const cursor = cm.getCursor();
+                        const skipChars = computeSkipChars(
+                            cm,
+                            targets,
+                            pattern,
+                            opts.labels(),
+                        );
+                        const labeled = labeler.assign(
+                            targets,
+                            opts.labels(),
+                            cursor.line,
+                            cursor.ch,
+                            skipChars,
+                        );
+                        const match = labeled.find((t) => t.label === e.key);
+                        if (match) {
+                            cleanup();
+                            maybeRecordJump(opts.app, cm, match);
+                            resolve({ line: match.line, ch: match.ch });
+                            return;
+                        }
+                    }
+                }
+
+                pattern += e.key;
+                updateDisplay();
+            };
+
+            activeDocument.addEventListener('keydown', handler, true);
+        });
     };
 }
 

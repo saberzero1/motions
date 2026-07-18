@@ -179,6 +179,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `flashmultiline`          | boolean | `true`                         |                                               | `vim.opt.flashmultiline = true`          |
 | `flashjump`               | boolean | `false`                        |                                               | `vim.opt.flashjump = true`               |
 | `flashcleverf`            | boolean | `false`                        |                                               | `vim.opt.flashcleverf = true`            |
+| `flashsearch`             | boolean | `true`                         |                                               | `vim.opt.flashsearch = true`             |
 | `easymotion`              | boolean | `true`                         |                                               | `vim.opt.easymotion = true`              |
 | `easymotiondimming`       | boolean | `true`                         |                                               | `vim.opt.easymotiondimming = true`       |
 | `hintmode`                | boolean | `true`                         |                                               | `vim.opt.hintmode = true`                |
@@ -200,6 +201,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"`            | `vim.opt.clipboard = "unnamedplus"`      |
 | `insertmodeescape`        | string  | `""`                           |                                               | `vim.opt.insertmodeescape = "jk"`        |
 | `flashjumpkey`            | string  | `"s"`                          |                                               | `vim.opt.flashjumpkey = "s"`             |
+| `flashminpatternlength`   | number  | `1`                            | 0–10                                          | `vim.opt.flashminpatternlength = 2`      |
 | `easymotionlabels`        | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                               | `vim.opt.easymotionlabels = "asdf"`      |
 | `hintlabels`              | string  | `"asdfghjkl"`                  |                                               | `vim.opt.hintlabels = "asdf"`            |
 | `tablewidget`             | string  | `"cursor"`                     | `"off"`, `"cursor"`, `"always"`, `"embedded"` | `vim.opt.tablewidget = "cursor"`         |

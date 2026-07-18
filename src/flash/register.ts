@@ -10,6 +10,8 @@ interface FlashSettings {
     flashJumpEnabled: boolean;
     flashJumpKey: string;
     flashCleverF: boolean;
+    flashMinPatternLength: number;
+    flashSearch: boolean;
     easyMotionDimming: boolean;
     easyMotionLabels: string;
     labelFontSize: number;
@@ -58,6 +60,7 @@ export function registerFlash(
     if (settings.flashJumpEnabled && settings.flashJumpKey) {
         const jumpOpts = {
             enabled: () => settings.flashJumpEnabled,
+            minPatternLength: () => settings.flashMinPatternLength,
             labels: () => settings.easyMotionLabels,
             dimming: () => settings.easyMotionDimming,
             fontSize: () => settings.labelFontSize,
@@ -65,14 +68,6 @@ export function registerFlash(
         };
 
         reg.defineMotion('flashJump', createFlashJumpMotion(jumpOpts));
-        reg.mapCommand(
-            settings.flashJumpKey,
-            'motion',
-            'flashJump',
-            {},
-            {
-                context: 'normal',
-            },
-        );
+        reg.mapCommand(settings.flashJumpKey, 'motion', 'flashJump', {});
     }
 }

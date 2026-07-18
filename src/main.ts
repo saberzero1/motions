@@ -9,6 +9,7 @@ import {
 
 import { registerEasyMotion } from './easymotion/register';
 import { registerFlash } from './flash/register';
+import { enableFlashSearch } from './flash/search-mode';
 import {
     registerNavigationMotions,
     registerTableMotions,
@@ -216,6 +217,7 @@ export default class VimMotionsPlugin extends Plugin {
     scrolloffManager: ScrolloffManager | null = null;
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
+    private flashSearchCleanup: (() => void) | null = null;
     private uninstallTableSuppressor: (() => void) | null = null;
     private uninstallVisualLineFix: (() => void) | null = null;
     private yankHighlightCleanup: (() => void) | null = null;
@@ -1559,6 +1561,11 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (!Platform.isMobile && vim) {
             registerFlash(this.registration, this.app, this.settings, vim);
+            this.flashSearchCleanup?.();
+            this.flashSearchCleanup = enableFlashSearch(
+                this.app,
+                this.settings,
+            );
         }
         this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && !Platform.isMobile) {
@@ -1999,6 +2006,11 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerImExCommands();
         if (!Platform.isMobile) {
             registerFlash(this.registration, this.app, this.settings, vim);
+            this.flashSearchCleanup?.();
+            this.flashSearchCleanup = enableFlashSearch(
+                this.app,
+                this.settings,
+            );
         }
         this.registration.beginLeaderScope();
         if (

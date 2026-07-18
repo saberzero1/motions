@@ -208,7 +208,11 @@ Bidirectional character search (disabled by default, enable with `set flashjump`
 | ---------- | ------------------------------------------------------- |
 | `s{char}`  | Search `{char}` bidirectionally — labels on all matches |
 
-The trigger key is configurable via `set flashjumpkey=<key>`. Normal mode only.
+The trigger key is configurable via `set flashjumpkey=<key>`.
+
+### Flash search labels
+
+After committing a `/` or `?` search, labels appear on all visible matches for direct jumping.
 
 ## EasyMotion find motions
 

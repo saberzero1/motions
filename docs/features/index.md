@@ -17,7 +17,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Jump navigation
 
 - **Cross-note jump list** — `<C-o>` and `<C-i>` navigate backward/forward through jump history across notes. Jumps recorded on `gd`, picker selection, harpoon, oil, EasyMotion, and all cross-note navigation. Persists across sessions. `:jumps` displays the list. Configurable via `set jumplist`/`set jumplistsize`.
-- **[[flash|Flash motions]]** — enhanced `f`/`F`/`t`/`T` with labels on all visible matches. Single match auto-jumps; multiple matches show label overlays. Works with operators (`df`, `cf`, `yf`) and visual mode. Inspired by [flash.nvim](https://github.com/folke/flash.nvim).
+- **[[flash|Flash motions]]** — enhanced `f`/`F`/`t`/`T` with labels on all visible matches, incremental `s` jump mode (multi-char search with live label updates), post-commit `/`/`?` search labels, label conflict skipping, `[3/15]` search match counter. Inspired by [flash.nvim](https://github.com/folke/flash.nvim).
 - **[[easymotion|EasyMotion / Hop]]** — jump to any visible position with two keystrokes. Find, word, line, and search motions. Works in operator-pending mode (`d` + easymotion) and visual mode. Live Preview aware.
 - **[[harpoon|Harpoon]]** — pin files to numbered slots for instant switching (`<leader>1`–`<leader>9`). Cursor position tracked and restored. Pins persist across sessions; file renames update automatically.
 - **[[hint-mode|Hint mode]]** — Vimium-style keyboard navigation for the entire Obsidian UI. Multiple actions: `f` activates, `F` opens in new pane, `yf` yanks, `df` closes. Works in editor, sidebar, tab bar, settings, and popout windows.

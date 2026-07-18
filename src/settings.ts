@@ -140,6 +140,8 @@ export interface VimMotionsSettings {
     flashJumpEnabled: boolean;
     flashJumpKey: string;
     flashCleverF: boolean;
+    flashMinPatternLength: number;
+    flashSearch: boolean;
     enableHardWrap: boolean;
     enableReplaceWithRegister: boolean;
     listContinuationOnOpen: boolean;
@@ -247,6 +249,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     flashJumpEnabled: false,
     flashJumpKey: 's',
     flashCleverF: false,
+    flashMinPatternLength: 1,
+    flashSearch: true,
     enableHardWrap: true,
     enableReplaceWithRegister: true,
     listContinuationOnOpen: true,
@@ -386,6 +390,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'flashJumpEnabled',
         'flashJumpKey',
         'flashCleverF',
+        'flashMinPatternLength',
+        'flashSearch',
         'enableHintMode',
         'enableHarpoon',
         'enableVimTextareas',
@@ -1060,6 +1066,31 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             type: 'toggle' as const,
                             key: 'flashCleverF',
                             disabled: () => this.isOverridden('flashCleverF'),
+                        },
+                    },
+                    {
+                        name: 'Flash min pattern length',
+                        desc: this.describeOverride(
+                            'flashMinPatternLength',
+                            'Minimum characters before labels appear in jump mode (1 = immediate).',
+                        ),
+                        control: {
+                            type: 'text' as const,
+                            key: 'flashMinPatternLength',
+                            disabled: () =>
+                                this.isOverridden('flashMinPatternLength'),
+                        },
+                    },
+                    {
+                        name: 'Flash search labels',
+                        desc: this.describeOverride(
+                            'flashSearch',
+                            'Show labels on search matches after committing a / or ? search.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'flashSearch',
+                            disabled: () => this.isOverridden('flashSearch'),
                         },
                     },
                     {

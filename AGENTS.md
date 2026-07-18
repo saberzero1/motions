@@ -277,27 +277,27 @@ When making a change, update these docs pages:
 
 ### Page ownership by feature area
 
-| Feature area          | Canonical docs page                 | Settings group(s)                                                               |
-| --------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
-| Text objects          | `features/text-objects.md`          | Vim features (textobjects), Advanced (scanlimit)                                |
-| Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                                       |
-| Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                                            |
-| Jump list             | `features/quality-of-life.md`       | Jump navigation (jumplist, jumplistsize)                                        |
-| Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                 |
-| Flash motions         | `features/flash.md`                 | Jump navigation (flash, flashmultiline, flashjump, flashjumpkey, flashcleverf)  |
-| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                    |
-| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                              |
-| Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                                     |
-| Folding               | `features/workspace-navigation.md`  | Vim features (foldawarenavigation, foldpersistence)                             |
-| Surround              | `features/surround.md`              | (no settings — fork feature)                                                    |
-| Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                                  |
-| Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.)                   |
-| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath)                                |
-| Snippets              | `features/snippets.md`              | Snippets (enableSnippets, snippetBundled, snippetDirectory, snippetTriggerMode) |
-| Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                                            |
-| Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                                   |
-| Cursor shapes         | `configuration/cursor-shapes.md`    | Cursor shapes                                                                   |
-| Status bar            | `configuration/status-bar.md`       | Status bar, Vim mode display prompt                                             |
+| Feature area          | Canonical docs page                 | Settings group(s)                                                                                                  |
+| --------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Text objects          | `features/text-objects.md`          | Vim features (textobjects), Advanced (scanlimit)                                                                   |
+| Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                                                                          |
+| Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                                                                               |
+| Jump list             | `features/quality-of-life.md`       | Jump navigation (jumplist, jumplistsize)                                                                           |
+| Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                                                    |
+| Flash motions         | `features/flash.md`                 | Jump navigation (flash, flashmultiline, flashjump, flashjumpkey, flashcleverf, flashminpatternlength, flashsearch) |
+| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                                                       |
+| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                                                                 |
+| Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                                                                        |
+| Folding               | `features/workspace-navigation.md`  | Vim features (foldawarenavigation, foldpersistence)                                                                |
+| Surround              | `features/surround.md`              | (no settings — fork feature)                                                                                       |
+| Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                                                                     |
+| Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.)                                                      |
+| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath)                                                                   |
+| Snippets              | `features/snippets.md`              | Snippets (enableSnippets, snippetBundled, snippetDirectory, snippetTriggerMode)                                    |
+| Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                                                                               |
+| Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                                                                      |
+| Cursor shapes         | `configuration/cursor-shapes.md`    | Cursor shapes                                                                                                      |
+| Status bar            | `configuration/status-bar.md`       | Status bar, Vim mode display prompt                                                                                |
 
 ### Transclusion conventions
 

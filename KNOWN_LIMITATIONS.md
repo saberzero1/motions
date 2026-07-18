@@ -74,7 +74,7 @@ Cell editors in embedded table widget mode (`set tablewidget=embedded`) now supp
 
 ## Flash motions
 
-**Status**: Working (Phase 1 + Phase 2).
+**Status**: Working (Phase 1 + Phase 2 + Phase 3A + Phase 3B).
 
 Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches when 2+ matches exist. Single-match cases autojump (stock Vim behavior preserved).
 
@@ -90,6 +90,11 @@ Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches 
 - **Jump mode key binding is registration-time**: Changing `flashjumpkey` at runtime requires a plugin reload or settings change that triggers `reloadFeatures()`. The key is bound via `mapCommand` during registration.
 - **Jump mode overrides `s`**: When enabled, `s` in normal mode triggers flash jump instead of substitute (`cl`). Visual mode `s` retains its default `c` mapping.
 - **clever-f 5s timeout**: The clever-f repeat detection uses a 5-second window. After 5 seconds, `f{same-char}` is treated as a new flash search.
+- **Incremental jump check_jump**: When `pattern.length >= minPatternLength`, typed characters are checked as labels first, then as search extensions. A character that matches both a label and a valid search continuation will jump rather than narrow. Below `minPatternLength`, all characters extend the search pattern.
+- **skipChars same-line only**: Label conflict skipping only checks the character immediately after each match on the same line. Matches at end-of-line do not conflict with any label.
+- **Search mode post-commit only**: Flash search labels appear AFTER committing a `/` or `?` search with Enter, not during typing. This is a deliberate simplification from flash.nvim to avoid label-vs-search-char disambiguation. Labels auto-clear on any non-label key.
+- **Search mode single match**: Labels are only shown when 2+ matches exist. Single-match searches navigate directly without labels.
+- **Search labels with `*`/`#`**: Word-under-cursor search (`*`/`#`) does not trigger flash search labels because it bypasses the search dialog.
 
 ## EasyMotion operator-pending mode
 

@@ -76,6 +76,18 @@
     font-size: 12px;
 }
 
+.vim-motions-flash-match {
+    position: absolute;
+    left: var(--vim-motions-em-left, 0);
+    top: var(--vim-motions-em-top, 0);
+    width: 8px;
+    height: 16px;
+    background: var(--text-accent);
+    opacity: 0.25;
+    border-radius: 2px;
+    pointer-events: none;
+}
+
 .vim-motions-search-count {
     font-family: var(--font-monospace);
     font-size: 12px;

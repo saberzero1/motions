@@ -106,23 +106,25 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Jump navigation
 
-| Name                        | Type   | Default                      | Range/Options | Lua                         | Vimrc                   | Description                                                   |
-| --------------------------- | ------ | ---------------------------- | ------------- | --------------------------- | ----------------------- | ------------------------------------------------------------- |
-| Flash-style f/F/t/T         | toggle | `true`                       | —             | `vim.opt.flash`             | `set flash`             | Show labels on all visible matches for f/F/t/T motions.       |
-| Flash multi-line            | toggle | `true`                       | —             | `vim.opt.flashmultiline`    | `set flashmultiline`    | Search beyond the current line for f/F/t/T matches.           |
-| Flash jump mode (s)         | toggle | `false`                      | —             | `vim.opt.flashjump`         | `set flashjump`         | Bidirectional character jump in normal mode.                  |
-| Flash jump key              | text   | `s`                          | —             | `vim.opt.flashjumpkey`      | `set flashjumpkey`      | Key to trigger flash jump mode.                               |
-| Flash clever-f              | toggle | `false`                      | —             | `vim.opt.flashcleverf`      | `set flashcleverf`      | Repeating `f{same-char}` falls through to stock `f`.          |
-| EasyMotion                  | toggle | `true`                       | —             | `vim.opt.easymotion`        | `set easymotion`        | Enable easymotion/hop navigation (`<leader><leader>w`, etc.). |
-| EasyMotion dimming          | toggle | `true`                       | —             | `vim.opt.easymotiondimming` | `set easymotiondimming` | Dim non-target text when EasyMotion or flash is active.       |
-| EasyMotion label characters | text   | `asdghklqwertyuiopzxcvbnmfj` | —             | `vim.opt.easymotionlabels`  | `set easymotionlabels`  | Characters used for EasyMotion and flash labels.              |
-| Hint mode                   | toggle | `true`                       | —             | `vim.opt.hintmode`          | `set hintmode`          | Enable vimium-style link hints to click UI elements.          |
-| Hint mode label characters  | text   | `asdfghjkl`                  | —             | `vim.opt.hintlabels`        | `set hintlabels`        | Characters used for hint labels.                              |
-| Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                           | —                       | Key combination to trigger hint mode from anywhere.           |
-| Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`     | `set labelfontsize`     | Font size for EasyMotion and hint mode labels.                |
-| Harpoon file pinning        | toggle | `true`                       | —             | `vim.opt.harpoon`           | `set harpoon`           | Pin files to numbered slots for instant switching.            |
-| Jump list                   | toggle | `true`                       | —             | `vim.opt.jumplist`          | `set jumplist`          | Use vim-style jump list for `<C-o>`/`<C-i>`.                  |
-| Jump list size              | number | `200`                        | 1–1000        | `vim.opt.jumplistsize`      | `set jumplistsize`      | Maximum number of entries in the jump list.                   |
+| Name                        | Type   | Default                      | Range/Options | Lua                             | Vimrc                       | Description                                                   |
+| --------------------------- | ------ | ---------------------------- | ------------- | ------------------------------- | --------------------------- | ------------------------------------------------------------- |
+| Flash-style f/F/t/T         | toggle | `true`                       | —             | `vim.opt.flash`                 | `set flash`                 | Show labels on all visible matches for f/F/t/T motions.       |
+| Flash multi-line            | toggle | `true`                       | —             | `vim.opt.flashmultiline`        | `set flashmultiline`        | Search beyond the current line for f/F/t/T matches.           |
+| Flash jump mode (s)         | toggle | `false`                      | —             | `vim.opt.flashjump`             | `set flashjump`             | Bidirectional character jump in normal mode.                  |
+| Flash jump key              | text   | `s`                          | —             | `vim.opt.flashjumpkey`          | `set flashjumpkey`          | Key to trigger flash jump mode.                               |
+| Flash clever-f              | toggle | `false`                      | —             | `vim.opt.flashcleverf`          | `set flashcleverf`          | Repeating `f{same-char}` falls through to stock `f`.          |
+| Flash min pattern length    | number | `1`                          | 0–10          | `vim.opt.flashminpatternlength` | `set flashminpatternlength` | Minimum chars before labels appear in jump mode.              |
+| Flash search labels         | toggle | `true`                       | —             | `vim.opt.flashsearch`           | `set flashsearch`           | Show labels on search matches after `/` or `?`.               |
+| EasyMotion                  | toggle | `true`                       | —             | `vim.opt.easymotion`            | `set easymotion`            | Enable easymotion/hop navigation (`<leader><leader>w`, etc.). |
+| EasyMotion dimming          | toggle | `true`                       | —             | `vim.opt.easymotiondimming`     | `set easymotiondimming`     | Dim non-target text when EasyMotion or flash is active.       |
+| EasyMotion label characters | text   | `asdghklqwertyuiopzxcvbnmfj` | —             | `vim.opt.easymotionlabels`      | `set easymotionlabels`      | Characters used for EasyMotion and flash labels.              |
+| Hint mode                   | toggle | `true`                       | —             | `vim.opt.hintmode`              | `set hintmode`              | Enable vimium-style link hints to click UI elements.          |
+| Hint mode label characters  | text   | `asdfghjkl`                  | —             | `vim.opt.hintlabels`            | `set hintlabels`            | Characters used for hint labels.                              |
+| Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                               | —                           | Key combination to trigger hint mode from anywhere.           |
+| Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`         | `set labelfontsize`         | Font size for EasyMotion and hint mode labels.                |
+| Harpoon file pinning        | toggle | `true`                       | —             | `vim.opt.harpoon`               | `set harpoon`               | Pin files to numbered slots for instant switching.            |
+| Jump list                   | toggle | `true`                       | —             | `vim.opt.jumplist`              | `set jumplist`              | Use vim-style jump list for `<C-o>`/`<C-i>`.                  |
+| Jump list size              | number | `200`                        | 1–1000        | `vim.opt.jumplistsize`          | `set jumplistsize`          | Maximum number of entries in the jump list.                   |
 
 ## Snippets
 

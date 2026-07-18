@@ -131,9 +131,10 @@ src/
   flash/
     register.ts            # Flash registration (motion overrides, jump mode binding)
     char-mode.ts           # Enhanced f/F/t/T with label overlays
-    jump-mode.ts           # Standalone bidirectional jump (s key)
+    jump-mode.ts           # Incremental bidirectional jump (s key, multi-char search)
     labeler.ts             # Distance-based label assignment with reuse and conflict skip
     state.ts               # Flash active flag, clever-f state tracking
+    search-mode.ts         # Post-commit search labels (/ and ? integration)
   fold/
     commands.ts            # Fold commands (zf, zd, zE, zm, zr, etc.)
     provider.ts            # Fold providers (frontmatter, callouts, custom)

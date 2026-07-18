@@ -153,6 +153,27 @@ export function findCharTargets(
     return filterByDirection(targets, cm, direction);
 }
 
+export function findSubstringTargets(
+    cm: CmAdapter,
+    pattern: string,
+    direction: Direction,
+): Target[] {
+    if (!pattern) return [];
+    const { fromLine, toLine } = getVisibleRange(cm);
+    const targets: Target[] = [];
+    for (let line = fromLine; line <= toLine; line++) {
+        const text = cm.getLine(line);
+        let idx = 0;
+        while (idx < text.length) {
+            const found = text.indexOf(pattern, idx);
+            if (found === -1) break;
+            targets.push({ line, ch: found });
+            idx = found + 1;
+        }
+    }
+    return filterByDirection(targets, cm, direction);
+}
+
 export function findTillTargets(
     cm: CmAdapter,
     char: string,

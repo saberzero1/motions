@@ -52,7 +52,9 @@ After a flash jump, `;` repeats the search forward and `,` repeats backward — 
 
 ## Jump mode (`s`)
 
-Flash can also provide a standalone bidirectional character jump, bound to a configurable key (default: `s`). Press `s{char}` to search for `{char}` in both directions, then select a label.
+Flash provides a bidirectional incremental search, bound to a configurable key (default: `s`). Press `s` then type characters — matches narrow incrementally as you type. Labels appear on matches and update in real-time. Press a label key to jump, or `Enter` to jump to the nearest match.
+
+The incremental search also supports `Backspace` (remove last char, widen matches) and `Escape` (cancel).
 
 Jump mode is **disabled by default** because `s` overrides substitute (`cl`) in normal mode. Enable it in **Settings → Vim Motions → Jump navigation → Flash jump mode**, or:
 
@@ -95,15 +97,17 @@ Both share the same label characters setting.
 
 Configure flash in **Settings → Vim Motions → Jump navigation**:
 
-| Setting                     | Default                      | Description                                          |
-| --------------------------- | ---------------------------- | ---------------------------------------------------- |
-| Flash-style f/F/t/T         | `true`                       | Enable flash labels on character motions.            |
-| Flash multi-line            | `true`                       | Search beyond the current line.                      |
-| Flash jump mode (s)         | `false`                      | Bidirectional character jump with configurable key.  |
-| Flash jump key              | `s`                          | Key to trigger flash jump mode.                      |
-| Flash clever-f              | `false`                      | Repeating `f{same-char}` falls through to stock `f`. |
-| EasyMotion label characters | `asdghklqwertyuiopzxcvbnmfj` | Shared label characters for flash and EasyMotion.    |
-| EasyMotion dimming          | `true`                       | Dim non-target text during flash and EasyMotion.     |
+| Setting                     | Default                      | Description                                                      |
+| --------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| Flash-style f/F/t/T         | `true`                       | Enable flash labels on character motions.                        |
+| Flash multi-line            | `true`                       | Search beyond the current line.                                  |
+| Flash jump mode (s)         | `false`                      | Bidirectional character jump with configurable key.              |
+| Flash jump key              | `s`                          | Key to trigger flash jump mode.                                  |
+| Flash clever-f              | `false`                      | Repeating `f{same-char}` falls through to stock `f`.             |
+| Flash min pattern length    | `1`                          | Minimum chars before labels appear in jump mode (0 = immediate). |
+| Flash search labels         | `true`                       | Show labels on search matches after committing `/` or `?`.       |
+| EasyMotion label characters | `asdghklqwertyuiopzxcvbnmfj` | Shared label characters for flash and EasyMotion.                |
+| EasyMotion dimming          | `true`                       | Dim non-target text during flash and EasyMotion.                 |
 
 ### Vimrc
 
@@ -115,6 +119,8 @@ set noflashmultiline   " current line only
 set flashjump          " enable jump mode
 set flashjumpkey=s     " jump mode key (default: s)
 set flashcleverf       " enable clever-f
+set flashminpatternlength=2  " require 2 chars before labels
+set flashsearch        " labels on /? search matches (default)
 ```
 
 ### Lua
@@ -125,7 +131,17 @@ vim.opt.flashmultiline = true
 vim.opt.flashjump = true
 vim.opt.flashjumpkey = 's'
 vim.opt.flashcleverf = true
+vim.opt.flashminpatternlength = 2
+vim.opt.flashsearch = true
 ```
+
+## Search mode (`/` and `?`)
+
+After committing a search with `/pattern` + `Enter`, flash labels appear on all visible matches. Press a label key to jump directly to that match — no need to cycle with `n`/`N`.
+
+Labels auto-clear when you press any non-label key, `Escape`, or `n`/`N`. This means the search dialog works exactly as expected during typing; labels only appear after you commit.
+
+Disable with `set noflashsearch` or in **Settings → Vim Motions → Jump navigation → Flash search labels**.
 
 ---
 

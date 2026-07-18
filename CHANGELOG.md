@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/flash/char-mode.ts` (clever-f check), `src/flash/state.ts` (last search tracking)
 - **Search match counter** — hlslens-style `[3/15]` indicator in the status bar showing the current match index and total count after `/` search and `n`/`N` navigation. Hides when cursor moves off a match or mode changes from normal. General feature, not flash-specific.
     - Plugin: `src/vim/search-counter.ts` (new), `src/vim/mode-tracker.ts` (status bar integration)
+- **Incremental jump search** — jump mode (`s`) now accepts multiple characters incrementally. Each keystroke narrows the match set; labels update in real-time with stable assignment via `FlashLabeler`. Supports Backspace (remove last char, widen matches), Enter (jump to nearest), and autojump on single match. Operator-pending (`ds{pattern}{label}`) and visual mode supported.
+    - Plugin: `src/flash/jump-mode.ts` (rewritten), `src/easymotion/targets.ts` (`findSubstringTargets`)
+- **Label conflict skipping** — labels that match the next character after a match position are excluded from the label pool, preventing ambiguity when the user might type that character to narrow the search.
+    - Plugin: `src/flash/jump-mode.ts` (`computeSkipChars`)
+- **`flashMinPatternLength` setting** — configurable minimum characters before labels appear in jump mode (default: 1). Below the threshold, matches are highlighted without labels.
+    - Plugin: `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+- **Match highlighting without labels** — `showMatchHighlights()` renders subtle position indicators for matches below the `minPatternLength` threshold, distinct from label overlays.
+    - Plugin: `src/easymotion/overlay.ts` (`showMatchHighlights`), `styles.css` (`.vim-motions-flash-match`)
+- **Flash search mode** — after committing a `/` or `?` search with Enter, labels appear on all visible matches. Press a label key to jump directly; any non-label key clears labels. Configurable via `set flashsearch` / `set noflashsearch`.
+    - Plugin: `src/flash/search-mode.ts` (new), `src/main.ts` (registration with cleanup)
 - **codemirror-vim fork API additions** — `getMotion(name)` retrieves a motion function by name (for capturing originals before override). `recordLastCharacterSearch(increment, args)` sets the `;`/`,` repeat state from plugin code.
     - Fork: `~/Repos/codemirror-vim/src/vim.js`
 
@@ -31,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 17 baseline tests in `test/specs/flash-baseline.e2e.ts`: stock f/F/t/T with flash disabled (regression guards)
 - 9 e2e tests in `test/specs/flash-char-mode.e2e.ts`: autojump, multi-match labels, escape cancel, settings toggle, multi_line, operator-pending, semicolon repeat
 - 7 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: jump mode setting, autojump, labels, no-match, escape, default key, clever-f
+- 8 e2e tests in `test/specs/flash-incremental.e2e.ts`: incremental narrowing, autojump on single match, backspace, zero matches, escape, enter, min_pattern_length, operator-pending
+- 5 e2e tests in `test/specs/flash-search-mode.e2e.ts`: labels after /pattern Enter, label jump, non-label key clears, no labels on zero/single match
 - 3 e2e tests in `test/specs/search-counter.e2e.ts`: count after search, update after n, hide when cleared
 - operator-combos.e2e.ts updated to disable flash (stock f/F/t/T behavior preserved)
 
@@ -39,14 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/features/flash.md`: New feature page — usage, multi-line, operator-pending, visual, jump mode, clever-f, configuration
 - `docs/features/index.md`: Added flash motions link
 - `docs/features/easymotion.md`: Added cross-reference to flash
-- `docs/configuration/settings.md`: Added flash, flashmultiline, flashjump, flashjumpkey, flashcleverf settings
-- `docs/configuration/vimrc.md`: Added flash boolean and string options
-- `docs/configuration/lua-config.md`: Added flash vim.opt entries
-- `docs/reference/keybindings.md`: Added flash motions and jump mode sections
-- `KNOWN_LIMITATIONS.md`: Added flash motions section (Phase 1 + Phase 2 limitations)
-- `README.md`: Added flash motions to features list
-- `CONTRIBUTING.md`: Added flash/ module and search-counter.ts to codebase structure
-- `AGENTS.md`: Added flash motions to page ownership table
+- `docs/features/index.md`: Updated flash description with incremental + search labels
+- `docs/configuration/settings.md`: Added flash, flashmultiline, flashjump, flashjumpkey, flashcleverf, flashminpatternlength, flashsearch settings
+- `docs/configuration/vimrc.md`: Added flash boolean and string options (including flashminpatternlength, flashsearch)
+- `docs/configuration/lua-config.md`: Added flash vim.opt entries (including flashminpatternlength, flashsearch)
+- `docs/reference/keybindings.md`: Added flash motions, jump mode, and search labels sections
+- `KNOWN_LIMITATIONS.md`: Added flash motions section (Phase 1 + Phase 2 + Phase 3A + Phase 3B limitations)
+- `README.md`: Updated flash motions feature bullet with incremental search + post-commit search labels
+- `CONTRIBUTING.md`: Added flash/ module, search-counter.ts, updated jump-mode.ts description
+- `AGENTS.md`: Updated flash motions page ownership with all settings
 - `CHANGELOG.md`: This entry
 
 ## [0.66.0] - 2026-07-18
