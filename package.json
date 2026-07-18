@@ -54,7 +54,7 @@
     "dependencies": {
         "@codemirror/autocomplete": "https://github.com/saberzero1/autocomplete.git",
         "@leeoniya/ufuzzy": "^1.0.19",
-        "@replit/codemirror-vim": "file:../codemirror-vim",
+        "@replit/codemirror-vim": "https://github.com/saberzero1/codemirror-vim.git",
         "fengari": "https://github.com/saberzero1/fengari.git"
     },
     "overrides": {
