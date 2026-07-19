@@ -67,6 +67,9 @@ Vim Motions includes built-in auto-formatting for tables:
 - **Separator generation**: Typing `||` on a new line immediately below a table header row generates a correctly formatted separator row matching the header's column count.
 - **Manual realignment**: Use `<Leader>tr` or `:tablerealign` to realign at any time.
 
+> [!bug] Typing `|` inside table cells
+> In Live Preview, Obsidian's table editor intercepts the `|` keystroke at the DOM level before it reaches the text input pipeline. This means typing `|` inside a table cell does nothing — the character is swallowed. This is an Obsidian platform behavior, not a plugin issue (it occurs identically with built-in vim, the bundled fork, and with no vim at all). Use **Embedded** mode (`set tablewidget=embedded`) for per-cell vim editors where `|` can be typed normally. In **Cursor-aware** or **Always raw** mode, insert `\|` via `:normal a\|` or paste from the clipboard. See [[known-limitations#Table navigation and editing]] for details.
+
 ## Table widget in Live Preview
 
 To provide a seamless editing experience, Vim Motions manages how tables are rendered in Obsidian's Live Preview mode.

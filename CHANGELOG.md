@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+
+- 13 regression tests in `test/specs/table-escaped-pipes.e2e.ts` for issues [#66](https://github.com/saberzero1/motions/issues/66) and [#67](https://github.com/saberzero1/motions/issues/67): typing `|` outside tables (empty doc, mid-text, non-table line, multiple pipes), escaped `\|` navigation (`]|` skips escaped pipes, wikilink pipe doesn't split cell), typing `|` in table cells (auto-escape, cell count preservation). 1 test skipped (Obsidian swallows `|` at DOM level — see KNOWN_LIMITATIONS.md)
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`: Updated #67 from "Fixed" to "Partially fixed" — documented remaining Obsidian platform behavior where typing `|` in table cells is swallowed by the 1.7+ table editor at the DOM level (identical in built-in vim, bundled fork, and no-vim modes). Documented workaround via Embedded table widget mode.
+- `docs/features/tables.md`: Added `[!bug]` callout about `|` typing limitation in Live Preview table cells
+- `CHANGELOG.md`: This entry
+
 ## [0.67.0] - 2026-07-18
 
 ### Added

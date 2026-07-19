@@ -175,7 +175,7 @@ Auto-format: ~~typing `|` in insert mode on a table line triggers automatic colu
 
 ~~Typing `|` moves cursor to the left of `|`~~ — Fixed. The mid-edit `|` interception that caused cursor jumps has been removed. ([#66](https://github.com/saberzero1/motions/issues/66))
 
-~~Escaped `\|` characters treated as cell boundaries during editing~~ — Fixed. Escaped pipes, wikilinks (`[[page|alias]]`), and other `|`-containing inline syntax are no longer mishandled during table editing because the auto-format no longer runs mid-edit. ([#67](https://github.com/saberzero1/motions/issues/67))
+~~Escaped `\|` characters treated as cell boundaries during editing~~ — Partially fixed. Escaped pipes, wikilinks (`[[page|alias]]`), and other `|`-containing inline syntax are no longer mishandled during table editing because the auto-format no longer runs mid-edit. However, **typing `|` inside a table cell in Live Preview is swallowed by Obsidian's table editor** — the keystroke never reaches the document. This is an Obsidian platform behavior, not a plugin issue: it occurs identically with built-in vim mode, the bundled fork, and with no vim mode at all. The Obsidian 1.7+ table editor intercepts `|` as a cell boundary command at the DOM level, before CM6's input pipeline. Workaround: use **Embedded** table widget mode (`set tablewidget=embedded`), which provides per-cell vim editors where `|` can be typed normally. In **Cursor-aware** or **Always raw** mode, insert `\|` via `:normal a\|` or paste from the clipboard. ([#67](https://github.com/saberzero1/motions/issues/67))
 
 The following are intentionally not implemented:
 
