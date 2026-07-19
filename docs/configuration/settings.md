@@ -65,13 +65,14 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 ## Line numbers
 
-| Name                  | Type     | Default  | Range/Options                    | Lua                      | Vimrc                | Description                                                                                                                                               |
-| --------------------- | -------- | -------- | -------------------------------- | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Line numbers          | toggle   | `false`  | —                                | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
-| Relative line numbers | toggle   | `false`  | —                                | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
-| Number width          | slider   | `2`      | 1–20                             | `vim.opt.numberwidth`    | `set numberwidth`    | Minimum width of the line number column in characters (1–20). Default: 2.                                                                                 |
-| Line number display   | dropdown | `hybrid` | `hybrid`, `dual`, `dual-rel-abs` | `vim.opt.linenumbermode` | `set linenumbermode` | Deprecated — use `statuscolumn`. Dual maps to `statuscolumn="%l %r"`.                                                                                     |
-| Cursor line highlight | toggle   | `true`   | —                                | `vim.opt.cursorline`     | `set cursorline`     | Highlight the current cursor line. Default: on.                                                                                                           |
+| Name                       | Type     | Default  | Range/Options                    | Lua                      | Vimrc                | Description                                                                                                                                               |
+| -------------------------- | -------- | -------- | -------------------------------- | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Line numbers               | toggle   | `false`  | —                                | `vim.opt.number`         | `set number`         | Show absolute line numbers in the gutter. Default: off.                                                                                                   |
+| Relative line numbers      | toggle   | `false`  | —                                | `vim.opt.relativenumber` | `set relativenumber` | Show relative line numbers (distance from cursor). When both are enabled, shows hybrid mode (absolute on current line, relative on others). Default: off. |
+| Number width               | slider   | `2`      | 1–20                             | `vim.opt.numberwidth`    | `set numberwidth`    | Minimum width of the line number column in characters (1–20). Default: 2.                                                                                 |
+| Line number display        | dropdown | `hybrid` | `hybrid`, `dual`, `dual-rel-abs` | `vim.opt.linenumbermode` | `set linenumbermode` | Deprecated — use `statuscolumn`. Dual maps to `statuscolumn="%l %r"`.                                                                                     |
+| Cursor line highlight      | toggle   | `true`   | —                                | `vim.opt.cursorline`     | `set cursorline`     | Highlight the current cursor line. Default: on.                                                                                                           |
+| Cursor line highlight mode | dropdown | `number` | `number`, `line`, `both`         | `vim.opt.cursorlineopt`  | `set cursorlineopt`  | What to highlight — Number, Line, or Both. Default: Number.                                                                                               |
 
 > [!tip] Custom gutter layout with `statuscolumn`
 > Use `vim.opt.statuscolumn` in Lua or `set statuscolumn` in vimrc to fully customize the gutter area. Supported tokens: `%l` (line number), `%r` (relative number), `%s` (signs), `%C` (fold indicators), `%=` (separator).
@@ -101,8 +102,6 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 >  b   2     Another paragraph.
 >      3     Final thoughts.
 > ```
->
-> | Cursor line highlight mode | dropdown | `number` | `number`, `line`, `both` | `vim.opt.cursorlineopt` | `set cursorlineopt` | What to highlight — Number, Line, or Both. Default: Number. |
 
 ## Jump navigation
 
@@ -123,8 +122,16 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                               | —                           | Key combination to trigger hint mode from anywhere.           |
 | Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`         | `set labelfontsize`         | Font size for EasyMotion and hint mode labels.                |
 | Harpoon file pinning        | toggle | `true`                       | —             | `vim.opt.harpoon`               | `set harpoon`               | Pin files to numbered slots for instant switching.            |
-| Jump list                   | toggle | `true`                       | —             | `vim.opt.jumplist`              | `set jumplist`              | Use vim-style jump list for `<C-o>`/`<C-i>`.                  |
-| Jump list size              | number | `200`                        | 1–1000        | `vim.opt.jumplistsize`          | `set jumplistsize`          | Maximum number of entries in the jump list.                   |
+
+### Vimrc / Lua only
+
+The following options are available via vimrc and Lua but do not appear in the Settings UI:
+
+| Name           | Type   | Default | Range/Options | Lua                    | Vimrc              | Description                                                            |
+| -------------- | ------ | ------- | ------------- | ---------------------- | ------------------ | ---------------------------------------------------------------------- |
+| Jump list      | toggle | `true`  | —             | `vim.opt.jumplist`     | `set jumplist`     | Use vim-style jump list for `<C-o>`/`<C-i>`.                           |
+| Jump list size | number | `200`   | 1–1000        | `vim.opt.jumplistsize` | `set jumplistsize` | Maximum number of entries in the jump list.                            |
+| Update time    | number | `4000`  | ms            | `vim.opt.updatetime`   | `set updatetime`   | Milliseconds before `CursorHold` fires. Matches Neovim's `updatetime`. |
 
 ## Snippets
 

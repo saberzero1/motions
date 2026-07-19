@@ -1,6 +1,6 @@
 ---
 title: Text objects
-description: 12 Markdown-aware text objects for bold, italic, code, math, links, blockquotes, callouts, code blocks, tags, and table cells.
+description: 13 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, and table cells.
 tags:
     - features
     - keybindings

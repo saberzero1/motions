@@ -43,6 +43,10 @@ Duration is configurable via the **Yank highlight duration** slider (50–3000ms
 > [!info]
 > Yank highlight requires bundled fork mode (built-in vim mode OFF). The built-in vim does not emit the `vim-yank` event used for detection. Works with remapped yank keys — detection is based on the actual yank operation, not keypress sniffing.
 
+## Change list navigation
+
+`g;` and `g,` jump to older and newer change positions respectively, letting you quickly revisit locations where you made edits. The `:changes` ex command displays the full change list in a modal.
+
 ## Neovim defaults
 
 - `Y` yanks to end of line (`y$`) instead of the entire line — matching Neovim's default

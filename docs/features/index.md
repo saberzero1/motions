@@ -9,7 +9,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 ## Markdown editing
 
-- **[[text-objects|Text objects]]** — 12 Markdown-aware text objects for bold, italic, code, math, links, blockquotes, callouts, code blocks, tags, and table cells. Work with all standard Vim operators (`d`, `c`, `y`, `v`).
+- **[[text-objects|Text objects]]** — 13 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, and table cells. Work with all standard Vim operators (`d`, `c`, `y`, `v`).
 - **[[structural-navigation|Structural navigation]]** — jump between headings (`]h`/`[h`), list items (`]l`/`[l`), links (`]n`/`[n`), and open buffers (`]b`/`[b`). Works with counts and operators.
 - **[[tables|Tables]]** — cell navigation (`]c`/`[c`), row navigation (`]r`/`[r`), cell text objects (`i|`/`a|`), row text objects (`ir`/`ar`), table manipulation (`<Leader>t` prefix), format-on-exit auto-alignment, cursor-aware table widget for Live Preview, and embedded per-cell editing with vim modality (two-Escape pattern, entry modes, register sharing).
 - **[[hardwrap|Hard-wrap formatting]]** — `gq`/`gw` operators with Markdown-aware line wrapping. Preserves blockquote, list, and nested structural prefixes on continuation lines.
@@ -25,11 +25,11 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Workspace & commands
 
 - **[[workspace-navigation|Workspace navigation]]** — Neovim-style window management: `<C-w>` splits, `gt`/`gT` tabs, `gd` go-to-definition, `gO` outline, `gf` file switcher. Global key handler for non-editor views (PDF, graph, canvas).
-- **[[ex-commands#Picker commands|Picker / Fuzzy finder]]** — telescope.nvim-inspired fuzzy picker with 12 built-in sources, preview pane, live grep, frecency scoring, meta-picker (`:Picker`), bundled integrations for Omnisearch, Tasks, and Dataview, and a [[picker-api|provider API]] for external plugin integration.
+- **[[ex-commands#Picker commands|Picker / Fuzzy finder]]** — telescope.nvim-inspired fuzzy picker with 14 built-in sources, preview pane, live grep, frecency scoring, meta-picker (`:Picker`), bundled integrations for Omnisearch, Tasks, and Dataview, and a [[picker-api|provider API]] for external plugin integration.
 - **[[surround|Surround]]** — vim-surround implementation: `ds`/`cs`/`ys`/`S` with Markdown delimiter support. Count-prefix repeats delimiters (`2ysiw*` → `**word**`). Dot-repeatable.
-- **[[ex-commands|Ex commands]]** — 60+ ex commands for file management (`:e`, `:w`, `:saveas`), buffer navigation (`:bn`, `:bp`, `:b`), window management (`:sp`, `:vs`, `:tabnew`), table manipulation, and Obsidian integration (`:ob`, `:sidebar`, `:grep`).
+- **[[ex-commands|Ex commands]]** — 100+ ex commands for file management (`:e`, `:w`, `:saveas`), buffer navigation (`:bn`, `:bp`, `:b`), window management (`:sp`, `:vs`, `:tabnew`), table manipulation, and Obsidian integration (`:ob`, `:sidebar`, `:grep`).
 - **[[oil-explorer|Oil explorer]]** — oil.nvim-inspired file explorer: edit vault directories as buffers, create/rename/delete files with standard vim commands (`dd`, `o`, `cw`, `:w`).
-- **[[snippets|Snippets]]** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution, choice nodes, context-aware filtering. Ships 40+ Obsidian-adapted snippets. User-defined snippets via JSON files or Lua DSL.
+- **[[snippets|Snippets]]** — VS Code-compatible snippet expansion with tabstop navigation, linked mirrors, variable resolution, choice nodes, context-aware filtering. Ships 60+ Obsidian-adapted snippets. User-defined snippets via JSON files or Lua DSL.
 
 ## Quality of life
 

@@ -1136,7 +1136,7 @@ Customize the text shown in the status bar for each vim mode using `vim.g.mode_p
 | `vim.g.mode_prompt_vreplace`      | Virtual Replace | `V-REPLACE` |
 | `vim.g.mode_prompt_command`       | Command         | `COMMAND`   |
 | `vim.g.mode_prompt_search`        | Search          | `SEARCH`    |
-| `vim.g.mode_prompt_insert_normal` | Insert-Normal   | `(insert)`  |
+| `vim.g.mode_prompt_insert_normal` | Insert-Normal   | `NORMAL`    |
 
 ```lua
 vim.g.mode_prompt_normal = "N"

@@ -69,7 +69,7 @@ Control Markdown folding with standard Vim fold commands:
 - `zm`: Fold one more heading level (incrementally folds h1, then h2, etc.).
 - `zr`: Fold one less heading level (unfolds the most recently folded level).
 
-Frontmatter (`---` blocks) and callouts (`> [!type]`) are foldable via `zc`/`zo`/`za`. Folded regions show descriptive placeholder text including the heading title, code language, or callout type.
+In addition to heading-level folds, the plugin provides dedicated fold providers for **frontmatter** (`---` blocks) and **callouts** (`> [!type]`), making them foldable via `zc`/`zo`/`za`. Folded regions show descriptive placeholder text including the heading title, code language, or callout type.
 
 When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-aware navigation**), navigating into a folded section with `]h`, `[h`, `j`, `k`, or any motion will automatically unfold it. This is off by default for backwards compatibility.
 

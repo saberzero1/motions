@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `KNOWN_LIMITATIONS.md`: Updated #67 from "Fixed" to "Partially fixed" — documented remaining Obsidian platform behavior where typing `|` in table cells is swallowed by the 1.7+ table editor at the DOM level (identical in built-in vim, bundled fork, and no-vim modes). Documented workaround via Embedded table widget mode.
 - `docs/features/tables.md`: Added `[!bug]` callout about `|` typing limitation in Live Preview table cells
+- **Documentation audit** — systematic audit of all `docs/` pages against source code. Corrected stale counts and inaccurate information across 11 files:
+    - `docs/configuration/lua-config.md`: Fixed `insert_normal` mode prompt default from `(insert)` to `NORMAL` (matching `src/settings.ts`)
+    - `docs/features/text-objects.md`, `docs/features/index.md`: Updated "12 text objects" → 13 (includes table rows)
+    - `AGENTS.md`, `CONTRIBUTING.md`, `docs/development/architecture.md`: Updated "27 vim.fn functions" → 26 (matches `src/lua/fn.ts`)
+    - `README.md`, `docs/features/index.md`: Updated "12 built-in picker sources" → 14
+    - `docs/features/index.md`: Updated "60+ ex commands" → 100+
+    - `README.md`, `docs/features/snippets.md`: Updated "40+ bundled snippets" → 60+
+    - `docs/configuration/settings.md`: Moved jumplist/jumplistsize to "Vimrc / Lua only" subsection (not in Settings UI); added updatetime for consistency; moved stray cursorlineopt row from inside callout into Line numbers table; added Cursor line highlight mode row
+    - `docs/features/quality-of-life.md`: Added change list navigation (`g;`/`g,`) section
+    - `docs/features/workspace-navigation.md`: Made fold providers (frontmatter, callouts) more explicit
+    - `KNOWN_LIMITATIONS.md`: Updated "all 12 sources" → "all 14 sources" in cross-note jump list section
+    - `docs/features/index.md`: Updated "Ships 40+ snippets" → "Ships 60+ snippets"
+    - `docs/getting-started/index.md`: Updated "60+ ex commands" → "100+ ex commands"
 - `CHANGELOG.md`: This entry
 
 ## [0.67.0] - 2026-07-18

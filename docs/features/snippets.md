@@ -6,7 +6,7 @@ tags:
     - keybindings
 ---
 
-Snippets let you insert reusable text templates with interactive fields. Type a trigger prefix and press `Tab` to expand — cursor jumps between editable placeholders. The system supports the VS Code/LSP snippet format, ships with 40+ Obsidian-adapted templates, and can be extended with user-defined JSON files or a Lua DSL.
+Snippets let you insert reusable text templates with interactive fields. Type a trigger prefix and press `Tab` to expand — cursor jumps between editable placeholders. The system supports the VS Code/LSP snippet format, ships with 60+ Obsidian-adapted templates, and can be extended with user-defined JSON files or a Lua DSL.
 
 ## Trigger mechanisms
 

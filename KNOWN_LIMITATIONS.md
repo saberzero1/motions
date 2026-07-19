@@ -30,7 +30,7 @@ This document tracks known limitations, architectural constraints, and intention
 
 **Status**: Implemented.
 
-The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>`. Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 12 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Within-buffer jumps (G, gg, /, ?) are handled by the fork's built-in jump list and delegate to the original `jumpListWalk` action.
+The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>`. Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 14 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Within-buffer jumps (G, gg, /, ?) are handled by the fork's built-in jump list and delegate to the original `jumpListWalk` action.
 
 The plugin-level jump list is cross-note only — it stores `{ filePath, line, ch }` entries and only records when the source and destination files differ. The `jumpListWalk` action override peeks at the next entry: if it points to a different file, the override navigates cross-note; otherwise, it delegates to the fork's within-buffer handler.
 

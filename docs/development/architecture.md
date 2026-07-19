@@ -40,7 +40,7 @@ The plugin includes a sandboxed Lua 5.3 runtime via a browser-only fork of [feng
 
 - `engine.ts`: Lua VM lifecycle — sandboxed state creation, instruction-limit timeout (config load: 1M instructions; runtime callbacks: 500K; snippet nodes: 100K), `withInstructionGuard` helper, throttled error notices, code evaluation.
 - `api.ts`: Registers the `vim.*` API surface — `vim.opt`, `vim.g`, `vim.cmd`, `vim.keymap`, `vim.api` (16 `nvim_*` functions), `vim.notify`, `vim.obsidian`/`vim.ob`, `vim.env`, `vim.log.levels`.
-- `fn.ts`: Registers `vim.fn.*` functions (27 functions) with callbacks bridging to Obsidian's vault and editor APIs.
+- `fn.ts`: Registers `vim.fn.*` functions (26 functions) with callbacks bridging to Obsidian's vault and editor APIs.
 - `stdlib.ts`: Pure-Lua standard library utilities — `vim.tbl_*` (12 table functions), `vim.split`/`vim.trim`/`vim.startswith`/`vim.endswith`/`vim.inspect`, and `vim.json` (JS-bridged encode/decode).
 - `timers.ts`: Async primitives — `vim.schedule`, `vim.defer_fn`, `vim.uv`/`vim.loop` timer subset. Managed by `TimerManager` for cleanup on plugin unload.
 - `autocmd.ts`: Autocommand system — `AutocmdManager` handles 12 events (`InsertEnter`, `CursorMoved`, `BufWritePre`, etc.) with augroup management and pattern matching.
