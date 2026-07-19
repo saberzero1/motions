@@ -97,6 +97,13 @@ src/
     blockquote.ts          # Blockquote and callout text objects
     table-cell.ts          # Table cell text object (i| / a|)
     table-row.ts           # Table row text object (ir / ar)
+    pair-util.ts           # Shared asymmetric pair matching (used by iD/aD and Lua gen_spec.pair)
+    subword.ts             # iS/aS subword text object
+    number.ts              # in/an numeric literal text object
+    any-quote.ts           # iq/aq nearest-quote text object
+    double-bracket.ts      # iD/aD wikilink [[...]] text object
+    url.ts                 # gL forward-seeking URL text object
+    argument.ts            # i,/a, comma-separated argument text object
     tag.ts                 # HTML/Markdown tag text objects
     register.ts            # Wires all text objects to keybindings
   motions/
@@ -105,6 +112,7 @@ src/
     links.ts               # ]n/[n link navigation
     tables.ts              # ]|/[| table cell navigation
     buffers.ts             # ]b/[b buffer (tab) cycling
+    subword.ts             # w/b/e/ge subword-aware motions (spider.nvim-style)
     goto-definition.ts     # gd link following + gx URL opening
     register.ts            # Wires all motions to keybindings
   operators/
@@ -113,6 +121,9 @@ src/
     register.ts            # Wires operators (gq/gw, gr) to keybindings
   actions/
     open-line.ts           # Open-line action implementation
+    dial.ts                # Enhanced increment/decrement dispatcher
+    dial-rules.ts          # Dial rules (checkbox, boolean, hex, date, CSS, integer)
+    register-dial.ts       # Dial action override registration
   workspace/
     navigation.ts          # Pane/tab/fold/gd/gx/gO/gf/hint-mode keybindings + <leader>r* note actions
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
@@ -155,6 +166,7 @@ src/
     regex.ts               # vim.regex() — ECMAScript RegExp wrapper (match_str, match_pos, replace, test)
     obsidian-api.ts        # vim.obsidian / vim.ob namespace (including vim.obsidian.im)
     timers.ts              # vim.schedule, vim.defer_fn, vim.uv timers
+    textobject-api.ts      # vim.textobject + vim.gen_spec Lua API injection
     strftime.ts            # os.date-compatible time formatting
     types.d.ts             # Lua engine type declarations
   oil/
@@ -199,6 +211,7 @@ src/
       omnisearch.ts        #   Omnisearch integration
       tasks.ts             #   Obsidian Tasks integration
       dataview.ts          #   Dataview integration
+      ripgrep-process.ts   #   External grep/ripgrep binary execution
   im/
     im-switcher.ts         # Input method auto-switching on mode change
     im-process.ts          # External IM binary process management
@@ -233,6 +246,7 @@ src/
     keymap.ts              # pushKeymapScope(), popKeymapScope() — typed access to app.keymap scope management
     around.ts              # Monkey-patching utility (around pattern)
     external-fs.ts         # External filesystem access helpers
+    subword.ts             # Shared subword boundary detection (camelCase/snake_case/kebab-case)
   vimrc/
     parser.ts              # Line-by-line .obsidian.vimrc parser
     loader.ts              # Two-phase vimrc loader: readAndParseVimrcFile (no CM needed) → applyVimrcCommands (14 types explicit)

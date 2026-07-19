@@ -146,6 +146,44 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.im.restore()`                          | Restore saved IM for active editor                 | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
 
+## vim.textobject
+
+Define custom text objects from Lua configuration.
+
+### vim.gen_spec.pair(open, close, opts?)
+
+Creates a text object spec for delimiter pairs.
+
+- `open` (string) — Opening delimiter (e.g., `"(("`, `"**"`, `"<"`)
+- `close` (string) — Closing delimiter (e.g., `"))"`, `"**"`, `">"`)
+- `opts.multiline` (boolean, default `true`) — Search across multiple lines
+
+### vim.textobject.add(keys, spec)
+
+Register a custom text object.
+
+- `keys` (string) — Keybinding, must start with `i` (inner) or `a` (around), e.g., `"iX"`, `"a<"`
+- `spec` — A spec table from `vim.gen_spec.*`
+
+### vim.textobject.del(keys)
+
+Remove a previously registered text object.
+
+### Examples
+
+```lua
+-- Custom angle bracket text object
+vim.textobject.add('i<', vim.gen_spec.pair('<', '>'))
+vim.textobject.add('a<', vim.gen_spec.pair('<', '>'))
+
+-- Custom double-asterisk text object
+vim.textobject.add('iB', vim.gen_spec.pair('**', '**'))
+vim.textobject.add('aB', vim.gen_spec.pair('**', '**'))
+
+-- Single-line only
+vim.textobject.add('iP', vim.gen_spec.pair('(', ')', { multiline = false }))
+```
+
 ### Leader key
 
 Set the leader key with `vim.g.mapleader`. Common choices:

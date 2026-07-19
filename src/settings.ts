@@ -111,6 +111,7 @@ export interface VimMotionsSettings {
     enableOnMobile: boolean;
     enableTextObjects: boolean;
     enableNavigation: boolean;
+    enableSubwordMotions: boolean;
     enableWorkspaceNav: boolean;
     workspaceNavViewTypes: string;
     picker: boolean;
@@ -119,6 +120,10 @@ export interface VimMotionsSettings {
     pickerOmnisearch: boolean;
     pickerTasks: boolean;
     pickerDataview: boolean;
+    ripgrepEnabled: boolean;
+    ripgrepBinaryPath: string;
+    ripgrepArgs: string;
+    grepMode: 'ripgrep' | 'grep';
     frecencyData?: Record<string, { count: number; timestamps: number[] }>;
     persistedMarks?: {
         name: string;
@@ -144,6 +149,7 @@ export interface VimMotionsSettings {
     flashSearch: boolean;
     enableHardWrap: boolean;
     enableReplaceWithRegister: boolean;
+    enableDial: boolean;
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'off' | 'cursor' | 'always' | 'embedded';
@@ -228,6 +234,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableOnMobile: false,
     enableTextObjects: true,
     enableNavigation: true,
+    enableSubwordMotions: false,
     enableWorkspaceNav: true,
     workspaceNavViewTypes: '',
     picker: true,
@@ -236,6 +243,10 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     pickerOmnisearch: true,
     pickerTasks: true,
     pickerDataview: true,
+    ripgrepEnabled: false,
+    ripgrepBinaryPath: '',
+    ripgrepArgs: '--smart-case --glob "*.md"',
+    grepMode: 'ripgrep' as const,
     frecencyData: undefined,
     configMode: 'lua-vimrc',
     enableStatusBar: true,
@@ -253,6 +264,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     flashSearch: true,
     enableHardWrap: true,
     enableReplaceWithRegister: true,
+    enableDial: false,
     listContinuationOnOpen: true,
     enableTableNav: true,
     tableWidgetMode: 'cursor',
@@ -377,8 +389,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'pickerMatcherEngine',
         'enableTextObjects',
         'enableNavigation',
+        'enableSubwordMotions',
         'enableHardWrap',
         'enableReplaceWithRegister',
+        'enableDial',
         'listContinuationOnOpen',
         'enableTableNav',
         'tableWidgetMode',
@@ -436,6 +450,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'pickerOmnisearch',
         'pickerTasks',
         'pickerDataview',
+        'ripgrepEnabled',
+        'ripgrepBinaryPath',
+        'ripgrepArgs',
+        'grepMode',
         'enableSnippets',
         'snippetBundled',
         'snippetDirectory',
@@ -544,6 +562,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         },
                     },
                     {
+                        name: 'Subword motions (w/b/e/ge)',
+                        desc: this.describeOverride(
+                            'enableSubwordMotions',
+                            'Override w/b/e/ge to stop at camelCase, snake_case, and kebab-case boundaries (spider.nvim-style).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableSubwordMotions',
+                            disabled: () =>
+                                this.isOverridden('enableSubwordMotions'),
+                        },
+                    },
+                    {
                         name: 'Hard-wrap operator (gq)',
                         desc: this.describeOverride(
                             'enableHardWrap',
@@ -568,6 +599,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             key: 'enableReplaceWithRegister',
                             disabled: () =>
                                 this.isOverridden('enableReplaceWithRegister'),
+                        },
+                    },
+                    {
+                        name: 'Enhanced increment/decrement (<C-a>/<C-x>)',
+                        desc: this.describeOverride(
+                            'enableDial',
+                            'Extends <C-a>/<C-x> to cycle hex colors, booleans, dates, CSS values, and checkboxes (dial.nvim-style).',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableDial',
+                            disabled: () => this.isOverridden('enableDial'),
                         },
                     },
                     {
@@ -734,6 +777,72 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                         },
                     },
+                    ...(Platform.isDesktop
+                        ? [
+                              {
+                                  name: 'Use external grep binary',
+                                  desc: this.describeOverride(
+                                      'ripgrepEnabled',
+                                      'Use a local grep/ripgrep binary for faster vault search. Desktop only. Falls back to in-memory search if unavailable.',
+                                  ),
+                                  control: {
+                                      type: 'toggle' as const,
+                                      key: 'ripgrepEnabled',
+                                  },
+                              },
+                              ...(this.plugin.settings.ripgrepEnabled
+                                  ? [
+                                        {
+                                            name: 'Grep binary mode',
+                                            desc: this.describeOverride(
+                                                'grepMode',
+                                                'Which binary to use. "ripgrep" expects rg with --json output. "grep" expects GNU/BSD grep with -rn output.',
+                                            ),
+                                            control: {
+                                                type: 'dropdown' as const,
+                                                key: 'grepMode',
+                                                options: {
+                                                    ripgrep: 'ripgrep (rg)',
+                                                    grep: 'grep (GNU/BSD)',
+                                                },
+                                            },
+                                        },
+                                        {
+                                            name: 'Grep binary path',
+                                            desc: this.describeOverride(
+                                                'ripgrepBinaryPath',
+                                                'Absolute path to the grep binary (e.g., /usr/bin/rg, /usr/bin/grep). Tilde (~) supported.',
+                                            ),
+                                            control: {
+                                                type: 'text' as const,
+                                                key: 'ripgrepBinaryPath',
+                                                placeholder:
+                                                    this.plugin.settings
+                                                        .grepMode === 'grep'
+                                                        ? '/usr/bin/grep'
+                                                        : '/usr/bin/rg',
+                                            },
+                                        },
+                                        {
+                                            name: 'Extra arguments',
+                                            desc: this.describeOverride(
+                                                'ripgrepArgs',
+                                                'Additional arguments passed to the grep binary. For rg: --smart-case --glob "*.md". For grep: -i --include="*.md".',
+                                            ),
+                                            control: {
+                                                type: 'text' as const,
+                                                key: 'ripgrepArgs',
+                                                placeholder:
+                                                    this.plugin.settings
+                                                        .grepMode === 'grep'
+                                                        ? '-i --include="*.md"'
+                                                        : '--smart-case --glob "*.md"',
+                                            },
+                                        },
+                                    ]
+                                  : []),
+                          ]
+                        : []),
                     ...(Platform.isDesktop
                         ? [
                               {
@@ -2186,6 +2295,28 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
+            .setName('Subword motions (w/b/e/ge)')
+            .setDesc(
+                describeOverride(
+                    'enableSubwordMotions',
+                    'Override w/b/e/ge to stop at camelCase, snake_case, and kebab-case boundaries (spider.nvim-style).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableSubwordMotions)
+                    .setDisabled(isOverridden('enableSubwordMotions'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableSubwordMotions = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'enableSubwordMotions',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
             .setName('Hard-wrap operator (gq)')
             .setDesc(
                 describeOverride(
@@ -2224,6 +2355,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete(
                             'enableReplaceWithRegister',
                         );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Enhanced increment/decrement (<C-a>/<C-x>)')
+            .setDesc(
+                describeOverride(
+                    'enableDial',
+                    'Extends <C-a>/<C-x> to cycle hex colors, booleans, dates, CSS values, and checkboxes (dial.nvim-style).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableDial)
+                    .setDisabled(isOverridden('enableDial'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableDial = value;
+                        this.plugin.vimrcOverrides?.delete('enableDial');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -2486,6 +2637,84 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        if (Platform.isDesktop) {
+            new Setting(containerEl)
+                .setName('Use external grep binary')
+                .setDesc(
+                    'Use a local grep/ripgrep binary for faster vault search. Desktop only. Falls back to in-memory search if unavailable.',
+                )
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(this.plugin.settings.ripgrepEnabled)
+                        .onChange(async (value) => {
+                            this.plugin.settings.ripgrepEnabled = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+
+            if (this.plugin.settings.ripgrepEnabled) {
+                new Setting(containerEl)
+                    .setName('Grep binary mode')
+                    .setDesc(
+                        'Which binary to use. "ripgrep" expects rg with --json output. "grep" expects GNU/BSD grep with -rn output.',
+                    )
+                    .addDropdown((dropdown) =>
+                        dropdown
+                            .addOptions({
+                                ripgrep: 'ripgrep (rg)',
+                                grep: 'grep (GNU/BSD)',
+                            })
+                            .setValue(this.plugin.settings.grepMode)
+                            .onChange(async (value) => {
+                                this.plugin.settings.grepMode = value as
+                                    | 'ripgrep'
+                                    | 'grep';
+                                await this.plugin.saveSettings();
+                                this.plugin.reloadFeatures();
+                            }),
+                    );
+
+                new Setting(containerEl)
+                    .setName('Grep binary path')
+                    .setDesc(
+                        'Absolute path to the grep binary (e.g., /usr/bin/rg, /usr/bin/grep). Tilde (~) supported.',
+                    )
+                    .addText((text) =>
+                        text
+                            .setPlaceholder(
+                                this.plugin.settings.grepMode === 'grep'
+                                    ? '/usr/bin/grep'
+                                    : '/usr/bin/rg',
+                            )
+                            .setValue(this.plugin.settings.ripgrepBinaryPath)
+                            .onChange(async (value) => {
+                                this.plugin.settings.ripgrepBinaryPath = value;
+                                await this.plugin.saveSettings();
+                            }),
+                    );
+
+                new Setting(containerEl)
+                    .setName('Extra arguments')
+                    .setDesc(
+                        'Additional arguments passed to the grep binary. For rg: --smart-case --glob "*.md". For grep: -i --include="*.md".',
+                    )
+                    .addText((text) =>
+                        text
+                            .setPlaceholder(
+                                this.plugin.settings.grepMode === 'grep'
+                                    ? '-i --include="*.md"'
+                                    : '--smart-case --glob "*.md"',
+                            )
+                            .setValue(this.plugin.settings.ripgrepArgs)
+                            .onChange(async (value) => {
+                                this.plugin.settings.ripgrepArgs = value;
+                                await this.plugin.saveSettings();
+                            }),
+                    );
+            }
+        }
 
         // ── Third-party integrations ────────────────────────────────────
 

@@ -30,6 +30,12 @@ import {
     tablePrevRowMotion,
     registerTableActions,
 } from './tables';
+import {
+    subwordBackward,
+    subwordEndBackward,
+    subwordEndForward,
+    subwordForward,
+} from './subword';
 
 export function registerNavigationMotions(reg: VimRegistration): void {
     reg.defineMotion('nextHeading', nextHeading);
@@ -124,6 +130,17 @@ export function registerTableMotions(reg: VimRegistration): void {
 }
 
 export { registerTableActions };
+
+export function registerSubwordMotions(reg: VimRegistration): void {
+    reg.defineMotion('subwordForward', subwordForward);
+    reg.mapCommand('w', 'motion', 'subwordForward', {});
+    reg.defineMotion('subwordBackward', subwordBackward);
+    reg.mapCommand('b', 'motion', 'subwordBackward', {});
+    reg.defineMotion('subwordEndForward', subwordEndForward);
+    reg.mapCommand('e', 'motion', 'subwordEndForward', { inclusive: true });
+    reg.defineMotion('subwordEndBackward', subwordEndBackward);
+    reg.mapCommand('ge', 'motion', 'subwordEndBackward', { inclusive: true });
+}
 
 export function registerBufferNavigation(reg: VimRegistration, app: App): void {
     const nextBuf = nextBuffer(app);

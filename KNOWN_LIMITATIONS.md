@@ -96,6 +96,14 @@ Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches 
 - **Search mode single match**: Labels are only shown when 2+ matches exist. Single-match searches navigate directly without labels.
 - **Search labels with `*`/`#`**: Word-under-cursor search (`*`/`#`) does not trigger flash search labels because it bypasses the search dialog.
 
+## ~~Custom text objects via Lua (vim.textobject)~~ (Fixed)
+
+**Status**: Fixed. Lua text object specs are now persisted and re-registered after `reloadFeatures()`.
+
+The `vim.textobject.add()` / `vim.gen_spec.pair()` API registers custom text objects from Lua configuration. The pair matching logic (asymmetric delimiters, nesting, multi-line) is verified working via 26 unit tests on `createAsymmetricPairTextObject` and 5 passing E2E tests.
+
+Root cause of the original issue: `loadLuaConfigInternal()` called `reloadFeatures()` AFTER the Lua config registered text objects. `reloadFeatures()` destroyed the `VimRegistration` instance that held the Lua-registered keybindings and created a fresh one that had no knowledge of them. Fix: text object specs are stored in `this.luaTextObjectSpecs[]` during the `onTextObjectAdd` callback, then `reregisterLuaTextObjects()` replays them on the new `VimRegistration` instance after `reloadFeatures()` completes.
+
 ## EasyMotion operator-pending mode
 
 **Status**: Working via fork's async motion support.

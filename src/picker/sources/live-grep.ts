@@ -1,12 +1,61 @@
-import { App, MarkdownView } from 'obsidian';
+import { App, MarkdownView, Platform } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
 import { navigateWithJump } from '../../workspace/navigate';
+import {
+    executeRipgrep,
+    getVaultBasePath,
+    type RipgrepConfig,
+    validateRipgrepBinary,
+} from './ripgrep-process';
 
 const MAX_RESULTS = 100;
 
-export function createLiveGrepSource(): PickerSource {
+function truncatePreview(text: string): string {
+    return text.length > 80 ? text.slice(0, 80) : text;
+}
+
+function getBasename(path: string): string {
+    const idx = path.lastIndexOf('/');
+    return idx === -1 ? path : path.slice(idx + 1);
+}
+
+async function tryRipgrep(
+    app: App,
+    query: string,
+    config?: RipgrepConfig,
+): Promise<PickerItem[] | null> {
+    if (!config || !config.binary.trim()) return null;
+    if (!Platform.isDesktop) return null;
+
+    const basePath = getVaultBasePath(app);
+    if (!basePath) return null;
+
+    const isValid = await validateRipgrepBinary(config.binary);
+    if (!isValid) return null;
+
+    const matches = await executeRipgrep(config, query, basePath);
+    if (matches.length === 0) return null;
+
+    return matches.slice(0, MAX_RESULTS).map((match) => {
+        const preview = truncatePreview(match.lineText);
+        return {
+            id: `${match.path}:${match.lineNumber}`,
+            label: getBasename(match.path),
+            description: `L${match.lineNumber}: ${preview}`,
+            filterValue: `${getBasename(match.path)} ${preview}`,
+            data: {
+                path: match.path,
+                line: match.lineNumber,
+            },
+        };
+    });
+}
+
+export function createLiveGrepSource(
+    ripgrepConfig?: RipgrepConfig,
+): PickerSource {
     return {
         name: 'livegrep',
         placeholder: 'Search vault content…',
@@ -19,6 +68,9 @@ export function createLiveGrepSource(): PickerSource {
             return [];
         },
         async search(query: string, app: App) {
+            const ripgrepResults = await tryRipgrep(app, query, ripgrepConfig);
+            if (ripgrepResults) return ripgrepResults;
+
             let re: RegExp | null = null;
             try {
                 re = new RegExp(query, 'i');
@@ -54,8 +106,7 @@ export function createLiveGrepSource(): PickerSource {
                         const line = lines[i];
                         if (!line) continue;
                         if (match(line)) {
-                            const preview =
-                                line.length > 80 ? line.slice(0, 80) : line;
+                            const preview = truncatePreview(line);
                             results.push({
                                 id: `${file.path}:${i + 1}`,
                                 label: file.basename,

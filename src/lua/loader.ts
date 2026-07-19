@@ -26,6 +26,7 @@ import { injectStdlib } from './stdlib';
 import { injectTimers, TimerManager } from './timers';
 import { HighlightManager } from './highlight';
 import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
+import { injectTextObjectApi } from './textobject-api';
 import type { lua_State } from 'fengari';
 import type { ImSwitcher } from '../im/im-switcher';
 import { CoroutineRunner } from './coroutine-runner';
@@ -203,6 +204,8 @@ export interface LoadInitLuaOptions {
         | 'oilOpenEntry'
     >;
     onPickerKeymapChange?: (keymap: Record<string, string[]>) => void;
+    onTextObjectAdd?: VimApiCallbacks['onTextObjectAdd'];
+    onTextObjectDel?: VimApiCallbacks['onTextObjectDel'];
     globalRegistry?: {
         addMapping: (
             keys: string,
@@ -233,6 +236,8 @@ export async function loadInitLua(
         openPicker,
         oilCallbacks,
         onPickerKeymapChange,
+        onTextObjectAdd,
+        onTextObjectDel,
         globalRegistry,
         imSwitcher,
     } = options;
@@ -311,7 +316,7 @@ export async function loadInitLua(
     const L = createSandboxedState();
     const runner = new CoroutineRunner(L);
     const autocmdManager = new AutocmdManager(L);
-    const { globals } = injectVimApi(L, {
+    const callbacks: VimApiCallbacks = {
         highlightManager,
         onSettingOverride: (key, value, directive) => {
             commandCount++;
@@ -613,6 +618,8 @@ export async function loadInitLua(
             const idx = surroundPairs.findIndex((p) => p.trigger === trigger);
             if (idx !== -1) surroundPairs.splice(idx, 1);
         },
+        onTextObjectAdd,
+        onTextObjectDel,
         onLeaderBinding: (key, commandId, desc) => {
             commandCount++;
             leaderBindings.push({ key, commandId, desc });
@@ -942,7 +949,9 @@ export async function loadInitLua(
                 throw new Error(`file not found: ${path}`);
             }
         },
-    });
+    };
+    const { globals } = injectVimApi(L, callbacks);
+    injectTextObjectApi(L, callbacks);
 
     injectVimFn(L, {
         getActiveFilePath: () => app.workspace.getActiveFile()?.path ?? null,

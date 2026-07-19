@@ -1,8 +1,14 @@
-import { App, MarkdownView } from 'obsidian';
+import { App, MarkdownView, Platform } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
 import { navigateWithJump } from '../../workspace/navigate';
+import {
+    executeRipgrep,
+    getVaultBasePath,
+    type RipgrepConfig,
+    validateRipgrepBinary,
+} from './ripgrep-process';
 
 interface GrepResult {
     path: string;
@@ -16,6 +22,11 @@ const MAX_RESULTS = 100;
 
 function truncatePreview(text: string): string {
     return text.length > 80 ? text.slice(0, 80) : text;
+}
+
+function getBasename(path: string): string {
+    const idx = path.lastIndexOf('/');
+    return idx === -1 ? path : path.slice(idx + 1);
 }
 
 function createMatcher(
@@ -38,7 +49,44 @@ function createMatcher(
     }
 }
 
-async function searchVault(app: App, query: string): Promise<GrepResult[]> {
+async function tryRipgrep(
+    app: App,
+    query: string,
+    config?: RipgrepConfig,
+): Promise<GrepResult[] | null> {
+    if (!config || !config.binary.trim()) return null;
+    if (!Platform.isDesktop) return null;
+
+    const basePath = getVaultBasePath(app);
+    if (!basePath) return null;
+
+    const isValid = await validateRipgrepBinary(config.binary);
+    if (!isValid) return null;
+
+    const matches = await executeRipgrep(config, query, basePath);
+    if (matches.length === 0) return null;
+
+    const matcher = createMatcher(query);
+    return matches.slice(0, MAX_RESULTS).map((match) => {
+        const lineResult = matcher(match.lineText);
+        return {
+            path: match.path,
+            basename: getBasename(match.path),
+            linePreview: truncatePreview(match.lineText),
+            lineNumber: match.lineNumber,
+            score: lineResult?.score ?? 0,
+        };
+    });
+}
+
+async function searchVault(
+    app: App,
+    query: string,
+    ripgrepConfig?: RipgrepConfig,
+): Promise<GrepResult[]> {
+    const ripgrepResults = await tryRipgrep(app, query, ripgrepConfig);
+    if (ripgrepResults) return ripgrepResults;
+
     const search = createMatcher(query);
     const files = app.vault.getMarkdownFiles();
     const results: GrepResult[] = [];
@@ -79,7 +127,10 @@ async function searchVault(app: App, query: string): Promise<GrepResult[]> {
     return results.sort((a, b) => b.score - a.score).slice(0, MAX_RESULTS);
 }
 
-export function createGrepSource(query: string): PickerSource {
+export function createGrepSource(
+    query: string,
+    ripgrepConfig?: RipgrepConfig,
+): PickerSource {
     return {
         name: 'grep',
         placeholder: 'Filter results…',
@@ -89,7 +140,7 @@ export function createGrepSource(query: string): PickerSource {
         description: 'Search results for a query',
         priority: 11,
         async items(app) {
-            const results = await searchVault(app, query);
+            const results = await searchVault(app, query, ripgrepConfig);
             return results.map(
                 (result): PickerItem => ({
                     id: `${result.path}:${result.lineNumber}`,

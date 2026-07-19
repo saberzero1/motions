@@ -12,7 +12,7 @@ tags:
 Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 
 | Keybinding          | Description                                                          |
-| ------------------- | -------------------------------------------------------------------- |
+| ------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`)             |
 | `i_` / `a_`         | Inside/around _italic_ (`_..._`)                                     |
 | `` i` `` / `` a` `` | Inside/around `inline code`                                          |
@@ -26,6 +26,12 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 | `it` / `at`         | Inside/around HTML/XML tags                                          |
 | `ir` / `ar`         | Inside/around table row (raw markdown only)                          |
 | `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                        |
+| `iS` / `aS`         | Subword                                                              | camelCase/snake_case segment. Around includes trailing separator    |
+| `in` / `an`         | Number                                                               | Numeric literal (sign + decimal). Around includes surrounding space |
+| `iq` / `aq`         | Any quote                                                            | Nearest `"`/`'`/`` ` `` pair on same line                           |
+| `iD` / `aD`         | Double brackets                                                      | Wikilink `[[...]]` content. Handles nesting                         |
+| `gL`                | URL                                                                  | Forward-seeking URL selection (`https://...`)                       |
+| `i,` / `a,`         | Argument                                                             | Comma-separated argument with nesting support                       |
 
 ## Structural navigation
 
@@ -38,6 +44,15 @@ Jump between document structures. Works with counts (e.g., `3]h` jumps 3 heading
 | `]l` / `[l`           | Next/previous list item (same indent level) |
 | `]n` / `[n`           | Next/previous link                          |
 | `]b` / `[b`           | Next/previous open buffer (tab)             |
+
+## Subword motions
+
+| Key  | Action                      | Notes                                                                                        |
+| ---- | --------------------------- | -------------------------------------------------------------------------------------------- |
+| `w`  | Next subword start          | Requires `enableSubwordMotions` setting. Stops at camelCase/snake_case/kebab-case boundaries |
+| `b`  | Previous subword start      | Same                                                                                         |
+| `e`  | End of current/next subword | Same                                                                                         |
+| `ge` | End of previous subword     | Same                                                                                         |
 
 ## Table navigation
 
@@ -517,6 +532,13 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 | `o` / `O`  | Smart list continuation (bullets, numbers, checkboxes) |
 | `Y`        | Yank to end of line (`y$`)                             |
 | `Q`        | Replay last recorded macro (`@@`)                      |
+
+## Increment/Decrement
+
+| Key     | Action    | Notes                                                                                               |
+| ------- | --------- | --------------------------------------------------------------------------------------------------- |
+| `<C-a>` | Increment | Enhanced: cycles hex colors, booleans, dates, CSS values, checkboxes. Requires `enableDial` setting |
+| `<C-x>` | Decrement | Same                                                                                                |
 
 ## Remapping
 

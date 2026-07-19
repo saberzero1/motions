@@ -6,7 +6,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 ## Features
 
-- **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, and table cells with `d`, `c`, `y`, `v`
+- **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, table cells, subwords, numbers, quotes, wikilinks, URLs, and arguments with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
 - **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.snippet.*`, `vim.json`, `vim.inspect`, `vim.regex` (ECMAScript RegExp), `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (19 events), `vim.obsidian` namespace (including `vim.obsidian.im` for input method control), buffer-local keymaps, async file reading (`vim.ob.fs.read`), multi-file configs via `require()`, `collectgarbage()` support, `__gc` userdata finalization, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 75+ configurable settings and which-key support with Lucide icons
@@ -30,6 +30,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Input method switching** — automatic IM switching for CJK users when entering/leaving insert mode. Supports macism, im-select, fcitx5-remote, ibus, and any external binary. Platform presets for one-click setup, per-editor state with session persistence, composition guard, `:IMToggle`/`:IMStatus` ex commands, Lua API (`vim.obsidian.im`). Desktop only.
 - **Vim in text areas** — focused `<textarea>` elements in modals and plugin UIs are replaced with a vim-enabled editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode, second Escape returns to modal. Experimental, disabled by default. Desktop only.
 - **Cross-note jump list** — `<C-o>` and `<C-i>` navigate backward/forward through jump history across notes. Jumps recorded on `gd`, picker selection, harpoon, oil, EasyMotion, and 100+ other navigation paths. Persists across sessions. `:jumps` displays the list. `set jumplist`/`set jumplistsize` for configuration
+- **Subword motions** — spider.nvim-style `w`/`b`/`e`/`ge` override stopping at camelCase, snake_case, and kebab-case boundaries. Opt-in setting.
+- **Enhanced increment/decrement** — dial.nvim-style `<C-a>`/`<C-x>` cycling hex colors, booleans, dates, CSS values, and checkboxes
+- **Custom text objects** — define delimiter-pair text objects from Lua via `vim.textobject.add()` + `vim.gen_spec.pair()`
+- **External grep** — optional ripgrep or GNU grep binary for native-speed vault search in the picker. Desktop only with in-memory fallback.
 - **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation

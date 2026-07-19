@@ -55,6 +55,40 @@ The scanner for these blocks skips lines within fenced code blocks to avoid fals
 
 Tag text objects (`it` / `at`) allow you to operate on HTML or XML tags within your Markdown files. These are implemented via raw text scanning rather than a full HTML parser to ensure compatibility with Markdown-mixed content.
 
+## General-purpose text objects
+
+These text objects provide standard Vim-like behavior for common programming and writing patterns:
+
+- `iS` / `aS` — **Subword**: camelCase, snake_case, or kebab-case segments. Around includes the trailing separator.
+- `in` / `an` — **Number**: Full numeric literals, including signs and decimals. Around includes surrounding whitespace.
+- `iq` / `aq` — **Any quote**: The nearest quote pair (`"`, `'`, or `` ` ``) on the current line.
+- `iD` / `aD` — **Double brackets**: Wikilink-style `[[...]]` content. Supports nested brackets.
+- `gL` — **URL**: Forward-seeking URL selection. Jumps to the next URL on the line and selects it.
+- `i,` / `a,` — **Argument**: Comma-separated arguments in lists or function calls. Supports nesting (e.g., `func(a, [b, c], d)`).
+
+## Custom text objects via Lua
+
+You can define your own text objects using the Lua API. This is useful for custom delimiters or specific document structures.
+
+### Defining pairs
+
+The `vim.gen_spec.pair()` function creates a text object specification for delimiter pairs:
+
+```lua
+-- Inner angle bracket
+vim.textobject.add('i<', vim.gen_spec.pair('<', '>'))
+-- Around angle bracket
+vim.textobject.add('a<', vim.gen_spec.pair('<', '>'))
+```
+
+### API Reference
+
+- `vim.textobject.add(keys, spec)`: Registers a new text object. `keys` must start with `i` or `a`.
+- `vim.gen_spec.pair(open, close, opts?)`: Generates a pair specification.
+    - `multiline` (boolean, default `true`): Whether to search across multiple lines.
+
+See [[lua-config#vim.textobject]] for more examples and details.
+
 ## Table cell text objects
 
 Table cell text objects (`i|` / `a|`) operate on individual cells within Markdown tables:

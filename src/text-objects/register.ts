@@ -18,6 +18,15 @@ import {
 import { createInnerTagMotion, createAroundTagMotion } from './tag';
 import { tableCellTextObject } from './table-cell';
 import { tableRowTextObject } from './table-row';
+import { subwordInnerTextObject, subwordAroundTextObject } from './subword';
+import { numberInnerTextObject, numberAroundTextObject } from './number';
+import { anyQuoteInnerTextObject, anyQuoteAroundTextObject } from './any-quote';
+import {
+    createDoubleBracketInner,
+    createDoubleBracketAround,
+} from './double-bracket';
+import { urlTextObject } from './url';
+import { argumentInnerTextObject, argumentAroundTextObject } from './argument';
 
 export function registerTextObjects(
     reg: VimRegistration,
@@ -149,4 +158,44 @@ export function registerTextObjects(
     });
     reg.defineMotion('tableRowAround', tableRowTextObject);
     reg.mapCommand('ar', 'motion', 'tableRowAround', {});
+
+    // --- General-purpose text objects ---
+    // Subword
+    reg.defineMotion('subwordInner', subwordInnerTextObject);
+    reg.mapCommand('iS', 'motion', 'subwordInner', { textObjectInner: true });
+    reg.defineMotion('subwordAround', subwordAroundTextObject);
+    reg.mapCommand('aS', 'motion', 'subwordAround', {});
+
+    // Number
+    reg.defineMotion('numberInner', numberInnerTextObject);
+    reg.mapCommand('in', 'motion', 'numberInner', { textObjectInner: true });
+    reg.defineMotion('numberAround', numberAroundTextObject);
+    reg.mapCommand('an', 'motion', 'numberAround', {});
+
+    // Any quote
+    reg.defineMotion('anyQuoteInner', anyQuoteInnerTextObject);
+    reg.mapCommand('iq', 'motion', 'anyQuoteInner', { textObjectInner: true });
+    reg.defineMotion('anyQuoteAround', anyQuoteAroundTextObject);
+    reg.mapCommand('aq', 'motion', 'anyQuoteAround', {});
+
+    // Double bracket (wikilink)
+    reg.defineMotion('doubleBracketInner', createDoubleBracketInner(scanLimit));
+    reg.mapCommand('iD', 'motion', 'doubleBracketInner', {
+        textObjectInner: true,
+    });
+    reg.defineMotion(
+        'doubleBracketAround',
+        createDoubleBracketAround(scanLimit),
+    );
+    reg.mapCommand('aD', 'motion', 'doubleBracketAround', {});
+
+    // URL (gL — avoids conflict with normal-mode L)
+    reg.defineMotion('urlForward', urlTextObject);
+    reg.mapCommand('gL', 'motion', 'urlForward', {});
+
+    // Argument
+    reg.defineMotion('argumentInner', argumentInnerTextObject);
+    reg.mapCommand('i,', 'motion', 'argumentInner', { textObjectInner: true });
+    reg.defineMotion('argumentAround', argumentAroundTextObject);
+    reg.mapCommand('a,', 'motion', 'argumentAround', {});
 }

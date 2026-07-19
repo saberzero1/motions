@@ -15,13 +15,16 @@ import {
     registerTableMotions,
     registerTableActions,
     registerBufferNavigation,
+    registerSubwordMotions,
 } from './motions/register';
 import {
     registerOperators,
     registerReplaceWithRegister,
 } from './operators/register';
 import { createSmartOpenLineAction } from './actions/open-line';
+import { registerDial } from './actions/register-dial';
 import { registerTextObjects } from './text-objects/register';
+import { createAsymmetricPairTextObject } from './text-objects/pair-util';
 import { VimModeTracker } from './vim/mode-tracker';
 import { ScrolloffManager, createScrolloffExtension } from './vim/scrolloff';
 import {
@@ -311,6 +314,15 @@ export default class VimMotionsPlugin extends Plugin {
     private oilManager: OilManager | null = null;
     private snippetRegistry: SnippetRegistry | null = null;
     private luaSnippetDefs: import('./lua/snippet-api').LuaSnippetDef[] = [];
+    private luaTextObjectSpecs: Array<{
+        keys: string;
+        spec: {
+            open: string;
+            close: string;
+            multiline: boolean;
+            inner: boolean;
+        };
+    }> = [];
     private imSwitcher: ImSwitcher | null = null;
     private imInsertLeaveId: number | null = null;
     private imInsertEnterId: number | null = null;
@@ -804,6 +816,18 @@ export default class VimMotionsPlugin extends Plugin {
         this.matcher?.dispose();
         this.matcher = createMatcher(this.settings.pickerMatcherEngine);
         const matcher = this.matcher;
+        const buildRipgrepConfig = () =>
+            this.settings.ripgrepEnabled
+                ? {
+                      binary: this.settings.ripgrepBinaryPath,
+                      args: this.settings.ripgrepArgs
+                          .trim()
+                          .split(/\s+/)
+                          .filter(Boolean),
+                      timeoutMs: 10_000,
+                      mode: this.settings.grepMode,
+                  }
+                : undefined;
         pickerRegistry.register(createFilesSource(), true);
         pickerRegistry.register(createBuffersSource(), true);
         pickerRegistry.register(createCommandsSource(), true);
@@ -830,7 +854,10 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         pickerRegistry.register(createRegistersSource(vim), true);
-        pickerRegistry.register(createLiveGrepSource(), true);
+        pickerRegistry.register(
+            createLiveGrepSource(buildRipgrepConfig()),
+            true,
+        );
         const frecencyStore = new FrecencyStore();
         if (this.settings.frecencyData) {
             try {
@@ -864,7 +891,10 @@ export default class VimMotionsPlugin extends Plugin {
                         new Notice('No previous picker to resume');
                         return;
                     }
-                    const grepSource = createGrepSource(query);
+                    const grepSource = createGrepSource(
+                        query,
+                        buildRipgrepConfig(),
+                    );
                     PickerModal.open(
                         this.app,
                         grepSource,
@@ -921,7 +951,10 @@ export default class VimMotionsPlugin extends Plugin {
                     }
                     return;
                 }
-                const grepSource = createGrepSource(query);
+                const grepSource = createGrepSource(
+                    query,
+                    buildRipgrepConfig(),
+                );
                 PickerModal.open(
                     this.app,
                     grepSource,
@@ -1320,6 +1353,12 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableReplaceWithRegister) {
             registerReplaceWithRegister(this.registration);
+        }
+        if (this.settings.enableDial) {
+            registerDial(this.registration);
+        }
+        if (this.settings.enableSubwordMotions) {
+            registerSubwordMotions(this.registration);
         }
         if (this.settings.enableWorkspaceNav) {
             registerWorkspaceNavigation(
@@ -1977,6 +2016,12 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableReplaceWithRegister) {
             registerReplaceWithRegister(this.registration);
+        }
+        if (this.settings.enableDial) {
+            registerDial(this.registration);
+        }
+        if (this.settings.enableSubwordMotions) {
+            registerSubwordMotions(this.registration);
         }
         if (this.settings.enableWorkspaceNav && this.leaderRegistry) {
             registerWorkspaceNavigation(
@@ -2864,6 +2909,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (!this.luaConfigEnabled) return null;
         if (this.luaLoaded || this.luaLoading) return null;
         this.luaLoading = true;
+        this.luaTextObjectSpecs = [];
         this.luaGroupLabels = [];
         this.luaCommandLabels = [];
         this.luaGlobalMaps = [];
@@ -2968,6 +3014,17 @@ export default class VimMotionsPlugin extends Plugin {
             onPickerKeymapChange: (keymap) => {
                 const s = this.settings.pickerKeymap;
                 Object.assign(s, keymap);
+            },
+            onTextObjectAdd: (keys, spec) => {
+                this.luaTextObjectSpecs.push({ keys, spec });
+                if (!this.registration) return;
+                this.registerLuaTextObject(keys, spec);
+            },
+            onTextObjectDel: (keys) => {
+                const vimApi = getVimApi();
+                if (vimApi && typeof vimApi.removeMapCommand === 'function') {
+                    vimApi.removeMapCommand(keys);
+                }
             },
             globalRegistry: this.globalRegistry ?? undefined,
             imSwitcher: this.imSwitcher,
@@ -3121,6 +3178,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaLoaded = true;
         this.luaLoading = false;
         this.reloadFeatures();
+        this.reregisterLuaTextObjects();
         this.applyLuaMaps(vim);
         this.autocmdManager?.fireInitialBufEnter();
         return luaResult;
@@ -3174,6 +3232,36 @@ export default class VimMotionsPlugin extends Plugin {
                     `Vim Motions: surround pair "${pair.trigger}" error: ${e instanceof Error ? e.message : String(e)}`,
                 );
             }
+        }
+    }
+
+    private registerLuaTextObject(
+        keys: string,
+        spec: {
+            open: string;
+            close: string;
+            multiline: boolean;
+            inner: boolean;
+        },
+    ): void {
+        if (!this.registration) return;
+        const motionName = `luaTextObj_${keys}`;
+        const motionFn = createAsymmetricPairTextObject(
+            spec.open,
+            spec.close,
+            spec.multiline,
+            spec.inner,
+            this.settings.multilineScanLimit,
+        );
+        this.registration.defineMotion(motionName, motionFn);
+        this.registration.mapCommand(keys, 'motion', motionName, {
+            textObjectInner: spec.inner,
+        });
+    }
+
+    private reregisterLuaTextObjects(): void {
+        for (const { keys, spec } of this.luaTextObjectSpecs) {
+            this.registerLuaTextObject(keys, spec);
         }
     }
 

@@ -62,6 +62,10 @@ export interface OperatorRange {
 export interface ActionArgs {
     repeat: number;
     forward?: boolean;
+    /** Direction for increment/decrement. true = increment (<C-a>), false = decrement (<C-x>) */
+    increase?: boolean;
+    /** Whether to search backward for number */
+    backtrack?: boolean;
     selectedCharacter?: string;
     after?: boolean;
     isEdit?: boolean;

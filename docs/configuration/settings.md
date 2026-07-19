@@ -34,6 +34,8 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 | Sign column                    | dropdown | `auto`   | `auto[:N]`, `yes[:N]`, `no`           | `vim.opt.signcolumn`            | `set signcolumn`            | Show vim mark letters in a dedicated gutter column. Auto: show when marks exist. Always: always reserve space. Off: hide. Append `:N` (1–4) to set character width. Clickable — clicking a mark jumps to its line. Global marks (A–Z) shown in distinct color. |
 | Fold column                    | toggle   | `false`  | —                                     | `vim.opt.foldcolumn`            | `set foldcolumn`            | Show fold indicators (▸/▾) in the gutter for foldable regions. Click to toggle. Default: off.                                                                                                                                                                  |
 | Vim keybindings in text areas  | toggle   | `false`  | —                                     | `vim.opt.vimtextareas`          | `set vimtextareas`          | Replace focused text areas with a vim-enabled editor. Starts in insert mode. Experimental, desktop only.                                                                                                                                                       |
+| Subword motions                | toggle   | `false`  | —                                     | `vim.opt.subword`               | `set subword`               | Override w/b/e/ge to stop at camelCase, snake_case, and kebab-case boundaries.                                                                                                                                                                                 |
+| Enhanced increment/decrement   | toggle   | `false`  | —                                     | `vim.opt.dial`                  | `set dial`                  | Extends `<C-a>`/`<C-x>` to cycle hex colors, booleans, dates, CSS values, and checkboxes.                                                                                                                                                                      |
 
 > [!tip]
 > Override the highlight color with a CSS snippet: set `--vim-motions-yank-bg` on `.theme-dark` or `.theme-light` (e.g., `--vim-motions-yank-bg: rgba(255, 200, 0, 0.4);`).
@@ -50,6 +52,17 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 > [!warning]
 > **Workspace navigation**: `<C-w>` may conflict with Obsidian's "Close current tab" hotkey. Rebind it in **Settings → Hotkeys**.
+
+## Picker
+
+> [!info]
+> Ripgrep integration is desktop-only and requires the `rg` binary to be installed on your system.
+
+| Name                           | Type   | Default                      | Range/Options | Lua | Vimrc | Description                                         |
+| ------------------------------ | ------ | ---------------------------- | ------------- | --- | ----- | --------------------------------------------------- |
+| Use ripgrep for grep/live-grep | toggle | `false`                      | —             | —   | —     | Use a local ripgrep binary for faster vault search. |
+| Ripgrep binary path            | text   | `(empty)`                    | —             | —   | —     | Absolute path to the `rg` binary.                   |
+| Ripgrep extra arguments        | text   | `--smart-case --glob "*.md"` | —             | —   | —     | Additional arguments passed to ripgrep.             |
 
 ## Vim engine
 

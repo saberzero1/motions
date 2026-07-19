@@ -101,6 +101,16 @@ export interface VimApiCallbacks {
     onModePromptConfig?: (prompts: Record<string, string>) => void;
     onSurroundPair?: (trigger: string, open: string, close: string) => void;
     onSurroundPairDel?: (trigger: string) => void;
+    onTextObjectAdd?: (
+        keys: string,
+        spec: {
+            open: string;
+            close: string;
+            multiline: boolean;
+            inner: boolean;
+        },
+    ) => void;
+    onTextObjectDel?: (keys: string) => void;
     onLeaderBinding?: (key: string, commandId: string, desc?: string) => void;
     onLeaderBindingDel?: (key: string) => void;
     // Tier 1 — Leaf introspection

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Lua text objects lost after `reloadFeatures()`** — `vim.textobject.add()` registrations from `.obsidian.init.lua` were silently discarded because `loadLuaConfigInternal()` called `reloadFeatures()` after Lua evaluation, destroying the `VimRegistration` instance that held the keybindings. Fixed by persisting text object specs in `luaTextObjectSpecs[]` and re-registering them via `reregisterLuaTextObjects()` after `reloadFeatures()` completes.
+    - Plugin: `src/main.ts` (`luaTextObjectSpecs`, `registerLuaTextObject`, `reregisterLuaTextObjects`)
+
+### Added
+
+- **Subword motions (spider.nvim-style)** — `w`/`b`/`e`/`ge` override stopping at camelCase, snake_case, and kebab-case word boundaries. Opt-in via `set subword` / **Settings → Vim features → Subword motions**. 10,000-char performance guard falls back to standard word motions on pathological lines.
+    - Plugin: `src/util/subword.ts` (shared boundary detection), `src/motions/subword.ts` (4 motion variants)
+- **General-purpose text objects** — 6 new text objects complementing the existing 13 Markdown-specific ones: `iS`/`aS` (subword segment), `in`/`an` (numeric literal with sign/decimal), `iq`/`aq` (nearest quote pair on line), `iD`/`aD` (wikilink `[[...]]` with nesting), `gL` (forward-seeking URL), `i,`/`a,` (comma-separated argument with nesting). All work with operators (`d`, `c`, `y`) and visual mode.
+    - Plugin: `src/text-objects/{pair-util,subword,number,any-quote,double-bracket,url,argument}.ts`
+- **Enhanced increment/decrement (dial.nvim-style)** — `<C-a>`/`<C-x>` extended to cycle: markdown checkboxes (`[ ]`↔`[x]`), booleans (`true`↔`false`, case-preserved), hex colors (component-wise R/G/B, clamped 0–255), dates (`YYYY-MM-DD` with rollover), CSS values (preserving unit), and integers. Priority-ordered rules (first match wins). Opt-in via `set dial` / **Settings → Vim features → Enhanced increment/decrement**. Falls back to default `<C-a>`/`<C-x>` when no rule matches.
+    - Plugin: `src/actions/{dial-rules,dial,register-dial}.ts`
+- **Custom text objects via Lua** — `vim.textobject.add(keys, spec)` and `vim.textobject.del(keys)` API for defining custom text objects from `.obsidian.init.lua`. `vim.gen_spec.pair(open, close, opts?)` generates pair-matching specs with nesting and multi-line support. Keys must start with `i` (inner) or `a` (around). Invalid inputs produce error notices.
+    - Plugin: `src/lua/textobject-api.ts`
+- **External grep binary integration** — optional native ripgrep or GNU grep binary for the picker's grep/live-grep sources. Supports `rg --json` (structured output) and `grep -rn` (file:line:content format). Desktop-only with automatic fallback to in-memory search on mobile or binary failure. Circuit breaker (3 errors in 60s → auto-disable). Process cancellation on new query.
+    - Plugin: `src/picker/sources/ripgrep-process.ts`, settings: `ripgrepEnabled`, `ripgrepBinaryPath`, `ripgrepArgs`, `grepMode`
+
+### Tests
+
+- 37 unit tests in `test/unit/subword.test.ts`: boundary detection (13 patterns), motion logic (20 cases including cross-line, count, performance guard)
+- 45 unit tests in `test/unit/text-objects-extended.test.ts`: all 6 text objects with inner/around, edge cases, nesting
+- 31 unit tests in `test/unit/dial.test.ts`: all 6 rules individually + priority ordering + tryDial integration
+- 26 unit tests in `test/unit/lua-textobject-api.test.ts`: asymmetric/symmetric pair matching, nesting, multi-line, scanLimit
+- 21 unit tests in `test/unit/ripgrep-process.test.ts`: JSON/grep output parsing, arg building, error classification
+- 10 e2e tests in `test/specs/subword-motions.e2e.ts`: navigation, operators, snake/kebab, count, setting toggle
+- 11 e2e tests in `test/specs/text-objects-extended.e2e.ts`: all text objects with delete/change operators
+- 9 e2e tests in `test/specs/dial.e2e.ts`: all rule types, count prefix, no-match fallback, setting toggle
+- 5 e2e tests in `test/specs/lua-textobject.e2e.ts`: custom pairs (single-char, multi-char, nested), error handling
+- 3 e2e tests in `test/specs/ripgrep.e2e.ts`: conditional skip (binary availability)
+
 ## [0.68.0] - 2026-07-19
 
 ### Tests
@@ -30,7 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `KNOWN_LIMITATIONS.md`: Updated "all 12 sources" → "all 14 sources" in cross-note jump list section
     - `docs/features/index.md`: Updated "Ships 40+ snippets" → "Ships 60+ snippets"
     - `docs/getting-started/index.md`: Updated "60+ ex commands" → "100+ ex commands"
-- `CHANGELOG.md`: This entry
 
 ## [0.67.0] - 2026-07-18
 
@@ -92,7 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AGENTS.md`: Updated flash motions page ownership with all settings
 - `KNOWN_LIMITATIONS.md`: Textarea Escape behavior updated — no longer re-dispatches to parent, symmetric context stack documented
 - `README.md`: Updated textarea feature description with new Escape behavior
-- `CHANGELOG.md`: This entry
 
 ## [0.66.0] - 2026-07-18
 

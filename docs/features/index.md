@@ -9,8 +9,8 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 ## Markdown editing
 
-- **[[text-objects|Text objects]]** — 13 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, and table cells. Work with all standard Vim operators (`d`, `c`, `y`, `v`).
-- **[[structural-navigation|Structural navigation]]** — jump between headings (`]h`/`[h`), list items (`]l`/`[l`), links (`]n`/`[n`), and open buffers (`]b`/`[b`). Works with counts and operators.
+- **[[text-objects|Text objects]]** — 13 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, and table cells, plus **general-purpose objects** for subwords (`iS`), numbers (`in`), quotes (`iq`), wikilinks (`iD`), URLs (`gL`), and arguments (`i,`). Supports **custom text objects via Lua**.
+- **[[structural-navigation|Structural navigation]]** — jump between headings (`]h`/`[h`), list items (`]l`/`[l`), links (`]n`/`[n`), and open buffers (`]b`/`[b`), plus **subword motions** (`w`/`b`/`e`/`ge`) for camelCase/snake_case navigation. Works with counts and operators.
 - **[[tables|Tables]]** — cell navigation (`]c`/`[c`), row navigation (`]r`/`[r`), cell text objects (`i|`/`a|`), row text objects (`ir`/`ar`), table manipulation (`<Leader>t` prefix), format-on-exit auto-alignment, cursor-aware table widget for Live Preview, and embedded per-cell editing with vim modality (two-Escape pattern, entry modes, register sharing).
 - **[[hardwrap|Hard-wrap formatting]]** — `gq`/`gw` operators with Markdown-aware line wrapping. Preserves blockquote, list, and nested structural prefixes on continuation lines.
 
@@ -25,7 +25,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Workspace & commands
 
 - **[[workspace-navigation|Workspace navigation]]** — Neovim-style window management: `<C-w>` splits, `gt`/`gT` tabs, `gd` go-to-definition, `gO` outline, `gf` file switcher. Global key handler for non-editor views (PDF, graph, canvas).
-- **[[ex-commands#Picker commands|Picker / Fuzzy finder]]** — telescope.nvim-inspired fuzzy picker with 14 built-in sources, preview pane, live grep, frecency scoring, meta-picker (`:Picker`), bundled integrations for Omnisearch, Tasks, and Dataview, and a [[picker-api|provider API]] for external plugin integration.
+- **[[ex-commands#Picker commands|Picker / Fuzzy finder]]** — telescope.nvim-inspired fuzzy picker with 14 built-in sources, preview pane, live grep, frecency scoring, meta-picker (`:Picker`), bundled integrations for Omnisearch, Tasks, and Dataview, **ripgrep integration** for high-performance vault search, and a [[picker-api|provider API]] for external plugin integration.
 - **[[surround|Surround]]** — vim-surround implementation: `ds`/`cs`/`ys`/`S` with Markdown delimiter support. Count-prefix repeats delimiters (`2ysiw*` → `**word**`). Dot-repeatable.
 - **[[ex-commands|Ex commands]]** — 100+ ex commands for file management (`:e`, `:w`, `:saveas`), buffer navigation (`:bn`, `:bp`, `:b`), window management (`:sp`, `:vs`, `:tabnew`), table manipulation, and Obsidian integration (`:ob`, `:sidebar`, `:grep`).
 - **[[oil-explorer|Oil explorer]]** — oil.nvim-inspired file explorer: edit vault directories as buffers, create/rename/delete files with standard vim commands (`dd`, `o`, `cw`, `:w`).
@@ -34,7 +34,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Quality of life
 
 - **[[marks|Marks]]** — Visual mark indicators in the gutter, global mark persistence across files and sessions, and a grouped marks picker with cross-file navigation.
-- **[[quality-of-life|Quality of life]]** — Neovim defaults (`Y` → `y$`, `Q` → `@@`), yank highlight, smart list continuation on `o`/`O`, scrolloff, configurable insert escape sequences, vim mode status bar with optional powerline styling, which-key hints, chord display, and input method switching for CJK users.
+- **[[quality-of-life|Quality of life]]** — Neovim defaults (`Y` → `y$`, `Q` → `@@`), yank highlight, smart list continuation on `o`/`O`, **enhanced increment/decrement** (`<C-a>`/`<C-x>`) for cycling colors, dates, and booleans, scrolloff, configurable insert escape sequences, vim mode status bar with optional powerline styling, which-key hints, chord display, and input method switching for CJK users.
 
 ## Configuration
 
