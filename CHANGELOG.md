@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Textarea vim overlay re-activates immediately after Escape exit** — pressing Escape in normal mode tore down the overlay and called `originalEl.focus()`, which triggered the `focusin` listener and re-created the overlay in insert mode after the 150ms debounce. Users saw a brief flash of the textarea before being placed back in insert mode, making it impossible to return to the modal context. Fixed by adding a `recentlyExited` guard (`WeakRef` + 250ms cooldown) that suppresses the `focusin` handler for the textarea that was just exited. After the cooldown, the textarea can be re-activated by clicking into it again. ([#69](https://github.com/saberzero1/motions/issues/69))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (`recentlyExited` WeakRef guard, `markRecentlyExited` cooldown)
 - **Lua text objects lost after `reloadFeatures()`** — `vim.textobject.add()` registrations from `.obsidian.init.lua` were silently discarded because `loadLuaConfigInternal()` called `reloadFeatures()` after Lua evaluation, destroying the `VimRegistration` instance that held the keybindings. Fixed by persisting text object specs in `luaTextObjectSpecs[]` and re-registering them via `reregisterLuaTextObjects()` after `reloadFeatures()` completes.
     - Plugin: `src/main.ts` (`luaTextObjectSpecs`, `registerLuaTextObject`, `reregisterLuaTextObjects`)
 
@@ -37,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 9 e2e tests in `test/specs/dial.e2e.ts`: all rule types, count prefix, no-match fallback, setting toggle
 - 5 e2e tests in `test/specs/lua-textobject.e2e.ts`: custom pairs (single-char, multi-char, nested), error handling
 - 3 e2e tests in `test/specs/ripgrep.e2e.ts`: conditional skip (binary availability)
+
+### Documentation
+
+- `CHANGELOG.md`: Added textarea re-activation prevention fix
+- `KNOWN_LIMITATIONS.md`: Textarea re-activation after Escape → Fixed (recentlyExited guard)
 
 ## [0.68.0] - 2026-07-19
 

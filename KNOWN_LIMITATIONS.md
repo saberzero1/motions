@@ -1386,6 +1386,8 @@ The Escape key follows a symmetric context stack: modal → vim overlay → moda
 
 ~~Second Escape closes the parent modal~~ — Changed. Previously, the second Escape re-dispatched a synthetic `Escape` keydown to the parent UI after teardown, which closed the host modal (e.g., Spaced Repetition's edit dialog) and could cause data loss. Now the overlay simply returns focus to the modal context without propagating the key event. ([#69](https://github.com/saberzero1/motions/issues/69))
 
+~~Escape exit immediately re-activates overlay in insert mode~~ — Fixed. After teardown, `originalEl.focus()` triggered the `focusin` listener which re-created the overlay after 150ms. Now a `recentlyExited` guard (via `WeakRef` + 250ms cooldown) suppresses re-activation for the textarea that was just exited. The textarea can be re-activated by clicking into it again after the cooldown. ([#69](https://github.com/saberzero1/motions/issues/69))
+
 ### Limitations
 
 - **`<input>` elements not supported** — only `<textarea>` elements are replaced. Inputs have too many conflicts with host plugin keyboard handling (Enter to submit, Tab to navigate, picker keybindings).

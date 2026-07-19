@@ -43,6 +43,8 @@ export class TextareaVimManager {
     private active: ActiveReplacement | null = null;
     private focusTimer: number | null = null;
     private handler: ((e: FocusEvent) => void) | null = null;
+    private recentlyExited: WeakRef<HTMLTextAreaElement> | null = null;
+    private recentlyExitedTimer: number | null = null;
 
     constructor(app: App, cursorShapes?: CursorShapes) {
         this.app = app;
@@ -83,6 +85,7 @@ export class TextareaVimManager {
         const target = e.target;
         if (!(target instanceof HTMLTextAreaElement)) return;
         if (shouldSkip(target)) return;
+        if (this.recentlyExited?.deref() === target) return;
 
         this.cancelPendingFocus();
         this.focusTimer = window.setTimeout(() => {
@@ -216,8 +219,20 @@ export class TextareaVimManager {
         if (!this.active) return;
         const { originalEl, editor } = this.active;
         this.syncNow(originalEl, editor);
+        this.markRecentlyExited(originalEl);
         this.teardownActive();
         originalEl.focus();
+    }
+
+    private markRecentlyExited(el: HTMLTextAreaElement): void {
+        if (this.recentlyExitedTimer !== null) {
+            window.clearTimeout(this.recentlyExitedTimer);
+        }
+        this.recentlyExited = new WeakRef(el);
+        this.recentlyExitedTimer = window.setTimeout(() => {
+            this.recentlyExited = null;
+            this.recentlyExitedTimer = null;
+        }, DEBOUNCE_FOCUS_MS + 100);
     }
 
     private handleBlur(): void {
