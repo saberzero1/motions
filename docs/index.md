@@ -10,7 +10,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[text-objects|Markdown text objects]]** — operate on bold, italic, code, math, links, blockquotes, code blocks, tables, and more with standard Vim operators
 - **[[structural-navigation|Structural navigation]]** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
 - **[[lua-config|Lua configuration]]** — `.obsidian.init.lua` with `vim.keymap.set`, `vim.opt` (including `guicursor`), `vim.fn`, `vim.api` (buffer APIs, `nvim_set_hl`), `vim.ob` (68 Obsidian-specific functions: metadata, filesystem, UI, cursor, surround, leader), `vim.tbl_*`, `vim.json`, `vim.inspect`, `vim.regex` (ECMAScript RegExp), `vim.schedule`/`vim.uv` timers, 19 autocommand events, buffer-local keymaps, `vim.obsidian.keymap` (global keymaps), `vim.obsidian.whichkey` (which-key labels), async file reading (`vim.ob.fs.read`), multi-file configs via `require()`, and fuzzy picker API
-- **[[vimrc|Built-in vimrc]]** — `.obsidian.vimrc` loader with 35+ configurable settings
+- **[[vimrc|Built-in vimrc]]** — `.obsidian.vimrc` loader with 75+ configurable settings
 - **[[flash|Flash motions]]** — enhanced `f`/`F`/`t`/`T` with jump labels, incremental `s` search, post-commit `/`/`?` labels, clever-f
 - **[[easymotion|EasyMotion / Hop]]** — jump to any visible position with two keystrokes
 - **[[workspace-navigation|Workspace keyboard control]]** — navigate panes, tabs, and sidebar without a mouse
@@ -27,17 +27,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 ## Quick links
 
 - **[[keybindings|Keybinding cheat sheet]]** — complete reference for all motions, text objects, operators, and commands
-- **[[settings|Settings reference]]** — all 71 configurable items with defaults and vimrc equivalents
+- **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.67.0
+## What's new in 0.68.0
 
-- **Flash motions** — enhanced `f`/`F`/`t`/`T` with jump labels on all visible matches ([flash.nvim](https://github.com/folke/flash.nvim)-inspired). Single match auto-jumps. Works with operators (`df`, `cf`, `yf`), visual mode, and `;`/`,` repeat. Multi-line search enabled by default.
-- **Jump mode (`s`)** — bidirectional incremental character search. Type multiple characters to narrow the match set; labels update in real-time. Supports Backspace, Enter (jump to nearest), and autojump on single match. Operator-pending (`ds{pattern}{label}`) and visual mode supported.
-- **Flash search mode** — after committing a `/` or `?` search with Enter, labels appear on all visible matches. Press a label key to jump directly.
-- **Clever-f** — pressing `f{same-char}` after a flash jump falls through to stock `f` behavior (acts as `;`). 5-second timeout window. Opt-in via `set flashcleverf`.
-- **Search match counter** — hlslens-style `[3/15]` indicator in the status bar showing the current match index and total count after `/` search and `n`/`N` navigation.
-- **Textarea Escape fix** — Escape in normal mode within the textarea vim overlay now returns to the textarea without closing the parent modal, preventing data loss in plugin dialogs.
-- **7 new flash settings** — `flash`, `flashmultiline`, `flashjump`, `flashjumpkey`, `flashcleverf`, `flashminpatternlength`, `flashsearch` — all configurable via Settings UI, vimrc, or Lua.
+- **Documentation audit** — systematic review of all docs pages against source code. Corrected stale counts and inaccurate information across 11 files (text object count, picker source count, ex command count, bundled snippet count, settings organization, and more).
+- **Table regression tests** — 13 new e2e tests for escaped pipe handling in tables (issues [#66](https://github.com/saberzero1/motions/issues/66) and [#67](https://github.com/saberzero1/motions/issues/67)): typing `|` outside tables, escaped `\|` navigation, and auto-escape behavior in table cells.
+- **Known limitation update** — `|` typing in Live Preview table cells is swallowed by Obsidian's 1.7+ table editor at the DOM level. Documented workaround via Embedded table widget mode.
 
 See the [[changelog|full changelog]] for details.
