@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-07-19
+
 ### Added
 
 - **Undo tree visualization** — branching undo history with `g+`/`g-` chronological navigation across all branches (buffer content changes via ChangeSet dispatch), `:earlier N/Ns/Nm/Nh/Nd/Nf` and `:later` time/count/save-point navigation, `:undolist` modal, sidebar view (`:UndoTreeToggle/Show/Hide`) with DOM tree rendering, click-to-navigate, keyboard nav (j/k/Enter/q), collapse/expand branches, relative timestamps, summary diff preview, `vim.fn.undotree()` Lua API (Neovim-compatible dict), optional persistence (`set undofile`), per-file undo tree map, Obsidian commands for sidebar management. Inspired by [undotree](https://github.com/mbbill/undotree).
     - Plugin: `src/vim/undo-tree.ts` (shadow tree data structure), `src/vim/undo-tree-view.ts` (sidebar view), `src/main.ts` (CM6 integration, g+/g- actions, persistence hooks), `src/workspace/commands.ts` (ex commands), `src/lua/fn.ts` (`vim.fn.undotree()`)
+
+### Changed
+
+- **`minAppVersion` bumped from 1.6.6 to 1.7.2** — required for `Workspace.revealLeaf()` used by undo tree.
 
 ### Fixed
 
