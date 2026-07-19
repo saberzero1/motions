@@ -150,6 +150,8 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `snippetbundled`      | —     | Include bundled Obsidian snippets       | on      |
 | `vimtextareas`        | `vta` | Vim keybindings in text areas           | off     |
 | `jumplist`            | —     | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
+| `undotree`            | `ut`  | Enable undo tree tracking               | on      |
+| `undofile`            | `udf` | Persist undo tree across sessions       | off     |
 
 ## Number options
 
@@ -166,6 +168,7 @@ Use `set <option>=<value>`.
 | `insertmodeescapetimeout` | `imet` | Timeout (ms) for insert escape sequence  | 1000    | 100-5000 |
 | `numberwidth`             | `nuw`  | Minimum line number column width         | 2       | 1-20     |
 | `jumplistsize`            | —      | Maximum jump list entries                | 200     | 1-1000   |
+| `undotreemaxnodes`        | `utmn` | Maximum undo tree nodes per file         | 1000    | 100-5000 |
 
 ## String options
 

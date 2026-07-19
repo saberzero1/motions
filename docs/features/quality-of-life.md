@@ -47,6 +47,19 @@ Duration is configurable via the **Yank highlight duration** slider (50–3000ms
 
 `g;` and `g,` jump to older and newer change positions respectively, letting you quickly revisit locations where you made edits. The `:changes` ex command displays the full change list in a modal.
 
+## Undo tree navigation
+
+| Key  | Action                                                         |
+| ---- | -------------------------------------------------------------- |
+| `g-` | Navigate to chronologically older undo state (across branches) |
+| `g+` | Navigate to chronologically newer undo state (across branches) |
+
+## Undo tree
+
+Use `g-` and `g+` to move to older/newer undo states (branch-aware). Open the sidebar with `:UndoTreeToggle` (or `:UndoTreeShow` / `:UndoTreeHide`) to visualize branches, see relative timestamps, and preview the change summary for the selected node. Branch points include a toggle to collapse alternate histories.
+
+Saved states can be navigated by count with `:earlier Nf` / `:later Nf` (where `N` is the number of saved states to move).
+
 ## Neovim defaults
 
 - `Y` yanks to end of line (`y$`) instead of the entire line — matching Neovim's default

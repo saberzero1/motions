@@ -221,6 +221,9 @@ export interface LoadInitLuaOptions {
         setLabel: (keys: string, label: string) => void;
     };
     imSwitcher?: ImSwitcher | null;
+    getUndoTree?: () => ReturnType<
+        import('../vim/undo-tree').UndoTree['toNeovimDict']
+    > | null;
 }
 
 export async function loadInitLua(
@@ -240,6 +243,7 @@ export async function loadInitLua(
         onTextObjectDel,
         globalRegistry,
         imSwitcher,
+        getUndoTree,
     } = options;
     const { path, found } = await resolveLuaConfigPath(app, customPath);
     const doc = app.workspace.containerEl.ownerDocument;
@@ -1076,6 +1080,7 @@ export async function loadInitLua(
                 return undefined;
             }
         },
+        getUndoTree,
     });
 
     injectStdlib(L);

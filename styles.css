@@ -1448,3 +1448,117 @@ settings:
 .vim-motions-textarea-overlay .cm-editor .cm-gutters {
     display: none;
 }
+
+/* Undo tree view */
+.vim-motions-undo-tree-view {
+    padding: 8px;
+    font-family: var(--font-monospace);
+    font-size: var(--font-smaller);
+    overflow-y: auto;
+    height: 100%;
+    user-select: none;
+}
+
+.vim-motions-undo-node {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.vim-motions-undo-node:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.vim-motions-undo-node--current {
+    background-color: var(--background-modifier-active-hover);
+    font-weight: 600;
+}
+
+.vim-motions-undo-node--selected {
+    outline: 1px solid var(--interactive-accent);
+    outline-offset: -1px;
+}
+
+.vim-motions-undo-connector {
+    color: var(--text-faint);
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.vim-motions-undo-marker {
+    flex-shrink: 0;
+    width: 12px;
+    text-align: center;
+}
+
+.vim-motions-undo-node--current .vim-motions-undo-marker {
+    color: var(--interactive-accent);
+}
+
+.vim-motions-undo-node--saved .vim-motions-undo-marker {
+    color: var(--text-success);
+}
+
+.vim-motions-undo-seq {
+    color: var(--text-muted);
+    min-width: 24px;
+}
+
+.vim-motions-undo-time {
+    color: var(--text-muted);
+}
+
+.vim-motions-undo-change {
+    color: var(--text-faint);
+}
+
+.vim-motions-undo-flags {
+    color: var(--text-success);
+    font-size: var(--font-smallest);
+}
+
+.vim-motions-undo-branch-indicator {
+    color: var(--text-accent);
+    font-size: var(--font-smallest);
+}
+
+.vim-motions-undo-empty {
+    color: var(--text-faint);
+    padding: 16px;
+    text-align: center;
+}
+
+.vim-motions-undo-preview {
+    border-top: 1px solid var(--background-modifier-border);
+    padding: 8px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vim-motions-undo-preview-label {
+    color: var(--text-normal);
+    font-weight: 500;
+}
+
+.vim-motions-undo-preview-summary {
+    color: var(--text-muted);
+}
+
+.vim-motions-undo-branch-toggle {
+    cursor: pointer;
+    color: var(--text-faint);
+    width: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.vim-motions-undo-branch-toggle:hover {
+    color: var(--text-accent);
+}

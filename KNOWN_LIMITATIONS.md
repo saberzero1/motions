@@ -72,6 +72,19 @@ Cell editors in embedded table widget mode (`set tablewidget=embedded`) now supp
 - **Visual mode highlighting in cell editors**: Entering visual mode (`v`) in a cell editor does not show selection highlighting. The selection collapses when navigating with motions. This is caused by the cell editor's CM6 instance not receiving `.cm-focused`, which triggers the fork's `hideNativeSelection` theme rule (`.cm-vimMode:not(.cm-vimVisual) .cm-line ::selection { background-color: transparent }`) to suppress native selection rendering, while the fork's `linewiseVisualHighlight` plugin relies on the editor being focused to draw custom selection decorations. ([#19](https://github.com/saberzero1/motions/issues/19))
 - ~~**Wikilink and formatting loss after cell edit**~~: Fixed. Two issues: (1) the cell editor read the cell's initial value from `wrapper.textContent` (the rendered DOM), which strips markdown syntax — `[[note-a]]` became `note-a`. Now reads raw markdown from the document source via `getCellDocumentRange()`. (2) On cell editor close, the cell content was restored as plain `textContent` without re-rendering. Now uses `MarkdownRenderer.render()` to restore proper inline formatting (wikilinks, bold, italic, code) after the editor is destroyed. ([#19](https://github.com/saberzero1/motions/issues/19))
 
+## Undo tree visualization
+
+**Status**: Implemented.
+
+Shadow undo tree tracking branching history parallel to CM6's linear undo stacks. `g-`/`g+` navigate chronologically across all branches with ChangeSet-based buffer content restoration. `:earlier`/`:later` navigate by count, time (`Ns/Nm/Nh/Nd`), or save point (`Nf`). Sidebar view with DOM tree rendering, click/keyboard navigation, collapse/expand. Optional persistence via `set undofile`.
+
+**Known limitations**:
+
+- **ChangeSet composition for deep navigation**: Navigation dispatches sequential `addToHistory.of(false)` transactions (one per tree node on the path). For very deep trees (50+ levels), this dispatches many transactions — imperceptible in practice but theoretically slower than single-transaction composition.
+- **Persistence after external file modification**: When `undoFile` is enabled and the file is modified outside Obsidian between sessions, persisted ChangeSets become invalid (document length mismatch). The tree structure is preserved for `:undolist` display, but navigation is disabled for that session. No user notification is shown in v1.
+- **Per-file tree map memory**: `undoTreeMap` grows per opened file during a session. Trees are not evicted when files are closed (only on file delete). Long sessions with many files accumulate memory.
+- **No CM6 undo stack integration for cross-branch navigation**: `g+`/`g-` use `addToHistory.of(false)` transactions, so pressing `u` after `g-` undoes the last user edit, not the navigation. This matches Neovim behavior.
+
 ## Flash motions
 
 **Status**: Working (Phase 1 + Phase 2 + Phase 3A + Phase 3B).

@@ -169,6 +169,21 @@ Reformat paragraphs with Markdown-aware line wrapping.
 | `gqip` / `gwip`    | Reformat paragraph                              |
 | Visual `gq` / `gw` | Reformat selected lines                         |
 
+## Undo tree navigation
+
+| Key                    | Action                                       |
+| ---------------------- | -------------------------------------------- |
+| `g-`                   | Navigate to chronologically older undo state |
+| `g+`                   | Navigate to chronologically newer undo state |
+| `:earlier N`           | Go back N changes                            |
+| `:later N`             | Go forward N changes                         |
+| `:earlier Ns/Nm/Nh/Nd` | Go back by time                              |
+| `:earlier Nf`          | Go to Nth previous save point                |
+| `:undolist`            | Show undo tree modal                         |
+| `:UndoTreeToggle`      | Toggle undo tree sidebar                     |
+| `:UndoTreeShow`        | Open undo tree sidebar                       |
+| `:UndoTreeHide`        | Close undo tree sidebar                      |
+
 ## Replace-with-register operator
 
 Replace text covered by a motion with the contents of a register, discarding
@@ -532,6 +547,10 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 | `o` / `O`  | Smart list continuation (bullets, numbers, checkboxes) |
 | `Y`        | Yank to end of line (`y$`)                             |
 | `Q`        | Replay last recorded macro (`@@`)                      |
+| `g;`       | Older change                                           |
+| `g,`       | Newer change                                           |
+| `g-`       | Older undo state                                       |
+| `g+`       | Newer undo state                                       |
 
 ## Increment/Decrement
 

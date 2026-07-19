@@ -164,6 +164,16 @@ The following options are available via vimrc and Lua but do not appear in the S
 | Confirm delete threshold | slider   | `1`     | 1–20                    | `vim.opt.oilconfirmdeletethreshold` | `set oilconfirmdeletethreshold` | Show confirmation when deleting this many files or more. |
 | Default sort order       | dropdown | `name`  | `name`, `mtime`, `size` | `vim.opt.oildefaultsort`            | `set oildefaultsort`            | Default sort order for oil directory listings.           |
 
+## Undo tree
+
+| Name                    | Type     | Default | Range/Options   | Lua                        | Vimrc                  | Description                                                                                         |
+| ----------------------- | -------- | ------- | --------------- | -------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------- |
+| Undo tree               | toggle   | `true`  | —               | `vim.opt.undotree`         | `set undotree`         | Track branching undo history for `g+`/`g-` navigation, `:earlier`/`:later`, and `:undolist` output. |
+| Persist undo history    | toggle   | `false` | —               | `vim.opt.undofile`         | `set undofile`         | Save per-file undo history to plugin data so it survives across sessions (like `set undofile`).     |
+| Maximum undo tree nodes | slider   | `1000`  | 100–5000        | `vim.opt.undotreemaxnodes` | `set undotreemaxnodes` | Maximum number of undo states to keep per editor. Oldest leaf branches are pruned when exceeded.    |
+| Sidebar position        | dropdown | `right` | `left`, `right` | —                          | —                      | Which sidebar to open the undo tree view in.                                                        |
+| Auto-open on branch     | toggle   | `false` | —               | —                          | —                      | Automatically open the undo tree sidebar when a branch is created (undo + new edit).                |
+
 ## Status bar
 
 | Name                       | Type   | Default | Range/Options | Lua                    | Vimrc              | Description                                                   |

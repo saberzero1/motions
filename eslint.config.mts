@@ -78,6 +78,7 @@ export default defineConfig(
                         'GNU/BSD',
                         'Live Preview',
                         'Markdown',
+                        'Neovim',
                         'Obsidian',
                         'Obsidian Tasks',
                         'Omnisearch',

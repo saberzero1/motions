@@ -122,6 +122,7 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.fn.filereadable(path)`                          | Check vault file exists                            | `vim.fn.filereadable("config.md")`   |
 | `vim.fn.isdirectory(path)`                           | Check vault directory exists                       | `vim.fn.isdirectory("templates")`    |
 | `vim.fn.glob(pattern)`                               | Find matching vault files                          | `vim.fn.glob("*.md")`                |
+| `vim.fn.undotree()`                                  | Returns undo tree dictionary                       | `local tree = vim.fn.undotree()`     |
 | `vim.fn.mode()`                                      | Current vim mode                                   | `vim.fn.mode()`                      |
 | `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                   | `vim.fn.line(".")`                   |
 | `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                 | `vim.fn.col(".")`                    |
@@ -227,9 +228,12 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `expandtab`               | boolean | `true`                         |                                               | `vim.opt.expandtab = true`               |
 | `cursorline`              | boolean | `true`                         |                                               | `vim.opt.cursorline = true`              |
 | `foldcolumn`              | boolean | `false`                        |                                               | `vim.opt.foldcolumn = true`              |
+| `undotree`                | boolean | `true`                         |                                               | `vim.opt.undotree = true`                |
+| `undofile`                | boolean | `false`                        |                                               | `vim.opt.undofile = true`                |
 | `vimtextareas`            | boolean | `false`                        |                                               | `vim.opt.vimtextareas = true`            |
 | `scrolloff`               | number  | `5`                            | 0–9999                                        | `vim.opt.scrolloff = 8`                  |
 | `scanlimit`               | number  | `20`                           | 5–200                                         | `vim.opt.scanlimit = 20`                 |
+| `undotreemaxnodes`        | number  | `1000`                         | 100–5000                                      | `vim.opt.undotreemaxnodes = 500`         |
 | `labelfontsize`           | number  | `14`                           | 10–20                                         | `vim.opt.labelfontsize = 14`             |
 | `tabstop`                 | number  | `4`                            |                                               | `vim.opt.tabstop = 4`                    |
 | `shiftwidth`              | number  | `4`                            |                                               | `vim.opt.shiftwidth = 4`                 |

@@ -30,6 +30,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Input method switching** — automatic IM switching for CJK users when entering/leaving insert mode. Supports macism, im-select, fcitx5-remote, ibus, and any external binary. Platform presets for one-click setup, per-editor state with session persistence, composition guard, `:IMToggle`/`:IMStatus` ex commands, Lua API (`vim.obsidian.im`). Desktop only.
 - **Vim in text areas** — focused `<textarea>` elements in modals and plugin UIs are replaced with a vim-enabled editor overlay. Starts in insert mode for transparent typing; press Escape for normal mode, second Escape returns to modal. Experimental, disabled by default. Desktop only.
 - **Cross-note jump list** — `<C-o>` and `<C-i>` navigate backward/forward through jump history across notes. Jumps recorded on `gd`, picker selection, harpoon, oil, EasyMotion, and 100+ other navigation paths. Persists across sessions. `:jumps` displays the list. `set jumplist`/`set jumplistsize` for configuration
+- **Undo tree** — [undotree](https://github.com/mbbill/undotree)-style branching undo history visualization. `g-`/`g+` navigate chronologically across all branches with buffer content restoration. `:earlier`/`:later` by count, time, or save point. `:undolist` modal. Sidebar view (`:UndoTreeToggle`) with tree rendering, keyboard nav, collapse/expand, diff preview. `vim.fn.undotree()` Lua API. Optional persistence (`set undofile`). 5 settings: `enableUndoTree`, `undoTreeMaxNodes`, `undoTreePosition`, `undoTreeAutoOpen`, `undoFile`
 - **Subword motions** — spider.nvim-style `w`/`b`/`e`/`ge` override stopping at camelCase, snake_case, and kebab-case boundaries. Opt-in setting.
 - **Enhanced increment/decrement** — dial.nvim-style `<C-a>`/`<C-x>` cycling hex colors, booleans, dates, CSS values, and checkboxes
 - **Custom text objects** — define delimiter-pair text objects from Lua via `vim.textobject.add()` + `vim.gen_spec.pair()`
@@ -70,7 +71,7 @@ Full documentation: **https://saberzero1.github.io/motions**
 
 ## Requirements
 
-- Obsidian v1.6.6 or later
+- Obsidian v1.7.2 or later
 - Desktop or mobile (physical keyboard recommended on mobile)
 
 ## Development

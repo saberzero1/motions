@@ -211,6 +211,19 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 | `:contextactions`       | `<leader>ra` | Show context actions            |
 | `:charinfo`             | `ga`         | Show character info             |
 
+### Undo tree
+
+| Command                | Default key | Description                |
+| ---------------------- | ----------- | -------------------------- |
+| `:earlier N`           | —           | Navigate N changes back    |
+| `:later N`             | —           | Navigate N changes forward |
+| `:earlier Ns/Nm/Nh/Nd` | —           | Navigate back by time      |
+| `:earlier Nf`          | —           | Navigate to Nth save point |
+| `:undolist`            | —           | Show undo tree modal       |
+| `:UndoTreeToggle`      | —           | Toggle undo tree sidebar   |
+| `:UndoTreeShow`        | —           | Open undo tree sidebar     |
+| `:UndoTreeHide`        | —           | Close undo tree sidebar    |
+
 ### Hint mode
 
 | Command         | Description             |

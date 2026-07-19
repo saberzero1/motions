@@ -1,5 +1,7 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
+import type { UndoTree } from '../vim/undo-tree';
+import { pushLuaAny } from './api';
 import { strftime } from './strftime';
 
 export interface VimFnCallbacks {
@@ -25,6 +27,7 @@ export interface VimFnCallbacks {
     getObsidianVersion: () => string;
     getGlobal: (name: string) => unknown;
     getOption: (name: string) => unknown;
+    getUndoTree?: () => ReturnType<UndoTree['toNeovimDict']> | null;
 }
 
 type VimFnHandler = (L: lua_State) => number;
@@ -206,6 +209,16 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
             return pushBooleanInt(state, registry.has(name));
         }
         return pushBooleanInt(state, false);
+    });
+
+    registry.set('undotree', (state) => {
+        const dict = callbacks.getUndoTree?.();
+        if (!dict) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+        pushLuaAny(state, dict);
+        return 1;
     });
 
     registry.set('localtime', (state) => {

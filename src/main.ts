@@ -72,6 +72,12 @@ import {
     createOlderChangeMotion,
     createNewerChangeMotion,
 } from './vim/changelist';
+import { UndoTree, type SerializedUndoTree } from './vim/undo-tree';
+import {
+    UndoTreeView,
+    UNDO_TREE_VIEW_TYPE,
+    createUndoTreeViewFactory,
+} from './vim/undo-tree-view';
 import { JumpList } from './vim/jumplist';
 import { VimInfoModal } from './ui/vim-info-modal';
 import { installTableWidgetSuppressor } from './vim/table-widget-suppressor';
@@ -90,6 +96,7 @@ import {
     destroyCellEditorCursorSheet,
 } from './vim/table-cell-editor';
 import { EditorView } from '@codemirror/view';
+import { ChangeSet, Transaction } from '@codemirror/state';
 import {
     yankHighlightExtension,
     showYankHighlight,
@@ -210,11 +217,14 @@ import {
 import { snippetState } from './snippets/autocomplete-types';
 import { setJumpListInstance } from './workspace/navigate';
 
+const MAX_PERSISTED_UNDO_TREES = 50;
+
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
     registration: VimRegistration | null = null;
     leaderRegistry: LeaderRegistry | null = null;
     changeList: ChangeList = new ChangeList();
+    undoTree: UndoTree = new UndoTree();
     jumpList: JumpList = new JumpList();
     modeTracker: VimModeTracker | null = null;
     scrolloffManager: ScrolloffManager | null = null;
@@ -232,6 +242,10 @@ export default class VimMotionsPlugin extends Plugin {
     private harpoonSaveDirty = false;
     private foldPersistDirty = false;
     private jumpListSaveDirty = false;
+    private undoTreeSaveDirty = false;
+    private undoTreeDirtyPaths: Set<string> = new Set();
+    private undoTreeMap: Map<string, UndoTree> = new Map();
+    private activeUndoFilePath: string | null = null;
     private previousLeafId: string | null = null;
     private previousFoldFile: string | null = null;
     exSuggest: ExCommandSuggest | null = null;
@@ -465,6 +479,9 @@ export default class VimMotionsPlugin extends Plugin {
                         return undefined;
                     }
                 },
+                getUndoTree: this.settings.enableUndoTree
+                    ? () => this.undoTree.toNeovimDict()
+                    : undefined,
             });
             this.autocmdManager = autocmdManager;
         }
@@ -502,6 +519,11 @@ export default class VimMotionsPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
+        this.activeUndoFilePath =
+            this.app.workspace.getActiveFile()?.path ?? null;
+        if (this.settings.enableUndoTree) {
+            this.activateUndoTreeForFile(this.activeUndoFilePath);
+        }
         this.jumpList = new JumpList(() => {
             this.jumpListSaveDirty = true;
         });
@@ -575,6 +597,15 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerView(
             OilView.VIEW_TYPE,
             createOilViewFactory(this.oilManager, oilCache, this.settings),
+        );
+        this.registerView(
+            UndoTreeView.VIEW_TYPE,
+            createUndoTreeViewFactory(
+                () => this.undoTree,
+                (seq) => {
+                    this.undoTree.navigateToSeq(seq);
+                },
+            ),
         );
 
         const builtinVimOn = isBuiltinVimEnabled(this.app);
@@ -1051,6 +1082,31 @@ export default class VimMotionsPlugin extends Plugin {
             }),
         );
 
+        this.registerEvent(
+            this.app.workspace.on('file-open', (file) => {
+                if (!this.settings.enableUndoTree) return;
+                const filePath = file?.path ?? null;
+                this.activateUndoTreeForFile(filePath);
+                this.activeUndoFilePath = filePath;
+            }),
+        );
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', () => {
+                if (!this.settings.enableUndoTree) return;
+                const activePath =
+                    this.app.workspace.getActiveFile()?.path ?? null;
+                if (
+                    this.activeUndoFilePath &&
+                    this.activeUndoFilePath !== activePath
+                ) {
+                    this.persistUndoTreeForFile(this.activeUndoFilePath);
+                }
+                this.activeUndoFilePath = activePath;
+                this.activateUndoTreeForFile(activePath);
+            }),
+        );
+
         if (this.imSwitcher) {
             this.registerEvent(
                 this.app.workspace.on('active-leaf-change', (leaf) => {
@@ -1152,6 +1208,30 @@ export default class VimMotionsPlugin extends Plugin {
                 this.markSaveDirty = true;
                 this.jumpList.handleRename(oldPath, file.path);
                 this.jumpListSaveDirty = true;
+                const undoTree = this.undoTreeMap.get(oldPath);
+                if (undoTree) {
+                    this.undoTreeMap.delete(oldPath);
+                    this.undoTreeMap.set(file.path, undoTree);
+                }
+                if (this.undoTreeDirtyPaths.has(oldPath)) {
+                    this.undoTreeDirtyPaths.delete(oldPath);
+                    this.undoTreeDirtyPaths.add(file.path);
+                }
+                if (this.activeUndoFilePath === oldPath) {
+                    this.activeUndoFilePath = file.path;
+                }
+                if (this.settings.undoFile) {
+                    const persisted = this.settings.persistedUndoTrees;
+                    const data = persisted[oldPath];
+                    if (data !== undefined) {
+                        const next = { ...persisted };
+                        delete next[oldPath];
+                        next[file.path] = data;
+                        this.settings.persistedUndoTrees =
+                            this.capPersistedUndoTrees(next);
+                        this.undoTreeSaveDirty = true;
+                    }
+                }
             }),
         );
         this.registerEvent(
@@ -1164,6 +1244,17 @@ export default class VimMotionsPlugin extends Plugin {
                 this.markSaveDirty = true;
                 this.jumpList.handleDelete(file.path);
                 this.jumpListSaveDirty = true;
+                this.undoTreeMap.delete(file.path);
+                this.undoTreeDirtyPaths.delete(file.path);
+                if (this.settings.undoFile) {
+                    const persisted = this.settings.persistedUndoTrees;
+                    if (persisted[file.path]) {
+                        const next = { ...persisted };
+                        delete next[file.path];
+                        this.settings.persistedUndoTrees = next;
+                        this.undoTreeSaveDirty = true;
+                    }
+                }
             }),
         );
 
@@ -1382,6 +1473,10 @@ export default class VimMotionsPlugin extends Plugin {
                 },
                 this.triggerMarkGutterRefresh,
                 this.jumpList,
+                this.settings.enableUndoTree ? this.undoTree : undefined,
+                this.settings.enableUndoTree
+                    ? this.navigateUndoTreeTo.bind(this)
+                    : undefined,
             );
         }
         this.registerHarpoonExCommands();
@@ -1666,6 +1761,65 @@ export default class VimMotionsPlugin extends Plugin {
         );
         this.registration.mapCommand('g,', 'motion', 'changeListNewer', {});
 
+        // --- Undo tree (g+ / g-) ---
+        if (this.settings.enableUndoTree) {
+            const undoTreeRef = this.undoTree;
+            this.registration.defineAction('undoTreeOlder', () => {
+                const beforeSeq = undoTreeRef.getCurrentSeq();
+                const node = undoTreeRef.navigateOlder();
+                if (!node) return;
+                this.navigateUndoTreeTo(beforeSeq, node.seq);
+            });
+            this.registration.mapCommand('g-', 'action', 'undoTreeOlder', {});
+
+            this.registration.defineAction('undoTreeNewer', () => {
+                const beforeSeq = undoTreeRef.getCurrentSeq();
+                const node = undoTreeRef.navigateNewer();
+                if (!node) return;
+                this.navigateUndoTreeTo(beforeSeq, node.seq);
+            });
+            this.registration.mapCommand('g+', 'action', 'undoTreeNewer', {});
+
+            this.addCommand({
+                id: 'undo-tree-toggle',
+                name: 'Toggle undo tree sidebar',
+                callback: () => this.toggleUndoTreeView(),
+            });
+
+            this.addCommand({
+                id: 'undo-tree-show',
+                name: 'Show undo tree sidebar',
+                callback: async () => {
+                    const leaves =
+                        this.app.workspace.getLeavesOfType(UNDO_TREE_VIEW_TYPE);
+                    if (leaves.length > 0) return;
+                    const leaf =
+                        this.settings.undoTreePosition === 'left'
+                            ? this.app.workspace.getLeftLeaf(false)
+                            : this.app.workspace.getRightLeaf(false);
+                    if (leaf) {
+                        await leaf.setViewState({
+                            type: UNDO_TREE_VIEW_TYPE,
+                            active: true,
+                        });
+                        await this.app.workspace.revealLeaf(leaf);
+                    }
+                },
+            });
+
+            this.addCommand({
+                id: 'undo-tree-hide',
+                name: 'Hide undo tree sidebar',
+                callback: () => {
+                    for (const leaf of this.app.workspace.getLeavesOfType(
+                        UNDO_TREE_VIEW_TYPE,
+                    )) {
+                        leaf.detach();
+                    }
+                },
+            });
+        }
+
         const changeList = this.changeList;
         this.registerEditorExtension(
             EditorView.updateListener.of((update) => {
@@ -1676,6 +1830,61 @@ export default class VimMotionsPlugin extends Plugin {
                 changeList.recordChange(line.number - 1, pos - line.from);
             }),
         );
+
+        if (this.settings.enableUndoTree) {
+            const refreshViews = () => this.refreshUndoTreeViews();
+            this.registerEditorExtension(
+                EditorView.updateListener.of((update) => {
+                    if (!update.docChanged) return;
+
+                    const undoTree = this.undoTree;
+                    if (undoTree.isNavigating()) return;
+
+                    for (const tr of update.transactions) {
+                        const isUndo = tr.isUserEvent('undo');
+                        const isRedo = tr.isUserEvent('redo');
+
+                        if (isUndo) {
+                            undoTree.undo();
+                            this.markUndoTreeDirty();
+                            refreshViews();
+                            return;
+                        }
+                        if (isRedo) {
+                            undoTree.redo();
+                            this.markUndoTreeDirty();
+                            refreshViews();
+                            return;
+                        }
+                    }
+
+                    let changes = ChangeSet.empty(update.startState.doc.length);
+                    for (const tr of update.transactions) {
+                        if (tr.docChanged) {
+                            changes = changes.compose(tr.changes);
+                        }
+                    }
+                    const inverse = changes.invert(update.startState.doc);
+
+                    let inserted = 0;
+                    let deleted = 0;
+                    changes.iterChanges((_fromA, _toA, _fromB, _toB, ins) => {
+                        inserted += ins.length;
+                    });
+                    changes.iterChanges((fromA, toA) => {
+                        deleted += toA - fromA;
+                    });
+
+                    undoTree.recordEdit(
+                        { inserted, deleted },
+                        changes,
+                        inverse,
+                    );
+                    this.markUndoTreeDirty();
+                    refreshViews();
+                }),
+            );
+        }
 
         // --- :changes command (needs ChangeList instance) ---
         const cl = this.changeList;
@@ -1921,6 +2130,15 @@ export default class VimMotionsPlugin extends Plugin {
         );
         this.registerInterval(
             window.setInterval(() => {
+                if (!this.settings.undoFile) return;
+                if (this.undoTreeSaveDirty) {
+                    this.persistDirtyUndoTrees();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
                 if (this.imSwitcher) {
                     this.settings.persistedImState =
                         this.imSwitcher.getPersistedState();
@@ -2045,6 +2263,10 @@ export default class VimMotionsPlugin extends Plugin {
                 },
                 this.triggerMarkGutterRefresh,
                 this.jumpList,
+                this.settings.enableUndoTree ? this.undoTree : undefined,
+                this.settings.enableUndoTree
+                    ? this.navigateUndoTreeTo.bind(this)
+                    : undefined,
             );
         }
         this.registerHarpoonExCommands();
@@ -2088,6 +2310,36 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.endLeaderScope();
         this.registration.map('Y', 'y$', 'normal');
         this.registration.map('Q', '@@', 'normal');
+
+        this.registration.defineMotion(
+            'changeListOlder',
+            createOlderChangeMotion(this.changeList),
+        );
+        this.registration.mapCommand('g;', 'motion', 'changeListOlder', {});
+        this.registration.defineMotion(
+            'changeListNewer',
+            createNewerChangeMotion(this.changeList),
+        );
+        this.registration.mapCommand('g,', 'motion', 'changeListNewer', {});
+
+        if (this.settings.enableUndoTree) {
+            const undoTreeRef = this.undoTree;
+            this.registration.defineAction('undoTreeOlder', () => {
+                const beforeSeq = undoTreeRef.getCurrentSeq();
+                const node = undoTreeRef.navigateOlder();
+                if (!node) return;
+                this.navigateUndoTreeTo(beforeSeq, node.seq);
+            });
+            this.registration.mapCommand('g-', 'action', 'undoTreeOlder', {});
+
+            this.registration.defineAction('undoTreeNewer', () => {
+                const beforeSeq = undoTreeRef.getCurrentSeq();
+                const node = undoTreeRef.navigateNewer();
+                if (!node) return;
+                this.navigateUndoTreeTo(beforeSeq, node.seq);
+            });
+            this.registration.mapCommand('g+', 'action', 'undoTreeNewer', {});
+        }
 
         if (this.settings.enableStatusBar) {
             this.modeTracker = new VimModeTracker(this, {
@@ -2285,6 +2537,19 @@ export default class VimMotionsPlugin extends Plugin {
                 commandLabels.set(normalizeVimKey(entry.key), {
                     label: entry.label,
                 });
+            }
+        }
+
+        const builtinCommandLabels: Array<[string, WhichKeyLabelInfo]> = [
+            ['g;', { label: 'Older change' }],
+            ['g,', { label: 'Newer change' }],
+            ['g-', { label: 'Older undo state' }],
+            ['g+', { label: 'Newer undo state' }],
+        ];
+        for (const [key, info] of builtinCommandLabels) {
+            const normalized = normalizeVimKey(key);
+            if (!commandLabels.has(normalized)) {
+                commandLabels.set(normalized, info);
             }
         }
 
@@ -3010,6 +3275,9 @@ export default class VimMotionsPlugin extends Plugin {
             customPath: customLuaPath,
             bufferKeymapManager: this.bufferKeymapManager,
             openPicker: this.openPicker ?? undefined,
+            getUndoTree: this.settings.enableUndoTree
+                ? () => this.undoTree.toNeovimDict()
+                : undefined,
             oilCallbacks,
             onPickerKeymapChange: (keymap) => {
                 const s = this.settings.pickerKeymap;
@@ -3645,6 +3913,10 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.persistedJumpList = this.jumpList.serialize();
             void this.saveSettings();
         }
+        if (this.settings.undoFile && this.undoTreeSaveDirty) {
+            this.persistDirtyUndoTrees();
+            void this.saveSettings();
+        }
         if (this.foldPersistDirty) {
             this.foldPersistDirty = false;
             (
@@ -3753,6 +4025,160 @@ export default class VimMotionsPlugin extends Plugin {
         }
         delete (this.settings as unknown as Record<string, unknown>)
             .formattingMarkMode;
+    }
+
+    private activateUndoTreeForFile(filePath: string | null): void {
+        if (!this.settings.enableUndoTree) return;
+        if (!filePath) {
+            this.undoTree = new UndoTree(this.settings.undoTreeMaxNodes);
+            this.refreshUndoTreeViews();
+            return;
+        }
+
+        const existing = this.undoTreeMap.get(filePath);
+        if (existing) {
+            if (this.undoTree !== existing) {
+                this.undoTree = existing;
+                this.refreshUndoTreeViews();
+            }
+            return;
+        }
+
+        let tree: UndoTree | null = null;
+        if (this.settings.undoFile) {
+            const persisted = this.settings.persistedUndoTrees?.[filePath];
+            if (persisted) {
+                tree = UndoTree.deserialize(
+                    persisted,
+                    this.settings.undoTreeMaxNodes,
+                );
+            }
+        }
+
+        if (!tree) {
+            tree = new UndoTree(this.settings.undoTreeMaxNodes);
+        }
+
+        this.undoTreeMap.set(filePath, tree);
+        this.undoTree = tree;
+        this.refreshUndoTreeViews();
+    }
+
+    private markUndoTreeDirty(): void {
+        if (!this.settings.undoFile) return;
+        const filePath =
+            this.activeUndoFilePath ??
+            this.app.workspace.getActiveFile()?.path ??
+            null;
+        if (!filePath) return;
+        this.undoTreeMap.set(filePath, this.undoTree);
+        this.undoTreeDirtyPaths.add(filePath);
+        this.undoTreeSaveDirty = true;
+    }
+
+    private navigateUndoTreeTo(fromSeq: number, toSeq: number): void {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const editorView = getEditorView(view);
+        if (!editorView) return;
+
+        const path = this.undoTree.computePath(fromSeq, toSeq);
+        if (!path) return;
+
+        this.undoTree.setNavigating(true);
+        try {
+            for (const node of path.up) {
+                if (!node.inverseChangeSet) continue;
+                editorView.dispatch({
+                    changes: node.inverseChangeSet as ChangeSet,
+                    annotations: [Transaction.addToHistory.of(false)],
+                });
+            }
+            for (const node of path.down) {
+                if (!node.changeSet) continue;
+                editorView.dispatch({
+                    changes: node.changeSet as ChangeSet,
+                    annotations: [Transaction.addToHistory.of(false)],
+                });
+            }
+        } finally {
+            this.undoTree.setNavigating(false);
+        }
+        this.markUndoTreeDirty();
+        this.refreshUndoTreeViews();
+    }
+
+    private persistUndoTreeForFile(filePath: string): void {
+        if (!this.settings.undoFile) return;
+        const tree = this.undoTreeMap.get(filePath);
+        if (!tree) return;
+
+        const serialized = tree.serialize();
+        const persisted = { ...this.settings.persistedUndoTrees };
+        delete persisted[filePath];
+        persisted[filePath] = serialized;
+        this.settings.persistedUndoTrees =
+            this.capPersistedUndoTrees(persisted);
+        this.undoTreeDirtyPaths.delete(filePath);
+        this.undoTreeSaveDirty = this.undoTreeDirtyPaths.size > 0;
+    }
+
+    private persistDirtyUndoTrees(): void {
+        if (!this.settings.undoFile) return;
+        for (const filePath of [...this.undoTreeDirtyPaths]) {
+            this.persistUndoTreeForFile(filePath);
+        }
+    }
+
+    private capPersistedUndoTrees(
+        trees: Record<string, SerializedUndoTree>,
+    ): Record<string, SerializedUndoTree> {
+        const keys = Object.keys(trees);
+        if (keys.length <= MAX_PERSISTED_UNDO_TREES) return trees;
+        const next = { ...trees };
+        const overflow = keys.length - MAX_PERSISTED_UNDO_TREES;
+        for (let i = 0; i < overflow; i++) {
+            const key = keys[i];
+            if (key) delete next[key];
+        }
+        const serializedSize = JSON.stringify(next).length;
+        if (serializedSize > 10_000_000) {
+            console.warn(
+                `[vim-motions] Persisted undo tree data is ${(serializedSize / 1_000_000).toFixed(1)}MB. Consider reducing undoTreeMaxNodes.`,
+            );
+        }
+        return next;
+    }
+
+    async toggleUndoTreeView(): Promise<void> {
+        const leaves = this.app.workspace.getLeavesOfType(UNDO_TREE_VIEW_TYPE);
+        if (leaves.length > 0) {
+            for (const leaf of leaves) {
+                leaf.detach();
+            }
+        } else {
+            const leaf =
+                this.settings.undoTreePosition === 'left'
+                    ? this.app.workspace.getLeftLeaf(false)
+                    : this.app.workspace.getRightLeaf(false);
+            if (leaf) {
+                await leaf.setViewState({
+                    type: UNDO_TREE_VIEW_TYPE,
+                    active: true,
+                });
+                await this.app.workspace.revealLeaf(leaf);
+            }
+        }
+    }
+
+    private refreshUndoTreeViews(): void {
+        for (const leaf of this.app.workspace.getLeavesOfType(
+            UNDO_TREE_VIEW_TYPE,
+        )) {
+            if (leaf.view instanceof UndoTreeView) {
+                leaf.view.refresh();
+            }
+        }
     }
 
     async saveSettings() {

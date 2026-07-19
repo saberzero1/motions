@@ -66,6 +66,8 @@ src/
     options.ts             # Vim option registration (clipboard, tabstop, etc.)
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
     changelist.ts          # Change list tracking
+    undo-tree.ts           # Undo tree data structure (shadow tree, branching, serialize/deserialize)
+    undo-tree-view.ts      # Undo tree sidebar view (DOM rendering, keyboard nav, click-to-navigate)
     yank-highlight.ts      # Yank highlight flash effect
     visual-line-command-fix.ts  # Visual line command edge-case fixes
     linewise-widget-highlight.ts  # Visual-line highlight for replaced widget blocks

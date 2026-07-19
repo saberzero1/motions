@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Undo tree visualization** — branching undo history with `g+`/`g-` chronological navigation across all branches (buffer content changes via ChangeSet dispatch), `:earlier N/Ns/Nm/Nh/Nd/Nf` and `:later` time/count/save-point navigation, `:undolist` modal, sidebar view (`:UndoTreeToggle/Show/Hide`) with DOM tree rendering, click-to-navigate, keyboard nav (j/k/Enter/q), collapse/expand branches, relative timestamps, summary diff preview, `vim.fn.undotree()` Lua API (Neovim-compatible dict), optional persistence (`set undofile`), per-file undo tree map, Obsidian commands for sidebar management. Inspired by [undotree](https://github.com/mbbill/undotree).
+    - Plugin: `src/vim/undo-tree.ts` (shadow tree data structure), `src/vim/undo-tree-view.ts` (sidebar view), `src/main.ts` (CM6 integration, g+/g- actions, persistence hooks), `src/workspace/commands.ts` (ex commands), `src/lua/fn.ts` (`vim.fn.undotree()`)
+
+### Fixed
+
+- **`g;`/`g,`/`g-`/`g+` keymaps not working after `reloadFeatures()`** — the changelist and undo tree `mapCommand` registrations were only in `onload()` but not in `reloadFeatures()`. Since `reloadFeatures()` calls `unregisterAll()` (which wipes all custom keymaps) and then re-registers features, these keymaps were silently wiped on any settings change, vimrc load, or Lua config load. Fixed by adding the registrations to `reloadFeatures()`.
+    - Plugin: `src/main.ts` (added changelist + undo tree mapCommand calls to `reloadFeatures()`)
+
+### Tests
+
+- 66 unit tests in `test/unit/undo-tree.test.ts`: data structure (branching, navigation, pruning, time lookup, Neovim dict), serialize/deserialize round-trip, findBySaveCount, computePath, navigating flag, ChangeSet storage
+- 8 e2e tests in `test/specs/undo-tree.e2e.ts`: CM6 integration, g+/g-, :earlier/:later, :undolist
+- 4 e2e tests in `test/specs/undo-tree-view.e2e.ts`: sidebar open/close, node rendering, current marker
+- 5 e2e tests in `test/specs/undo-tree-navigation.e2e.ts`: buffer content changes via :earlier/:later, g+/g- safety
+
+### Documentation
+
+- `CHANGELOG.md`: Added undo tree visualization feature and reloadFeatures fix
+- `KNOWN_LIMITATIONS.md`: Added undo tree section
+- `README.md`: Added undo tree to features list
+- `CONTRIBUTING.md`: Added undo-tree.ts, undo-tree-view.ts to codebase structure
+- `AGENTS.md`: Added undo tree to page ownership table
+- `docs/features/undo-tree.md`: New feature page
+- `docs/features/index.md`: Added undo tree link
+- `docs/features/quality-of-life.md`: Added g+/g- and :earlier/:later to change navigation
+- `docs/reference/keybindings.md`: Added undo tree navigation section
+- `docs/configuration/settings.md`: Added Undo tree settings group
+- `docs/configuration/vimrc.md`: Added undotree/undofile options
+- `docs/configuration/lua-config.md`: Added vim.fn.undotree() and vim.opt entries
+- `docs/features/ex-commands.md`: Added :earlier/:later/:undolist/:UndoTreeToggle
+
 ## [0.69.0] - 2026-07-19
 
 ### Fixed

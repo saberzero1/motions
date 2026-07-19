@@ -10,6 +10,7 @@ import type { AutocmdManager } from '../lua/autocmd';
 import { executeCommand, getCommandRegistry } from '../util/commands';
 import { getResolvedLinks } from '../util/metadata';
 import type { JumpList } from '../vim/jumplist';
+import type { UndoTree } from '../vim/undo-tree';
 import { navigateWithJump, navigateWithJumpSetActive } from './navigate';
 
 type OpenPicker = (
@@ -559,6 +560,8 @@ export function registerExCommands(
     picker?: PickerConfig,
     onMarksChanged?: () => void,
     jumpList?: JumpList,
+    undoTree?: UndoTree,
+    navigateUndoTreeTo?: (fromSeq: number, toSeq: number) => void,
 ): void {
     const backlinksCommand = createBacklinksCommand(app);
     const grepCommand = createGrepCommand(app);
@@ -733,6 +736,133 @@ export function registerExCommands(
     reg.defineEx('delmarks', 'delm', createDelmarksCommand(onMarksChanged));
     if (jumpList) {
         reg.defineEx('jumps', 'ju', createJumpsCommand(app, jumpList));
+    }
+
+    if (undoTree) {
+        reg.defineEx('undolist', 'undol', () => {
+            const nodes = undoTree.getAllNodes();
+            const currentSeq = undoTree.getCurrentSeq();
+            const rows = nodes.map((node) => [
+                node.seq === currentSeq ? '>' : ' ',
+                String(node.seq),
+                new Date(node.timestamp).toLocaleTimeString(),
+                node.changeSummary
+                    ? `+${node.changeSummary.inserted} -${node.changeSummary.deleted}`
+                    : '',
+                node.saved ? 'saved' : '',
+                node.children.length > 1
+                    ? `${node.children.length} branches`
+                    : '',
+            ]);
+            new VimInfoModal(
+                app,
+                'Undo tree',
+                [
+                    { header: '' },
+                    { header: 'Seq' },
+                    { header: 'Time' },
+                    { header: 'Change' },
+                    { header: 'Save' },
+                    { header: 'Branches' },
+                ],
+                rows,
+            ).open();
+        });
+
+        reg.defineEx('earlier', 'ea', (_cm, params) => {
+            const arg = (params.argString ?? '').trim() || '1';
+            const beforeSeq = undoTree.getCurrentSeq();
+            const fileMatch = arg.match(/^(\d+)f$/);
+            if (fileMatch) {
+                const count = parseInt(fileMatch[1] ?? '0', 10);
+                undoTree.findBySaveCount(count, 'older');
+            } else {
+                const timeMatch = arg.match(/^(\d+)(s|m|h|d)$/);
+                if (timeMatch) {
+                    const amount = parseInt(timeMatch[1] ?? '0', 10);
+                    const unit = timeMatch[2] ?? 's';
+                    const multipliers: Record<string, number> = {
+                        s: 1000,
+                        m: 60000,
+                        h: 3600000,
+                        d: 86400000,
+                    };
+                    const targetTime =
+                        Date.now() - amount * (multipliers[unit] ?? 1000);
+                    undoTree.findByTime(targetTime);
+                } else {
+                    const count = parseInt(arg, 10) || 1;
+                    undoTree.findByCount(count, 'older');
+                }
+            }
+            const afterSeq = undoTree.getCurrentSeq();
+            if (beforeSeq !== afterSeq) {
+                navigateUndoTreeTo?.(beforeSeq, afterSeq);
+            }
+        });
+
+        reg.defineEx('later', 'lat', (_cm, params) => {
+            const arg = (params.argString ?? '').trim() || '1';
+            const beforeSeq = undoTree.getCurrentSeq();
+            const fileMatch = arg.match(/^(\d+)f$/);
+            if (fileMatch) {
+                const count = parseInt(fileMatch[1] ?? '0', 10);
+                undoTree.findBySaveCount(count, 'newer');
+            } else {
+                const timeMatch = arg.match(/^(\d+)(s|m|h|d)$/);
+                if (timeMatch) {
+                    const amount = parseInt(timeMatch[1] ?? '0', 10);
+                    const unit = timeMatch[2] ?? 's';
+                    const multipliers: Record<string, number> = {
+                        s: 1000,
+                        m: 60000,
+                        h: 3600000,
+                        d: 86400000,
+                    };
+                    const targetTime =
+                        undoTree.getCurrent().timestamp +
+                        amount * (multipliers[unit] ?? 1000);
+                    undoTree.findByTime(targetTime);
+                } else {
+                    const count = parseInt(arg, 10) || 1;
+                    undoTree.findByCount(count, 'newer');
+                }
+            }
+            const afterSeq = undoTree.getCurrentSeq();
+            if (beforeSeq !== afterSeq) {
+                navigateUndoTreeTo?.(beforeSeq, afterSeq);
+            }
+        });
+
+        reg.defineEx('UndoTreeToggle', 'UndoTreeT', () => {
+            const leaves = app.workspace.getLeavesOfType('undo-tree');
+            if (leaves.length > 0) {
+                for (const leaf of leaves) {
+                    leaf.detach();
+                }
+            } else {
+                const leaf = app.workspace.getRightLeaf(false);
+                if (leaf) {
+                    void leaf.setViewState({ type: 'undo-tree', active: true });
+                    void app.workspace.revealLeaf(leaf);
+                }
+            }
+        });
+
+        reg.defineEx('UndoTreeShow', 'UndoTreeS', () => {
+            if (app.workspace.getLeavesOfType('undo-tree').length > 0) return;
+            const leaf = app.workspace.getRightLeaf(false);
+            if (leaf) {
+                void leaf.setViewState({ type: 'undo-tree', active: true });
+                void app.workspace.revealLeaf(leaf);
+            }
+        });
+
+        reg.defineEx('UndoTreeHide', 'UndoTreeH', () => {
+            for (const leaf of app.workspace.getLeavesOfType('undo-tree')) {
+                leaf.detach();
+            }
+        });
     }
 
     reg.defineEx('gmaps', '', () => {

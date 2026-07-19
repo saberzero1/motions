@@ -16,6 +16,7 @@ import { getVimApi } from './vim/vim-api';
 import { getCommandRegistry } from './util/commands';
 import { isBuiltinVimEnabled } from './util/vault';
 import { setClipboardOption, setTextwidth } from './vim/options';
+import type { SerializedUndoTree } from './vim/undo-tree';
 import {
     VIMRC_FALLBACK_PATHS,
     getVimrcFallbackPaths,
@@ -132,6 +133,7 @@ export interface VimMotionsSettings {
         ch: number;
     }[];
     persistedJumpList?: { filePath: string; line: number; ch: number }[];
+    persistedUndoTrees: Record<string, SerializedUndoTree>;
     harpoonPins?: ({ filePath: string; row: number; col: number } | null)[];
     configMode: 'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
     enableStatusBar: boolean;
@@ -228,6 +230,12 @@ export interface VimMotionsSettings {
     snippetTriggerMode: 'completion' | 'tab' | 'both';
 
     enableVimTextareas: boolean;
+
+    enableUndoTree: boolean;
+    undoFile: boolean;
+    undoTreeMaxNodes: number;
+    undoTreePosition: 'left' | 'right';
+    undoTreeAutoOpen: boolean;
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -341,6 +349,13 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     snippetTriggerMode: 'both' as const,
 
     enableVimTextareas: false,
+
+    enableUndoTree: true,
+    undoFile: false,
+    undoTreeMaxNodes: 1000,
+    undoTreePosition: 'right' as const,
+    undoTreeAutoOpen: false,
+    persistedUndoTrees: {},
 };
 
 interface ObsidianCommand {
@@ -2068,6 +2083,59 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     },
                 ],
             },
+            {
+                type: 'group' as const,
+                heading: 'Undo tree',
+                items: [
+                    {
+                        name: 'Undo tree',
+                        desc: 'Track branching undo history for g+/g- navigation, :earlier/:later commands, and :undolist visualization.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableUndoTree',
+                        },
+                    },
+                    {
+                        name: 'Persist undo history',
+                        desc: 'Save undo tree to disk so it survives across sessions. Per-file undo history is stored in plugin data.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'undoFile',
+                        },
+                    },
+                    {
+                        name: 'Maximum undo tree nodes',
+                        desc: 'Maximum number of undo states to keep per editor. Oldest leaf branches are pruned when exceeded.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'undoTreeMaxNodes',
+                            min: 100,
+                            max: 5000,
+                            step: 100,
+                        },
+                    },
+                    {
+                        name: 'Sidebar position',
+                        desc: 'Which sidebar to open the undo tree view in.',
+                        control: {
+                            type: 'dropdown' as const,
+                            key: 'undoTreePosition',
+                            options: {
+                                left: 'Left',
+                                right: 'Right',
+                            },
+                        },
+                    },
+                    {
+                        name: 'Auto-open on branch',
+                        desc: 'Automatically open the undo tree sidebar when a branch is created (undo + new edit).',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'undoTreeAutoOpen',
+                        },
+                    },
+                ],
+            },
         ];
     }
 
@@ -3634,6 +3702,85 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             | 'name'
                             | 'mtime'
                             | 'size';
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        // ── Undo tree ────────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Undo tree').setHeading();
+
+        new Setting(containerEl)
+            .setName('Undo tree')
+            .setDesc(
+                'Track branching undo history for g+/g- navigation, :earlier/:later commands, and :undolist visualization.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableUndoTree)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableUndoTree = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Persist undo history')
+            .setDesc(
+                'Save undo tree to disk so it survives across sessions. Per-file undo history is stored in plugin data.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.undoFile)
+                    .onChange(async (value) => {
+                        this.plugin.settings.undoFile = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Maximum undo tree nodes')
+            .setDesc(
+                'Maximum number of undo states to keep per editor. Oldest leaf branches are pruned when exceeded.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(100, 5000, 100)
+                    .setValue(this.plugin.settings.undoTreeMaxNodes)
+                    .onChange(async (value) => {
+                        this.plugin.settings.undoTreeMaxNodes = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Sidebar position')
+            .setDesc('Which sidebar to open the undo tree view in.')
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        left: 'Left',
+                        right: 'Right',
+                    })
+                    .setValue(this.plugin.settings.undoTreePosition)
+                    .onChange(async (value) => {
+                        this.plugin.settings.undoTreePosition = value as
+                            | 'left'
+                            | 'right';
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Auto-open on branch')
+            .setDesc(
+                'Automatically open the undo tree sidebar when a branch is created (undo + new edit).',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.undoTreeAutoOpen)
+                    .onChange(async (value) => {
+                        this.plugin.settings.undoTreeAutoOpen = value;
                         await this.plugin.saveSettings();
                     }),
             );
