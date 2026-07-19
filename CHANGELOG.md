@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-07-19
+
 ### Fixed
 
 - **Textarea vim overlay re-activates immediately after Escape exit** — pressing Escape in normal mode tore down the overlay and called `originalEl.focus()`, which triggered the `focusin` listener and re-created the overlay in insert mode after the 150ms debounce. Users saw a brief flash of the textarea before being placed back in insert mode, making it impossible to return to the modal context. Fixed by adding a `recentlyExited` guard (`WeakRef` + 250ms cooldown) that suppresses the `focusin` handler for the textarea that was just exited. After the cooldown, the textarea can be re-activated by clicking into it again. ([#69](https://github.com/saberzero1/motions/issues/69))

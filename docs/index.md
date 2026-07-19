@@ -30,10 +30,14 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.68.0
+## What's new in 0.69.0
 
-- **Documentation audit** — systematic review of all docs pages against source code. Corrected stale counts and inaccurate information across 11 files (text object count, picker source count, ex command count, bundled snippet count, settings organization, and more).
-- **Table regression tests** — 13 new e2e tests for escaped pipe handling in tables (issues [#66](https://github.com/saberzero1/motions/issues/66) and [#67](https://github.com/saberzero1/motions/issues/67)): typing `|` outside tables, escaped `\|` navigation, and auto-escape behavior in table cells.
-- **Known limitation update** — `|` typing in Live Preview table cells is swallowed by Obsidian's 1.7+ table editor at the DOM level. Documented workaround via Embedded table widget mode.
+- **Subword motions** — spider.nvim-style `w`/`b`/`e`/`ge` override stopping at camelCase, snake_case, and kebab-case boundaries. Opt-in via `set subword`.
+- **General-purpose text objects** — 6 new text objects: `iS`/`aS` (subword), `in`/`an` (number), `iq`/`aq` (nearest quote), `iD`/`aD` (wikilink), `gL` (URL), `i,`/`a,` (argument).
+- **Enhanced increment/decrement** — dial.nvim-style `<C-a>`/`<C-x>` cycling checkboxes, booleans, hex colors, dates, CSS values, and integers. Opt-in via `set dial`.
+- **Custom text objects via Lua** — `vim.textobject.add(keys, spec)` and `vim.gen_spec.pair(open, close)` for defining delimiter-pair text objects from `.obsidian.init.lua`.
+- **External grep integration** — optional ripgrep or GNU grep binary for native-speed picker search. Desktop-only with automatic fallback.
+- **Textarea vim fix** — Escape no longer re-activates the overlay immediately ([#69](https://github.com/saberzero1/motions/issues/69)).
+- **Lua text object persistence** — `vim.textobject.add()` registrations survive `reloadFeatures()`.
 
 See the [[changelog|full changelog]] for details.
