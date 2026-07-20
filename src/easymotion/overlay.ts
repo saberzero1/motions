@@ -1,7 +1,9 @@
+import type { EditorView } from '@codemirror/view';
 import type { CmAdapter } from '../types/vim-api';
 import type { Target, LabeledTarget } from './types';
 
 const COORD_SNAP = 2;
+const MIN_HIGHLIGHT_WIDTH = 4;
 
 export function filterVisibleTargets(
     cm: CmAdapter,
@@ -30,6 +32,119 @@ export interface OverlayHandle {
     updateLabels: (targets: LabeledTarget[]) => void;
 }
 
+interface TargetRect {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
+function measureTarget(
+    view: EditorView,
+    cm: CmAdapter,
+    target: Target,
+    scrollRect: DOMRect,
+    scrollLeft: number,
+    scrollTop: number,
+): TargetRect | null {
+    const ml = target.matchLength ?? 1;
+    const startOffset = cm.indexFromPos({ line: target.line, ch: target.ch });
+    const startCoords = view.coordsAtPos(startOffset);
+    if (!startCoords) return null;
+
+    const left = startCoords.left - scrollRect.left + scrollLeft;
+    const top = startCoords.top - scrollRect.top + scrollTop;
+    const height = startCoords.bottom - startCoords.top;
+
+    const endOffset = Math.min(startOffset + ml, view.state.doc.length);
+    const endCoords = view.coordsAtPos(endOffset);
+    let width: number;
+    if (endCoords && Math.abs(endCoords.top - startCoords.top) < COORD_SNAP) {
+        width = Math.abs(endCoords.left - startCoords.left);
+    } else {
+        const nextCoords = view.coordsAtPos(
+            Math.min(startOffset + 1, view.state.doc.length),
+        );
+        if (
+            nextCoords &&
+            Math.abs(nextCoords.top - startCoords.top) < COORD_SNAP
+        ) {
+            width = (nextCoords.left - startCoords.left) * ml;
+        } else {
+            width = 8 * ml;
+        }
+    }
+    width = Math.max(width, MIN_HIGHLIGHT_WIDTH);
+
+    return { left, top, width, height };
+}
+
+function measureLabelAnchor(
+    view: EditorView,
+    cm: CmAdapter,
+    target: Target,
+    scrollRect: DOMRect,
+    scrollLeft: number,
+    scrollTop: number,
+): { left: number; top: number } | null {
+    const ml = target.matchLength ?? 1;
+    const startOffset = cm.indexFromPos({ line: target.line, ch: target.ch });
+    const startCoords = view.coordsAtPos(startOffset);
+    if (!startCoords) return null;
+
+    const endOffset = Math.min(startOffset + ml, view.state.doc.length);
+    const endCoords = view.coordsAtPos(endOffset);
+
+    if (endCoords && Math.abs(endCoords.top - startCoords.top) < COORD_SNAP) {
+        return {
+            left: endCoords.left - scrollRect.left + scrollLeft,
+            top: endCoords.top - scrollRect.top + scrollTop,
+        };
+    }
+
+    const nextCoords = view.coordsAtPos(
+        Math.min(startOffset + 1, view.state.doc.length),
+    );
+    const charW =
+        nextCoords && Math.abs(nextCoords.top - startCoords.top) < COORD_SNAP
+            ? nextCoords.left - startCoords.left
+            : 8;
+    return {
+        left: startCoords.left - scrollRect.left + scrollLeft + charW * ml,
+        top: startCoords.top - scrollRect.top + scrollTop,
+    };
+}
+
+function renderHighlightSpans(
+    container: HTMLElement,
+    view: EditorView,
+    cm: CmAdapter,
+    targets: Target[],
+): void {
+    container.empty();
+    const scrollRect = view.scrollDOM.getBoundingClientRect();
+    const scrollLeft = view.scrollDOM.scrollLeft;
+    const scrollTop = view.scrollDOM.scrollTop;
+
+    for (const target of targets) {
+        const rect = measureTarget(
+            view,
+            cm,
+            target,
+            scrollRect,
+            scrollLeft,
+            scrollTop,
+        );
+        if (!rect) continue;
+
+        const el = container.createSpan({ cls: 'vim-motions-flash-match' });
+        el.style.setProperty('--vim-motions-em-left', `${rect.left}px`);
+        el.style.setProperty('--vim-motions-em-top', `${rect.top}px`);
+        el.style.setProperty('--vim-motions-flash-w', `${rect.width}px`);
+        el.style.setProperty('--vim-motions-flash-h', `${rect.height}px`);
+    }
+}
+
 export function showMatchHighlights(
     cm: CmAdapter,
     targets: Target[],
@@ -43,32 +158,7 @@ export function showMatchHighlights(
     const container = createDiv();
     wrapper.appendChild(container);
 
-    function render(items: Target[]) {
-        container.empty();
-        const scrollRect = view.scrollDOM.getBoundingClientRect();
-        const scrollLeft = view.scrollDOM.scrollLeft;
-        const scrollTop = view.scrollDOM.scrollTop;
-
-        for (const target of items) {
-            const offset = cm.indexFromPos({
-                line: target.line,
-                ch: target.ch,
-            });
-            const coords = view.coordsAtPos(offset);
-            if (!coords) continue;
-
-            const left = coords.left - scrollRect.left + scrollLeft;
-            const top = coords.top - scrollRect.top + scrollTop;
-
-            const el = container.createSpan({
-                cls: 'vim-motions-flash-match',
-            });
-            el.style.setProperty('--vim-motions-em-left', `${left}px`);
-            el.style.setProperty('--vim-motions-em-top', `${top}px`);
-        }
-    }
-
-    render(targets);
+    renderHighlightSpans(container, view, cm, targets);
 
     return {
         cleanup: () => wrapper.remove(),
@@ -99,6 +189,9 @@ export function showOverlay(
     wrapper.style.setProperty('--vim-motions-em-font-size', `${fs}px`);
     view.scrollDOM.appendChild(wrapper);
 
+    const highlightContainer = createDiv();
+    wrapper.appendChild(highlightContainer);
+
     const labelContainer = createDiv();
     wrapper.appendChild(labelContainer);
 
@@ -124,45 +217,54 @@ export function showOverlay(
         }[] = [];
 
         for (const target of items) {
-            const offset = cm.indexFromPos({
-                line: target.line,
-                ch: target.ch,
-            });
-            const coords = view.coordsAtPos(offset);
-            if (!coords) continue;
+            const anchor = measureLabelAnchor(
+                view,
+                cm,
+                target,
+                scrollRect,
+                scrollLeft,
+                scrollTop,
+            );
+            if (!anchor) continue;
 
-            let left = coords.left - scrollRect.left + scrollLeft;
-            let top = coords.top - scrollRect.top + scrollTop;
+            let labelLeft = anchor.left;
+            let labelTop = anchor.top;
             const width = labelWidth(target.label.length);
 
-            let right = left + width;
-            let bottom = top + LABEL_HEIGHT;
+            let right = labelLeft + width;
+            let bottom = labelTop + LABEL_HEIGHT;
             for (const prev of placed) {
                 if (
-                    left < prev.right &&
+                    labelLeft < prev.right &&
                     right > prev.left &&
-                    top < prev.bottom &&
+                    labelTop < prev.bottom &&
                     bottom > prev.top
                 ) {
-                    top = prev.bottom;
-                    bottom = top + LABEL_HEIGHT;
+                    labelTop = prev.bottom;
+                    bottom = labelTop + LABEL_HEIGHT;
                 }
             }
-            placed.push({ left, top, right, bottom });
+            placed.push({ left: labelLeft, top: labelTop, right, bottom });
 
             if (target.label.length === 1) {
                 const el = labelContainer.createSpan({
                     cls: 'vim-motions-easymotion-label',
                     text: target.label,
                 });
-                el.style.setProperty('--vim-motions-em-left', `${left}px`);
-                el.style.setProperty('--vim-motions-em-top', `${top}px`);
+                el.style.setProperty('--vim-motions-em-left', `${labelLeft}px`);
+                el.style.setProperty('--vim-motions-em-top', `${labelTop}px`);
             } else {
                 const group = labelContainer.createSpan({
                     cls: 'vim-motions-easymotion-label',
                 });
-                group.style.setProperty('--vim-motions-em-left', `${left}px`);
-                group.style.setProperty('--vim-motions-em-top', `${top}px`);
+                group.style.setProperty(
+                    '--vim-motions-em-left',
+                    `${labelLeft}px`,
+                );
+                group.style.setProperty(
+                    '--vim-motions-em-top',
+                    `${labelTop}px`,
+                );
                 group.createSpan({
                     cls: 'vim-motions-easymotion-label-first',
                     text: target.label[0],
@@ -175,6 +277,7 @@ export function showOverlay(
         }
     }
 
+    renderHighlightSpans(highlightContainer, view, cm, targets);
     renderLabels(targets);
 
     return {

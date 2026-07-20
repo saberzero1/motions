@@ -46,7 +46,11 @@ function findSearchMatchTargets(cm: CmAdapter): Target[] {
     let match: RegExpExecArray | null;
     while ((match = re.exec(text)) !== null) {
         const pos = cm.posFromIndex(match.index);
-        targets.push({ line: pos.line, ch: pos.ch });
+        targets.push({
+            line: pos.line,
+            ch: pos.ch,
+            matchLength: Math.max(match[0].length, 1),
+        });
         if (match[0].length === 0) re.lastIndex++;
         if (targets.length > 500) break;
     }

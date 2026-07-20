@@ -49,6 +49,10 @@ EasyMotion supports operator-pending mode for `d`, `c`, and `y`. This allows for
 > [!note]
 > Dot-repeat (`.`) does not currently replay operator-pending EasyMotion operations.
 
+## Label positioning
+
+EasyMotion labels appear **after** the target character (one character to the right), matching the label positioning used by [[flash|Flash motions]]. This prevents labels from obscuring the character they target. Match highlights also render behind each label for visual consistency.
+
 ## Live Preview awareness
 
 The EasyMotion engine is specifically tuned for Obsidian's Live Preview mode:

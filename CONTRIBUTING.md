@@ -139,7 +139,7 @@ src/
   easymotion/
     register.ts            # Wires EasyMotion to keybindings
     targets.ts             # Target detection (words, lines, chars)
-    overlay.ts             # Label overlay rendering
+    overlay.ts             # Label + highlight overlay rendering (measureTarget, measureLabelAnchor, renderHighlightSpans)
     labels.ts              # Label generation and assignment
     keypress.ts            # Keypress handling during label selection
     types.ts               # EasyMotion type definitions

@@ -91,6 +91,15 @@ set noflashcleverf   " disable (default)
 vim.opt.flashcleverf = true
 ```
 
+## Highlight and label rendering
+
+Flash renders two visual layers when labels are visible:
+
+1. **Match highlights** — colored rectangles behind each matched text, sized to the actual character dimensions (adapts to proportional fonts, CJK, and different font sizes).
+2. **Labels** — jump hint characters positioned immediately **after** the matched text, matching [flash.nvim](https://github.com/folke/flash.nvim)'s default behavior.
+
+During label narrowing (typing a label prefix), match highlights persist for all targets while only labels narrow to remaining candidates. Pressing `Backspace` restores all labels.
+
 ## Coexistence with EasyMotion
 
 Flash and EasyMotion are independent features that work simultaneously:

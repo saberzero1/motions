@@ -167,7 +167,7 @@ export function findSubstringTargets(
         while (idx < text.length) {
             const found = text.indexOf(pattern, idx);
             if (found === -1) break;
-            targets.push({ line, ch: found });
+            targets.push({ line, ch: found, matchLength: pattern.length });
             idx = found + 1;
         }
     }

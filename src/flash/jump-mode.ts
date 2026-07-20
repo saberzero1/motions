@@ -5,6 +5,7 @@ import { isEasyMotionActive } from '../easymotion/register';
 import { isFlashActive, setFlashActive } from './state';
 import { findSubstringTargets } from '../easymotion/targets';
 import type { Target } from '../easymotion/types';
+import type { OverlayHandle } from '../easymotion/overlay';
 import {
     filterVisibleTargets,
     showOverlay,
@@ -65,7 +66,7 @@ export function createFlashJumpMotion(
         return new Promise<VimPos | null>((resolve) => {
             let pattern = '';
             const labeler = new FlashLabeler();
-            let currentOverlay: { cleanup: () => void } | null = null;
+            let currentOverlay: OverlayHandle | null = null;
             let labelPrefix = '';
 
             const cleanup = () => {
@@ -219,11 +220,7 @@ export function createFlashJumpMotion(
                         );
                         if (remaining.length > 0) {
                             labelPrefix = typed;
-                            currentOverlay?.cleanup();
-                            currentOverlay = showOverlay(cm, remaining, {
-                                shade: opts.dimming(),
-                                fontSize: opts.fontSize(),
-                            });
+                            currentOverlay?.updateLabels(remaining);
                             return;
                         }
                     }

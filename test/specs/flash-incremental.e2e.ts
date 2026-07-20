@@ -186,7 +186,12 @@ describe('Flash incremental jump mode', function () {
             await setupEditor('hello xyz world', { line: 0, ch: 0 });
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
-            await browser.keys(['d', 's', 'x', 'y', 'z']);
+            // After d+s, the shadow resolver defers flash (waiting for
+            // surround target vs flash motion). Wait for the timeout
+            // (default 1000ms) so flash activates, then type the search.
+            await browser.keys(['d', 's']);
+            await browser.pause(1200);
+            await browser.keys(['x', 'y', 'z']);
             await browser.pause(500);
             const value = await getEditorValue();
             expect(value).toBe('xyz world');

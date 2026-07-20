@@ -80,8 +80,8 @@
     position: absolute;
     left: var(--vim-motions-em-left, 0);
     top: var(--vim-motions-em-top, 0);
-    width: 8px;
-    height: 16px;
+    width: var(--vim-motions-flash-w, 8px);
+    height: var(--vim-motions-flash-h, 16px);
     background: var(--text-accent);
     opacity: 0.25;
     border-radius: 2px;

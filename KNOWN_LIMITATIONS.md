@@ -93,6 +93,9 @@ Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches 
 
 **Known limitations**:
 
+- ~~**Highlight rectangles hardcoded to 8×16px**~~: Fixed. Highlight boxes now dynamically measure actual character dimensions via `coordsAtPos()`. CSS uses custom properties (`--vim-motions-flash-w`, `--vim-motions-flash-h`) with fallbacks for user CSS snippet compatibility. ([#75](https://github.com/saberzero1/motions/issues/75))
+- ~~**Labels obscure matched text**~~: Fixed. Labels are now positioned at the END of the matched text (after the last matched character), matching flash.nvim's default `after = true` behavior. Match highlights render behind labels during the label phase. During label narrowing, match highlights persist for all targets while only labels narrow. ([#75](https://github.com/saberzero1/motions/issues/75))
+- **EasyMotion label shift**: Labels for EasyMotion motions (word, char, line, search) now appear one character to the right of the target — after the target character instead of on top of it. This is a deliberate change matching the label-after-match positioning used by flash. The jump destination is unchanged.
 - **No macro recording**: Flash label selection is not recorded in macros. Macros capture the search character (`f{char}`) but not the label keypress. This is the same limitation as EasyMotion.
 - **No dot-repeat for label selection**: After `df{char}{label}`, pressing `.` replays the delete-to-char operator but does not replay the label selection. The operator applies to the same relative offset.
 - **No remote operations**: flash.nvim's remote mode (`yr{target}` to yank at a distance without moving cursor) is not implemented. This requires vim state manipulation not available in the codemirror-vim fork.
