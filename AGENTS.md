@@ -285,6 +285,7 @@ When making a change, update these docs pages:
 | Structural navigation | `features/structural-navigation.md` | Vim features (navigation)                                                                                          |
 | Tables                | `features/tables.md`                | Vim features (tablenav, tablewidget)                                                                               |
 | Jump list             | `features/quality-of-life.md`       | Jump navigation (jumplist, jumplistsize)                                                                           |
+| Yank-ring             | `features/quality-of-life.md`       | Vim features (yankring)                                                                                            |
 | Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                                                    |
 | Flash motions         | `features/flash.md`                 | Jump navigation (flash, flashmultiline, flashjump, flashjumpkey, flashcleverf, flashminpatternlength, flashsearch) |
 | EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                                                       |

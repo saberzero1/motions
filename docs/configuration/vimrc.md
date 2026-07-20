@@ -149,6 +149,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `snippets`            | —     | Enable snippet expansion                | on      |
 | `snippetbundled`      | —     | Include bundled Obsidian snippets       | on      |
 | `vimtextareas`        | `vta` | Vim keybindings in text areas           | off     |
+| `yankring`            | —     | Yank-ring paste cycling                 | on      |
 | `jumplist`            | —     | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
 | `undotree`            | `ut`  | Enable undo tree tracking               | on      |
 | `undofile`            | `udf` | Persist undo tree across sessions       | off     |

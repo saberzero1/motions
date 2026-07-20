@@ -850,11 +850,13 @@ The `gr` operator implements the three primary mappings from [inkarkat/vim-Repla
 
 The replaced text is discarded into the black-hole register; the source register is preserved.
 
-**Remaining gaps**:
+**Remaining gaps**: None.
 
-- **Blockwise visual mode (`<C-V>` + `gr`)**: The operator has no blockwise branch. Selecting a block with `<C-V>` and then pressing `gr` falls through to the characterwise path, which produces incorrect results. The original plugin handles two sub-cases: if the register contains a single line, it duplicates that line to match the block height; if it contains multiple lines, it pastes blockwise. Neither case is implemented.
+**Fixed**:
 
-**Test coverage**: `test/specs/operators.e2e.ts` — 22 passing tests: `grr` (single, multi-line, count), `griw`, `gr$`, `grl`, `gri'`, `gr}`, named registers (`"agriw`, `"a3grr`), visual `gr` (charwise and linewise `V`), register type coercion (linewise↔charwise), cursor positioning, dot-repeat (`griw`, `grr`, `3grr`+`.`), multi-line register expansion, text object at line boundary. 4 skipped blockwise visual mode tests (`it.skip`) document expected behavior for future implementation.
+- ~~Blockwise visual mode (`<C-V>` + `gr`)~~ — Implemented blockwise replacement with register line duplication/truncation and per-line replacements.
+
+**Test coverage**: `test/specs/operators.e2e.ts` — 26 passing tests: `grr` (single, multi-line, count), `griw`, `gr$`, `grl`, `gri'`, `gr}`, named registers (`"agriw`, `"a3grr`), visual `gr` (charwise, linewise `V`, blockwise `<C-V>`), register type coercion (linewise↔charwise), cursor positioning, dot-repeat (`griw`, `grr`, `3grr`+`.`), multi-line register expansion, text object at line boundary.
 
 ## Test-discovered behavioral discrepancies
 
@@ -1575,3 +1577,30 @@ The plugin installs a `lua_atnativeerror` handler that converts native JS errors
 | 8   | Error message quality                  | Low    | Medium   | ✅ Implemented |
 | 9   | Weak tables via WeakRef                | High   | Low-Med  | Not started    |
 | 10  | `collectgarbage("count")`              | Low    | Low      | ✅ Implemented |
+
+## Yank-ring paste cycling
+
+**Status**: Implemented. Cycle through numbered register history after pasting.
+
+After `p`, `P`, `gp`, or `gP`, pressing `<C-p>` replaces the pasted text with the contents of the next numbered register (`"1`–`"9`). `<C-n>` cycles in the opposite direction. Cycling wraps around. Any non-cycling command cancels the cycling state, after which `<C-p>`/`<C-n>` revert to their default `k`/`j` behavior.
+
+Enable/disable via **Settings → Vim Motions → Vim features → Yank-ring paste cycling** or `set yankring` / `set noyankring` in vimrc.
+
+**Known limitations**:
+
+- **Visual-mode paste cycling not supported**: Cycling only works after normal-mode paste (`p`, `P`, `gp`, `gP`). Visual-mode paste replaces the selection and shifts registers, making cycling state tracking complex. Deferred.
+- **System clipboard paste timing**: The fork's `paste` action uses `navigator.clipboard.readText()` asynchronously for system clipboard registers (`"+p`). The paste override captures state via `setTimeout(0)`, which may fire before the clipboard Promise resolves. Cycling after system clipboard paste is unreliable.
+- **Workspace navigation dependency**: `P`, `gp`, `gP` paste actions are defined by `registerWorkspaceNavigation()`. If workspace navigation is disabled (`enableWorkspaceNav=false`), cycling after these three commands silently fails. Cycling after `p` still works (fork's built-in action).
+- **Dot-repeat**: Pressing `.` after cycling repeats the original paste, not the final cycled text. Updating the fork's `lastEditInfo` for cycled content is deferred.
+- **Undo grouping**: Each cycle replacement uses `addToHistory.of(false)` so it does not create a separate undo entry. Pressing `u` after cycling undoes the entire paste+cycle sequence.
+- **Register traversal**: Only numbered registers `"1`–`"9` are traversed (delete/change history). Register `"0` (last yank) and `"-` (small delete) are not included in the cycle.
+
+## Indentation text object
+
+**Status**: Implemented. `ii`/`ai` select indentation blocks.
+
+`ii` (inner indentation) selects all contiguous lines with the same or greater indentation level as the cursor line. `ai` (around indentation) extends the selection to include the parent line above (first line with strictly less indentation) and trailing blank lines below.
+
+Zero-indentation lines and blank lines return no match (no selection change). Tab indentation is handled column-aware using the editor's `tabSize` setting.
+
+Gated behind the existing `enableTextObjects` setting.

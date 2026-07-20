@@ -6,7 +6,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 
 ## Features
 
-- **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, table cells, subwords, numbers, quotes, wikilinks, URLs, and arguments with `d`, `c`, `y`, `v`
+- **Markdown text objects** — operate on bold, italic, code, math, links, blockquotes, code blocks, callouts, tags, table cells, subwords, numbers, quotes, wikilinks, URLs, arguments, and indentation with `d`, `c`, `y`, `v`
 - **Structural navigation** — jump between headings, lists, links, and buffers with `]h`, `]l`, `]n`, `]b`
 - **Lua configuration** — `.obsidian.init.lua` with conditional logic, function keymaps, `vim.fn.*`, `vim.api.*` (buffer APIs, `nvim_set_hl`), `vim.tbl_*`, `vim.snippet.*`, `vim.json`, `vim.inspect`, `vim.regex` (ECMAScript RegExp), `vim.schedule`/`vim.defer_fn`/`vim.uv` timers, autocommands (19 events), `vim.obsidian` namespace (including `vim.obsidian.im` for input method control), buffer-local keymaps, async file reading (`vim.ob.fs.read`), multi-file configs via `require()`, `collectgarbage()` support, `__gc` userdata finalization, and Neovim-compatible syntax
 - **Built-in vimrc** — `.obsidian.vimrc` loader with 75+ configurable settings and which-key support with Lucide icons
@@ -16,6 +16,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support, including `dsf`/`csf` for function calls, dot-repeat for `ys` with text objects)
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Replace-with-register** — `gr{motion}` replaces text with register contents without clobbering the register ([vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister) parity)
+- **Yank-ring paste cycling** — cycle through numbered register history with `<C-p>`/`<C-n>` after pasting. Wraps around registers `"1`–`"9`. Cancels on any non-cycling command.
 - **Table editing** — cell navigation, text objects, manipulation commands, format-on-exit auto-alignment, cursor-aware table widget, and embedded per-cell editing with vim-enabled cell editors and direct table manipulation (`o`, `dd`, `J`/`K`, `H`/`L`, `=`)
 - **Oil explorer** — [oil.nvim](https://github.com/stevearc/oil.nvim)-inspired file manager: edit directories as buffers, create/rename/delete files with vim commands
 - **Telescope-style picker** — fuzzy finder with 14 built-in sources (files, buffers, commands, headings, outline, grep, live grep, marks, registers, tags, backlinks, recent, harpoon, snippets), preview pane, frecency scoring, bundled integrations for [Omnisearch](https://github.com/scambier/obsidian-omnisearch), [Obsidian Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks), and [Dataview](https://github.com/blacksmithgu/obsidian-dataview), and a [provider API](https://saberzero1.github.io/motions/development/picker-api) for external plugin integration

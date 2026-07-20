@@ -45,7 +45,54 @@ export function replaceWithRegisterOperator(
     const regText = reg.toString();
     if (!regText) return;
 
-    if (ranges.length > 1) return;
+    if (ranges.length > 1) {
+        // Blockwise visual mode: replace each line in the block independently.
+        let registerLines = regText.split('\n');
+        if (reg.linewise && registerLines[registerLines.length - 1] === '') {
+            registerLines = registerLines.slice(0, -1);
+        }
+
+        const getReplacementLine = (index: number): string => {
+            if (registerLines.length === 0) return '';
+            if (registerLines.length === 1) return registerLines[0] ?? '';
+            if (index < registerLines.length) return registerLines[index] ?? '';
+            return registerLines[registerLines.length - 1] ?? '';
+        };
+
+        let topLeft: VimPos | null = null;
+
+        for (let i = ranges.length - 1; i >= 0; i--) {
+            const range = ranges[i];
+            if (!range) continue;
+            const anchor = range.anchor;
+            const head = range.head;
+            const from =
+                anchor.line < head.line ||
+                (anchor.line === head.line && anchor.ch <= head.ch)
+                    ? anchor
+                    : head;
+            const to = from === anchor ? head : anchor;
+            const lineText = cm.getLine(to.line) ?? '';
+            const lineLen = lineText.length;
+            const clampedTo = { line: to.line, ch: Math.min(to.ch, lineLen) };
+            const replacementText = getReplacementLine(i);
+
+            cm.replaceRange(replacementText, from, clampedTo);
+
+            if (
+                !topLeft ||
+                from.line < topLeft.line ||
+                (from.line === topLeft.line && from.ch < topLeft.ch)
+            ) {
+                topLeft = from;
+            }
+        }
+
+        if (topLeft) {
+            return topLeft;
+        }
+        return;
+    }
 
     const range = ranges[0];
     if (!range) return;

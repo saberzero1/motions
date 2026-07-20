@@ -12,7 +12,7 @@ tags:
 Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 
 | Keybinding          | Description                                                          |
-| ------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| ------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`)             |
 | `i_` / `a_`         | Inside/around _italic_ (`_..._`)                                     |
 | `` i` `` / `` a` `` | Inside/around `inline code`                                          |
@@ -26,12 +26,13 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 | `it` / `at`         | Inside/around HTML/XML tags                                          |
 | `ir` / `ar`         | Inside/around table row (raw markdown only)                          |
 | `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                        |
-| `iS` / `aS`         | Subword                                                              | camelCase/snake_case segment. Around includes trailing separator    |
-| `in` / `an`         | Number                                                               | Numeric literal (sign + decimal). Around includes surrounding space |
-| `iq` / `aq`         | Any quote                                                            | Nearest `"`/`'`/`` ` `` pair on same line                           |
-| `iD` / `aD`         | Double brackets                                                      | Wikilink `[[...]]` content. Handles nesting                         |
-| `gL`                | URL                                                                  | Forward-seeking URL selection (`https://...`)                       |
-| `i,` / `a,`         | Argument                                                             | Comma-separated argument with nesting support                       |
+| `iS` / `aS`         | Subword                                                              | camelCase/snake_case segment. Around includes trailing separator                       |
+| `in` / `an`         | Number                                                               | Numeric literal (sign + decimal). Around includes surrounding space                    |
+| `iq` / `aq`         | Any quote                                                            | Nearest `"`/`'`/`` ` `` pair on same line                                              |
+| `iD` / `aD`         | Double brackets                                                      | Wikilink `[[...]]` content. Handles nesting                                            |
+| `gL`                | URL                                                                  | Forward-seeking URL selection (`https://...`)                                          |
+| `i,` / `a,`         | Argument                                                             | Comma-separated argument with nesting support                                          |
+| `ii` / `ai`         | Indentation                                                          | Lines with same-or-greater indentation level; around includes parent + trailing blanks |
 
 ## Structural navigation
 
@@ -190,6 +191,8 @@ Replace text covered by a motion with the contents of a register, discarding
 the replaced text (not written back to any register). The register supplying the
 replacement is preserved, so you can paste the same text repeatedly without
 re-yanking.
+
+Blockwise visual selections (`<C-V>`) are supported.
 
 | Keybinding      | Description                                           |
 | --------------- | ----------------------------------------------------- |
@@ -551,6 +554,8 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 | `g,`       | Newer change                                           |
 | `g-`       | Older undo state                                       |
 | `g+`       | Newer undo state                                       |
+| `<C-p>`    | Cycle paste previous register (or `k` if not cycling)  |
+| `<C-n>`    | Cycle paste next register (or `j` if not cycling)      |
 
 ## Increment/Decrement
 

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`gr` blockwise visual mode** — `<C-V>` block selection + `gr` now replaces each line in the block with corresponding register content. Single-line registers duplicate to all block rows; multi-line registers apply line-by-line; excess register lines truncate to block height. Cursor lands at top-left of block. Previously returned early (no-op).
+    - Plugin: `src/operators/replace-with-register.ts` (blockwise branch)
+- **Yank-ring paste cycling** — after `p`/`P`, pressing `<C-p>` replaces the pasted text with the previous numbered register (`"1`–`"9`). `<C-n>` reverses direction. Cycling wraps. Any non-cycling command cancels state; `<C-p>`/`<C-n>` then revert to `k`/`j`. Gated by `enableYankRing` setting (default: on). Uses `vim-keypress` event detection and `addToHistory.of(false)` for single-undo-group cycling.
+    - Plugin: `src/vim/yank-ring.ts` (new), `src/settings.ts` (`enableYankRing`), `src/main.ts` (lifecycle integration)
+- **Indentation text object (`ii`/`ai`)** — `ii` selects contiguous lines with same-or-greater indentation. `ai` adds the parent line above and trailing blank lines. Zero-indentation and blank lines return no match. Column-aware tab handling via CM6 `state.tabSize`. Gated by existing `enableTextObjects` setting.
+    - Plugin: `src/text-objects/indentation.ts` (new), `src/text-objects/register.ts`
+
+### Tests
+
+- 6 e2e tests for `gr` blockwise in `test/specs/operators.e2e.ts` (4 unskipped + register preservation + cursor position)
+- 13 e2e tests in `test/specs/indentation-textobj.e2e.ts` (inner/around selection, operators, zero-indent, blank lines, nesting, yank, cursor position, mode verification)
+- 8 e2e tests in `test/specs/yank-ring.e2e.ts` (cycling, reversal, cancellation, fallback to k/j, paste variants, register preservation)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `README.md`
+- `CONTRIBUTING.md`
+- `AGENTS.md`
+- `docs/reference/keybindings.md`
+- `docs/features/text-objects.md`
+- `docs/features/quality-of-life.md`
+- `docs/configuration/settings.md`
+- `docs/configuration/vimrc.md`
+- `docs/configuration/lua-config.md`
+
 ## [0.70.0] - 2026-07-19
 
 ### Added

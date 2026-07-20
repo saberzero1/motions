@@ -170,6 +170,7 @@ export interface VimMotionsSettings {
     cursorlineopt: 'number' | 'line' | 'both';
     foldcolumn: boolean;
     enableHarpoon: boolean;
+    enableYankRing: boolean;
     enableHintMode: boolean;
     hintModeLabels: string;
     hintModeHotkey: string;
@@ -289,6 +290,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     cursorlineopt: 'number',
     foldcolumn: false,
     enableHarpoon: true,
+    enableYankRing: true,
     enableHintMode: true,
     hintModeLabels: 'asdfghjkl',
     hintModeHotkey: '',
@@ -423,6 +425,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'flashSearch',
         'enableHintMode',
         'enableHarpoon',
+        'enableYankRing',
         'enableVimTextareas',
         'foldAwareNavigation',
         'foldPersistence',
@@ -1303,6 +1306,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             type: 'toggle' as const,
                             key: 'enableHarpoon',
                             disabled: () => this.isOverridden('enableHarpoon'),
+                        },
+                    },
+                    {
+                        name: 'Yank-ring paste cycling',
+                        desc: this.describeOverride(
+                            'enableYankRing',
+                            'Cycle through yank/delete history with <C-p>/<C-n> after pasting. When disabled, <C-p>/<C-n> act as k/j.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'enableYankRing',
+                            disabled: () => this.isOverridden('enableYankRing'),
                         },
                     },
                     {
@@ -3391,6 +3406,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableHarpoon = value;
                         this.plugin.vimrcOverrides?.delete('enableHarpoon');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Yank-ring paste cycling')
+            .setDesc(
+                describeOverride(
+                    'enableYankRing',
+                    'Cycle through yank/delete history with <C-p>/<C-n> after pasting. When disabled, <C-p>/<C-n> act as k/j.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableYankRing)
+                    .setDisabled(isOverridden('enableYankRing'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableYankRing = value;
+                        this.plugin.vimrcOverrides?.delete('enableYankRing');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),

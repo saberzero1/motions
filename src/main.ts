@@ -37,6 +37,7 @@ import {
 import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
+import { YankRingManager, registerYankRing } from './vim/yank-ring';
 import { GlobalKeyHandler } from './workspace/global-key-handler';
 import {
     GlobalMappingRegistry,
@@ -237,6 +238,8 @@ export default class VimMotionsPlugin extends Plugin {
     private markGutterCleanup: (() => void) | null = null;
     markStore: MarkStore = new MarkStore();
     harpoonStore: HarpoonStore = new HarpoonStore();
+    private yankRingManager: YankRingManager = new YankRingManager();
+    private yankRingCommandDoneCleanup: (() => void) | null = null;
     foldStore: FoldPersistenceStore = new FoldPersistenceStore();
     private markSaveDirty = false;
     private harpoonSaveDirty = false;
@@ -1076,6 +1079,25 @@ export default class VimMotionsPlugin extends Plugin {
                 }
                 this.bufferKeymapManager?.switchBuffer(filePath);
                 this.oilKeybindingManager?.onActiveLeafChange();
+                this.yankRingManager.cancel();
+                this.yankRingCommandDoneCleanup?.();
+                this.yankRingCommandDoneCleanup = null;
+                if (adapter && this.settings.enableYankRing) {
+                    this.yankRingManager.setAdapter(adapter);
+                    const keypressHandler = (key: string) =>
+                        this.yankRingManager.onKeypress(key);
+                    const commandDoneHandler = () =>
+                        this.yankRingManager.onCommandDone();
+                    adapter.on('vim-keypress', keypressHandler);
+                    adapter.on('vim-command-done', commandDoneHandler);
+                    this.yankRingCommandDoneCleanup = () => {
+                        adapter.off(
+                            'vim-keypress',
+                            keypressHandler as (...args: unknown[]) => void,
+                        );
+                        adapter.off('vim-command-done', commandDoneHandler);
+                    };
+                }
                 if (filePath) {
                     this.autocmdManager?.fireFileType(filePath);
                 }
@@ -2268,6 +2290,9 @@ export default class VimMotionsPlugin extends Plugin {
                     ? this.navigateUndoTreeTo.bind(this)
                     : undefined,
             );
+        }
+        if (this.settings.enableYankRing && this.registration) {
+            registerYankRing(this.registration, vim, this.yankRingManager);
         }
         this.registerHarpoonExCommands();
         this.registerImExCommands();

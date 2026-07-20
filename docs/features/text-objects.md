@@ -1,6 +1,6 @@
 ---
 title: Text objects
-description: 13 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, and table cells.
+description: 14 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, table cells, and indentation.
 tags:
     - features
     - keybindings
@@ -65,6 +65,7 @@ These text objects provide standard Vim-like behavior for common programming and
 - `iD` / `aD` — **Double brackets**: Wikilink-style `[[...]]` content. Supports nested brackets.
 - `gL` — **URL**: Forward-seeking URL selection. Jumps to the next URL on the line and selects it.
 - `i,` / `a,` — **Argument**: Comma-separated arguments in lists or function calls. Supports nesting (e.g., `func(a, [b, c], d)`).
+- `ii` / `ai` — **Indentation**: Contiguous lines with same-or-greater indentation. Around includes parent line above and trailing blank lines.
 
 ## Custom text objects via Lua
 

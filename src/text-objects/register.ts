@@ -21,6 +21,7 @@ import { tableRowTextObject } from './table-row';
 import { subwordInnerTextObject, subwordAroundTextObject } from './subword';
 import { numberInnerTextObject, numberAroundTextObject } from './number';
 import { anyQuoteInnerTextObject, anyQuoteAroundTextObject } from './any-quote';
+import { indentationInner, indentationAround } from './indentation';
 import {
     createDoubleBracketInner,
     createDoubleBracketAround,
@@ -198,4 +199,12 @@ export function registerTextObjects(
     reg.mapCommand('i,', 'motion', 'argumentInner', { textObjectInner: true });
     reg.defineMotion('argumentAround', argumentAroundTextObject);
     reg.mapCommand('a,', 'motion', 'argumentAround', {});
+
+    // Indentation
+    reg.defineMotion('indentationInner', indentationInner);
+    reg.mapCommand('ii', 'motion', 'indentationInner', {
+        textObjectInner: true,
+    });
+    reg.defineMotion('indentationAround', indentationAround);
+    reg.mapCommand('ai', 'motion', 'indentationAround', {});
 }

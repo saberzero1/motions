@@ -43,6 +43,12 @@ Duration is configurable via the **Yank highlight duration** slider (50–3000ms
 > [!info]
 > Yank highlight requires bundled fork mode (built-in vim mode OFF). The built-in vim does not emit the `vim-yank` event used for detection. Works with remapped yank keys — detection is based on the actual yank operation, not keypress sniffing.
 
+## Yank-ring paste cycling
+
+After `p`, `P`, `gp`, or `gP`, press `<C-p>` to replace the pasted text with the previous numbered register (`"1`–`"9`). `<C-n>` cycles in the opposite direction. Cycling wraps around the register list. Any non-cycling command cancels the cycling state, after which `<C-p>`/`<C-n>` revert to their default `k`/`j` behavior.
+
+Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycling**, `vim.opt.yankring = false` in Lua, or `set noyankring` in vimrc.
+
 ## Change list navigation
 
 `g;` and `g,` jump to older and newer change positions respectively, letting you quickly revisit locations where you made edits. The `:changes` ex command displays the full change list in a modal.

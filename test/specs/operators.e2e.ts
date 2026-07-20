@@ -4,6 +4,7 @@ import {
     getEditorValue,
     getCursorLine,
     getCursorPos,
+    getRegisterContent,
     setupEditor,
     vimKeys,
 } from '../helpers';
@@ -709,7 +710,7 @@ describe('Replace-with-register operator (gr)', function () {
     // ranges.length > 1). These tests document the expected behavior
     // for when blockwise support is implemented.
     describe('visual block gr (blockwise)', function () {
-        it.skip('should replace block selection with charwise register', async function () {
+        it('should replace block selection with charwise register', async function () {
             await setupEditor('abcdef\nghijkl\nmnopqr', {
                 line: 0,
                 ch: 1,
@@ -717,10 +718,10 @@ describe('Replace-with-register operator (gr)', function () {
             await vimKeys('y', 'l');
             await vimHandleKeys('<C-v>', 'j', 'j', 'l', 'l', 'g', 'r');
             const value = await getEditorValue();
-            expect(value).toBe('abcdef\nghijkl\nmnopqr');
+            expect(value).toBe('abef\ngbkl\nmbqr');
         });
 
-        it.skip('should duplicate single-line register to match block height', async function () {
+        it('should duplicate single-line register to match block height', async function () {
             await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
             await vimKeys('y', 'i', 'w', 'j');
             await vimHandleKeys('<C-v>', 'j', 'l', 'l', 'g', 'r');
@@ -728,7 +729,7 @@ describe('Replace-with-register operator (gr)', function () {
             expect(value).toBe('aaa\naaa\naaa');
         });
 
-        it.skip('should handle multi-line linewise register in block context', async function () {
+        it('should handle multi-line linewise register in block context', async function () {
             await setupEditor('aaa xxx\nbbb yyy\nccc zzz', {
                 line: 0,
                 ch: 0,
@@ -736,10 +737,10 @@ describe('Replace-with-register operator (gr)', function () {
             await vimKeys('V', 'j', 'y', 'j', '0', 'w');
             await vimHandleKeys('<C-v>', 'j', 'l', 'l', 'g', 'r');
             const value = await getEditorValue();
-            expect(value).toContain('ccc');
+            expect(value).toBe('aaa xxx\nbbb aaa xxx\nccc bbb yyy');
         });
 
-        it.skip('should handle blockwise register matching block selection', async function () {
+        it('should handle blockwise register matching block selection', async function () {
             await setupEditor('one two\nthree four\nfive six', {
                 line: 0,
                 ch: 0,
@@ -747,7 +748,32 @@ describe('Replace-with-register operator (gr)', function () {
             await vimHandleKeys('<C-v>', 'j', 'l', 'l', 'y', 'l', 'l');
             await vimHandleKeys('<C-v>', 'j', 'l', 'l', 'g', 'r');
             const value = await getEditorValue();
-            expect(value).toContain('two');
+            expect(value).toBe('ononewo\nththr four\nfive six');
+        });
+
+        it('should preserve the source register after blockwise gr', async function () {
+            await setupEditor('abcdef\nghijkl\nmnopqr', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('y', 'l');
+            const regBefore = await getRegisterContent('"');
+            await vimHandleKeys('<C-v>', 'j', 'l', 'g', 'r');
+            const regAfter = await getRegisterContent('"');
+            expect(regAfter).not.toBeNull();
+            expect(regAfter?.text).toBe(regBefore?.text);
+        });
+
+        it('should position cursor at top-left of block after gr', async function () {
+            await setupEditor('abcdef\nghijkl\nmnopqr', {
+                line: 0,
+                ch: 1,
+            });
+            await vimKeys('y', 'l');
+            await vimHandleKeys('<C-v>', 'j', 'l', 'g', 'r');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+            expect(pos.ch).toBe(1);
         });
     });
 });

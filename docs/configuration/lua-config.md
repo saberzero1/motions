@@ -231,6 +231,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `undotree`                | boolean | `true`                         |                                               | `vim.opt.undotree = true`                |
 | `undofile`                | boolean | `false`                        |                                               | `vim.opt.undofile = true`                |
 | `vimtextareas`            | boolean | `false`                        |                                               | `vim.opt.vimtextareas = true`            |
+| `yankring`                | boolean | `true`                         |                                               | `vim.opt.yankring = true`                |
 | `scrolloff`               | number  | `5`                            | 0–9999                                        | `vim.opt.scrolloff = 8`                  |
 | `scanlimit`               | number  | `20`                           | 5–200                                         | `vim.opt.scanlimit = 20`                 |
 | `undotreemaxnodes`        | number  | `1000`                         | 100–5000                                      | `vim.opt.undotreemaxnodes = 500`         |

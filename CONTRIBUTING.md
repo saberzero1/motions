@@ -69,6 +69,7 @@ src/
     undo-tree.ts           # Undo tree data structure (shadow tree, branching, serialize/deserialize)
     undo-tree-view.ts      # Undo tree sidebar view (DOM rendering, keyboard nav, click-to-navigate)
     yank-highlight.ts      # Yank highlight flash effect
+    yank-ring.ts           # Yank-ring paste cycling
     visual-line-command-fix.ts  # Visual line command edge-case fixes
     linewise-widget-highlight.ts  # Visual-line highlight for replaced widget blocks
     fold-sync.ts               # Fold state synchronization
@@ -106,6 +107,7 @@ src/
     double-bracket.ts      # iD/aD wikilink [[...]] text object
     url.ts                 # gL forward-seeking URL text object
     argument.ts            # i,/a, comma-separated argument text object
+    indentation.ts         # ii/ai indentation text object
     tag.ts                 # HTML/Markdown tag text objects
     register.ts            # Wires all text objects to keybindings
   motions/
