@@ -31,9 +31,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.70.0
+## What's new in 0.71.0
 
-- **Undo tree visualization** — [undotree](https://github.com/mbbill/undotree)-style branching undo history. `g-`/`g+` navigate chronologically across all branches with buffer content restoration. `:earlier`/`:later` by count, time (`Ns`/`Nm`/`Nh`/`Nd`), or save point. `:undolist` modal. Sidebar view (`:UndoTreeToggle`) with tree rendering, keyboard nav, collapse/expand, diff preview. `vim.fn.undotree()` Lua API. Optional persistence via `set undofile`.
-- **Keybinding reload fix** — `g;`/`g,`/`g-`/`g+` keymaps now survive `reloadFeatures()` (settings changes, vimrc/Lua config loads).
+- **Yank-ring paste cycling** — after `p`/`P`, press `<C-p>`/`<C-n>` to cycle through numbered registers (`"1`–`"9`). Wraps around; any non-cycling command cancels. Opt-in via `set yankring`.
+- **Indentation text objects** — `ii`/`ai` select contiguous lines at the same-or-greater indentation level. Works with all operators and visual mode.
+- **`gr` blockwise visual mode** — `<C-V>` block selection + `gr` now replaces each line with corresponding register content (line-by-line for multi-line registers).
+- **Flash highlight and label overhaul** — match highlights dynamically sized via `coordsAtPos()` (no more hardcoded 8×16px), labels positioned after matched text (flash.nvim parity), highlights persist during label narrowing. Two-character label input fixed for 28+ match scenarios. ([#75](https://github.com/saberzero1/motions/issues/75), [#76](https://github.com/saberzero1/motions/issues/76))
+- **Flash `s` / surround conflict resolved** — operator-prefix shadow resolver in the codemirror-vim fork disambiguates flash `s` motions vs `cs`/`ds`/`ys` surround actions with a configurable timeout (`operatorshadowtimeout`). ([#76](https://github.com/saberzero1/motions/issues/76))
+- **EasyMotion label positioning** — labels now appear after the target character instead of on top of it.
 
 See the [[changelog|full changelog]] for details.

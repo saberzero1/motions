@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-07-20
+
 ### Fixed
 
 - **Flash highlight rectangles hardcoded to 8×16px** — the `.vim-motions-flash-match` highlight boxes used a fixed `width: 8px; height: 16px` regardless of actual character dimensions, breaking with proportional fonts, different font sizes, and CJK characters. Now dynamically measured via `coordsAtPos()` for both start and end of each match. CSS dimensions use custom properties (`--vim-motions-flash-w`, `--vim-motions-flash-h`) with fallbacks. ([#75](https://github.com/saberzero1/motions/issues/75))
