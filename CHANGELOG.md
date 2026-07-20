@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.71.0] - 2026-07-20
 
+### Added
+
+- **Yank-ring paste cycling** — after `p`/`P`, pressing `<C-p>` replaces the pasted text with the previous numbered register (`"1`–`"9`). `<C-n>` reverses direction. Cycling wraps. Any non-cycling command cancels state; `<C-p>`/`<C-n>` then revert to `k`/`j`. Gated by `enableYankRing` setting (default: on). Uses `vim-keypress` event detection and `addToHistory.of(false)` for single-undo-group cycling.
+    - Plugin: `src/vim/yank-ring.ts` (new), `src/settings.ts` (`enableYankRing`), `src/main.ts` (lifecycle integration)
+- **Indentation text object (`ii`/`ai`)** — `ii` selects contiguous lines with same-or-greater indentation. `ai` adds the parent line above and trailing blank lines. Zero-indentation and blank lines return no match. Column-aware tab handling via CM6 `state.tabSize`. Gated by existing `enableTextObjects` setting.
+    - Plugin: `src/text-objects/indentation.ts` (new), `src/text-objects/register.ts`
+- **`gr` blockwise visual mode** — `<C-V>` block selection + `gr` now replaces each line in the block with corresponding register content. Single-line registers duplicate to all block rows; multi-line registers apply line-by-line; excess register lines truncate to block height. Cursor lands at top-left of block. Previously returned early (no-op).
+    - Plugin: `src/operators/replace-with-register.ts` (blockwise branch)
+
+### Changed
+
+- **EasyMotion label positioning** — labels now appear one character to the right of the target character (after the target) instead of on top of it. This prevents labels from obscuring the character they target. The change applies to all EasyMotion motions (word, char, line, search). Match highlights now also appear behind EasyMotion labels.
+
 ### Fixed
 
 - **Flash highlight rectangles hardcoded to 8×16px** — the `.vim-motions-flash-match` highlight boxes used a fixed `width: 8px; height: 16px` regardless of actual character dimensions, breaking with proportional fonts, different font sizes, and CJK characters. Now dynamically measured via `coordsAtPos()` for both start and end of each match. CSS dimensions use custom properties (`--vim-motions-flash-w`, `--vim-motions-flash-h`) with fallbacks. ([#75](https://github.com/saberzero1/motions/issues/75))
@@ -16,25 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Flash match highlights missing during label phase** — when labels appeared (pattern met `minPatternLength`), match highlights disappeared. Now `showOverlay` renders both match highlights AND labels simultaneously (flash.nvim parity). Match highlights persist during label narrowing — only labels update when typing a label prefix. ([#75](https://github.com/saberzero1/motions/issues/75))
 - **Flash jump-mode label narrowing destroyed match highlights** — in jump mode (`s`), typing a label prefix character destroyed the entire overlay and recreated it with only remaining targets, losing match highlights for non-matching targets. Now uses `updateLabels()` to narrow labels while preserving all match highlights. ([#75](https://github.com/saberzero1/motions/issues/75))
     - Plugin: `src/easymotion/overlay.ts` (extracted `measureTarget` + `measureLabelAnchor` + `renderHighlightSpans` shared helpers, added `renderHighlights` to `showOverlay`, label positioning at end-of-match), `src/easymotion/types.ts` (`matchLength?: number` on `Target`), `src/easymotion/targets.ts` (`matchLength` in `findSubstringTargets`), `src/flash/search-mode.ts` (`matchLength` in `findSearchMatchTargets`), `src/flash/jump-mode.ts` (widened `currentOverlay` type to `OverlayHandle`, label narrowing via `updateLabels`), `styles.css` (CSS custom properties for `.vim-motions-flash-match` dimensions)
-
-### Changed
-
-- **EasyMotion label positioning** — labels now appear one character to the right of the target character (after the target) instead of on top of it. This prevents labels from obscuring the character they target. The change applies to all EasyMotion motions (word, char, line, search). Match highlights now also appear behind EasyMotion labels.
-
-### Tests
-
-- 5 unit tests in `test/unit/flash-targets.test.ts`: `findSubstringTargets` sets `matchLength` (5-char, 1-char, 2-char patterns), empty pattern returns empty, `findCharTargets` does not set `matchLength`
-
-### Documentation
-
-- `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated flash motions section with highlight sizing and label positioning fixes
-- `README.md`
-- `CONTRIBUTING.md`: Updated overlay.ts description
-- `AGENTS.md`
-- `docs/features/flash.md`: Added highlight and label rendering behavior documentation
-- `docs/features/easymotion.md`: Added note about label positioning change
-
 - **Flash jump mode two-character label premature exit** — when flash jump mode (`s`) displayed two-character labels (28+ matches with default 27-char label alphabet), typing the first character of a two-char label either jumped to the wrong single-char target or appended the character to the search pattern, destroying the label state. The same bug affected post-`/`/`?` search labels. Fixed by adding prefix accumulation with label narrowing: typed characters are checked as label matches first (exact → jump, prefix → narrow and update overlay), then fall back to extending the search pattern. Extracted shared `waitForFlashLabel()` into `src/flash/label-input.ts` for reuse by `char-mode.ts`. ([#76](https://github.com/saberzero1/motions/issues/76))
     - Plugin: `src/flash/label-input.ts` (new: shared label selection state machine), `src/flash/jump-mode.ts` (prefix accumulation + label narrowing), `src/flash/search-mode.ts` (prefix accumulation + label narrowing), `src/flash/char-mode.ts` (imports shared `waitForFlashLabel`)
 - **Flash jump `s` conflicting with surround `cs`/`ys`/`ds` in operator-pending mode** — when flash jump mode was enabled with `s` as the key, surround operations (`cs"`, `ds"`, `ysiw"`) were intercepted by flash because motions take precedence over partial action matches in operator-pending mode. Fixed by implementing an operator-prefix shadow resolver in the codemirror-vim fork: when an operator is pending and the next key fully matches a motion but also partially matches an `operatorPending` action (e.g., surround's `s<character>`), the resolver defers to the partial match, waiting for the next character to disambiguate. A configurable timeout (`operatorshadowtimeout`, default 1000ms) falls back to executing the deferred motion if no next key arrives. ([#76](https://github.com/saberzero1/motions/issues/76))
@@ -42,17 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: `~/Repos/codemirror-vim/src/types.ts` (`_shadowTimer` on `vimState`)
     - Plugin: `src/settings.ts` (`operatorshadowtimeout` setting + Settings UI), `src/vimrc/loader.ts` (`operatorshadowtimeout`/`ost` in `KNOWN_SET_OPTIONS`)
 
-### Added
-
-- **`gr` blockwise visual mode** — `<C-V>` block selection + `gr` now replaces each line in the block with corresponding register content. Single-line registers duplicate to all block rows; multi-line registers apply line-by-line; excess register lines truncate to block height. Cursor lands at top-left of block. Previously returned early (no-op).
-    - Plugin: `src/operators/replace-with-register.ts` (blockwise branch)
-- **Yank-ring paste cycling** — after `p`/`P`, pressing `<C-p>` replaces the pasted text with the previous numbered register (`"1`–`"9`). `<C-n>` reverses direction. Cycling wraps. Any non-cycling command cancels state; `<C-p>`/`<C-n>` then revert to `k`/`j`. Gated by `enableYankRing` setting (default: on). Uses `vim-keypress` event detection and `addToHistory.of(false)` for single-undo-group cycling.
-    - Plugin: `src/vim/yank-ring.ts` (new), `src/settings.ts` (`enableYankRing`), `src/main.ts` (lifecycle integration)
-- **Indentation text object (`ii`/`ai`)** — `ii` selects contiguous lines with same-or-greater indentation. `ai` adds the parent line above and trailing blank lines. Zero-indentation and blank lines return no match. Column-aware tab handling via CM6 `state.tabSize`. Gated by existing `enableTextObjects` setting.
-    - Plugin: `src/text-objects/indentation.ts` (new), `src/text-objects/register.ts`
-
 ### Tests
 
+- 5 unit tests in `test/unit/flash-targets.test.ts`: `findSubstringTargets` sets `matchLength` (5-char, 1-char, 2-char patterns), empty pattern returns empty, `findCharTargets` does not set `matchLength`
 - 2 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: two-char label narrowing (labels persist after typing first char of two-char label), single-char label immediate jump
 - 3 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: shadow resolver surround coexistence (`cs"'`, `ds"`, `ysiw"` with flash `s` enabled)
 - 10 tests in `~/Repos/codemirror-vim/test/vim_test.js`: shadow resolver (`cs`, `ds`, `ysiw` surround wins, `dd`/`cc` regression, `dw`/`cw` no-activation, Escape clears timer, `g~` regression, `ost=0` disables)
@@ -62,24 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- `CHANGELOG.md`: Flash jump mode two-char label fix + operator-prefix shadow resolver entries
-- `KNOWN_LIMITATIONS.md`: Added operator-prefix key dispatch section (Implemented); updated `s` key / surround conflict bullet to reference resolver
-- `CONTRIBUTING.md`: Added `label-input.ts` to codebase structure
+- `CHANGELOG.md`
+- `README.md`
+- `CONTRIBUTING.md`: Updated overlay.ts description; added `label-input.ts` to codebase structure
 - `AGENTS.md`: Updated codemirror-vim fork description with operator-prefix shadow resolver and test count
-- `docs/features/flash.md`: Updated surround conflict note to document automatic resolution via shadow resolver; added two-char label behavior documentation
+- `KNOWN_LIMITATIONS.md`: Updated flash motions section with highlight sizing and label positioning fixes; added operator-prefix key dispatch section (Implemented); updated `s` key / surround conflict bullet to reference resolver
+- `docs/features/flash.md`: Added highlight and label rendering behavior documentation; updated surround conflict note to document automatic resolution via shadow resolver; added two-char label behavior documentation
+- `docs/features/easymotion.md`: Added note about label positioning change
+- `docs/features/text-objects.md`
+- `docs/features/quality-of-life.md`
+- `docs/reference/keybindings.md`
 - `docs/configuration/settings.md`: Added `operatorshadowtimeout` to Vim engine settings group
 - `docs/configuration/vimrc.md`: Added `operatorshadowtimeout`/`ost` to numeric options table
 - `docs/configuration/lua-config.md`: Added `vim.opt.operatorshadowtimeout` entry
 - `~/Repos/codemirror-vim/DIFFERENCES.md`: Added operator-prefix shadow resolver section
-- `README.md`
-- `CONTRIBUTING.md`
-- `AGENTS.md`
-- `docs/reference/keybindings.md`
-- `docs/features/text-objects.md`
-- `docs/features/quality-of-life.md`
-- `docs/configuration/settings.md`
-- `docs/configuration/vimrc.md`
-- `docs/configuration/lua-config.md`
 
 ## [0.70.0] - 2026-07-19
 
