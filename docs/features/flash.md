@@ -71,16 +71,8 @@ vim.opt.flashjumpkey = 's'
 > [!tip]
 > Jump mode only overrides the key in normal mode. In visual mode, `s` retains its default `c` (change selection) behavior.
 
-> [!warning] Surround conflict
-> When `s` is the jump key, it conflicts with surround operations (`cs`, `ys`, `ds`) because `s` is registered as a motion available in operator-pending mode. In Neovim, flash.nvim coexists with nvim-surround via timeout-based resolution — CodeMirror-vim lacks this mechanism. **Workaround**: remap the jump key to a non-conflicting binding:
->
-> ```vim
-> set flashjumpkey=<space>s
-> ```
->
-> ```lua
-> vim.opt.flashjumpkey = '<space>s'
-> ```
+> [!info] Surround coexistence
+> When `s` is the jump key, it shares a key with surround operations (`cs`, `ys`, `ds`) in operator-pending mode. The operator-prefix shadow resolver handles this automatically: when you type `c` then `s`, the resolver waits for the next character to disambiguate between surround (`cs"`) and flash (`c` + `s`-motion). If no key arrives within `operatorshadowtimeout` (default 1000ms), the flash motion executes as fallback. Set `operatorshadowtimeout=0` to disable the resolver and always execute the motion immediately.
 
 ### Two-character labels
 

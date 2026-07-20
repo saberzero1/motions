@@ -240,6 +240,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `shiftwidth`              | number  | `4`                            |                                               | `vim.opt.shiftwidth = 4`                 |
 | `textwidth`               | number  | `80`                           |                                               | `vim.opt.textwidth = 80`                 |
 | `insertmodeescapetimeout` | number  | `1000`                         | 100–5000 ms                                   | `vim.opt.insertmodeescapetimeout = 1000` |
+| `operatorshadowtimeout`   | number  | `1000`                         | 0–5000 ms (0 = disabled)                      | `vim.opt.operatorshadowtimeout = 1000`   |
 | `numberwidth`             | number  | `2`                            | 1–20                                          | `vim.opt.numberwidth = 2`                |
 | `clipboard`               | string  | `""`                           | `""`, `"unnamed"`, `"unnamedplus"`            | `vim.opt.clipboard = "unnamedplus"`      |
 | `insertmodeescape`        | string  | `""`                           |                                               | `vim.opt.insertmodeescape = "jk"`        |

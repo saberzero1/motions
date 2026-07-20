@@ -158,18 +158,19 @@ Use `set <option>` to enable, `set no<option>` to disable.
 
 Use `set <option>=<value>`.
 
-| Option                    | Alias  | Description                              | Default | Range    |
-| ------------------------- | ------ | ---------------------------------------- | ------- | -------- |
-| `scrolloff`               | `so`   | Lines to keep visible above/below cursor | 5       | 0-9999   |
-| `scanlimit`               | `sl`   | Max lines to scan for text objects       | 20      | 5-200    |
-| `labelfontsize`           | `lfs`  | Font size for EasyMotion/hint labels     | 14      | 10-20    |
-| `tabstop`                 | `ts`   | Tab display width                        | 4       | 1-8      |
-| `shiftwidth`              | `sw`   | Indent width                             | 4       | 1-8      |
-| `textwidth`               | `tw`   | Line wrap width for `gq`/`gw`            | 80      | 0-200    |
-| `insertmodeescapetimeout` | `imet` | Timeout (ms) for insert escape sequence  | 1000    | 100-5000 |
-| `numberwidth`             | `nuw`  | Minimum line number column width         | 2       | 1-20     |
-| `jumplistsize`            | —      | Maximum jump list entries                | 200     | 1-1000   |
-| `undotreemaxnodes`        | `utmn` | Maximum undo tree nodes per file         | 1000    | 100-5000 |
+| Option                    | Alias  | Description                                     | Default | Range    |
+| ------------------------- | ------ | ----------------------------------------------- | ------- | -------- |
+| `scrolloff`               | `so`   | Lines to keep visible above/below cursor        | 5       | 0-9999   |
+| `scanlimit`               | `sl`   | Max lines to scan for text objects              | 20      | 5-200    |
+| `labelfontsize`           | `lfs`  | Font size for EasyMotion/hint labels            | 14      | 10-20    |
+| `tabstop`                 | `ts`   | Tab display width                               | 4       | 1-8      |
+| `shiftwidth`              | `sw`   | Indent width                                    | 4       | 1-8      |
+| `textwidth`               | `tw`   | Line wrap width for `gq`/`gw`                   | 80      | 0-200    |
+| `insertmodeescapetimeout` | `imet` | Timeout (ms) for insert escape sequence         | 1000    | 100-5000 |
+| `operatorshadowtimeout`   | `ost`  | Timeout (ms) for operator-prefix disambiguation | 1000    | 0-5000   |
+| `numberwidth`             | `nuw`  | Minimum line number column width                | 2       | 1-20     |
+| `jumplistsize`            | —      | Maximum jump list entries                       | 200     | 1-1000   |
+| `undotreemaxnodes`        | `utmn` | Maximum undo tree nodes per file                | 1000    | 100-5000 |
 
 ## String options
 

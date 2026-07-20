@@ -185,6 +185,7 @@ export interface VimMotionsSettings {
     expandtab: boolean;
     insertmodeescape: string;
     insertmodeescapetimeout: number;
+    operatorshadowtimeout: number;
     textwidth: number;
     whichKeyMode: 'off' | 'leader' | 'all';
     whichKeyGrouping: 'flat' | 'grouped';
@@ -305,6 +306,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     expandtab: true,
     insertmodeescape: '',
     insertmodeescapetimeout: 1000,
+    operatorshadowtimeout: 1000,
     textwidth: 80,
     whichKeyMode: 'off',
     whichKeyGrouping: 'grouped',
@@ -1005,6 +1007,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             max: 5000,
                             disabled: () =>
                                 this.isOverridden('insertmodeescapetimeout'),
+                        },
+                    },
+                    {
+                        name: 'Operator shadow timeout',
+                        desc: this.describeOverride(
+                            'operatorshadowtimeout',
+                            'Timeout in milliseconds for operator-prefix disambiguation (0\u20135000). When an operator is pending and the next key matches both a motion and an operator-pending action prefix (e.g. surround), waits this long before falling back to the motion. Set to 0 to disable.',
+                        ),
+                        control: {
+                            type: 'number' as const,
+                            key: 'operatorshadowtimeout',
+                            min: 0,
+                            max: 5000,
+                            disabled: () =>
+                                this.isOverridden('operatorshadowtimeout'),
                         },
                     },
                     {
@@ -3004,6 +3021,35 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                     const vim = getVimApi();
                     if (vim) vim.setOption('insertmodeescapetimeout', clamped);
+                });
+            });
+
+        new Setting(containerEl)
+            .setName('Operator shadow timeout')
+            .setDesc(
+                describeOverride(
+                    'operatorshadowtimeout',
+                    'Timeout in milliseconds for operator-prefix disambiguation (0–5000). When an operator is pending and the next key matches both a motion and an operator-pending action prefix (e.g. surround), waits this long before falling back to the motion. Set to 0 to disable.',
+                ),
+            )
+            .addText((text) => {
+                text.setValue(
+                    String(this.plugin.settings.operatorshadowtimeout),
+                );
+                text.inputEl.type = 'number';
+                text.inputEl.min = '0';
+                text.inputEl.max = '5000';
+                text.setDisabled(isOverridden('operatorshadowtimeout'));
+                text.onChange(async (value) => {
+                    const n = Number(value);
+                    const clamped = Number.isNaN(n)
+                        ? 1000
+                        : Math.max(0, Math.min(5000, n));
+                    this.plugin.settings.operatorshadowtimeout = clamped;
+                    this.plugin.vimrcOverrides?.delete('operatorshadowtimeout');
+                    await this.plugin.saveSettings();
+                    const vim = getVimApi();
+                    if (vim) vim.setOption('operatorshadowtimeout', clamped);
                 });
             });
 

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Flash jump mode two-character label premature exit** — when flash jump mode (`s`) displayed two-character labels (28+ matches with default 27-char label alphabet), typing the first character of a two-char label either jumped to the wrong single-char target or appended the character to the search pattern, destroying the label state. The same bug affected post-`/`/`?` search labels. Fixed by adding prefix accumulation with label narrowing: typed characters are checked as label matches first (exact → jump, prefix → narrow and update overlay), then fall back to extending the search pattern. Extracted shared `waitForFlashLabel()` into `src/flash/label-input.ts` for reuse by `char-mode.ts`. ([#76](https://github.com/saberzero1/motions/issues/76))
     - Plugin: `src/flash/label-input.ts` (new: shared label selection state machine), `src/flash/jump-mode.ts` (prefix accumulation + label narrowing), `src/flash/search-mode.ts` (prefix accumulation + label narrowing), `src/flash/char-mode.ts` (imports shared `waitForFlashLabel`)
+- **Flash jump `s` conflicting with surround `cs`/`ys`/`ds` in operator-pending mode** — when flash jump mode was enabled with `s` as the key, surround operations (`cs"`, `ds"`, `ysiw"`) were intercepted by flash because motions take precedence over partial action matches in operator-pending mode. Fixed by implementing an operator-prefix shadow resolver in the codemirror-vim fork: when an operator is pending and the next key fully matches a motion but also partially matches an `operatorPending` action (e.g., surround's `s<character>`), the resolver defers to the partial match, waiting for the next character to disambiguate. A configurable timeout (`operatorshadowtimeout`, default 1000ms) falls back to executing the deferred motion if no next key arrives. ([#76](https://github.com/saberzero1/motions/issues/76))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (shadow resolver in `matchCommand()`, timer in `handleKeyNonInsertMode()`, cleanup in `clearInputState()` + teardown, `operatorshadowtimeout` option)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (`_shadowTimer` on `vimState`)
+    - Plugin: `src/settings.ts` (`operatorshadowtimeout` setting + Settings UI), `src/vimrc/loader.ts` (`operatorshadowtimeout`/`ost` in `KNOWN_SET_OPTIONS`)
 
 ### Added
 
@@ -24,16 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - 2 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: two-char label narrowing (labels persist after typing first char of two-char label), single-char label immediate jump
+- 3 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: shadow resolver surround coexistence (`cs"'`, `ds"`, `ysiw"` with flash `s` enabled)
+- 10 tests in `~/Repos/codemirror-vim/test/vim_test.js`: shadow resolver (`cs`, `ds`, `ysiw` surround wins, `dd`/`cc` regression, `dw`/`cw` no-activation, Escape clears timer, `g~` regression, `ost=0` disables)
 - 6 e2e tests for `gr` blockwise in `test/specs/operators.e2e.ts` (4 unskipped + register preservation + cursor position)
 - 13 e2e tests in `test/specs/indentation-textobj.e2e.ts` (inner/around selection, operators, zero-indent, blank lines, nesting, yank, cursor position, mode verification)
 - 8 e2e tests in `test/specs/yank-ring.e2e.ts` (cycling, reversal, cancellation, fallback to k/j, paste variants, register preservation)
 
 ### Documentation
 
-- `CHANGELOG.md`: Flash jump mode two-char label fix entry
-- `KNOWN_LIMITATIONS.md`: Added `s` key / surround conflict documentation under flash motions
+- `CHANGELOG.md`: Flash jump mode two-char label fix + operator-prefix shadow resolver entries
+- `KNOWN_LIMITATIONS.md`: Added operator-prefix key dispatch section (Implemented); updated `s` key / surround conflict bullet to reference resolver
 - `CONTRIBUTING.md`: Added `label-input.ts` to codebase structure
-- `docs/features/flash.md`: Added surround conflict note and two-char label behavior documentation
+- `AGENTS.md`: Updated codemirror-vim fork description with operator-prefix shadow resolver and test count
+- `docs/features/flash.md`: Updated surround conflict note to document automatic resolution via shadow resolver; added two-char label behavior documentation
+- `docs/configuration/settings.md`: Added `operatorshadowtimeout` to Vim engine settings group
+- `docs/configuration/vimrc.md`: Added `operatorshadowtimeout`/`ost` to numeric options table
+- `docs/configuration/lua-config.md`: Added `vim.opt.operatorshadowtimeout` entry
+- `~/Repos/codemirror-vim/DIFFERENCES.md`: Added operator-prefix shadow resolver section
 - `README.md`
 - `CONTRIBUTING.md`
 - `AGENTS.md`

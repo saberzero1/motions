@@ -1,6 +1,12 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getCursorPos, sendVimEscape, PAUSE } from '../helpers';
+import {
+    setupEditor,
+    getCursorPos,
+    getEditorValue,
+    sendVimEscape,
+    PAUSE,
+} from '../helpers';
 
 function setFlashSettings(
     overrides: Record<string, unknown>,
@@ -186,6 +192,35 @@ describe('Flash jump mode (s) and clever-f', function () {
             } else {
                 await browser.keys(['Escape']);
             }
+        });
+    });
+
+    describe('shadow resolver: surround coexistence with flash s', function () {
+        it('cs should change surround when flash s is enabled', async function () {
+            await setupEditor('"hello" world', { line: 0, ch: 3 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['c', 's', '"', "'"]);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe("'hello' world");
+        });
+
+        it('ds should delete surround when flash s is enabled', async function () {
+            await setupEditor('"hello" world', { line: 0, ch: 3 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['d', 's', '"']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('hello world');
+        });
+
+        it('ysiw should add surround when flash s is enabled', async function () {
+            await setupEditor('hello world', { line: 0, ch: 3 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['y', 's', 'i', 'w', '"']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('"hello" world');
         });
     });
 
