@@ -6,6 +6,7 @@ import { getVimApi } from '../vim/vim-api';
 import { getDialogPrefix } from '../vim/mode-tracker';
 import { isFlashActive, setFlashActive } from './state';
 import type { Target } from '../easymotion/types';
+import type { OverlayHandle } from '../easymotion/overlay';
 import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
 import { FlashLabeler } from './labeler';
 import { getJumpListInstance } from '../workspace/navigate';
@@ -60,7 +61,7 @@ export function enableFlashSearch(
     let lastAdapter: CmAdapter | null = null;
     let searchWasOpen = false;
     let postCommitHandler: ((e: KeyboardEvent) => void) | null = null;
-    let postCommitOverlay: { cleanup: () => void } | null = null;
+    let postCommitOverlay: OverlayHandle | null = null;
 
     const cleanupPostCommit = () => {
         if (postCommitHandler) {
@@ -105,6 +106,8 @@ export function enableFlashSearch(
 
         postCommitOverlay = overlay;
 
+        let labelPrefix = '';
+
         postCommitHandler = (e: KeyboardEvent) => {
             if (e.isComposing) return;
 
@@ -115,27 +118,46 @@ export function enableFlashSearch(
                 return;
             }
 
-            if (e.key.length === 1) {
-                const match = labeled.find((t) => t.label === e.key);
-                if (match) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    cleanupPostCommit();
-
-                    const fromCursor = cm.getCursor();
-                    const filePath =
-                        app.workspace.getActiveViewOfType(MarkdownView)?.file
-                            ?.path;
-                    if (filePath && match.line !== fromCursor.line) {
-                        getJumpListInstance()?.recordJump(
-                            filePath,
-                            fromCursor.line,
-                            fromCursor.ch,
-                        );
-                    }
-                    cm.setCursor(match.line, match.ch);
-                    return;
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (labelPrefix.length > 0) {
+                    labelPrefix = '';
+                    postCommitOverlay?.updateLabels(labeled);
                 }
+                return;
+            }
+
+            if (e.key.length !== 1) return;
+
+            const typed = labelPrefix + e.key;
+            const exact = labeled.find((t) => t.label === typed);
+            if (exact) {
+                e.preventDefault();
+                e.stopPropagation();
+                cleanupPostCommit();
+
+                const fromCursor = cm.getCursor();
+                const filePath =
+                    app.workspace.getActiveViewOfType(MarkdownView)?.file?.path;
+                if (filePath && exact.line !== fromCursor.line) {
+                    getJumpListInstance()?.recordJump(
+                        filePath,
+                        fromCursor.line,
+                        fromCursor.ch,
+                    );
+                }
+                cm.setCursor(exact.line, exact.ch);
+                return;
+            }
+
+            const remaining = labeled.filter((t) => t.label.startsWith(typed));
+            if (remaining.length > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                labelPrefix = typed;
+                postCommitOverlay?.updateLabels(remaining);
+                return;
             }
 
             cleanupPostCommit();

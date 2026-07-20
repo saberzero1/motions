@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Flash jump mode two-character label premature exit** — when flash jump mode (`s`) displayed two-character labels (28+ matches with default 27-char label alphabet), typing the first character of a two-char label either jumped to the wrong single-char target or appended the character to the search pattern, destroying the label state. The same bug affected post-`/`/`?` search labels. Fixed by adding prefix accumulation with label narrowing: typed characters are checked as label matches first (exact → jump, prefix → narrow and update overlay), then fall back to extending the search pattern. Extracted shared `waitForFlashLabel()` into `src/flash/label-input.ts` for reuse by `char-mode.ts`. ([#76](https://github.com/saberzero1/motions/issues/76))
+    - Plugin: `src/flash/label-input.ts` (new: shared label selection state machine), `src/flash/jump-mode.ts` (prefix accumulation + label narrowing), `src/flash/search-mode.ts` (prefix accumulation + label narrowing), `src/flash/char-mode.ts` (imports shared `waitForFlashLabel`)
+
 ### Added
 
 - **`gr` blockwise visual mode** — `<C-V>` block selection + `gr` now replaces each line in the block with corresponding register content. Single-line registers duplicate to all block rows; multi-line registers apply line-by-line; excess register lines truncate to block height. Cursor lands at top-left of block. Previously returned early (no-op).
@@ -18,13 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 2 e2e tests in `test/specs/flash-jump-mode.e2e.ts`: two-char label narrowing (labels persist after typing first char of two-char label), single-char label immediate jump
 - 6 e2e tests for `gr` blockwise in `test/specs/operators.e2e.ts` (4 unskipped + register preservation + cursor position)
 - 13 e2e tests in `test/specs/indentation-textobj.e2e.ts` (inner/around selection, operators, zero-indent, blank lines, nesting, yank, cursor position, mode verification)
 - 8 e2e tests in `test/specs/yank-ring.e2e.ts` (cycling, reversal, cancellation, fallback to k/j, paste variants, register preservation)
 
 ### Documentation
 
-- `CHANGELOG.md`
+- `CHANGELOG.md`: Flash jump mode two-char label fix entry
+- `KNOWN_LIMITATIONS.md`: Added `s` key / surround conflict documentation under flash motions
+- `CONTRIBUTING.md`: Added `label-input.ts` to codebase structure
+- `docs/features/flash.md`: Added surround conflict note and two-char label behavior documentation
 - `README.md`
 - `CONTRIBUTING.md`
 - `AGENTS.md`

@@ -131,6 +131,64 @@ describe('Flash jump mode (s) and clever-f', function () {
         });
     });
 
+    describe('two-character labels (issue #76)', function () {
+        it('should narrow labels on first char of two-char label instead of exiting', async function () {
+            await setFlashSettings({
+                easyMotionLabels: 'abc',
+                flashMinPatternLength: 1,
+            });
+            await setupEditor('x x x x x x x x', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+
+            await browser.keys(['s', 'x']);
+            await browser.pause(300);
+
+            const labelsBefore = await getFlashLabelCount();
+            expect(labelsBefore).toBeGreaterThanOrEqual(4);
+
+            await browser.keys(['a']);
+            await browser.pause(200);
+
+            const labelsAfter = await getFlashLabelCount();
+            expect(labelsAfter).toBeGreaterThanOrEqual(1);
+
+            await browser.keys(['Escape']);
+            await setFlashSettings({
+                easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
+            });
+        });
+
+        it('should still jump immediately on single-char label match', async function () {
+            await setupEditor('abc abc', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+
+            await browser.keys(['s', 'b']);
+            await browser.pause(300);
+
+            const labels = await getFlashLabelCount();
+            expect(labels).toBeGreaterThanOrEqual(2);
+
+            const labelChar = (await browser.executeObsidian(() => {
+                const el = document.querySelector(
+                    '.vim-motions-easymotion-label',
+                );
+                return el?.textContent ?? null;
+            })) as string | null;
+
+            if (labelChar && labelChar.length === 1) {
+                await browser.keys([labelChar]);
+                await browser.pause(200);
+
+                const labelsAfter = await getFlashLabelCount();
+                expect(labelsAfter).toBe(0);
+            } else {
+                await browser.keys(['Escape']);
+            }
+        });
+    });
+
     describe('clever-f', function () {
         it('should fall through to stock f on repeat when clever-f is enabled', async function () {
             await setFlashSettings({

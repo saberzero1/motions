@@ -71,6 +71,21 @@ vim.opt.flashjumpkey = 's'
 > [!tip]
 > Jump mode only overrides the key in normal mode. In visual mode, `s` retains its default `c` (change selection) behavior.
 
+> [!warning] Surround conflict
+> When `s` is the jump key, it conflicts with surround operations (`cs`, `ys`, `ds`) because `s` is registered as a motion available in operator-pending mode. In Neovim, flash.nvim coexists with nvim-surround via timeout-based resolution — CodeMirror-vim lacks this mechanism. **Workaround**: remap the jump key to a non-conflicting binding:
+>
+> ```vim
+> set flashjumpkey=<space>s
+> ```
+>
+> ```lua
+> vim.opt.flashjumpkey = '<space>s'
+> ```
+
+### Two-character labels
+
+When the number of matches exceeds the available label characters (default: 27), some targets receive two-character labels. Typing the first character of a two-char label narrows the displayed labels to those matching the prefix. Typing the second character completes the jump. Single-character labels still jump immediately on the first keystroke.
+
 ## Clever-f
 
 When clever-f is enabled, pressing `f{char}` where `{char}` matches the last flash search character falls through to the stock `f` behavior — effectively repeating the search as `;` would. This avoids showing labels when you're just continuing a search sequence.
@@ -139,7 +154,7 @@ vim.opt.flashsearch = true
 
 After committing a search with `/pattern` + `Enter`, flash labels appear on all visible matches. Press a label key to jump directly to that match — no need to cycle with `n`/`N`.
 
-Labels auto-clear when you press any non-label key, `Escape`, or `n`/`N`. This means the search dialog works exactly as expected during typing; labels only appear after you commit.
+Labels auto-clear when you press any non-label key, `Escape`, or `n`/`N`. This means the search dialog works exactly as expected during typing; labels only appear after you commit. Two-character labels are supported — typing the first character narrows the label set instead of dismissing labels.
 
 Disable with `set noflashsearch` or in **Settings → Vim Motions → Jump navigation → Flash search labels**.
 

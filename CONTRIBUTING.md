@@ -147,6 +147,7 @@ src/
     register.ts            # Flash registration (motion overrides, jump mode binding)
     char-mode.ts           # Enhanced f/F/t/T with label overlays
     jump-mode.ts           # Incremental bidirectional jump (s key, multi-char search)
+    label-input.ts         # Shared label selection state machine (prefix accumulation, narrowing)
     labeler.ts             # Distance-based label assignment with reuse and conflict skip
     state.ts               # Flash active flag, clever-f state tracking
     search-mode.ts         # Post-commit search labels (/ and ? integration)

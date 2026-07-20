@@ -18,8 +18,8 @@ import {
 import { findCharTargets } from '../easymotion/targets';
 import type { Target } from '../easymotion/types';
 import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
-import type { LabeledTarget } from '../easymotion/types';
 import { assignFlashLabels } from './labeler';
+import { waitForFlashLabel } from './label-input';
 import { getJumpListInstance } from '../workspace/navigate';
 
 function findCharTargetsCurrentLine(
@@ -74,52 +74,6 @@ function applyTillOffset(targets: Target[], forward: boolean): Target[] {
             return { line: t.line, ch: t.ch + 1 };
         })
         .filter((t): t is Target => t !== null);
-}
-
-function waitForFlashLabel(
-    labels: LabeledTarget[],
-    onNarrow: (remaining: LabeledTarget[]) => void,
-): Promise<LabeledTarget | null> {
-    return new Promise((resolve) => {
-        let prefix = '';
-
-        const handler = (e: KeyboardEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (e.key === 'Escape') {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(null);
-                return;
-            }
-
-            if (e.key === 'Backspace') {
-                if (prefix.length > 0) {
-                    prefix = '';
-                    onNarrow(labels);
-                }
-                return;
-            }
-
-            if (e.key.length !== 1) return;
-
-            const typed = prefix + e.key;
-            const exact = labels.find((t) => t.label === typed);
-            if (exact) {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(exact);
-                return;
-            }
-
-            const remaining = labels.filter((t) => t.label.startsWith(typed));
-            if (remaining.length > 0) {
-                prefix = typed;
-                onNarrow(remaining);
-            }
-        };
-
-        activeDocument.addEventListener('keydown', handler, true);
-    });
 }
 
 interface FlashCharOptions {

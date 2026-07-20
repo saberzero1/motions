@@ -66,6 +66,7 @@ export function createFlashJumpMotion(
             let pattern = '';
             const labeler = new FlashLabeler();
             let currentOverlay: { cleanup: () => void } | null = null;
+            let labelPrefix = '';
 
             const cleanup = () => {
                 activeDocument.removeEventListener('keydown', handler, true);
@@ -77,6 +78,7 @@ export function createFlashJumpMotion(
             const updateDisplay = () => {
                 currentOverlay?.cleanup();
                 currentOverlay = null;
+                labelPrefix = '';
 
                 if (!pattern) return;
 
@@ -159,6 +161,11 @@ export function createFlashJumpMotion(
                 }
 
                 if (e.key === 'Backspace') {
+                    if (labelPrefix.length > 0) {
+                        labelPrefix = '';
+                        updateDisplay();
+                        return;
+                    }
                     if ([...pattern].length > 0) {
                         const chars = [...pattern];
                         chars.pop();
@@ -197,16 +204,32 @@ export function createFlashJumpMotion(
                             cursor.ch,
                             skipChars,
                         );
-                        const match = labeled.find((t) => t.label === e.key);
-                        if (match) {
+
+                        const typed = labelPrefix + e.key;
+                        const exact = labeled.find((t) => t.label === typed);
+                        if (exact) {
                             cleanup();
-                            maybeRecordJump(opts.app, cm, match);
-                            resolve({ line: match.line, ch: match.ch });
+                            maybeRecordJump(opts.app, cm, exact);
+                            resolve({ line: exact.line, ch: exact.ch });
+                            return;
+                        }
+
+                        const remaining = labeled.filter((t) =>
+                            t.label.startsWith(typed),
+                        );
+                        if (remaining.length > 0) {
+                            labelPrefix = typed;
+                            currentOverlay?.cleanup();
+                            currentOverlay = showOverlay(cm, remaining, {
+                                shade: opts.dimming(),
+                                fontSize: opts.fontSize(),
+                            });
                             return;
                         }
                     }
                 }
 
+                labelPrefix = '';
                 pattern += e.key;
                 updateDisplay();
             };
