@@ -59,7 +59,7 @@ src/
   vim/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations
-    bundled-vim.ts         # Bundled vim fork registration as CM6 extension
+    bundled-vim.ts         # Bundled vim fork registration as CM6 extension + editorLivePreviewField wiring
     mode-tracker.ts        # Status bar mode indicator + macro recording + search match counter
     search-counter.ts      # Search match counter (hlslens-style [3/15])
     scrolloff.ts           # CSS scroll-padding based scrolloff

@@ -18,13 +18,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor stuck below frontmatter in source mode** — pressing `k`, `C-u`, or arrow-up from the first content line after YAML frontmatter could not enter the frontmatter block in source mode. The fork's `findPosV` adapter unconditionally intercepted upward cursor movement near frontmatter boundaries to redirect focus to the properties widget (live-preview behavior). In source mode, no properties widget exists — the interception fired but found no focus target, leaving the cursor stuck. Fixed by gating the frontmatter interception on Obsidian's `editorLivePreviewField` state field. A new `setLivePreviewField()` API on the fork accepts the host-provided field without coupling the fork to Obsidian. In source mode, the block is skipped entirely and the cursor moves through raw frontmatter text normally. ([#77](https://github.com/saberzero1/motions/issues/77))
+    - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`setLivePreviewField`, `_livePreviewField` gate in `findPosV`), `~/Repos/codemirror-vim/src/index.ts` (re-export)
+    - Plugin: `src/vim/bundled-vim.ts` (passes `editorLivePreviewField` to fork), `src/types/codemirror-vim.d.ts` (type declaration)
 - **EasyMotion line motions targeting hidden formatting in Live Preview** — `<leader><leader>j`/`<leader><leader>k` line motions targeted hidden markdown formatting characters (e.g., `## ` on headings, `**` on bold text) instead of the first visible character. In Live Preview, the label appeared on the hidden prefix position, obscuring the first visible character. Fixed by adding `skipHiddenPrefix()` to `findLineTargets()`, which scans forward from the raw-text first-non-blank character using `coordsAtPos()` to find the first character that occupies visible space. ([#79](https://github.com/saberzero1/motions/issues/79))
     - Plugin: `src/easymotion/targets.ts` (`skipHiddenPrefix`, `findLineTargets`)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added label vertical centering note, RTL label positioning limitation, and line motion hidden formatting fix to flash motions section
+- `KNOWN_LIMITATIONS.md`: Added label vertical centering note, RTL label positioning limitation, and line motion hidden formatting fix to flash motions section; updated frontmatter navigation section with source mode fix
+- `AGENTS.md`: Updated codemirror-vim fork description with `setLivePreviewField` API
+- `CONTRIBUTING.md`: Updated `bundled-vim.ts` description with live-preview field wiring
+- `~/Repos/codemirror-vim/DIFFERENCES.md`: Added `setLivePreviewField` API section; updated properties navigation section with live-preview gating
 - `docs/configuration/settings.md`: Added `labelmatchfontsize` to Jump navigation settings
 - `docs/configuration/vimrc.md`: Added `labelmatchfontsize`/`lmfs` to boolean options
 - `docs/configuration/lua-config.md`: Added `labelmatchfontsize` to vim.opt table

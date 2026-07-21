@@ -9,9 +9,10 @@
  * the Vim API at the canonical location.
  */
 
-import { vim, Vim, getCM } from '@replit/codemirror-vim';
+import { vim, Vim, getCM, setLivePreviewField } from '@replit/codemirror-vim';
 import type { CursorShapeConfig } from '@replit/codemirror-vim';
 import { Prec, type Extension } from '@codemirror/state';
+import { editorLivePreviewField } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { CursorShapes } from '../settings';
@@ -28,6 +29,7 @@ export function createBundledVimExtension(
     cursorShapes?: CursorShapes,
 ): Extension {
     bundledActive = true;
+    setLivePreviewField(editorLivePreviewField);
     const config: CursorShapeConfig | undefined = cursorShapes
         ? { ...cursorShapes }
         : undefined;

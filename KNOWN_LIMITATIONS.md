@@ -963,6 +963,8 @@ The `stuckAtBoundary` check uses `range.head === startOffset` to distinguish "cu
 
 The plugin's `tableAwareMoveUp` motion (which overrides `k` when table navigation is enabled) bypasses `findPosV` with its own line arithmetic. To preserve frontmatter navigation, `tableAwareMoveUp` delegates to `findPosV` when the computed target line falls inside the frontmatter region, allowing the `focusBefore` callback to fire. ([#25](https://github.com/saberzero1/motions/issues/25))
 
+~~**Source mode regression**: The frontmatter interception fired unconditionally in both live-preview and source mode. In source mode, frontmatter is plain text with no properties widget — the interception found no focus target and left the cursor stuck below the frontmatter.~~ Fixed by gating the entire frontmatter interception on Obsidian's `editorLivePreviewField` state field via the fork's new `setLivePreviewField()` API. In source mode (`editorLivePreviewField = false`), the block is skipped and the cursor moves through raw frontmatter text normally. ([#77](https://github.com/saberzero1/motions/issues/77))
+
 **Test coverage**: `test/specs/vim-builtin/g-commands.e2e.ts` — 3 regression tests: `gk` navigates wrapped display lines before entering properties, `gk` enters properties on non-wrapping line, `k` enters properties from first content line.
 
 ## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)

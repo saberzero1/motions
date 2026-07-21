@@ -1,5 +1,5 @@
 declare module '@replit/codemirror-vim' {
-    import type { Extension } from '@codemirror/state';
+    import type { Extension, StateField } from '@codemirror/state';
     import type { EditorView } from '@codemirror/view';
 
     export type CursorShape = 'block' | 'bar' | 'underline' | 'hollow';
@@ -25,5 +25,6 @@ declare module '@replit/codemirror-vim' {
         cursorShapes?: CursorShapeConfig;
     }): Extension;
     export function getCM(view: EditorView): CodeMirror | null;
+    export function setLivePreviewField(field: StateField<boolean>): void;
     export const Vim: Record<string, unknown>;
 }
