@@ -16,10 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Label vertical centering** — jump labels are now vertically centered within the line height instead of being top-aligned. On lines with taller fonts (headings), labels sit centered in the line rather than hugging the top edge. ([#75](https://github.com/saberzero1/motions/issues/75))
 
+### Fixed
+
+- **EasyMotion line motions targeting hidden formatting in Live Preview** — `<leader><leader>j`/`<leader><leader>k` line motions targeted hidden markdown formatting characters (e.g., `## ` on headings, `**` on bold text) instead of the first visible character. In Live Preview, the label appeared on the hidden prefix position, obscuring the first visible character. Fixed by adding `skipHiddenPrefix()` to `findLineTargets()`, which scans forward from the raw-text first-non-blank character using `coordsAtPos()` to find the first character that occupies visible space. ([#79](https://github.com/saberzero1/motions/issues/79))
+    - Plugin: `src/easymotion/targets.ts` (`skipHiddenPrefix`, `findLineTargets`)
+
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added label vertical centering note to flash motions section
+- `KNOWN_LIMITATIONS.md`: Added label vertical centering note, RTL label positioning limitation, and line motion hidden formatting fix to flash motions section
 - `docs/configuration/settings.md`: Added `labelmatchfontsize` to Jump navigation settings
 - `docs/configuration/vimrc.md`: Added `labelmatchfontsize`/`lmfs` to boolean options
 - `docs/configuration/lua-config.md`: Added `labelmatchfontsize` to vim.opt table

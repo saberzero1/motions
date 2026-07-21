@@ -193,14 +193,42 @@ export function findTillTargets(
         .filter((t): t is Target => t !== null);
 }
 
+function skipHiddenPrefix(
+    cm: CmAdapter,
+    view: import('@codemirror/view').EditorView,
+    line: number,
+    ch: number,
+    lineLen: number,
+): number {
+    while (ch < lineLen - 1) {
+        const curOffset = cm.indexFromPos({ line, ch });
+        const nextOffset = cm.indexFromPos({ line, ch: ch + 1 });
+        const curCoords = view.coordsAtPos(curOffset);
+        const nextCoords = view.coordsAtPos(nextOffset);
+        if (
+            !curCoords ||
+            !nextCoords ||
+            Math.abs(nextCoords.left - curCoords.left) > 1
+        ) {
+            break;
+        }
+        ch++;
+    }
+    return ch;
+}
+
 export function findLineTargets(cm: CmAdapter, direction: Direction): Target[] {
     const { fromLine, toLine } = getVisibleRange(cm);
+    const view = cm.cm6;
     const targets: Target[] = [];
     for (let line = fromLine; line <= toLine; line++) {
         const text = cm.getLine(line);
         if (text.trim().length === 0) continue;
-        const firstNonBlank = text.search(/\S/);
-        targets.push({ line, ch: Math.max(0, firstNonBlank) });
+        let ch = Math.max(0, text.search(/\S/));
+        if (view) {
+            ch = skipHiddenPrefix(cm, view, line, ch, text.length);
+        }
+        targets.push({ line, ch });
     }
     return filterByDirection(targets, cm, direction);
 }

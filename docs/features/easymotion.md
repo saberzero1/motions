@@ -58,6 +58,7 @@ EasyMotion labels appear **after** the target character (one character to the ri
 The EasyMotion engine is specifically tuned for Obsidian's Live Preview mode:
 
 - **Syntax exclusion**: Hidden Markdown syntax (like URLs in `[text](url)` or formatting marks) is excluded from target scanning to prevent jumping to invisible characters.
+- **Hidden prefix skipping**: Line motions (`<leader><leader>j`/`k`) skip hidden formatting prefixes (heading markers `## `, bold `**`, etc.) and target the first visually visible character on each line.
 - **Label collision detection**: If multiple targets are close together, labels are automatically offset vertically to prevent overlap.
 - **Vertical stacking**: Labels for nearby targets are stacked to ensure every jump target remains reachable and legible.
 
