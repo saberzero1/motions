@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.73.1] - 2026-07-21
+
 ### Fixed
 
 - **Animated cursor settings missing from pre-1.13 settings tab** — the 8 animated cursor settings (enable, smooth cursor, smoothness, smear trail, stiffness, trailing stiffness, damping, max length) were only present in the post-1.13 declarative settings API (`getSettingDefinitions()`). Added the full settings group to the pre-1.13 imperative `display()` method with matching toggle/slider controls, disabled-state gating, and `reloadFeatures()` on master toggle change.
