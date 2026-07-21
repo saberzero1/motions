@@ -177,6 +177,19 @@ The following options are available via vimrc and Lua but do not appear in the S
 | Sidebar position        | dropdown | `right` | `left`, `right` | —                          | —                      | Which sidebar to open the undo tree view in.                                                        |
 | Auto-open on branch     | toggle   | `false` | —               | —                          | —                      | Automatically open the undo tree sidebar when a branch is created (undo + new edit).                |
 
+## Animated cursor
+
+| Setting                  | Key                      | Type            | Default | Description                                                  |
+| ------------------------ | ------------------------ | --------------- | ------- | ------------------------------------------------------------ |
+| Enable animated cursor   | `animatedCursor`         | Toggle          | Off     | Master toggle for canvas-based cursor rendering              |
+| Smooth cursor movement   | `smoothCursor`           | Toggle          | On      | Cursor glides between positions instead of teleporting       |
+| Cursor smoothness        | `cursorSmoothness`       | Slider 0–1      | 0.5     | How lazy the cursor movement feels (0 = snap, 1 = very slow) |
+| Enable smear trail       | `smearTrail`             | Toggle          | On      | Spring-damper trail stretching between old and new position  |
+| Trail stiffness          | `smearStiffness`         | Slider 0.1–1    | 0.6     | Head corner spring strength                                  |
+| Trail trailing stiffness | `smearTrailingStiffness` | Slider 0.1–1    | 0.3     | Tail corner spring strength                                  |
+| Trail damping            | `smearDamping`           | Slider 0.1–0.99 | 0.85    | Velocity decay (lower = bouncier)                            |
+| Trail max length         | `smearMaxLength`         | Slider 50–800   | 400     | Maximum trail length in pixels                               |
+
 ## Status bar
 
 | Name                       | Type   | Default | Range/Options | Lua                    | Vimrc              | Description                                                   |

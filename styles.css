@@ -1303,6 +1303,16 @@ settings:
     );
 }
 
+/* --- Animated cursor --- */
+
+.vim-motions-animated-cursor-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
 /* --- Fold column --- */
 
 .vim-motions-fold-column .cm-gutterElement {

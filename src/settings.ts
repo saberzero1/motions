@@ -239,6 +239,15 @@ export interface VimMotionsSettings {
     undoTreeMaxNodes: number;
     undoTreePosition: 'left' | 'right';
     undoTreeAutoOpen: boolean;
+
+    animatedCursor: boolean;
+    smoothCursor: boolean;
+    cursorSmoothness: number;
+    smearTrail: boolean;
+    smearStiffness: number;
+    smearTrailingStiffness: number;
+    smearDamping: number;
+    smearMaxLength: number;
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -362,6 +371,15 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     undoTreePosition: 'right' as const,
     undoTreeAutoOpen: false,
     persistedUndoTrees: {},
+
+    animatedCursor: false,
+    smoothCursor: true,
+    cursorSmoothness: 0.5,
+    smearTrail: true,
+    smearStiffness: 0.6,
+    smearTrailingStiffness: 0.3,
+    smearDamping: 0.85,
+    smearMaxLength: 400,
 };
 
 interface ObsidianCommand {
@@ -1643,6 +1661,123 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             disabled: () =>
                                 !forkActive ||
                                 this.isOverridden('cursorShapes'),
+                        },
+                    },
+                ],
+            },
+
+            // ── Animated cursor ──────────────────────────────────────
+            {
+                type: 'group' as const,
+                heading: 'Animated cursor',
+                items: [
+                    {
+                        name: 'Smooth cursor movement and smear trail effects. Incompatible with ninja-cursor and cursor-smith plugins.',
+                        searchable: false,
+                    },
+                    {
+                        name: 'Enable animated cursor',
+                        desc: 'Render cursor on canvas with smooth movement and optional trail effects.',
+                        aliases: [
+                            'smooth cursor',
+                            'smear',
+                            'animated',
+                            'cursor animation',
+                        ],
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'animatedCursor',
+                        },
+                    },
+                    {
+                        name: 'Smooth cursor movement',
+                        desc: 'Cursor glides between positions instead of teleporting.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'smoothCursor',
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor,
+                        },
+                    },
+                    {
+                        name: 'Cursor smoothness',
+                        desc: 'How lazy the cursor movement feels. 0 = snap, 1 = very slow.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'cursorSmoothness',
+                            min: 0,
+                            max: 1,
+                            step: 0.05,
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor ||
+                                !this.plugin.settings.smoothCursor,
+                        },
+                    },
+                    {
+                        name: 'Enable smear trail',
+                        desc: 'Spring-damper trail stretching between old and new cursor position.',
+                        aliases: ['trail', 'smear cursor'],
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'smearTrail',
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor,
+                        },
+                    },
+                    {
+                        name: 'Trail stiffness',
+                        desc: 'Head corner spring strength. Higher = trail snaps back faster.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'smearStiffness',
+                            min: 0.1,
+                            max: 1,
+                            step: 0.05,
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor ||
+                                !this.plugin.settings.smearTrail,
+                        },
+                    },
+                    {
+                        name: 'Trail trailing stiffness',
+                        desc: 'Tail corner spring strength. Lower = longer, more dramatic trail.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'smearTrailingStiffness',
+                            min: 0.1,
+                            max: 1,
+                            step: 0.05,
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor ||
+                                !this.plugin.settings.smearTrail,
+                        },
+                    },
+                    {
+                        name: 'Trail damping',
+                        desc: 'Velocity decay. Lower values produce bouncier trails.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'smearDamping',
+                            min: 0.1,
+                            max: 0.99,
+                            step: 0.01,
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor ||
+                                !this.plugin.settings.smearTrail,
+                        },
+                    },
+                    {
+                        name: 'Trail max length',
+                        desc: 'Maximum trail length in pixels.',
+                        control: {
+                            type: 'slider' as const,
+                            key: 'smearMaxLength',
+                            min: 50,
+                            max: 800,
+                            step: 10,
+                            disabled: () =>
+                                !this.plugin.settings.animatedCursor ||
+                                !this.plugin.settings.smearTrail,
                         },
                     },
                 ],

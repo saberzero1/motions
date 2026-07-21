@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Animated cursor (smear + smooth movement)** — canvas-based cursor rendering with smooth exponential interpolation and spring-damper smear trail. Per-mode cursor shapes (block, bar, underline, hollow) rendered on `<canvas>` overlay. Fork-side cursor suppression via `setCursorSuppressed()`. Disabled by default — enable via **Settings → Vim Motions → Animated cursor**. Inspired by [smear-cursor.nvim](https://github.com/sphamba/smear-cursor.nvim) and [cursor-smith](https://github.com/sadsnake1/cursor-smith). ([#78](https://github.com/saberzero1/motions/issues/78))
+    - Plugin: `src/vim/animated-cursor/` (new: types.ts, smooth-cursor.ts, physics.ts, renderer.ts, manager.ts, controller.ts, config.ts), `src/settings.ts` (8 new settings), `src/main.ts` (extension registration, lifecycle)
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (`setCursorSuppressed` API), `~/Repos/codemirror-vim/src/index.ts` (re-export)
+
+### Tests
+
+- 32 unit tests in `test/unit/animated-cursor.test.ts`: SmoothCursor (11 tests: setTarget snap/no-snap, tick exponential decay, frame-rate independence, smoothness extremes, snap, isConverged, current, reset), SmearPhysics (11 tests: setTarget snap/no-snap, tick spring-damper, head-faster-than-tail, isConverged, snap, reset, max length clamping, frame-rate independence, volume shrinkage), getCursorShapeForMode (10 tests: all mode mappings, custom shapes)
+- 5 e2e tests in `test/specs/animated-cursor.e2e.ts`: canvas creation, native cursor hiding, disable toggle, cursor follows movement, settings sub-toggles
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added animated cursor section with limitations and nice-to-have future items
+- `README.md`: Added animated cursor to features list
+- `CONTRIBUTING.md`: Added `animated-cursor/` module to codebase structure
+- `AGENTS.md`: Updated codemirror-vim fork description with `setCursorSuppressed` API; added animated cursor to page ownership table
+- `~/Repos/codemirror-vim/DIFFERENCES.md`: Added `setCursorSuppressed` API section
+
 ## [0.72.0] - 2026-07-21
 
 ### Added

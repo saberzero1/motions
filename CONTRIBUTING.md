@@ -93,6 +93,14 @@ src/
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing
     textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay)
+    animated-cursor/         # Canvas-based animated cursor (smear + smooth movement)
+      types.ts               # Shared interfaces (CursorRect, SmearQuad, AnimatedCursorConfig)
+      smooth-cursor.ts       # Exponential position interpolation with convergence detection
+      physics.ts             # 4-corner spring-damper simulation (smear trail)
+      renderer.ts            # Canvas cursor shape drawing + smear quad rendering
+      manager.ts             # Global rAF scheduler with converge-then-sleep
+      controller.ts          # CM6 ViewPlugin — canvas lifecycle, position tracking
+      config.ts              # Module-level getters/setters for animation parameters
   text-objects/
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)
     link.ts                # [[wikilink]] and [text](url) text objects

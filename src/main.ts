@@ -142,6 +142,13 @@ import type { VimYankEvent, CmAdapter } from './types/vim-api';
 
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
+import { createAnimatedCursorExtension } from './vim/animated-cursor/controller';
+import {
+    setAnimatedCursorConfig,
+    setCursorShapes,
+} from './vim/animated-cursor/config';
+import { destroyAnimatedCursorManager } from './vim/animated-cursor/manager';
+import { setCursorSuppressed } from '@replit/codemirror-vim';
 import { loadInitLua } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
@@ -2117,6 +2124,25 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.cursorlineopt,
             ),
         );
+        setCursorShapes(
+            this.settings.cursorShapes as unknown as Record<string, string>,
+        );
+        setCursorSuppressed(this.settings.animatedCursor);
+        if (this.settings.animatedCursor) {
+            setAnimatedCursorConfig({
+                enabled: true,
+                smoothCursor: this.settings.smoothCursor,
+                smoothness: this.settings.cursorSmoothness,
+                smearTrail: this.settings.smearTrail,
+                stiffness: this.settings.smearStiffness,
+                trailingStiffness: this.settings.smearTrailingStiffness,
+                damping: this.settings.smearDamping,
+                maxLength: this.settings.smearMaxLength,
+            });
+            this.registerEditorExtension(createAnimatedCursorExtension());
+        } else {
+            setAnimatedCursorConfig({ enabled: false });
+        }
         this.registerEditorExtension(
             createFoldColumnExtension(this.settings.foldcolumn),
         );
@@ -3920,6 +3946,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
+        destroyAnimatedCursorManager();
         destroyCellEditorCursorSheet();
         setActiveDynamicContext(null);
         activeDocument.body.classList.remove('vim-motions-line-numbers-active');
