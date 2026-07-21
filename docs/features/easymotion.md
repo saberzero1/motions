@@ -68,6 +68,7 @@ You can customize EasyMotion behavior in **Settings → Vim Motions → Jump nav
 - **Label characters**: Define the characters used for jump labels (default: `asdghklqwertyuiopzxcvbnmfj`).
 - **Dimming**: Toggle whether the editor text dims when EasyMotion is active.
 - **Font size**: Adjust the size of the jump labels.
+- **Scale labels to line height**: When enabled (`set labelmatchfontsize`), labels scale to match the font size of the target line — labels on headings are larger than labels on body text.
 
 To remap EasyMotion triggers in your `.obsidian.vimrc`, use the internal command names. See [[settings#Jump navigation]] for details.
 

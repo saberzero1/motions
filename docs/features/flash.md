@@ -113,17 +113,18 @@ Both share the same label characters setting.
 
 Configure flash in **Settings → Vim Motions → Jump navigation**:
 
-| Setting                     | Default                      | Description                                                      |
-| --------------------------- | ---------------------------- | ---------------------------------------------------------------- |
-| Flash-style f/F/t/T         | `true`                       | Enable flash labels on character motions.                        |
-| Flash multi-line            | `true`                       | Search beyond the current line.                                  |
-| Flash jump mode (s)         | `false`                      | Bidirectional character jump with configurable key.              |
-| Flash jump key              | `s`                          | Key to trigger flash jump mode.                                  |
-| Flash clever-f              | `false`                      | Repeating `f{same-char}` falls through to stock `f`.             |
-| Flash min pattern length    | `1`                          | Minimum chars before labels appear in jump mode (0 = immediate). |
-| Flash search labels         | `true`                       | Show labels on search matches after committing `/` or `?`.       |
-| EasyMotion label characters | `asdghklqwertyuiopzxcvbnmfj` | Shared label characters for flash and EasyMotion.                |
-| EasyMotion dimming          | `true`                       | Dim non-target text during flash and EasyMotion.                 |
+| Setting                     | Default                      | Description                                                          |
+| --------------------------- | ---------------------------- | -------------------------------------------------------------------- |
+| Flash-style f/F/t/T         | `true`                       | Enable flash labels on character motions.                            |
+| Flash multi-line            | `true`                       | Search beyond the current line.                                      |
+| Flash jump mode (s)         | `false`                      | Bidirectional character jump with configurable key.                  |
+| Flash jump key              | `s`                          | Key to trigger flash jump mode.                                      |
+| Flash clever-f              | `false`                      | Repeating `f{same-char}` falls through to stock `f`.                 |
+| Flash min pattern length    | `1`                          | Minimum chars before labels appear in jump mode (0 = immediate).     |
+| Flash search labels         | `true`                       | Show labels on search matches after committing `/` or `?`.           |
+| EasyMotion label characters | `asdghklqwertyuiopzxcvbnmfj` | Shared label characters for flash and EasyMotion.                    |
+| EasyMotion dimming          | `true`                       | Dim non-target text during flash and EasyMotion.                     |
+| Scale labels to line height | `false`                      | Scale label font to match line font size (e.g., larger on headings). |
 
 ### Vimrc
 
@@ -136,6 +137,7 @@ set flashjump          " enable jump mode
 set flashjumpkey=s     " jump mode key (default: s)
 set flashcleverf       " enable clever-f
 set flashminpatternlength=2  " require 2 chars before labels
+set labelmatchfontsize       " scale labels to line font size
 set flashsearch        " labels on /? search matches (default)
 ```
 
@@ -149,6 +151,7 @@ vim.opt.flashjumpkey = 's'
 vim.opt.flashcleverf = true
 vim.opt.flashminpatternlength = 2
 vim.opt.flashsearch = true
+vim.opt.labelmatchfontsize = true
 ```
 
 ## Search mode (`/` and `?`)

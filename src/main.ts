@@ -1732,6 +1732,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
                 () => this.settings.easyMotionDimming,
                 () => this.settings.labelFontSize,
+                () => this.settings.labelMatchFontSize,
             );
         }
         if (this.settings.enableHintMode && !Platform.isMobile) {
@@ -2317,8 +2318,10 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
                 () => this.settings.easyMotionDimming,
                 () => this.settings.labelFontSize,
+                () => this.settings.labelMatchFontSize,
             );
         }
+
         if (
             this.settings.enableHintMode &&
             this.leaderRegistry &&
@@ -2616,6 +2619,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.leaderRegistry,
                 () => this.settings.easyMotionDimming,
                 () => this.settings.labelFontSize,
+                () => this.settings.labelMatchFontSize,
             );
         }
         if (this.settings.enableHintMode && !Platform.isMobile) {

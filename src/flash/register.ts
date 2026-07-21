@@ -15,6 +15,7 @@ interface FlashSettings {
     easyMotionDimming: boolean;
     easyMotionLabels: string;
     labelFontSize: number;
+    labelMatchFontSize: boolean;
 }
 
 let savedOrigMoveToChar: MotionFn | null = null;
@@ -44,6 +45,7 @@ export function registerFlash(
         labels: () => settings.easyMotionLabels,
         dimming: () => settings.easyMotionDimming,
         fontSize: () => settings.labelFontSize,
+        matchFontSize: () => settings.labelMatchFontSize,
         app,
     };
 
@@ -64,6 +66,7 @@ export function registerFlash(
             labels: () => settings.easyMotionLabels,
             dimming: () => settings.easyMotionDimming,
             fontSize: () => settings.labelFontSize,
+            matchFontSize: () => settings.labelMatchFontSize,
             app,
         };
 

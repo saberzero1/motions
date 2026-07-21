@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`labelmatchfontsize` setting** — opt-in setting that scales jump label font to match the target line's font size (e.g., larger labels on headings). Disabled by default. Configurable via **Settings → Vim Motions → Jump navigation → Scale labels to line height**, `set labelmatchfontsize` in vimrc, or `vim.opt.labelmatchfontsize = true` in Lua. ([#75](https://github.com/saberzero1/motions/issues/75))
+    - Plugin: `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`, `src/easymotion/overlay.ts` (per-target `labelMetrics`), `src/easymotion/register.ts`, `src/flash/register.ts`, `src/flash/char-mode.ts`, `src/flash/jump-mode.ts`, `src/flash/search-mode.ts`
+
+### Changed
+
+- **Label vertical centering** — jump labels are now vertically centered within the line height instead of being top-aligned. On lines with taller fonts (headings), labels sit centered in the line rather than hugging the top edge. ([#75](https://github.com/saberzero1/motions/issues/75))
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added label vertical centering note to flash motions section
+- `docs/configuration/settings.md`: Added `labelmatchfontsize` to Jump navigation settings
+- `docs/configuration/vimrc.md`: Added `labelmatchfontsize`/`lmfs` to boolean options
+- `docs/configuration/lua-config.md`: Added `labelmatchfontsize` to vim.opt table
+- `docs/features/flash.md`: Added `labelmatchfontsize` to configuration table
+- `docs/features/easymotion.md`: Added scale labels setting to configuration
+
 ## [0.71.0] - 2026-07-20
 
 ### Added

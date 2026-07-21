@@ -83,6 +83,7 @@ interface FlashCharOptions {
     labels: () => string;
     dimming: () => boolean;
     fontSize: () => number;
+    matchFontSize: () => boolean;
     app: App;
 }
 
@@ -167,6 +168,7 @@ export function createFlashCharMotion(
         const overlay = showOverlay(cm, labeled, {
             shade: opts.dimming(),
             fontSize: opts.fontSize(),
+            matchFontSize: opts.matchFontSize(),
         });
         if (!overlay) {
             setFlashActive(false);

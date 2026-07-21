@@ -263,6 +263,20 @@ export function registerVimOptions(
             notify('labelFontSize', n, `set labelfontsize=${n}`);
         }
     });
+    vim.defineOption(
+        'labelmatchfontsize',
+        false,
+        'boolean',
+        ['lmfs'],
+        (value) => {
+            if (value === undefined) return;
+            notify(
+                'labelMatchFontSize',
+                !!value,
+                `set ${value ? '' : 'no'}labelmatchfontsize`,
+            );
+        },
+    );
 
     vim.defineOption('number', false, 'boolean', ['nu'], (value) => {
         if (value === undefined) return;

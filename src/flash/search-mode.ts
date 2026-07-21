@@ -16,6 +16,7 @@ interface FlashSearchSettings {
     easyMotionLabels: string;
     easyMotionDimming: boolean;
     labelFontSize: number;
+    labelMatchFontSize: boolean;
 }
 
 function findSearchMatchTargets(cm: CmAdapter): Target[] {
@@ -102,6 +103,7 @@ export function enableFlashSearch(
         const overlay = showOverlay(cm, labeled, {
             shade: settings.easyMotionDimming,
             fontSize: settings.labelFontSize,
+            matchFontSize: settings.labelMatchFontSize,
         });
         if (!overlay) {
             setFlashActive(false);

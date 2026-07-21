@@ -127,6 +127,8 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         max: 20,
     },
     lfs: { type: 'number', settingsKey: 'labelFontSize', min: 10, max: 20 },
+    labelmatchfontsize: { type: 'boolean', settingsKey: 'labelMatchFontSize' },
+    lmfs: { type: 'boolean', settingsKey: 'labelMatchFontSize' },
     tabstop: { type: 'number', settingsKey: 'tabstop' },
     ts: { type: 'number', settingsKey: 'tabstop' },
     shiftwidth: { type: 'number', settingsKey: 'shiftwidth' },

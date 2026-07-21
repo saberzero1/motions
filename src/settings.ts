@@ -178,6 +178,7 @@ export interface VimMotionsSettings {
     multilineScanLimit: number;
     easyMotionLabels: string;
     labelFontSize: number;
+    labelMatchFontSize: boolean;
     cursorShapes: CursorShapes;
     clipboard: string;
     tabstop: number;
@@ -299,6 +300,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     multilineScanLimit: 20,
     easyMotionLabels: 'asdghklqwertyuiopzxcvbnmfj',
     labelFontSize: 14,
+    labelMatchFontSize: false,
     cursorShapes: { ...DEFAULT_CURSOR_SHAPES },
     clipboard: '',
     tabstop: 4,
@@ -1311,6 +1313,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             max: 20,
                             step: 1,
                             disabled: () => this.isOverridden('labelFontSize'),
+                        },
+                    },
+                    {
+                        name: 'Scale labels to line height',
+                        desc: this.describeOverride(
+                            'labelMatchFontSize',
+                            'Scale label font to match the target line\u2019s font size (e.g., larger labels on headings). When disabled, uses the configured label font size.',
+                        ),
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'labelMatchFontSize',
+                            disabled: () =>
+                                this.isOverridden('labelMatchFontSize'),
                         },
                     },
                     {
@@ -3651,6 +3666,27 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.labelFontSize = value;
                         this.plugin.vimrcOverrides?.delete('labelFontSize');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Scale labels to line height')
+            .setDesc(
+                describeOverride(
+                    'labelMatchFontSize',
+                    'Scale label font to match the target line\u2019s font size (e.g., larger labels on headings). When disabled, uses the configured label font size.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.labelMatchFontSize)
+                    .setDisabled(isOverridden('labelMatchFontSize'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.labelMatchFontSize = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'labelMatchFontSize',
+                        );
                         await this.plugin.saveSettings();
                     }),
             );

@@ -288,7 +288,7 @@ When making a change, update these docs pages:
 | Yank-ring             | `features/quality-of-life.md`       | Vim features (yankring)                                                                                            |
 | Hard-wrap             | `features/hardwrap.md`              | Vim features (hardwrap), Vim engine (textwidth)                                                                    |
 | Flash motions         | `features/flash.md`                 | Jump navigation (flash, flashmultiline, flashjump, flashjumpkey, flashcleverf, flashminpatternlength, flashsearch) |
-| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize)                                                       |
+| EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize, labelmatchfontsize)                                   |
 | Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                                                                 |
 | Workspace nav         | `features/workspace-navigation.md`  | Vim features (workspacenav)                                                                                        |
 | Folding               | `features/workspace-navigation.md`  | Vim features (foldawarenavigation, foldpersistence)                                                                |

@@ -31,6 +31,7 @@ export function isEasyMotionActive(): boolean {
 interface OverlayOptions {
     shade: () => boolean;
     fontSize: () => number;
+    matchFontSize: () => boolean;
 }
 
 type MotionTriggerFactory = (
@@ -54,6 +55,7 @@ function createMotionTrigger(
             const overlay = showOverlay(cm, labeled, {
                 shade: opts.shade(),
                 fontSize: opts.fontSize(),
+                matchFontSize: opts.matchFontSize(),
             });
             if (!overlay) return null;
 
@@ -89,6 +91,7 @@ function createCharMotionTrigger(
             const overlay = showOverlay(cm, labeled, {
                 shade: opts.shade(),
                 fontSize: opts.fontSize(),
+                matchFontSize: opts.matchFontSize(),
             });
             if (!overlay) return null;
 
@@ -327,10 +330,11 @@ export function registerEasyMotion(
     leaderRegistry: LeaderRegistry,
     dimming: () => boolean,
     fontSize: () => number,
+    matchFontSize: () => boolean,
 ): void {
     const chars = labels ?? DEFAULT_LABELS;
     const leader = leaderRegistry.getLeaderKey();
-    const opts: OverlayOptions = { shade: dimming, fontSize };
+    const opts: OverlayOptions = { shade: dimming, fontSize, matchFontSize };
 
     // Unmap the leader key's default binding (e.g. <Space> → l) so that
     // mapCommand multi-key sequences starting with the leader can accumulate

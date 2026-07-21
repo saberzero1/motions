@@ -79,6 +79,12 @@ function measureTarget(
     return { left, top, width, height };
 }
 
+interface LabelAnchor {
+    left: number;
+    top: number;
+    lineHeight: number;
+}
+
 function measureLabelAnchor(
     view: EditorView,
     cm: CmAdapter,
@@ -86,12 +92,13 @@ function measureLabelAnchor(
     scrollRect: DOMRect,
     scrollLeft: number,
     scrollTop: number,
-): { left: number; top: number } | null {
+): LabelAnchor | null {
     const ml = target.matchLength ?? 1;
     const startOffset = cm.indexFromPos({ line: target.line, ch: target.ch });
     const startCoords = view.coordsAtPos(startOffset);
     if (!startCoords) return null;
 
+    const lineHeight = startCoords.bottom - startCoords.top;
     const endOffset = Math.min(startOffset + ml, view.state.doc.length);
     const endCoords = view.coordsAtPos(endOffset);
 
@@ -99,6 +106,7 @@ function measureLabelAnchor(
         return {
             left: endCoords.left - scrollRect.left + scrollLeft,
             top: endCoords.top - scrollRect.top + scrollTop,
+            lineHeight,
         };
     }
 
@@ -112,6 +120,7 @@ function measureLabelAnchor(
     return {
         left: startCoords.left - scrollRect.left + scrollLeft + charW * ml,
         top: startCoords.top - scrollRect.top + scrollTop,
+        lineHeight,
     };
 }
 
@@ -169,12 +178,13 @@ export function showMatchHighlights(
 export function showOverlay(
     cm: CmAdapter,
     targets: LabeledTarget[],
-    options?: { shade?: boolean; fontSize?: number },
+    options?: { shade?: boolean; fontSize?: number; matchFontSize?: boolean },
 ): OverlayHandle | null {
     const view = cm.cm6;
     if (!view) return null;
 
     const fs = options?.fontSize ?? 14;
+    const scaleFontToLine = options?.matchFontSize ?? false;
 
     // Shade is appended directly to scrollDOM (not inside the wrapper)
     // so that its `right: 0; bottom: 0` resolves against the full
@@ -195,12 +205,23 @@ export function showOverlay(
     const labelContainer = createDiv();
     wrapper.appendChild(labelContainer);
 
-    const LABEL_CHAR_WIDTH = fs * 0.6;
     const LABEL_PAD_X = 6;
-    const LABEL_HEIGHT = fs + 2;
 
-    function labelWidth(len: number): number {
-        return len * LABEL_CHAR_WIDTH + LABEL_PAD_X;
+    function labelMetrics(lineHeight: number): {
+        fontSize: number;
+        charWidth: number;
+        height: number;
+    } {
+        const fontSize = scaleFontToLine ? Math.max(lineHeight - 2, 10) : fs;
+        return {
+            fontSize,
+            charWidth: fontSize * 0.6,
+            height: fontSize + 2,
+        };
+    }
+
+    function labelWidth(len: number, charWidth: number): number {
+        return len * charWidth + LABEL_PAD_X;
     }
 
     function renderLabels(items: LabeledTarget[]) {
@@ -227,12 +248,15 @@ export function showOverlay(
             );
             if (!anchor) continue;
 
+            const metrics = labelMetrics(anchor.lineHeight);
+            const lh = metrics.height;
+
             let labelLeft = anchor.left;
-            let labelTop = anchor.top;
-            const width = labelWidth(target.label.length);
+            let labelTop = anchor.top + (anchor.lineHeight - lh) / 2;
+            const width = labelWidth(target.label.length, metrics.charWidth);
 
             let right = labelLeft + width;
-            let bottom = labelTop + LABEL_HEIGHT;
+            let bottom = labelTop + lh;
             for (const prev of placed) {
                 if (
                     labelLeft < prev.right &&
@@ -241,30 +265,33 @@ export function showOverlay(
                     bottom > prev.top
                 ) {
                     labelTop = prev.bottom;
-                    bottom = labelTop + LABEL_HEIGHT;
+                    bottom = labelTop + lh;
                 }
             }
             placed.push({ left: labelLeft, top: labelTop, right, bottom });
+
+            const applyLabelStyle = (el: HTMLElement) => {
+                el.style.setProperty('--vim-motions-em-left', `${labelLeft}px`);
+                el.style.setProperty('--vim-motions-em-top', `${labelTop}px`);
+                if (scaleFontToLine) {
+                    el.style.setProperty(
+                        '--vim-motions-em-font-size',
+                        `${metrics.fontSize}px`,
+                    );
+                }
+            };
 
             if (target.label.length === 1) {
                 const el = labelContainer.createSpan({
                     cls: 'vim-motions-easymotion-label',
                     text: target.label,
                 });
-                el.style.setProperty('--vim-motions-em-left', `${labelLeft}px`);
-                el.style.setProperty('--vim-motions-em-top', `${labelTop}px`);
+                applyLabelStyle(el);
             } else {
                 const group = labelContainer.createSpan({
                     cls: 'vim-motions-easymotion-label',
                 });
-                group.style.setProperty(
-                    '--vim-motions-em-left',
-                    `${labelLeft}px`,
-                );
-                group.style.setProperty(
-                    '--vim-motions-em-top',
-                    `${labelTop}px`,
-                );
+                applyLabelStyle(group);
                 group.createSpan({
                     cls: 'vim-motions-easymotion-label-first',
                     text: target.label[0],

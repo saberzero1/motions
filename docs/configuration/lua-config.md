@@ -219,6 +219,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `flashjump`               | boolean | `false`                        |                                               | `vim.opt.flashjump = true`               |
 | `flashcleverf`            | boolean | `false`                        |                                               | `vim.opt.flashcleverf = true`            |
 | `flashsearch`             | boolean | `true`                         |                                               | `vim.opt.flashsearch = true`             |
+| `labelmatchfontsize`      | boolean | `false`                        |                                               | `vim.opt.labelmatchfontsize = true`      |
 | `easymotion`              | boolean | `true`                         |                                               | `vim.opt.easymotion = true`              |
 | `easymotiondimming`       | boolean | `true`                         |                                               | `vim.opt.easymotiondimming = true`       |
 | `hintmode`                | boolean | `true`                         |                                               | `vim.opt.hintmode = true`                |
