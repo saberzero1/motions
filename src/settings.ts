@@ -4403,6 +4403,148 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             });
         }
 
+        // ── Animated cursor ──────────────────────────────────────────
+
+        new Setting(containerEl).setName('Animated cursor').setHeading();
+
+        new Setting(containerEl).setDesc(
+            'Smooth cursor movement and smear trail effects. Incompatible with ninja-cursor and cursor-smith plugins.',
+        );
+
+        new Setting(containerEl)
+            .setName('Enable animated cursor')
+            .setDesc(
+                'Render cursor on canvas with smooth movement and optional trail effects.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.animatedCursor)
+                    .onChange(async (value) => {
+                        this.plugin.settings.animatedCursor = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Smooth cursor movement')
+            .setDesc('Cursor glides between positions instead of teleporting.')
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.smoothCursor)
+                    .setDisabled(!this.plugin.settings.animatedCursor)
+                    .onChange(async (value) => {
+                        this.plugin.settings.smoothCursor = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Cursor smoothness')
+            .setDesc(
+                'How lazy the cursor movement feels. 0 = snap, 1 = very slow.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(0, 1, 0.05)
+                    .setValue(this.plugin.settings.cursorSmoothness)
+                    .setDisabled(
+                        !this.plugin.settings.animatedCursor ||
+                            !this.plugin.settings.smoothCursor,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.cursorSmoothness = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Enable smear trail')
+            .setDesc(
+                'Spring-damper trail stretching between old and new cursor position.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.smearTrail)
+                    .setDisabled(!this.plugin.settings.animatedCursor)
+                    .onChange(async (value) => {
+                        this.plugin.settings.smearTrail = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Trail stiffness')
+            .setDesc(
+                'Head corner spring strength. Higher = trail snaps back faster.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(0.1, 1, 0.05)
+                    .setValue(this.plugin.settings.smearStiffness)
+                    .setDisabled(
+                        !this.plugin.settings.animatedCursor ||
+                            !this.plugin.settings.smearTrail,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.smearStiffness = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Trail trailing stiffness')
+            .setDesc(
+                'Tail corner spring strength. Lower = longer, more dramatic trail.',
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(0.1, 1, 0.05)
+                    .setValue(this.plugin.settings.smearTrailingStiffness)
+                    .setDisabled(
+                        !this.plugin.settings.animatedCursor ||
+                            !this.plugin.settings.smearTrail,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.smearTrailingStiffness = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Trail damping')
+            .setDesc('Velocity decay. Lower values produce bouncier trails.')
+            .addSlider((slider) =>
+                slider
+                    .setLimits(0.1, 0.99, 0.01)
+                    .setValue(this.plugin.settings.smearDamping)
+                    .setDisabled(
+                        !this.plugin.settings.animatedCursor ||
+                            !this.plugin.settings.smearTrail,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.smearDamping = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Trail max length')
+            .setDesc('Maximum trail length in pixels.')
+            .addSlider((slider) =>
+                slider
+                    .setLimits(50, 800, 10)
+                    .setValue(this.plugin.settings.smearMaxLength)
+                    .setDisabled(
+                        !this.plugin.settings.animatedCursor ||
+                            !this.plugin.settings.smearTrail,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.smearMaxLength = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
         // ── Vimrc & key bindings ─────────────────────────────────────
 
         new Setting(containerEl).setName('Vimrc & key bindings').setHeading();

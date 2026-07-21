@@ -184,6 +184,10 @@ For viewport-dependent behavior (H/M/L, scroll, folds), use regular `it()` block
 - If the plugin has configuration, provide a settings tab and sensible defaults.
 - Persist settings using `this.loadData()` / `this.saveData()`.
 - Use stable command IDs; avoid renaming once released.
+- **IMPORTANT: Dual settings tab — ALWAYS update BOTH.** The plugin has TWO settings implementations in `src/settings.ts`:
+    - **Pre-1.13** (imperative): The `display()` method that builds settings UI manually via `new Setting(containerEl)`. This is the legacy path used by Obsidian versions before 1.13.
+    - **Post-1.13** (declarative): The `getSettingDefinitions()` method that returns a `SettingDefinitionItem[]` array. This is the modern path used by Obsidian 1.13+.
+    - When adding or modifying settings, **ALWAYS update both methods**. Forgetting one causes settings to be missing for users on the other Obsidian version. Search for the setting group heading (e.g., `'Animated cursor'`) in both methods to verify both are present.
 
 ## Versioning & releases
 

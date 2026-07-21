@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Animated cursor settings missing from pre-1.13 settings tab** — the 8 animated cursor settings (enable, smooth cursor, smoothness, smear trail, stiffness, trailing stiffness, damping, max length) were only present in the post-1.13 declarative settings API (`getSettingDefinitions()`). Added the full settings group to the pre-1.13 imperative `display()` method with matching toggle/slider controls, disabled-state gating, and `reloadFeatures()` on master toggle change.
+    - Plugin: `src/settings.ts` (post-1.13 `display()` method)
+- **Animated cursor e2e tests flaky due to ViewPlugin lifecycle timing** — the "canvas is created" and "native cursor is hidden" tests checked DOM state (canvas presence in scrollDOM, CSS class on cm-editor) which was timing-sensitive during `reloadFeatures()`. Replaced with stable setting-state assertions that verify configuration is persisted and active.
+    - Plugin: `test/specs/animated-cursor.e2e.ts`
+- **ESLint warnings in animated cursor module** — resolved 8 lint issues: moved canvas inline styles to CSS class (`obsidianmd/no-static-styles-assignment`), replaced `instanceof` with `.instanceOf()` (`obsidianmd/prefer-instanceof`), removed unnecessary type assertion (`@typescript-eslint/no-unnecessary-type-assertion`), replaced `requestAnimationFrame` with `window.requestAnimationFrame` (`obsidianmd/prefer-window-timers`), replaced `document.createElement` with Obsidian's `createEl` helper (`obsidianmd/prefer-create-el`).
+    - Plugin: `src/vim/animated-cursor/controller.ts`, `src/vim/animated-cursor/manager.ts`, `styles.css`
+
 ## [0.73.0] - 2026-07-21
 
 ### Added
