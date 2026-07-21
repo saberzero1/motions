@@ -31,11 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.72.0
+## What's new in 0.73.0
 
-- **`labelmatchfontsize` setting** — opt-in setting that scales jump label font to match the target line's font size (e.g., larger labels on headings). Configurable via settings, `set labelmatchfontsize` in vimrc, or `vim.opt.labelmatchfontsize = true` in Lua. ([#75](https://github.com/saberzero1/motions/issues/75))
-- **Label vertical centering** — jump labels are now vertically centered within the line height instead of being top-aligned.
-- **Cursor stuck below frontmatter in source mode** — pressing `k`, `C-u`, or arrow-up from the first content line after YAML frontmatter no longer gets stuck in source mode. ([#77](https://github.com/saberzero1/motions/issues/77))
-- **EasyMotion line motions in Live Preview** — `<leader><leader>j`/`<leader><leader>k` now target the first visible character instead of hidden formatting characters (e.g., `## ` on headings). ([#79](https://github.com/saberzero1/motions/issues/79))
+- **[[animated-cursor|Animated cursor]]** — canvas-based smooth cursor movement with spring-damper smear trail inspired by [smear-cursor.nvim](https://github.com/sphamba/smear-cursor.nvim). Per-mode cursor shapes (block, bar, underline, hollow), configurable stiffness/damping/smoothness, and `prefers-reduced-motion` support. Disabled by default — enable via **Settings → Vim Motions → Animated cursor**. ([#78](https://github.com/saberzero1/motions/issues/78))
 
 See the [[changelog|full changelog]] for details.

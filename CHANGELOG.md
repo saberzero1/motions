@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-07-21
+
 ### Added
 
 - **Animated cursor (smear + smooth movement)** — canvas-based cursor rendering with smooth exponential interpolation and spring-damper smear trail. Per-mode cursor shapes (block, bar, underline, hollow) rendered on `<canvas>` overlay. Fork-side cursor suppression via `setCursorSuppressed()`. Disabled by default — enable via **Settings → Vim Motions → Animated cursor**. Inspired by [smear-cursor.nvim](https://github.com/sphamba/smear-cursor.nvim) and [cursor-smith](https://github.com/sadsnake1/cursor-smith). ([#78](https://github.com/saberzero1/motions/issues/78))
