@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-07-21
+
 ### Added
 
 - **`labelmatchfontsize` setting** — opt-in setting that scales jump label font to match the target line's font size (e.g., larger labels on headings). Disabled by default. Configurable via **Settings → Vim Motions → Jump navigation → Scale labels to line height**, `set labelmatchfontsize` in vimrc, or `vim.opt.labelmatchfontsize = true` in Lua. ([#75](https://github.com/saberzero1/motions/issues/75))
