@@ -1346,7 +1346,7 @@ The picker provider API (`window.VimMotions.picker`) is only available on the ma
 
 ### Runtime plugin detection
 
-The bundled picker integrations (Omnisearch, Tasks, Dataview) detect target plugins via `app.workspace.onLayoutReady()` at startup and via `reloadFeatures()` when integration settings are toggled. Obsidian does not emit events when community plugins are enabled or disabled at runtime (`app.plugins` has no event emitter — confirmed by runtime inspection of Obsidian v1.12.7). If a user enables Omnisearch/Tasks/Dataview after Vim Motions has loaded, the integration source will not appear until the user toggles the corresponding setting in **Settings → Vim Motions → Third-party integrations** (which triggers `reloadFeatures()`) or reloads Obsidian.
+The bundled picker integrations (Omnisearch, Tasks, Dataview) detect target plugins via `app.workspace.onLayoutReady()` at startup and via `reloadFeatures()` when integration settings are toggled. Obsidian does not emit events when community plugins are enabled or disabled at runtime (`app.plugins` has no event emitter — confirmed by runtime inspection of Obsidian v1.12.7). If a user enables Omnisearch/Tasks/Dataview after Vim Motions has loaded, the integration source will not appear until the user toggles the corresponding setting in **Settings → Vim Motions → Picker** (which triggers `reloadFeatures()`) or reloads Obsidian.
 
 ### API stability
 
@@ -1652,3 +1652,17 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 - **Multi-editor support**: Animated cursor in table cell editors and oil explorer (Phase 3).
 - **Built-in vim mode support**: Position source validation and cursor hiding for Obsidian's built-in vim mode (Phase 4).
 - **Pop-out window support**: Per-window rAF scheduling for pop-out windows (Phase 4).
+
+## Settings: leader bindings and which-key labels use imperative rendering
+
+**Status**: Known limitation. Deferred.
+
+The leader key bindings, which-key group labels, and which-key command labels groups use `render` callbacks in the declarative settings path (`getSettingDefinitions()`) that delegate to imperative methods (`renderLeaderBindings`, `renderGroupLabels`, `renderCommandLabels`). These render methods build the UI manually with `new Setting()` calls, add/remove buttons, and dynamic row management.
+
+Obsidian 1.13+ provides `SettingDefinitionList` (`type: 'list'`) with built-in drag-to-reorder, delete buttons, add-item affordance, and `emptyState` — which would replace these custom render methods with a declarative approach. However, converting requires:
+
+1. Restructuring the data model from imperative DOM building to declarative item definitions with `onReorder`/`onDelete`/`addItem` callbacks
+2. Ensuring the pre-1.13 imperative path still works (the render methods are shared)
+3. Handling vimrc-originated read-only rows (which-key labels set by vimrc appear as non-editable entries)
+
+The current implementation works correctly in both settings paths. The `SettingDefinitionList` conversion is a UX improvement (native drag handles, consistent delete UI, empty state) but not a functional gap. Tracked for a future dedicated refactor.

@@ -231,7 +231,7 @@ Vim Motions ships built-in picker sources for three popular plugins. These regis
 | `tasks`      | Obsidian Tasks | Static  | Incomplete tasks sorted by due date             |
 | `dataview`   | Dataview       | Static  | All indexed pages with tags/aliases             |
 
-Each can be disabled in **Settings → Vim Motions → Third-party integrations**.
+Each can be disabled in **Settings → Vim Motions → Picker**.
 
 These serve as reference implementations for external plugin authors. See `src/picker/sources/omnisearch.ts`, `tasks.ts`, and `dataview.ts`.
 

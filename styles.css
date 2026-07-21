@@ -71,6 +71,48 @@
     border-color: var(--interactive-accent);
 }
 
+/* ── Settings conditional visibility (pre-1.13) ──────────── */
+
+.vim-motions-settings-content:not(.vim-motions-animated-cursor-on)
+    .vim-motions-when-animated-cursor,
+.vim-motions-settings-content:not(.vim-motions-animated-cursor-on)
+    .vim-motions-when-smooth-cursor,
+.vim-motions-settings-content:not(.vim-motions-animated-cursor-on)
+    .vim-motions-when-smear-trail,
+.vim-motions-settings-content:not(.vim-motions-smooth-cursor-on)
+    .vim-motions-when-smooth-cursor,
+.vim-motions-settings-content:not(.vim-motions-smear-trail-on)
+    .vim-motions-when-smear-trail,
+.vim-motions-settings-content:not(.vim-motions-yank-highlight-on)
+    .vim-motions-when-yank-highlight,
+.vim-motions-settings-content:not(.vim-motions-flash-on)
+    .vim-motions-when-flash,
+.vim-motions-settings-content:not(.vim-motions-flash-on)
+    .vim-motions-when-flash-jump,
+.vim-motions-settings-content:not(.vim-motions-flash-jump-on)
+    .vim-motions-when-flash-jump,
+.vim-motions-settings-content:not(.vim-motions-easymotion-on)
+    .vim-motions-when-easymotion,
+.vim-motions-settings-content:not(.vim-motions-hint-mode-on)
+    .vim-motions-when-hint-mode,
+.vim-motions-settings-content:not(.vim-motions-easymotion-on):not(
+        .vim-motions-hint-mode-on
+    )
+    .vim-motions-when-easymotion-or-hint,
+.vim-motions-settings-content:not(.vim-motions-snippets-on)
+    .vim-motions-when-snippets,
+.vim-motions-settings-content:not(.vim-motions-oil-on) .vim-motions-when-oil,
+.vim-motions-settings-content:not(.vim-motions-undo-tree-on)
+    .vim-motions-when-undo-tree,
+.vim-motions-settings-content:not(.vim-motions-status-bar-on)
+    .vim-motions-when-status-bar,
+.vim-motions-settings-content:not(.vim-motions-which-key-on)
+    .vim-motions-when-which-key,
+.vim-motions-settings-content:not(.vim-motions-workspace-nav-on)
+    .vim-motions-when-workspace-nav {
+    display: none;
+}
+
 /* ── Settings notice ─────────────────────────────────────────── */
 
 .vim-motions-settings-notice {

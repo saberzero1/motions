@@ -9,15 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Settings organized into 7 pages** — the flat list of 20 settings groups is now organized into 7 navigable pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, and Advanced. On Obsidian 1.13+, pages appear as sidebar entries via `type: 'page'` in `getSettingDefinitions()`. On pre-1.13, a button tab bar at the top of the settings panel switches between pages. The `display()` method is refactored into 7 private render methods (`renderGeneralTab`, `renderAppearanceTab`, etc.) for maintainability. No settings were added, removed, or reordered.
+- **Settings organized into 7 pages** — the flat list of 20 settings groups is now organized into 7 navigable pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, and Advanced. On Obsidian 1.13+, pages appear as sidebar entries via `type: 'page'` in `getSettingDefinitions()`. On pre-1.13, a button tab bar at the top of the settings panel switches between pages. The `display()` method is refactored into 7 private render methods (`renderGeneralTab`, `renderAppearanceTab`, etc.) for maintainability. No settings were added or removed.
     - Plugin: `src/settings.ts` (declarative pages + imperative tab bar + 7 render methods), `styles.css` (tab bar CSS)
+- **Settings reorganized across pages** — moved settings to more logical groupings: sign column and fold column moved from Vim features to Appearance (new "Gutter" group); yank highlight settings moved to Appearance (new "Yank highlight" group); workspace navigation and fold settings moved to Navigation (new "Workspace navigation" group); picker and third-party integration settings consolidated into a new "Picker" group on General (replacing the old "Third-party integrations" group).
+    - Plugin: `src/settings.ts` (both declarative and imperative paths)
+- **Declarative settings API enhancements (1.13+)** — leveraged additional Obsidian 1.13+ declarative settings features:
+    - Page descriptions (`desc`) on all 7 pages for at-a-glance navigation
+    - Warning status indicator on General page when built-in vim mode is enabled
+    - Input method page hidden on mobile via `visible: Platform.isDesktop`
+    - Search aliases on 20+ settings for better discoverability in Obsidian's global settings search
+    - `defaultValue: true` on 33 toggle controls for framework-managed defaults
+    - Group-level search filter on Jump navigation group (15+ settings)
+    - Replaced 6 conditional spreads (`...(condition ? [...] : [])`) with `visible` predicates for cleaner reactivity via `refreshDomState()`
+    - Inline `validate` on 8 numeric/path controls (range checks, path format validation)
+    - Snippet directory changed from text input to `type: 'folder'` vault folder picker
+    - 38 conditional `visible` predicates on child settings — sub-settings hide when their parent feature is disabled (animated cursor, flash, EasyMotion, hint mode, snippets, oil explorer, undo tree, status bar, which-key, workspace nav, yank highlight)
+    - Plugin: `src/settings.ts` (declarative path only)
+- **Pre-1.13 settings conditional visibility** — matching the declarative path, the imperative render methods now hide sub-settings when their parent feature is disabled. Uses CSS class toggling (`syncVisibilityClass`) for instant show/hide without full re-render — parent toggle `onChange` handlers toggle a class on the content container, and child settings are wrapped in gate divs hidden by CSS when the parent class is absent. Covers all 12 parent-child groups across 4 render methods.
+    - Plugin: `src/settings.ts` (imperative path — `syncVisibilityClass` helper + gate divs in render methods), `styles.css` (18-selector conditional visibility rule block)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: Updated dual settings tab description with page organization details
-- `CONTRIBUTING.md`: Updated dual settings tab note with page structure
-- `docs/configuration/settings.md`: Added page organization table and explanation of 1.13+ vs pre-1.13 behavior
+- `AGENTS.md`: Updated dual settings tab description with page organization, page assignment guide, and page ownership table (workspace nav and folding moved to Workspace navigation group)
+- `CONTRIBUTING.md`: Updated settings.ts codebase structure entry with 7 page names
+- `KNOWN_LIMITATIONS.md`: Added SettingDefinitionList deferred limitation for leader bindings and which-key labels; updated "Third-party integrations" references to "Picker"
+- `docs/configuration/settings.md`: Added page organization table, explanation of 1.13+ vs pre-1.13 behavior, renamed "Third-party integrations" heading to "Picker"
+- `docs/features/ex-commands.md`: Updated settings path from "Third-party integrations" to "Picker"
+- `docs/development/picker-api.md`: Updated settings path from "Third-party integrations" to "Picker"
 
 ## [0.73.1] - 2026-07-21
 

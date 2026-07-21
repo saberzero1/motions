@@ -428,6 +428,14 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         (this as unknown as { display(): void }).display();
     }
 
+    private syncVisibilityClass(
+        containerEl: HTMLElement,
+        cls: string,
+        on: boolean,
+    ): void {
+        containerEl.classList.toggle(cls, on);
+    }
+
     /** Settings keys that require reloadFeatures() after change. */
     private static readonly RELOAD_KEYS = new Set([
         'pickerMatcherEngine',
@@ -563,6 +571,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'General',
+                desc: 'Mobile, vim features, picker, and vim engine options',
+                status: () => (builtinVimOn ? 'warning' : null),
                 items: [
                     // ── Mobile ───────────────────────────────────────────────
                     {
@@ -591,9 +601,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableTextObjects',
                                     'Enable Markdown-aware text objects (i*, a*, il, etc.)',
                                 ),
+                                aliases: [
+                                    'text objects',
+                                    'markdown objects',
+                                    'i*',
+                                    'a*',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableTextObjects',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableTextObjects'),
                                 },
@@ -604,9 +621,17 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableNavigation',
                                     'Enable heading, list, and link navigation motions (]h, ]l, ]n, etc.)',
                                 ),
+                                aliases: [
+                                    'structural navigation',
+                                    ']h',
+                                    '[h',
+                                    ']l',
+                                    '[l',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableNavigation',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableNavigation'),
                                 },
@@ -617,6 +642,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableSubwordMotions',
                                     'Override w/b/e/ge to stop at camelCase, snake_case, and kebab-case boundaries (spider.nvim-style).',
                                 ),
+                                aliases: [
+                                    'spider',
+                                    'camelCase',
+                                    'snake_case',
+                                    'word boundary',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableSubwordMotions',
@@ -632,9 +663,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableHardWrap',
                                     'Enable gq operator to reformat paragraphs with Markdown-aware line wrapping.',
                                 ),
+                                aliases: [
+                                    'gq',
+                                    'gw',
+                                    'paragraph wrap',
+                                    'line wrap',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableHardWrap',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableHardWrap'),
                                 },
@@ -647,9 +685,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         'When enabled, grn/grr/gra workspace bindings are relocated to ' +
                                         '<leader>rn/<leader>rb/<leader>ra.',
                                 ),
+                                aliases: ['gr', 'paste over', 'replace motion'],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableReplaceWithRegister',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden(
                                             'enableReplaceWithRegister',
@@ -662,6 +702,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableDial',
                                     'Extends <C-a>/<C-x> to cycle hex colors, booleans, dates, CSS values, and checkboxes (dial.nvim-style).',
                                 ),
+                                aliases: [
+                                    'dial',
+                                    'increment',
+                                    'decrement',
+                                    'ctrl-a',
+                                    'ctrl-x',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableDial',
@@ -679,6 +726,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'listContinuationOnOpen',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden(
                                             'listContinuationOnOpen',
@@ -691,9 +739,16 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableTableNav',
                                     'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
                                 ),
+                                aliases: [
+                                    'table',
+                                    'cell navigation',
+                                    ']|',
+                                    '[|',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableTableNav',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableTableNav'),
                                 },
@@ -708,6 +763,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
                                         '"Off" uses the default interactive table editor.',
                                 ),
+                                aliases: [
+                                    'table rendering',
+                                    'live preview tables',
+                                    'raw table',
+                                ],
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'tableWidgetMode',
@@ -722,92 +782,27 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 },
                             },
                             {
-                                name: 'Yank highlight',
+                                name: 'Vim keybindings in text areas',
                                 desc: this.describeOverride(
-                                    'yankHighlightMode',
-                                    'Highlight yanked text. "Solid" shows the highlight and removes it after the duration (Neovim-style). "Fade" gradually fades the highlight out.',
+                                    'enableVimTextareas',
+                                    'Replace focused text areas with a vim-enabled editor. The editor starts in insert mode — press Escape for normal mode. Experimental.',
                                 ),
-                                control: {
-                                    type: 'dropdown' as const,
-                                    key: 'yankHighlightMode',
-                                    options: {
-                                        off: 'Off',
-                                        solid: 'Solid',
-                                        fade: 'Fade',
-                                    },
-                                    disabled: () =>
-                                        this.isOverridden('yankHighlightMode'),
-                                },
-                            },
-                            {
-                                name: 'Yank highlight duration',
-                                desc: this.describeOverride(
-                                    'yankHighlightDuration',
-                                    'How long the yank highlight stays visible in milliseconds (50\u20133000).',
-                                ),
-                                control: {
-                                    type: 'number' as const,
-                                    key: 'yankHighlightDuration',
-                                    min: 50,
-                                    max: 3000,
-                                    disabled: () =>
-                                        this.isOverridden(
-                                            'yankHighlightDuration',
-                                        ),
-                                },
-                            },
-                            {
-                                name: 'Sign column',
-                                desc: this.describeOverride(
-                                    'signcolumn',
-                                    'Show vim mark letters (a-z, A-Z) in a dedicated gutter column. Auto: show gutter when marks exist. Always: always reserve gutter space. Off: never show.',
-                                ),
-                                control: {
-                                    type: 'dropdown' as const,
-                                    key: 'signcolumn',
-                                    options: {
-                                        auto: 'Auto',
-                                        yes: 'Always',
-                                        no: 'Off',
-                                    },
-                                    disabled: () =>
-                                        this.isOverridden('signcolumn'),
-                                },
-                            },
-                            {
-                                name: 'Fold column',
-                                desc: this.describeOverride(
-                                    'foldcolumn',
-                                    'Show fold indicators (\u25b8/\u25be) in the gutter for foldable regions. Click to toggle folds.',
-                                ),
+                                visible: Platform.isDesktop,
                                 control: {
                                     type: 'toggle' as const,
-                                    key: 'foldcolumn',
+                                    key: 'enableVimTextareas' as const,
                                     disabled: () =>
-                                        this.isOverridden('foldcolumn'),
+                                        this.isOverridden('enableVimTextareas'),
                                 },
                             },
-                            {
-                                name: 'Workspace navigation',
-                                desc: this.describeOverride(
-                                    'enableWorkspaceNav',
-                                    'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
-                                ),
-                                control: {
-                                    type: 'toggle' as const,
-                                    key: 'enableWorkspaceNav',
-                                    disabled: () =>
-                                        this.isOverridden('enableWorkspaceNav'),
-                                },
-                            },
-                            {
-                                name: 'Workspace navigation view types',
-                                desc: 'Comma-separated view types where scroll and count keys are intercepted. Leave empty for defaults (markdown, graph, pdf, canvas, empty, image, bases). Plugin views not in this list receive their own keystrokes.',
-                                control: {
-                                    type: 'text' as const,
-                                    key: 'workspaceNavViewTypes',
-                                },
-                            },
+                        ],
+                    },
+
+                    // ── Picker ──────────────────────────────────────────────
+                    {
+                        type: 'group' as const,
+                        heading: 'Picker',
+                        items: [
                             {
                                 name: 'Fuzzy picker for buffers',
                                 desc: this.describeOverride(
@@ -817,6 +812,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'picker',
+                                    defaultValue: true,
                                     disabled: () => this.isOverridden('picker'),
                                 },
                             },
@@ -826,6 +822,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'pickerLeaderMappings',
+                                    defaultValue: true,
                                 },
                             },
                             {
@@ -840,108 +837,89 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     },
                                 },
                             },
-                            ...(Platform.isDesktop
-                                ? [
-                                      {
-                                          name: 'Use external grep binary',
-                                          desc: this.describeOverride(
-                                              'ripgrepEnabled',
-                                              'Use a local grep/ripgrep binary for faster vault search. Desktop only. Falls back to in-memory search if unavailable.',
-                                          ),
-                                          control: {
-                                              type: 'toggle' as const,
-                                              key: 'ripgrepEnabled',
-                                          },
-                                      },
-                                      ...(this.plugin.settings.ripgrepEnabled
-                                          ? [
-                                                {
-                                                    name: 'Grep binary mode',
-                                                    desc: this.describeOverride(
-                                                        'grepMode',
-                                                        'Which binary to use. "ripgrep" expects rg with --json output. "grep" expects GNU/BSD grep with -rn output.',
-                                                    ),
-                                                    control: {
-                                                        type: 'dropdown' as const,
-                                                        key: 'grepMode',
-                                                        options: {
-                                                            ripgrep:
-                                                                'ripgrep (rg)',
-                                                            grep: 'grep (GNU/BSD)',
-                                                        },
-                                                    },
-                                                },
-                                                {
-                                                    name: 'Grep binary path',
-                                                    desc: this.describeOverride(
-                                                        'ripgrepBinaryPath',
-                                                        'Absolute path to the grep binary (e.g., /usr/bin/rg, /usr/bin/grep). Tilde (~) supported.',
-                                                    ),
-                                                    control: {
-                                                        type: 'text' as const,
-                                                        key: 'ripgrepBinaryPath',
-                                                        placeholder:
-                                                            this.plugin.settings
-                                                                .grepMode ===
-                                                            'grep'
-                                                                ? '/usr/bin/grep'
-                                                                : '/usr/bin/rg',
-                                                    },
-                                                },
-                                                {
-                                                    name: 'Extra arguments',
-                                                    desc: this.describeOverride(
-                                                        'ripgrepArgs',
-                                                        'Additional arguments passed to the grep binary. For rg: --smart-case --glob "*.md". For grep: -i --include="*.md".',
-                                                    ),
-                                                    control: {
-                                                        type: 'text' as const,
-                                                        key: 'ripgrepArgs',
-                                                        placeholder:
-                                                            this.plugin.settings
-                                                                .grepMode ===
-                                                            'grep'
-                                                                ? '-i --include="*.md"'
-                                                                : '--smart-case --glob "*.md"',
-                                                    },
-                                                },
-                                            ]
-                                          : []),
-                                  ]
-                                : []),
-                            ...(Platform.isDesktop
-                                ? [
-                                      {
-                                          name: 'Vim keybindings in text areas',
-                                          desc: this.describeOverride(
-                                              'enableVimTextareas',
-                                              'Replace focused text areas with a vim-enabled editor. The editor starts in insert mode \u2014 press Escape for normal mode. Experimental.',
-                                          ),
-                                          control: {
-                                              type: 'toggle' as const,
-                                              key: 'enableVimTextareas' as const,
-                                              disabled: () =>
-                                                  this.isOverridden(
-                                                      'enableVimTextareas',
-                                                  ),
-                                          },
-                                      },
-                                  ]
-                                : []),
-                        ],
-                    },
-
-                    // ── Third-party integrations ────────────────────────────
-                    {
-                        type: 'group' as const,
-                        name: 'Third-party integrations',
-                        items: [
+                            {
+                                name: 'Use external grep binary',
+                                desc: this.describeOverride(
+                                    'ripgrepEnabled',
+                                    'Use a local grep/ripgrep binary for faster vault search. Desktop only. Falls back to in-memory search if unavailable.',
+                                ),
+                                visible: Platform.isDesktop,
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'ripgrepEnabled',
+                                },
+                            },
+                            {
+                                name: 'Grep binary mode',
+                                desc: this.describeOverride(
+                                    'grepMode',
+                                    'Which binary to use. "ripgrep" expects rg with --json output. "grep" expects GNU/BSD grep with -rn output.',
+                                ),
+                                visible: () =>
+                                    Platform.isDesktop &&
+                                    this.plugin.settings.ripgrepEnabled,
+                                control: {
+                                    type: 'dropdown' as const,
+                                    key: 'grepMode',
+                                    options: {
+                                        ripgrep: 'ripgrep (rg)',
+                                        grep: 'grep (GNU/BSD)',
+                                    },
+                                },
+                            },
+                            {
+                                name: 'Grep binary path',
+                                desc: this.describeOverride(
+                                    'ripgrepBinaryPath',
+                                    'Absolute path to the grep binary (e.g., /usr/bin/rg, /usr/bin/grep). Tilde (~) supported.',
+                                ),
+                                visible: () =>
+                                    Platform.isDesktop &&
+                                    this.plugin.settings.ripgrepEnabled,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'ripgrepBinaryPath',
+                                    placeholder:
+                                        this.plugin.settings.grepMode === 'grep'
+                                            ? '/usr/bin/grep'
+                                            : '/usr/bin/rg',
+                                    validate: (value: string) => {
+                                        if (
+                                            value &&
+                                            !value.startsWith('/') &&
+                                            !value.startsWith('~') &&
+                                            !/^[A-Za-z]:/.test(value)
+                                        )
+                                            return 'Path must be absolute (e.g. /usr/bin/rg or ~/bin/rg)';
+                                        return undefined;
+                                    },
+                                },
+                            },
+                            {
+                                name: 'Extra arguments',
+                                desc: this.describeOverride(
+                                    'ripgrepArgs',
+                                    'Additional arguments passed to the grep binary. For rg: --smart-case --glob "*.md". For grep: -i --include="*.md".',
+                                ),
+                                visible: () =>
+                                    Platform.isDesktop &&
+                                    this.plugin.settings.ripgrepEnabled,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'ripgrepArgs',
+                                    placeholder:
+                                        this.plugin.settings.grepMode === 'grep'
+                                            ? '-i --include="*.md"'
+                                            : '--smart-case --glob "*.md"',
+                                },
+                            },
                             {
                                 name: 'Omnisearch',
                                 desc: 'Register Omnisearch as a picker source for full-text vault search.',
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'pickerOmnisearch',
+                                    defaultValue: true,
                                 },
                             },
                             {
@@ -950,6 +928,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'pickerTasks',
+                                    defaultValue: true,
                                 },
                             },
                             {
@@ -958,6 +937,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'pickerDataview',
+                                    defaultValue: true,
                                 },
                             },
                         ],
@@ -974,6 +954,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'clipboard',
                                     'Sync yank/delete/paste with the system clipboard (unnamed/unnamedplus).',
                                 ),
+                                aliases: [
+                                    'system clipboard',
+                                    'yank clipboard',
+                                    'copy paste',
+                                ],
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'clipboard',
@@ -1027,6 +1012,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'expandtab',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('expandtab'),
                                 },
@@ -1037,6 +1023,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'insertmodeescape',
                                     'Two-key sequence to exit insert mode (e.g. jk).',
                                 ),
+                                aliases: [
+                                    'jk escape',
+                                    'jj escape',
+                                    'escape sequence',
+                                    'insert exit',
+                                ],
                                 control: {
                                     type: 'text' as const,
                                     key: 'insertmodeescape',
@@ -1059,6 +1051,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         this.isOverridden(
                                             'insertmodeescapetimeout',
                                         ),
+                                    validate: (value: number) => {
+                                        if (value < 100 || value > 5000)
+                                            return 'Must be between 100 and 5000';
+                                        return undefined;
+                                    },
                                 },
                             },
                             {
@@ -1076,6 +1073,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         this.isOverridden(
                                             'operatorshadowtimeout',
                                         ),
+                                    validate: (value: number) => {
+                                        if (value < 0 || value > 5000)
+                                            return 'Must be between 0 and 5000';
+                                        return undefined;
+                                    },
                                 },
                             },
                             {
@@ -1091,6 +1093,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     max: 200,
                                     disabled: () =>
                                         this.isOverridden('textwidth'),
+                                    validate: (value: number) => {
+                                        if (value < 0 || value > 200)
+                                            return 'Must be between 0 and 200';
+                                        return undefined;
+                                    },
                                 },
                             },
                         ],
@@ -1102,6 +1109,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'Appearance',
+                desc: 'Line numbers, gutter, status bar, cursor shapes, and visual effects',
                 items: [
                     // ── Line numbers ────────────────────────────────────────
                     {
@@ -1175,6 +1183,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'cursorline',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('cursorline'),
                                 },
@@ -1197,6 +1206,43 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         this.isOverridden('cursorlineopt'),
                                 },
                             },
+                            {
+                                name: 'Sign column',
+                                desc: this.describeOverride(
+                                    'signcolumn',
+                                    'Show vim mark letters (a-z, A-Z) in a dedicated gutter column. Auto: show gutter when marks exist. Always: always reserve gutter space. Off: never show.',
+                                ),
+                                aliases: [
+                                    'marks gutter',
+                                    'mark indicators',
+                                    'sign gutter',
+                                ],
+                                control: {
+                                    type: 'dropdown' as const,
+                                    key: 'signcolumn',
+                                    options: {
+                                        auto: 'Auto',
+                                        yes: 'Always',
+                                        no: 'Off',
+                                    },
+                                    disabled: () =>
+                                        this.isOverridden('signcolumn'),
+                                },
+                            },
+                            {
+                                name: 'Fold column',
+                                desc: this.describeOverride(
+                                    'foldcolumn',
+                                    'Show fold indicators (\u25b8/\u25be) in the gutter for foldable regions. Click to toggle folds.',
+                                ),
+                                aliases: ['fold gutter', 'fold indicators'],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'foldcolumn',
+                                    disabled: () =>
+                                        this.isOverridden('foldcolumn'),
+                                },
+                            },
                         ],
                     },
 
@@ -1214,6 +1260,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableStatusBar',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableStatusBar'),
                                 },
@@ -1224,9 +1271,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableChordDisplay',
                                     'Show pending keystrokes in the status bar as you type a command (e.g. "2d", "gq").',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableStatusBar,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableChordDisplay',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableChordDisplay'),
                                 },
@@ -1237,6 +1287,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enablePowerline',
                                     'Color the Vim mode indicator with per-mode background colors and a triangular separator.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableStatusBar,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enablePowerline',
@@ -1505,9 +1557,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Smooth cursor movement',
                                 desc: 'Cursor glides between positions instead of teleporting.',
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'smoothCursor',
+                                    defaultValue: true,
                                     disabled: () =>
                                         !this.plugin.settings.animatedCursor,
                                 },
@@ -1515,6 +1570,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Cursor smoothness',
                                 desc: 'How lazy the cursor movement feels. 0 = snap, 1 = very slow.',
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor &&
+                                    this.plugin.settings.smoothCursor,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'cursorSmoothness',
@@ -1530,9 +1588,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Enable smear trail',
                                 desc: 'Spring-damper trail stretching between old and new cursor position.',
                                 aliases: ['trail', 'smear cursor'],
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'smearTrail',
+                                    defaultValue: true,
                                     disabled: () =>
                                         !this.plugin.settings.animatedCursor,
                                 },
@@ -1540,6 +1601,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Trail stiffness',
                                 desc: 'Head corner spring strength. Higher = trail snaps back faster.',
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor &&
+                                    this.plugin.settings.smearTrail,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'smearStiffness',
@@ -1554,6 +1618,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Trail trailing stiffness',
                                 desc: 'Tail corner spring strength. Lower = longer, more dramatic trail.',
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor &&
+                                    this.plugin.settings.smearTrail,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'smearTrailingStiffness',
@@ -1568,6 +1635,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Trail damping',
                                 desc: 'Velocity decay. Lower values produce bouncier trails.',
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor &&
+                                    this.plugin.settings.smearTrail,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'smearDamping',
@@ -1582,6 +1652,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Trail max length',
                                 desc: 'Maximum trail length in pixels.',
+                                visible: () =>
+                                    this.plugin.settings.animatedCursor &&
+                                    this.plugin.settings.smearTrail,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'smearMaxLength',
@@ -1595,6 +1668,52 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                         ],
                     },
+
+                    // ── Yank highlight ──────────────────────────────────────
+                    {
+                        type: 'group' as const,
+                        heading: 'Yank highlight',
+                        items: [
+                            {
+                                name: 'Yank highlight',
+                                desc: this.describeOverride(
+                                    'yankHighlightMode',
+                                    'Highlight yanked text. "Solid" shows the highlight and removes it after the duration (Neovim-style). "Fade" gradually fades the highlight out.',
+                                ),
+                                control: {
+                                    type: 'dropdown' as const,
+                                    key: 'yankHighlightMode',
+                                    options: {
+                                        off: 'Off',
+                                        solid: 'Solid',
+                                        fade: 'Fade',
+                                    },
+                                    disabled: () =>
+                                        this.isOverridden('yankHighlightMode'),
+                                },
+                            },
+                            {
+                                name: 'Yank highlight duration',
+                                desc: this.describeOverride(
+                                    'yankHighlightDuration',
+                                    'How long the yank highlight stays visible in milliseconds (50–3000).',
+                                ),
+                                visible: () =>
+                                    this.plugin.settings.yankHighlightMode !==
+                                    'off',
+                                control: {
+                                    type: 'number' as const,
+                                    key: 'yankHighlightDuration',
+                                    min: 50,
+                                    max: 3000,
+                                    disabled: () =>
+                                        this.isOverridden(
+                                            'yankHighlightDuration',
+                                        ),
+                                },
+                            },
+                        ],
+                    },
                 ],
             },
 
@@ -1602,11 +1721,30 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'Navigation',
+                desc: 'Jump navigation, flash, EasyMotion, and workspace navigation',
                 items: [
                     // ── Jump navigation ─────────────────────────────────────
                     {
                         type: 'group' as const,
                         heading: 'Jump navigation',
+                        search: {
+                            placeholder: 'Filter jump navigation settings...',
+                            match: (def, query) => {
+                                const q = query.toLowerCase();
+                                const name = def.name.toLowerCase();
+                                const desc = (
+                                    typeof def.desc === 'string' ? def.desc : ''
+                                ).toLowerCase();
+                                const aliases = def.aliases ?? [];
+                                return (
+                                    name.includes(q) ||
+                                    desc.includes(q) ||
+                                    aliases.some((a) =>
+                                        a.toLowerCase().includes(q),
+                                    )
+                                );
+                            },
+                        },
                         items: [
                             {
                                 name: 'EasyMotion',
@@ -1614,9 +1752,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableEasyMotion',
                                     'Enable easymotion/hop navigation (<leader><leader>w, <leader><leader>f, <leader><leader>j).',
                                 ),
+                                aliases: [
+                                    'hop',
+                                    'jump labels',
+                                    'leader leader',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableEasyMotion',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableEasyMotion'),
                                 },
@@ -1627,9 +1771,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableFlash',
                                     'Show labels on all visible matches when pressing f/F/t/T. Single match auto-jumps.',
                                 ),
+                                aliases: [
+                                    'flash.nvim',
+                                    'enhanced f',
+                                    'char jump',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableFlash',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableFlash'),
                                 },
@@ -1640,9 +1790,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashMultiLine',
                                     'Search beyond the current line for f/F/t/T matches (flash.nvim behavior).',
                                 ),
+                                visible: () => this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'flashMultiLine',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('flashMultiLine'),
                                 },
@@ -1653,6 +1805,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashJumpEnabled',
                                     'Enable bidirectional character jump with a configurable key (default: s). Normal mode only.',
                                 ),
+                                visible: () => this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'flashJumpEnabled',
@@ -1666,6 +1819,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashJumpKey',
                                     'Key to trigger flash jump mode (default: s). Overrides the default binding for this key.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableFlash &&
+                                    this.plugin.settings.flashJumpEnabled,
                                 control: {
                                     type: 'text' as const,
                                     key: 'flashJumpKey',
@@ -1679,6 +1835,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashCleverF',
                                     'Pressing f/F again after a flash jump repeats the search (like clever-f.vim).',
                                 ),
+                                visible: () => this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'flashCleverF',
@@ -1692,6 +1849,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashMinPatternLength',
                                     'Minimum characters before labels appear in jump mode (1 = immediate).',
                                 ),
+                                visible: () => this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'text' as const,
                                     key: 'flashMinPatternLength',
@@ -1707,9 +1865,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashSearch',
                                     'Show labels on search matches after committing a / or ? search.',
                                 ),
+                                visible: () => this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'flashSearch',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('flashSearch'),
                                 },
@@ -1720,9 +1880,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'easyMotionDimming',
                                     'Dim non-target text when EasyMotion or flash is active.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableEasyMotion,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'easyMotionDimming',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('easyMotionDimming'),
                                 },
@@ -1733,6 +1896,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'easyMotionLabels',
                                     'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableEasyMotion,
                                 control: {
                                     type: 'text' as const,
                                     key: 'easyMotionLabels',
@@ -1746,9 +1911,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'enableHintMode',
                                     'Enable vimium-style link hints to click any UI element with the keyboard (<leader><leader>h).',
                                 ),
+                                aliases: [
+                                    'vimium',
+                                    'link hints',
+                                    'click labels',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableHintMode',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableHintMode'),
                                 },
@@ -1759,6 +1930,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'hintModeLabels',
                                     'Characters used for hint labels (home-row recommended). Fewer characters = longer labels.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableHintMode,
                                 control: {
                                     type: 'text' as const,
                                     key: 'hintModeLabels',
@@ -1772,6 +1945,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'hintModeHotkey',
                                     'Key combination to trigger hint mode from anywhere, including modals. Click the button and press a key combination to set.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableHintMode,
                                 render: (setting: Setting) => {
                                     this.renderHotkeyControl(setting);
                                 },
@@ -1780,9 +1955,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Label font size',
                                 desc: this.describeOverride(
                                     'labelFontSize',
-                                    'Font size for EasyMotion and hint mode labels (10\u201320px). ' +
+                                    'Font size for EasyMotion and hint mode labels (10–20px). ' +
                                         'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableEasyMotion ||
+                                    this.plugin.settings.enableHintMode,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'labelFontSize',
@@ -1799,6 +1977,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'labelMatchFontSize',
                                     'Scale label font to match the target line\u2019s font size (e.g., larger labels on headings). When disabled, uses the configured label font size.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.enableEasyMotion ||
+                                    this.plugin.settings.enableHintMode,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'labelMatchFontSize',
@@ -1815,6 +1996,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableHarpoon',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableHarpoon'),
                                 },
@@ -1828,8 +2010,49 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableYankRing',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('enableYankRing'),
+                                },
+                            },
+                        ],
+                    },
+
+                    // ── Workspace navigation ────────────────────────────
+                    {
+                        type: 'group' as const,
+                        heading: 'Workspace navigation',
+                        items: [
+                            {
+                                name: 'Workspace navigation',
+                                desc: this.describeOverride(
+                                    'enableWorkspaceNav',
+                                    'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
+                                ),
+                                aliases: [
+                                    'pane',
+                                    'split',
+                                    'tab navigation',
+                                    'C-w',
+                                    'gt',
+                                    'gT',
+                                ],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'enableWorkspaceNav',
+                                    defaultValue: true,
+                                    disabled: () =>
+                                        this.isOverridden('enableWorkspaceNav'),
+                                },
+                            },
+                            {
+                                name: 'Workspace navigation view types',
+                                desc: 'Comma-separated view types where scroll and count keys are intercepted. Leave empty for defaults (markdown, graph, pdf, canvas, empty, image, bases). Plugin views not in this list receive their own keystrokes.',
+                                visible: () =>
+                                    this.plugin.settings.enableWorkspaceNav,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'workspaceNavViewTypes',
                                 },
                             },
                             {
@@ -1841,6 +2064,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'foldAwareNavigation',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden(
                                             'foldAwareNavigation',
@@ -1869,6 +2093,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'Keybindings',
+                desc: 'Vimrc, Lua config, leader bindings, and which-key',
                 items: [
                     // ── Vimrc & key bindings ────────────────────────────────
                     {
@@ -1917,6 +2142,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         ['vimrc', 'settings'].includes(
                                             this.plugin.settings.configMode,
                                         ),
+                                    validate: (value: string) => {
+                                        if (
+                                            value &&
+                                            (value.endsWith('/') ||
+                                                value.endsWith('\\'))
+                                        )
+                                            return 'Path should point to a file, not a directory';
+                                        return undefined;
+                                    },
                                 },
                             },
                             {
@@ -1930,8 +2164,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         ['lua', 'settings'].includes(
                                             this.plugin.settings.configMode,
                                         ),
+                                    validate: (value: string) =>
+                                        value &&
+                                        (value.endsWith('/') ||
+                                            value.endsWith('\\'))
+                                            ? 'Path should point to a file, not a directory'
+                                            : undefined,
                                 },
                             },
+
                             {
                                 name: 'Show config load notifications',
                                 desc: 'Show a notification when vimrc or init.lua is loaded on startup. Error notifications are always shown regardless of this setting.',
@@ -1944,6 +2185,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'showConfigNotifications',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.plugin.settings.configMode ===
                                         'settings',
@@ -2005,9 +2247,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 desc: this.describeOverride(
                                     'whichKeyGrouping',
                                     'How leader key bindings are displayed. ' +
-                                        '"Grouped" collapses bindings by prefix (e.g. t \u2192 +5 keys) and lets you drill down. ' +
+                                        '"Grouped" collapses bindings by prefix (e.g. t → +5 keys) and lets you drill down. ' +
                                         '"Flat" shows all bindings at once.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.whichKeyMode !== 'off',
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'whichKeyGrouping',
@@ -2023,9 +2267,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Which-key popup delay',
                                 desc: this.describeOverride(
                                     'whichKeyDelay',
-                                    'Delay in milliseconds before the which-key popup appears (0\u20132000). ' +
-                                        'Only applies to the initial popup \u2014 subsequent keystrokes update the popup instantly.',
+                                    'Delay in milliseconds before the which-key popup appears (0–2000). ' +
+                                        'Only applies to the initial popup — subsequent keystrokes update the popup instantly.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.whichKeyMode !== 'off',
                                 control: {
                                     type: 'number' as const,
                                     key: 'whichKeyDelay',
@@ -2044,6 +2290,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         'alphanumeric before special keys, natural alphabetical tiebreaker. ' +
                                         '"Groups first" shows groups before individual keys, both sorted alphabetically.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.whichKeyMode !== 'off',
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'whichKeySortOrder',
@@ -2062,9 +2310,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'whichKeyIcons',
                                     'Show icons next to entries in the which-key popup.',
                                 ),
+                                visible: () =>
+                                    this.plugin.settings.whichKeyMode !== 'off',
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'whichKeyIcons',
+                                    defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('whichKeyIcons'),
                                 },
@@ -2076,6 +2327,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     {
                         type: 'group' as const,
                         heading: 'Which-key group labels',
+                        visible: () =>
+                            this.plugin.settings.whichKeyMode !== 'off',
                         items: [
                             {
                                 name:
@@ -2104,6 +2357,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     {
                         type: 'group' as const,
                         heading: 'Which-key command labels',
+                        visible: () =>
+                            this.plugin.settings.whichKeyMode !== 'off',
                         items: [
                             {
                                 name: 'Describe individual bindings in the which-key popup. Entries set in vimrc appear as read-only rows.',
@@ -2131,6 +2386,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'Snippets & files',
+                desc: 'Snippet expansion, file explorer, and undo tree',
                 items: [
                     // ── Snippets ─────────────────────────────────────────────
                     {
@@ -2140,31 +2396,45 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Enable snippets',
                                 desc: 'Enable snippet expansion with tabstop navigation, variables, and completion.',
+                                aliases: [
+                                    'snippet expansion',
+                                    'tabstop',
+                                    'luasnip',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableSnippets',
+                                    defaultValue: true,
                                 },
                             },
                             {
                                 name: 'Bundled snippets',
                                 desc: 'Include built-in Obsidian Markdown snippets (headings, callouts, wikilinks, tables, etc.).',
+                                visible: () =>
+                                    this.plugin.settings.enableSnippets,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'snippetBundled',
+                                    defaultValue: true,
                                 },
                             },
                             {
                                 name: 'Snippet directory',
                                 desc: 'Path to a directory containing user snippet JSON files. Supports ~ for home directory and absolute paths (desktop only).',
+                                visible: () =>
+                                    this.plugin.settings.enableSnippets,
                                 control: {
-                                    type: 'text' as const,
+                                    type: 'folder' as const,
                                     key: 'snippetDirectory',
-                                    placeholder: '~/snippets',
+                                    placeholder: 'snippets',
+                                    includeRoot: true,
                                 },
                             },
                             {
                                 name: 'Trigger mode',
                                 desc: 'How snippets are triggered: completion menu (type prefix to see suggestions), tab expansion (type prefix + tab), or both.',
+                                visible: () =>
+                                    this.plugin.settings.enableSnippets,
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'snippetTriggerMode',
@@ -2186,14 +2456,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Oil explorer',
                                 desc: 'Enable the oil-style file explorer (:oil command).',
+                                aliases: [
+                                    'oil.nvim',
+                                    'file manager',
+                                    'directory buffer',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'oilExplorer',
+                                    defaultValue: true,
                                 },
                             },
                             {
                                 name: 'Show hidden files',
                                 desc: 'Show dotfiles and hidden folders in oil views.',
+                                visible: () => this.plugin.settings.oilExplorer,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'oilShowHiddenFiles',
@@ -2202,6 +2479,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Confirm delete threshold',
                                 desc: 'Show confirmation dialog when deleting this many files or more.',
+                                visible: () => this.plugin.settings.oilExplorer,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'oilConfirmDeleteThreshold',
@@ -2213,6 +2491,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Default sort order',
                                 desc: 'Default sort order for oil directory listings.',
+                                visible: () => this.plugin.settings.oilExplorer,
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'oilDefaultSort',
@@ -2233,14 +2512,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Undo tree',
                                 desc: 'Track branching undo history for g+/g- navigation, :earlier/:later commands, and :undolist visualization.',
+                                aliases: [
+                                    'undotree',
+                                    'undo history',
+                                    'branching undo',
+                                ],
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'enableUndoTree',
+                                    defaultValue: true,
                                 },
                             },
                             {
                                 name: 'Persist undo history',
                                 desc: 'Save undo tree to disk so it survives across sessions. Per-file undo history is stored in plugin data.',
+                                visible: () =>
+                                    this.plugin.settings.enableUndoTree,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'undoFile',
@@ -2249,6 +2536,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Maximum undo tree nodes',
                                 desc: 'Maximum number of undo states to keep per editor. Oldest leaf branches are pruned when exceeded.',
+                                visible: () =>
+                                    this.plugin.settings.enableUndoTree,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'undoTreeMaxNodes',
@@ -2260,6 +2549,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Sidebar position',
                                 desc: 'Which sidebar to open the undo tree view in.',
+                                visible: () =>
+                                    this.plugin.settings.enableUndoTree,
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'undoTreePosition',
@@ -2272,6 +2563,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             {
                                 name: 'Auto-open on branch',
                                 desc: 'Automatically open the undo tree sidebar when a branch is created (undo + new edit).',
+                                visible: () =>
+                                    this.plugin.settings.enableUndoTree,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'undoTreeAutoOpen',
@@ -2286,121 +2579,120 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'Input method',
+                desc: 'Automatic input method switching for CJK users',
+                visible: Platform.isDesktop,
                 items: [
                     // ── Input method ─────────────────────────────────────────
-                    ...(Platform.isDesktop
-                        ? [
-                              {
-                                  type: 'group' as const,
-                                  heading: 'Input method',
-                                  items: [
-                                      {
-                                          name: 'Enable input method switching',
-                                          desc: 'Automatically switch input methods when entering/leaving insert mode. Requires an external IM switching binary (e.g. macism, fcitx5-remote, im-select). Desktop only.',
-                                          control: {
-                                              type: 'toggle' as const,
-                                              key: 'imEnabled',
-                                          },
-                                      },
-                                      ...(this.plugin.settings.imEnabled
-                                          ? [
-                                                {
-                                                    name: 'IM preset',
-                                                    desc: 'Select a preset to auto-fill binary path and arguments for common IM tools.',
-                                                    control: {
-                                                        type: 'dropdown' as const,
-                                                        key: 'imPreset',
-                                                        options: {
-                                                            custom: 'Custom',
-                                                            macism: 'macism (macOS)',
-                                                            'im-select':
-                                                                'im-select (Windows)',
-                                                            'fcitx5-remote':
-                                                                'fcitx5-remote (Linux)',
-                                                            ibus: 'ibus (Linux)',
-                                                        },
-                                                    },
-                                                },
-                                                {
-                                                    name: 'IM binary path',
-                                                    desc: 'Absolute path to the input method switching binary (e.g. /opt/homebrew/bin/macism, /usr/bin/fcitx5-remote, C:\\im-select\\im-select.exe). Tilde (~) paths are supported.',
-                                                    control: {
-                                                        type: 'text' as const,
-                                                        key: 'imBinaryPath',
-                                                        placeholder:
-                                                            '/opt/homebrew/bin/macism',
-                                                    },
-                                                },
-                                                {
-                                                    name: 'Obtain IM arguments',
-                                                    desc: 'Arguments to query the current input method. Leave empty if the binary returns the current IM when invoked without arguments (macism, im-select). For fcitx5-remote use: -n',
-                                                    control: {
-                                                        type: 'text' as const,
-                                                        key: 'imObtainArgs',
-                                                        placeholder: '',
-                                                    },
-                                                },
-                                                {
-                                                    name: 'Switch IM arguments',
-                                                    desc: 'Arguments to switch the input method. Use {im} as a placeholder for the IM identifier. For macism/im-select: {im} — For fcitx5-remote: -s {im} — For ibus: engine {im}',
-                                                    control: {
-                                                        type: 'text' as const,
-                                                        key: 'imSwitchArgs',
-                                                        placeholder: '{im}',
-                                                    },
-                                                },
-                                                {
-                                                    name: 'Normal mode IM',
-                                                    desc: 'IM identifier to switch to in normal mode (e.g. com.apple.keylayout.ABC, keyboard-us, 1033).',
-                                                    control: {
-                                                        type: 'text' as const,
-                                                        key: 'imDefaultNormalIm',
-                                                        placeholder:
-                                                            'com.apple.keylayout.ABC',
-                                                    },
-                                                },
-                                                {
-                                                    name: 'Insert mode IM behavior',
-                                                    desc: 'Restore: switch back to the IM that was active before leaving insert mode. Default: always switch to a fixed IM when entering insert mode.',
-                                                    control: {
-                                                        type: 'dropdown' as const,
-                                                        key: 'imRestoreBehavior',
-                                                        options: {
-                                                            restore:
-                                                                'Restore previous IM',
-                                                            default:
-                                                                'Use fixed default IM',
-                                                        },
-                                                    },
-                                                },
-                                                ...(this.plugin.settings
-                                                    .imRestoreBehavior ===
-                                                'default'
-                                                    ? [
-                                                          {
-                                                              name: 'Default insert mode IM',
-                                                              desc:
-                                                                  this.plugin
-                                                                      .settings
-                                                                      .imDefaultInsertIm ===
-                                                                  ''
-                                                                      ? '⚠️ Set a default insert IM identifier, otherwise no IM switch will occur on InsertEnter.'
-                                                                      : 'IM identifier to switch to when entering insert mode.',
-                                                              control: {
-                                                                  type: 'text' as const,
-                                                                  key: 'imDefaultInsertIm',
-                                                                  placeholder:
-                                                                      'com.apple.inputmethod.SCIM.ITABC',
-                                                              },
-                                                          },
-                                                      ]
-                                                    : []),
-                                            ]
-                                          : []),
-                                  ],
-                              },
-                          ]
-                        : []),
+                    {
+                        type: 'group' as const,
+                        heading: 'Input method',
+                        visible: Platform.isDesktop,
+                        items: [
+                            {
+                                name: 'Enable input method switching',
+                                desc: 'Automatically switch input methods when entering/leaving insert mode. Requires an external IM switching binary (e.g. macism, fcitx5-remote, im-select). Desktop only.',
+                                aliases: [
+                                    'CJK',
+                                    'input method',
+                                    'fcitx',
+                                    'ibus',
+                                    'macism',
+                                ],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'imEnabled',
+                                },
+                            },
+                            {
+                                name: 'IM preset',
+                                desc: 'Select a preset to auto-fill binary path and arguments for common IM tools.',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'dropdown' as const,
+                                    key: 'imPreset',
+                                    options: {
+                                        custom: 'Custom',
+                                        macism: 'macism (macOS)',
+                                        'im-select': 'im-select (Windows)',
+                                        'fcitx5-remote':
+                                            'fcitx5-remote (Linux)',
+                                        ibus: 'ibus (Linux)',
+                                    },
+                                },
+                            },
+                            {
+                                name: 'IM binary path',
+                                desc: 'Absolute path to the input method switching binary (e.g. /opt/homebrew/bin/macism, /usr/bin/fcitx5-remote, C:\\im-select\\im-select.exe). Tilde (~) paths are supported.',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'imBinaryPath',
+                                    placeholder: '/opt/homebrew/bin/macism',
+                                },
+                            },
+                            {
+                                name: 'Obtain IM arguments',
+                                desc: 'Arguments to query the current input method. Leave empty if the binary returns the current IM when invoked without arguments (macism, im-select). For fcitx5-remote use: -n',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'imObtainArgs',
+                                    placeholder: '',
+                                },
+                            },
+                            {
+                                name: 'Switch IM arguments',
+                                desc: 'Arguments to switch the input method. Use {im} as a placeholder for the IM identifier. For macism/im-select: {im} — For fcitx5-remote: -s {im} — For ibus: engine {im}',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'imSwitchArgs',
+                                    placeholder: '{im}',
+                                },
+                            },
+                            {
+                                name: 'Normal mode IM',
+                                desc: 'IM identifier to switch to in normal mode (e.g. com.apple.keylayout.ABC, keyboard-us, 1033).',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'imDefaultNormalIm',
+                                    placeholder: 'com.apple.keylayout.ABC',
+                                },
+                            },
+                            {
+                                name: 'Insert mode IM behavior',
+                                desc: 'Restore: switch back to the IM that was active before leaving insert mode. Default: always switch to a fixed IM when entering insert mode.',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'dropdown' as const,
+                                    key: 'imRestoreBehavior',
+                                    options: {
+                                        restore: 'Restore previous IM',
+                                        default: 'Use fixed default IM',
+                                    },
+                                },
+                            },
+                            {
+                                name: 'Default insert mode IM',
+                                desc:
+                                    this.plugin.settings.imDefaultInsertIm ===
+                                    ''
+                                        ? '⚠️ Set a default insert IM identifier, otherwise no IM switch will occur on InsertEnter.'
+                                        : 'IM identifier to switch to when entering insert mode.',
+                                visible: () =>
+                                    this.plugin.settings.imEnabled &&
+                                    this.plugin.settings.imRestoreBehavior ===
+                                        'default',
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'imDefaultInsertIm',
+                                    placeholder:
+                                        'com.apple.inputmethod.SCIM.ITABC',
+                                },
+                            },
+                        ],
+                    },
                 ],
             },
 
@@ -2408,6 +2700,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             {
                 type: 'page' as const,
                 name: 'Advanced',
+                desc: 'Scrolloff and scan limits',
                 items: [
                     // ── Advanced ────────────────────────────────────────────
                     {
@@ -2428,6 +2721,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     placeholder: '5',
                                     disabled: () =>
                                         this.isOverridden('scrolloffLines'),
+                                    validate: (value: number) =>
+                                        value < 0
+                                            ? 'Must be 0 or greater'
+                                            : undefined,
                                 },
                             },
                             {
@@ -2444,6 +2741,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     step: 5,
                                     disabled: () =>
                                         this.isOverridden('multilineScanLimit'),
+                                    validate: (value: number) =>
+                                        value < 5 || value > 200
+                                            ? 'Must be between 5 and 200'
+                                            : undefined,
                                 },
                             },
                         ],
@@ -2503,6 +2804,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         } else if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
             this.plugin.reloadFeatures();
         }
+
+        (this as unknown as { refreshDomState?(): void }).refreshDomState?.();
     }
 
     private renderHotkeyControl(setting: Setting): void {
@@ -2627,6 +2930,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             cls: 'vim-motions-settings-tabs',
         });
         for (const tab of SETTINGS_TABS) {
+            if (tab.id === 'input-method' && !Platform.isDesktop) continue;
             const btn = tabBar.createEl('button', {
                 text: tab.label,
                 cls: 'vim-motions-settings-tab-btn',
@@ -2891,51 +3195,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Sign column')
-            .setDesc(
-                describeOverride(
-                    'signcolumn',
-                    'Show vim mark letters (a-z, A-Z) in a dedicated gutter column. Auto: show gutter when marks exist. Always: always reserve gutter space. Off: never show.',
-                ),
-            )
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOptions({
-                        auto: 'Auto',
-                        yes: 'Always',
-                        no: 'Off',
-                    })
-                    .setValue(this.plugin.settings.signcolumn)
-                    .setDisabled(isOverridden('signcolumn'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.signcolumn = value;
-                        this.plugin.vimrcOverrides?.delete('signcolumn');
-                        await this.plugin.saveSettings();
-                        this.plugin.reconfigureSignColumnGutter();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Fold column')
-            .setDesc(
-                describeOverride(
-                    'foldcolumn',
-                    'Show fold indicators (\u25b8/\u25be) in the gutter for foldable regions. Click to toggle folds.',
-                ),
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.foldcolumn)
-                    .setDisabled(isOverridden('foldcolumn'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.foldcolumn = value;
-                        this.plugin.vimrcOverrides?.delete('foldcolumn');
-                        await this.plugin.saveSettings();
-                        this.plugin.reconfigureFoldColumnGutter();
-                    }),
-            );
-
-        new Setting(containerEl)
             .setName('Table widget in Live Preview')
             .setDesc(
                 describeOverride(
@@ -2964,90 +3223,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
-            .setName('Yank highlight')
-            .setDesc(
-                describeOverride(
-                    'yankHighlightMode',
-                    'Highlight yanked text. "Solid" shows the highlight and removes it after the duration (Neovim-style). "Fade" gradually fades the highlight out.',
-                ),
-            )
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOption('off', 'Off')
-                    .addOption('solid', 'Solid')
-                    .addOption('fade', 'Fade')
-                    .setValue(this.plugin.settings.yankHighlightMode)
-                    .setDisabled(isOverridden('yankHighlightMode'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.yankHighlightMode =
-                            value as VimMotionsSettings['yankHighlightMode'];
-                        this.plugin.vimrcOverrides?.delete('yankHighlightMode');
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
+        // ── Picker ──────────────────────────────────────────────────
 
-        new Setting(containerEl)
-            .setName('Yank highlight duration')
-            .setDesc(
-                describeOverride(
-                    'yankHighlightDuration',
-                    'How long the yank highlight stays visible in milliseconds (50\u20133000).',
-                ),
-            )
-            .addSlider((slider) =>
-                slider
-                    .setLimits(50, 3000, 50)
-                    .setValue(this.plugin.settings.yankHighlightDuration)
-                    .setDisabled(isOverridden('yankHighlightDuration'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.yankHighlightDuration = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'yankHighlightDuration',
-                        );
-                        await this.plugin.saveSettings();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Workspace navigation')
-            .setDesc(
-                describeOverride(
-                    'enableWorkspaceNav',
-                    'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
-                ),
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.enableWorkspaceNav)
-                    .setDisabled(isOverridden('enableWorkspaceNav'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableWorkspaceNav = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'enableWorkspaceNav',
-                        );
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Workspace navigation view types')
-            .setDesc(
-                'Comma-separated view types where scroll and count keys are intercepted. ' +
-                    'Leave empty for defaults (markdown, graph, pdf, canvas, empty, image). ' +
-                    'Plugin views not in this list receive their own keystrokes.',
-            )
-            .addText((text) =>
-                text
-                    .setPlaceholder('')
-                    .setValue(this.plugin.settings.workspaceNavViewTypes)
-                    .onChange(async (value) => {
-                        this.plugin.settings.workspaceNavViewTypes = value;
-                        await this.plugin.saveSettings();
-                    }),
-            );
+        new Setting(containerEl).setName('Picker').setHeading();
 
         new Setting(containerEl)
             .setName('Fuzzy picker for buffers')
@@ -3182,12 +3360,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     );
             }
         }
-
-        // ── Third-party integrations ────────────────────────────────────
-
-        new Setting(containerEl)
-            .setName('Third-party integrations')
-            .setHeading();
 
         new Setting(containerEl)
             .setName('Omnisearch')
@@ -3599,9 +3771,64 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
+        // ── Gutter ──────────────────────────────────────────────────
+
+        new Setting(containerEl).setName('Gutter').setHeading();
+
+        new Setting(containerEl)
+            .setName('Sign column')
+            .setDesc(
+                describeOverride(
+                    'signcolumn',
+                    'Show vim mark letters (a-z, A-Z) in a dedicated gutter column. Auto: show gutter when marks exist. Always: always reserve gutter space. Off: never show.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        auto: 'Auto',
+                        yes: 'Always',
+                        no: 'Off',
+                    })
+                    .setValue(this.plugin.settings.signcolumn)
+                    .setDisabled(isOverridden('signcolumn'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.signcolumn = value;
+                        this.plugin.vimrcOverrides?.delete('signcolumn');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureSignColumnGutter();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Fold column')
+            .setDesc(
+                describeOverride(
+                    'foldcolumn',
+                    'Show fold indicators (▸/▾) in the gutter for foldable regions. Click to toggle folds.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.foldcolumn)
+                    .setDisabled(isOverridden('foldcolumn'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.foldcolumn = value;
+                        this.plugin.vimrcOverrides?.delete('foldcolumn');
+                        await this.plugin.saveSettings();
+                        this.plugin.reconfigureFoldColumnGutter();
+                    }),
+            );
+
         // ── Status bar ───────────────────────────────────────────────
 
         new Setting(containerEl).setName('Status bar').setHeading();
+
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-status-bar-on',
+            this.plugin.settings.enableStatusBar,
+        );
 
         new Setting(containerEl)
             .setName('Vim mode status bar')
@@ -3620,10 +3847,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('enableStatusBar');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-status-bar-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const statusBarChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-status-bar',
+        });
+        new Setting(statusBarChildrenGate)
             .setName('Vim chord display')
             .setDesc(
                 describeOverride(
@@ -3645,7 +3880,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(statusBarChildrenGate)
             .setName('Powerline-style status bar')
             .setDesc(
                 describeOverride(
@@ -3974,6 +4209,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             'Smooth cursor movement and smear trail effects. Incompatible with ninja-cursor and cursor-smith plugins.',
         );
 
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-animated-cursor-on',
+            this.plugin.settings.animatedCursor,
+        );
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-smooth-cursor-on',
+            this.plugin.settings.smoothCursor,
+        );
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-smear-trail-on',
+            this.plugin.settings.smearTrail,
+        );
+
         new Setting(containerEl)
             .setName('Enable animated cursor')
             .setDesc(
@@ -3986,10 +4237,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.animatedCursor = value;
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-animated-cursor-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const smoothCursorGate = containerEl.createDiv({
+            cls: 'vim-motions-when-animated-cursor',
+        });
+        new Setting(smoothCursorGate)
             .setName('Smooth cursor movement')
             .setDesc('Cursor glides between positions instead of teleporting.')
             .addToggle((toggle) =>
@@ -3999,10 +4258,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.smoothCursor = value;
                         await this.plugin.saveSettings();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-smooth-cursor-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const cursorSmoothnessGate = containerEl.createDiv({
+            cls: 'vim-motions-when-smooth-cursor',
+        });
+        new Setting(cursorSmoothnessGate)
             .setName('Cursor smoothness')
             .setDesc(
                 'How lazy the cursor movement feels. 0 = snap, 1 = very slow.',
@@ -4021,7 +4288,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        const smearTrailGate = containerEl.createDiv({
+            cls: 'vim-motions-when-animated-cursor',
+        });
+        new Setting(smearTrailGate)
             .setName('Enable smear trail')
             .setDesc(
                 'Spring-damper trail stretching between old and new cursor position.',
@@ -4033,10 +4303,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.smearTrail = value;
                         await this.plugin.saveSettings();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-smear-trail-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const smearParamsGate = containerEl.createDiv({
+            cls: 'vim-motions-when-smear-trail',
+        });
+        new Setting(smearParamsGate)
             .setName('Trail stiffness')
             .setDesc(
                 'Head corner spring strength. Higher = trail snaps back faster.',
@@ -4055,7 +4333,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(smearParamsGate)
             .setName('Trail trailing stiffness')
             .setDesc(
                 'Tail corner spring strength. Lower = longer, more dramatic trail.',
@@ -4074,7 +4352,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(smearParamsGate)
             .setName('Trail damping')
             .setDesc('Velocity decay. Lower values produce bouncier trails.')
             .addSlider((slider) =>
@@ -4091,7 +4369,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(smearParamsGate)
             .setName('Trail max length')
             .setDesc('Maximum trail length in pixels.')
             .addSlider((slider) =>
@@ -4107,6 +4385,70 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }),
             );
+
+        // ── Yank highlight ──────────────────────────────────────────
+
+        new Setting(containerEl).setName('Yank highlight').setHeading();
+
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-yank-highlight-on',
+            this.plugin.settings.yankHighlightMode !== 'off',
+        );
+
+        new Setting(containerEl)
+            .setName('Yank highlight')
+            .setDesc(
+                describeOverride(
+                    'yankHighlightMode',
+                    'Highlight yanked text. "Solid" shows the highlight and removes it after the duration (Neovim-style). "Fade" gradually fades the highlight out.',
+                ),
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOption('off', 'Off')
+                    .addOption('solid', 'Solid')
+                    .addOption('fade', 'Fade')
+                    .setValue(this.plugin.settings.yankHighlightMode)
+                    .setDisabled(isOverridden('yankHighlightMode'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.yankHighlightMode =
+                            value as VimMotionsSettings['yankHighlightMode'];
+                        this.plugin.vimrcOverrides?.delete('yankHighlightMode');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-yank-highlight-on',
+                            value !== 'off',
+                        );
+                    }),
+            );
+
+        const yankDurationGate = containerEl.createDiv({
+            cls: 'vim-motions-when-yank-highlight',
+        });
+        new Setting(yankDurationGate)
+            .setName('Yank highlight duration')
+            .setDesc(
+                describeOverride(
+                    'yankHighlightDuration',
+                    'How long the yank highlight stays visible in milliseconds (50–3000).',
+                ),
+            )
+            .addSlider((slider) =>
+                slider
+                    .setLimits(50, 3000, 50)
+                    .setValue(this.plugin.settings.yankHighlightDuration)
+                    .setDisabled(isOverridden('yankHighlightDuration'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.yankHighlightDuration = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'yankHighlightDuration',
+                        );
+                        await this.plugin.saveSettings();
+                    }),
+            );
     }
 
     private renderNavigationTab(
@@ -4117,6 +4459,27 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         // ── Jump navigation ──────────────────────────────────────────
 
         new Setting(containerEl).setName('Jump navigation').setHeading();
+
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-easymotion-on',
+            this.plugin.settings.enableEasyMotion,
+        );
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-flash-on',
+            this.plugin.settings.enableFlash,
+        );
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-flash-jump-on',
+            this.plugin.settings.flashJumpEnabled,
+        );
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-hint-mode-on',
+            this.plugin.settings.enableHintMode,
+        );
 
         new Setting(containerEl)
             .setName('EasyMotion')
@@ -4135,10 +4498,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('enableEasyMotion');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-easymotion-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const easyMotionChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-easymotion',
+        });
+        new Setting(easyMotionChildrenGate)
             .setName('EasyMotion dimming')
             .setDesc(
                 describeOverride(
@@ -4157,7 +4528,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(easyMotionChildrenGate)
             .setName('EasyMotion label characters')
             .setDesc(
                 describeOverride(
@@ -4194,10 +4565,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('enableFlash');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-flash-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const flashChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-flash',
+        });
+        new Setting(flashChildrenGate)
             .setName('Flash multi-line')
             .setDesc(
                 describeOverride(
@@ -4217,7 +4596,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(flashChildrenGate)
             .setName('Flash jump mode (s)')
             .setDesc(
                 describeOverride(
@@ -4234,10 +4613,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('flashJumpEnabled');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-flash-jump-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const flashJumpKeyGate = containerEl.createDiv({
+            cls: 'vim-motions-when-flash-jump',
+        });
+        new Setting(flashJumpKeyGate)
             .setName('Flash jump key')
             .setDesc(
                 describeOverride(
@@ -4257,7 +4644,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(flashChildrenGate)
             .setName('Flash clever-f')
             .setDesc(
                 describeOverride(
@@ -4277,7 +4664,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(flashChildrenGate)
             .setName('Flash min pattern length')
             .setDesc(
                 describeOverride(
@@ -4305,7 +4692,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 });
             });
 
-        new Setting(containerEl)
+        new Setting(flashChildrenGate)
             .setName('Flash search labels')
             .setDesc(
                 describeOverride(
@@ -4366,48 +4753,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Fold-aware navigation')
-            .setDesc(
-                describeOverride(
-                    'foldAwareNavigation',
-                    'Automatically unfold sections when navigating into them (e.g., ]h into a folded heading).',
-                ),
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.foldAwareNavigation)
-                    .setDisabled(isOverridden('foldAwareNavigation'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.foldAwareNavigation = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'foldAwareNavigation',
-                        );
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
-            .setName('Fold persistence')
-            .setDesc(
-                describeOverride(
-                    'foldPersistence',
-                    'Remember fold state across file switches and sessions. Capped at 500 files, 30-day eviction.',
-                ),
-            )
-            .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.foldPersistence)
-                    .setDisabled(isOverridden('foldPersistence'))
-                    .onChange(async (value) => {
-                        this.plugin.settings.foldPersistence = value;
-                        this.plugin.vimrcOverrides?.delete('foldPersistence');
-                        await this.plugin.saveSettings();
-                        this.plugin.reloadFeatures();
-                    }),
-            );
-
-        new Setting(containerEl)
             .setName('Hint mode')
             .setDesc(
                 describeOverride(
@@ -4424,10 +4769,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('enableHintMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-hint-mode-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const hintModeChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-hint-mode',
+        });
+        new Setting(hintModeChildrenGate)
             .setName('Hint mode label characters')
             .setDesc(
                 describeOverride(
@@ -4447,7 +4800,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        const hotkeySettingItem = new Setting(containerEl)
+        const hotkeySettingItem = new Setting(hintModeChildrenGate)
             .setName('Hint mode global hotkey')
             .setDesc(
                 describeOverride(
@@ -4522,7 +4875,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
         }
 
-        new Setting(containerEl)
+        const labelSettingsGate = containerEl.createDiv({
+            cls: 'vim-motions-when-easymotion-or-hint',
+        });
+        new Setting(labelSettingsGate)
             .setName('Label font size')
             .setDesc(
                 describeOverride(
@@ -4543,7 +4899,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(labelSettingsGate)
             .setName('Scale labels to line height')
             .setDesc(
                 describeOverride(
@@ -4561,6 +4917,105 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             'labelMatchFontSize',
                         );
                         await this.plugin.saveSettings();
+                    }),
+            );
+
+        // ── Workspace navigation ────────────────────────────────────
+
+        new Setting(containerEl).setName('Workspace navigation').setHeading();
+
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-workspace-nav-on',
+            this.plugin.settings.enableWorkspaceNav,
+        );
+
+        new Setting(containerEl)
+            .setName('Workspace navigation')
+            .setDesc(
+                describeOverride(
+                    'enableWorkspaceNav',
+                    'Enable pane/tab/sidebar control (<C-w>h/j/k/l, gt/gT, :sidebar, etc.). Note: <C-w> may conflict with Obsidian\u2019s "Close current tab" hotkey \u2014 rebind it in Settings \u2192 Hotkeys.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.enableWorkspaceNav)
+                    .setDisabled(isOverridden('enableWorkspaceNav'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableWorkspaceNav = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'enableWorkspaceNav',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-workspace-nav-on',
+                            value,
+                        );
+                    }),
+            );
+
+        const workspaceNavChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-workspace-nav',
+        });
+        new Setting(workspaceNavChildrenGate)
+            .setName('Workspace navigation view types')
+            .setDesc(
+                'Comma-separated view types where scroll and count keys are intercepted. ' +
+                    'Leave empty for defaults (markdown, graph, pdf, canvas, empty, image). ' +
+                    'Plugin views not in this list receive their own keystrokes.',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('')
+                    .setValue(this.plugin.settings.workspaceNavViewTypes)
+                    .onChange(async (value) => {
+                        this.plugin.settings.workspaceNavViewTypes = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Fold-aware navigation')
+            .setDesc(
+                describeOverride(
+                    'foldAwareNavigation',
+                    'Automatically unfold sections when navigating into them (e.g., ]h into a folded heading).',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.foldAwareNavigation)
+                    .setDisabled(isOverridden('foldAwareNavigation'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.foldAwareNavigation = value;
+                        this.plugin.vimrcOverrides?.delete(
+                            'foldAwareNavigation',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Fold persistence')
+            .setDesc(
+                describeOverride(
+                    'foldPersistence',
+                    'Remember fold state across file switches and sessions. Capped at 500 files, 30-day eviction.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.foldPersistence)
+                    .setDisabled(isOverridden('foldPersistence'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.foldPersistence = value;
+                        this.plugin.vimrcOverrides?.delete('foldPersistence');
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
                     }),
             );
     }
@@ -4595,6 +5050,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('Which-key hints').setHeading();
 
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-which-key-on',
+            this.plugin.settings.whichKeyMode !== 'off',
+        );
+
         new Setting(containerEl)
             .setName('Which-key mode')
             .setDesc(
@@ -4620,10 +5081,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.vimrcOverrides?.delete('whichKeyMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-which-key-on',
+                            value !== 'off',
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const whichKeyChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-which-key',
+        });
+        new Setting(whichKeyChildrenGate)
             .setName('Which-key leader grouping')
             .setDesc(
                 describeOverride(
@@ -4651,7 +5120,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(whichKeyChildrenGate)
             .setName('Which-key popup delay')
             .setDesc(
                 describeOverride(
@@ -4678,7 +5147,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 });
             });
 
-        new Setting(containerEl)
+        new Setting(whichKeyChildrenGate)
             .setName('Which-key sort order')
             .setDesc(
                 describeOverride(
@@ -4708,7 +5177,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(whichKeyChildrenGate)
             .setName('Which-key icons')
             .setDesc(
                 describeOverride(
@@ -4728,26 +5197,34 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl).setName('Which-key group labels').setHeading();
-        new Setting(containerEl).setDesc(
+        const whichKeyGroupLabelsGate = containerEl.createDiv({
+            cls: 'vim-motions-when-which-key',
+        });
+        new Setting(whichKeyGroupLabelsGate)
+            .setName('Which-key group labels')
+            .setHeading();
+        new Setting(whichKeyGroupLabelsGate).setDesc(
             'Name groups by their full key prefix. Use the leader character + prefix for leader groups ' +
                 '(e.g. "\\t" for table), or a raw prefix for non-leader groups (e.g. "cs" for surround changes). ' +
                 'Built-in features register default labels that your entries can override.',
         );
 
-        const groupLabelsContainer = containerEl.createDiv({
+        const groupLabelsContainer = whichKeyGroupLabelsGate.createDiv({
             cls: 'vim-motions-group-labels',
         });
         this.renderGroupLabels(groupLabelsContainer);
 
-        new Setting(containerEl)
+        const whichKeyCommandLabelsGate = containerEl.createDiv({
+            cls: 'vim-motions-when-which-key',
+        });
+        new Setting(whichKeyCommandLabelsGate)
             .setName('Which-key command labels')
             .setHeading();
-        new Setting(containerEl).setDesc(
+        new Setting(whichKeyCommandLabelsGate).setDesc(
             'Describe individual bindings in the which-key popup. Entries set in vimrc appear as read-only rows.',
         );
 
-        const commandLabelsContainer = containerEl.createDiv({
+        const commandLabelsContainer = whichKeyCommandLabelsGate.createDiv({
             cls: 'vim-motions-command-labels',
         });
         this.renderCommandLabels(commandLabelsContainer);
@@ -4762,6 +5239,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('Snippets').setHeading();
 
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-snippets-on',
+            this.plugin.settings.enableSnippets,
+        );
+
         new Setting(containerEl)
             .setName('Enable snippets')
             .setDesc(
@@ -4773,10 +5256,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableSnippets = value;
                         await this.plugin.saveSettings();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-snippets-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const snippetChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-snippets',
+        });
+        new Setting(snippetChildrenGate)
             .setName('Bundled snippets')
             .setDesc(
                 'Include built-in Obsidian Markdown snippets (headings, callouts, wikilinks, tables, etc.).',
@@ -4790,7 +5281,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(snippetChildrenGate)
             .setName('Snippet directory')
             .setDesc(
                 'Path to a directory containing user snippet JSON files. Supports ~ for home directory and absolute paths (desktop only).',
@@ -4805,7 +5296,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(snippetChildrenGate)
             .setName('Trigger mode')
             .setDesc(
                 'How snippets are triggered: completion menu (type prefix to see suggestions), tab expansion (type prefix + tab), or both.',
@@ -4831,6 +5322,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('File explorer').setHeading();
 
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-oil-on',
+            this.plugin.settings.oilExplorer,
+        );
+
         new Setting(containerEl)
             .setName('Oil explorer')
             .setDesc('Enable the oil-style file explorer (:oil command).')
@@ -4840,10 +5337,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.oilExplorer = value;
                         await this.plugin.saveSettings();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-oil-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const oilChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-oil',
+        });
+        new Setting(oilChildrenGate)
             .setName('Show hidden files')
             .setDesc('Show dotfiles and hidden folders in oil views.')
             .addToggle((toggle) =>
@@ -4855,7 +5360,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(oilChildrenGate)
             .setName('Confirm delete threshold')
             .setDesc(
                 'Show confirmation dialog when deleting this many files or more.',
@@ -4870,7 +5375,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(oilChildrenGate)
             .setName('Default sort order')
             .setDesc('Default sort order for oil directory listings.')
             .addDropdown((dropdown) =>
@@ -4894,6 +5399,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('Undo tree').setHeading();
 
+        this.syncVisibilityClass(
+            containerEl,
+            'vim-motions-undo-tree-on',
+            this.plugin.settings.enableUndoTree,
+        );
+
         new Setting(containerEl)
             .setName('Undo tree')
             .setDesc(
@@ -4905,10 +5416,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableUndoTree = value;
                         await this.plugin.saveSettings();
+                        this.syncVisibilityClass(
+                            containerEl,
+                            'vim-motions-undo-tree-on',
+                            value,
+                        );
                     }),
             );
 
-        new Setting(containerEl)
+        const undoTreeChildrenGate = containerEl.createDiv({
+            cls: 'vim-motions-when-undo-tree',
+        });
+        new Setting(undoTreeChildrenGate)
             .setName('Persist undo history')
             .setDesc(
                 'Save undo tree to disk so it survives across sessions. Per-file undo history is stored in plugin data.',
@@ -4922,7 +5441,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(undoTreeChildrenGate)
             .setName('Maximum undo tree nodes')
             .setDesc(
                 'Maximum number of undo states to keep per editor. Oldest leaf branches are pruned when exceeded.',
@@ -4937,7 +5456,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(undoTreeChildrenGate)
             .setName('Sidebar position')
             .setDesc('Which sidebar to open the undo tree view in.')
             .addDropdown((dropdown) =>
@@ -4955,7 +5474,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
+        new Setting(undoTreeChildrenGate)
             .setName('Auto-open on branch')
             .setDesc(
                 'Automatically open the undo tree sidebar when a branch is created (undo + new edit).',

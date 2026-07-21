@@ -11,9 +11,9 @@ All features can be toggled independently in **Settings → Vim Motions**. Chang
 
 | Page                 | Settings groups                                                                                              |
 | -------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **General**          | Mobile, Vim features, Third-party integrations, Vim engine                                                   |
-| **Appearance**       | Line numbers, Status bar, Vim mode display prompt, Cursor shapes, Animated cursor                            |
-| **Navigation**       | Jump navigation                                                                                              |
+| **General**          | Mobile, Vim features, Picker, Vim engine                                                                     |
+| **Appearance**       | Line numbers, Gutter, Status bar, Vim mode display prompt, Cursor shapes, Animated cursor, Yank highlight    |
+| **Navigation**       | Jump navigation, Workspace navigation                                                                        |
 | **Keybindings**      | Vimrc & key bindings, Leader key bindings, Which-key hints, Which-key group labels, Which-key command labels |
 | **Snippets & files** | Snippets, File explorer, Undo tree                                                                           |
 | **Input method**     | Input method                                                                                                 |
@@ -280,9 +280,9 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 > [!tip]
 > Set **Scrolloff lines** to `9999` to keep the cursor vertically centered.
 
-## Third-party integrations
+## Picker
 
-Bundled picker sources for popular community plugins. Sources register automatically when the target plugin is detected and unregister when it is disabled.
+Fuzzy picker configuration, external grep, and bundled picker sources for popular community plugins. Sources register automatically when the target plugin is detected and unregister when it is disabled.
 
 | Name           | Type   | Default | Description                                                        |
 | -------------- | ------ | ------- | ------------------------------------------------------------------ |
