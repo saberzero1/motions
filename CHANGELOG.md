@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-07-21
+
 ### Changed
 
 - **Settings organized into 7 pages** — the flat list of 20 settings groups is now organized into 7 navigable pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, and Advanced. On Obsidian 1.13+, pages appear as sidebar entries via `type: 'page'` in `getSettingDefinitions()`. On pre-1.13, a button tab bar at the top of the settings panel switches between pages. The `display()` method is refactored into 7 private render methods (`renderGeneralTab`, `renderAppearanceTab`, etc.) for maintainability. No settings were added or removed.

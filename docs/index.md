@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.73.0
+## What's new in 0.74.0
 
-- **[[animated-cursor|Animated cursor]]** — canvas-based smooth cursor movement with spring-damper smear trail inspired by [smear-cursor.nvim](https://github.com/sphamba/smear-cursor.nvim). Per-mode cursor shapes (block, bar, underline, hollow), configurable stiffness/damping/smoothness, and `prefers-reduced-motion` support. Disabled by default — enable via **Settings → Vim Motions → Animated cursor**. ([#78](https://github.com/saberzero1/motions/issues/78))
+- **[[settings|Settings organized into 7 pages]]** — the flat list of 20 settings groups is now organized into 7 navigable pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, and Advanced. On Obsidian 1.13+, pages appear as sidebar entries. On pre-1.13, a button tab bar switches between pages. Settings also moved to more logical groupings, and sub-settings now hide when their parent feature is disabled. No settings were added or removed.
 
 See the [[changelog|full changelog]] for details.
