@@ -184,10 +184,11 @@ For viewport-dependent behavior (H/M/L, scroll, folds), use regular `it()` block
 - If the plugin has configuration, provide a settings tab and sensible defaults.
 - Persist settings using `this.loadData()` / `this.saveData()`.
 - Use stable command IDs; avoid renaming once released.
-- **IMPORTANT: Dual settings tab — ALWAYS update BOTH.** The plugin has TWO settings implementations in `src/settings.ts`:
-    - **Pre-1.13** (imperative): The `display()` method that builds settings UI manually via `new Setting(containerEl)`. This is the legacy path used by Obsidian versions before 1.13.
-    - **Post-1.13** (declarative): The `getSettingDefinitions()` method that returns a `SettingDefinitionItem[]` array. This is the modern path used by Obsidian 1.13+.
-    - When adding or modifying settings, **ALWAYS update both methods**. Forgetting one causes settings to be missing for users on the other Obsidian version. Search for the setting group heading (e.g., `'Animated cursor'`) in both methods to verify both are present.
+- **IMPORTANT: Dual settings tab — ALWAYS update BOTH.** The plugin has TWO settings implementations in `src/settings.ts`, both organized into 7 pages:
+    - **Post-1.13** (declarative): `getSettingDefinitions()` returns `SettingDefinitionItem[]` with 7 `type: 'page'` entries (General, Appearance, Navigation, Keybindings, Snippets & files, Input method, Advanced). Each page contains its settings groups as `items`. Obsidian renders these as navigable sidebar entries.
+    - **Pre-1.13** (imperative): `display()` renders a button tab bar (`vim-motions-settings-tabs`) and delegates to one of 7 private render methods (`renderGeneralTab`, `renderAppearanceTab`, `renderNavigationTab`, `renderKeybindingsTab`, `renderSnippetsFilesTab`, `renderInputMethodTab`, `renderAdvancedTab`). Tab state is tracked via `activeSettingsTab`.
+    - When adding or modifying settings, **ALWAYS update both methods**. Forgetting one causes settings to be missing for users on the other Obsidian version. Search for the setting group heading (e.g., `'Animated cursor'`) in both the declarative page items and the imperative render method to verify both are present.
+    - **Page assignment**: Mobile/Vim features/Third-party/Vim engine → General. Line numbers/Status bar/Mode prompts/Cursor shapes/Animated cursor → Appearance. Jump navigation → Navigation. Vimrc/Leader/Which-key → Keybindings. Snippets/File explorer/Undo tree → Snippets & files. Input method → Input method. Advanced → Advanced.
 
 ## Versioning & releases
 

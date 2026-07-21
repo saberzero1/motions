@@ -7,7 +7,19 @@ tags:
     - reference
 ---
 
-All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. All settings are available in both the legacy settings tab (Obsidian <1.13) and the new searchable settings UI (Obsidian 1.13+), where they are indexed by Obsidian's global settings search.
+All features can be toggled independently in **Settings → Vim Motions**. Changes take effect immediately without restarting. Settings are organized into 7 pages for easier navigation:
+
+| Page                 | Settings groups                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **General**          | Mobile, Vim features, Third-party integrations, Vim engine                                                   |
+| **Appearance**       | Line numbers, Status bar, Vim mode display prompt, Cursor shapes, Animated cursor                            |
+| **Navigation**       | Jump navigation                                                                                              |
+| **Keybindings**      | Vimrc & key bindings, Leader key bindings, Which-key hints, Which-key group labels, Which-key command labels |
+| **Snippets & files** | Snippets, File explorer, Undo tree                                                                           |
+| **Input method**     | Input method                                                                                                 |
+| **Advanced**         | Advanced                                                                                                     |
+
+On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On earlier versions, a tab bar at the top of the settings panel lets you switch between pages. All settings are indexed by Obsidian's global settings search (1.13+).
 
 ## Mobile
 

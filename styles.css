@@ -36,6 +36,43 @@
     color: var(--text-error);
 }
 
+/* ── Settings tab bar (pre-1.13 imperative path) ─────────────── */
+
+.vim-motions-settings-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-4-1, 4px);
+    padding-bottom: var(--size-4-3, 12px);
+    margin-bottom: var(--size-4-3, 12px);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vim-motions-settings-tab-btn {
+    padding: var(--size-4-1, 4px) var(--size-4-3, 12px);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s, 4px);
+    background: var(--background-secondary);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    cursor: pointer;
+    transition:
+        background-color 100ms ease-in-out,
+        color 100ms ease-in-out;
+}
+
+.vim-motions-settings-tab-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.vim-motions-settings-tab-btn.is-active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
+}
+
+/* ── Settings notice ─────────────────────────────────────────── */
+
 .vim-motions-settings-notice {
     background-color: color-mix(in oklch, var(--color-orange) 10%, transparent);
     border: 1px solid color-mix(in oklch, var(--color-orange) 25%, transparent);

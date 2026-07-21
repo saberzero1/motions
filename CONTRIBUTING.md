@@ -51,7 +51,7 @@ The tests run in a headless Obsidian instance with Xvfb. The test vault is in `t
 ```
 src/
   main.ts                  # Plugin lifecycle (onload, onunload, reloadFeatures)
-  settings.ts              # Settings interface, defaults, and settings tab UI
+  settings.ts              # Settings interface, defaults, and settings tab UI (7 pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, Advanced)
   settings-migration.ts    # Settings schema migration between versions
   types/
     vim-api.d.ts           # Type declarations for the Vim API (CmAdapter, VimApi, etc.)
