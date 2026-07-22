@@ -15,18 +15,12 @@ import { getCmAdapterFromEditorView } from '../vim-api';
 
 const STALE_THRESHOLD_MS = 100;
 
-function coordsToRect(
-    view: EditorView,
-    pos: number,
-    scrollRect: DOMRect,
-    scrollLeft: number,
-    scrollTop: number,
-): CursorRect | null {
+function coordsToRect(view: EditorView, pos: number): CursorRect | null {
     const coords = view.coordsAtPos(pos, 1);
     if (!coords) return null;
 
-    const left = coords.left - scrollRect.left + scrollLeft;
-    const top = coords.top - scrollRect.top + scrollTop;
+    const left = coords.left;
+    const top = coords.top;
     const height = coords.bottom - coords.top;
 
     let width: number;
@@ -67,11 +61,15 @@ class CursorController implements Tickable {
     private destroyed = false;
 
     constructor(private view: EditorView) {
-        this.canvas = view.scrollDOM.createEl('canvas', {
-            cls: 'vim-motions-animated-cursor-canvas',
-            attr: { role: 'presentation', 'aria-hidden': 'true' },
-        });
+        const doc = view.dom.ownerDocument;
+        this.canvas = doc.createElement('canvas');
+        this.canvas.className = 'vim-motions-animated-cursor-canvas';
+        this.canvas.setAttribute('role', 'presentation');
+        this.canvas.setAttribute('aria-hidden', 'true');
         this.ctx = this.canvas.getContext('2d')!;
+        (doc.querySelector('.app-container') ?? doc.body).appendChild(
+            this.canvas,
+        );
         this.sizeCanvas();
 
         this.resizeObserver = new ResizeObserver(() => this.sizeCanvas());
@@ -102,13 +100,16 @@ class CursorController implements Tickable {
 
     private sizeCanvas(): void {
         if (this.destroyed) return;
-        const { clientWidth, clientHeight } = this.view.scrollDOM;
         const dpr = window.devicePixelRatio || 1;
-        this.canvas.width = clientWidth * dpr;
-        this.canvas.height = clientHeight * dpr;
-        this.canvas.style.width = clientWidth + 'px';
-        this.canvas.style.height = clientHeight + 'px';
-        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        if (this.canvas.width !== w * dpr || this.canvas.height !== h * dpr) {
+            this.canvas.width = w * dpr;
+            this.canvas.height = h * dpr;
+            this.canvas.style.width = w + 'px';
+            this.canvas.style.height = h + 'px';
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
     }
 
     update(vu: ViewUpdate): void {
@@ -304,25 +305,19 @@ class CursorController implements Tickable {
 
     private refreshTarget(): void {
         try {
-            const pos = this.view.state.selection.main.head;
-            const scrollDOM = this.view.scrollDOM;
-            const scrollRect = scrollDOM.getBoundingClientRect();
-            const scrollLeft = scrollDOM.scrollLeft;
-            const scrollTop = scrollDOM.scrollTop;
-
-            const rect = coordsToRect(
-                this.view,
-                pos,
-                scrollRect,
-                scrollLeft,
-                scrollTop,
-            );
+            const sel = this.view.state.selection.main;
+            let pos = sel.head;
+            if (sel.anchor < sel.head && pos < this.view.state.doc.length) {
+                const ch = this.view.state.doc.sliceString(pos, pos + 1);
+                if (ch !== '\n') pos--;
+            }
+            const rect = coordsToRect(this.view, pos);
             if (!rect) return;
 
             this.cachedRect = rect;
             this.cachedDocPos = pos;
-            this.cachedScrollTop = scrollTop;
-            this.cachedScrollLeft = scrollLeft;
+            this.cachedScrollTop = this.view.scrollDOM.scrollTop;
+            this.cachedScrollLeft = this.view.scrollDOM.scrollLeft;
             this.cachedTime = performance.now();
 
             const vimMode = this.resolveVimMode();
@@ -349,10 +344,23 @@ class CursorController implements Tickable {
         useSmear: boolean,
         useSmooth: boolean,
     ): void {
-        const { clientWidth, clientHeight } = this.view.scrollDOM;
-        this.ctx.clearRect(0, 0, clientWidth, clientHeight);
+        const paneRect = this.view.scrollDOM.getBoundingClientRect();
+        this.sizeCanvas();
+        this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.rect(
+            paneRect.left,
+            paneRect.top,
+            paneRect.width,
+            paneRect.height,
+        );
+        this.ctx.clip();
 
-        if (!this.cachedRect) return;
+        if (!this.cachedRect) {
+            this.ctx.restore();
+            return;
+        }
         const charInfo =
             this.currentShape === 'block' ? this.blockChar : undefined;
 
@@ -375,6 +383,7 @@ class CursorController implements Tickable {
                 charInfo,
             );
         }
+        this.ctx.restore();
     }
 
     destroy(): void {

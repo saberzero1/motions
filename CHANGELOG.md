@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Animated cursor disappears below line ~28** — the canvas was sized to the viewport but positioned at the top of the scroll container (`position: absolute; top: 0` inside `scrollDOM`). After scrolling, cursor coordinates pointed to positions below the canvas bounds. Fixed by moving the canvas to `.app-container` with `position: fixed` and using raw viewport-relative coordinates from `coordsAtPos()` directly — matching cursor-smith's architecture. The canvas is clipped to the editor pane rect via `ctx.clip()` each frame. ([#78](https://github.com/saberzero1/motions/issues/78))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (viewport-fixed canvas, removed scroll offset math), `styles.css` (fixed positioning)
+- **Animated cursor displaced rightward in visual mode** — entering visual mode (`v`) shifted the canvas cursor one character to the right. In visual mode with a forward selection (`anchor < head`), CM6's `selection.main.head` points past the last selected character. The fork's `BlockCursorPlugin.measureCursor()` decrements `head` in this case, but the animated cursor used the raw value. Fixed by applying the same head adjustment: when `anchor < head` and the character at head isn't `\n`, decrement position by 1. ([#78](https://github.com/saberzero1/motions/issues/78))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (head position adjustment in `refreshTarget`)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Removed canvas scroll and visual mode displacement from animated cursor limitations (fixed)
+
 ## [0.74.0] - 2026-07-21
 
 ### Changed
