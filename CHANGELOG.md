@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-07-22
+
 ### Fixed
 
 - **Animated cursor may not animate on Windows 11** — the canvas rAF loop could silently die on Windows due to several platform-specific behaviors: (1) Any transient error during a tick frame (null coordinate during window refocus, detached DOM node) threw an unhandled exception that permanently killed the `requestAnimationFrame` loop — the cursor disappeared until plugin reload. Fixed by wrapping the loop body in try/catch; errors are logged once and the loop continues. (2) Windows 11 Efficiency Mode, window occlusion tracking (`CalculateNativeWinOcclusion`), and high-resolution timer suppression can all silently stop rAF delivery without throwing. Added a 500ms `setInterval` heartbeat that detects a stalled loop and re-wakes it — unlike rAF, `setInterval` is not suppressed by Chromium's occlusion tracker. (3) When the browser tab/window is hidden and restored, rAF may not resume. Added a `visibilitychange` listener that re-wakes the loop when the page regains visibility. (4) Windows displays at 125%/150% scaling produce fractional `devicePixelRatio` values (1.25/1.5). Canvas backing-store dimensions are now rounded with `Math.round()` to avoid sub-pixel aliasing and continuous compositor re-uploads. Informed by cursor-smith's v1.1.8 fix for the same "cursor disappears until plugin reload" failure mode and terminal-workbench-cursor's heartbeat safety-net pattern.

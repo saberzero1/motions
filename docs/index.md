@@ -31,10 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.76.0
+## What's new in 0.77.0
 
-- **[[animated-cursor|Animated cursor vimrc/Lua configuration]]** — all 8 animated cursor settings are now configurable via vimrc (`set smoothcursor`, `set smoothcursorsmoothness=0.3`, etc.) and Lua (`vim.opt.smoothcursor = true`, etc.). Short aliases: `sc`, `scg`, `scs`, `scm`, `scst`, `scts`, `scd`, `scml`.
-- **[[animated-cursor|Animated cursor in oil explorer]]** — the animated cursor now renders in the oil file explorer. Single shared canvas architecture reduces memory from O(N × viewport) to O(1 × viewport).
-- **Fold gutter click fix** — clicking a fold marker to unfold now works correctly. Previously, the unfold effect received a zero-width range instead of the actual fold range.
+- **[[animated-cursor|Animated cursor Windows resilience]]** — the canvas cursor no longer silently dies on Windows 11 due to Efficiency Mode, window occlusion tracking, or fractional DPI scaling. A heartbeat safety net re-wakes the rAF loop when the OS suppresses it, a `visibilitychange` listener recovers from tab hide/show, and all canvas dimensions are rounded for fractional `devicePixelRatio` (125%/150% scaling). Transient errors during a tick frame are caught and logged instead of killing the loop.
 
 See the [[changelog|full changelog]] for details.
