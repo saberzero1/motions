@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-07-22
+
 ### Added
 
 - **`vim.v` namespace — Neovim-compatible predefined variables** — read-only metatable proxy exposing `vim.v.count`, `vim.v.count1`, `vim.v.register`, `vim.v.operator` (Tier 1), `vim.v.searchforward` (read/write), `vim.v.insertmode`, `vim.v.numbermax`/`numbermin`/`numbersize`, `vim.v.true`/`false`/`null` (Tier 2), and `vim.v.foldstart`/`foldend`/`foldlevel`/`folddashes`, `vim.v.lnum`/`relnum`/`virtnum`, `vim.v.char`, `vim.v.hlsearch`, `vim.v.event` (Tier 3 — context-dependent). Context is set from `actionArgs` before each keymap callback invocation and cleared after. `vim.v.event` is populated during autocmd dispatch with the event data table. `vim.v.hlsearch` queries the fork's search overlay state via `getSearchState(cm).getOverlay()`.

@@ -31,9 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.78.0
+## What's new in 0.79.0
 
-- **[[workspace-navigation|Fold gutter unfold normalizer]]** — clicking Obsidian's native fold gutter to unfold now works reliably. CM6 silently ignored unfold attempts when the range didn't exactly match the stored fold. A new `unfoldNormalizerExtender` in `fold-sync.ts` detects mismatched `unfoldEffect` ranges and appends a corrective effect with the actual fold range — works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands.
-- **[[surround|Insert-mode surround cursor and undo]]** — `<C-G>s{char}` now inserts both delimiters up front (matching vim-surround) instead of deferring the close delimiter. Cursor lands on the last typed character after `Esc`, undo is reduced from 3 steps to 2, and dot-repeat degrades cleanly (replays only typed text).
+- **[[lua-config|`vim.v` predefined variables]]** — read-only metatable proxy exposing 20 Neovim-compatible variables: `vim.v.count`, `vim.v.count1`, `vim.v.register`, `vim.v.operator` (Tier 1), `vim.v.searchforward`, `vim.v.insertmode`, constants like `vim.v.true`/`false`/`null`/`numbermax` (Tier 2), and context-dependent fold/statuscolumn/event/char/hlsearch variables (Tier 3). Context is set from `actionArgs` before each keymap callback and cleared after. `vim.v.event` is populated during autocmd dispatch.
+- **[[lua-config|`{ expr = true }` keymap support]]** — `vim.keymap.set` now accepts `{ expr = true }` for function callbacks. The callback returns a string that is fed as keystrokes via the fork's new `feedKeys` API. Sync-only — async APIs cannot be used in expr callbacks. Recursion guard (200 depth, matching Neovim) prevents infinite loops.
 
 See the [[changelog|full changelog]] for details.
