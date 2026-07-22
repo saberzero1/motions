@@ -31,8 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.77.0
+## What's new in 0.78.0
 
-- **[[animated-cursor|Animated cursor Windows resilience]]** — the canvas cursor no longer silently dies on Windows 11 due to Efficiency Mode, window occlusion tracking, or fractional DPI scaling. A heartbeat safety net re-wakes the rAF loop when the OS suppresses it, a `visibilitychange` listener recovers from tab hide/show, and all canvas dimensions are rounded for fractional `devicePixelRatio` (125%/150% scaling). Transient errors during a tick frame are caught and logged instead of killing the loop.
+- **[[workspace-navigation|Fold gutter unfold normalizer]]** — clicking Obsidian's native fold gutter to unfold now works reliably. CM6 silently ignored unfold attempts when the range didn't exactly match the stored fold. A new `unfoldNormalizerExtender` in `fold-sync.ts` detects mismatched `unfoldEffect` ranges and appends a corrective effect with the actual fold range — works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands.
+- **[[surround|Insert-mode surround cursor and undo]]** — `<C-G>s{char}` now inserts both delimiters up front (matching vim-surround) instead of deferring the close delimiter. Cursor lands on the last typed character after `Esc`, undo is reduced from 3 steps to 2, and dot-repeat degrades cleanly (replays only typed text).
 
 See the [[changelog|full changelog]] for details.

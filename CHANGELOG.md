@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-07-22
+
 ### Fixed
 
 - **Fold gutter click does not unfold (continued)** — the initial fix in 0.76.0 (correcting zero-width ranges in the plugin's own fold-column and statuscolumn gutters) was insufficient because those gutters are off by default — the reporter was clicking Obsidian's **native** fold gutter, which the plugin doesn't control. CM6's `foldState` requires an exact `{from, to}` match to remove a fold; a mismatched range is silently ignored. Fixed by adding `unfoldNormalizerExtender` in `fold-sync.ts` — a `transactionExtender` that detects mismatched `unfoldEffect` ranges and appends a corrective effect with the actual stored fold range. Works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands. ([#80](https://github.com/saberzero1/motions/issues/80))
