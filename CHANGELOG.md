@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Animated cursor blinking** — the canvas cursor now blinks matching CM6's default behavior (1200ms cycle, hard on/off toggle). After cursor movement, the cursor stays solid for 600ms before resuming blink. Blink epoch is aligned to the end of the reset delay so the first blink cycle starts cleanly. Blink only runs when the editor has focus; unfocused editors show a solid cursor. Suppressed during smear/smooth animation (cursor is moving). ([#78](https://github.com/saberzero1/motions/issues/78))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`computeBlinkAlpha`, `lastMoveTime`, `blinkEpoch`, focus-aware rAF loop)
+
 ### Fixed
 
 - **Animated cursor disappears below line ~28** — the canvas was sized to the viewport but positioned at the top of the scroll container (`position: absolute; top: 0` inside `scrollDOM`). After scrolling, cursor coordinates pointed to positions below the canvas bounds. Fixed by moving the canvas to `.app-container` with `position: fixed` and using raw viewport-relative coordinates from `coordsAtPos()` directly — matching cursor-smith's architecture. The canvas is clipped to the editor pane rect via `ctx.clip()` each frame. ([#78](https://github.com/saberzero1/motions/issues/78))
@@ -17,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Removed canvas scroll and visual mode displacement from animated cursor limitations (fixed)
+- `KNOWN_LIMITATIONS.md`: Marked cursor blink as fixed; removed "cursor blink after convergence" from nice-to-have (implemented)
+- `docs/features/animated-cursor.md`: Added cursor blinking section
 
 ## [0.74.0] - 2026-07-21
 

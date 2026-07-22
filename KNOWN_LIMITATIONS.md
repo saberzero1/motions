@@ -1639,7 +1639,7 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 - **Textarea vim overlays**: Animated cursor does not render in textarea vim overlay editors (modal inputs).
 - **Table cell editors**: Animated cursor does not render in embedded table cell editors (Phase 3).
 - **Cursorline desync**: When the cursor animates from one line to another, the cursorline highlight jumps instantly to the destination (driven by selection state). The cursorline does not animate in sync with the smooth cursor.
-- **No cursor blink**: The canvas cursor does not blink. The fork's native cursor blink is suppressed when the animated cursor is active.
+- ~~**No cursor blink**~~: Fixed. The canvas cursor now blinks matching CM6's default behavior (1200ms cycle, 600ms reset delay after movement). Blink only when focused.
 - **No `vim.opt` / vimrc configuration**: Animated cursor settings are only available in the settings UI. `set smoothcursor` / `vim.opt.smoothcursor` are not yet implemented.
 - **Incompatible with cursor animation plugins**: ninja-cursor and cursor-smith plugins conflict with the animated cursor. Disable them when using the built-in animated cursor.
 
@@ -1647,7 +1647,6 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 
 - **Insert mode trail suppression**: Shorter or disabled smear trail in insert mode to avoid distracting trails during typing (matching smear-cursor.nvim's `max_length_insert_mode: 1`).
 - **Operator-pending mode detection**: Operator-pending mode (`d`, `c`, `y` waiting for motion) is not detected — falls through to normal mode. Would need checking `vim.inputState.operator`.
-- **Cursor blink after convergence**: Resume cursor blink after the spring physics have converged, if blink is enabled.
 - **`vim.opt.smoothcursor` / vimrc `set smoothcursor`**: Configuration from Lua and vimrc for all animated cursor parameters.
 - **Multi-editor support**: Animated cursor in table cell editors and oil explorer (Phase 3).
 - **Built-in vim mode support**: Position source validation and cursor hiding for Obsidian's built-in vim mode (Phase 4).

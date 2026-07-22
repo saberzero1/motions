@@ -56,6 +56,8 @@ class CursorController implements Tickable {
     private cachedScrollLeft = 0;
     private cachedTime = 0;
     private needsPositionUpdate = true;
+    private lastMoveTime = 0;
+    private blinkEpoch = 0;
     private active = false;
     private composing = false;
     private destroyed = false;
@@ -136,6 +138,7 @@ class CursorController implements Tickable {
         if (vu.selectionSet) {
             this.needsPositionUpdate = true;
             this.active = true;
+            this.lastMoveTime = performance.now();
             getAnimatedCursorManager().wake();
         } else if (scrollChanged) {
             const selectionHead = vu.state.selection.main.head;
@@ -157,6 +160,14 @@ class CursorController implements Tickable {
 
         if (vu.selectionSet) {
             this.accentColor = resolveAccentColor(this.view.dom);
+        }
+
+        if (vu.focusChanged) {
+            this.active = this.view.hasFocus;
+            if (this.view.hasFocus) {
+                this.lastMoveTime = performance.now();
+                getAnimatedCursorManager().wake();
+            }
         }
     }
 
@@ -217,13 +228,12 @@ class CursorController implements Tickable {
 
         this.draw(config, useSmear, useSmooth);
 
-        if (useSmear) {
-            this.active = !this.smear.isConverged();
-        } else if (useSmooth) {
-            this.active = !this.smooth.isConverged();
-        } else {
-            this.active = false;
-        }
+        const animating = useSmear
+            ? !this.smear.isConverged()
+            : useSmooth
+              ? !this.smooth.isConverged()
+              : false;
+        this.active = animating || this.view.hasFocus;
     }
 
     isActive(): boolean {
@@ -252,6 +262,20 @@ class CursorController implements Tickable {
             default:
                 return rect;
         }
+    }
+
+    private computeBlinkAlpha(): number {
+        if (!this.view.hasFocus) return 1;
+        const BLINK_RATE = 1200;
+        const RESET_DELAY = 600;
+        const HALF_BLINK = BLINK_RATE / 2;
+        const now = performance.now();
+        if (now - this.lastMoveTime < RESET_DELAY) return 1;
+        if (this.blinkEpoch < this.lastMoveTime + RESET_DELAY) {
+            this.blinkEpoch = this.lastMoveTime + RESET_DELAY - HALF_BLINK;
+        }
+        const phase = ((now - this.blinkEpoch) % BLINK_RATE) / BLINK_RATE;
+        return phase < 0.5 ? 1 : 0;
     }
 
     private resolveBlockChar(pos: number): BlockCharInfo | undefined {
@@ -361,6 +385,14 @@ class CursorController implements Tickable {
             this.ctx.restore();
             return;
         }
+
+        const blinkAlpha = this.computeBlinkAlpha();
+        if (blinkAlpha <= 0) {
+            this.ctx.restore();
+            return;
+        }
+        this.ctx.globalAlpha = blinkAlpha;
+
         const charInfo =
             this.currentShape === 'block' ? this.blockChar : undefined;
 

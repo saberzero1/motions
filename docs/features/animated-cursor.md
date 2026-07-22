@@ -51,6 +51,15 @@ The animated cursor respects per-mode cursor shapes from **Settings → Cursor s
 
 Shape changes (e.g., entering insert mode) are instant — only position changes animate.
 
+## Cursor blinking
+
+The animated cursor blinks matching CM6's default behavior:
+
+- **1200ms cycle** — 600ms visible, 600ms hidden (hard on/off, no fade)
+- **600ms reset delay** — after any cursor movement, the cursor stays solid for 600ms before resuming blink
+- **Focus-aware** — blink only runs when the editor has focus; unfocused editors show a solid cursor
+- **Suppressed during animation** — while the smear trail or smooth movement is active, the cursor does not blink
+
 ## Accessibility
 
 The animated cursor respects the `prefers-reduced-motion` media query. When reduced motion is preferred, the cursor snaps instantly to its target position without animation.
