@@ -79,6 +79,8 @@ The viewport automatically scrolls to keep the cursor visible after any fold or 
 
 When **Fold column** is enabled (`set foldcolumn` or **Settings → Vim Motions → Vim features → Fold column**), fold indicators appear in the gutter: `▸` for foldable regions and `▾` for folded regions. Clicking an indicator toggles the fold.
 
+Clicking Obsidian's native fold gutter or the plugin's fold column to unfold a region always works — the plugin includes an unfold range normalizer that corrects mismatched `unfoldEffect` ranges from any source, ensuring unfolds succeed even when the dispatched range doesn't exactly match the stored fold decoration.
+
 ## Non-editor view support
 
 The global key handler extends Vim control to non-editor views like PDFs, the graph view, canvas, and the file explorer.

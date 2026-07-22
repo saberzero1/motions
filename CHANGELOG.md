@@ -9,13 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Fold gutter click does not unfold (continued)** — the initial fix in 0.76.0 (correcting zero-width ranges in the plugin's own fold-column and statuscolumn gutters) was insufficient because those gutters are off by default — the reporter was clicking Obsidian's **native** fold gutter, which the plugin doesn't control. CM6's `foldState` requires an exact `{from, to}` match to remove a fold; a mismatched range is silently ignored. Fixed by adding `unfoldNormalizerExtender` in `fold-sync.ts` — a `transactionExtender` that detects mismatched `unfoldEffect` ranges and appends a corrective effect with the actual stored fold range. Works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands. ([#80](https://github.com/saberzero1/motions/issues/80))
+    - Plugin: `src/vim/fold-sync.ts` (`unfoldNormalizerExtender`)
 - **Insert-mode surround cursor position and undo** — `<C-G>s{char}` now inserts both the opening and closing delimiters immediately (matching vim-surround behavior) instead of deferring the close delimiter to `exitInsertMode`. Fixes: (1) cursor now lands on the last typed character after `Esc` (was on the closing delimiter), (2) undo is improved (was 3 steps: close, text, open — now 2 steps: text, delimiters), (3) dot-repeat degrades cleanly (replays only typed text, not garbled `()hello`). The `maybeReset` mechanism clears delimiter text from the insert-mode change stream so `lastInsertModeChanges.changes` contains only user-typed text. Known limitation: dot-repeat replays only the typed text, not the surrounding delimiters. Macro recording of insert-mode surround keys is also not supported (pre-existing fork limitation). ([#82](https://github.com/saberzero1/motions/issues/82))
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`surroundInsert`, `surroundInsertNewline` refactored; `exitInsertMode` deferred-close block removed), `~/Repos/codemirror-vim/src/types.ts` (`surroundInsertClose` property removed)
+
+### Tests
+
+- 17 e2e tests in `test/specs/fold-unfold-normalizer.e2e.ts`: unfold normalizer for heading folds (exact-match, zero-width, wrong-to, line-boundary, vim zc/zo round-trip, zM/zR round-trip, no-op on non-folded line, multi-fold targeting), frontmatter folds in source mode (exact-match, zero-width, line-start mismatch, line-boundary, fold.from > line.from verification, vim zc/zo round-trip)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added insert-mode surround dot-repeat and macro recording limitations
+- `KNOWN_LIMITATIONS.md`: Updated fold gutter unfold fix with unfold normalizer extender description
+- `CONTRIBUTING.md`: Updated `fold-sync.ts` description with unfold normalizer
+- `docs/features/workspace-navigation.md`: Added unfold normalizer note to Folds section
 - `README.md`: Updated surround feature description with insert-mode cursor fix
 - `AGENTS.md`: Updated codemirror-vim fork description noting insert-mode surround refactor
 - `docs/features/surround.md`: Updated insert-mode cursor behavior description

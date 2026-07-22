@@ -1,4 +1,8 @@
-import { EditorState, type Extension } from '@codemirror/state';
+import {
+    EditorState,
+    type Extension,
+    type StateEffect,
+} from '@codemirror/state';
 import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { foldEffect, unfoldEffect, foldedRanges } from '@codemirror/language';
 
@@ -47,6 +51,43 @@ const foldAwareNavExtender = EditorState.transactionExtender.of((tr) => {
         iter.next();
     }
     return null;
+});
+
+/**
+ * Normalizes `unfoldEffect` ranges.  CM6's `foldState` requires an exact
+ * `{from, to}` match to remove a fold — if any click path dispatches an
+ * `unfoldEffect` with a range that doesn't perfectly match the stored fold
+ * decoration, the unfold is silently ignored.  This extender detects
+ * mismatched unfold effects and appends a corrective effect with the actual
+ * stored fold range so the unfold succeeds regardless of the source.
+ */
+const unfoldNormalizerExtender = EditorState.transactionExtender.of((tr) => {
+    if (tr.effects.length === 0) return null;
+
+    const folded = foldedRanges(tr.startState);
+    const corrections: StateEffect<{ from: number; to: number }>[] = [];
+
+    for (const effect of tr.effects) {
+        if (!effect.is(unfoldEffect)) continue;
+        const { from, to } = effect.value;
+
+        let exactMatch = false;
+        folded.between(from, from, (fFrom, fTo) => {
+            if (fFrom === from && fTo === to) exactMatch = true;
+        });
+        if (exactMatch) continue;
+
+        const line = tr.startState.doc.lineAt(from);
+        let best: { from: number; to: number } | null = null;
+        folded.between(line.from, line.to, (fFrom, fTo) => {
+            if (!best || Math.abs(fFrom - from) < Math.abs(best.from - from)) {
+                best = { from: fFrom, to: fTo };
+            }
+        });
+        if (best) corrections.push(unfoldEffect.of(best));
+    }
+
+    return corrections.length > 0 ? { effects: corrections } : null;
 });
 
 const METADATA_SELECTOR = '.metadata-container';
@@ -123,5 +164,10 @@ const propertiesFoldObserver = ViewPlugin.fromClass(
 );
 
 export function foldSyncExtension(): Extension {
-    return [foldScrollExtender, foldAwareNavExtender, propertiesFoldObserver];
+    return [
+        unfoldNormalizerExtender,
+        foldScrollExtender,
+        foldAwareNavExtender,
+        propertiesFoldObserver,
+    ];
 }

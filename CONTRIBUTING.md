@@ -72,7 +72,7 @@ src/
     yank-ring.ts           # Yank-ring paste cycling
     visual-line-command-fix.ts  # Visual line command edge-case fixes
     linewise-widget-highlight.ts  # Visual-line highlight for replaced widget blocks
-    fold-sync.ts               # Fold state synchronization
+    fold-sync.ts               # Fold state synchronization + unfoldEffect range normalizer
     mark-store.ts          # Mark persistence across sessions
     sign-column.ts         # Sign column (mark indicators via gutter() + GutterMarker + Compartment)
     mark-gutter.ts         # Mark gutter refresh scheduling (delegates to sign-column)

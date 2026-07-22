@@ -313,11 +313,11 @@ Root cause: the `lineMarkerChange` callback in the CM6 `gutter()` configuration 
 
 ## ~~Fold gutter click does not unfold~~ (Fixed)
 
-**Status**: Fixed. Fold gutter click handlers now pass the actual fold range to `unfoldEffect`. ([#80](https://github.com/saberzero1/motions/issues/80))
+**Status**: Fixed. A transaction extender normalizes `unfoldEffect` ranges for all fold sources. ([#80](https://github.com/saberzero1/motions/issues/80))
 
-Clicking a fold marker (▾) in the fold column (`set foldcolumn`) or `statuscolumn` gutter folded the region correctly, but clicking the same marker again to unfold had no effect. The `unfoldEffect` was dispatched with `{ from: line.from, to: line.from }` — a zero-width range — instead of the actual fold range `{ from, to }`. CodeMirror's fold state management requires the exact range to identify which fold decoration to remove; a zero-width range matches nothing, so the unfold was silently ignored.
+Clicking a fold marker to unfold had no effect. CM6's `foldState` requires an exact `{from, to}` match to remove a fold decoration; a mismatched range is silently ignored.
 
-Root cause: the `foldedRanges().between()` callback was used only to detect whether a fold existed (setting a boolean flag), but the callback's `to` parameter — which provides the fold's end position — was discarded. The fold path was unaffected because it used `foldable()` which returns the correct `{ from, to }` range. The same bug existed in both `src/vim/fold-column.ts` (standalone fold column gutter) and `src/vim/statuscolumn.ts` (`handleFoldClick` in the unified statuscolumn gutter).
+Two layers were fixed: (1) The plugin's own custom gutters (`fold-column.ts`, `statuscolumn.ts`) dispatched `unfoldEffect` with `{ from: line.from, to: line.from }` (zero-width range) instead of the actual fold range. Fixed by capturing the fold end from `foldedRanges().between()`. (2) The broader issue: these custom gutters are off by default, and Obsidian's **native** fold gutter can also dispatch unfold effects with ranges that don't exactly match the stored fold. Fixed by adding `unfoldNormalizerExtender` in `src/vim/fold-sync.ts` — a `transactionExtender` that detects mismatched unfold effects and appends a corrective effect with the actual stored fold range. This works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands.
 
 ## `set` option scope
 
