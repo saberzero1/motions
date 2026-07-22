@@ -64,14 +64,13 @@ class CursorController implements Tickable {
 
     constructor(private view: EditorView) {
         const doc = view.dom.ownerDocument;
-        this.canvas = doc.createElement('canvas');
-        this.canvas.className = 'vim-motions-animated-cursor-canvas';
-        this.canvas.setAttribute('role', 'presentation');
-        this.canvas.setAttribute('aria-hidden', 'true');
+        const container =
+            doc.querySelector<HTMLElement>('.app-container') ?? doc.body;
+        this.canvas = container.createEl('canvas', {
+            cls: 'vim-motions-animated-cursor-canvas',
+            attr: { role: 'presentation', 'aria-hidden': 'true' },
+        });
         this.ctx = this.canvas.getContext('2d')!;
-        (doc.querySelector('.app-container') ?? doc.body).appendChild(
-            this.canvas,
-        );
         this.sizeCanvas();
 
         this.resizeObserver = new ResizeObserver(() => this.sizeCanvas());
