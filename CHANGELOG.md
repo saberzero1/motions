@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-07-22
+
 ### Added
 
 - **Per-view cursor suppression fork API** — added `setCursorSuppressedForView(view, suppressed)`, `clearCursorSuppressedForView(view)`, and `isCursorSuppressedForView(view)` to the codemirror-vim fork. Per-view overrides take precedence over the global `setCursorSuppressed` state, allowing the plugin to selectively restore the native cursor in specific contexts (table cell editors, textarea overlays) or force suppression (table navigation) without affecting other editors. Overrides are automatically cleaned up when the editor's `BlockCursorPlugin` is destroyed.

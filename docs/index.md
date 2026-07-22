@@ -31,10 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.75.0
+## What's new in 0.76.0
 
-- **[[animated-cursor|Animated cursor blinking]]** — the canvas cursor now blinks with a 1200ms cycle, matching CM6's default behavior. After cursor movement, the cursor stays solid for 600ms before resuming blink. Blink only runs when the editor has focus; unfocused editors show a solid cursor. Suppressed during smear/smooth animation.
-- **Animated cursor scroll fix** — the canvas cursor no longer disappears below line ~28. The canvas now uses viewport-fixed positioning with `coordsAtPos()` coordinates, clipped to the editor pane.
-- **Animated cursor visual mode fix** — entering visual mode no longer displaces the canvas cursor one character to the right.
+- **[[animated-cursor|Animated cursor vimrc/Lua configuration]]** — all 8 animated cursor settings are now configurable via vimrc (`set smoothcursor`, `set smoothcursorsmoothness=0.3`, etc.) and Lua (`vim.opt.smoothcursor = true`, etc.). Short aliases: `sc`, `scg`, `scs`, `scm`, `scst`, `scts`, `scd`, `scml`.
+- **[[animated-cursor|Animated cursor in oil explorer]]** — the animated cursor now renders in the oil file explorer. Single shared canvas architecture reduces memory from O(N × viewport) to O(1 × viewport).
+- **Fold gutter click fix** — clicking a fold marker to unfold now works correctly. Previously, the unfold effect received a zero-width range instead of the actual fold range.
 
 See the [[changelog|full changelog]] for details.
