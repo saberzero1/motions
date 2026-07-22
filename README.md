@@ -13,7 +13,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Flash motions** — enhanced `f`/`F`/`t`/`T` with labels on all visible matches ([flash.nvim](https://github.com/folke/flash.nvim)-inspired). Auto-jumps on single match. Operator-pending (`df`, `cf`, `yf`), visual mode, multi-line search. Incremental `s` jump mode (type multiple chars to narrow, labels update live), post-commit `/`/`?` search labels, clever-f repetition, label conflict skipping, `[3/15]` search match counter. Dynamically sized match highlights and labels positioned after matched text (flash.nvim parity)
 - **EasyMotion / Hop** — jump to any visible position with two keystrokes, with operator-pending support
 - **Workspace keyboard control** — navigate panes, tabs, and sidebar without a mouse (`<C-w>`, `gt`/`gT`, `:sp`/`:vs`)
-- **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support, including `dsf`/`csf` for function calls, dot-repeat for `ys` with text objects)
+- **Surround** — add, change, or delete surrounding delimiters (vim-surround with Markdown support, including `dsf`/`csf` for function calls, dot-repeat for `ys` with text objects, insert-mode `<C-G>s` with both delimiters inserted up front)
 - **Hard-wrap formatting** — Markdown-aware `gq`/`gw` operators with prefix preservation
 - **Replace-with-register** — `gr{motion}` replaces text with register contents without clobbering the register ([vim-ReplaceWithRegister](https://github.com/inkarkat/vim-ReplaceWithRegister) parity)
 - **Yank-ring paste cycling** — cycle through numbered register history with `<C-p>`/`<C-n>` after pasting. Wraps around registers `"1`–`"9`. Cancels on any non-cycling command.

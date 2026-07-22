@@ -76,7 +76,7 @@ Several commands allow you to place delimiters on their own lines.
 
 ## Insert mode
 
-You can add surroundings while typing in insert mode using `<C-G>s{char}`. This inserts the pair and places the cursor inside. Pressing `Esc` moves the cursor past the closing delimiter.
+You can add surroundings while typing in insert mode using `<C-G>s{char}`. This inserts the pair and places the cursor inside. Pressing `Esc` leaves the cursor on the last typed character, matching vim-surround's behavior. If no text was typed, the cursor rests on the opening delimiter.
 
 ## Custom surround pairs
 

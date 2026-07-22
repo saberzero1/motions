@@ -316,7 +316,7 @@ Add, change, or delete surrounding delimiters like brackets, quotes, and tags.
 | `2ds)`, `2cs)`            | Count: delete/change 2nd-level surrounding bracket          |
 | `2ysiw*`                  | Count: repeat delimiter (`**hello**` for Markdown bold)     |
 | `2ds*`                    | Count: delete repeated delimiter (unbold `**hello**`)       |
-| `<C-G>s{char}`            | Insert mode: type inside delimiters, close on Esc           |
+| `<C-G>s{char}`            | Insert mode: inserts both delimiters, type inside them      |
 
 ## Workspace navigation
 

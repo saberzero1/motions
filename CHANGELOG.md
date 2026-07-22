@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Insert-mode surround cursor position and undo** — `<C-G>s{char}` now inserts both the opening and closing delimiters immediately (matching vim-surround behavior) instead of deferring the close delimiter to `exitInsertMode`. Fixes: (1) cursor now lands on the last typed character after `Esc` (was on the closing delimiter), (2) undo is improved (was 3 steps: close, text, open — now 2 steps: text, delimiters), (3) dot-repeat degrades cleanly (replays only typed text, not garbled `()hello`). The `maybeReset` mechanism clears delimiter text from the insert-mode change stream so `lastInsertModeChanges.changes` contains only user-typed text. Known limitation: dot-repeat replays only the typed text, not the surrounding delimiters. Macro recording of insert-mode surround keys is also not supported (pre-existing fork limitation). ([#82](https://github.com/saberzero1/motions/issues/82))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`surroundInsert`, `surroundInsertNewline` refactored; `exitInsertMode` deferred-close block removed), `~/Repos/codemirror-vim/src/types.ts` (`surroundInsertClose` property removed)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added insert-mode surround dot-repeat and macro recording limitations
+- `README.md`: Updated surround feature description with insert-mode cursor fix
+- `AGENTS.md`: Updated codemirror-vim fork description noting insert-mode surround refactor
+- `docs/features/surround.md`: Updated insert-mode cursor behavior description
+
 ## [0.77.0] - 2026-07-22
 
 ### Fixed

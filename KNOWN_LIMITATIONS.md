@@ -128,6 +128,13 @@ Settings: `set operatorshadowtimeout=1000` (vimrc), `vim.opt.operatorshadowtimeo
 
 **Not in scope**: Full non-operator `timeoutlen` — keys that are both a built-in prefix and a mapping prefix (e.g., remapping `g` to something other than a prefix) are not covered by the operator-prefix resolver. The existing `keyBuffer` partial match system handles `g`/`z`/`<C-w>` prefixes without timeouts (matching Neovim's behavior for built-in multi-key commands). Full non-operator `timeoutlen` would require a global key dispatch rewrite with broader UX implications and is deferred unless demand arises.
 
+## Insert-mode surround dot-repeat and macro recording
+
+**Status**: Known limitation.
+
+- **Dot-repeat**: `.` after `i<C-G>s{char}text<Esc>` replays only the typed text, not the surrounding delimiters. In vim-surround, dot-repeat includes the delimiters because they are inserted via Vim's register/paste mechanism, which has no CodeMirror equivalent. The degradation is clean — `.` inserts `text` without delimiters rather than producing garbled output.
+- **Macro recording**: `<C-g>s{char}` keys typed during insert mode are not logged to the macro key buffer. This is a pre-existing limitation of the fork's insert-mode macro key logging (`logKey` is only called from `handleKeyNonInsertMode`, not from `handleKeyInsertMode`).
+
 ## ~~Custom text objects via Lua (vim.textobject)~~ (Fixed)
 
 **Status**: Fixed. Lua text object specs are now persisted and re-registered after `reloadFeatures()`.

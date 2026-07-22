@@ -645,6 +645,7 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             expect(await getEditorValue()).toBe('hello"xyz" world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 8 });
         });
 
         it('<C-G>s) should surround typed text with parens', async function () {
@@ -662,6 +663,7 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             expect(await getEditorValue()).toBe('hello(abc) world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 8 });
         });
 
         it('<C-G>s( should surround with spaced parens', async function () {
@@ -679,6 +681,97 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             expect(await getEditorValue()).toBe('hello( abc ) world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 9 });
+        });
+
+        it('<C-G>s) with empty content should leave cursor on opener', async function () {
+            await setupEditor('hello world', { line: 0, ch: 5 });
+            await vimKeys('i');
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['\uE009', 'g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['s']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys([')']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            expect(await getEditorValue()).toBe('hello() world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 5 });
+        });
+
+        it('<C-G>s( with empty content should leave cursor on space after opener', async function () {
+            await setupEditor('hello world', { line: 0, ch: 5 });
+            await vimKeys('i');
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['\uE009', 'g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['s']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['(']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            expect(await getEditorValue()).toBe('hello(  ) world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 6 });
+        });
+
+        it('<C-G>s( should undo fully with two undos', async function () {
+            await setupEditor('hello world', { line: 0, ch: 5 });
+            await vimKeys('i');
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['\uE009', 'g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['s']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['(']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['a', 'b', 'c']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            expect(await getEditorValue()).toBe('hello( abc ) world');
+            await vimKeys('u');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await vimKeys('u');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            expect(await getEditorValue()).toBe('hello world');
+        });
+
+        it('<C-G>s] should surround with brackets', async function () {
+            await setupEditor('hello world', { line: 0, ch: 5 });
+            await vimKeys('i');
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['\uE009', 'g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['s']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys([']']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['a', 'b', 'c']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            expect(await getEditorValue()).toBe('hello[abc] world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 8 });
+        });
+
+        it('<C-G>s{ should surround with spaced braces', async function () {
+            await setupEditor('hello world', { line: 0, ch: 5 });
+            await vimKeys('i');
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['\uE009', 'g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['s']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['{']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['a', 'b', 'c']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            expect(await getEditorValue()).toBe('hello{ abc } world');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 9 });
         });
     });
 
