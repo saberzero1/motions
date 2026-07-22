@@ -31,8 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.74.0
+## What's new in 0.75.0
 
-- **[[settings|Settings organized into 7 pages]]** — the flat list of 20 settings groups is now organized into 7 navigable pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, and Advanced. On Obsidian 1.13+, pages appear as sidebar entries. On pre-1.13, a button tab bar switches between pages. Settings also moved to more logical groupings, and sub-settings now hide when their parent feature is disabled. No settings were added or removed.
+- **[[animated-cursor|Animated cursor blinking]]** — the canvas cursor now blinks with a 1200ms cycle, matching CM6's default behavior. After cursor movement, the cursor stays solid for 600ms before resuming blink. Blink only runs when the editor has focus; unfocused editors show a solid cursor. Suppressed during smear/smooth animation.
+- **Animated cursor scroll fix** — the canvas cursor no longer disappears below line ~28. The canvas now uses viewport-fixed positioning with `coordsAtPos()` coordinates, clipped to the editor pane.
+- **Animated cursor visual mode fix** — entering visual mode no longer displaces the canvas cursor one character to the right.
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-07-22
+
 ### Added
 
 - **Animated cursor blinking** — the canvas cursor now blinks matching CM6's default behavior (1200ms cycle, hard on/off toggle). After cursor movement, the cursor stays solid for 600ms before resuming blink. Blink epoch is aligned to the end of the reset delay so the first blink cycle starts cleanly. Blink only runs when the editor has focus; unfocused editors show a solid cursor. Suppressed during smear/smooth animation (cursor is moving). ([#78](https://github.com/saberzero1/motions/issues/78))
