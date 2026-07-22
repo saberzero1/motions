@@ -131,15 +131,15 @@ class StatusColumnMarker extends GutterMarker {
     private handleFoldClick(): void {
         const state = this.view.state;
         const folded = foldedRanges(state);
-        let isFolded = false;
-        folded.between(this.lineFrom, this.lineFrom, () => {
-            isFolded = true;
+        let foldEnd: number | null = null;
+        folded.between(this.lineFrom, this.lineFrom, (_from, to) => {
+            foldEnd = to;
         });
-        if (isFolded) {
+        if (foldEnd !== null) {
             this.view.dispatch({
                 effects: unfoldEffect.of({
                     from: this.lineFrom,
-                    to: this.lineFrom,
+                    to: foldEnd,
                 }),
             });
         } else {

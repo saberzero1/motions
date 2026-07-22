@@ -18,10 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Animated cursor in oil explorer** — animated cursor now renders in the oil file explorer. Single shared canvas architecture: one canvas on `.app-container` owned by `AnimatedCursorManager`, shared by all controllers. Reduces memory from O(N × viewport) to O(1 × viewport). Each controller clips drawing to its own editor bounds via `ctx.clip()`. `MAX_CONTROLLERS` raised from 8 to 16 with warning log on capacity. Canvas lifecycle managed by the manager (created on first register, removed when last controller deregisters). Null-check on `canvas.getContext('2d')` for browser canvas limits. Table cell editors and textarea vim overlays fall back to the native cursor. ([#78](https://github.com/saberzero1/motions/issues/78))
     - Plugin: `src/vim/animated-cursor/manager.ts` (shared canvas ownership, sizing, lifecycle), `src/vim/animated-cursor/controller.ts` (removed per-controller canvas, draws on shared context), `src/oil/oil-view.ts` (injects `createAnimatedCursorExtension()` when enabled)
 
+### Fixed
+
+- **Fold gutter click does not unfold** — clicking a fold marker (▾) in the fold column or statuscolumn gutter folded the region correctly but clicking again to unfold had no effect. The `unfoldEffect` was dispatched with `{ from: line.from, to: line.from }` (zero-width range) instead of the actual fold range, so CodeMirror found no matching fold decoration to remove. Fixed by capturing the fold's end position from `foldedRanges().between()` and passing the full `{ from, to }` range to `unfoldEffect`. ([#80](https://github.com/saberzero1/motions/issues/80))
+    - Plugin: `src/vim/fold-column.ts` (click handler), `src/vim/statuscolumn.ts` (`handleFoldClick`)
+
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated animated cursor status to Phase 3; noted native cursor restoration in textarea/table cell editors; added table navigation cursor hiding
+- `KNOWN_LIMITATIONS.md`: Added fold gutter unfold fix to folding section
 - `README.md`: Added vimrc/Lua configuration to animated cursor feature description
 - `CONTRIBUTING.md`: Updated `manager.ts` and `config.ts` descriptions for Phase 3 architecture
 - `AGENTS.md`: Updated codemirror-vim fork description with per-view cursor suppression API

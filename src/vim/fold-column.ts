@@ -67,15 +67,15 @@ function createFoldColumnGutter(): Extension {
         domEventHandlers: {
             click(view, line) {
                 const folded = foldedRanges(view.state);
-                let isFolded = false;
-                folded.between(line.from, line.from, () => {
-                    isFolded = true;
+                let foldEnd: number | null = null;
+                folded.between(line.from, line.from, (_from, to) => {
+                    foldEnd = to;
                 });
-                if (isFolded) {
+                if (foldEnd !== null) {
                     view.dispatch({
                         effects: unfoldEffect.of({
                             from: line.from,
-                            to: line.from,
+                            to: foldEnd,
                         }),
                     });
                 } else {

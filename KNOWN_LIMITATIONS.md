@@ -304,6 +304,14 @@ When only absolute line numbers were enabled (`set number` without `set relative
 
 Root cause: the `lineMarkerChange` callback in the CM6 `gutter()` configuration — in both the standalone line number gutter (`src/vim/line-number-gutter.ts`) and the unified `statuscolumn` gutter (`src/vim/statuscolumn.ts`) — returned `update.docChanged` (without `update.selectionSet`) when the mode was absolute-only. This was an optimization assuming the displayed text doesn't change on cursor movement (true for absolute numbers), but it forgot that the `isCurrent` flag on each `LineNumberMarker` also changes — without a re-render, the CSS class was never added/removed. Relative and hybrid modes were unaffected because they already included `update.selectionSet` (the displayed numbers change on every cursor move).
 
+## ~~Fold gutter click does not unfold~~ (Fixed)
+
+**Status**: Fixed. Fold gutter click handlers now pass the actual fold range to `unfoldEffect`. ([#80](https://github.com/saberzero1/motions/issues/80))
+
+Clicking a fold marker (▾) in the fold column (`set foldcolumn`) or `statuscolumn` gutter folded the region correctly, but clicking the same marker again to unfold had no effect. The `unfoldEffect` was dispatched with `{ from: line.from, to: line.from }` — a zero-width range — instead of the actual fold range `{ from, to }`. CodeMirror's fold state management requires the exact range to identify which fold decoration to remove; a zero-width range matches nothing, so the unfold was silently ignored.
+
+Root cause: the `foldedRanges().between()` callback was used only to detect whether a fold existed (setting a boolean flag), but the callback's `to` parameter — which provides the fold's end position — was discarded. The fold path was unaffected because it used `foldable()` which returns the correct `{ from, to }` range. The same bug existed in both `src/vim/fold-column.ts` (standalone fold column gutter) and `src/vim/statuscolumn.ts` (`handleFoldClick` in the unified statuscolumn gutter).
+
 ## `set` option scope
 
 All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".
