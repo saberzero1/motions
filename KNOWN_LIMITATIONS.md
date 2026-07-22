@@ -26,6 +26,35 @@ This document tracks known limitations, architectural constraints, and intention
 
 **Additional test coverage**: 5 fork tests (posFromIndex clamping, negative offset, valid offset, marker doc-shrink, gg/G with stale jumpList) + 3 plugin e2e tests (gg/G after document switch, gg/G after reloadFeatures on shorter document).
 
+## Lua configuration
+
+**Status**: Implemented.
+
+The plugin provides a Lua 5.3 runtime via a browser-only fork of fengari. Configuration is loaded from `init.lua` (or `.obsidian.init.lua`) and supports `vim.keymap.set`, `vim.opt`, `vim.fn`, `vim.api`, and more.
+
+**Known limitations**:
+
+### Expr mapping limitations
+
+- **String expr mappings are not supported** — `vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true })` requires Vimscript expression evaluation which is not available. Use a Lua function callback instead.
+- **Async expr callbacks are not supported** — Expr callbacks run synchronously. Calling async APIs (e.g., `vim.ob.fs.read`) inside an expr callback will error. The callback must return a string immediately.
+- **Expr results do not compose with pending operators** — When an expr mapping runs during operator-pending mode (e.g., `d` followed by an expr-mapped key), the returned keys execute independently. The pending operator state is cleared before the callback runs. `vim.v.operator` is still readable inside the callback.
+- **Count is not auto-forwarded to expr results** — Typing `3K` where `K` is expr-mapped and returns `'j'` will execute `j` once, not three times. Include the count in the returned keys: `return vim.v.count1 .. 'j'`.
+
+### vim.v limitations
+
+- **`vim.v` values in async callbacks are only reliable before the first yield** — In async (non-expr) callbacks, `vim.v.count`, `vim.v.register`, and `vim.v.operator` reflect the values at callback start. After an async yield (`vim.ob.fs.read`, etc.), another callback may have overwritten these values. Read them into local variables at the start of your callback.
+- **`vim.v.count` returns 0 outside callback context** — Reading `vim.v.count` from a timer, autocmd, or `vim.schedule` callback returns 0, not the count from the most recent command.
+
+### vim.v deferred variables
+
+The following `vim.v` variables are registered in the API and return default values, but are not yet populated by their respective subsystems. They will become active when the corresponding features gain Lua evaluation support:
+
+- **`vim.v.foldstart` / `vim.v.foldend` / `vim.v.foldlevel` / `vim.v.folddashes`** — fold text evaluation context variables. Currently return 0/`''`. Will be populated when a custom `foldtext` Lua callback is added (deferred to statuscolumn/foldtext v2). Note: `foldlevel` calculation requires counting enclosing folds, which is not currently tracked by CM6's flat fold decoration system.
+- **`vim.v.lnum` / `vim.v.relnum` / `vim.v.virtnum`** — statuscolumn per-line rendering context variables. Currently return 0. Will be populated when the statuscolumn format string gains Lua expression evaluation (deferred to statuscolumn v2). The injection point (`lineMarker()` in `statuscolumn.ts`) is identified; the variables have no consumer until Lua expressions are supported in the format string.
+- **`vim.v.char`** — character typed during `InsertCharPre` autocmd. Currently writable but never set by the plugin. Will be populated when `InsertCharPre` is added to the supported autocmd events (requires a fork hook into insert-mode character input). Not in the current 19-event list.
+- **`vim.v.insertmode`** — insert mode type (`'i'`/`'r'`/`'v'`). Currently returns `''`. Will be populated when wired to the autocmd mode tracking system (`AutocmdManager.getModeState()`).
+
 ## Cross-note jump list
 
 **Status**: Implemented.

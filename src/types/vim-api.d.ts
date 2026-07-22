@@ -61,6 +61,10 @@ export interface OperatorRange {
 /** Arguments passed to action functions. */
 export interface ActionArgs {
     repeat: number;
+    repeatIsExplicit?: boolean;
+    registerName?: string;
+    pendingOperator?: string;
+    pendingOperatorArgs?: unknown;
     forward?: boolean;
     /** Direction for increment/decrement. true = increment (<C-a>), false = decrement (<C-x>) */
     increase?: boolean;
@@ -220,6 +224,11 @@ export interface VimApi {
     removeMapCommand?(keys: string): boolean;
 
     handleKey(cm: CmAdapter, key: string, origin?: string): boolean;
+    feedKeys?(
+        cm: CmAdapter,
+        keys: string,
+        options?: { noremap?: boolean },
+    ): void;
     handleEx(cm: CmAdapter, input: string): void;
 
     defineOption(
@@ -264,6 +273,7 @@ export interface VimApi {
               isReversed(): boolean | undefined;
               getQuery(): RegExp;
               setQuery(query: string | RegExp): void;
+              getOverlay(): unknown;
           }
         | undefined;
 

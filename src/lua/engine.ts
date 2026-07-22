@@ -8,6 +8,7 @@ export const LUA_TIMEOUT_ERROR = 'Lua execution timed out';
 
 export const CALLBACK_INSTRUCTION_LIMIT = 500_000;
 export const SNIPPET_INSTRUCTION_LIMIT = 100_000;
+export const EXPR_INSTRUCTION_LIMIT = 100_000;
 
 let lastErrorNoticeTime = 0;
 const ERROR_NOTICE_COOLDOWN = 5000;

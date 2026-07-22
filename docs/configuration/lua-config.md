@@ -199,6 +199,78 @@ vim.g.mapleader = "\\"  -- Backslash (default)
 > Always set `vim.g.mapleader` before any `vim.keymap.set` or `vim.obsidian.leader.add` calls.
 > The leader key is substituted at registration time — changing it later won't update existing mappings.
 
+## `vim.v` — Predefined variables
+
+Neovim-compatible read-only predefined variables. Available in keymap callbacks and autocmds.
+
+#### Core variables (available in keymap callbacks)
+
+| Variable         | Type    | Description                                                                      | Default |
+| ---------------- | ------- | -------------------------------------------------------------------------------- | ------- |
+| `vim.v.count`    | integer | Count given for the last Normal mode command. 0 when no count typed.             | `0`     |
+| `vim.v.count1`   | integer | Like `count` but defaults to 1 when no count given.                              | `1`     |
+| `vim.v.register` | string  | Register in effect for the current command. `'"'` (unnamed) when none specified. | `'"'`   |
+| `vim.v.operator` | string  | Pending operator (e.g., `'d'`, `'y'`, `'c'`). Empty string when none.            | `''`    |
+
+#### Search & mode variables
+
+| Variable              | Type    | R/W | Description                                                          |
+| --------------------- | ------- | --- | -------------------------------------------------------------------- |
+| `vim.v.searchforward` | integer | R/W | Search direction: `1` forward, `0` backward                          |
+| `vim.v.insertmode`    | string  | R   | Insert mode type: `'i'` insert, `'r'` replace, `'v'` virtual replace |
+| `vim.v.hlsearch`      | integer | R   | Whether search highlighting is active                                |
+
+#### Constants
+
+| Variable           | Type    | Value               | Description                  |
+| ------------------ | ------- | ------------------- | ---------------------------- |
+| `vim.v.numbermax`  | integer | `9007199254740991`  | Maximum integer (53-bit)     |
+| `vim.v.numbermin`  | integer | `-9007199254740991` | Minimum integer (53-bit)     |
+| `vim.v.numbersize` | integer | `53`                | Number of bits in an integer |
+| `vim.v.true`       | boolean | `true`              | Boolean true                 |
+| `vim.v.false`      | boolean | `false`             | Boolean false                |
+| `vim.v.null`       | nil     | `nil`               | Null value                   |
+
+#### Context-dependent variables
+
+These are only meaningful within specific evaluation contexts (fold expressions, statuscolumn, autocmds):
+
+| Variable           | Type      | R/W | Context                 |
+| ------------------ | --------- | --- | ----------------------- |
+| `vim.v.foldstart`  | integer   | R   | Fold text evaluation    |
+| `vim.v.foldend`    | integer   | R   | Fold text evaluation    |
+| `vim.v.foldlevel`  | integer   | R   | Fold text evaluation    |
+| `vim.v.folddashes` | string    | R   | Fold text evaluation    |
+| `vim.v.lnum`       | integer   | R   | statuscolumn evaluation |
+| `vim.v.relnum`     | integer   | R   | statuscolumn evaluation |
+| `vim.v.virtnum`    | integer   | R   | statuscolumn evaluation |
+| `vim.v.char`       | string    | R/W | `InsertCharPre` autocmd |
+| `vim.v.event`      | table/nil | R   | Autocmd event data      |
+
+#### Example: expr mapping with count
+
+```lua
+-- Use gj/gk for screen-line movement, j/k for counted movement
+vim.keymap.set('n', 'j', function()
+    if vim.v.count == 0 then
+        return 'gj'
+    else
+        return vim.v.count1 .. 'j'
+    end
+end, { expr = true, silent = true })
+
+vim.keymap.set('n', 'k', function()
+    if vim.v.count == 0 then
+        return 'gk'
+    else
+        return vim.v.count1 .. 'k'
+    end
+end, { expr = true, silent = true })
+```
+
+> [!info] Count is not auto-forwarded to expr mapping results
+> Count is not auto-forwarded to expr mapping results. If you type `3j` and your expr callback returns `'j'`, it executes once. Concatenate the count yourself: `return vim.v.count1 .. 'j'`.
+
 ## Supported vim.opt options
 
 All plugin options are available via `vim.opt`. `vim.o` is an alias.
@@ -805,7 +877,7 @@ vim.api.nvim_clear_autocmds({ group = g, event = "InsertEnter" })
 | `silent`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                                                                                                                             |
 | `nowait`  | boolean        | (none)  | Accepted but no effect in Obsidian                                                                                                                                                                             |
 | `buffer`  | number/boolean | (none)  | Buffer-local keymap (`0` or `true` = current file). See Buffer-local keymaps above. Non-zero numbers error.                                                                                                    |
-| `expr`    | (none)         | (none)  | Not supported (throws error)                                                                                                                                                                                   |
+| `expr`    | boolean        | `false` | If `true`, the callback must return a string that is fed as keystrokes. Sync only — async APIs cannot be used in expr callbacks. String rhs not supported for expr.                                            |
 
 ## Obsidian namespace
 

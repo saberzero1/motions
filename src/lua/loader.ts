@@ -538,6 +538,31 @@ export async function loadInitLua(
             editor.replaceRange(text, from, to);
         },
         autocmdManager,
+        getVimApi: () => vim,
+        getSearchForward: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 1;
+            const cm = getCmAdapter(view);
+            if (!cm) return 1;
+            const searchState = vim.getSearchState?.(cm);
+            return searchState?.isReversed() ? 0 : 1;
+        },
+        setSearchForward: (value: number) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cm = getCmAdapter(view);
+            if (!cm) return;
+            const searchState = vim.getSearchState?.(cm);
+            searchState?.setReversed(value === 0);
+        },
+        getHlSearch: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return 0;
+            const cm = getCmAdapter(view);
+            if (!cm) return 0;
+            const searchState = vim.getSearchState?.(cm);
+            return searchState?.getOverlay() ? 1 : 0;
+        },
         onGlobalKeymap: (map) => {
             commandCount++;
             globalMaps.push(map);

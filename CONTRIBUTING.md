@@ -170,7 +170,7 @@ src/
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
     package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua config file loader
-    api.ts                 # vim.keymap, vim.opt, vim.g, vim.cmd, vim.notify, etc.
+    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v (predefined variables), vim.cmd, vim.notify, expr mapping support
     fn.ts                  # vim.fn.* function library (26 functions)
     buffer.ts              # vim.api.nvim_buf_* buffer API
     autocmd.ts             # vim.api.nvim_create_autocmd and augroups

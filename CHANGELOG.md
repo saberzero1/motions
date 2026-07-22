@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`vim.v` namespace — Neovim-compatible predefined variables** — read-only metatable proxy exposing `vim.v.count`, `vim.v.count1`, `vim.v.register`, `vim.v.operator` (Tier 1), `vim.v.searchforward` (read/write), `vim.v.insertmode`, `vim.v.numbermax`/`numbermin`/`numbersize`, `vim.v.true`/`false`/`null` (Tier 2), and `vim.v.foldstart`/`foldend`/`foldlevel`/`folddashes`, `vim.v.lnum`/`relnum`/`virtnum`, `vim.v.char`, `vim.v.hlsearch`, `vim.v.event` (Tier 3 — context-dependent). Context is set from `actionArgs` before each keymap callback invocation and cleared after. `vim.v.event` is populated during autocmd dispatch with the event data table. `vim.v.hlsearch` queries the fork's search overlay state via `getSearchState(cm).getOverlay()`.
+    - Plugin: `src/lua/api.ts` (`VimVContext`, `setVimVContext`, `clearVimVContext`, vim.v metatable, autocmd vim.v.event wiring), `src/lua/loader.ts` (`getVimApi`, `getSearchForward`, `setSearchForward`, `getHlSearch` callbacks), `src/types/vim-api.d.ts` (`ActionArgs` extended, `feedKeys` and `getOverlay` added to `VimApi`), `src/lua/engine.ts` (`EXPR_INSTRUCTION_LIMIT`)
+- **`{ expr = true }` keymap support** — `vim.keymap.set` now accepts `{ expr = true }` for function callbacks. The callback must return a string that is fed as keystrokes via the fork's new `feedKeys` API. Sync-only — async APIs cannot be used in expr callbacks. String expr (Vimscript evaluation) is not supported with a helpful error guiding users to the function form. Recursion guard (200 depth, matching Neovim) prevents infinite expr → feedKeys → expr loops.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`feedKeys` method on VimApi — delegates to `doKeyToKey` with noremap flag and recursion protection)
+    - Plugin: `src/lua/api.ts` (expr callback path with `lua_pcall(state, 0, 1, 0)`, return value capture, `feedKeys` invocation)
+
+### Tests
+
+- 55 unit tests in `test/unit/lua/vim-v.test.ts`: Tier 1 defaults and context (count, count1, register, operator), read-only enforcement, Tier 2 constants (numbermax/min/size, true/false/null), searchforward (callback read/write), insertmode, Tier 3 fold/statuscolumn/event/char variables, hlsearch callback (read from getHlSearch, fallback to context), vim.v.event in autocmd context (multi-field, nested data), expr mapping registration, unknown keys
+- 8 e2e tests in `test/specs/lua-vim-v.e2e.ts`: `vim.v.count` and `vim.v.count1` with and without typed counts, `vim.v.event` populated during InsertEnter/InsertLeave autocmds, `vim.v.hlsearch` returns 1 after `/` search and 0 after `:nohlsearch`
+- 7 e2e tests in `test/specs/lua-expr-mapping.e2e.ts`: expr returns executed keys, expr with count, nil/empty return, error handling, string expr error, special keys
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added expr mapping limitations (string expr, async expr, operator-pending, count forwarding) and vim.v limitations (async callback reliability, outside-callback behavior)
+- `docs/configuration/lua-config.md`: Added `vim.v` section with all variable tables, expr mapping examples, and updated `vim.keymap.set` options table with `expr` documentation
+- `README.md`: Updated Lua configuration feature description with `vim.v` and expr mappings
+- `CONTRIBUTING.md`: Updated `api.ts` description with vim.v namespace and expr mapping support
+- `AGENTS.md`: Updated codemirror-vim fork description with `feedKeys` API, updated Lua API list with `vim.v` (20 variables including event/hlsearch)
+
 ## [0.78.0] - 2026-07-22
 
 ### Fixed
