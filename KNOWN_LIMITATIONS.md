@@ -1654,6 +1654,7 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 - **Incompatible with cursor animation plugins**: ninja-cursor and cursor-smith plugins conflict with the animated cursor. Disable them when using the built-in animated cursor.
 - **Bogus coordinates in replaced widgets**: `coordsToRect()` includes a bounds check to reject bogus coordinates from `coordsAtPos()` when the cursor is inside a replaced widget (e.g., a math block or image). This prevents the cursor from "flying away" to the top-left of the viewport.
 - **Canvas context limits**: The manager includes a null-check on `getContext('2d')` to handle browser-imposed limits on the number of active canvases.
+- ~~**rAF loop death on Windows**~~: Fixed. The rAF loop is now wrapped in try/catch so a single bad frame cannot kill the animation permanently. A 500ms heartbeat `setInterval` detects stalled loops and re-wakes them (covers Windows 11 Efficiency Mode, window occlusion tracking, and high-resolution timer suppression). A `visibilitychange` listener re-wakes the loop when the page regains visibility. Canvas backing-store dimensions are rounded with `Math.round()` for fractional `devicePixelRatio` on Windows displays with 125%/150% scaling.
 
 **Nice-to-have (future iterations)**:
 

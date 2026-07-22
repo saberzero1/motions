@@ -100,6 +100,15 @@ The animated cursor renders in the **oil explorer** — the file manager editor 
 
 Table cell editors and textarea vim overlays use the native cursor instead. These editors have short lifecycles, tiny viewports, and modal z-index constraints that make canvas-based rendering unreliable.
 
+## Cross-platform resilience
+
+The animation loop includes several defenses against platform-specific issues that can silently stop the cursor from rendering:
+
+- **Error recovery**: A single bad frame (e.g., a transient null during window refocus) cannot kill the animation loop. Errors are caught and logged; the loop continues on the next frame.
+- **Heartbeat safety net**: A background timer detects when the animation loop has stalled — due to OS-level throttling, Windows 11 Efficiency Mode, or sleep/wake transitions — and restarts it automatically.
+- **Visibility recovery**: When the Obsidian window is hidden and restored (e.g., switching apps), the animation loop re-wakes immediately.
+- **Fractional DPI handling**: Canvas dimensions are rounded to avoid sub-pixel artifacts on Windows displays with 125%/150% scaling.
+
 ## Incompatibilities
 
 The animated cursor is incompatible with other cursor animation plugins:

@@ -98,7 +98,7 @@ src/
       smooth-cursor.ts       # Exponential position interpolation with convergence detection
       physics.ts             # 4-corner spring-damper simulation (smear trail)
       renderer.ts            # Canvas cursor shape drawing + smear quad rendering
-      manager.ts             # Global rAF scheduler + shared canvas owner
+      manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery
       controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing
       config.ts              # Module-level getters/setters + per-view pause/resume API
   text-objects/
