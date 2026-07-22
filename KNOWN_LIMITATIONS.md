@@ -1646,7 +1646,7 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 **Nice-to-have (future iterations)**:
 
 - **Insert mode trail suppression**: Shorter or disabled smear trail in insert mode to avoid distracting trails during typing (matching smear-cursor.nvim's `max_length_insert_mode: 1`).
-- **Operator-pending mode detection**: Operator-pending mode (`d`, `c`, `y` waiting for motion) is not detected — falls through to normal mode. Would need checking `vim.inputState.operator`.
+- ~~**Operator-pending mode detection**~~: Fixed. Operator-pending mode (`d`, `c`, `y` waiting for motion) is now detected via `vim.inputState.operator` with per-frame shape polling.
 - **`vim.opt.smoothcursor` / vimrc `set smoothcursor`**: Configuration from Lua and vimrc for all animated cursor parameters.
 - **Multi-editor support**: Animated cursor in table cell editors and oil explorer (Phase 3).
 - **Built-in vim mode support**: Position source validation and cursor hiding for Obsidian's built-in vim mode (Phase 4).

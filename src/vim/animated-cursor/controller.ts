@@ -199,6 +199,20 @@ class CursorController implements Tickable {
             this.refreshTarget();
         }
 
+        const liveShape = getCursorShapeForMode(this.resolveVimMode());
+        if (liveShape !== this.currentShape && this.cachedRect) {
+            this.currentShape = liveShape;
+            const shapeRect = this.shapeAdjustedRect(
+                this.cachedRect,
+                liveShape,
+            );
+            this.cachedShapeRect = shapeRect;
+            this.smooth.setTarget(shapeRect);
+            this.smear.setTarget(shapeRect);
+            this.smooth.snap();
+            this.smear.snap();
+        }
+
         const reducedMotion = window.matchMedia(
             '(prefers-reduced-motion: reduce)',
         ).matches;
@@ -320,6 +334,10 @@ class CursorController implements Tickable {
                 if (vim.visualBlock) return 'visual block';
                 return 'visual';
             }
+            const inputState = vim.inputState as
+                | Record<string, unknown>
+                | undefined;
+            if (vim.status || inputState?.operator) return 'operator-pending';
             return 'normal';
         } catch {
             return undefined;
