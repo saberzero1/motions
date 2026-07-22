@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.75.1] - 2026-07-22
+
 ### Fixed
 
 - **Animated cursor stays as block in operator-pending mode** — pressing `d`, `c`, `y`, or other operators without a motion kept the cursor as a block instead of switching to the configured operator-pending shape (default: underline). Two issues: (1) `resolveVimMode()` only checked `vim.status` (set for prompt-based pending like surround) but not `vim.inputState.operator` (set for standard operators like `d`/`c`/`y`). (2) Operator-pending is a transient state that doesn't trigger CM6 transactions, so the ViewPlugin's `update()` never fired. Fixed by checking `inputState.operator` in `resolveVimMode()` and polling the cursor shape every rAF frame in `tick()` to detect changes that bypass CM6's transaction system. ([#78](https://github.com/saberzero1/motions/issues/78))
