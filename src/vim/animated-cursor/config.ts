@@ -39,6 +39,20 @@ export function setCursorShapes(shapes: Record<string, string>): void {
     cursorShapesByMode = { ...shapes } as Record<string, CursorShape>;
 }
 
+const pausedViews = new Set<unknown>();
+
+export function pauseAnimatedCursorForView(view: unknown): void {
+    pausedViews.add(view);
+}
+
+export function resumeAnimatedCursorForView(view: unknown): void {
+    pausedViews.delete(view);
+}
+
+export function isAnimatedCursorPausedForView(view: unknown): boolean {
+    return pausedViews.has(view);
+}
+
 const MODE_TO_SHAPE_KEY: Record<string, string> = {
     normal: 'normal',
     insert: 'insert',

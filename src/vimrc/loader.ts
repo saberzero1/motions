@@ -8,6 +8,8 @@ import {
     setClipboardOption,
     parseGuicursor,
 } from '../vim/options';
+import { setAnimatedCursorConfig } from '../vim/animated-cursor/config';
+import { setCursorSuppressed } from '@replit/codemirror-vim';
 import { parseLine, parseVimrc } from './parser';
 import type { VimrcCommand } from './parser';
 import {
@@ -312,6 +314,109 @@ KNOWN_SET_OPTIONS['clip'] = clipboardOpt;
 KNOWN_SET_OPTIONS['textwidth'] = textwidthOpt;
 KNOWN_SET_OPTIONS['tw'] = textwidthOpt;
 KNOWN_SET_OPTIONS['guicursor'] = guicursorOpt;
+
+// ── Animated cursor options ─────────────────────────────────────────
+// Master toggle: enables/disables canvas cursor + fork cursor suppression.
+// Requires reloadFeatures() because the CM6 extension is registered once.
+const smoothcursorOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const enabled = value !== false;
+        setAnimatedCursorConfig({ enabled });
+        setCursorSuppressed(enabled);
+        onSettingOverride?.('animatedCursor', enabled, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursor'] = smoothcursorOpt;
+KNOWN_SET_OPTIONS['sc'] = smoothcursorOpt;
+
+// Sub-options: sync settings + module-level config. No reloadFeatures needed.
+const smoothcursorglideOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const enabled = value !== false;
+        setAnimatedCursorConfig({ smoothCursor: enabled });
+        onSettingOverride?.('smoothCursor', enabled, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursorglide'] = smoothcursorglideOpt;
+KNOWN_SET_OPTIONS['scg'] = smoothcursorglideOpt;
+
+const smoothcursorsmoothnessOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (isNaN(n)) return;
+        const clamped = Math.max(0, Math.min(1, n));
+        setAnimatedCursorConfig({ smoothness: clamped });
+        onSettingOverride?.('cursorSmoothness', clamped, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursorsmoothness'] = smoothcursorsmoothnessOpt;
+KNOWN_SET_OPTIONS['scs'] = smoothcursorsmoothnessOpt;
+
+const smoothcursorsmearOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const enabled = value !== false;
+        setAnimatedCursorConfig({ smearTrail: enabled });
+        onSettingOverride?.('smearTrail', enabled, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursorsmear'] = smoothcursorsmearOpt;
+KNOWN_SET_OPTIONS['scm'] = smoothcursorsmearOpt;
+
+const smoothcursorstiffnessOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (isNaN(n)) return;
+        const clamped = Math.max(0.1, Math.min(1, n));
+        setAnimatedCursorConfig({ stiffness: clamped });
+        onSettingOverride?.('smearStiffness', clamped, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursorstiffness'] = smoothcursorstiffnessOpt;
+KNOWN_SET_OPTIONS['scst'] = smoothcursorstiffnessOpt;
+
+const smoothcursortrailstiffnessOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (isNaN(n)) return;
+        const clamped = Math.max(0.1, Math.min(1, n));
+        setAnimatedCursorConfig({ trailingStiffness: clamped });
+        onSettingOverride?.('smearTrailingStiffness', clamped, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursortrailstiffness'] = smoothcursortrailstiffnessOpt;
+KNOWN_SET_OPTIONS['scts'] = smoothcursortrailstiffnessOpt;
+
+const smoothcursordampingOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (isNaN(n)) return;
+        const clamped = Math.max(0.1, Math.min(0.99, n));
+        setAnimatedCursorConfig({ damping: clamped });
+        onSettingOverride?.('smearDamping', clamped, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursordamping'] = smoothcursordampingOpt;
+KNOWN_SET_OPTIONS['scd'] = smoothcursordampingOpt;
+
+const smoothcursormaxlengthOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (isNaN(n)) return;
+        const clamped = Math.max(50, Math.min(800, n));
+        setAnimatedCursorConfig({ maxLength: clamped });
+        onSettingOverride?.('smearMaxLength', clamped, directive);
+    },
+};
+KNOWN_SET_OPTIONS['smoothcursormaxlength'] = smoothcursormaxlengthOpt;
+KNOWN_SET_OPTIONS['scml'] = smoothcursormaxlengthOpt;
 
 function applyKnownSetOption(
     optName: string,

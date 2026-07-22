@@ -18,6 +18,14 @@ import { setActiveEditTableRange } from './table-render-widget';
 import { openCellEditor, closeCellEditor } from './table-cell-editor';
 import { getCmAdapterFromEditorView, getVimApi } from './vim-api';
 import {
+    setCursorSuppressedForView,
+    clearCursorSuppressedForView,
+} from '@replit/codemirror-vim';
+import {
+    pauseAnimatedCursorForView,
+    resumeAnimatedCursorForView,
+} from './animated-cursor/config';
+import {
     tableAddRowAfter,
     tableAddRowBefore,
     tableDeleteRow,
@@ -52,6 +60,8 @@ class TableNavController implements PluginValue {
     private readonly view: EditorView;
     private readonly isNested: boolean;
     private pendingTimer: number | null = null;
+    private cursorInTable = false;
+    private exitingTable = false;
 
     constructor(view: EditorView) {
         this.view = view;
@@ -66,8 +76,24 @@ class TableNavController implements PluginValue {
             if (this.state !== 'inactive') this.exitTable();
             return;
         }
-        if (this.state !== 'inactive') return; // Don't interfere while navigating/editing
+        if (this.state !== 'inactive') return;
         if (!(update.selectionSet || update.docChanged)) return;
+
+        if (update.selectionSet && !this.exitingTable) {
+            const tables = findTableRanges(update.state);
+            const inTable = tables.some((t) =>
+                cursorInRange(update.state, t.from, t.to),
+            );
+            if (inTable && !this.cursorInTable) {
+                setCursorSuppressedForView(this.view, true);
+                pauseAnimatedCursorForView(this.view);
+            } else if (!inTable && this.cursorInTable) {
+                clearCursorSuppressedForView(this.view);
+                resumeAnimatedCursorForView(this.view);
+            }
+            this.cursorInTable = inTable;
+        }
+
         this.scheduleCheck();
     }
 
@@ -110,7 +136,10 @@ class TableNavController implements PluginValue {
             return;
         }
 
-        // Set D12 guard
+        setCursorSuppressedForView(this.view, true);
+        pauseAnimatedCursorForView(this.view);
+        this.view.dispatch();
+
         setActiveEditTableRange({ from: table.from, to: table.to });
 
         const cursorPos = this.view.state.selection.main.head;
@@ -157,10 +186,15 @@ class TableNavController implements PluginValue {
         this.activeTable = null;
         this.widgetEl = null;
         this.state = 'inactive';
+        this.cursorInTable = false;
+        this.exitingTable = true;
+        clearCursorSuppressedForView(this.view);
+        resumeAnimatedCursorForView(this.view);
         this.view.dispatch({
             selection: { anchor: this.view.state.selection.main.head },
         });
         this.view.focus();
+        this.exitingTable = false;
     }
 
     private enterCellEdit(

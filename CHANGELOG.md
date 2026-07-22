@@ -7,9 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Per-view cursor suppression fork API** — added `setCursorSuppressedForView(view, suppressed)`, `clearCursorSuppressedForView(view)`, and `isCursorSuppressedForView(view)` to the codemirror-vim fork. Per-view overrides take precedence over the global `setCursorSuppressed` state, allowing the plugin to selectively restore the native cursor in specific contexts (table cell editors, textarea overlays) or force suppression (table navigation) without affecting other editors. Overrides are automatically cleaned up when the editor's `BlockCursorPlugin` is destroyed.
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (per-view state map, API implementation, cleanup in `destroy`)
+
+- **Animated cursor vimrc/Lua configuration** — all 8 animated cursor settings are now configurable via vimrc (`set smoothcursor`, `set smoothcursorsmoothness=0.3`, etc.) and Lua (`vim.opt.smoothcursor = true`, etc.). Master toggle `smoothcursor` enables/disables the feature with `reloadFeatures()`. Sub-options (`smoothcursorglide`, `smoothcursorsmoothness`, `smoothcursorsmear`, `smoothcursorstiffness`, `smoothcursortrailstiffness`, `smoothcursordamping`, `smoothcursormaxlength`) hot-reload without restart. All use `SideEffectOpt` pattern syncing both `settings[key]` and module-level config. Short aliases: `sc`, `scg`, `scs`, `scm`, `scst`, `scts`, `scd`, `scml`. ([#78](https://github.com/saberzero1/motions/issues/78))
+    - Plugin: `src/vimrc/loader.ts` (16 `SideEffectOpt` entries), `src/settings.ts` (`animatedCursor` added to `RELOAD_KEYS`)
+
+- **Animated cursor in oil explorer** — animated cursor now renders in the oil file explorer. Single shared canvas architecture: one canvas on `.app-container` owned by `AnimatedCursorManager`, shared by all controllers. Reduces memory from O(N × viewport) to O(1 × viewport). Each controller clips drawing to its own editor bounds via `ctx.clip()`. `MAX_CONTROLLERS` raised from 8 to 16 with warning log on capacity. Canvas lifecycle managed by the manager (created on first register, removed when last controller deregisters). Null-check on `canvas.getContext('2d')` for browser canvas limits. Table cell editors and textarea vim overlays fall back to the native cursor. ([#78](https://github.com/saberzero1/motions/issues/78))
+    - Plugin: `src/vim/animated-cursor/manager.ts` (shared canvas ownership, sizing, lifecycle), `src/vim/animated-cursor/controller.ts` (removed per-controller canvas, draws on shared context), `src/oil/oil-view.ts` (injects `createAnimatedCursorExtension()` when enabled)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated animated cursor status to Phase 3; noted native cursor restoration in textarea/table cell editors; added table navigation cursor hiding
+- `README.md`: Added vimrc/Lua configuration to animated cursor feature description
+- `CONTRIBUTING.md`: Updated `manager.ts` and `config.ts` descriptions for Phase 3 architecture
+- `AGENTS.md`: Updated codemirror-vim fork description with per-view cursor suppression API
+- `docs/features/animated-cursor.md`: Added vimrc/Lua configuration section and oil explorer support section
+- `docs/configuration/vimrc.md`: Added `smoothcursor`, `smoothcursorsmoothness`, `smoothcursorsmear` to boolean options; added `smoothcursorsmoothness`, `smoothcursorstiffness`, `smoothcursortrailstiffness`, `smoothcursordamping`, `smoothcursormaxlength` to number options
+- `docs/configuration/lua-config.md`: Added all 8 `smoothcursor*` entries to vim.opt options table
+
 ## [0.75.1] - 2026-07-22
 
 ### Fixed
+
+- **Table navigation cursor ghost** — both native and animated cursors are now hidden during embedded table navigation. Early suppression in the `ViewPlugin` update cycle eliminates the brief cursor flash when entering a table. The animated cursor snaps to the exit position (no interpolation) when resuming after table navigation to prevent cross-table "ghost" trails.
+    - Plugin: `src/vim/table-nav-controller.ts` (calls `setCursorSuppressedForView` and `pauseAnimatedCursorForView`)
+
+- **Textarea overlay invisible cursor** — the native cursor is now restored in textarea vim overlays by un-suppressing it for the overlay's editor view. Previously, the global suppression for the animated cursor made the native cursor invisible in the overlay where the animated cursor doesn't render.
+    - Plugin: `src/vim/textarea-vim-manager.ts` (calls `setCursorSuppressedForView(view, false)`)
+
+- **Table cell editor cursor inconsistency** — per-view un-suppression ensures the native cursor always renders inside embedded table cell editors, matching the behavior of textarea overlays.
+    - Plugin: `src/vim/table-cell-editor.ts` (calls `setCursorSuppressedForView(view, false)`)
 
 - **Animated cursor stays as block in operator-pending mode** — pressing `d`, `c`, `y`, or other operators without a motion kept the cursor as a block instead of switching to the configured operator-pending shape (default: underline). Two issues: (1) `resolveVimMode()` only checked `vim.status` (set for prompt-based pending like surround) but not `vim.inputState.operator` (set for standard operators like `d`/`c`/`y`). (2) Operator-pending is a transient state that doesn't trigger CM6 transactions, so the ViewPlugin's `update()` never fired. Fixed by checking `inputState.operator` in `resolveVimMode()` and polling the cursor shape every rAF frame in `tick()` to detect changes that bypass CM6's transaction system. ([#78](https://github.com/saberzero1/motions/issues/78))
     - Plugin: `src/vim/animated-cursor/controller.ts` (`resolveVimMode` checks `inputState.operator`, per-frame shape polling in `tick`)

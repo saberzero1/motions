@@ -7,6 +7,11 @@ import {
 import { getVimApi, getCmAdapterFromEditorView } from './vim-api';
 import { isBundledVimActive } from './bundled-vim';
 import type { CursorShapes } from '../settings';
+import { getAnimatedCursorConfig } from './animated-cursor/config';
+import {
+    setCursorSuppressedForView,
+    clearCursorSuppressedForView,
+} from '@replit/codemirror-vim';
 
 const DEBOUNCE_FOCUS_MS = 150;
 const DEBOUNCE_SYNC_MS = 100;
@@ -176,6 +181,13 @@ export class TextareaVimManager {
         };
 
         editor.load();
+
+        if (getAnimatedCursorConfig().enabled) {
+            const overlayView = editor.getEditorView();
+            setCursorSuppressedForView(overlayView, false);
+            overlayView.dispatch();
+        }
+
         editor.focus();
 
         this.enterInsertMode(editor);
@@ -253,6 +265,12 @@ export class TextareaVimManager {
         const { originalEl, wrapper, editor, syncTimer, observer } =
             this.active;
         this.active = null;
+
+        try {
+            clearCursorSuppressedForView(editor.getEditorView());
+        } catch {
+            /* editor may already be detached */
+        }
 
         if (syncTimer !== null) window.clearTimeout(syncTimer);
 

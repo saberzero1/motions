@@ -13,6 +13,8 @@ import {
 import { oilConcealExtension } from './extensions';
 import type { OilCache } from './cache';
 import type { OilManager } from './manager';
+import { getAnimatedCursorConfig } from '../vim/animated-cursor/config';
+import { createAnimatedCursorExtension } from '../vim/animated-cursor/controller';
 
 export const OIL_VIEW_TYPE = 'oil-explorer';
 
@@ -51,9 +53,13 @@ export class OilView extends View {
         const renderedContent = this.manager.renderDirectoryToBuffer(
             this.dirPath,
         );
+        const oilExtensions = [oilConcealExtension()];
+        if (getAnimatedCursorConfig().enabled) {
+            oilExtensions.push(createAnimatedCursorExtension());
+        }
         this.editor = createEmbeddableEditor(this.app, contentEl, {
             value: renderedContent,
-            extensions: [oilConcealExtension()],
+            extensions: oilExtensions,
             cursorShapes: this.settings.cursorShapes,
             cls: 'vim-motions-oil-editor',
         });

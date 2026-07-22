@@ -27,5 +27,11 @@ declare module '@replit/codemirror-vim' {
     export function getCM(view: EditorView): CodeMirror | null;
     export function setLivePreviewField(field: StateField<boolean>): void;
     export function setCursorSuppressed(suppressed: boolean): void;
+    export function setCursorSuppressedForView(
+        view: EditorView,
+        suppressed: boolean,
+    ): void;
+    export function clearCursorSuppressedForView(view: EditorView): void;
+    export function isCursorSuppressedForView(view: EditorView): boolean;
     export const Vim: Record<string, unknown>;
 }

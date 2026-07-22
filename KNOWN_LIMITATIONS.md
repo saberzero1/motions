@@ -87,7 +87,7 @@ Shadow undo tree tracking branching history parallel to CM6's linear undo stacks
 
 ## Flash motions
 
-**Status**: Working (Phase 1 + Phase 2 + Phase 3A + Phase 3B).
+**Status**: Working (Phase 1 + Phase 2 + Phase 3).
 
 Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches when 2+ matches exist. Single-match cases autojump (stock Vim behavior preserved).
 
@@ -1628,27 +1628,32 @@ Gated behind the existing `enableTextObjects` setting.
 
 ## Animated cursor (smear + smooth movement)
 
-**Status**: Implemented (Phase 1 + Phase 2). ([#78](https://github.com/saberzero1/motions/issues/78))
+**Status**: Implemented (Phase 1 + Phase 2 + Phase 3). ([#78](https://github.com/saberzero1/motions/issues/78))
 
-Canvas-based animated cursor with smooth movement and spring-damper smear trail. Per-mode cursor shape rendering (block, bar, underline, hollow). Fork-side cursor suppression via `setCursorSuppressed()`. Disabled by default — enable via **Settings → Vim Motions → Animated cursor**.
+Canvas-based animated cursor with smooth movement and spring-damper smear trail. Per-mode cursor shape rendering (block, bar, underline, hollow). Fork-side cursor suppression via `setCursorSuppressed()`. Disabled by default — enable via **Settings → Vim Motions → Animated cursor** or `set smoothcursor` / `vim.opt.smoothcursor = true`.
 
 **Known limitations**:
 
 - **Fork mode only**: The animated cursor requires the bundled codemirror-vim fork. It does not work with Obsidian's built-in vim mode.
 - **Pop-out windows**: The rAF scheduler uses the main window's `requestAnimationFrame`. Canvases in pop-out windows are not ticked.
-- **Textarea vim overlays**: Animated cursor does not render in textarea vim overlay editors (modal inputs).
-- **Table cell editors**: Animated cursor does not render in embedded table cell editors (Phase 3).
 - **Cursorline desync**: When the cursor animates from one line to another, the cursorline highlight jumps instantly to the destination (driven by selection state). The cursorline does not animate in sync with the smooth cursor.
 - ~~**No cursor blink**~~: Fixed. The canvas cursor now blinks matching CM6's default behavior (1200ms cycle, 600ms reset delay after movement). Blink only when focused.
-- **No `vim.opt` / vimrc configuration**: Animated cursor settings are only available in the settings UI. `set smoothcursor` / `vim.opt.smoothcursor` are not yet implemented.
+- ~~**No `vim.opt` / vimrc configuration**~~: Fixed. All 8 animated cursor settings are available via `set smoothcursor` / `vim.opt.smoothcursor` and related options.
+- **Textarea and table cell editor fallback**: The animated cursor does not render inside textarea vim overlays or embedded table cell editors. These contexts now have the native cursor restored via per-view un-suppression (`setCursorSuppressedForView(view, false)`), ensuring a visible cursor is always present.
+- **Table navigation cursor hiding**: Both native and animated cursors are hidden during embedded table navigation. Early suppression eliminates cursor flash on entry. The animated cursor snaps to the exit position (no interpolation) when resuming after table navigation.
+- **Multi-editor support**: The animated cursor now supports multiple editors (including the oil file explorer) via a single shared canvas architecture. `MAX_CONTROLLERS` is 16.
+- **Multi-cursor**: Only the primary cursor is animated. Secondary cursors (from visual block or multi-cursor plugins) are not rendered by the animated cursor.
 - **Incompatible with cursor animation plugins**: ninja-cursor and cursor-smith plugins conflict with the animated cursor. Disable them when using the built-in animated cursor.
+- **Bogus coordinates in replaced widgets**: `coordsToRect()` includes a bounds check to reject bogus coordinates from `coordsAtPos()` when the cursor is inside a replaced widget (e.g., a math block or image). This prevents the cursor from "flying away" to the top-left of the viewport.
+- **Canvas context limits**: The manager includes a null-check on `getContext('2d')` to handle browser-imposed limits on the number of active canvases.
 
 **Nice-to-have (future iterations)**:
 
 - **Insert mode trail suppression**: Shorter or disabled smear trail in insert mode to avoid distracting trails during typing (matching smear-cursor.nvim's `max_length_insert_mode: 1`).
 - ~~**Operator-pending mode detection**~~: Fixed. Operator-pending mode (`d`, `c`, `y` waiting for motion) is now detected via `vim.inputState.operator` with per-frame shape polling.
-- **`vim.opt.smoothcursor` / vimrc `set smoothcursor`**: Configuration from Lua and vimrc for all animated cursor parameters.
-- **Multi-editor support**: Animated cursor in table cell editors and oil explorer (Phase 3).
+- ~~**`vim.opt.smoothcursor` / vimrc `set smoothcursor`**~~: Fixed. All 8 options available via vimrc (`set smoothcursor`, `set smoothcursorsmoothness=0.3`, etc.) and Lua (`vim.opt.smoothcursor = true`, etc.).
+- ~~**Oil explorer support**~~: Fixed. Animated cursor renders in oil explorer via shared single-canvas architecture. Table cell editors and textarea overlays fall back to native cursor.
+- **Multi-cursor animation**: Animate secondary cursors (static indicators or spring physics). Deferred to Phase 4+ — multi-cursor in vim is uncommon.
 - **Built-in vim mode support**: Position source validation and cursor hiding for Obsidian's built-in vim mode (Phase 4).
 - **Pop-out window support**: Per-window rAF scheduling for pop-out windows (Phase 4).
 

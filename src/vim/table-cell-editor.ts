@@ -6,6 +6,11 @@ import {
 } from '../editors/embeddable-editor';
 import { getCellDocumentRange } from './table-utils';
 import type { CursorShape, CursorShapes } from '../settings';
+import { getAnimatedCursorConfig } from './animated-cursor/config';
+import {
+    setCursorSuppressedForView,
+    clearCursorSuppressedForView,
+} from '@replit/codemirror-vim';
 
 export interface CellEditorHandle {
     editor: EmbeddableMarkdownEditor;
@@ -93,6 +98,13 @@ export function openCellEditor(
     });
 
     editor.load();
+
+    if (getAnimatedCursorConfig().enabled) {
+        const cellView = editor.getEditorView();
+        setCursorSuppressedForView(cellView, false);
+        cellView.dispatch();
+    }
+
     editor.focus();
 
     activeHandle = {
@@ -116,6 +128,12 @@ export function closeCellEditor(mainView: EditorView | null): {
         activeHandle;
     const newText = editor.getValue().trim();
     const changed = newText !== originalText;
+
+    try {
+        clearCursorSuppressedForView(editor.getEditorView());
+    } catch {
+        /* editor may already be detached */
+    }
 
     try {
         editor.destroy();

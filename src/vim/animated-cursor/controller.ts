@@ -10,14 +10,32 @@ import {
 } from './renderer';
 import { getAnimatedCursorManager, type Tickable } from './manager';
 import type { CursorRect, CursorShape } from './types';
-import { getAnimatedCursorConfig, getCursorShapeForMode } from './config';
+import {
+    getAnimatedCursorConfig,
+    getCursorShapeForMode,
+    isAnimatedCursorPausedForView,
+} from './config';
 import { getCmAdapterFromEditorView } from '../vim-api';
+import {
+    setCursorSuppressedForView,
+    clearCursorSuppressedForView,
+} from '@replit/codemirror-vim';
 
 const STALE_THRESHOLD_MS = 100;
 
 function coordsToRect(view: EditorView, pos: number): CursorRect | null {
     const coords = view.coordsAtPos(pos, 1);
     if (!coords) return null;
+
+    const pane = view.scrollDOM.getBoundingClientRect();
+    if (
+        coords.left < pane.left - 1 ||
+        coords.left > pane.right + 1 ||
+        coords.top < pane.top - 1 ||
+        coords.bottom > pane.bottom + 1
+    ) {
+        return null;
+    }
 
     const left = coords.left;
     const top = coords.top;
@@ -41,11 +59,8 @@ function coordsToRect(view: EditorView, pos: number): CursorRect | null {
 }
 
 class CursorController implements Tickable {
-    private canvas: HTMLCanvasElement;
-    private ctx: CanvasRenderingContext2D;
     private smooth = new SmoothCursor();
     private smear = new SmearPhysics();
-    private resizeObserver: ResizeObserver;
     private accentColor = '#7f6df2';
     private currentShape: CursorShape = 'block';
     private blockChar: BlockCharInfo | undefined;
@@ -63,18 +78,7 @@ class CursorController implements Tickable {
     private destroyed = false;
 
     constructor(private view: EditorView) {
-        const doc = view.dom.ownerDocument;
-        const container =
-            doc.querySelector<HTMLElement>('.app-container') ?? doc.body;
-        this.canvas = container.createEl('canvas', {
-            cls: 'vim-motions-animated-cursor-canvas',
-            attr: { role: 'presentation', 'aria-hidden': 'true' },
-        });
-        this.ctx = this.canvas.getContext('2d')!;
-        this.sizeCanvas();
-
-        this.resizeObserver = new ResizeObserver(() => this.sizeCanvas());
-        this.resizeObserver.observe(view.scrollDOM);
+        setCursorSuppressedForView(view, true);
 
         view.scrollDOM.addEventListener(
             'compositionstart',
@@ -98,20 +102,6 @@ class CursorController implements Tickable {
         this.needsPositionUpdate = true;
         getAnimatedCursorManager().wake();
     };
-
-    private sizeCanvas(): void {
-        if (this.destroyed) return;
-        const dpr = window.devicePixelRatio || 1;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        if (this.canvas.width !== w * dpr || this.canvas.height !== h * dpr) {
-            this.canvas.width = w * dpr;
-            this.canvas.height = h * dpr;
-            this.canvas.style.width = w + 'px';
-            this.canvas.style.height = h + 'px';
-            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        }
-    }
 
     update(vu: ViewUpdate): void {
         if (this.destroyed) return;
@@ -142,7 +132,6 @@ class CursorController implements Tickable {
         } else if (scrollChanged) {
             const selectionHead = vu.state.selection.main.head;
             if (selectionHead === this.cachedDocPos) {
-                // Scroll only — snap, no trail
                 this.needsPositionUpdate = true;
                 this.active = true;
                 this.snapOnNextTick = true;
@@ -171,11 +160,19 @@ class CursorController implements Tickable {
     }
 
     private snapOnNextTick = false;
+    private wasPaused = false;
 
-    tick(dt: number): void {
-        if (this.destroyed || this.composing) {
+    tick(dt: number, ctx: CanvasRenderingContext2D): void {
+        const paused = isAnimatedCursorPausedForView(this.view);
+        if (this.destroyed || this.composing || !this.view.hasFocus || paused) {
+            this.wasPaused = paused;
             this.active = false;
             return;
+        }
+        if (this.wasPaused) {
+            this.wasPaused = false;
+            this.snapOnNextTick = true;
+            this.needsPositionUpdate = true;
         }
 
         const config = getAnimatedCursorConfig();
@@ -239,7 +236,7 @@ class CursorController implements Tickable {
             this.smooth.tick(dt, config.smoothness);
         }
 
-        this.draw(config, useSmear, useSmooth);
+        this.draw(ctx, config, useSmear, useSmooth);
 
         const animating = useSmear
             ? !this.smear.isConverged()
@@ -381,41 +378,35 @@ class CursorController implements Tickable {
     }
 
     private draw(
+        ctx: CanvasRenderingContext2D,
         _config: unknown,
         useSmear: boolean,
         useSmooth: boolean,
     ): void {
         const paneRect = this.view.scrollDOM.getBoundingClientRect();
-        this.sizeCanvas();
-        this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        this.ctx.save();
-        this.ctx.beginPath();
-        this.ctx.rect(
-            paneRect.left,
-            paneRect.top,
-            paneRect.width,
-            paneRect.height,
-        );
-        this.ctx.clip();
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(paneRect.left, paneRect.top, paneRect.width, paneRect.height);
+        ctx.clip();
 
         if (!this.cachedRect) {
-            this.ctx.restore();
+            ctx.restore();
             return;
         }
 
         const blinkAlpha = this.computeBlinkAlpha();
         if (blinkAlpha <= 0) {
-            this.ctx.restore();
+            ctx.restore();
             return;
         }
-        this.ctx.globalAlpha = blinkAlpha;
+        ctx.globalAlpha = blinkAlpha;
 
         const charInfo =
             this.currentShape === 'block' ? this.blockChar : undefined;
 
         if (useSmear) {
             drawSmearCursor(
-                this.ctx,
+                ctx,
                 this.smear.getQuad(),
                 this.cachedRect,
                 this.currentShape,
@@ -425,20 +416,20 @@ class CursorController implements Tickable {
         } else {
             const rect = useSmooth ? this.smooth.current() : this.cachedRect;
             drawCursorShape(
-                this.ctx,
+                ctx,
                 rect,
                 this.currentShape,
                 this.accentColor,
                 charInfo,
             );
         }
-        this.ctx.restore();
+        ctx.restore();
     }
 
     destroy(): void {
         this.destroyed = true;
+        clearCursorSuppressedForView(this.view);
         getAnimatedCursorManager().deregister(this);
-        this.resizeObserver.disconnect();
         this.view.scrollDOM.removeEventListener(
             'compositionstart',
             this.onCompositionStart,
@@ -447,7 +438,6 @@ class CursorController implements Tickable {
             'compositionend',
             this.onCompositionEnd,
         );
-        this.canvas.remove();
     }
 }
 

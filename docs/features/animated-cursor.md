@@ -64,6 +64,42 @@ The animated cursor blinks matching CM6's default behavior:
 
 The animated cursor respects the `prefers-reduced-motion` media query. When reduced motion is preferred, the cursor snaps instantly to its target position without animation.
 
+## Vimrc and Lua configuration
+
+All animated cursor settings are available via vimrc and Lua. The option names use the `smoothcursor` prefix:
+
+```vim
+" Enable animated cursor
+set smoothcursor
+
+" Smooth movement (glide between positions)
+set smoothcursorglide
+set smoothcursorsmoothness=0.5
+
+" Smear trail
+set smoothcursorsmear
+set smoothcursorstiffness=0.6
+set smoothcursortrailstiffness=0.3
+set smoothcursordamping=0.85
+set smoothcursormaxlength=400
+```
+
+```lua
+-- Lua equivalent
+vim.opt.smoothcursor = true
+vim.opt.smoothcursorglide = true
+vim.opt.smoothcursorsmoothness = 0.3
+vim.opt.smoothcursorsmear = true
+```
+
+See [[vimrc#Boolean options]] and [[lua-config#Supported vim.opt options]] for the full option reference.
+
+## Embeddable editors
+
+The animated cursor renders in the **oil explorer** — the file manager editor shares the same canvas as regular editors.
+
+Table cell editors and textarea vim overlays use the native cursor instead. These editors have short lifecycles, tiny viewports, and modal z-index constraints that make canvas-based rendering unreliable.
+
 ## Incompatibilities
 
 The animated cursor is incompatible with other cursor animation plugins:

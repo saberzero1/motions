@@ -511,6 +511,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'snippetBundled',
         'snippetDirectory',
         'snippetTriggerMode',
+        'animatedCursor',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
