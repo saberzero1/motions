@@ -31,9 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.79.0
+## What's new in 0.80.0
 
-- **[[lua-config|`vim.v` predefined variables]]** — read-only metatable proxy exposing 20 Neovim-compatible variables: `vim.v.count`, `vim.v.count1`, `vim.v.register`, `vim.v.operator` (Tier 1), `vim.v.searchforward`, `vim.v.insertmode`, constants like `vim.v.true`/`false`/`null`/`numbermax` (Tier 2), and context-dependent fold/statuscolumn/event/char/hlsearch variables (Tier 3). Context is set from `actionArgs` before each keymap callback and cleared after. `vim.v.event` is populated during autocmd dispatch.
-- **[[lua-config|`{ expr = true }` keymap support]]** — `vim.keymap.set` now accepts `{ expr = true }` for function callbacks. The callback returns a string that is fed as keystrokes via the fork's new `feedKeys` API. Sync-only — async APIs cannot be used in expr callbacks. Recursion guard (200 depth, matching Neovim) prevents infinite loops.
+- **IME multi-view fix** — input method switching now works across all editor views (split panes, Page Preview popovers, Canvas card editors). Previously, composition tracking and mode-change detection were limited to the primary editor leaf. Fixed with two new per-view CM6 ViewPlugins: `CompositionTracker` and `ImModeWatcher`, registered via `registerEditorExtension()`. ([#83](https://github.com/saberzero1/motions/issues/83))
 
 See the [[changelog|full changelog]] for details.
