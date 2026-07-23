@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **EasyMotion capital letter search not working** — EasyMotion character search motions (`<leader><leader>s`, `<leader><leader>f`, etc.) failed when typing a capital letter (Shift+key) as the search character. The `waitForKey()` handler resolved on the `Shift` keydown event (before the actual character key arrived), causing the motion to silently abort. Fixed by adding a modifier-key guard matching the existing pattern in `waitForLabel()` — `e.key.length !== 1` keys are now suppressed and ignored, keeping the handler alive for the real character. ([#84](https://github.com/saberzero1/motions/issues/84))
+    - Plugin: `src/easymotion/keypress.ts` (`waitForKey` modifier-key guard)
+
+### Tests
+
+- 6 unit tests in `test/unit/easymotion-keypress.test.ts`: `waitForKey` resolves single character keys and Escape, ignores Shift/Control/Alt/Meta modifier-only keys
+- 1 e2e test in `test/specs/easymotion-comprehensive.e2e.ts`: EasyMotion bidirectional char search with capital letter (`Z`) input
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added capital letter fix to EasyMotion operator-pending section
+- `CONTRIBUTING.md`: Updated `keypress.ts` description with modifier-key guard
+- `docs/features/easymotion.md`: Added note about capital letter support in find motions
+
 ## [0.80.0] - 2026-07-23
 
 ### Fixed

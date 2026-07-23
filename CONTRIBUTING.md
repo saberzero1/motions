@@ -149,7 +149,7 @@ src/
     targets.ts             # Target detection (words, lines, chars)
     overlay.ts             # Label + highlight overlay rendering (measureTarget, measureLabelAnchor, renderHighlightSpans)
     labels.ts              # Label generation and assignment
-    keypress.ts            # Keypress handling during label selection
+    keypress.ts            # Keypress handling during label selection (waitForKey with modifier-key guard, waitForLabel)
     types.ts               # EasyMotion type definitions
   flash/
     register.ts            # Flash registration (motion overrides, jump mode binding)

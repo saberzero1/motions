@@ -184,8 +184,9 @@ Visual mode (`v` + easymotion) also works — the fork updates the visual select
 
 - ~~Dot-repeat (`.`) does not replay operator-pending easymotion operations~~ — Fixed. The fork now stores the resolved async motion position as a relative offset in `lastEditInputState._asyncMotionTarget`. During dot-repeat, `repeatLastEdit` applies the operator with the stored offset instead of re-executing the async motion overlay.
 - Char-based easymotions (`f`, `F`, `s`, `t`, `T`) in operator-pending mode require an intermediate search-character keypress which adds complexity to the async flow
+- ~~Capital letter (Shift+key) search not working~~ — Fixed. `waitForKey()` resolved on the `Shift` keydown event before the actual character arrived. The modifier-key guard (`e.key.length !== 1`) now suppresses modifier-only keys, matching `waitForLabel()`'s existing pattern. ([#84](https://github.com/saberzero1/motions/issues/84))
 
-**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows.
+**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows and capital letter char search.
 
 ## EasyMotion labels in Live Preview
 

@@ -12,7 +12,7 @@ EasyMotion (inspired by [vim-easymotion](https://github.com/easymotion/vim-easym
 
 ![[keybindings#EasyMotion find motions]]
 
-Find motions allow jumping to specific characters. When triggered, you type a single character to search for, and labels appear over every occurrence of that character within the visible viewport.
+Find motions allow jumping to specific characters. When triggered, you type a single character to search for, and labels appear over every occurrence of that character within the visible viewport. Capital letters work — press Shift+key to search for an uppercase character.
 
 ## Word motions
 

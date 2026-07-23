@@ -290,6 +290,39 @@ describe('EasyMotion comprehensive', function () {
             expect(labels.length).toBeGreaterThanOrEqual(2);
             await dismissOverlay();
         });
+
+        it('s should find capital letter typed with Shift (issue #84)', async function () {
+            // Clean up any stale overlays from previous tests
+            await browser.executeObsidian(() => {
+                activeDocument
+                    .querySelectorAll('.vim-motions-easymotion')
+                    .forEach((el) => el.remove());
+            });
+            await browser.pause(100);
+
+            await triggerEasyMotion(
+                'Zero apples, a Zephyr blows',
+                { line: 0, ch: 10 },
+                ['\\', '\\', 's'],
+            );
+            await browser.keys(['Z']);
+            await browser.pause(300);
+
+            const labels = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-easymotion',
+                );
+                if (!overlay) return [];
+                const els = overlay.querySelectorAll(
+                    '.vim-motions-easymotion-label',
+                );
+                const result: string[] = [];
+                els.forEach((el) => result.push(el.textContent ?? ''));
+                return result;
+            })) as string[];
+            expect(labels.length).toBeGreaterThanOrEqual(1);
+            await dismissOverlay();
+        });
     });
 
     describe('cursor landing - line motions', function () {

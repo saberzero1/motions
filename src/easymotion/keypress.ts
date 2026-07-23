@@ -5,6 +5,9 @@ export function waitForKey(): Promise<string | null> {
         const handler = (e: KeyboardEvent) => {
             e.preventDefault();
             e.stopPropagation();
+
+            if (e.key.length !== 1 && e.key !== 'Escape') return;
+
             activeDocument.removeEventListener('keydown', handler, true);
             if (e.key === 'Escape') {
                 resolve(null);
