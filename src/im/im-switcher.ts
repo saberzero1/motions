@@ -5,6 +5,10 @@ import {
     ImProcessConfig,
     isValidImIdentifier,
 } from './im-process';
+import {
+    isAnyViewComposing,
+    onAllCompositionsEnd,
+} from './composition-tracker';
 
 export interface ImSwitcherConfig {
     enabled: boolean;
@@ -21,19 +25,14 @@ export class ImSwitcher {
     public lastKnownIm: string | null = null;
 
     private savedImByLeaf: Map<string, string>;
-    private isComposing = false;
     private pendingSwitch: (() => void) | null = null;
     private switchTimer: number | null = null;
-    private currentEditorElement: HTMLElement | null = null;
     private destroyed = false;
-    private compositionStartHandler: () => void;
-    private compositionEndHandler: () => void;
+    private compositionEndCleanup: (() => void) | null = null;
 
     constructor(config: ImSwitcherConfig) {
         this.config = config;
         this.savedImByLeaf = new Map();
-        this.compositionStartHandler = this.onCompositionStart;
-        this.compositionEndHandler = this.onCompositionEnd;
     }
 
     primeCache(): void {
@@ -130,32 +129,8 @@ export class ImSwitcher {
         return;
     }
 
-    reattachCompositionListeners(el: HTMLElement | null): void {
-        if (this.currentEditorElement) {
-            this.currentEditorElement.removeEventListener(
-                'compositionstart',
-                this.compositionStartHandler,
-            );
-            this.currentEditorElement.removeEventListener(
-                'compositionend',
-                this.compositionEndHandler,
-            );
-        }
-
-        this.currentEditorElement = el;
-        this.isComposing = false;
-        this.pendingSwitch = null;
-
-        if (this.currentEditorElement) {
-            this.currentEditorElement.addEventListener(
-                'compositionstart',
-                this.compositionStartHandler,
-            );
-            this.currentEditorElement.addEventListener(
-                'compositionend',
-                this.compositionEndHandler,
-            );
-        }
+    cleanupView(viewId: string): void {
+        this.savedImByLeaf.delete(viewId);
     }
 
     setAutoWire(value: boolean): void {
@@ -169,21 +144,11 @@ export class ImSwitcher {
             this.switchTimer = null;
         }
 
-        if (this.currentEditorElement) {
-            this.currentEditorElement.removeEventListener(
-                'compositionstart',
-                this.compositionStartHandler,
-            );
-            this.currentEditorElement.removeEventListener(
-                'compositionend',
-                this.compositionEndHandler,
-            );
-            this.currentEditorElement = null;
-        }
+        this.compositionEndCleanup?.();
+        this.compositionEndCleanup = null;
 
         this.savedImByLeaf.clear();
         this.pendingSwitch = null;
-        this.isComposing = false;
     }
 
     loadPersistedState(state: Record<string, string>): void {
@@ -204,8 +169,17 @@ export class ImSwitcher {
 
     private debouncedSwitch(fn: () => void): void {
         if (this.destroyed) return;
-        if (this.isComposing) {
+
+        if (isAnyViewComposing()) {
             this.pendingSwitch = fn;
+            this.compositionEndCleanup?.();
+            this.compositionEndCleanup = onAllCompositionsEnd(() => {
+                this.compositionEndCleanup = null;
+                if (this.destroyed) return;
+                const pending = this.pendingSwitch;
+                this.pendingSwitch = null;
+                if (pending) pending();
+            });
             return;
         }
 
@@ -219,19 +193,4 @@ export class ImSwitcher {
             fn();
         }, 50);
     }
-
-    private onCompositionStart = (): void => {
-        this.isComposing = true;
-    };
-
-    private onCompositionEnd = (): void => {
-        this.isComposing = false;
-        if (!this.pendingSwitch) return;
-        const pending = this.pendingSwitch;
-        this.pendingSwitch = null;
-        void Promise.resolve().then(() => {
-            if (this.destroyed) return;
-            pending();
-        });
-    };
 }

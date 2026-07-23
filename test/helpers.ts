@@ -289,6 +289,7 @@ type PluginRef = {
     };
     whichKeyOverlay?: unknown;
     loadLuaConfigForTest?: () => Promise<void>;
+    isAnyViewComposingForTest?: () => boolean;
 };
 
 function getPluginRef(): string {

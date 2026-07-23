@@ -1,17 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ImSwitcher, ImSwitcherConfig } from '../../src/im/im-switcher';
 
-const { mockExecuteImGet, mockExecuteImSet, mockIsValidImIdentifier } =
-    vi.hoisted(() => ({
-        mockExecuteImGet: vi.fn(),
-        mockExecuteImSet: vi.fn(),
-        mockIsValidImIdentifier: vi.fn(),
-    }));
+const {
+    mockExecuteImGet,
+    mockExecuteImSet,
+    mockIsValidImIdentifier,
+    mockIsAnyViewComposing,
+    mockOnAllCompositionsEnd,
+} = vi.hoisted(() => ({
+    mockExecuteImGet: vi.fn(),
+    mockExecuteImSet: vi.fn(),
+    mockIsValidImIdentifier: vi.fn(),
+    mockIsAnyViewComposing: vi.fn(),
+    mockOnAllCompositionsEnd: vi.fn(),
+}));
 
 vi.mock('../../src/im/im-process', () => ({
     executeImGet: mockExecuteImGet,
     executeImSet: mockExecuteImSet,
     isValidImIdentifier: mockIsValidImIdentifier,
+}));
+
+vi.mock('../../src/im/composition-tracker', () => ({
+    isAnyViewComposing: mockIsAnyViewComposing,
+    onAllCompositionsEnd: mockOnAllCompositionsEnd,
 }));
 
 vi.mock('obsidian', () => ({
@@ -38,35 +50,13 @@ function createSwitcher(overrides?: Partial<ImSwitcherConfig>): ImSwitcher {
     });
 }
 
-class FakeElement extends EventTarget {}
-
 function ensureDomGlobals(): void {
     const scope = globalThis as typeof globalThis & {
         window?: Window & typeof globalThis;
-        document?: Document;
-        Event?: typeof Event;
     };
-
-    if (!scope.Event) {
-        class MockEvent {
-            type: string;
-
-            constructor(type: string) {
-                this.type = type;
-            }
-        }
-
-        scope.Event = MockEvent as unknown as typeof Event;
-    }
 
     if (!scope.window) {
         scope.window = globalThis as unknown as Window & typeof globalThis;
-    }
-
-    if (!scope.document) {
-        scope.document = {
-            createElement: () => new FakeElement() as unknown as HTMLElement,
-        } as unknown as Document;
     }
 }
 
@@ -77,6 +67,8 @@ beforeEach(() => {
     mockExecuteImGet.mockReset().mockResolvedValue('com.apple.keylayout.ABC');
     mockExecuteImSet.mockReset().mockResolvedValue(true);
     mockIsValidImIdentifier.mockReset().mockReturnValue(true);
+    mockIsAnyViewComposing.mockReset().mockReturnValue(false);
+    mockOnAllCompositionsEnd.mockReset().mockReturnValue(() => {});
 });
 
 afterEach(() => {
@@ -335,22 +327,74 @@ describe('debouncing', () => {
 });
 
 describe('composition guard', () => {
-    it('defers switching during composition and executes after compositionend', async () => {
+    it('defers switching when isAnyViewComposing returns true', () => {
+        mockIsAnyViewComposing.mockReturnValue(true);
         const switcher = createSwitcher();
-        const el = document.createElement('div');
-        switcher.reattachCompositionListeners(el);
-        el.dispatchEvent(new Event('compositionstart'));
 
         switcher.onInsertLeave('leaf-1');
         vi.advanceTimersByTime(50);
         expect(mockExecuteImSet).not.toHaveBeenCalled();
+        expect(mockOnAllCompositionsEnd).toHaveBeenCalledWith(
+            expect.any(Function),
+        );
+    });
 
-        el.dispatchEvent(new Event('compositionend'));
+    it('executes pending switch when onAllCompositionsEnd fires', async () => {
+        mockIsAnyViewComposing.mockReturnValue(true);
+        let endCallback: (() => void) | null = null;
+        mockOnAllCompositionsEnd.mockImplementation((cb: () => void) => {
+            endCallback = cb;
+            return () => {
+                endCallback = null;
+            };
+        });
+
+        const switcher = createSwitcher();
+        switcher.onInsertLeave('leaf-1');
+        expect(mockExecuteImSet).not.toHaveBeenCalled();
+
+        endCallback!();
         await Promise.resolve();
         expect(mockExecuteImSet).toHaveBeenCalledWith(
             switcher.config.switchConfig,
             'com.apple.keylayout.ABC',
         );
+    });
+
+    it('only executes the last deferred switch', async () => {
+        mockIsAnyViewComposing.mockReturnValue(true);
+        let endCallback: (() => void) | null = null;
+        mockOnAllCompositionsEnd.mockImplementation((cb: () => void) => {
+            endCallback = cb;
+            return () => {
+                endCallback = null;
+            };
+        });
+
+        const switcher = createSwitcher();
+        switcher.onInsertLeave('leaf-1');
+        switcher.onInsertEnter('leaf-1');
+        expect(mockExecuteImSet).not.toHaveBeenCalled();
+
+        endCallback!();
+        await Promise.resolve();
+        // Only the last call (onInsertEnter → restore) should execute,
+        // not onInsertLeave.
+        expect(mockExecuteImSet).toHaveBeenCalledTimes(0);
+    });
+
+    it('proceeds normally when isAnyViewComposing returns false', async () => {
+        mockIsAnyViewComposing.mockReturnValue(false);
+        const switcher = createSwitcher();
+
+        switcher.onInsertLeave('leaf-1');
+        vi.advanceTimersByTime(50);
+        await Promise.resolve();
+        expect(mockExecuteImSet).toHaveBeenCalledWith(
+            switcher.config.switchConfig,
+            'com.apple.keylayout.ABC',
+        );
+        expect(mockOnAllCompositionsEnd).not.toHaveBeenCalled();
     });
 });
 
@@ -375,20 +419,31 @@ describe('destroy', () => {
         expect(mockExecuteImSet).not.toHaveBeenCalled();
     });
 
-    it('removes composition listeners from element', () => {
+    it('cleans up composition end subscription', () => {
+        mockIsAnyViewComposing.mockReturnValue(true);
+        const unsubscribe = vi.fn();
+        mockOnAllCompositionsEnd.mockReturnValue(unsubscribe);
+
         const switcher = createSwitcher();
-        const el = document.createElement('div');
-        const removeSpy = vi.spyOn(el, 'removeEventListener');
-        switcher.reattachCompositionListeners(el);
+        switcher.onInsertLeave('leaf-1');
+        expect(mockOnAllCompositionsEnd).toHaveBeenCalled();
+
         switcher.destroy();
-        expect(removeSpy).toHaveBeenCalledWith(
-            'compositionstart',
-            expect.any(Function),
-        );
-        expect(removeSpy).toHaveBeenCalledWith(
-            'compositionend',
-            expect.any(Function),
-        );
+        expect(unsubscribe).toHaveBeenCalled();
+    });
+});
+
+describe('cleanupView', () => {
+    it('removes per-view IM state', async () => {
+        const switcher = createSwitcher({ restoreBehavior: 'restore' });
+        switcher.lastKnownIm = 'com.apple.keylayout.Dvorak';
+        switcher.save('imw_0');
+        await Promise.resolve();
+
+        switcher.cleanupView('imw_0');
+        switcher.restore('imw_0');
+        await Promise.resolve();
+        expect(mockExecuteImSet).not.toHaveBeenCalled();
     });
 });
 

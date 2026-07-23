@@ -205,6 +205,15 @@ import { OilView, createOilViewFactory } from './oil/oil-view';
 import { TextareaVimManager } from './vim/textarea-vim-manager';
 import { ImSwitcher } from './im/im-switcher';
 import { parseImArgs } from './im/im-process';
+import {
+    createCompositionTrackerExtension,
+    isAnyViewComposing,
+} from './im/composition-tracker';
+import {
+    createImModeWatcherExtension,
+    setImModeCallbacks,
+    clearImModeCallbacks,
+} from './im/im-mode-watcher';
 import { expandTilde } from './util/external-fs';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
@@ -348,9 +357,6 @@ export default class VimMotionsPlugin extends Plugin {
         };
     }> = [];
     private imSwitcher: ImSwitcher | null = null;
-    private imInsertLeaveId: number | null = null;
-    private imInsertEnterId: number | null = null;
-    private imCmdlineLeaveId: number | null = null;
 
     private getSnippetPreprocessContext(): PreprocessContext {
         const activeFile = this.app.workspace.getActiveFile();
@@ -503,6 +509,10 @@ export default class VimMotionsPlugin extends Plugin {
         | null = null;
     private vimRef: import('./types/vim-api').VimApi | null = null;
 
+    isAnyViewComposingForTest(): boolean {
+        return isAnyViewComposing();
+    }
+
     async loadLuaConfigForTest(): Promise<void> {
         if (!this.vimRef || !this.onLuaSettingOverrideRef) return;
         this.settings.configMode = 'lua-vimrc';
@@ -576,6 +586,11 @@ export default class VimMotionsPlugin extends Plugin {
                 );
             }
             this.imSwitcher.primeCache();
+            setImModeCallbacks(
+                (viewId) => this.imSwitcher?.onInsertEnter(viewId),
+                (viewId) => this.imSwitcher?.onInsertLeave(viewId),
+                (viewId) => this.imSwitcher?.cleanupView(viewId),
+            );
         }
 
         // --- Mobile gate ---
@@ -1139,18 +1154,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.imSwitcher) {
             this.registerEvent(
                 this.app.workspace.on('active-leaf-change', (leaf) => {
-                    const view =
-                        this.app.workspace.getActiveViewOfType(MarkdownView);
-                    const editorEl = view
-                        ? ((
-                              view.editor as unknown as {
-                                  cm?: { dom?: HTMLElement };
-                              }
-                          ).cm?.dom ?? null)
-                        : null;
                     const leafId = leaf ? getLeafId(leaf) : '';
                     this.imSwitcher?.onLeafChange(leafId);
-                    this.imSwitcher?.reattachCompositionListeners(editorEl);
                 }),
             );
         }
@@ -2030,6 +2035,8 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.registerEditorExtension(yankHighlightExtension());
+        this.registerEditorExtension(createCompositionTrackerExtension());
+        this.registerEditorExtension(createImModeWatcherExtension());
         this.registerEditorExtension(foldSyncExtension());
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
         this.registerEditorExtension(foldLevelExtension());
@@ -3397,47 +3404,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.timerManager?.destroyAll();
         this.timerManager = luaResult.timerManager;
         this.autocmdManager = luaResult.autocmdManager;
-        if (this.imSwitcher?.config.autoWire && this.autocmdManager) {
-            if (this.imInsertLeaveId == null) {
-                this.imInsertLeaveId = this.autocmdManager.register(
-                    'InsertLeave',
-                    {
-                        callback: () => {
-                            const leafId =
-                                this.autocmdManager?.currentLeafId ?? '';
-                            this.imSwitcher?.onInsertLeave(leafId);
-                        },
-                        desc: 'IM switch on InsertLeave',
-                    },
-                );
-            }
-            if (this.imInsertEnterId == null) {
-                this.imInsertEnterId = this.autocmdManager.register(
-                    'InsertEnter',
-                    {
-                        callback: () => {
-                            const leafId =
-                                this.autocmdManager?.currentLeafId ?? '';
-                            this.imSwitcher?.onInsertEnter(leafId);
-                        },
-                        desc: 'IM switch on InsertEnter',
-                    },
-                );
-            }
-            if (this.imCmdlineLeaveId == null) {
-                this.imCmdlineLeaveId = this.autocmdManager.register(
-                    'CmdlineLeave',
-                    {
-                        callback: () => {
-                            const leafId =
-                                this.autocmdManager?.currentLeafId ?? '';
-                            this.imSwitcher?.onCmdlineLeave(leafId);
-                        },
-                        desc: 'IM switch on CmdlineLeave',
-                    },
-                );
-            }
-        }
+
         this.oilKeybindingManager?.setAutocmdManager(
             this.autocmdManager ?? null,
         );
@@ -4019,18 +3986,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration = null;
         this.timerManager?.destroyAll();
         this.timerManager = null;
-        if (this.imInsertLeaveId != null) {
-            this.autocmdManager?.deleteAutocmd(this.imInsertLeaveId);
-            this.imInsertLeaveId = null;
-        }
-        if (this.imInsertEnterId != null) {
-            this.autocmdManager?.deleteAutocmd(this.imInsertEnterId);
-            this.imInsertEnterId = null;
-        }
-        if (this.imCmdlineLeaveId != null) {
-            this.autocmdManager?.deleteAutocmd(this.imCmdlineLeaveId);
-            this.imCmdlineLeaveId = null;
-        }
+        clearImModeCallbacks();
         this.imSwitcher?.destroy();
         this.imSwitcher = null;
         this.autocmdManager?.destroy();

@@ -36,7 +36,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 ## Quality of life
 
 - **[[marks|Marks]]** — Visual mark indicators in the gutter, global mark persistence across files and sessions, and a grouped marks picker with cross-file navigation.
-- **[[quality-of-life|Quality of life]]** — Neovim defaults (`Y` → `y$`, `Q` → `@@`), yank highlight, smart list continuation on `o`/`O`, **enhanced increment/decrement** (`<C-a>`/`<C-x>`) for cycling colors, dates, and booleans, scrolloff, configurable insert escape sequences, vim mode status bar with optional powerline styling, which-key hints, chord display, and input method switching for CJK users.
+- **[[quality-of-life|Quality of life]]** — Neovim defaults (`Y` → `y$`, `Q` → `@@`), yank highlight, smart list continuation on `o`/`O`, **enhanced increment/decrement** (`<C-a>`/`<C-x>`) for cycling colors, dates, and booleans, scrolloff, configurable insert escape sequences, vim mode status bar with optional powerline styling, which-key hints, chord display, and input method switching for CJK users (per-view across all editors).
 
 ## Configuration
 

@@ -1344,7 +1344,7 @@ Verified with `:normal!` (headless `-c` flags), Vimscript `feedkeys("...", "tx")
 
 **Status**: Working. Desktop only (macOS, Windows, Linux). Requires an external IM switching binary (e.g., `macism`, `im-select`, `fcitx5-remote`, `ibus`).
 
-The plugin can automatically switch input methods when entering/leaving insert mode. Enable in **Settings → Vim Motions → Input method**. The Lua API (`vim.obsidian.im`) provides programmatic control for advanced use cases. All 7 IM settings are available in both the legacy settings tab (Obsidian <1.13) and the new searchable settings UI (Obsidian 1.13+).
+The plugin can automatically switch input methods when entering/leaving insert mode across all editor views (split panes, popovers, canvas cards). Enable in **Settings → Vim Motions → Input method**. The Lua API (`vim.obsidian.im`) provides programmatic control for advanced use cases. All 7 IM settings are available in both the legacy settings tab (Obsidian <1.13) and the new searchable settings UI (Obsidian 1.13+).
 
 Limitations:
 
@@ -1359,7 +1359,7 @@ Limitations:
 The following IM switching improvements are planned but not yet implemented:
 
 - ~~**Platform presets**~~: Implemented. A settings dropdown auto-fills binary path, arguments, and default IM for macism (macOS), im-select (Windows), fcitx5-remote (Linux), and ibus (Linux). Values are editable after selection.
-- ~~**Session persistence**~~: Implemented. The per-editor IM cache is persisted to plugin settings via `saveData()` (30-second interval + save on unload). The saved IM is restored on plugin load.
+- ~~**Session persistence**~~: Implemented. The per-view IM cache is persisted to plugin settings via `saveData()` (30-second interval + save on unload). The saved IM is restored on plugin load.
 - ~~**`:IMToggle`/`:IMStatus` ex commands**~~: Implemented. `:IMToggle` enables/disables IM switching. `:IMStatus` shows the current IM identifier via a Notice.
 - **Content-type aware switching**: IM switching based on cursor context (e.g., auto-switch to English inside math blocks or code blocks) independently of vim mode. Users can implement this today by combining `vim.obsidian.im` with cursor position checks in Lua autocmds.
 - **`CmdlineEnter`/`CmdlineLeave` for global ex command modal**: The global `:` modal in non-editor views (Obsidian `SuggestModal`) does not fire cmdline autocmd events. Only the codemirror-vim editor dialog fires them.

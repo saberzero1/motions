@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **IME change detection limited to primary editor leaf** — IME composition tracking and input method switching now work across all editor views (split panes, Page Preview popovers, Canvas card editors). Previously, composition events and mode-change detection were wired to a single element/adapter obtained from `getActiveViewOfType(MarkdownView)`, so non-primary editors never received IME handling. Fixed with two new CM6 ViewPlugins registered via `registerEditorExtension()`: `CompositionTracker` tracks `compositionstart`/`compositionend` per-EditorView, and `ImModeWatcher` binds `adapter.on('vim-mode-change')` per-EditorView to detect insert mode transitions. The autocmd-based IM switch registrations (`InsertEnter`/`InsertLeave`/`CmdlineLeave`) are replaced by the per-view mechanism; Lua autocmd callbacks continue to fire for the primary leaf via AutocmdManager (unchanged contract). ([#83](https://github.com/saberzero1/motions/issues/83))
+    - Plugin: `src/im/composition-tracker.ts` (new), `src/im/im-mode-watcher.ts` (new), `src/im/im-switcher.ts` (refactored — removed single-element tracking, added `cleanupView()`), `src/main.ts` (registered extensions, removed autocmd-based IM registrations)
+
+### Tests
+
+- 15 unit tests in `test/unit/composition-tracker.test.ts`: per-view composing state, multi-tracker isolation, destroy cleanup, `onAllCompositionsEnd` callback lifecycle, unsubscribe
+- 14 unit tests in `test/unit/im-mode-watcher.test.ts`: lazy adapter binding, mode change detection (insert/leave/replace), adapter re-binding, cleanup, multiple views with unique IDs
+- 4 e2e tests in `test/specs/ime-composition-multiview.e2e.ts`: composition tracking on active/non-active editors, independent per-view tracking, insert mode detection on non-active editor
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated input method switching section with multi-view fix
+- `README.md`: Updated input method switching feature description with multi-view support
+- `CONTRIBUTING.md`: Added `composition-tracker.ts` and `im-mode-watcher.ts` to codebase structure
+- `AGENTS.md`: Updated Lua API description noting per-view IM switching
+
 ## [0.79.0] - 2026-07-22
 
 ### Added

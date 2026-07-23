@@ -143,8 +143,8 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                | see Obsidian namespace               |
 | `vim.obsidian.im.get()`                              | Get current IM identifier (desktop only)           | see Obsidian namespace               |
 | `vim.obsidian.im.set(id)`                            | Switch to specific IM (desktop only)               | see Obsidian namespace               |
-| `vim.obsidian.im.save()`                             | Save current IM for active editor                  | see Obsidian namespace               |
-| `vim.obsidian.im.restore()`                          | Restore saved IM for active editor                 | see Obsidian namespace               |
+| `vim.obsidian.im.save()`                             | Save current IM for active editor view             | see Obsidian namespace               |
+| `vim.obsidian.im.restore()`                          | Restore saved IM for active editor view            | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
 
 ## vim.textobject
@@ -1197,18 +1197,18 @@ The second argument is an Obsidian command ID (the same IDs shown by `:ob` with 
 
 ### Input method switching (`vim.obsidian.im`)
 
-Programmatic control over input method (IM) switching for CJK users. Requires an external IM switching binary and configuration in **Settings → Vim Motions → Input method**. Desktop only.
+Programmatic control over input method (IM) switching for CJK users (per-view across all editors). Requires an external IM switching binary and configuration in **Settings → Vim Motions → Input method**. Desktop only.
 
 | Function/Property           | Returns       | Description                                             |
 | --------------------------- | ------------- | ------------------------------------------------------- |
 | `vim.obsidian.im.get()`     | `string\|nil` | Current IM identifier (cached), or `nil` if unavailable |
 | `vim.obsidian.im.set(id)`   |               | Switch to specific IM identifier                        |
-| `vim.obsidian.im.save()`    |               | Save current IM for the active editor                   |
-| `vim.obsidian.im.restore()` |               | Restore saved IM for the active editor                  |
+| `vim.obsidian.im.save()`    |               | Save current IM for the active editor view              |
+| `vim.obsidian.im.restore()` |               | Restore saved IM for the active editor view             |
 | `vim.obsidian.im.enabled`   | `boolean`     | Read/write: master toggle for IM switching              |
 | `vim.obsidian.im.auto`      | `boolean`     | Read/write: auto-wire to `InsertEnter`/`InsertLeave`    |
 
-When `vim.obsidian.im.auto` is `true` (default), the plugin automatically saves/restores IM on mode changes. Set it to `false` for manual control:
+When `vim.obsidian.im.auto` is `true` (default), the plugin automatically saves/restores IM on mode changes across all editor views. Set it to `false` for manual control:
 
 ```lua
 vim.obsidian.im.auto = false

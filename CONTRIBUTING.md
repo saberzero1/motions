@@ -228,6 +228,8 @@ src/
   im/
     im-switcher.ts         # Input method auto-switching on mode change
     im-process.ts          # External IM binary process management
+    composition-tracker.ts   # Per-view IME composition tracking (CM6 ViewPlugin)
+    im-mode-watcher.ts       # Per-view vim mode change detection for IM switching (CM6 ViewPlugin)
   snippets/
     manager.ts             # Snippet session and expansion management
     parser.ts              # VS Code snippet format parser
