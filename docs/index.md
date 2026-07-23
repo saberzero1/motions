@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.80.0
+## What's new in 0.81.0
 
-- **IME multi-view fix** — input method switching now works across all editor views (split panes, Page Preview popovers, Canvas card editors). Previously, composition tracking and mode-change detection were limited to the primary editor leaf. Fixed with two new per-view CM6 ViewPlugins: `CompositionTracker` and `ImModeWatcher`, registered via `registerEditorExtension()`. ([#83](https://github.com/saberzero1/motions/issues/83))
+- **EasyMotion capital letter fix** — EasyMotion character search motions (`<leader><leader>s`, `<leader><leader>f`, etc.) now work correctly with capital letters. Previously, pressing Shift+key caused the motion to silently abort because the handler resolved on the `Shift` keydown event before the actual character arrived. ([#84](https://github.com/saberzero1/motions/issues/84))
 
 See the [[changelog|full changelog]] for details.

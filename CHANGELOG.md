@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-07-23
+
 ### Fixed
 
 - **EasyMotion capital letter search not working** — EasyMotion character search motions (`<leader><leader>s`, `<leader><leader>f`, etc.) failed when typing a capital letter (Shift+key) as the search character. The `waitForKey()` handler resolved on the `Shift` keydown event (before the actual character key arrived), causing the motion to silently abort. Fixed by adding a modifier-key guard matching the existing pattern in `waitForLabel()` — `e.key.length !== 1` keys are now suppressed and ignored, keeping the handler alive for the real character. ([#84](https://github.com/saberzero1/motions/issues/84))
