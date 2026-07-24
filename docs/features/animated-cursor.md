@@ -49,7 +49,7 @@ The animated cursor respects per-mode cursor shapes from **Settings → Cursor s
 - **Replace mode** — underline (2px horizontal line at bottom)
 - **Operator-pending** — underline
 
-Shape changes (e.g., entering insert mode) are instant — only position changes animate.
+Shape changes (e.g., entering insert mode) are instant — only position changes animate. Count-prefixed motions (`4j`, `2w`) and multi-key motions (`g$`, `gj`) animate correctly — operator-pending detection is based on the actual operator state, not the chord display.
 
 ## Cursor blinking
 

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Animated cursor does not animate for count-prefixed and multi-key motions** — movements like `4j` (count-prefixed) and `g$` (multi-key) caused the cursor to teleport instead of animating. The `resolveVimMode()` method in the animated cursor controller used `vim.status` (the chord display string) to detect operator-pending mode. Since `vim.status` is set on every keystroke (e.g., `"4"` when typing a count digit, `"g"` when typing a prefix key), any multi-keystroke motion triggered a false mode change to operator-pending — which has a different cursor shape (underline vs block). Each shape change called `snap()`, bypassing the animation entirely. Fixed by removing `vim.status` from the operator-pending detection — only `inputState.operator` (set when an actual operator like `d`/`c`/`y` is registered) now gates the operator-pending mode. ([#86](https://github.com/saberzero1/motions/issues/86))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`resolveVimMode` — removed `vim.status` check)
+
 - **Hint mode does not navigate wikilinks or markdown links in Live Preview** — typing the hint label for a wikilink (`[[Target]]`) or markdown link (`[text](Target)`) in the editor did nothing. The `.cm-underline` spans rendered by Live Preview are `<span>` elements without `href` or `data-href` attributes — `classifyTarget` correctly identified them as links but extracted `href: undefined`, causing `hintActivate` to fall through to the generic click handler (which does nothing useful on CM6 spans). Fixed by adding `resolveCmUnderlineHref()` which uses the CM6 `EditorView.posAtDOM()` API to convert the DOM element to a document offset, then calls the existing `findLinkAtCursor()` regex from `goto-definition.ts` to extract the link target from the raw markdown text. Works for wikilinks (including aliased and heading links), markdown links (internal and external), and bare URLs. Reading view and frontmatter property links were unaffected (they use `<a>` elements with proper `href`/`data-href` attributes). ([#85](https://github.com/saberzero1/motions/issues/85))
     - Plugin: `src/ui/hint-mode.ts` (`getEditorViewFromElement`, `resolveCmUnderlineHref`, updated `classifyTarget` link branch)
 
@@ -23,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added hint mode link navigation fix to hint mode actions section
+- `KNOWN_LIMITATIONS.md`: Added animated cursor multi-key motion fix; added hint mode link navigation fix to hint mode actions section
 - `CONTRIBUTING.md`: Updated `hint-mode.ts` description with link resolution via `posAtDOM`
 - `docs/features/hint-mode.md`: Updated internal link handling section with Live Preview resolution details
 - `KNOWN_LIMITATIONS.md`: Updated input method switching section with manual IME switch fix
