@@ -102,6 +102,10 @@ jobs:
               run: npm ci
               working-directory: quartz
 
+            - name: Install Quartz theme
+              run: npm install @quartz-themes/terminal2k
+              working-directory: quartz
+
             - name: Install Quartz plugins
               run: npx quartz plugin install
               working-directory: quartz
