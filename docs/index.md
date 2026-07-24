@@ -31,8 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.81.0
+## What's new in 0.82.0
 
-- **EasyMotion capital letter fix** — EasyMotion character search motions (`<leader><leader>s`, `<leader><leader>f`, etc.) now work correctly with capital letters. Previously, pressing Shift+key caused the motion to silently abort because the handler resolved on the `Shift` keydown event before the actual character arrived. ([#84](https://github.com/saberzero1/motions/issues/84))
+- **Animated cursor fix for count-prefixed and multi-key motions** — movements like `4j` and `g$` now animate correctly instead of teleporting. The cursor shape change detection no longer false-triggers on partial keystroke chords. ([#86](https://github.com/saberzero1/motions/issues/86))
+- **Hint mode now navigates wikilinks and markdown links in Live Preview** — typing a hint label on a `[[wikilink]]` or `[markdown link](target)` in the editor now opens the target. Previously, `.cm-underline` spans lacked `href` attributes and the hint fell through silently. ([#85](https://github.com/saberzero1/motions/issues/85))
+- **Input method restored correctly after manual IME switch** — manually switching input methods during insert mode (e.g., via OS keyboard shortcut) is now preserved across mode changes. Previously, the stale cached value overwrote the user's choice. ([#83](https://github.com/saberzero1/motions/issues/83))
 
 See the [[changelog|full changelog]] for details.

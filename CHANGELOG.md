@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-07-24
+
 ### Fixed
 
 - **Animated cursor does not animate for count-prefixed and multi-key motions** — movements like `4j` (count-prefixed) and `g$` (multi-key) caused the cursor to teleport instead of animating. The `resolveVimMode()` method in the animated cursor controller used `vim.status` (the chord display string) to detect operator-pending mode. Since `vim.status` is set on every keystroke (e.g., `"4"` when typing a count digit, `"g"` when typing a prefix key), any multi-keystroke motion triggered a false mode change to operator-pending — which has a different cursor shape (underline vs block). Each shape change called `snap()`, bypassing the animation entirely. Fixed by removing `vim.status` from the operator-pending detection — only `inputState.operator` (set when an actual operator like `d`/`c`/`y` is registered) now gates the operator-pending mode. ([#86](https://github.com/saberzero1/motions/issues/86))
