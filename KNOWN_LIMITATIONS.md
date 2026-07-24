@@ -621,7 +621,7 @@ Each hint target is classified by type during discovery, before label assignment
 
 - `.workspace-leaf-content` → `pane` (focus via `setActiveLeaf`; `F` action duplicates the leaf into a new tab via `duplicateLeaf`)
 - `.workspace-tab-header` → `tab` (close via `leaf.detach()`)
-- `a[href]`, `[data-href]`, `.cm-underline` → `link` (navigate via `openLinkText`)
+- `a[href]`, `[data-href]`, `.cm-underline` → `link` (navigate via `navigateWithJump`). ~~`.cm-underline` spans in Live Preview had no `href` or `data-href` attributes, causing wikilinks and markdown links to fall through to the generic click handler (no-op on CM6 spans).~~ Fixed: `resolveCmUnderlineHref()` uses `EditorView.posAtDOM()` to convert the DOM element to a document offset, then calls `findLinkAtCursor()` to extract the link target from the raw markdown text. ([#85](https://github.com/saberzero1/motions/issues/85))
 - `input`, `textarea`, `select`, `[contenteditable]` → `input` (focus; `<select>` cycles to next option)
 - `button`, `.clickable-icon`, `[role="button"]` → `button` (click)
 - everything else → `generic` (pointer event sequence + click)

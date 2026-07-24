@@ -9,16 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Hint mode does not navigate wikilinks or markdown links in Live Preview** — typing the hint label for a wikilink (`[[Target]]`) or markdown link (`[text](Target)`) in the editor did nothing. The `.cm-underline` spans rendered by Live Preview are `<span>` elements without `href` or `data-href` attributes — `classifyTarget` correctly identified them as links but extracted `href: undefined`, causing `hintActivate` to fall through to the generic click handler (which does nothing useful on CM6 spans). Fixed by adding `resolveCmUnderlineHref()` which uses the CM6 `EditorView.posAtDOM()` API to convert the DOM element to a document offset, then calls the existing `findLinkAtCursor()` regex from `goto-definition.ts` to extract the link target from the raw markdown text. Works for wikilinks (including aliased and heading links), markdown links (internal and external), and bare URLs. Reading view and frontmatter property links were unaffected (they use `<a>` elements with proper `href`/`data-href` attributes). ([#85](https://github.com/saberzero1/motions/issues/85))
+    - Plugin: `src/ui/hint-mode.ts` (`getEditorViewFromElement`, `resolveCmUnderlineHref`, updated `classifyTarget` link branch)
+
 - **Input method not restored after manual IME switch during insert mode** — when a user manually switched input methods while in insert mode (e.g., from Vietnamese to English via OS keyboard shortcut), pressing `Esc` then `i` reset the IME to the original input method instead of preserving the manually chosen one. The `save()` method in `ImSwitcher` cached the stale `lastKnownIm` value (set by the plugin's last `set()` call) before querying the OS for the actual current IME. The async OS query updated `lastKnownIm` but never wrote back to `savedImByLeaf`, so `restore()` always read the stale value. Fixed by making `save()` async — it now queries the OS for the real IME state first, then caches the result in both `lastKnownIm` and `savedImByLeaf`. `onInsertLeave()` awaits the save before switching to the normal-mode default IME. Falls back to `lastKnownIm` when the OS query fails (e.g., binary timeout). ([#83](https://github.com/saberzero1/motions/issues/83))
     - Plugin: `src/im/im-switcher.ts` (`save()` async with OS query, `onInsertLeave()` awaits save, `debouncedSwitch`/`pendingSwitch` accept async callbacks), `src/lua/api.ts` (`imSave` type updated), `src/lua/loader.ts` (fire-and-forget async save), `src/lua/obsidian-api.ts` (void floating promise)
 
 ### Tests
 
+- 10 e2e tests in `test/specs/hint-mode-links.e2e.ts`: wikilink/markdown-link/bare-URL href resolution from `.cm-underline` spans, wikilink navigation (plain and aliased), markdown link navigation, inline wikilink navigation, reading view regression, frontmatter property link regression, external link safety
 - Updated 10 unit tests in `test/unit/im-switcher.test.ts`: `save()` tests now verify OS query behavior (mock `executeImGet` return value instead of manually setting `lastKnownIm`), async settle via `vi.advanceTimersByTimeAsync(0)`, new test for fallback when OS query returns null
 
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added hint mode link navigation fix to hint mode actions section
+- `CONTRIBUTING.md`: Updated `hint-mode.ts` description with link resolution via `posAtDOM`
+- `docs/features/hint-mode.md`: Updated internal link handling section with Live Preview resolution details
 - `KNOWN_LIMITATIONS.md`: Updated input method switching section with manual IME switch fix
 - `CONTRIBUTING.md`: Updated `im-switcher.ts` description
 - `AGENTS.md`: No changes needed (existing description already covers per-view IM switching)

@@ -246,7 +246,7 @@ src/
     vim-info-modal.ts      # Reusable table modal base (used by :reg, :marks, :buffers, :backlinks)
     outline-modal.ts       # gO document outline (SuggestModal)
     context-actions.ts     # gra context-aware action picker
-    hint-mode.ts           # Vimium-style label overlay for clickable UI elements
+    hint-mode.ts           # Vimium-style label overlay for clickable UI elements (link resolution via posAtDOM + findLinkAtCursor)
     which-key.ts           # Leader key hint overlay + LeaderRegistry
     global-which-key.ts    # Which-key overlay outside editor context
     ex-suggest.ts          # Ex command tab completion

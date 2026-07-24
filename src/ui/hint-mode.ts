@@ -1,5 +1,7 @@
 import { MarkdownView, Notice, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
+import type { EditorView } from '@codemirror/view';
+import { findLinkAtCursor } from '../motions/goto-definition';
 import { navigateWithJump } from '../workspace/navigate';
 
 export const HOME_ROW = 'asdfghjkl';
@@ -241,6 +243,29 @@ function findLeafForElement(app: App, el: HTMLElement): WorkspaceLeaf | null {
     return found;
 }
 
+function getEditorViewFromElement(el: Element): EditorView | null {
+    const cmEditor = el.closest('.cm-editor');
+    if (!cmEditor) return null;
+    const cmView = (cmEditor as unknown as Record<string, unknown>).cmView as
+        | { view?: EditorView }
+        | undefined;
+    return cmView?.view ?? null;
+}
+
+function resolveCmUnderlineHref(el: Element): string | undefined {
+    const editorView = getEditorViewFromElement(el);
+    if (!editorView) return undefined;
+    try {
+        const pos = editorView.posAtDOM(el, 0);
+        const line = editorView.state.doc.lineAt(pos);
+        const ch = pos - line.from;
+        const link = findLinkAtCursor(line.text, ch);
+        return link?.target;
+    } catch {
+        return undefined;
+    }
+}
+
 function classifyTarget(
     el: Element,
     app: App,
@@ -270,7 +295,12 @@ function classifyTarget(
     ) {
         const href =
             el.getAttribute('data-href') ??
-            (el.instanceOf(HTMLAnchorElement) ? el.getAttribute('href') : null);
+            (el.instanceOf(HTMLAnchorElement)
+                ? el.getAttribute('href')
+                : null) ??
+            (el.classList.contains('cm-underline')
+                ? resolveCmUnderlineHref(el)
+                : undefined);
         return {
             targetType: 'link',
             href: href ?? undefined,
