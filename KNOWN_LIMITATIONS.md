@@ -1347,6 +1347,8 @@ Verified with `:normal!` (headless `-c` flags), Vimscript `feedkeys("...", "tx")
 
 The plugin can automatically switch input methods when entering/leaving insert mode across all editor views (split panes, popovers, canvas cards). Enable in **Settings → Vim Motions → Input method**. The Lua API (`vim.obsidian.im`) provides programmatic control for advanced use cases. All 7 IM settings are available in both the legacy settings tab (Obsidian <1.13) and the new searchable settings UI (Obsidian 1.13+).
 
+~~**Manual IME switch not preserved across mode changes**~~: Fixed. When a user manually switched input methods during insert mode (e.g., from Vietnamese to English via an OS keyboard shortcut), pressing `Esc` then `i` reset the IME to the original input method. The `save()` method now queries the OS for the actual current IME before caching it, so manual switches are correctly preserved. ([#83](https://github.com/saberzero1/motions/issues/83))
+
 Limitations:
 
 - **Desktop only**: Mobile devices do not support `child_process` and the feature is a no-op. The settings group is hidden on mobile.

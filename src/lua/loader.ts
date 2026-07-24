@@ -947,7 +947,7 @@ export async function loadInitLua(
         },
         imSave: () => {
             const leafId = autocmdManager.currentLeafId ?? '';
-            imSwitcher?.save(leafId);
+            void imSwitcher?.save(leafId);
         },
         imRestore: () => {
             const leafId = autocmdManager.currentLeafId ?? '';

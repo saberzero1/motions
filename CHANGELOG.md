@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Input method not restored after manual IME switch during insert mode** — when a user manually switched input methods while in insert mode (e.g., from Vietnamese to English via OS keyboard shortcut), pressing `Esc` then `i` reset the IME to the original input method instead of preserving the manually chosen one. The `save()` method in `ImSwitcher` cached the stale `lastKnownIm` value (set by the plugin's last `set()` call) before querying the OS for the actual current IME. The async OS query updated `lastKnownIm` but never wrote back to `savedImByLeaf`, so `restore()` always read the stale value. Fixed by making `save()` async — it now queries the OS for the real IME state first, then caches the result in both `lastKnownIm` and `savedImByLeaf`. `onInsertLeave()` awaits the save before switching to the normal-mode default IME. Falls back to `lastKnownIm` when the OS query fails (e.g., binary timeout). ([#83](https://github.com/saberzero1/motions/issues/83))
+    - Plugin: `src/im/im-switcher.ts` (`save()` async with OS query, `onInsertLeave()` awaits save, `debouncedSwitch`/`pendingSwitch` accept async callbacks), `src/lua/api.ts` (`imSave` type updated), `src/lua/loader.ts` (fire-and-forget async save), `src/lua/obsidian-api.ts` (void floating promise)
+
+### Tests
+
+- Updated 10 unit tests in `test/unit/im-switcher.test.ts`: `save()` tests now verify OS query behavior (mock `executeImGet` return value instead of manually setting `lastKnownIm`), async settle via `vi.advanceTimersByTimeAsync(0)`, new test for fallback when OS query returns null
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated input method switching section with manual IME switch fix
+- `CONTRIBUTING.md`: Updated `im-switcher.ts` description
+- `AGENTS.md`: No changes needed (existing description already covers per-view IM switching)
+
 ## [0.81.0] - 2026-07-23
 
 ### Fixed

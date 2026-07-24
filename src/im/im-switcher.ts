@@ -25,7 +25,7 @@ export class ImSwitcher {
     public lastKnownIm: string | null = null;
 
     private savedImByLeaf: Map<string, string>;
-    private pendingSwitch: (() => void) | null = null;
+    private pendingSwitch: (() => void | Promise<void>) | null = null;
     private switchTimer: number | null = null;
     private destroyed = false;
     private compositionEndCleanup: (() => void) | null = null;
@@ -68,20 +68,24 @@ export class ImSwitcher {
         this.lastKnownIm = imId;
     }
 
-    save(leafId: string): void {
-        if (this.lastKnownIm !== null) {
-            this.savedImByLeaf.set(leafId, this.lastKnownIm);
+    async save(leafId: string): Promise<void> {
+        let imId: string | null = null;
+        try {
+            imId = await executeImGet(this.config.obtainConfig);
+        } catch (error) {
+            if (!this.destroyed) {
+                console.warn('Failed to query input method.', error);
+            }
         }
 
-        executeImGet(this.config.obtainConfig)
-            .then((imId) => {
-                if (this.destroyed) return;
-                this.lastKnownIm = imId;
-            })
-            .catch((error) => {
-                if (this.destroyed) return;
-                console.warn('Failed to refresh input method cache.', error);
-            });
+        if (this.destroyed) return;
+
+        if (imId) {
+            this.lastKnownIm = imId;
+            this.savedImByLeaf.set(leafId, imId);
+        } else if (this.lastKnownIm !== null) {
+            this.savedImByLeaf.set(leafId, this.lastKnownIm);
+        }
     }
 
     restore(leafId: string): void {
@@ -100,8 +104,8 @@ export class ImSwitcher {
     }
 
     onInsertLeave(leafId: string): void {
-        this.debouncedSwitch(() => {
-            this.save(leafId);
+        this.debouncedSwitch(async () => {
+            await this.save(leafId);
 
             const defaultIm = this.config.defaultNormalIm;
             if (!defaultIm) return;
@@ -167,7 +171,7 @@ export class ImSwitcher {
         return state;
     }
 
-    private debouncedSwitch(fn: () => void): void {
+    private debouncedSwitch(fn: () => void | Promise<void>): void {
         if (this.destroyed) return;
 
         if (isAnyViewComposing()) {
@@ -178,7 +182,7 @@ export class ImSwitcher {
                 if (this.destroyed) return;
                 const pending = this.pendingSwitch;
                 this.pendingSwitch = null;
-                if (pending) pending();
+                if (pending) void pending();
             });
             return;
         }
@@ -190,7 +194,7 @@ export class ImSwitcher {
         this.switchTimer = window.setTimeout(() => {
             this.switchTimer = null;
             if (this.destroyed) return;
-            fn();
+            void fn();
         }, 50);
     }
 }

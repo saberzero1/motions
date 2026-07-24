@@ -241,7 +241,7 @@ export interface VimApiCallbacks {
     fsTrash?: (path?: string) => void;
     imGet?: () => string | null;
     imSet?: (id: string) => void;
-    imSave?: () => void;
+    imSave?: () => void | Promise<void>;
     imRestore?: () => void;
     imGetEnabled?: () => boolean;
     imSetEnabled?: (value: boolean) => void;

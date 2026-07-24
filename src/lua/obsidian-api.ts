@@ -1303,7 +1303,7 @@ export function injectObsidianApi(
     lua.lua_setfield(L, obsImIndex, to_luastring('set'));
 
     lua.lua_pushjsfunction(L, () => {
-        callbacks.imSave?.();
+        void callbacks.imSave?.();
         return 0;
     });
     lua.lua_setfield(L, obsImIndex, to_luastring('save'));

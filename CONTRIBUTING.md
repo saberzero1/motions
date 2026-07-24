@@ -226,7 +226,7 @@ src/
       dataview.ts          #   Dataview integration
       ripgrep-process.ts   #   External grep/ripgrep binary execution
   im/
-    im-switcher.ts         # Input method auto-switching on mode change
+    im-switcher.ts         # Input method auto-switching on mode change (async OS query on save)
     im-process.ts          # External IM binary process management
     composition-tracker.ts   # Per-view IME composition tracking (CM6 ViewPlugin)
     im-mode-watcher.ts       # Per-view vim mode change detection for IM switching (CM6 ViewPlugin)

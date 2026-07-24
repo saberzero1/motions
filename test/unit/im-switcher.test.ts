@@ -145,11 +145,26 @@ describe('set', () => {
 });
 
 describe('save and restore', () => {
-    it('save(leafId) stores lastKnownIm in per-leaf cache', async () => {
+    it('save(leafId) queries OS and stores result in per-leaf cache', async () => {
+        const switcher = createSwitcher();
+        mockExecuteImGet.mockResolvedValue('com.apple.keylayout.Dvorak');
+        await switcher.save('leaf-1');
+        switcher.restore('leaf-1');
+        await Promise.resolve();
+        expect(mockExecuteImGet).toHaveBeenCalledWith(
+            switcher.config.obtainConfig,
+        );
+        expect(mockExecuteImSet).toHaveBeenCalledWith(
+            switcher.config.switchConfig,
+            'com.apple.keylayout.Dvorak',
+        );
+    });
+
+    it('save(leafId) falls back to lastKnownIm when OS query fails', async () => {
         const switcher = createSwitcher();
         switcher.lastKnownIm = 'com.apple.keylayout.Dvorak';
-        switcher.save('leaf-1');
-        await Promise.resolve();
+        mockExecuteImGet.mockResolvedValue(null);
+        await switcher.save('leaf-1');
         switcher.restore('leaf-1');
         await Promise.resolve();
         expect(mockExecuteImSet).toHaveBeenCalledWith(
@@ -160,9 +175,8 @@ describe('save and restore', () => {
 
     it("restore(leafId) with restoreBehavior: 'restore' calls set with saved IM", async () => {
         const switcher = createSwitcher({ restoreBehavior: 'restore' });
-        switcher.lastKnownIm = 'com.apple.keylayout.Dvorak';
-        switcher.save('leaf-1');
-        await Promise.resolve();
+        mockExecuteImGet.mockResolvedValue('com.apple.keylayout.Dvorak');
+        await switcher.save('leaf-1');
         switcher.restore('leaf-1');
         await Promise.resolve();
         expect(mockExecuteImSet).toHaveBeenCalledWith(
@@ -205,11 +219,10 @@ describe('save and restore', () => {
 describe('per-leaf isolation', () => {
     it('save different IMs for different leaf IDs, restore each gets the correct one', async () => {
         const switcher = createSwitcher({ restoreBehavior: 'restore' });
-        switcher.lastKnownIm = 'com.apple.keylayout.ABC';
-        switcher.save('leaf-1');
-        switcher.lastKnownIm = 'com.apple.keylayout.Dvorak';
-        switcher.save('leaf-2');
-        await Promise.resolve();
+        mockExecuteImGet.mockResolvedValueOnce('com.apple.keylayout.ABC');
+        await switcher.save('leaf-1');
+        mockExecuteImGet.mockResolvedValueOnce('com.apple.keylayout.Dvorak');
+        await switcher.save('leaf-2');
 
         switcher.restore('leaf-1');
         await Promise.resolve();
@@ -231,11 +244,14 @@ describe('per-leaf isolation', () => {
 
 describe('onInsertLeave', () => {
     it('calls save then set with defaultNormalIm after debounce timer fires', async () => {
+        mockExecuteImGet.mockResolvedValue(
+            'com.tencent.inputmethod.wetype.pinyin',
+        );
         const switcher = createSwitcher();
         const saveSpy = vi.spyOn(switcher, 'save');
         switcher.onInsertLeave('leaf-1');
         vi.advanceTimersByTime(50);
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
         expect(saveSpy).toHaveBeenCalledWith('leaf-1');
         expect(mockExecuteImSet).toHaveBeenCalledWith(
             switcher.config.switchConfig,
@@ -243,13 +259,13 @@ describe('onInsertLeave', () => {
         );
     });
 
-    it('skips set when lastKnownIm already equals defaultNormalIm', async () => {
+    it('skips set when OS-queried IM already equals defaultNormalIm', async () => {
+        mockExecuteImGet.mockResolvedValue('com.apple.keylayout.ABC');
         const switcher = createSwitcher();
-        switcher.lastKnownIm = 'com.apple.keylayout.ABC';
         const saveSpy = vi.spyOn(switcher, 'save');
         switcher.onInsertLeave('leaf-1');
         vi.advanceTimersByTime(50);
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
         expect(saveSpy).toHaveBeenCalledWith('leaf-1');
         expect(mockExecuteImSet).not.toHaveBeenCalled();
     });
@@ -259,7 +275,7 @@ describe('onInsertLeave', () => {
         const saveSpy = vi.spyOn(switcher, 'save');
         switcher.onInsertLeave('leaf-1');
         vi.advanceTimersByTime(50);
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
         expect(saveSpy).toHaveBeenCalledWith('leaf-1');
         expect(mockExecuteImSet).not.toHaveBeenCalled();
     });
@@ -316,12 +332,15 @@ describe('onCmdlineLeave', () => {
 
 describe('debouncing', () => {
     it('rapid calls only execute the last one', async () => {
+        mockExecuteImGet.mockResolvedValue(
+            'com.tencent.inputmethod.wetype.pinyin',
+        );
         const switcher = createSwitcher();
         switcher.onInsertLeave('leaf-1');
         switcher.onInsertLeave('leaf-1');
         switcher.onInsertLeave('leaf-1');
         vi.advanceTimersByTime(50);
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
         expect(mockExecuteImSet).toHaveBeenCalledTimes(1);
     });
 });
@@ -341,6 +360,9 @@ describe('composition guard', () => {
 
     it('executes pending switch when onAllCompositionsEnd fires', async () => {
         mockIsAnyViewComposing.mockReturnValue(true);
+        mockExecuteImGet.mockResolvedValue(
+            'com.tencent.inputmethod.wetype.pinyin',
+        );
         let endCallback: (() => void) | null = null;
         mockOnAllCompositionsEnd.mockImplementation((cb: () => void) => {
             endCallback = cb;
@@ -354,7 +376,7 @@ describe('composition guard', () => {
         expect(mockExecuteImSet).not.toHaveBeenCalled();
 
         endCallback!();
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
         expect(mockExecuteImSet).toHaveBeenCalledWith(
             switcher.config.switchConfig,
             'com.apple.keylayout.ABC',
@@ -385,11 +407,14 @@ describe('composition guard', () => {
 
     it('proceeds normally when isAnyViewComposing returns false', async () => {
         mockIsAnyViewComposing.mockReturnValue(false);
+        mockExecuteImGet.mockResolvedValue(
+            'com.tencent.inputmethod.wetype.pinyin',
+        );
         const switcher = createSwitcher();
 
         switcher.onInsertLeave('leaf-1');
         vi.advanceTimersByTime(50);
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
         expect(mockExecuteImSet).toHaveBeenCalledWith(
             switcher.config.switchConfig,
             'com.apple.keylayout.ABC',
@@ -410,9 +435,8 @@ describe('destroy', () => {
 
     it('clears saved state', async () => {
         const switcher = createSwitcher({ restoreBehavior: 'restore' });
-        switcher.lastKnownIm = 'com.apple.keylayout.Dvorak';
-        switcher.save('leaf-1');
-        await Promise.resolve();
+        mockExecuteImGet.mockResolvedValue('com.apple.keylayout.Dvorak');
+        await switcher.save('leaf-1');
         switcher.destroy();
         switcher.restore('leaf-1');
         await Promise.resolve();
@@ -436,9 +460,8 @@ describe('destroy', () => {
 describe('cleanupView', () => {
     it('removes per-view IM state', async () => {
         const switcher = createSwitcher({ restoreBehavior: 'restore' });
-        switcher.lastKnownIm = 'com.apple.keylayout.Dvorak';
-        switcher.save('imw_0');
-        await Promise.resolve();
+        mockExecuteImGet.mockResolvedValue('com.apple.keylayout.Dvorak');
+        await switcher.save('imw_0');
 
         switcher.cleanupView('imw_0');
         switcher.restore('imw_0');
