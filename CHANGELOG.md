@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.84.0] - 2026-07-25
+
 ### Fixed
 
 - **Hint mode labels missing on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line render as `.cm-hmd-internal-link` spans (not `.cm-underline`), and markdown links render as `.cm-link`/`.cm-url` spans. These were not in `TARGET_SELECTOR`, so no hint labels appeared. In Source mode, wikilinks always render as `.cm-hmd-internal-link` and were similarly missed. Fixed by adding `.cm-hmd-internal-link`, `.cm-link`, and `.cm-url` to `OBSIDIAN_SELECTORS` and extending `classifyTarget()` to resolve links from these elements via the existing `resolveCmUnderlineHref()` pipeline. Deduplication filters prevent multiple hints per link: aliased wikilink sub-spans, nested `.cm-underline` inside `.cm-hmd-internal-link`, formatting bracket spans, and markdown link URL spans when a text span exists. ([#85](https://github.com/saberzero1/motions/issues/85))

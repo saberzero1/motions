@@ -31,9 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.83.0
+## What's new in 0.84.0
 
-- **Autocmd mode events now fire per-view across all editors** — `InsertEnter`, `InsertLeave`, and `ModeChanged` autocmd events now fire in split panes, popover hover-preview editors, and canvas card text inputs when using the bundled vim fork. Previously, these events only fired for the active workspace leaf. ([#88](https://github.com/saberzero1/motions/issues/88))
 - **Hint mode labels on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line and Source mode wikilinks now show hint labels correctly. Deduplication filters prevent multiple hints per link for aliased wikilinks, nested spans, and markdown link URL spans. ([#85](https://github.com/saberzero1/motions/issues/85))
+- **Hint mode link resolution in Obsidian runtime** — hint labels on editor links now resolve correctly in Obsidian's runtime environment (previously only worked in test contexts). ([#85](https://github.com/saberzero1/motions/issues/85))
+- **Hint mode opens external URLs from editor links** — external URLs (e.g., `https://example.com`) resolved from editor link hints now open in the browser instead of silently failing. ([#85](https://github.com/saberzero1/motions/issues/85))
 
 See the [[changelog|full changelog]] for details.
