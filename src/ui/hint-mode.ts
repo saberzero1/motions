@@ -246,17 +246,36 @@ function findLeafForElement(app: App, el: HTMLElement): WorkspaceLeaf | null {
     return found;
 }
 
-function getEditorViewFromElement(el: Element): EditorView | null {
+function editorViewFromMarkdownView(mdView: MarkdownView): EditorView | null {
+    try {
+        const outer = (mdView.editor as unknown as Record<string, unknown>)
+            .cm as Record<string, unknown> | undefined;
+        if (!outer) return null;
+        if (typeof outer.dispatch === 'function')
+            return outer as unknown as EditorView;
+        const inner = outer.cm6 as EditorView | undefined;
+        return inner ?? null;
+    } catch {
+        return null;
+    }
+}
+
+function getEditorViewFromElement(el: Element, app: App): EditorView | null {
     const cmEditor = el.closest('.cm-editor');
     if (!cmEditor) return null;
     const cmView = (cmEditor as unknown as Record<string, unknown>).cmView as
         | { view?: EditorView }
         | undefined;
-    return cmView?.view ?? null;
+    if (cmView?.view) return cmView.view;
+    const leaf = findLeafForElement(app, el as HTMLElement);
+    if (leaf?.view instanceof MarkdownView) {
+        return editorViewFromMarkdownView(leaf.view);
+    }
+    return null;
 }
 
-function resolveCmUnderlineHref(el: Element): string | undefined {
-    const editorView = getEditorViewFromElement(el);
+function resolveCmUnderlineHref(el: Element, app: App): string | undefined {
+    const editorView = getEditorViewFromElement(el, app);
     if (!editorView) return undefined;
     try {
         const pos = editorView.posAtDOM(el, 0);
@@ -308,7 +327,7 @@ function classifyTarget(
             el.classList.contains('cm-hmd-internal-link') ||
             el.classList.contains('cm-link') ||
             el.classList.contains('cm-url')
-                ? resolveCmUnderlineHref(el)
+                ? resolveCmUnderlineHref(el, app)
                 : undefined);
         return {
             targetType: 'link',
@@ -374,16 +393,21 @@ function hintActivate(
     }
 
     const linkHref = target.href ?? null;
-    const isInternalLink =
+    const isExternalLink =
         linkHref &&
-        !linkHref.startsWith('http://') &&
-        !linkHref.startsWith('https://');
+        (linkHref.startsWith('http://') || linkHref.startsWith('https://'));
+    const isInternalLink = linkHref && !isExternalLink;
 
     if (isInternalLink) {
         const activeFile = app.workspace.getActiveFile()?.path ?? '';
         void navigateWithJump(app, linkHref, activeFile, {
             newTab: openInNewPane,
         });
+        return !inModal;
+    }
+
+    if (isExternalLink) {
+        window.open(linkHref);
         return !inModal;
     }
 
@@ -548,7 +572,11 @@ function createHintAction(
             .filter((el) => {
                 if (!el.classList.contains('cm-link')) return true;
                 const prev = el.previousElementSibling;
-                return !prev || !prev.classList.contains('cm-link');
+                return (
+                    !prev ||
+                    !prev.classList.contains('cm-link') ||
+                    prev.classList.contains('cm-formatting-link')
+                );
             })
             .filter((el) => {
                 if (!el.classList.contains('cm-url')) return true;

@@ -56,9 +56,9 @@ Smart label assignment prioritizes the home row. Single-character labels are use
 > [!note]
 > While hint actions work in modals, standard navigation keys (like `j`/`k`) are suppressed to prevent interference with modal controls.
 
-## Internal link handling
+## Link handling
 
-Links are not triggered by raw mouse clicks. Instead, the plugin uses Obsidian's internal link resolver for wikilinks and Markdown links. This ensures that navigation respects your "Open in new tab" settings and correctly handles internal paths.
+Internal links are navigated via Obsidian's link resolver, ensuring that "Open in new tab" settings and vault-relative paths are respected. External URLs (`http://` and `https://`) are opened in the system browser via `window.open()`.
 
 In the editor (both Live Preview and Source mode), links are rendered as `<span>` elements without standard `href` attributes. The plugin resolves these links by converting the DOM element to a document position via CodeMirror's `posAtDOM()` API, then extracting the link target from the raw markdown text using regex matching. This works for all link types:
 

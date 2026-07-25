@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hint mode labels missing on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line render as `.cm-hmd-internal-link` spans (not `.cm-underline`), and markdown links render as `.cm-link`/`.cm-url` spans. These were not in `TARGET_SELECTOR`, so no hint labels appeared. In Source mode, wikilinks always render as `.cm-hmd-internal-link` and were similarly missed. Fixed by adding `.cm-hmd-internal-link`, `.cm-link`, and `.cm-url` to `OBSIDIAN_SELECTORS` and extending `classifyTarget()` to resolve links from these elements via the existing `resolveCmUnderlineHref()` pipeline. Deduplication filters prevent multiple hints per link: aliased wikilink sub-spans, nested `.cm-underline` inside `.cm-hmd-internal-link`, formatting bracket spans, and markdown link URL spans when a text span exists. ([#85](https://github.com/saberzero1/motions/issues/85))
+    - Plugin: `src/ui/hint-mode.ts` (added selectors, extended `classifyTarget`, deduplication filters in `createHintAction`)
+- **Hint mode link resolution fails in Obsidian runtime** — `getEditorViewFromElement()` used the DOM `.cmView.view` property to access the CM6 EditorView, but this property is not accessible in Obsidian's runtime environment (only works in the WDIO test context). All resolved links returned `href: undefined`, causing hint labels to appear but do nothing when activated. Fixed by falling back to the `MarkdownView.editor.cm` path (the same accessor used by the rest of the codebase via `getEditorView()` in `src/util/editor.ts`). ([#85](https://github.com/saberzero1/motions/issues/85))
+    - Plugin: `src/ui/hint-mode.ts` (`getEditorViewFromElement` fallback via `app.workspace.getActiveViewOfType(MarkdownView)`)
+- **Hint mode does not open external URLs from editor links** — when `resolveCmUnderlineHref()` resolved an external URL (e.g., `https://example.com`), `hintActivate()` fell through to the generic click handler because the `isInternalLink` check excluded URLs starting with `http://` or `https://`. The generic click handler dispatches pointer/click events on `<span>` elements, which have no click handler and produce no effect. Fixed by adding an explicit `window.open(linkHref)` path for external URLs. ([#85](https://github.com/saberzero1/motions/issues/85))
+    - Plugin: `src/ui/hint-mode.ts` (`hintActivate` external URL branch)
+
+### Tests
+
+- 9 new e2e tests in `test/specs/hint-mode-links.e2e.ts`: Source mode navigation (plain, aliased, inline wikilinks), cursor-on-line Live Preview navigation, multiple wikilinks on same line, aliased wikilink deduplication, `yf` yank on wikilink, `F` open-in-new-tab on wikilink, embed wikilink hint visibility
+- Mode-switching helpers (`ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`) extracted to `test/helpers.ts`
+- Spike test `test/specs/spikes/spike-hint-wikilink-issue85.e2e.ts`: 17 diagnostic tests probing DOM element discovery, `posAtDOM` mapping accuracy, `findLinkAtCursor` resolution, and end-to-end hint activation across Live Preview, Source mode, and Reading view
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated hint mode target classification with `.cm-hmd-internal-link`, `.cm-link`, `.cm-url` selectors, deduplication filter descriptions, EditorView fallback, and external URL handling
+- `CONTRIBUTING.md`: Updated `hint-mode.ts` description with cursor-on-line and Source mode link resolution, EditorView MarkdownView fallback, external URL handling
+- `docs/features/hint-mode.md`: Updated link handling section with Source mode support, cursor-on-line behavior, and external URL opening
+
 ## [0.83.0] - 2026-07-25
 
 ### Fixed
