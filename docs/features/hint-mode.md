@@ -60,14 +60,17 @@ Smart label assignment prioritizes the home row. Single-character labels are use
 
 Links are not triggered by raw mouse clicks. Instead, the plugin uses Obsidian's internal link resolver for wikilinks and Markdown links. This ensures that navigation respects your "Open in new tab" settings and correctly handles internal paths.
 
-In Live Preview, wikilinks and markdown links are rendered as `<span>` elements without standard `href` attributes. The plugin resolves these links by converting the DOM element to a document position via CodeMirror's `posAtDOM()` API, then extracting the link target from the raw markdown text using regex matching. This works for all link types:
+In the editor (both Live Preview and Source mode), links are rendered as `<span>` elements without standard `href` attributes. The plugin resolves these links by converting the DOM element to a document position via CodeMirror's `posAtDOM()` API, then extracting the link target from the raw markdown text using regex matching. This works for all link types:
 
 - `[[Target]]` — plain wikilinks
 - `[[Target|Alias]]` — aliased wikilinks
 - `[[Target#heading]]` — heading and block links
+- `![[Target]]` — embed wikilinks
 - `[text](Target)` — markdown links (internal)
 - `[text](https://...)` — markdown links (external)
 - `https://...` — bare URLs
+
+Hint labels appear regardless of cursor position — both when the cursor is on the link's line (where links render as expanded `.cm-hmd-internal-link` or `.cm-link` spans) and when the cursor is elsewhere (where links render as collapsed `.cm-underline` spans). Source mode is fully supported.
 
 In Reading view and frontmatter properties, links render as standard HTML elements with `href` or `data-href` attributes and are handled directly.
 

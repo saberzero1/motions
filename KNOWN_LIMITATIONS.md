@@ -621,7 +621,7 @@ Each hint target is classified by type during discovery, before label assignment
 
 - `.workspace-leaf-content` → `pane` (focus via `setActiveLeaf`; `F` action duplicates the leaf into a new tab via `duplicateLeaf`)
 - `.workspace-tab-header` → `tab` (close via `leaf.detach()`)
-- `a[href]`, `[data-href]`, `.cm-underline` → `link` (navigate via `navigateWithJump`). ~~`.cm-underline` spans in Live Preview had no `href` or `data-href` attributes, causing wikilinks and markdown links to fall through to the generic click handler (no-op on CM6 spans).~~ Fixed: `resolveCmUnderlineHref()` uses `EditorView.posAtDOM()` to convert the DOM element to a document offset, then calls `findLinkAtCursor()` to extract the link target from the raw markdown text. ([#85](https://github.com/saberzero1/motions/issues/85))
+- `a[href]`, `[data-href]`, `.cm-underline`, `.cm-hmd-internal-link`, `.cm-link`, `.cm-url` → `link` (navigate via `navigateWithJump`). ~~`.cm-underline` spans in Live Preview had no `href` or `data-href` attributes, causing wikilinks and markdown links to fall through to the generic click handler (no-op on CM6 spans).~~ Fixed in two phases: (1) `resolveCmUnderlineHref()` uses `EditorView.posAtDOM()` to convert the DOM element to a document offset, then calls `findLinkAtCursor()` to extract the link target from the raw markdown text. (2) ~~Hint labels only appeared on `.cm-underline` spans, which are only present in Live Preview when the cursor is NOT on the link's line. When the cursor is on the line, wikilinks render as `.cm-hmd-internal-link` spans and markdown links render as `.cm-link`/`.cm-url` spans — neither was in `TARGET_SELECTOR`. In Source mode, wikilinks always render as `.cm-hmd-internal-link`.~~ Fixed: added `.cm-hmd-internal-link`, `.cm-link`, and `.cm-url` to `TARGET_SELECTOR` with deduplication filters to prevent multiple hints per link (aliased wikilink sub-spans, nested `.cm-underline` inside `.cm-hmd-internal-link`, markdown link URL spans when text span exists). ([#85](https://github.com/saberzero1/motions/issues/85))
 - `input`, `textarea`, `select`, `[contenteditable]` → `input` (focus; `<select>` cycles to next option)
 - `button`, `.clickable-icon`, `[role="button"]` → `button` (click)
 - everything else → `generic` (pointer event sequence + click)
@@ -631,6 +631,11 @@ Target discovery filters:
 - Elements with `.is-measuring` class are excluded (Obsidian 1.13+ shadow `<select>` copies used for layout measurement)
 - Child elements inside `.checkbox-container` are excluded (the container itself is the clickable toggle, not its inner `<input>`)
 - `input[type="hidden"]` and disabled elements are excluded
+- `.cm-underline` inside `.cm-hmd-internal-link` is excluded (parent is the preferred target)
+- `.cm-formatting-link` spans are excluded (bracket characters `[`, `]`, `(`, `)` should not be hint targets)
+- Only the first `.cm-hmd-internal-link` sibling per link group is kept (aliased wikilinks `[[Target|Alias]]` produce 3 sub-spans)
+- Only the first `.cm-link` sibling per link group is kept (formatting brackets produce separate `.cm-link` spans)
+- `.cm-url` with `.cm-string` class is excluded (URL inside markdown link parentheses — the `.cm-link` text span is the hint target). Bare URLs (`.cm-url` without `.cm-string`) are kept
 
 ### Settings gating
 

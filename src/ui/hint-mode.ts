@@ -39,6 +39,9 @@ const OBSIDIAN_SELECTORS = [
     '.side-dock-ribbon-action',
     '.callout-fold',
     '.cm-underline',
+    '.cm-hmd-internal-link',
+    '.cm-link',
+    '.cm-url',
     '.menu-item',
     '.modal-close-button',
     '.vertical-tab-nav-item',
@@ -291,14 +294,20 @@ function classifyTarget(
     if (
         el.instanceOf(HTMLAnchorElement) ||
         el.matches('[data-href]') ||
-        el.classList.contains('cm-underline')
+        el.classList.contains('cm-underline') ||
+        el.classList.contains('cm-hmd-internal-link') ||
+        el.classList.contains('cm-link') ||
+        el.classList.contains('cm-url')
     ) {
         const href =
             el.getAttribute('data-href') ??
             (el.instanceOf(HTMLAnchorElement)
                 ? el.getAttribute('href')
                 : null) ??
-            (el.classList.contains('cm-underline')
+            (el.classList.contains('cm-underline') ||
+            el.classList.contains('cm-hmd-internal-link') ||
+            el.classList.contains('cm-link') ||
+            el.classList.contains('cm-url')
                 ? resolveCmUnderlineHref(el)
                 : undefined);
         return {
@@ -519,7 +528,32 @@ function createHintAction(
                     !el.closest('.checkbox-container') ||
                     el.classList.contains('checkbox-container'),
             )
-            .filter((el) => !el.classList.contains('is-measuring'));
+            .filter((el) => !el.classList.contains('is-measuring'))
+            .filter(
+                (el) =>
+                    !(
+                        el.classList.contains('cm-underline') &&
+                        (el.closest('.cm-hmd-internal-link') ||
+                            el.closest('.cm-link'))
+                    ),
+            )
+            .filter((el) => {
+                if (el.classList.contains('cm-formatting-link')) return false;
+                if (!el.classList.contains('cm-hmd-internal-link')) return true;
+                const prev = el.previousElementSibling;
+                return (
+                    !prev || !prev.classList.contains('cm-hmd-internal-link')
+                );
+            })
+            .filter((el) => {
+                if (!el.classList.contains('cm-link')) return true;
+                const prev = el.previousElementSibling;
+                return !prev || !prev.classList.contains('cm-link');
+            })
+            .filter((el) => {
+                if (!el.classList.contains('cm-url')) return true;
+                return !el.classList.contains('cm-string');
+            });
         if (visible.length === 0) {
             if (showNotice) {
                 new Notice('No hint targets found');

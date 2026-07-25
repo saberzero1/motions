@@ -160,7 +160,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 - `test/specs/spikes/` — exploratory/R&D tests.
 - `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, etc.).
 - `test/neovim/` — Neovim comparison infrastructure (client, compare, golden, deviations, wrapper, definitions, recording).
-- `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`).
+- `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`, `ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`).
 
 ### Writing new Tier 1 tests
 

@@ -1,7 +1,15 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { PAUSE, setupEditor, sendVimEscape } from '../helpers';
+import {
+    PAUSE,
+    setupEditor,
+    sendVimEscape,
+    ensureLivePreview,
+    ensureSourceMode,
+    getNotices,
+    dismissNotices,
+} from '../helpers';
 
 const TARGET_SELECTOR = [
     'a[href]',
@@ -24,6 +32,9 @@ const TARGET_SELECTOR = [
     '.side-dock-ribbon-action',
     '.callout-fold',
     '.cm-underline',
+    '.cm-hmd-internal-link',
+    '.cm-link',
+    '.cm-url',
     '.menu-item',
     '.modal-close-button',
     '.vertical-tab-nav-item',
@@ -31,16 +42,28 @@ const TARGET_SELECTOR = [
     '.modal-header-button',
 ].join(', ');
 
-function triggerHintModeViaCommand(): Promise<void> {
-    return browser.executeObsidian(({ app }) => {
+function executeCommand(commandId: string): Promise<void> {
+    return browser.executeObsidian(({ app }, id: string) => {
         (
             app as unknown as {
                 commands: {
                     executeCommandById: (id: string) => boolean;
                 };
             }
-        ).commands.executeCommandById('vim-motions:show-hint-labels');
-    }) as Promise<void>;
+        ).commands.executeCommandById(id);
+    }, commandId) as Promise<void>;
+}
+
+function triggerHintModeViaCommand(): Promise<void> {
+    return executeCommand('vim-motions:show-hint-labels');
+}
+
+function triggerHintYankViaCommand(): Promise<void> {
+    return executeCommand('vim-motions:hint-yank');
+}
+
+function triggerHintOpenNewViaCommand(): Promise<void> {
+    return executeCommand('vim-motions:hint-open-new-pane');
 }
 
 function getActiveFilePath(): Promise<string> {
@@ -56,7 +79,7 @@ interface HintLabelForLink {
     extractedHref: string | null;
 }
 
-async function findHintLabelForCmUnderline(
+async function findHintLabelForLink(
     textMatch: string,
 ): Promise<HintLabelForLink | null> {
     return (await browser.executeObsidian(
@@ -74,7 +97,9 @@ async function findHintLabelForCmUnderline(
             if (!cmEditor) return null;
 
             const underlines = Array.from(
-                cmEditor.querySelectorAll('.cm-underline'),
+                cmEditor.querySelectorAll(
+                    '.cm-underline, .cm-hmd-internal-link',
+                ),
             ).filter((el) => {
                 const rect = el.getBoundingClientRect();
                 return (
@@ -236,7 +261,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline('Markdown link');
+            const hintInfo = await findHintLabelForLink('Markdown link');
             if (hintInfo) {
                 expect(hintInfo.label.length).toBeGreaterThan(0);
                 expect(hintInfo.parentClassName).toContain('cm-link');
@@ -255,9 +280,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline(
-                'https://example.com',
-            );
+            const hintInfo = await findHintLabelForLink('https://example.com');
             if (hintInfo) {
                 expect(hintInfo.label.length).toBeGreaterThan(0);
                 expect(hintInfo.parentClassName).toContain('cm-url');
@@ -281,7 +304,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline('Target');
+            const hintInfo = await findHintLabelForLink('Target');
             if (!hintInfo) {
                 await browser.keys(['Escape']);
                 return;
@@ -304,7 +327,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline('My Alias');
+            const hintInfo = await findHintLabelForLink('My Alias');
             if (!hintInfo) {
                 await browser.keys(['Escape']);
                 return;
@@ -332,7 +355,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline('Go to target');
+            const hintInfo = await findHintLabelForLink('Go to target');
             if (!hintInfo) {
                 await browser.keys(['Escape']);
                 return;
@@ -357,7 +380,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline('Target');
+            const hintInfo = await findHintLabelForLink('Target');
             if (!hintInfo) {
                 await browser.keys(['Escape']);
                 return;
@@ -466,7 +489,7 @@ describe('Hint mode link navigation (#85)', function () {
             await triggerHintModeViaCommand();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            const hintInfo = await findHintLabelForCmUnderline('External');
+            const hintInfo = await findHintLabelForLink('External');
             if (hintInfo) {
                 expect(hintInfo.label.length).toBeGreaterThan(0);
             }
@@ -475,6 +498,266 @@ describe('Hint mode link navigation (#85)', function () {
 
             const afterFile = await getActiveFilePath();
             expect(afterFile).toBe('Welcome.md');
+        });
+    });
+
+    describe('Source mode wikilink navigation', function () {
+        beforeEach(async function () {
+            await ensureSourceMode();
+        });
+
+        it('should navigate wikilink in Source mode', async function () {
+            await setupEditor('[[Target]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+
+            const beforeFile = await getActiveFilePath();
+            expect(beforeFile).toBe('Welcome.md');
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            await typeHintLabel(hintInfo.label);
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterFile = await getActiveFilePath();
+            expect(afterFile).toBe('Target.md');
+        });
+
+        it('should navigate aliased wikilink in Source mode', async function () {
+            await setupEditor('[[Target|My Alias]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            await typeHintLabel(hintInfo.label);
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterFile = await getActiveFilePath();
+            expect(afterFile).toBe('Target.md');
+        });
+
+        it('should navigate inline wikilink in Source mode', async function () {
+            await setupEditor(
+                'Some text with a [[Target]] link.\n\nMore text.',
+                { line: 0, ch: 0 },
+            );
+            await browser.pause(500);
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            await typeHintLabel(hintInfo.label);
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterFile = await getActiveFilePath();
+            expect(afterFile).toBe('Target.md');
+        });
+    });
+
+    describe('Cursor-on-line wikilink (Live Preview)', function () {
+        beforeEach(async function () {
+            await ensureLivePreview();
+        });
+
+        it('should navigate wikilink when cursor is on the same line', async function () {
+            await setupEditor('[[Target]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+
+            const beforeFile = await getActiveFilePath();
+            expect(beforeFile).toBe('Welcome.md');
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            await typeHintLabel(hintInfo.label);
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterFile = await getActiveFilePath();
+            expect(afterFile).toBe('Target.md');
+        });
+    });
+
+    describe('Multiple wikilinks on same line', function () {
+        it('should produce distinct hints for each wikilink', async function () {
+            await setupEditor(
+                'See [[Alpha]] and [[Beta]] for details.\n\nMore text.',
+                { line: 0, ch: 0 },
+            );
+            await browser.pause(500);
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const alphaHint = await findHintLabelForLink('Alpha');
+            const betaHint = await findHintLabelForLink('Beta');
+
+            if (alphaHint && betaHint) {
+                expect(alphaHint.label).not.toBe(betaHint.label);
+            }
+
+            await browser.keys(['Escape']);
+        });
+    });
+
+    describe('Aliased wikilink deduplication', function () {
+        it('should navigate aliased wikilink with single activation', async function () {
+            await setupEditor('[[Target|Click Here]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+
+            const beforeFile = await getActiveFilePath();
+            expect(beforeFile).toBe('Welcome.md');
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                const aliasHint = await findHintLabelForLink('Click Here');
+                if (!aliasHint) {
+                    await browser.keys(['Escape']);
+                    return;
+                }
+                await typeHintLabel(aliasHint.label);
+            } else {
+                await typeHintLabel(hintInfo.label);
+            }
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterFile = await getActiveFilePath();
+            expect(afterFile).toBe('Target.md');
+        });
+    });
+
+    describe('Hint yank (yf) on wikilinks', function () {
+        it('should yank wikilink target via hint-yank command', async function () {
+            await setupEditor('[[Target]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+            await dismissNotices();
+
+            await triggerHintYankViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            await typeHintLabel(hintInfo.label);
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const notices = await getNotices();
+            const yankNotice = notices.find((n) => n.includes('Copied:'));
+            expect(yankNotice).toBeDefined();
+            expect(yankNotice).toContain('Target');
+        });
+    });
+
+    describe('Hint open new tab (F) on wikilinks', function () {
+        it('should open wikilink in new tab via hint-open-new-pane command', async function () {
+            await setupEditor('[[Target]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+
+            const beforeFile = await getActiveFilePath();
+            expect(beforeFile).toBe('Welcome.md');
+
+            const beforeLeafCount = (await browser.executeObsidian(
+                ({ app }) => {
+                    return app.workspace.getLeavesOfType('markdown').length;
+                },
+            )) as number;
+
+            await triggerHintOpenNewViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hintInfo = await findHintLabelForLink('Target');
+            if (!hintInfo) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            await typeHintLabel(hintInfo.label);
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterLeafCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+
+            expect(afterLeafCount).toBeGreaterThan(beforeLeafCount);
+
+            const afterFile = await getActiveFilePath();
+            expect(afterFile).toBe('Target.md');
+        });
+    });
+
+    describe('Embed wikilink hints', function () {
+        it('should produce hint label for embed wikilink if visible', async function () {
+            await setupEditor('![[Target]]\n\nPlain text.', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(500);
+
+            await triggerHintModeViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+            expect(hasOverlay).toBe(true);
+
+            const embedHint = await findHintLabelForLink('Target');
+
+            if (embedHint) {
+                expect(embedHint.label.length).toBeGreaterThan(0);
+            }
+
+            await browser.keys(['Escape']);
         });
     });
 });

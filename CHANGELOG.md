@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hint mode labels missing on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line render as `.cm-hmd-internal-link` spans (not `.cm-underline`), and markdown links render as `.cm-link`/`.cm-url` spans. These were not in `TARGET_SELECTOR`, so no hint labels appeared. In Source mode, wikilinks always render as `.cm-hmd-internal-link` and were similarly missed. Fixed by adding `.cm-hmd-internal-link`, `.cm-link`, and `.cm-url` to `OBSIDIAN_SELECTORS` and extending `classifyTarget()` to resolve links from these elements via the existing `resolveCmUnderlineHref()` pipeline. Deduplication filters prevent multiple hints per link: aliased wikilink sub-spans, nested `.cm-underline` inside `.cm-hmd-internal-link`, formatting bracket spans, and markdown link URL spans when a text span exists. ([#85](https://github.com/saberzero1/motions/issues/85))
+    - Plugin: `src/ui/hint-mode.ts` (added selectors, extended `classifyTarget`, deduplication filters in `createHintAction`)
+
+### Tests
+
+- 9 new e2e tests in `test/specs/hint-mode-links.e2e.ts`: Source mode navigation (plain, aliased, inline wikilinks), cursor-on-line Live Preview navigation, multiple wikilinks on same line, aliased wikilink deduplication, `yf` yank on wikilink, `F` open-in-new-tab on wikilink, embed wikilink hint visibility
+- Mode-switching helpers (`ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`) extracted to `test/helpers.ts`
+- Spike test `test/specs/spikes/spike-hint-wikilink-issue85.e2e.ts`: 17 diagnostic tests probing DOM element discovery, `posAtDOM` mapping accuracy, `findLinkAtCursor` resolution, and end-to-end hint activation across Live Preview, Source mode, and Reading view
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated hint mode target classification with `.cm-hmd-internal-link`, `.cm-link`, `.cm-url` selectors and deduplication filter descriptions
+- `CONTRIBUTING.md`: Updated `hint-mode.ts` description with cursor-on-line and Source mode link resolution
+- `docs/features/hint-mode.md`: Updated internal link handling section with Source mode support and cursor-on-line behavior
+
 ## [0.82.0] - 2026-07-24
 
 ### Fixed

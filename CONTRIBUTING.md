@@ -246,7 +246,7 @@ src/
     vim-info-modal.ts      # Reusable table modal base (used by :reg, :marks, :buffers, :backlinks)
     outline-modal.ts       # gO document outline (SuggestModal)
     context-actions.ts     # gra context-aware action picker
-    hint-mode.ts           # Vimium-style label overlay for clickable UI elements (link resolution via posAtDOM + findLinkAtCursor)
+    hint-mode.ts           # Vimium-style label overlay for clickable UI elements (link resolution via posAtDOM + findLinkAtCursor for .cm-underline, .cm-hmd-internal-link, .cm-link, .cm-url with deduplication filters)
     which-key.ts           # Leader key hint overlay + LeaderRegistry
     global-which-key.ts    # Which-key overlay outside editor context
     ex-suggest.ts          # Ex command tab completion
@@ -565,6 +565,10 @@ describe('My feature', function () {
 - `getRegisterContent(register)` — Get register contents.
 - `sendVimEscape()` — Send Escape and wait for normal mode.
 - `loadSingleFileWorkspace(content)` — Load a workspace with a single file.
+- `ensureLivePreview()` — Switch active editor to Live Preview mode.
+- `ensureSourceMode()` — Switch active editor to Source mode.
+- `isLivePreview()` — Check if active editor is in Live Preview.
+- `isSourceMode()` — Check if active editor is in Source mode.
 - `unsupported(name, fn)` — Mark a test as unsupported (skip with label).
 - `deviation(name, fn)` — Mark a test as a known Neovim deviation.
 

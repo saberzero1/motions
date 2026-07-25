@@ -517,3 +517,50 @@ export async function dismissNotices(): Promise<void> {
         document.querySelectorAll('.notice').forEach((el) => el.remove());
     });
 }
+
+export async function isLivePreview(): Promise<boolean> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return false;
+        const state = view.getState();
+        return state.mode === 'source' && state.source !== true;
+    })) as boolean;
+}
+
+export async function ensureLivePreview(): Promise<void> {
+    const isLP = await isLivePreview();
+    if (!isLP) {
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const state = view.getState();
+            state.mode = 'source';
+            state.source = false;
+            view.setState(state, { history: false });
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+    }
+}
+
+export async function isSourceMode(): Promise<boolean> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return false;
+        const state = view.getState();
+        return state.mode === 'source' && state.source === true;
+    })) as boolean;
+}
+
+export async function ensureSourceMode(): Promise<void> {
+    await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return;
+        const state = view.getState();
+        state.mode = 'source';
+        state.source = true;
+        view.setState(state, { history: false });
+    });
+    await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+}
