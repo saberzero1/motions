@@ -31,10 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.82.0
+## What's new in 0.83.0
 
-- **Animated cursor fix for count-prefixed and multi-key motions** — movements like `4j` and `g$` now animate correctly instead of teleporting. The cursor shape change detection no longer false-triggers on partial keystroke chords. ([#86](https://github.com/saberzero1/motions/issues/86))
-- **Hint mode now navigates wikilinks and markdown links in Live Preview** — typing a hint label on a `[[wikilink]]` or `[markdown link](target)` in the editor now opens the target. Previously, `.cm-underline` spans lacked `href` attributes and the hint fell through silently. ([#85](https://github.com/saberzero1/motions/issues/85))
-- **Input method restored correctly after manual IME switch** — manually switching input methods during insert mode (e.g., via OS keyboard shortcut) is now preserved across mode changes. Previously, the stale cached value overwrote the user's choice. ([#83](https://github.com/saberzero1/motions/issues/83))
+- **Autocmd mode events now fire per-view across all editors** — `InsertEnter`, `InsertLeave`, and `ModeChanged` autocmd events now fire in split panes, popover hover-preview editors, and canvas card text inputs when using the bundled vim fork. Previously, these events only fired for the active workspace leaf. ([#88](https://github.com/saberzero1/motions/issues/88))
+- **Hint mode labels on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line and Source mode wikilinks now show hint labels correctly. Deduplication filters prevent multiple hints per link for aliased wikilinks, nested spans, and markdown link URL spans. ([#85](https://github.com/saberzero1/motions/issues/85))
 
 See the [[changelog|full changelog]] for details.

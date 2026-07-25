@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.83.0] - 2026-07-25
+
 ### Fixed
 
 - **Autocmd mode events only fire in the active editor leaf** — `InsertEnter`, `InsertLeave`, and `ModeChanged` autocmd events now fire per-view across all editors (split panes, popover hover-preview editors, canvas card text inputs) when using the bundled vim fork. Previously, these events only fired for the active workspace leaf because the `AutocmdManager` bound to a single adapter via `onActiveLeafChange()`. Non-leaf editors (popovers, canvas cards) never triggered `active-leaf-change`, so autocmd callbacks for mode events never executed in these contexts. Fixed by adding `AutocmdModeWatcher`, a CM6 `ViewPlugin` that hooks `vim-mode-change` per-EditorView and fires mode events through `AutocmdManager.fire()`. The ViewPlugin is registered via `registerEditorExtension()` and automatically applies to all editors. The single-adapter mode-change binding in `bindAdapter()` and `activate()` is gated by a `useViewPlugin` flag — when the ViewPlugin is active (bundled vim mode), the legacy binding is skipped. Built-in vim mode retains the existing active-leaf-only behavior. Other adapter-dependent events (`TextYankPost`, `CursorMoved`, `CursorHold`, `CmdlineEnter`, `CmdlineLeave`) remain active-leaf-only for v1. ([#88](https://github.com/saberzero1/motions/issues/88))
