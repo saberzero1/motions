@@ -214,6 +214,11 @@ import {
     setImModeCallbacks,
     clearImModeCallbacks,
 } from './im/im-mode-watcher';
+import {
+    createAutocmdModeWatcherExtension,
+    setAutocmdModeCallbacks,
+    clearAutocmdModeCallbacks,
+} from './vim/autocmd-mode-watcher';
 import { expandTilde } from './util/external-fs';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
@@ -2037,6 +2042,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(yankHighlightExtension());
         this.registerEditorExtension(createCompositionTrackerExtension());
         this.registerEditorExtension(createImModeWatcherExtension());
+        this.registerEditorExtension(createAutocmdModeWatcherExtension());
         this.registerEditorExtension(foldSyncExtension());
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
         this.registerEditorExtension(foldLevelExtension());
@@ -3405,6 +3411,13 @@ export default class VimMotionsPlugin extends Plugin {
         this.timerManager = luaResult.timerManager;
         this.autocmdManager = luaResult.autocmdManager;
 
+        if (isBundledVimActive() && this.autocmdManager) {
+            setAutocmdModeCallbacks((mode) => {
+                this.autocmdManager?.handleModeChangeFromView(mode);
+            });
+            this.autocmdManager.setUseViewPlugin(true);
+        }
+
         this.oilKeybindingManager?.setAutocmdManager(
             this.autocmdManager ?? null,
         );
@@ -3989,6 +4002,7 @@ export default class VimMotionsPlugin extends Plugin {
         clearImModeCallbacks();
         this.imSwitcher?.destroy();
         this.imSwitcher = null;
+        clearAutocmdModeCallbacks();
         this.autocmdManager?.destroy();
         this.autocmdManager = null;
         this.highlightManager?.destroy();

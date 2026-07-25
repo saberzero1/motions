@@ -750,15 +750,18 @@ Registered commands are immediately available via `:CommandName` in the ex comma
 
 Vim Motions supports a Neovim-compatible autocommand system for reacting to editor events.
 
+> [!tip] Per-view mode events
+> Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across all editors — split panes, popover editors, and canvas card text inputs — when using the bundled vim fork (recommended setup). This means autocmd callbacks for mode changes work in every editor, not just the active leaf.
+
 ### Supported events
 
 | Event          | When it fires                                           | Pattern support                                       |
 | -------------- | ------------------------------------------------------- | ----------------------------------------------------- |
-| `InsertEnter`  | Entering insert or replace mode                         | No                                                    |
-| `InsertLeave`  | Leaving insert or replace mode                          | No                                                    |
+| `InsertEnter`  | Entering insert or replace mode (per-view)              | No                                                    |
+| `InsertLeave`  | Leaving insert or replace mode (per-view)               | No                                                    |
 | `CursorMoved`  | After cursor moves in normal mode                       | No                                                    |
 | `CursorHold`   | After cursor is idle for `updatetime` ms (default 4000) | No                                                    |
-| `ModeChanged`  | Any mode transition                                     | `"old:new"` with `*` wildcard                         |
+| `ModeChanged`  | Any mode transition (per-view)                          | `"old:new"` with `*` wildcard                         |
 | `BufEnter`     | A file becomes the active note                          | Vault-relative path globs (`"*.md"`, `"projects/**"`) |
 | `BufLeave`     | A file is deactivated (switching away)                  | Vault-relative path globs                             |
 | `BufWritePre`  | Before saving a file                                    | Vault-relative path globs                             |

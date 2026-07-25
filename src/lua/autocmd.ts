@@ -131,8 +131,17 @@ export class AutocmdManager {
     private leafEnterDebounceTimer: number | null = null;
     private cmdlinePrefix: string | null = null;
     private pendingInitialBufEnterPath: string | null = null;
+    private useViewPlugin = false;
 
     constructor(private L: lua_State | null) {}
+
+    setUseViewPlugin(value: boolean): void {
+        this.useViewPlugin = value;
+    }
+
+    handleModeChangeFromView(mode: VimModeChange): void {
+        this.handleModeChange(mode);
+    }
 
     fireInitialBufEnter(): void {
         if (this.pendingInitialBufEnterPath) {
@@ -300,8 +309,10 @@ export class AutocmdManager {
         });
         if (focusLostCleanup) this.globalCleanups.push(focusLostCleanup);
 
-        const modeCleanup = callbacks.onModeChange(this.handleModeChange);
-        if (modeCleanup) this.adapterCleanups.push(modeCleanup);
+        if (!this.useViewPlugin) {
+            const modeCleanup = callbacks.onModeChange(this.handleModeChange);
+            if (modeCleanup) this.adapterCleanups.push(modeCleanup);
+        }
 
         const yankCleanup = callbacks.onYank(this.handleYank);
         if (yankCleanup) this.adapterCleanups.push(yankCleanup);
@@ -411,11 +422,13 @@ export class AutocmdManager {
 
     private bindAdapter(adapter: CmAdapter | null): void {
         if (!adapter || !this.callbacks) return;
-        const modeCleanup = this.callbacks.onModeChange(
-            this.handleModeChange,
-            adapter,
-        );
-        if (modeCleanup) this.adapterCleanups.push(modeCleanup);
+        if (!this.useViewPlugin) {
+            const modeCleanup = this.callbacks.onModeChange(
+                this.handleModeChange,
+                adapter,
+            );
+            if (modeCleanup) this.adapterCleanups.push(modeCleanup);
+        }
         const yankCleanup = this.callbacks.onYank(this.handleYank, adapter);
         if (yankCleanup) this.adapterCleanups.push(yankCleanup);
         const cursorCleanup = this.callbacks.onCursorMoved(

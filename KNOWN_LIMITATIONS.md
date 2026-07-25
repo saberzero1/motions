@@ -1121,6 +1121,14 @@ Limitations:
 - `buf` field in event data is always 0
 - `TextYankPost` requires bundled fork mode (built-in vim mode OFF)
 
+### Per-view mode events ([#88](https://github.com/saberzero1/motions/issues/88))
+
+Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across all editors — split panes, popover hover-preview editors, and canvas card text inputs — when using the bundled vim fork (recommended setup with built-in vim mode OFF). Built-in vim mode retains active-leaf-only behavior for these events.
+
+Other adapter-dependent events (`TextYankPost`, `CursorMoved`, `CursorHold`, `CmdlineEnter`, `CmdlineLeave`) are still active-leaf-only. Planned for future per-view support.
+
+`getModeState()` returns global state reflecting the most recent mode event from any view, not per-view state. `vim.obsidian.mode()` reads the active leaf's mode, not the event source's mode — if a popover fires `InsertEnter`, `vim.obsidian.mode()` may still return `'n'` if the active leaf is in normal mode.
+
 ### `vim.fn.*` subset
 
 27 Neovim `vim.fn.*` functions are implemented: `has`, `expand`, `fnamemodify`, `exists`, `localtime`, `strftime`, `filereadable`, `isdirectory`, `glob`, `mode`, `line`, `col`, `getline`, `tolower`, `toupper`, `trim`, `strlen`, `strwidth`, `stridx`, `strridx`, `strpart`, `substitute`, `nr2char`, `char2nr`, `split`, `join`. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported `vim.fn.*` functions produce an error listing the available set. `vim.fn.hostname()` and `vim.fn.getenv()` are intentionally skipped (system fingerprinting concern). `vim.fn.line('.')`, `vim.fn.col('.')`, and `vim.fn.getline('.')` return 0/empty at config-load time and are only meaningful inside function callbacks. See `docs/configuration/lua-config.md` for usage and the full feature table.

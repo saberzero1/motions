@@ -360,4 +360,95 @@ describe('AutocmdManager', () => {
         manager.onActiveLeafChange(null);
         expect(adapter.off).toHaveBeenCalled();
     });
+
+    it('handleModeChangeFromView fires InsertEnter/InsertLeave/ModeChanged', () => {
+        const manager = new AutocmdManager(null);
+        const insertEnter = vi.fn();
+        const insertLeave = vi.fn();
+        const modeChanged = vi.fn();
+        manager.register('InsertEnter', { callback: insertEnter });
+        manager.register('InsertLeave', { callback: insertLeave });
+        manager.register('ModeChanged', { callback: modeChanged });
+
+        manager.handleModeChangeFromView({ mode: 'insert' });
+        expect(insertEnter).toHaveBeenCalledTimes(1);
+        expect(modeChanged).toHaveBeenCalledTimes(1);
+
+        manager.handleModeChangeFromView({ mode: 'normal' });
+        expect(insertLeave).toHaveBeenCalledTimes(1);
+        expect(modeChanged).toHaveBeenCalledTimes(2);
+    });
+
+    it('bindAdapter does not register onModeChange when useViewPlugin is true', () => {
+        const manager = new AutocmdManager(null);
+        manager.setUseViewPlugin(true);
+        const adapter: CmAdapter = {
+            cm6: {} as CmAdapter['cm6'],
+            state: {},
+            getCursor: vi.fn(),
+            setCursor: vi.fn(),
+            getLine: vi.fn(),
+            lineCount: vi.fn(),
+            getSelection: vi.fn(),
+            replaceSelection: vi.fn(),
+            replaceRange: vi.fn(),
+            getRange: vi.fn(),
+            firstLine: vi.fn(),
+            lastLine: vi.fn(),
+            indexFromPos: vi.fn(),
+            posFromIndex: vi.fn(),
+            on: vi.fn(),
+            off: vi.fn(),
+        };
+        const onModeChange = vi.fn();
+        const callbacks: AutocmdCallbacks = {
+            onModeChange,
+            onYank: (_handler, target) => {
+                if (target) {
+                    target.on(
+                        'vim-yank',
+                        _handler as (...args: unknown[]) => void,
+                    );
+                    return () =>
+                        target.off(
+                            'vim-yank',
+                            _handler as (...args: unknown[]) => void,
+                        );
+                }
+                return undefined;
+            },
+            onCursorMoved: (_handler, target) => {
+                if (target) {
+                    target.on(
+                        'vim-command-done',
+                        _handler as (...args: unknown[]) => void,
+                    );
+                    return () =>
+                        target.off(
+                            'vim-command-done',
+                            _handler as (...args: unknown[]) => void,
+                        );
+                }
+                return undefined;
+            },
+            onFileOpen: () => undefined,
+            onFocusGained: () => undefined,
+            onFocusLost: () => undefined,
+        };
+
+        manager.activate(callbacks);
+        manager.onActiveLeafChange(adapter);
+
+        expect(onModeChange).not.toHaveBeenCalled();
+        expect(adapter.on).toHaveBeenCalled();
+    });
+
+    it('activate skips onModeChange when useViewPlugin is true', () => {
+        const manager = new AutocmdManager(null);
+        manager.setUseViewPlugin(true);
+        const harness = createCallbacks();
+        manager.activate(harness.callbacks);
+        expect(harness.counts.mode).toBe(0);
+        expect(harness.counts.yank).toBe(1);
+    });
 });

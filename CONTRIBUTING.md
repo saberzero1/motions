@@ -93,6 +93,7 @@ src/
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing
     textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay)
+    autocmd-mode-watcher.ts  # Per-view autocmd mode events (CM6 ViewPlugin — fires InsertEnter/InsertLeave/ModeChanged across all editors)
     animated-cursor/         # Canvas-based animated cursor (smear + smooth movement)
       types.ts               # Shared interfaces (CursorRect, SmearQuad, AnimatedCursorConfig)
       smooth-cursor.ts       # Exponential position interpolation with convergence detection
