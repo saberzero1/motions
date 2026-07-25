@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Autocmd mode events only fire in the active editor leaf** — `InsertEnter`, `InsertLeave`, and `ModeChanged` autocmd events now fire per-view across all editors (split panes, popover hover-preview editors, canvas card text inputs) when using the bundled vim fork. Previously, these events only fired for the active workspace leaf because the `AutocmdManager` bound to a single adapter via `onActiveLeafChange()`. Non-leaf editors (popovers, canvas cards) never triggered `active-leaf-change`, so autocmd callbacks for mode events never executed in these contexts. Fixed by adding `AutocmdModeWatcher`, a CM6 `ViewPlugin` that hooks `vim-mode-change` per-EditorView and fires mode events through `AutocmdManager.fire()`. The ViewPlugin is registered via `registerEditorExtension()` and automatically applies to all editors. The single-adapter mode-change binding in `bindAdapter()` and `activate()` is gated by a `useViewPlugin` flag — when the ViewPlugin is active (bundled vim mode), the legacy binding is skipped. Built-in vim mode retains the existing active-leaf-only behavior. Other adapter-dependent events (`TextYankPost`, `CursorMoved`, `CursorHold`, `CmdlineEnter`, `CmdlineLeave`) remain active-leaf-only for v1. ([#88](https://github.com/saberzero1/motions/issues/88))
     - Plugin: `src/vim/autocmd-mode-watcher.ts` (new — `AutocmdModeWatcher` ViewPlugin, `setAutocmdModeCallbacks`/`clearAutocmdModeCallbacks`), `src/lua/autocmd.ts` (`useViewPlugin` flag, `setUseViewPlugin()`, `handleModeChangeFromView()`, guarded `onModeChange` in `activate()` and `bindAdapter()`), `src/main.ts` (extension registration, callback wiring in `loadLuaConfigInternal`, cleanup in `onunload`)
+- **Hint mode labels missing on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line render as `.cm-hmd-internal-link` spans (not `.cm-underline`), and markdown links render as `.cm-link`/`.cm-url` spans. These were not in `TARGET_SELECTOR`, so no hint labels appeared. In Source mode, wikilinks always render as `.cm-hmd-internal-link` and were similarly missed. Fixed by adding `.cm-hmd-internal-link`, `.cm-link`, and `.cm-url` to `OBSIDIAN_SELECTORS` and extending `classifyTarget()` to resolve links from these elements via the existing `resolveCmUnderlineHref()` pipeline. Deduplication filters prevent multiple hints per link: aliased wikilink sub-spans, nested `.cm-underline` inside `.cm-hmd-internal-link`, formatting bracket spans, and markdown link URL spans when a text span exists. ([#85](https://github.com/saberzero1/motions/issues/85))
+    - Plugin: `src/ui/hint-mode.ts` (added selectors, extended `classifyTarget`, deduplication filters in `createHintAction`)
 
 ### Tests
 
@@ -20,21 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 7 unit tests in `test/unit/vim/autocmd-mode-watcher.test.ts`: callback set/clear/overwrite, extension creation, mode payload forwarding, cleanup after clear
 - 4 e2e tests in `test/specs/lua-autocmd-perview.e2e.ts`: InsertEnter fires exactly once in active leaf (no double-firing), InsertEnter fires in non-active split via `Vim.handleKey`, ModeChanged fires in non-active split with correct pattern, InsertLeave fires in non-active split
 - Spike tests: `test/specs/spikes/spike-autocmd-multiview.e2e.ts` (13 tests — multi-view event discovery), `test/specs/spikes/spike-autocmd-popover-timing.e2e.ts` (12 tests — popover/timing analysis)
-
-### Documentation
-
-- `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added per-view mode events section documenting which events fire per-view, which remain active-leaf-only, `getModeState()` semantics, and `vim.obsidian.mode()` behavior
-- `docs/configuration/lua-config.md`: Added per-view callout to autocommands section, marked `InsertEnter`/`InsertLeave`/`ModeChanged` as "(per-view)" in events table
-- `CONTRIBUTING.md`: Added `autocmd-mode-watcher.ts` to codebase structure
-- `AGENTS.md`: Updated Lua API description noting per-view autocmd mode events
-- `README.md`: Updated Lua configuration feature description with per-view mode events
-
-- **Hint mode labels missing on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line render as `.cm-hmd-internal-link` spans (not `.cm-underline`), and markdown links render as `.cm-link`/`.cm-url` spans. These were not in `TARGET_SELECTOR`, so no hint labels appeared. In Source mode, wikilinks always render as `.cm-hmd-internal-link` and were similarly missed. Fixed by adding `.cm-hmd-internal-link`, `.cm-link`, and `.cm-url` to `OBSIDIAN_SELECTORS` and extending `classifyTarget()` to resolve links from these elements via the existing `resolveCmUnderlineHref()` pipeline. Deduplication filters prevent multiple hints per link: aliased wikilink sub-spans, nested `.cm-underline` inside `.cm-hmd-internal-link`, formatting bracket spans, and markdown link URL spans when a text span exists. ([#85](https://github.com/saberzero1/motions/issues/85))
-    - Plugin: `src/ui/hint-mode.ts` (added selectors, extended `classifyTarget`, deduplication filters in `createHintAction`)
-
-### Tests
-
 - 9 new e2e tests in `test/specs/hint-mode-links.e2e.ts`: Source mode navigation (plain, aliased, inline wikilinks), cursor-on-line Live Preview navigation, multiple wikilinks on same line, aliased wikilink deduplication, `yf` yank on wikilink, `F` open-in-new-tab on wikilink, embed wikilink hint visibility
 - Mode-switching helpers (`ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`) extracted to `test/helpers.ts`
 - Spike test `test/specs/spikes/spike-hint-wikilink-issue85.e2e.ts`: 17 diagnostic tests probing DOM element discovery, `posAtDOM` mapping accuracy, `findLinkAtCursor` resolution, and end-to-end hint activation across Live Preview, Source mode, and Reading view
@@ -42,9 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated hint mode target classification with `.cm-hmd-internal-link`, `.cm-link`, `.cm-url` selectors and deduplication filter descriptions
-- `CONTRIBUTING.md`: Updated `hint-mode.ts` description with cursor-on-line and Source mode link resolution
+- `KNOWN_LIMITATIONS.md`: Added per-view mode events section documenting which events fire per-view, which remain active-leaf-only, `getModeState()` semantics, and `vim.obsidian.mode()` behavior; updated hint mode target classification with `.cm-hmd-internal-link`, `.cm-link`, `.cm-url` selectors and deduplication filter descriptions
+- `docs/configuration/lua-config.md`: Added per-view callout to autocommands section, marked `InsertEnter`/`InsertLeave`/`ModeChanged` as "(per-view)" in events table
 - `docs/features/hint-mode.md`: Updated internal link handling section with Source mode support and cursor-on-line behavior
+- `CONTRIBUTING.md`: Added `autocmd-mode-watcher.ts` to codebase structure; updated `hint-mode.ts` description with cursor-on-line and Source mode link resolution
+- `AGENTS.md`: Updated Lua API description noting per-view autocmd mode events
+- `README.md`: Updated Lua configuration feature description with per-view mode events
 
 ## [0.82.0] - 2026-07-24
 
