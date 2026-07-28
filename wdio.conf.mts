@@ -18,6 +18,7 @@ export const config: WebdriverIO.Config = {
                     { id: 'omnisearch', enabled: false },
                     { id: 'obsidian-tasks-plugin', enabled: false },
                     { id: 'dataview', enabled: false },
+                    { id: 'obsidian-meta-bind-plugin', enabled: false },
                 ],
                 vault: 'test-vault',
             },

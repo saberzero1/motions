@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Scroll jumps to cursor when interacting with Meta Bind or other plugin fields in the properties panel** — the `propertiesFoldObserver` in `fold-sync.ts` watched `.metadata-container` for any `class` attribute mutation and unconditionally dispatched `EditorView.scrollIntoView(selection.main.head)`. Plugins like Meta Bind that render interactive inputs in the properties area trigger class mutations that are not fold toggles, causing the editor to scroll back to the last vim cursor position. Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and comparing the old vs new `is-collapsed` class presence — the observer now only fires `scrollCursorIntoView()` when the fold state actually changes. No-op mutations (identical class string) and non-fold mutations (any class other than `is-collapsed`) are ignored. ([#89](https://github.com/saberzero1/motions/issues/89))
+    - Plugin: `src/vim/fold-sync.ts` (`propertiesFoldObserver` — `is-collapsed` filter, `attributeOldValue: true`)
+
+### Tests
+
+- 4 e2e tests in `test/specs/properties-fold-scroll.e2e.ts`: non-fold class mutation preserves scroll position, no-op class re-assignment preserves scroll position, fold toggle triggers scroll, unfold toggle triggers scroll
+- Spike test `test/specs/spikes/spike-metabind-scroll-issue89.e2e.ts`: 8 diagnostic tests confirming root cause (class mutation scroll jump, observer attribution, split-view behavior, class mutation audit)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added properties fold observer scroll fix
+- `CONTRIBUTING.md`: Updated `fold-sync.ts` description with `is-collapsed` filter
+- `docs/features/workspace-navigation.md`: Updated fold scroll behavior note
+
 ## [0.84.0] - 2026-07-25
 
 ### Fixed

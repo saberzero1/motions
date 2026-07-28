@@ -349,6 +349,16 @@ Clicking a fold marker to unfold had no effect. CM6's `foldState` requires an ex
 
 Two layers were fixed: (1) The plugin's own custom gutters (`fold-column.ts`, `statuscolumn.ts`) dispatched `unfoldEffect` with `{ from: line.from, to: line.from }` (zero-width range) instead of the actual fold range. Fixed by capturing the fold end from `foldedRanges().between()`. (2) The broader issue: these custom gutters are off by default, and Obsidian's **native** fold gutter can also dispatch unfold effects with ranges that don't exactly match the stored fold. Fixed by adding `unfoldNormalizerExtender` in `src/vim/fold-sync.ts` — a `transactionExtender` that detects mismatched unfold effects and appends a corrective effect with the actual stored fold range. This works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands.
 
+## ~~Properties fold observer causes scroll jump with third-party plugins~~ (Fixed)
+
+**Status**: Fixed. The observer now only reacts to `is-collapsed` class toggles. ([#89](https://github.com/saberzero1/motions/issues/89))
+
+The `propertiesFoldObserver` ViewPlugin in `src/vim/fold-sync.ts` watches `.metadata-container` for class mutations and dispatches `EditorView.scrollIntoView()` to keep the cursor visible after properties fold/unfold. The observer originally reacted to ANY class attribute change — including no-op re-assignments and non-fold mutations from third-party plugins (e.g., Meta Bind input fields in the properties panel). This caused the editor to scroll back to the last vim cursor position whenever a plugin triggered a class mutation on the metadata container.
+
+Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and comparing old vs new `is-collapsed` presence. The observer now only fires when the fold state actually changes. No-op mutations (identical class string before and after) and non-fold mutations (any class other than `is-collapsed`) are ignored.
+
+**Test coverage**: `test/specs/properties-fold-scroll.e2e.ts` — 4 regression tests: non-fold class mutation preserves scroll, no-op class re-assignment preserves scroll, fold toggle triggers scroll, unfold toggle triggers scroll.
+
 ## `set` option scope
 
 All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".

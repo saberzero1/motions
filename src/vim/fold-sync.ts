@@ -128,7 +128,15 @@ const propertiesFoldObserver = ViewPlugin.fromClass(
                         mutation.type === 'attributes' &&
                         mutation.attributeName === 'class'
                     ) {
-                        this.scrollCursorIntoView();
+                        const el = mutation.target as HTMLElement;
+                        const wasCollapsed = (mutation.oldValue ?? '')
+                            .split(/\s+/)
+                            .includes('is-collapsed');
+                        const isCollapsed =
+                            el.classList.contains('is-collapsed');
+                        if (wasCollapsed !== isCollapsed) {
+                            this.scrollCursorIntoView();
+                        }
                         return;
                     }
                 }
@@ -137,6 +145,7 @@ const propertiesFoldObserver = ViewPlugin.fromClass(
             this.observer.observe(metadata, {
                 attributes: true,
                 attributeFilter: ['class'],
+                attributeOldValue: true,
             });
         }
 

@@ -75,7 +75,7 @@ When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-a
 
 When **Fold persistence** is enabled (**Settings → Vim Motions → Fold persistence**), fold state is remembered across file switches and sessions. Folds are restored when re-opening a previously folded file.
 
-The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command.
+The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command. The scroll is scoped to actual fold state changes (`is-collapsed` class toggle) — class mutations from third-party plugins (e.g., Meta Bind input fields in the properties panel) do not trigger unwanted scroll jumps.
 
 When **Fold column** is enabled (`set foldcolumn` or **Settings → Vim Motions → Vim features → Fold column**), fold indicators appear in the gutter: `▸` for foldable regions and `▾` for folded regions. Clicking an indicator toggles the fold.
 
