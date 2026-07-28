@@ -31,8 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.85.0
+## What's new in 0.86.0
 
-- **Fixed scroll jumps when interacting with plugin fields in the properties panel** — plugins like Meta Bind that render interactive inputs in the properties area no longer cause the editor to scroll back to the cursor position. The properties fold observer now only triggers scroll on actual fold state changes (`is-collapsed`), ignoring unrelated class mutations. ([#89](https://github.com/saberzero1/motions/issues/89))
+- **Fixed which-key showing inflated group counts in "all" mode** — when `whichKeyMode` was set to "All partial keys", pressing the leader key showed wildly inflated `(+N)` group counts (e.g., `(+418)` instead of `(+21)`). The "All partial keys" code path now uses the `leaderBindings` registry instead of the full engine keymap. ([#91](https://github.com/saberzero1/motions/issues/91))
+- **Fixed 12 `vim.opt` and vimrc `set` options producing "unknown option" warnings** — `yankring`, `yankhighlightmode`, `yankhighlightduration`, `undotree`, `undofile`, `undotreemaxnodes`, `foldawarenavigation`, `foldpersistence`, `harpoon`, `dial`, `jumplist`, and `jumplistsize` now work identically across Settings UI, vimrc, and Lua. ([#90](https://github.com/saberzero1/motions/issues/90))
 
 See the [[changelog|full changelog]] for details.

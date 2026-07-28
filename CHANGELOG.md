@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-07-28
+
 ### Fixed
 
 - **Which-key displays inaccurate count of group subcommands in "all" mode** — when `whichKeyMode` was set to "All partial keys" and the user pressed the leader key, the which-key popup showed wildly inflated `(+N)` group counts (e.g., `(+418)` instead of `(+21)`). The "All partial keys" code path (`showCompletions()`) queried `vim.getCompletions()` from the CM vim engine, which returns the entire `defaultKeymap` array — including built-in defaults, plugin-internal keymaps, and user-defined keymaps — instead of using only the `leaderBindings` registry (which contains only user-visible leader keymaps). The "Leader key only" mode (`showLeaderBindings()`) was unaffected because it already used `leaderBindings` directly. Fixed by adding an `isLeaderScope` branch in `showCompletions()` that mirrors `showLeaderBindings()` — building entries from `this.leaderBindings` filtered by the current prefix, with correct label/icon/color resolution and leader-style title formatting. Non-leader completions (`g`, `z`, `d`, etc.) continue using `vim.getCompletions()` as before. ([#91](https://github.com/saberzero1/motions/issues/91))
