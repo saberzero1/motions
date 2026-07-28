@@ -305,12 +305,19 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `undofile`                   | boolean | `false`                        |                                               | `vim.opt.undofile = true`                  |
 | `vimtextareas`               | boolean | `false`                        |                                               | `vim.opt.vimtextareas = true`              |
 | `yankring`                   | boolean | `true`                         |                                               | `vim.opt.yankring = true`                  |
+| `harpoon`                    | boolean | `true`                         |                                               | `vim.opt.harpoon = true`                   |
+| `dial`                       | boolean | `false`                        |                                               | `vim.opt.dial = true`                      |
+| `jumplist`                   | boolean | `true`                         |                                               | `vim.opt.jumplist = true`                  |
+| `foldawarenavigation`        | boolean | `true`                         |                                               | `vim.opt.foldawarenavigation = true`       |
+| `foldpersistence`            | boolean | `false`                        |                                               | `vim.opt.foldpersistence = true`           |
 | `smoothcursor`               | boolean | `false`                        |                                               | `vim.opt.smoothcursor = true`              |
 | `smoothcursorglide`          | boolean | `true`                         |                                               | `vim.opt.smoothcursorglide = true`         |
 | `smoothcursorsmear`          | boolean | `true`                         |                                               | `vim.opt.smoothcursorsmear = true`         |
 | `scrolloff`                  | number  | `5`                            | 0–9999                                        | `vim.opt.scrolloff = 8`                    |
 | `scanlimit`                  | number  | `20`                           | 5–200                                         | `vim.opt.scanlimit = 20`                   |
 | `undotreemaxnodes`           | number  | `1000`                         | 100–5000                                      | `vim.opt.undotreemaxnodes = 500`           |
+| `jumplistsize`               | number  | `200`                          | > 0                                           | `vim.opt.jumplistsize = 100`               |
+| `yankhighlightduration`      | number  | `200`                          | 0–5000 ms                                     | `vim.opt.yankhighlightduration = 300`      |
 | `labelfontsize`              | number  | `14`                           | 10–20                                         | `vim.opt.labelfontsize = 14`               |
 | `tabstop`                    | number  | `4`                            |                                               | `vim.opt.tabstop = 4`                      |
 | `shiftwidth`                 | number  | `4`                            |                                               | `vim.opt.shiftwidth = 4`                   |
@@ -329,6 +336,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `flashminpatternlength`      | number  | `1`                            | 0–10                                          | `vim.opt.flashminpatternlength = 2`        |
 | `easymotionlabels`           | string  | `"asdghklqwertyuiopzxcvbnmfj"` |                                               | `vim.opt.easymotionlabels = "asdf"`        |
 | `hintlabels`                 | string  | `"asdfghjkl"`                  |                                               | `vim.opt.hintlabels = "asdf"`              |
+| `yankhighlightmode`          | string  | `"solid"`                      | `"off"`, `"solid"`, `"fade"`                  | `vim.opt.yankhighlightmode = "fade"`       |
 | `tablewidget`                | string  | `"cursor"`                     | `"off"`, `"cursor"`, `"always"`, `"embedded"` | `vim.opt.tablewidget = "cursor"`           |
 
 | `whichkey` | string | `"off"` | `"off"`, `"leader"`, `"all"` | `vim.opt.whichkey = "leader"` |

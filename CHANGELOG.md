@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Several `vim.opt` and vimrc `set` options produce "unknown vim.opt option" warning** — 12 plugin settings were documented but never registered in the Lua `vim.opt` proxy (`KNOWN_SET_OPTIONS`) or the vimrc `:set` pathway (`vim.defineOption`). Setting them via `vim.opt.yankring = true` or `set yankring` in vimrc logged a console warning and had no effect. Fixed by adding all 12 options to both registries. Options now work identically across Settings UI, vimrc, and Lua. ([#90](https://github.com/saberzero1/motions/issues/90))
+    - **Added to both `KNOWN_SET_OPTIONS` and `vim.defineOption`**: `yankring`, `yankhighlightmode`, `yankhighlightduration`, `undotree`, `undofile`, `undotreemaxnodes`, `foldawarenavigation`, `foldpersistence`, `harpoon`, `dial`
+    - **Added to `KNOWN_SET_OPTIONS` only** (already had `vim.defineOption`): `jumplist`, `jumplistsize`
+    - Plugin: `src/vimrc/loader.ts` (12 new `KNOWN_SET_OPTIONS` entries + `setJumpListEnabled`/`setJumpListSize` imports), `src/vim/options.ts` (10 new `vim.defineOption` calls + 2 new exported setters)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added vim.opt/vimrc option parity fix
+- `docs/configuration/lua-config.md`: Added 8 missing options to vim.opt table (`harpoon`, `dial`, `jumplist`, `foldawarenavigation`, `foldpersistence`, `jumplistsize`, `yankhighlightduration`, `yankhighlightmode`)
+- `docs/configuration/vimrc.md`: Added 6 missing options to vimrc tables (`harpoon`, `dial`, `foldawarenavigation`, `foldpersistence`, `yankhighlightmode`, `yankhighlightduration`)
+
 ## [0.85.0] - 2026-07-28
 
 ### Fixed

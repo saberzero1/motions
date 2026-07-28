@@ -151,7 +151,11 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `snippetbundled`      | —      | Include bundled Obsidian snippets       | on      |
 | `vimtextareas`        | `vta`  | Vim keybindings in text areas           | off     |
 | `yankring`            | —      | Yank-ring paste cycling                 | on      |
+| `harpoon`             | —      | Harpoon file pinning                    | on      |
+| `dial`                | —      | Enhanced increment/decrement            | off     |
 | `jumplist`            | —      | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
+| `foldawarenavigation` | —      | Auto-unfold on navigation               | on      |
+| `foldpersistence`     | —      | Persist fold state across sessions      | off     |
 | `undotree`            | `ut`   | Enable undo tree tracking               | on      |
 | `undofile`            | `udf`  | Persist undo tree across sessions       | off     |
 | `smoothcursor`        | `sc`   | Enable animated cursor                  | off     |
@@ -175,6 +179,7 @@ Use `set <option>=<value>`.
 | `numberwidth`                | `nuw`  | Minimum line number column width                | 2       | 1-20     |
 | `jumplistsize`               | —      | Maximum jump list entries                       | 200     | 1-1000   |
 | `undotreemaxnodes`           | `utmn` | Maximum undo tree nodes per file                | 1000    | 100-5000 |
+| `yankhighlightduration`      | —      | Yank highlight duration (ms)                    | 200     | 0-5000   |
 | `smoothcursorsmoothness`     | `scs`  | Cursor movement smoothness                      | 0.5     | 0-1      |
 | `smoothcursorstiffness`      | `scst` | Smear trail head stiffness                      | 0.6     | 0.1-1    |
 | `smoothcursortrailstiffness` | `scts` | Smear trail tail stiffness                      | 0.3     | 0.1-1    |
@@ -191,6 +196,7 @@ Use `set <option>=<value>`.
 | `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                   | (off)                                                                      |
 | `flashjumpkey`          | —        | Key to trigger flash jump mode                         | `s`                                                                        |
 | `flashminpatternlength` | `fmpl`   | Minimum chars before labels in jump mode               | `1`                                                                        |
+| `yankhighlightmode`     | —        | Yank highlight style (`off`/`solid`/`fade`)            | `solid`                                                                    |
 | `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels             | `asdghklqwertyuiopzxcvbnmfj`                                               |
 | `hintlabels`            | `hl`     | Characters for hint mode labels                        | `asdfghjkl`                                                                |
 | `guicursor`             | —        | Per-mode cursor shapes                                 | (block/bar/block/underline/underline)                                      |

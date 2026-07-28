@@ -34,6 +34,12 @@ The plugin provides a Lua 5.3 runtime via a browser-only fork of fengari. Config
 
 **Known limitations**:
 
+### ~~Some `vim.opt` options not registered~~ (Fixed)
+
+**Status**: Fixed. All documented `vim.opt` options are now registered in both `KNOWN_SET_OPTIONS` and `vim.defineOption`. ([#90](https://github.com/saberzero1/motions/issues/90))
+
+12 plugin settings (`yankring`, `yankhighlightmode`, `yankhighlightduration`, `undotree`, `undofile`, `undotreemaxnodes`, `jumplist`, `jumplistsize`, `foldawarenavigation`, `foldpersistence`, `harpoon`, `dial`) were documented in the `vim.opt` table but never registered in `KNOWN_SET_OPTIONS` (the registry checked by the `vim.opt` proxy). Setting them via `vim.opt` or `:set` in vimrc produced `"unknown vim.opt option"` console warnings and had no effect. 10 of the 12 were also missing from the vimrc `:set` pathway (`vim.defineOption`); `jumplist` and `jumplistsize` already worked via `:set` but not via `vim.opt`. All 12 options now work identically across Settings UI, vimrc, and Lua.
+
 ### Expr mapping limitations
 
 - **String expr mappings are not supported** — `vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true })` requires Vimscript expression evaluation which is not available. Use a Lua function callback instead.

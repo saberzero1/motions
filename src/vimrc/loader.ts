@@ -7,6 +7,8 @@ import {
     setTextwidth,
     setClipboardOption,
     parseGuicursor,
+    setJumpListEnabled,
+    setJumpListSize,
 } from '../vim/options';
 import { setAnimatedCursorConfig } from '../vim/animated-cursor/config';
 import { setCursorSuppressed } from '@replit/codemirror-vim';
@@ -278,6 +280,33 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     },
     vimtextareas: { type: 'boolean', settingsKey: 'enableVimTextareas' },
     vta: { type: 'boolean', settingsKey: 'enableVimTextareas' },
+    yankring: { type: 'boolean', settingsKey: 'enableYankRing' },
+    yankhighlightmode: {
+        type: 'string',
+        settingsKey: 'yankHighlightMode',
+        validValues: ['off', 'solid', 'fade'],
+    },
+    yankhighlightduration: {
+        type: 'number',
+        settingsKey: 'yankHighlightDuration',
+        min: 0,
+        max: 5000,
+    },
+    undotree: { type: 'boolean', settingsKey: 'enableUndoTree' },
+    undofile: { type: 'boolean', settingsKey: 'undoFile' },
+    undotreemaxnodes: {
+        type: 'number',
+        settingsKey: 'undoTreeMaxNodes',
+        min: 100,
+        max: 5000,
+    },
+    foldawarenavigation: {
+        type: 'boolean',
+        settingsKey: 'foldAwareNavigation',
+    },
+    foldpersistence: { type: 'boolean', settingsKey: 'foldPersistence' },
+    harpoon: { type: 'boolean', settingsKey: 'enableHarpoon' },
+    dial: { type: 'boolean', settingsKey: 'enableDial' },
 };
 
 const clipboardOpt: SideEffectOpt = {
@@ -314,6 +343,28 @@ KNOWN_SET_OPTIONS['clip'] = clipboardOpt;
 KNOWN_SET_OPTIONS['textwidth'] = textwidthOpt;
 KNOWN_SET_OPTIONS['tw'] = textwidthOpt;
 KNOWN_SET_OPTIONS['guicursor'] = guicursorOpt;
+
+const jumplistOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const enabled = value !== false;
+        setJumpListEnabled(enabled);
+        onSettingOverride?.('jumplist', enabled, directive);
+    },
+};
+KNOWN_SET_OPTIONS['jumplist'] = jumplistOpt;
+
+const jumplistsizeOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n > 0) {
+            setJumpListSize(n);
+            onSettingOverride?.('jumplistsize', n, directive);
+        }
+    },
+};
+KNOWN_SET_OPTIONS['jumplistsize'] = jumplistsizeOpt;
 
 // ── Animated cursor options ─────────────────────────────────────────
 // Master toggle: enables/disables canvas cursor + fork cursor suppression.

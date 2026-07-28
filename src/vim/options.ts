@@ -22,8 +22,16 @@ export function isJumpListEnabled(): boolean {
     return jumpListEnabled;
 }
 
+export function setJumpListEnabled(enabled: boolean): void {
+    jumpListEnabled = enabled;
+}
+
 export function getJumpListSize(): number {
     return jumpListSize;
+}
+
+export function setJumpListSize(size: number): void {
+    if (size > 0) jumpListSize = size;
 }
 
 let textwidthSetExplicitly = false;
@@ -489,6 +497,75 @@ export function registerVimOptions(
             enabled,
             `set ${enabled ? '' : 'no'}vimtextareas`,
         );
+    });
+
+    vim.defineOption('yankring', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('enableYankRing', enabled, `set ${enabled ? '' : 'no'}yankring`);
+    });
+    vim.defineOption('yankhighlightmode', 'solid', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'off' || str === 'solid' || str === 'fade') {
+            notify('yankHighlightMode', str, `set yankhighlightmode=${str}`);
+        }
+    });
+    vim.defineOption('yankhighlightduration', 200, 'number', [], (value) => {
+        if (value === undefined) return;
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n >= 0 && n <= 5000) {
+            notify(
+                'yankHighlightDuration',
+                n,
+                `set yankhighlightduration=${n}`,
+            );
+        }
+    });
+    vim.defineOption('undotree', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('enableUndoTree', enabled, `set ${enabled ? '' : 'no'}undotree`);
+    });
+    vim.defineOption('undofile', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('undoFile', enabled, `set ${enabled ? '' : 'no'}undofile`);
+    });
+    vim.defineOption('undotreemaxnodes', 1000, 'number', [], (value) => {
+        if (value === undefined) return;
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n >= 100 && n <= 5000) {
+            notify('undoTreeMaxNodes', n, `set undotreemaxnodes=${n}`);
+        }
+    });
+    vim.defineOption('foldawarenavigation', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'foldAwareNavigation',
+            enabled,
+            `set ${enabled ? '' : 'no'}foldawarenavigation`,
+        );
+    });
+    vim.defineOption('foldpersistence', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'foldPersistence',
+            enabled,
+            `set ${enabled ? '' : 'no'}foldpersistence`,
+        );
+    });
+    vim.defineOption('harpoon', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('enableHarpoon', enabled, `set ${enabled ? '' : 'no'}harpoon`);
+    });
+    vim.defineOption('dial', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('enableDial', enabled, `set ${enabled ? '' : 'no'}dial`);
     });
     registered = true;
 }
