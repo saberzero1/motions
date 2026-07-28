@@ -11,6 +11,7 @@ import {
     waitForWhichKey,
     getWhichKeyKeys,
     getWhichKeyDescriptions,
+    getWhichKeyEntryCount,
     getWhichKeyGroups,
     getPluginSetting,
     PAUSE,
@@ -193,6 +194,29 @@ describe('Space as leader key', function () {
         const descriptions = await getWhichKeyDescriptions();
         expect(descriptions).toContain('Save');
         expect(descriptions).toContain('Quit');
+        await sendVimEscape();
+    });
+
+    it('which-key group count matches actual leader bindings in all mode (issue #91)', async function () {
+        await loadLuaConfig(
+            [
+                'vim.g.mapleader = " "',
+                'vim.opt.whichkey = "all"',
+                'vim.opt.whichkeygrouping = "grouped"',
+                'vim.keymap.set("n", "<leader>ga", ":ob app:reload<CR>", { desc = "Reload" })',
+                'vim.keymap.set("n", "<leader>gb", ":ob app:reload<CR>", { desc = "Reload2" })',
+                'vim.keymap.set("n", "<leader>gc", ":ob app:reload<CR>", { desc = "Reload3" })',
+                'vim.keymap.set("n", "<leader>x", ":ob app:reload<CR>", { desc = "Execute" })',
+            ].join('\n'),
+        );
+        await focusEditor();
+        await browser.keys([' ']);
+        await waitForWhichKey();
+        const count = await getWhichKeyEntryCount();
+        expect(count).toBeGreaterThan(0);
+        // Must reflect only leaderBindings entries (user + builtin),
+        // not the hundreds from vim.getCompletions() (issue #91).
+        expect(count).toBeLessThan(50);
         await sendVimEscape();
     });
 

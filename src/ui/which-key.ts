@@ -700,69 +700,164 @@ export class WhichKeyOverlay {
             );
             entries.push(...grouped);
         } else if (keyBuffer) {
-            if (typeof vim.getCompletions !== 'function') return;
-            const effectiveContext = opPending ? 'operatorPending' : context;
-            const completions = vim.getCompletions(keyBuffer, effectiveContext);
-
             const isLeaderScope =
                 !opPending && keyBuffer.startsWith(this.normalizedLeaderKey);
 
-            const leaderBindingMap = new Map<string, string>();
             if (isLeaderScope) {
+                // Leader scope: use this.leaderBindings (user-defined only)
+                // instead of vim.getCompletions() which returns the entire
+                // engine keymap and inflates group counts (issue #91).
                 const leaderSuffix = keyBuffer.slice(
                     this.normalizedLeaderKey.length,
                 );
-                for (const b of this.leaderBindings) {
-                    if (!leaderSuffix || b.key.startsWith(leaderSuffix)) {
-                        const rel = leaderSuffix
-                            ? b.key.slice(leaderSuffix.length)
-                            : b.key;
-                        leaderBindingMap.set(
-                            rel,
-                            resolveObCommandDescription(this.app, b.command) ??
-                                b.command,
-                        );
-                    }
-                }
-            }
-
-            if (this.groupLeaderBindings) {
-                const completionEntries = completions.map((c) => {
-                    const labelInfo = this.commandLabels.get(
-                        keyBuffer + c.suffix,
-                    );
+                const filtered = this.leaderBindings.filter(
+                    (b) => !leaderSuffix || b.key.startsWith(leaderSuffix),
+                );
+                const bindingEntries = filtered.map((b) => {
+                    const relKey = leaderSuffix
+                        ? b.key.slice(leaderSuffix.length)
+                        : b.key;
+                    const fullKey = normalizeVimKey(this.leaderKey + b.key);
+                    const labelInfo = this.commandLabels.get(fullKey);
                     return {
-                        keys: c.suffix,
-                        type: c.type ?? 'action',
-                        operator: (c as Record<string, unknown>).operator as
-                            | string
-                            | undefined,
-                        motion: (c as Record<string, unknown>).motion as
-                            | string
-                            | undefined,
-                        action: (c as Record<string, unknown>).action as
-                            | string
-                            | undefined,
-                        toKeys: (c as Record<string, unknown>).toKeys as
-                            | string
-                            | undefined,
-                        label:
-                            labelInfo?.label ?? leaderBindingMap.get(c.suffix),
+                        keys: relKey,
+                        type: 'action' as const,
+                        action:
+                            resolveObCommandDescription(this.app, b.command) ??
+                            b.command,
+                        label: labelInfo?.label,
                         icon: labelInfo?.icon,
                         color: labelInfo?.color,
                     };
                 });
 
-                const labels = this.getRelativeGroupLabels(keyBuffer);
-                const grouped = buildSortedNextKeyEntries(
-                    completionEntries,
-                    labels,
-                    this.sortOrder,
-                    this.app,
+                if (bindingEntries.length === 0) return;
+
+                const absolutePrefix = normalizeVimKey(
+                    this.leaderKey + leaderSuffix,
+                );
+                const relativeLabels =
+                    this.getRelativeGroupLabels(absolutePrefix);
+
+                if (this.groupLeaderBindings) {
+                    const grouped = buildSortedNextKeyEntries(
+                        bindingEntries,
+                        relativeLabels,
+                        this.sortOrder,
+                        this.app,
+                    );
+                    entries.push(...grouped);
+                } else {
+                    for (const e of bindingEntries) {
+                        entries.push({
+                            key: e.keys,
+                            description:
+                                e.label ??
+                                e.action ??
+                                describeKeymapEntry(e, this.app),
+                            icon: e.icon,
+                            color: e.color,
+                        });
+                    }
+                }
+
+                const titlePrefix = leaderSuffix
+                    ? `${this.leaderKey} ${leaderSuffix} \u2026`
+                    : `${this.leaderKey} \u2026`;
+                if (entries.length === 0) return;
+                this.showOverlay(
+                    titlePrefix,
+                    this.groupLeaderBindings
+                        ? entries
+                        : sortWhichKeyEntries(entries, this.sortOrder),
+                );
+                return;
+            } else {
+                // Non-leader scope: use engine completions (existing behavior)
+                if (typeof vim.getCompletions !== 'function') return;
+                const effectiveContext = opPending
+                    ? 'operatorPending'
+                    : context;
+                const completions = vim.getCompletions(
+                    keyBuffer,
+                    effectiveContext,
                 );
 
-                if (grouped.length > 0) {
-                    entries.push(...grouped);
+                const leaderBindingMap = new Map<string, string>();
+                if (keyBuffer.startsWith(this.normalizedLeaderKey)) {
+                    const leaderSuffix = keyBuffer.slice(
+                        this.normalizedLeaderKey.length,
+                    );
+                    for (const b of this.leaderBindings) {
+                        if (!leaderSuffix || b.key.startsWith(leaderSuffix)) {
+                            const rel = leaderSuffix
+                                ? b.key.slice(leaderSuffix.length)
+                                : b.key;
+                            leaderBindingMap.set(
+                                rel,
+                                resolveObCommandDescription(
+                                    this.app,
+                                    b.command,
+                                ) ?? b.command,
+                            );
+                        }
+                    }
+                }
+
+                if (this.groupLeaderBindings) {
+                    const completionEntries = completions.map((c) => {
+                        const labelInfo = this.commandLabels.get(
+                            keyBuffer + c.suffix,
+                        );
+                        return {
+                            keys: c.suffix,
+                            type: c.type ?? 'action',
+                            operator: (c as Record<string, unknown>)
+                                .operator as string | undefined,
+                            motion: (c as Record<string, unknown>).motion as
+                                | string
+                                | undefined,
+                            action: (c as Record<string, unknown>).action as
+                                | string
+                                | undefined,
+                            toKeys: (c as Record<string, unknown>).toKeys as
+                                | string
+                                | undefined,
+                            label:
+                                labelInfo?.label ??
+                                leaderBindingMap.get(c.suffix),
+                            icon: labelInfo?.icon,
+                            color: labelInfo?.color,
+                        };
+                    });
+
+                    const labels = this.getRelativeGroupLabels(keyBuffer);
+                    const grouped = buildSortedNextKeyEntries(
+                        completionEntries,
+                        labels,
+                        this.sortOrder,
+                        this.app,
+                    );
+
+                    if (grouped.length > 0) {
+                        entries.push(...grouped);
+                    } else {
+                        for (const c of completions) {
+                            const labelInfo = this.commandLabels.get(
+                                keyBuffer + c.suffix,
+                            );
+                            const desc =
+                                labelInfo?.label ??
+                                leaderBindingMap.get(c.suffix);
+                            entries.push({
+                                key: c.suffix,
+                                description:
+                                    desc ?? describeKeymapEntry(c, this.app),
+                                icon: labelInfo?.icon,
+                                color: labelInfo?.color,
+                            });
+                        }
+                    }
                 } else {
                     for (const c of completions) {
                         const labelInfo = this.commandLabels.get(
@@ -778,20 +873,6 @@ export class WhichKeyOverlay {
                             color: labelInfo?.color,
                         });
                     }
-                }
-            } else {
-                for (const c of completions) {
-                    const labelInfo = this.commandLabels.get(
-                        keyBuffer + c.suffix,
-                    );
-                    const desc =
-                        labelInfo?.label ?? leaderBindingMap.get(c.suffix);
-                    entries.push({
-                        key: c.suffix,
-                        description: desc ?? describeKeymapEntry(c, this.app),
-                        icon: labelInfo?.icon,
-                        color: labelInfo?.color,
-                    });
                 }
             }
         }
