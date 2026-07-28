@@ -31,10 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.84.0
+## What's new in 0.85.0
 
-- **Hint mode labels on wikilinks and markdown links when cursor is on the same line** — in Live Preview, wikilinks on the cursor's line and Source mode wikilinks now show hint labels correctly. Deduplication filters prevent multiple hints per link for aliased wikilinks, nested spans, and markdown link URL spans. ([#85](https://github.com/saberzero1/motions/issues/85))
-- **Hint mode link resolution in Obsidian runtime** — hint labels on editor links now resolve correctly in Obsidian's runtime environment (previously only worked in test contexts). ([#85](https://github.com/saberzero1/motions/issues/85))
-- **Hint mode opens external URLs from editor links** — external URLs (e.g., `https://example.com`) resolved from editor link hints now open in the browser instead of silently failing. ([#85](https://github.com/saberzero1/motions/issues/85))
+- **Fixed scroll jumps when interacting with plugin fields in the properties panel** — plugins like Meta Bind that render interactive inputs in the properties area no longer cause the editor to scroll back to the cursor position. The properties fold observer now only triggers scroll on actual fold state changes (`is-collapsed`), ignoring unrelated class mutations. ([#89](https://github.com/saberzero1/motions/issues/89))
 
 See the [[changelog|full changelog]] for details.

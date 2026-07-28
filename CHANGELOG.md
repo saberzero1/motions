@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.85.0] - 2026-07-28
+
 ### Fixed
 
 - **Scroll jumps to cursor when interacting with Meta Bind or other plugin fields in the properties panel** — the `propertiesFoldObserver` in `fold-sync.ts` watched `.metadata-container` for any `class` attribute mutation and unconditionally dispatched `EditorView.scrollIntoView(selection.main.head)`. Plugins like Meta Bind that render interactive inputs in the properties area trigger class mutations that are not fold toggles, causing the editor to scroll back to the last vim cursor position. Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and comparing the old vs new `is-collapsed` class presence — the observer now only fires `scrollCursorIntoView()` when the fold state actually changes. No-op mutations (identical class string) and non-fold mutations (any class other than `is-collapsed`) are ignored. ([#89](https://github.com/saberzero1/motions/issues/89))
