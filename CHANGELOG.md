@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.87.0] - 2026-07-29
+
 ### Added
 
 - **Hotkey conflict detection wizard** — on plugin load, detects when Obsidian's default hotkeys (Ctrl+W, Ctrl+D, Ctrl+F, Ctrl+B) conflict with workspace navigation keys. Shows a one-time Notice per plugin version with a "Check hotkey conflicts" button in **Settings → Vim Motions → Navigation** that lists each active conflict with step-by-step unbinding instructions. Skipped on mobile and when workspace nav is disabled.
