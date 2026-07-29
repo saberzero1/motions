@@ -60,6 +60,7 @@ class TableNavController implements PluginValue {
     private readonly view: EditorView;
     private readonly isNested: boolean;
     private pendingTimer: number | null = null;
+    private refreshTimer: number | null = null;
     private cursorInTable = false;
     private exitingTable = false;
 
@@ -177,6 +178,10 @@ class TableNavController implements PluginValue {
     }
 
     private exitTable(): void {
+        if (this.refreshTimer !== null) {
+            window.clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
         if (this.state === 'cell-edit') {
             closeCellEditor(this.view);
         }
@@ -204,6 +209,12 @@ class TableNavController implements PluginValue {
             | 'change'
             | 'substitute' = 'insert',
     ): void {
+        // Cancel any pending refresh that could destroy this editor
+        if (this.refreshTimer !== null) {
+            window.clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+        this.pendingD = false;
         if (!this.widgetEl || !this.activeTable) return;
 
         const app = this.getApp();
@@ -275,8 +286,10 @@ class TableNavController implements PluginValue {
         }
     }
 
-    private exitCellEdit(): void {
-        setActiveEditTableRange(null);
+    private exitCellEdit(opts?: { skipRefresh?: boolean }): void {
+        if (!opts?.skipRefresh) {
+            setActiveEditTableRange(null);
+        }
         const { changed } = closeCellEditor(this.view);
         if (changed) realignAfterCellEdit = true;
         this.removeCellEditKeyHandler();
@@ -293,7 +306,9 @@ class TableNavController implements PluginValue {
                 true,
             );
         }
-        this.refreshAfterOp();
+        if (!opts?.skipRefresh) {
+            this.refreshAfterOp();
+        }
     }
 
     private navKeyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -479,10 +494,18 @@ class TableNavController implements PluginValue {
     }
 
     private refreshAfterOp(): void {
-        window.setTimeout(() => this.doRefreshAfterOp(), 50);
+        if (this.refreshTimer !== null) {
+            window.clearTimeout(this.refreshTimer);
+        }
+        this.refreshTimer = window.setTimeout(() => {
+            this.refreshTimer = null;
+            this.doRefreshAfterOp();
+        }, 50);
     }
 
     private doRefreshAfterOp(): void {
+        if (this.state === 'cell-edit') return;
+        if (!controllerEnabled || this.state === 'inactive') return;
         const state = this.view.state;
         const tables = findTableRanges(state);
         const prevFrom = this.activeTable?.from ?? 0;
@@ -539,34 +562,51 @@ class TableNavController implements PluginValue {
         if (e.key === 'Tab') {
             e.preventDefault();
             e.stopPropagation();
-            this.exitCellEdit();
-            // Move to next cell
+            this.exitCellEdit({ skipRefresh: true });
+
+            this.widgetEl = this.findWidgetEl();
+            if (!this.widgetEl) {
+                this.exitTable();
+                return;
+            }
+
             const colCount = this.getColumnCount();
             const dataRows = this.getDataRowIndices();
+            let moved = false;
+
             if (e.shiftKey) {
                 if (this.activeCol > 0) {
                     this.activeCol--;
+                    moved = true;
                 } else {
                     const idx = dataRows.indexOf(this.activeRow);
                     if (idx > 0) {
                         this.activeRow = dataRows[idx - 1]!;
                         this.activeCol = colCount - 1;
+                        moved = true;
                     }
                 }
             } else {
                 if (this.activeCol < colCount - 1) {
                     this.activeCol++;
+                    moved = true;
                 } else {
                     const idx = dataRows.indexOf(this.activeRow);
                     if (idx >= 0 && idx < dataRows.length - 1) {
                         this.activeRow = dataRows[idx + 1]!;
                         this.activeCol = 0;
+                        moved = true;
                     }
                 }
             }
-            this.enterCellEdit('insert');
+
+            if (moved) {
+                this.enterCellEdit('insert');
+            } else {
+                this.highlightCell();
+                this.refreshAfterOp();
+            }
         }
-        // Escape in cell-edit is handled by the embeddable editor's onEscape
     }
 
     private highlightCell(): void {
@@ -619,6 +659,10 @@ class TableNavController implements PluginValue {
         if (this.pendingTimer !== null) {
             window.clearTimeout(this.pendingTimer);
             this.pendingTimer = null;
+        }
+        if (this.refreshTimer !== null) {
+            window.clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
         }
     }
 }

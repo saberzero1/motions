@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cursor focus lost when pressing Tab to navigate cells in Embedded table widget** — pressing `Tab` in insert mode inside an embedded table cell editor froze the editor. The cursor disappeared, vim mode got stuck in Insert mode, and `Escape` stopped working. Root cause: `exitCellEdit()` scheduled a 50ms `refreshAfterOp()` timer that was non-cancellable and had no state guard. When `Tab` called `exitCellEdit()` → `enterCellEdit()` synchronously, the deferred refresh fired while the new cell editor was active — removing its key handlers, potentially rebuilding the widget DOM (orphaning the editor), and leaving the controller in an inconsistent state (`cell-edit` state with `table-nav` handlers). Fixed with four layers of defense: (1) `refreshAfterOp()` now stores and deduplicates the timer ID in a `refreshTimer` member, cancelled in `exitTable()`, `enterCellEdit()`, and `destroy()`. (2) `doRefreshAfterOp()` guards against firing in `cell-edit` or `inactive` state. (3) `exitCellEdit()` accepts `{ skipRefresh: true }` — the Tab handler skips both `setActiveEditTableRange(null)` and `refreshAfterOp()` to prevent widget DOM rebuilds during cell-to-cell transitions. (4) `enterCellEdit()` cancels any pending refresh timer as belt-and-suspenders protection. Additionally, `Tab` at the last cell of the last row (or `Shift-Tab` at the first cell) now returns to table-nav mode instead of silently re-entering the same cell. ([#92](https://github.com/saberzero1/motions/issues/92))
+    - Plugin: `src/vim/table-nav-controller.ts` (`refreshTimer` member, `refreshAfterOp` timer storage/dedup, `doRefreshAfterOp` state guard, `exitCellEdit` `skipRefresh` param, `handleCellEditKey` rewrite with widget re-query and boundary handling, `enterCellEdit` timer cancel and `pendingD` cleanup)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added Tab cell navigation race condition fix to table cell vim modality section
+- `docs/features/tables.md`: Updated cell editing keybindings with Tab boundary behavior
+
 ## [0.86.0] - 2026-07-28
 
 ### Fixed

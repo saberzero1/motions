@@ -106,11 +106,13 @@ The rendered table widget processes cell content through Obsidian's markdown ren
 
 **Cell editing** (active after entering a cell):
 
-| Key                       | Action                                  |
-| ------------------------- | --------------------------------------- |
-| All vim keys              | Normal vim editing within the cell      |
-| `Tab` / `Shift-Tab`       | Save cell, move to next / previous cell |
-| `Escape` (in normal mode) | Save cell, return to table navigation   |
+| Key                         | Action                                                    |
+| --------------------------- | --------------------------------------------------------- |
+| All vim keys                | Normal vim editing within the cell                        |
+| `Tab` / `Shift-Tab`         | Save cell, move to next / previous cell                   |
+| `Tab` (at last cell)        | Save cell, return to table navigation (boundary behavior) |
+| `Shift-Tab` (at first cell) | Save cell, return to table navigation (boundary behavior) |
+| `Escape` (in normal mode)   | Save cell, return to table navigation                     |
 
 ### Vim modality in cell editors
 
