@@ -1,4 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('obsidian', () => ({
+    AbstractInputSuggest: class {},
+    App: class {},
+    Modal: class {
+        open() {}
+    },
+    Notice: class {},
+    Platform: { isDesktop: true },
+    PluginSettingTab: class {},
+    Setting: class {},
+    SuggestModal: class {},
+    TFile: class {},
+    TextComponent: class {},
+    setIcon: () => {},
+}));
+
 import type { VimMotionsSettings } from '../../src/settings';
 import { DEFAULT_SETTINGS } from '../../src/settings';
 import { migrateConfigModeSettings } from '../../src/settings-migration';

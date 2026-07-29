@@ -132,6 +132,7 @@ export class AutocmdManager {
     private cmdlinePrefix: string | null = null;
     private pendingInitialBufEnterPath: string | null = null;
     private useViewPlugin = false;
+    private useEventViewPlugin = false;
 
     constructor(private L: lua_State | null) {}
 
@@ -139,8 +140,49 @@ export class AutocmdManager {
         this.useViewPlugin = value;
     }
 
+    setUseEventViewPlugin(value: boolean): void {
+        this.useEventViewPlugin = value;
+    }
+
     handleModeChangeFromView(mode: VimModeChange): void {
         this.handleModeChange(mode);
+    }
+
+    handleCursorMovedFromView(filePath: string): void {
+        this.fire('CursorMoved', { file: filePath });
+    }
+
+    handleCursorHoldFromView(filePath: string): void {
+        this.fire('CursorHold', { file: filePath });
+    }
+
+    handleTextYankPostFromView(
+        filePath: string,
+        payload: AutocmdYankEvent,
+    ): void {
+        const contents = payload.regContents.split('\n');
+        this.fire('TextYankPost', {
+            file: filePath,
+            data: {
+                operator: payload.operator,
+                regname: payload.regName,
+                regcontents: contents,
+                regtype: payload.regType,
+                visual: payload.visual,
+            },
+        });
+    }
+
+    handleCmdlineFromView(
+        filePath: string,
+        entering: boolean,
+        cmdtype: string,
+    ): void {
+        if (entering) {
+            this.fire('CmdlineEnter', { file: filePath, data: { cmdtype } });
+        } else {
+            this.fire('CmdlineLeave', { file: filePath, data: { cmdtype } });
+        }
     }
 
     fireInitialBufEnter(): void {
@@ -314,11 +356,15 @@ export class AutocmdManager {
             if (modeCleanup) this.adapterCleanups.push(modeCleanup);
         }
 
-        const yankCleanup = callbacks.onYank(this.handleYank);
-        if (yankCleanup) this.adapterCleanups.push(yankCleanup);
+        if (!this.useEventViewPlugin) {
+            const yankCleanup = callbacks.onYank(this.handleYank);
+            if (yankCleanup) this.adapterCleanups.push(yankCleanup);
 
-        const cursorCleanup = callbacks.onCursorMoved(this.handleCursorMoved);
-        if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
+            const cursorCleanup = callbacks.onCursorMoved(
+                this.handleCursorMoved,
+            );
+            if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
+        }
     }
 
     onActiveLeafChange(
@@ -429,19 +475,21 @@ export class AutocmdManager {
             );
             if (modeCleanup) this.adapterCleanups.push(modeCleanup);
         }
-        const yankCleanup = this.callbacks.onYank(this.handleYank, adapter);
-        if (yankCleanup) this.adapterCleanups.push(yankCleanup);
-        const cursorCleanup = this.callbacks.onCursorMoved(
-            this.handleCursorMoved,
-            adapter,
-        );
-        if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
-        if (this.callbacks.onDialog) {
-            const dialogCleanup = this.callbacks.onDialog(
-                this.handleDialog,
+        if (!this.useEventViewPlugin) {
+            const yankCleanup = this.callbacks.onYank(this.handleYank, adapter);
+            if (yankCleanup) this.adapterCleanups.push(yankCleanup);
+            const cursorCleanup = this.callbacks.onCursorMoved(
+                this.handleCursorMoved,
                 adapter,
             );
-            if (dialogCleanup) this.adapterCleanups.push(dialogCleanup);
+            if (cursorCleanup) this.adapterCleanups.push(cursorCleanup);
+            if (this.callbacks.onDialog) {
+                const dialogCleanup = this.callbacks.onDialog(
+                    this.handleDialog,
+                    adapter,
+                );
+                if (dialogCleanup) this.adapterCleanups.push(dialogCleanup);
+            }
         }
     }
 

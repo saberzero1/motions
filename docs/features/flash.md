@@ -14,8 +14,9 @@ When only one match exists, flash behaves identically to stock Vim: the cursor j
 
 1. Press `f` (or `F`, `t`, `T`) followed by a search character.
 2. If **one match** exists → cursor jumps directly (stock Vim behavior).
-3. If **two or more matches** exist → labels appear on all matches. Press a label key to jump.
-4. Press `Escape` to cancel without moving.
+3. If a **count prefix** is given (e.g., `3f{char}`) → jumps directly to the Nth match without labels. When the count exceeds available matches, the last match is used (Neovim parity).
+4. If **two or more matches** exist (no count) → labels appear on all matches. Press a label key to jump.
+5. Press `Escape` to cancel without moving.
 
 ## Multi-line search
 

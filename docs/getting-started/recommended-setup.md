@@ -42,5 +42,5 @@ The plugin also works with built-in vim mode enabled — it extends whatever vim
 
 When the bundled fork is active, the plugin installs a bridge at `window.CodeMirrorAdapter.Vim` so ecosystem plugins can discover the Vim API at its canonical location. Any plugin that uses this standard discovery path — the same path Obsidian's own code uses — automatically works with the fork. See [[ecosystem-compatibility]] for details.
 
-> [!warning] `<C-w>` hotkey conflict
-> Obsidian's default "Close current tab" hotkey is Ctrl+W, which conflicts with the `<C-w>` window prefix. To use `<C-w>` bindings, go to **Settings → Hotkeys**, search for "Close current tab", and remove or rebind the Ctrl+W hotkey. Close-tab remains available via `:q` or `:quit`.
+> [!warning] Hotkey conflicts
+> Obsidian's default hotkeys for Ctrl+W, Ctrl+D, Ctrl+F, and Ctrl+B conflict with workspace navigation keys. The plugin detects these conflicts on startup and shows a Notice with instructions. You can also check for conflicts anytime via **Settings → Vim Motions → Navigation → Check hotkey conflicts**.

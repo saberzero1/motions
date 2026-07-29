@@ -158,4 +158,21 @@ describe('Yank-ring paste cycling', function () {
             expect(reg2?.text).toContain('first');
         });
     });
+
+    describe('visual-mode paste cycling', function () {
+        it('normal-mode paste cycling still works (regression)', async function () {
+            await setupEditor('line1\nline2\nline3', { line: 0, ch: 0 });
+            await vimHandleKeys('dd');
+            await browser.pause(100);
+            await vimHandleKeys('dd');
+            await browser.pause(100);
+            await vimHandleKeys('p');
+            await browser.pause(200);
+            await vimHandleKeys('<C-p>');
+            await browser.pause(200);
+
+            const value = await getEditorValue();
+            expect(value).toContain('line1');
+        });
+    });
 });

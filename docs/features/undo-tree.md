@@ -82,6 +82,12 @@ Configure via **Settings → Vim Motions → Undo tree** or vimrc/Lua:
 | `undoTreeAutoOpen` | `false` | Auto-open sidebar on branch creation            |
 | `undoFile`         | `false` | Persist undo tree across sessions               |
 
+> [!tip] Memory management
+> Undo trees are automatically evicted from memory when all editors for a file are closed. When `undoFile` is enabled, dirty trees are persisted before eviction. Reopening a file restores from persistence or starts fresh.
+
+> [!info] External modification detection
+> When `undoFile` is enabled and a file was modified outside Obsidian between sessions, a notification is shown indicating the undo tree is stale. The tree structure is preserved for `:undolist` display, but navigation is disabled for that session.
+
 ### Vimrc
 
 ```vim

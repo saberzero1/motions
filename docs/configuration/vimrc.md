@@ -294,11 +294,14 @@ Settings overridden by vimrc appear as disabled controls in the settings tab wit
 | `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)           |
 | `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc           |
 
-Unknown `set` options are silently ignored.
+Unknown `set` options produce a `console.warn` on first encounter per vimrc load, helping you identify typos or Neovim-only options. Options recognized by the plugin or CM Vim built-in options (`number`, `relativenumber`, `wrap`, etc.) are not warned about.
+
+## Soft-reload
+
+The vimrc file is watched for changes. When you save the file, `nmap`, `set`, `exmap`, and other commands are re-applied without reloading the plugin. Note: removing an `exmap` definition does not unregister the old handler — stale handlers persist until plugin reload.
 
 ## Known issues
 
-- Changing the vimrc file requires reloading the plugin — the file is loaded once during startup
 - `nmap L $` and similar mappings may not apply if the vimrc file encounters I/O timing issues — reload the plugin as a workaround
 
 See [[known-limitations#Vimrc]] for detailed technical limitations.

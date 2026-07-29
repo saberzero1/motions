@@ -13,6 +13,10 @@ import VimMotionsPlugin from './main';
 import { isBundledVimActive } from './vim/bundled-vim';
 import { VimrcFileSuggest } from './ui/vimrc-file-suggest';
 import { getVimApi } from './vim/vim-api';
+import {
+    detectHotkeyConflicts,
+    showConflictsModal,
+} from './workspace/hotkey-conflicts';
 import { getCommandRegistry } from './util/commands';
 import { isBuiltinVimEnabled } from './util/vault';
 import { setClipboardOption, setTextwidth } from './vim/options';
@@ -234,6 +238,8 @@ export interface VimMotionsSettings {
 
     enableVimTextareas: boolean;
 
+    conflictNoticeDismissedVersion: string;
+
     enableUndoTree: boolean;
     undoFile: boolean;
     undoTreeMaxNodes: number;
@@ -364,6 +370,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     snippetTriggerMode: 'both' as const,
 
     enableVimTextareas: false,
+
+    conflictNoticeDismissedVersion: '',
 
     enableUndoTree: true,
     undoFile: false,
@@ -2085,6 +2093,35 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         this.isOverridden('foldPersistence'),
                                 },
                             },
+                            ...(Platform.isDesktop
+                                ? [
+                                      {
+                                          name: 'Check hotkey conflicts',
+                                          desc: 'Detect Obsidian hotkeys that block workspace navigation keys.',
+                                          render: (setting: Setting) => {
+                                              setting.addButton((btn) =>
+                                                  btn
+                                                      .setButtonText(
+                                                          'Check conflicts',
+                                                      )
+                                                      .onClick(async () => {
+                                                          const conflicts =
+                                                              await detectHotkeyConflicts(
+                                                                  this.app,
+                                                              );
+                                                          showConflictsModal(
+                                                              this.app,
+                                                              conflicts,
+                                                          );
+                                                      }),
+                                              );
+                                          },
+                                          visible: () =>
+                                              this.plugin.settings
+                                                  .enableWorkspaceNav,
+                                      },
+                                  ]
+                                : []),
                         ],
                     },
                 ],
@@ -5019,6 +5056,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.reloadFeatures();
                     }),
             );
+
+        if (Platform.isDesktop && this.plugin.settings.enableWorkspaceNav) {
+            new Setting(containerEl)
+                .setName('Check hotkey conflicts')
+                .setDesc(
+                    'Detect Obsidian hotkeys that block workspace navigation keys.',
+                )
+                .addButton((btn) =>
+                    btn.setButtonText('Check conflicts').onClick(async () => {
+                        const conflicts = await detectHotkeyConflicts(
+                            this.plugin.app,
+                        );
+                        showConflictsModal(this.plugin.app, conflicts);
+                    }),
+                );
+        }
     }
 
     private renderKeybindingsTab(

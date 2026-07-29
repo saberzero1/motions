@@ -25,6 +25,7 @@ export interface CellEditorHandle {
 let activeHandle: CellEditorHandle | null = null;
 let cellEditorCursorShapes: CursorShapes | undefined;
 let cursorSheet: CSSStyleSheet | null = null;
+let visualSelectionSheet: CSSStyleSheet | null = null;
 
 function shapeCSS(shape: CursorShape): string {
     switch (shape) {
@@ -98,6 +99,21 @@ export function openCellEditor(
     });
 
     editor.load();
+
+    if (!visualSelectionSheet) {
+        visualSelectionSheet = new CSSStyleSheet();
+        const S = '.vim-table-cell-editor .cm-editor';
+        visualSelectionSheet.replaceSync(
+            [
+                `${S}.cm-vimVisual:not(.cm-vimVisualLine) .cm-line ::selection { background-color: Highlight !important; }`,
+                `${S}.cm-vimVisual:not(.cm-vimVisualLine) .cm-line::selection { background-color: Highlight !important; }`,
+            ].join('\n'),
+        );
+        document.adoptedStyleSheets = [
+            ...document.adoptedStyleSheets,
+            visualSelectionSheet,
+        ];
+    }
 
     if (getAnimatedCursorConfig().enabled) {
         const cellView = editor.getEditorView();

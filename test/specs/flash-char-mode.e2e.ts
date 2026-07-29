@@ -160,4 +160,52 @@ describe('Flash char-mode: enhanced f/F/t/T', function () {
             expect(pos.ch).toBe(8);
         });
     });
+
+    describe('count prefix with flash', function () {
+        it('3fa should jump to 3rd a without labels', async function () {
+            await setupEditor('a__a__a__a__a', { line: 0, ch: 0 });
+            await vimKeys('3', 'f', 'a');
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(9);
+            const labels = await getFlashLabelCount();
+            expect(labels).toBe(0);
+        });
+
+        it('5fa should clamp to last a when fewer than 5 matches', async function () {
+            await setupEditor('a__a__a', { line: 0, ch: 0 });
+            await vimKeys('5', 'f', 'a');
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(6);
+            const labels = await getFlashLabelCount();
+            expect(labels).toBe(0);
+        });
+
+        it('2fa should jump to 2nd a without labels', async function () {
+            await setupEditor('a__a__a__a', { line: 0, ch: 0 });
+            await vimKeys('2', 'f', 'a');
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(6);
+            const labels = await getFlashLabelCount();
+            expect(labels).toBe(0);
+        });
+
+        it('d3fa should delete to 3rd a', async function () {
+            await setupEditor('a__a__a__a', { line: 0, ch: 0 });
+            await vimKeys('d', '3', 'f', 'a');
+            await browser.pause(200);
+            const value = await getEditorValue();
+            expect(value).toBe('');
+        });
+
+        it('1fa with single match should behave like fa (no labels)', async function () {
+            await setupEditor('hello a world', { line: 0, ch: 0 });
+            await vimKeys('1', 'f', 'a');
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(6);
+        });
+    });
 });

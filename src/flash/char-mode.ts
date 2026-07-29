@@ -156,6 +156,18 @@ export function createFlashCharMotion(
             return { line: target.line, ch: target.ch };
         }
 
+        // When a count prefix is given (e.g. `3f{char}`), jump directly to the
+        // Nth match without showing the label overlay.  Clamp to the last match
+        // when the count exceeds the number of available targets (Neovim parity).
+        if (motionArgs.repeat > 1) {
+            const idx = Math.min(motionArgs.repeat, targets.length) - 1;
+            const target = targets[idx]!;
+            recordSearch(cm, char, forward, isTill, opts);
+            setLastFlashSearch(char, forward, isTill);
+            maybeRecordJump(opts.app, cm, target);
+            return { line: target.line, ch: target.ch };
+        }
+
         setFlashActive(true);
         const cursor = cm.getCursor();
         const labeled = assignFlashLabels(

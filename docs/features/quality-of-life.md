@@ -47,6 +47,8 @@ Duration is configurable via the **Yank highlight duration** slider (50–3000ms
 
 After `p`, `P`, `gp`, or `gP`, press `<C-p>` to replace the pasted text with the previous numbered register (`"1`–`"9`). `<C-n>` cycles in the opposite direction. Cycling wraps around the register list. Any non-cycling command cancels the cycling state, after which `<C-p>`/`<C-n>` revert to their default `k`/`j` behavior.
 
+Visual-mode paste cycling also works: select text with `viw` or `V`, press `p` to paste, then `<C-p>`/`<C-n>` to cycle through registers. Visual block paste (`<C-v>`) is excluded.
+
 Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycling**, `vim.opt.yankring = false` in Lua, or `set noyankring` in vimrc.
 
 ## Change list navigation

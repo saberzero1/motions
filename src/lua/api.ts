@@ -84,6 +84,18 @@ export function clearVimVContext(): void {
     currentVimV = { ...DEFAULT_VIM_V };
 }
 
+export function getInsertModeChar(cm: unknown): string {
+    const cmState = (cm as { state?: Record<string, unknown> } | undefined)
+        ?.state;
+    const vimState = cmState?.vim as
+        | { insertMode?: boolean; virtualReplace?: boolean }
+        | undefined;
+    if (!vimState?.insertMode) return '';
+    if (vimState.virtualReplace) return 'v';
+    if (cmState?.overwrite) return 'r';
+    return 'i';
+}
+
 let exprDepth = 0;
 const MAX_EXPR_DEPTH = 200;
 
@@ -1068,6 +1080,7 @@ export function injectVimApi(
                             count1: args.repeat,
                             register: args.registerName ?? '"',
                             operator: args.pendingOperator ?? '',
+                            insertmode: getInsertModeChar(cm),
                         });
                     }
                     lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
@@ -1120,7 +1133,6 @@ export function injectVimApi(
                 };
             } else if (runner) {
                 callback = (cm?: unknown, actionArgs?: unknown) => {
-                    void cm;
                     if (actionArgs && typeof actionArgs === 'object') {
                         const args = actionArgs as ActionArgs;
                         setVimVContext({
@@ -1128,6 +1140,7 @@ export function injectVimApi(
                             count1: args.repeat,
                             register: args.registerName ?? '"',
                             operator: args.pendingOperator ?? '',
+                            insertmode: getInsertModeChar(cm),
                         });
                     }
                     void runner
@@ -1148,7 +1161,6 @@ export function injectVimApi(
                 };
             } else {
                 callback = (cm?: unknown, actionArgs?: unknown) => {
-                    void cm;
                     if (actionArgs && typeof actionArgs === 'object') {
                         const args = actionArgs as ActionArgs;
                         setVimVContext({
@@ -1156,6 +1168,7 @@ export function injectVimApi(
                             count1: args.repeat,
                             register: args.registerName ?? '"',
                             operator: args.pendingOperator ?? '',
+                            insertmode: getInsertModeChar(cm),
                         });
                     }
                     lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
@@ -1407,6 +1420,7 @@ export function injectVimApi(
             const callback = runner
                 ? (ev: AutocmdEventData) => {
                       setVimVContext({
+                          insertmode: '',
                           event: {
                               event: ev.event,
                               file: ev.file,
@@ -1438,6 +1452,7 @@ export function injectVimApi(
                   }
                 : (ev: AutocmdEventData) => {
                       setVimVContext({
+                          insertmode: '',
                           event: {
                               event: ev.event,
                               file: ev.file,

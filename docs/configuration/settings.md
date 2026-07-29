@@ -64,7 +64,7 @@ On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On
 | Fold persistence                | toggle   | `false`   | —                    | `vim.opt.foldpersistence`       | `set foldpersistence`       | Remember fold state across file switches and sessions. Capped at 500 files, 30-day TTL.                                                          |
 
 > [!warning]
-> **Workspace navigation**: `<C-w>` may conflict with Obsidian's "Close current tab" hotkey. Rebind it in **Settings → Hotkeys**.
+> **Workspace navigation**: `<C-w>`, `Ctrl-d`, `Ctrl-f`, and `Ctrl-b` may conflict with Obsidian's default hotkeys. The plugin detects these conflicts on startup and shows a Notice. Use the **Check hotkey conflicts** button in this settings group to see active conflicts and unbinding instructions.
 
 ## Picker
 

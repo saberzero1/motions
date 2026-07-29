@@ -2,29 +2,7 @@
 
 This document tracks known limitations, architectural constraints, and intentionally deferred features.
 
-## ~~Vim keymaps intermittently stop working~~ (Fixed)
-
-**Status**: Fixed. Multi-layered defense implemented across fork and plugin. ([#18](https://github.com/saberzero1/motions/issues/18))
-
-`gg`, `G`, and other keymaps could intermittently stop working until Obsidian was reloaded. The issue had multiple contributing root causes in the codemirror-vim fork's state management:
-
-1. **Stale normal-mode key prefix**: Typing `g` buffers it in `inputState.keyBuffer` as a partial match. If the editor lost focus (tab switch, modal open, window blur) before the second key, the prefix persisted indefinitely — no timeout exists for normal-mode partials (unlike insert mode's `lastInsertModeKeyTimer`), and no blur/focus handler existed. On refocus, the next key combined with the stale `g` to produce an invalid sequence (`gG`, `gj`, etc.), which was silently swallowed. **Fix**: blur handler on `contentDOM` calls `clearInputState()` on focus loss; pane-switch handler in the plugin provides belt-and-suspenders coverage.
-
-2. **Global keymap corruption via `unmap()`**: The fork's `defaultKeymap` is a global singleton shared across all editors. `unmap()` used `splice()` to remove entries, including built-in defaults like `gg` or `j`. During plugin lifecycle churn (enable/disable/reload), `unregisterAll()` called `unmap()` on registered keys, which could accidentally remove defaults. Once removed, the key was permanently gone until page reload — `mapclear()` only removed user mappings, and there was no `resetKeymap()`. **Fix**: defaults tagged with `_isDefault`, `unmap()` skips them, `resetKeymap()` restores from frozen snapshot, `mapclear()` uses flag-based partitioning.
-
-3. **Incomplete `leaveVimMode()` cleanup**: When an editor was destroyed while in insert mode, the `change` and `keydown` listeners registered by `enterInsertMode()` were not removed (only `exitInsertMode()` removes them, and `leaveVimMode()` didn't call it). The global `lastInsertModeKeyTimer` could also fire against a destroyed editor. **Fix**: `leaveVimMode()` now manually removes insert-mode listeners, clears the timer, clears `virtualPrompt`, and resets `inputState`.
-
-4. **Async motion race conditions**: Async motion callbacks (used by EasyMotion operator-pending mode) had no way to detect if a newer command had superseded them. A `d` + async motion that resolved after the user typed another key could apply the delete at the wrong position. **Fix**: `_commandGeneration` counter on vim state, captured before dispatch and validated in the `.then()` callback.
-
-**Test coverage**: 10 fork unit tests + 7 plugin e2e tests covering blur recovery, plugin reload, keymap protection, `resetKeymap()` recovery, and `leaveVimMode` cleanup.
-
-5. **Stale jumpList markers after document switch**: The global jumpList (`vimGlobalState.jumpList`) stores `Marker` objects with absolute document offsets. When switching between documents of different lengths (especially via PDF++ or other non-editor views), markers from the old (longer) document held offsets exceeding the new document's length. `jumpList.add()` called `curMark.find()` → `posFromIndex(this.offset)` → `doc.lineAt(offset)` with no bounds check, throwing `RangeError`. The exception bubbled through `processMotion` → `processCommand` → the `cm.operation()` try-catch, which wiped vim state (`cm.state.vim = undefined; maybeInitVimState(cm)`) and re-threw. The re-initialized state lost per-instance configuration. **Fix** (three layers):
-    - `posFromIndex` clamps offset to `[0, doc.length]` before calling `doc.lineAt()`, mirroring the bounds checking already present in `indexFromPos`
-    - `Marker.find()` catches exceptions and returns `null` — all callers (`jumpList.add`, `jumpList.move`, `jumpList.find`) already handle `null` gracefully
-    - `Marker.update()` catches `RangeError` from `mapPos()` when the marker offset exceeds the changeset's starting document length, setting `offset = null`
-    - Plugin: `reloadFeatures()` now calls `vim.resetKeymap()` to match `onload()` behavior, closing a defense gap where settings-triggered reloads could corrupt the keymap without recovery
-
-**Additional test coverage**: 5 fork tests (posFromIndex clamping, negative offset, valid offset, marker doc-shrink, gg/G with stale jumpList) + 3 plugin e2e tests (gg/G after document switch, gg/G after reloadFeatures on shorter document).
+For previously fixed issues, see [Resolved Issues](#resolved-issues) at the bottom of this document.
 
 ## Lua configuration
 
@@ -59,7 +37,7 @@ The following `vim.v` variables are registered in the API and return default val
 - **`vim.v.foldstart` / `vim.v.foldend` / `vim.v.foldlevel` / `vim.v.folddashes`** — fold text evaluation context variables. Currently return 0/`''`. Will be populated when a custom `foldtext` Lua callback is added (deferred to statuscolumn/foldtext v2). Note: `foldlevel` calculation requires counting enclosing folds, which is not currently tracked by CM6's flat fold decoration system.
 - **`vim.v.lnum` / `vim.v.relnum` / `vim.v.virtnum`** — statuscolumn per-line rendering context variables. Currently return 0. Will be populated when the statuscolumn format string gains Lua expression evaluation (deferred to statuscolumn v2). The injection point (`lineMarker()` in `statuscolumn.ts`) is identified; the variables have no consumer until Lua expressions are supported in the format string.
 - **`vim.v.char`** — character typed during `InsertCharPre` autocmd. Currently writable but never set by the plugin. Will be populated when `InsertCharPre` is added to the supported autocmd events (requires a fork hook into insert-mode character input). Not in the current 19-event list.
-- **`vim.v.insertmode`** — insert mode type (`'i'`/`'r'`/`'v'`). Currently returns `''`. Will be populated when wired to the autocmd mode tracking system (`AutocmdManager.getModeState()`).
+- ~~**`vim.v.insertmode`**~~: Fixed. Returns `'i'` for insert mode, `'r'` for replace mode (`R`), `'v'` for virtual replace mode (`gR`), and `''` in normal/visual modes. Available in keymap function callbacks. Autocmd callbacks default to `''` (no adapter context available).
 
 ## Cross-note jump list
 
@@ -104,7 +82,7 @@ Cell editors in embedded table widget mode (`set tablewidget=embedded`) now supp
 - **Fine-grained undo**: Cell edits are atomic in the main document's undo stack. Individual keystrokes within a cell editor are not separately undoable in the main editor.
 - **Live Preview rendering in cell editors**: Cell editors use Obsidian's internal `ScrollableMarkdownEditor`, which renders in Live Preview mode. Markdown syntax such as wikilink brackets (`[[` `]]`) and formatting marks (`**`, `*`, `` ` ``) is hidden during editing. The underlying text is preserved. Forcing raw source mode would require modifying undocumented Obsidian internals.
 - **Cell editor cursor shapes**: Cell editors pass `cursorShapes` from plugin settings to the vim extension. The cell editor's CM6 instance does not reliably receive `.cm-focused` from Obsidian (the focus stays on the table widget's DOM), so a dynamic stylesheet (via `document.adoptedStyleSheets`) generates cursor CSS from the user's configured cursor shapes, forcing the correct appearance regardless of focus state. Changes to cursor shape settings (via Settings UI, `set guicursor` in vimrc, or Lua `vim.opt`) take effect on the next cell editor opened.
-- **Visual mode highlighting in cell editors**: Entering visual mode (`v`) in a cell editor does not show selection highlighting. The selection collapses when navigating with motions. This is caused by the cell editor's CM6 instance not receiving `.cm-focused`, which triggers the fork's `hideNativeSelection` theme rule (`.cm-vimMode:not(.cm-vimVisual) .cm-line ::selection { background-color: transparent }`) to suppress native selection rendering, while the fork's `linewiseVisualHighlight` plugin relies on the editor being focused to draw custom selection decorations. ([#19](https://github.com/saberzero1/motions/issues/19))
+- ~~**Visual mode highlighting in cell editors**~~: Fixed. Charwise visual mode (`v`) in cell editors now shows selection highlighting via a `CSSStyleSheet` on `document.adoptedStyleSheets` that forces `::selection` visibility in `.cm-vimVisual:not(.cm-vimVisualLine)` scoped to `.vim-table-cell-editor`. Linewise visual mode (`V`) uses the fork's `linewiseVisualHighlight` ViewPlugin, which is focus-independent (checks `vim.visualLine` and `vim.sel` only). ([#19](https://github.com/saberzero1/motions/issues/19))
 - ~~**Wikilink and formatting loss after cell edit**~~: Fixed. Two issues: (1) the cell editor read the cell's initial value from `wrapper.textContent` (the rendered DOM), which strips markdown syntax — `[[note-a]]` became `note-a`. Now reads raw markdown from the document source via `getCellDocumentRange()`. (2) On cell editor close, the cell content was restored as plain `textContent` without re-rendering. Now uses `MarkdownRenderer.render()` to restore proper inline formatting (wikilinks, bold, italic, code) after the editor is destroyed. ([#19](https://github.com/saberzero1/motions/issues/19))
 - ~~**Tab cell navigation freezes editor**~~: Fixed. Pressing `Tab` in insert mode inside an embedded table cell editor froze the editor — the cursor disappeared, vim mode got stuck in Insert mode, and `Escape` stopped working. Root cause: `exitCellEdit()` scheduled a 50ms `refreshAfterOp()` timer that was non-cancellable and had no state guard. When `Tab` called `exitCellEdit()` → `enterCellEdit()` synchronously, the deferred refresh fired while the new cell editor was active — removing its key handlers, potentially orphaning the editor DOM, and leaving the controller in an inconsistent state. Fixed with defense-in-depth: cancellable/deduplicated refresh timer, state guard in `doRefreshAfterOp`, `skipRefresh` parameter for Tab transitions, and belt-and-suspenders timer cancel in `enterCellEdit`. Tab at boundary cells (last cell + Tab, first cell + Shift-Tab) now returns to table-nav mode instead of silently re-entering the same cell. ([#92](https://github.com/saberzero1/motions/issues/92))
 
@@ -117,8 +95,8 @@ Shadow undo tree tracking branching history parallel to CM6's linear undo stacks
 **Known limitations**:
 
 - **ChangeSet composition for deep navigation**: Navigation dispatches sequential `addToHistory.of(false)` transactions (one per tree node on the path). For very deep trees (50+ levels), this dispatches many transactions — imperceptible in practice but theoretically slower than single-transaction composition.
-- **Persistence after external file modification**: When `undoFile` is enabled and the file is modified outside Obsidian between sessions, persisted ChangeSets become invalid (document length mismatch). The tree structure is preserved for `:undolist` display, but navigation is disabled for that session. No user notification is shown in v1.
-- **Per-file tree map memory**: `undoTreeMap` grows per opened file during a session. Trees are not evicted when files are closed (only on file delete). Long sessions with many files accumulate memory.
+- **Persistence after external file modification**: When `undoFile` is enabled and the file is modified outside Obsidian between sessions, persisted ChangeSets become invalid (document length mismatch). The tree structure is preserved for `:undolist` display, but navigation is disabled for that session. An Obsidian Notice is shown when a stale tree is detected (once per file per session). Detection uses file size comparison — same-length substitutions are not caught.
+- ~~**Per-file tree map memory**~~: Fixed. Undo trees are now evicted from memory when all editors for a file are closed (on `active-leaf-change`). Dirty trees are persisted before eviction when `undoFile` is enabled. Persisted data on disk is not deleted — reopening the file restores from persistence or starts fresh.
 - **No CM6 undo stack integration for cross-branch navigation**: `g+`/`g-` use `addToHistory.of(false)` transactions, so pressing `u` after `g-` undoes the last user edit, not the navigation. This matches Neovim behavior.
 
 ## Flash motions
@@ -139,7 +117,7 @@ Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches 
 - **No dot-repeat for label selection**: After `df{char}{label}`, pressing `.` replays the delete-to-char operator but does not replay the label selection. The operator applies to the same relative offset.
 - **No remote operations**: flash.nvim's remote mode (`yr{target}` to yank at a distance without moving cursor) is not implemented. This requires vim state manipulation not available in the codemirror-vim fork.
 - **No treesitter mode**: flash.nvim's treesitter node selection is not feasible — CM6 uses Lezer, not treesitter, and does not expose node selection APIs.
-- **Count prefix ignored with labels**: `3f{char}` with 2+ matches shows labels (count ignored). With a single match or flash disabled, count works normally.
+- ~~**Count prefix ignored with labels**~~: Fixed. `3f{char}` now jumps directly to the 3rd match without showing labels. When the count exceeds available matches, the last match is used (Neovim parity). `f{char}` without a count prefix still shows labels for 2+ matches. Works in operator-pending mode (`d3f{char}`) and with `t`/`T` till motions.
 - **Multi-line `t` column 0**: When `flashmultiline` is enabled and `t{char}` finds a match at column 0 of a line, that target is excluded (the "before" position would wrap to the previous line).
 - **Programmatic Escape**: Flash labels can only be dismissed by DOM keyboard events (real keypresses). Programmatic `Vim.handleKey(adapter, '<Esc>')` does not reach the label handler. This mirrors the same limitation in EasyMotion.
 - **Jump mode key binding is registration-time**: Changing `flashjumpkey` at runtime requires a plugin reload or settings change that triggers `reloadFeatures()`. The key is bound via `mapCommand` during registration.
@@ -171,14 +149,6 @@ Settings: `set operatorshadowtimeout=1000` (vimrc), `vim.opt.operatorshadowtimeo
 - **Dot-repeat**: `.` after `i<C-G>s{char}text<Esc>` replays only the typed text, not the surrounding delimiters. In vim-surround, dot-repeat includes the delimiters because they are inserted via Vim's register/paste mechanism, which has no CodeMirror equivalent. The degradation is clean — `.` inserts `text` without delimiters rather than producing garbled output.
 - **Macro recording**: `<C-g>s{char}` keys typed during insert mode are not logged to the macro key buffer. This is a pre-existing limitation of the fork's insert-mode macro key logging (`logKey` is only called from `handleKeyNonInsertMode`, not from `handleKeyInsertMode`).
 
-## ~~Custom text objects via Lua (vim.textobject)~~ (Fixed)
-
-**Status**: Fixed. Lua text object specs are now persisted and re-registered after `reloadFeatures()`.
-
-The `vim.textobject.add()` / `vim.gen_spec.pair()` API registers custom text objects from Lua configuration. The pair matching logic (asymmetric delimiters, nesting, multi-line) is verified working via 26 unit tests on `createAsymmetricPairTextObject` and 5 passing E2E tests.
-
-Root cause of the original issue: `loadLuaConfigInternal()` called `reloadFeatures()` AFTER the Lua config registered text objects. `reloadFeatures()` destroyed the `VimRegistration` instance that held the Lua-registered keybindings and created a fresh one that had no knowledge of them. Fix: text object specs are stored in `this.luaTextObjectSpecs[]` during the `onTextObjectAdd` callback, then `reregisterLuaTextObjects()` replays them on the new `VimRegistration` instance after `reloadFeatures()` completes.
-
 ## EasyMotion operator-pending mode
 
 **Status**: Working via fork's async motion support.
@@ -203,17 +173,6 @@ This approach is decoration-source-agnostic — it works for any type of hidden 
 
 Label collision detection in `renderLabels()` ensures that labels for nearby visible targets do not overlap. When a new label's bounding box intersects a previously placed label, it is offset vertically below it. Label dimensions are estimated from the CSS (14px monospace font, 1px 3px padding).
 
-## ~~Block cursor displays wrong character after editor refocus~~ (Fixed)
-
-**Status**: Fixed in the codemirror-vim fork. ([#71](https://github.com/saberzero1/motions/issues/71))
-
-When the editor lost and regained focus (e.g., opening/closing DevTools, switching windows), the vim block cursor could display the wrong character. This occurred because Obsidian's Live Preview re-expands hidden markdown formatting (like `## ` in headings) when the editor regains focus, but the block cursor's `requestMeasure` ran in the same animation frame — before the browser reflowed the newly expanded decorations. `coordsAtPos()` returned stale layout coordinates from the pre-reflow DOM, causing the cursor to render the character from the old visual position.
-
-Fixed with two changes in the fork:
-
-1. `BlockCursorPlugin.update()` now includes `update.focusChanged` in its redraw trigger, ensuring the cursor re-measures on focus transitions.
-2. On focus gain, a deferred `requestAnimationFrame` schedules a second `requestMeasure` that runs after the browser has reflowed the decoration DOM changes.
-
 ## Smart asterisk disambiguation
 
 `i*` tries `**bold**` first, then falls back to `*italic*`. In the case of `***bold italic***`, the `**` pair is always matched first, making it impossible to select only the italic portion with `i*`. Use `i_` for underscore italic as a workaround.
@@ -235,19 +194,6 @@ This limit exists for performance — scanning the entire document on every keys
 The multi-line text object scanner uses a simple forward/backward search for the nearest delimiter. It has no nesting awareness. Overlapping or nested delimiters across lines (e.g., bold inside italic spanning multiple lines) may produce incorrect selections.
 
 Delimiters inside fenced code blocks are excluded from the scan — the scanner skips lines within ` ``` ` fences. Indented code blocks and inline code are not excluded. Fenced code blocks inside blockquotes (` > ``` `) are now detected — `findFenceLines` matches fences with blockquote prefixes (`/^(?:>\s*)*```/`) and ensures open/close fences have matching blockquote depth.
-
-## ~~Smart list continuation and frontmatter~~ (Fixed)
-
-`O` (open line above) on the first content line after YAML frontmatter previously behaved like `o` (open line below). The smart list continuation override in `src/actions/open-line.ts` compared `curLine === cm.firstLine()` to decide whether to use the "insert at document start" path. With frontmatter present, `cm.firstLine()` returns 0 (the opening `---`) while the cursor is on the first post-frontmatter line (e.g. line 3), so the check was always false. The else branch inserted at the end of the previous line — which fell inside the frontmatter region, causing Obsidian's properties UI to swallow the new line.
-
-Fixed in both layers:
-
-- **Fork** (`vim.js`): `newLineAndEnterInsertMode` now scans past `---`-delimited frontmatter to find the first editable line and uses `insertAt.line <= firstEditable` as the boundary check. The insertion point uses `{ line: insertAt.line, ch: 0 }` instead of hardcoded `cm.firstLine()`. This fixes `O` on all line types (plain text, headings, etc.).
-- **Plugin** (`open-line.ts`): the smart list continuation override adds `firstEditableLine()` with the same frontmatter scan, changing the boundary check to `curLine <= firstEditableLine(cm)`. This fixes `O` on list lines specifically.
-
-Documents without frontmatter are unaffected — both paths fall back to `cm.firstLine()` when the first line is not `---`.
-
-**Test coverage**: `test/specs/open-line-list.e2e.ts` — 7 regression tests: `O` on unordered/ordered/task list after frontmatter inserts above, `o` on list after frontmatter inserts below, `O` on non-list line after frontmatter inserts above, `o` on non-list line after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path.
 
 ## Table navigation and editing
 
@@ -290,7 +236,7 @@ The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping t
 
 Vimrc maps and settings are soft-reloaded when the vimrc file is modified — changes to `nmap`, `set`, and other map/setting commands take effect without reloading the plugin. The plugin watches the vimrc file via `vault.on('modify')` and re-applies maps and settings on change.
 
-**Limitation**: `exmap` definitions (custom ex commands defined via `exmap name command`) are only parsed during the initial load. Adding new `exmap` entries requires a plugin reload. Existing `exmap` definitions survive soft-reload.
+~~**Limitation**: `exmap` definitions only parsed during initial load~~ (Fixed). `exmap` definitions are now soft-reloaded — `softReloadVimrc()` calls `applyVimrcCommands()` which processes `exmap` entries, and `vim.defineEx()` replaces existing handlers. Adding, modifying, or replacing `exmap` entries takes effect on save. Note: removing an `exmap` from vimrc does not unregister the old handler — the fork provides no `undefineEx`. Stale handlers persist until plugin reload.
 
 ### Config file resolution
 
@@ -334,38 +280,6 @@ Options that require side effects (clipboard → `setClipboardOption()`, textwid
 
 The initial settings load during `onload()` is guarded by an `initializing` flag that suppresses `reloadFeatures()` and gutter reconfiguration side effects until `onload()` completes. Without this guard, the settings restoration loop triggers premature `reloadFeatures()` calls that create resources (VimModeTracker, GlobalKeyHandler) before `onload()` creates its own — leading to duplicate status bar elements and orphaned event listeners. The guard follows the same pattern as `vimrcLoading`/`luaLoading`. ([#63](https://github.com/saberzero1/motions/issues/63))
 
-## ~~Scrolloff line height assumption~~ (Fixed)
-
-Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height. Note: `defaultLineHeight` returns an average line height — documents with mixed-height lines (e.g., headings with larger fonts) may not have pixel-perfect scrolloff distances.
-
-The scrolloff value accepts 0–9999 (previously capped at 20). Setting `set scrolloff=999` in your vimrc keeps the cursor vertically centered while scrolling, matching standard Vim behavior. The Settings UI uses a validated number input field instead of a slider. The scroll margin is clamped to half the viewport height at runtime, mirroring Vim's silent cap of `scrolloff` to `(window_height - 1) / 2`. ([#40](https://github.com/saberzero1/motions/issues/40), [#48](https://github.com/saberzero1/motions/issues/48))
-
-## ~~Absolute line number highlight not updating on cursor movement~~ (Fixed)
-
-**Status**: Fixed. `lineMarkerChange` now includes `update.selectionSet` in absolute mode. ([#68](https://github.com/saberzero1/motions/issues/68))
-
-When only absolute line numbers were enabled (`set number` without `set relativenumber`), the `vim-motions-line-num-current` CSS class (bold highlight on the current line number) did not update when the cursor moved. The highlight stayed stuck on whichever line was current when the document was last modified, only updating incidentally when entering special content (MathJax, images) that triggered `docChanged` or `viewportChanged`.
-
-Root cause: the `lineMarkerChange` callback in the CM6 `gutter()` configuration — in both the standalone line number gutter (`src/vim/line-number-gutter.ts`) and the unified `statuscolumn` gutter (`src/vim/statuscolumn.ts`) — returned `update.docChanged` (without `update.selectionSet`) when the mode was absolute-only. This was an optimization assuming the displayed text doesn't change on cursor movement (true for absolute numbers), but it forgot that the `isCurrent` flag on each `LineNumberMarker` also changes — without a re-render, the CSS class was never added/removed. Relative and hybrid modes were unaffected because they already included `update.selectionSet` (the displayed numbers change on every cursor move).
-
-## ~~Fold gutter click does not unfold~~ (Fixed)
-
-**Status**: Fixed. A transaction extender normalizes `unfoldEffect` ranges for all fold sources. ([#80](https://github.com/saberzero1/motions/issues/80))
-
-Clicking a fold marker to unfold had no effect. CM6's `foldState` requires an exact `{from, to}` match to remove a fold decoration; a mismatched range is silently ignored.
-
-Two layers were fixed: (1) The plugin's own custom gutters (`fold-column.ts`, `statuscolumn.ts`) dispatched `unfoldEffect` with `{ from: line.from, to: line.from }` (zero-width range) instead of the actual fold range. Fixed by capturing the fold end from `foldedRanges().between()`. (2) The broader issue: these custom gutters are off by default, and Obsidian's **native** fold gutter can also dispatch unfold effects with ranges that don't exactly match the stored fold. Fixed by adding `unfoldNormalizerExtender` in `src/vim/fold-sync.ts` — a `transactionExtender` that detects mismatched unfold effects and appends a corrective effect with the actual stored fold range. This works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands.
-
-## ~~Properties fold observer causes scroll jump with third-party plugins~~ (Fixed)
-
-**Status**: Fixed. The observer now only reacts to `is-collapsed` class toggles. ([#89](https://github.com/saberzero1/motions/issues/89))
-
-The `propertiesFoldObserver` ViewPlugin in `src/vim/fold-sync.ts` watches `.metadata-container` for class mutations and dispatches `EditorView.scrollIntoView()` to keep the cursor visible after properties fold/unfold. The observer originally reacted to ANY class attribute change — including no-op re-assignments and non-fold mutations from third-party plugins (e.g., Meta Bind input fields in the properties panel). This caused the editor to scroll back to the last vim cursor position whenever a plugin triggered a class mutation on the metadata container.
-
-Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and comparing old vs new `is-collapsed` presence. The observer now only fires when the fold state actually changes. No-op mutations (identical class string before and after) and non-fold mutations (any class other than `is-collapsed`) are ignored.
-
-**Test coverage**: `test/specs/properties-fold-scroll.e2e.ts` — 4 regression tests: non-fold class mutation preserves scroll, no-op class re-assignment preserves scroll, fold toggle triggers scroll, unfold toggle triggers scroll.
-
 ## `set` option scope
 
 All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".
@@ -390,7 +304,7 @@ Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are 
 
 `statuscolumn` provides a format string for customizing the gutter layout. Supported tokens: `%l` (line number respecting `number`/`relativenumber`, absolute fallback when both off), `%r` (relative number), `%s` (sign column marks, respects `signcolumn` auto/yes/no and width), `%C` (fold indicators, always active when present), `%=` (flex separator), literal text. When `statuscolumn` is set, all individual gutter columns are hidden — the unified gutter replaces them. When empty (default), individual settings manage gutters independently. Changing `statuscolumn` requires an Obsidian restart — the unified gutter compartment is registered during plugin load. Set `statuscolumn` in your Lua config (`vim.opt.statuscolumn = "%s %l %r %C"`) for it to apply on startup. v1 limitations: no `%{expr}` Lua expressions, no `%#HlGroup#` highlight groups, no width specifiers (`%-5l`), no per-window `statuscolumn`, no `v:virtnum` for wrapped lines. Global only (`vim.opt.statuscolumn`). Invalid format strings silently fall back to empty (plugin-managed gutters).
 
-Unknown `set` options are silently ignored (no error, no effect).
+Unknown `set` options produce a `console.warn` on first encounter per vimrc load. Options recognized by either the plugin (`KNOWN_SET_OPTIONS`) or CM Vim built-in options (`number`, `relativenumber`, `wrap`, `ignorecase`, `smartcase`, `hlsearch`, `incsearch`) are not warned about. Each unknown option is warned at most once per vimrc load/reload to avoid console noise.
 
 ## `nmap L $` may not work via vimrc
 
@@ -423,22 +337,6 @@ With the vimrc-settings parity changes, `set textwidth=N` in vimrc also updates 
 
 Workaround: if `set textwidth=N` is not taking effect, reload the plugin. At runtime: `CodeMirrorAdapter.Vim.setOption('textwidth', 20)`.
 
-## ~~Insert mode escape (`set insertmodeescape=jk`) not working~~ (Fixed)
-
-**Status**: Fixed. `InsertEscapeHandler` rewritten to use DOM `keydown` events; timeout made configurable. ([#31](https://github.com/saberzero1/motions/issues/31))
-
-`set insertmodeescape=jk` required frame-perfect input timing (effectively unusable). Two issues were identified:
-
-1. **Wrong event source**: The handler listened to `vim-keypress` events on the codemirror-vim adapter. In insert mode, regular character keys (`j`, `k`) bypass the vim command pipeline entirely and go through CM6's text input handler — `vim-keypress` only fires for keys that codemirror-vim processes as vim commands (e.g., `<Esc>`, mapped sequences). The handler never saw insert-mode character keystrokes.
-
-2. **Option value not retrievable**: The `insertmodeescape` option's `defineOption` callback did not store the value for `getOption()` retrieval. When `getOption('insertmodeescape')` was called, it returned `undefined` (the callback returned nothing on query), so the handler's escape sequence check always short-circuited at `escapeSeq.length < 2`.
-
-**Fix**: Rewrote `InsertEscapeHandler` (`src/vim/insert-escape.ts`) to use DOM `keydown` events captured on the editor element. The handler filters for single printable characters (ignoring Ctrl/Alt/Meta modifiers), checks the vim state for insert mode via the adapter, and accumulates a sequence buffer with configurable timeout. On match, `e.preventDefault()` + `e.stopPropagation()` blocks the final character from being inserted, then `<BS>` × sequence length + `<Esc>` is dispatched through the vim API. Added module-level storage for both `insertmodeescape` and `insertmodeescapetimeout` option values so `getOption()` returns the configured values.
-
-**Timeout**: Configurable via `set insertmodeescapetimeout=N` (alias `imet`, range 100–5000ms, default 1000ms — matching Neovim's `timeoutlen`). Previously hardcoded at 200ms. Also configurable via **Settings → Vim Motions → Vim engine → Insert mode escape timeout**.
-
-**Test coverage**: `test/specs/vimrc.e2e.ts` — two tests: `jk` typed within timeout exits insert mode, `jk` typed after timeout stays in insert mode.
-
 ## `noremap` cannot swap built-in single-key motions
 
 `nnoremap j k` / `nnoremap k j` does not swap the `j` and `k` motions. This is a codemirror-vim architectural constraint: when a `noremap` mapping's rhs is dispatched, the key handler skips all user-defined keymap entries and only searches the default keymap. Since user-defined entries are inserted at the front of the keymap array via `unshift`, the `noremap` dispatch (which starts at `keyMap.length - defaultKeymapLength`) correctly finds the original motion. However, the lhs side of the swap still resolves to the original motion as well, because codemirror-vim's `noremap` flag is tracked globally during dispatch — meaning both sides of a swap end up resolving to the default keymap.
@@ -446,18 +344,6 @@ Workaround: if `set textwidth=N` is not taking effect, reload the plugin. At run
 This limitation is confirmed upstream in [obsidian-vimrc-support issue #16](https://github.com/esm7/obsidian-vimrc-support/issues/16), where the maintainer noted: "CodeMirror doesn't support `noremap` [...] recursive mappings are not possible in CodeMirror anyway so `map` or `nmap` should work."
 
 `noremap` does work for preventing recursion in multi-key mappings (e.g. `noremap G G$`) and for remapping keys to different key sequences. It only fails when trying to swap two built-in single-key motions with each other.
-
-## ~~EasyMotion leader key conflict with `mapCommand`~~ (Fixed)
-
-EasyMotion and hint mode bindings call `unmapDefaultBinding(leader)` before `mapCommand` registration. This removes the leader key's default Vim binding (e.g. `<Space>` → `l`, `,` → `repeatLastCharacterSearch`) from codemirror-vim's keymap so that `mapCommand` multi-key sequences starting with the leader can accumulate in the input buffer. The vimrc parser correctly handles `let mapleader = " "` (space inside quotes). EasyMotion works with any leader key, including space, comma, and semicolon.
-
-`unmapDefaultBinding` passes `{ includeDefaults: true }` to `vim.unmap()`, which is required because codemirror-vim's default keymap entries are tagged with `_isDefault` and `unmap()` silently skips them without this flag. Without `includeDefaults`, keys with built-in bindings (`,`, `;`, `-`, `+`, etc.) would not be unmapped, causing the default single-key binding to consume the first keystroke before the multi-key EasyMotion sequence (e.g. `,,w`) could accumulate.
-
-The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — independent of which features are enabled. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so keys with default bindings (most notably space, whose `<Space>` → `l` default caused it to move the cursor right instead of acting as leader) only worked as leader when EasyMotion was enabled. All leader-dependent features (table manipulation, hint mode, settings leader bindings) now work with any leader key even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
-
-The fork also normalizes literal special characters in key strings to angle-bracket notation when they enter the keymap. The `<leader>` substitution in the vimrc loader replaces `<leader>` with the literal leader character — for space, this produces `' j'` from `nmap <leader>j gj`. However, `vimKeyFromEvent` converts space key presses to `'<Space>'` (angle-bracket notation). Without normalization, `commandMatch('<Space>', ' j')` would never match because it uses exact string comparison. The fork's `normalizeKeyString` converts `' j'` to `'<Space>j'` in `_mapCommand` before the entry is stored, so the dispatched `'<Space>'` correctly partial-matches and `'<Space>j'` fully matches. This normalization also applies to `toKeys` (the rhs of `keyToKey` mappings), `unmap()`, and `removeMapCommand()`.
-
-When `.obsidian.vimrc` sets a custom leader via `let mapleader = ","`, the plugin properly cleans up the initial backslash-leader bindings and re-registers all leader-dependent features (EasyMotion, hint mode, table manipulation, settings leader bindings) with the new leader. Previously, the old `\`-leader `mapCommand` entries persisted in the keymap alongside the new leader bindings because `Vim.unmap()` could not remove `mapCommand`-created entries. The fork provides `Vim.removeMapCommand(keys)` for clean removal.
 
 ## Table navigation on non-US keyboards
 
@@ -541,6 +427,8 @@ Mappings to `:obcommand <id><CR>` or `:ob <id><CR>` without an explicit `desc` n
 ## `<C-w>` prefix conflict with Obsidian hotkeys
 
 Obsidian's default "Close current tab" hotkey is bound to Ctrl+W. Users must unbind it in **Settings → Hotkeys** (search for "Close current tab") for the `<C-w>` prefix (`<C-w>h/j/k/l`, `<C-w>v`, `<C-w>s`, `<C-w>c`, `<C-w>q`, `<C-w>o`) to work. This is also noted in the settings toggle and README. The close-tab functionality remains available via `:q`, `:quit`, `<C-w>c`, or `<C-w>q` (the latter two work once the Obsidian hotkey is removed).
+
+**Conflict detection**: The plugin now detects active hotkey conflicts on load (desktop only, when workspace nav is enabled). A one-time Notice per plugin version alerts users to conflicts. A "Check hotkey conflicts" button in **Settings → Vim Motions → Navigation** lists each active conflict with step-by-step unbinding instructions. Detection reads `hotkeys.json` — if a command ID is absent (default binding active) or has a non-empty array (custom binding), it's a conflict. An empty array `[]` means the user explicitly unbound it (no conflict).
 
 ## Global workspace navigation
 
@@ -812,83 +700,6 @@ These commands exist but behave differently from Neovim:
 | `gj`/`gk` column | Preserves character column across lines | Pixel drift | Neovim preserves the character column (`curswant`) because all terminal characters are monospace. The fork preserves the pixel X coordinate (`goalColumn`) via `posAtCoords`, which maps to a different character index on heading lines (wider font). The round-trip (`gk gk gj gj`) returns to the exact starting column because the pixel X is preserved throughout. See "gk/gj column drift on heading lines" below. |
 | `gk` frontmatter | Navigates into frontmatter like `k` | Fixed in fork | Fork's `moveByDisplayLines` now checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`. The `stuckAtBoundary` condition uses `range.head === startOffset` to avoid false positives on wrapped lines — `gk` navigates wrapped display lines first and only enters properties from the topmost display line. Users who remap `k` to `gk` can now enter frontmatter navigation. |
 
-## ~~Visual mode on single-character text objects~~ (Fixed)
-
-**Status**: Fixed. The formatting mark transaction filter that caused cursor snapping has been removed.
-
-`vi*` on `*x*` previously selected `*` (the delimiter) instead of `x` (the content). The root cause was believed to be Live Preview cursor snapping from Obsidian's `Decoration.replace({})` hiding formatting marks. An `EditorState.transactionFilter` was introduced to compensate by snapping cursor positions away from formatting mark ranges.
-
-Investigation (issue [#33](https://github.com/saberzero1/motions/issues/33)) found that the transaction filter was the **sole cause** of cursor snapping for double-character marks (`**`, `__`, `~~`, `==`). Empirical testing confirmed:
-
-- On the active line, Obsidian uses `Decoration.mark` (not `Decoration.replace`) — formatting marks are real text nodes with full width in the DOM
-- With the filter disabled, `h`/`l` movement through `**hi**` visits every position without skipping
-- Mark visibility in Live Preview is controlled entirely by Obsidian based on cursor proximity, unaffected by the filter
-- `vi*`, `di*`, `da*` and other text objects work correctly without the filter
-
-The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed.
-
-~~**Permanent limitation: `ci*` in Live Preview**~~ — Investigation (spike27) found that `ci*` works correctly in Live Preview for multi-character content (`**bold text**` → `ci*` → type replacement → correct result). On the active line, Obsidian uses `Decoration.mark` (visible text nodes), not `Decoration.replace` — the cursor is not displaced by collapsed decorations. The original limitation was overstated based on early testing with a transaction filter that has since been removed.
-
-**Test coverage**: `test/specs/text-objects.e2e.ts` — `ci*` unskipped and passing for multi-character bold content.
-
-## ~~Visual line selection overlap in Live Preview~~ (Fixed)
-
-**Status**: Fixed. Double-highlight eliminated, cursor displacement resolved. ([#41](https://github.com/saberzero1/motions/issues/41))
-
-Two issues affected visual-line mode (`V`) in Live Preview:
-
-1. **Double highlight**: The plugin's custom `linewiseVisualHighlight` decoration (full-line highlight via `Decoration.line`) and the native CM6 `::selection` CSS rendered simultaneously. The native `::selection` was hidden in normal mode via `.cm-vimMode:not(.cm-vimVisual)` but was intentionally left visible in all visual modes (needed for charwise and blockwise). Fixed by adding a `.cm-vimVisualLine` class toggle and extending the `::selection` suppression to include visual-line mode. Charwise and blockwise visual modes remain unaffected.
-
-2. **Cursor displacement over collapsed markup**: Navigating with `j`/`k` on lines containing collapsed markup (`[[wikilinks]]`, `[text](url)`) caused Obsidian to uncollapse the hidden content, reflowing the line. This happened because `updateCmSelection` set a spanning CM6 `EditorSelection` range across the full line content, and Obsidian's Live Preview detects selection overlap with `Decoration.replace` ranges and reveals them (this is Obsidian plugin-level behavior, not CM6 core). Fixed by setting a cursor-only CM6 selection in visual-line mode — the `linewiseVisualHighlight` ViewPlugin provides the visual highlight independently from `vim.sel`, and operators recompute their own selection at dispatch time.
-
-Actions that read from the CM6 selection in visual mode (`joinLines`, `replace`) were updated to read from `vim.sel` instead, and a Ctrl+C special-case copies linewise text from `vim.sel` when `somethingSelected()` returns false. The async motion `.then()` callback (used by EasyMotion in visual mode) now wraps `updateCmSelection` in `cm.operation()` with `isVimOp = true` to prevent `handleExternalSelection` from exiting visual mode when it sees cursor-only selection. The cursor-only selection always uses column 0 (matching Neovim) to avoid landing inside widget decorations (checkboxes, collapsed links) on the head line.
-
-**Obsidian command passthrough** (two layers):
-
-1. **Fork-side (keyboard events)**: When a key is NOT handled by vim in visual-line mode, `handleKey` in the fork's `index.ts` temporarily expands the CM6 selection to the full linewise range before the event propagates. The cursor-only selection is restored via microtask after Obsidian processes the command. This covers commands triggered by keys that pass through CM6's bubble-phase event handler.
-
-2. **Plugin-side (all invocation paths)**: `app.commands.executeCommand` is wrapped via the `around()` utility (`src/vim/visual-line-command-fix.ts`). When the active editor is in visual-line mode, the wrapper expands the CM6 selection before the command executes and restores cursor-only after. This covers all invocation paths: Obsidian hotkeys (which fire in the capture phase on `window`, before CM6's bubble-phase handler), command palette, toolbar buttons, and programmatic `executeCommandById` calls. The wrapper uses the same `around()` pattern as the table widget suppressor, stacking safely with other plugins that patch `executeCommand`.
-
-**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode during vim key processing. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected. Obsidian's own commands see the correct linewise selection because of the passthrough mechanisms above.
-
-**Test coverage**: 8 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, register content verification, and mid-column visual-line with checkbox content. 10 spike tests (`spike23-visual-line-hotkey-commands.e2e.ts`) verifying command execution via `executeCommandById`, hotkey path, and selection state inspection.
-
-## ~~Visual-line mode highlight missing on replaced widget blocks~~ (Fixed)
-
-**Status**: Fixed. Replaced widget blocks (MathJax, embeds, etc.) now receive visual-line highlight. ([#57](https://github.com/saberzero1/motions/issues/57))
-
-In visual-line mode (`V`), the fork's `linewiseVisualHighlight` ViewPlugin uses `Decoration.line()` to apply `.cm-vim-linewise-selection` to each `.cm-line` element. When Obsidian's Live Preview replaces content with rendered widgets (block MathJax `$$`, note embeds `![[note]]`, plugin table widgets), the `.cm-line` elements are removed from the DOM and replaced by widget container elements. `Decoration.line()` silently drops decorations for lines inside replaced ranges, leaving those widget blocks visually unhighlighted during selection.
-
-Fixed by adding a plugin-side `LinewiseWidgetHighlight` ViewPlugin (`src/vim/linewise-widget-highlight.ts`) that supplements the fork's line-level highlighting. On each CM6 update during visual-line mode, the plugin scans `contentDOM` direct children for non-`.cm-line` elements (widget containers), maps them to document positions via `view.posAtDOM()`, and toggles `cm-vim-linewise-widget-selection` on widgets whose document range overlaps the visual-line selection. The class is removed on mode exit and `destroy()`.
-
-The fix is generic — it highlights any replaced widget type based on DOM structure (non-`.cm-line` direct child of `contentDOM` with non-zero height), not specific widget classes. `Decoration.mark()` was validated as non-viable (marks only wrap text content nodes, which replaced widgets lack). The fork's `linewiseVisualHighlight` remains unchanged.
-
-**Test coverage**: spike24 (`spike24-visual-line-widget-highlight.e2e.ts`) — 12 tests covering MathJax, embed, and code block DOM structure discovery; visual-line highlight verification; decoration facet analysis; `posAtDOM()` reliability on MathJax and embed widgets; `Decoration.mark()` validation; and `update()` trigger verification during cursor-only selection.
-
-## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
-
-**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison.
-
-In charwise visual mode (`v`), selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. Two issues were identified and fixed:
-
-1. **`exitVisualMode` cursor clipping** (`src/vim.js`): `exitVisualMode()` called `clipCursorToContent()` while `vim.visualMode` was still `true`. In visual mode, `clipCursorToContent` allows `ch = text.length` (the linebreak position). After clearing `vim.visualMode` on the next line, the cursor was already set one position past the last character. Reproducible as: `vlll<Esc>` on "abc" — `l` past the last char is allowed in visual mode, but Escape should clip back to normal-mode bounds (`ch = text.length - 1`). Fixed by clearing visual flags before `setCursor`, while preserving the `updateLastSelection` call order. ([#15](https://github.com/saberzero1/motions/issues/15))
-
-2. **`measureCursor` EOL adjustment** (`src/block-cursor.ts`): The `letter != "\n"` comparison used loose equality (`!=`). When `head >= doc.length` (cursor past document end), the short-circuit `head < doc.length && sliceDoc(...)` produced `false`, and `false != "\n"` evaluated to `false` due to JS type coercion (both coerce to `0`). This caused the wrong branch to execute at document end. Fixed by producing `""` instead of `false` and using strict inequality (`!==`).
-
-3. **`measureCursor` visual-block EOL step-back** (`src/block-cursor.ts`): After the `makeCmSelection` per-line clamping fix (issue #38), block selection heads legitimately land on newline positions (`head = lineLen`). The `else if (!vim.visualLine && !vim.visualBlock)` guard prevented the `head--` step-back in visual-block mode, causing the cursor to render one position past the last visible character. Fixed by removing `&& !vim.visualBlock` — visual-block now applies the same EOL step-back as charwise visual. The `!vim.visualLine` guard remains because visual-line mode manages cursor positioning independently via cursor-only CM6 selection. ([#41](https://github.com/saberzero1/motions/issues/41))
-
-## ~~Visual-block `A` skips short lines~~ (Fixed)
-
-**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison (`upstream-gaps` suite).
-
-When using `<C-v>` block visual mode with `A` (append) on a block spanning lines shorter than the block column, the fork's `selectForInsert` skipped those lines entirely. Neovim pads short lines with spaces to reach the block's right edge before appending. Fixed by adding a `padShortLines` parameter to `selectForInsert` — the `A` (`endOfSelectedArea`) path passes `true` to pad, while the `I` (`startOfSelectedArea`) path passes `false` to skip (matching Neovim, which also skips short lines for `I`). ([#41](https://github.com/saberzero1/motions/issues/41))
-
-## ~~Visual charwise `r` off-by-one across line boundary~~ (Fixed)
-
-**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison (`upstream-gaps` suite).
-
-The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode. Since `cm.getRange(from, to)` treats `to` as exclusive, this replaced one fewer character than the visual selection covered when the selection spanned a newline. For example, `vjhr ` from position (0,4) on `wuuuet\nanother` replaced 5 characters instead of 6, producing `wuuu  \n   ther` instead of the correct `wuuu  \n    her`. Fixed by using `new Pos(selEnd.line, selEnd.ch + 1)` for `curEnd`, matching the inclusive-to-exclusive conversion used elsewhere (e.g. `makeCmSelection` char mode). ([#41](https://github.com/saberzero1/motions/issues/41))
-
 ## Surround nvim-surround parity gaps
 
 **Status**: 74 golden comparison tests against [nvim-surround](https://github.com/kylechui/nvim-surround) (Neovim 0.12.2). **74 pass.** The ground truth was shifted from tpope/vim-surround to nvim-surround — nvim-surround is better maintained, has a comprehensive test suite, and is Lua-native (aligned with Neovim's direction). It implements all tpope/vim-surround behavior plus extensions.
@@ -1022,38 +833,6 @@ This does not affect real user interaction — physical keypresses reach the Eas
 
 The async visual mode selection itself works correctly — the `v + f + label` test passes because the char-search flow has different timing, and the `easymotion-visual.e2e.ts` suite (4 tests) passes entirely.
 
-## ~~Properties navigation in bundled fork mode~~ (Fixed)
-
-Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region or when the cursor is stuck at the boundary of the properties widget, and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. Both `k` and `gk` enter the properties panel — `gk` (`moveByDisplayLines`) checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`.
-
-The `stuckAtBoundary` check uses `range.head === startOffset` to distinguish "cursor truly couldn't move" from "cursor moved to a different display line within a wrapped line." Without this guard, `gk` on a long wrapped first content line would fire `focusBefore` immediately instead of navigating through the wrapped display lines first — the cursor stayed on the same document line (`pos.line === start.line`) but at a different character offset.
-
-The plugin's `tableAwareMoveUp` motion (which overrides `k` when table navigation is enabled) bypasses `findPosV` with its own line arithmetic. To preserve frontmatter navigation, `tableAwareMoveUp` delegates to `findPosV` when the computed target line falls inside the frontmatter region, allowing the `focusBefore` callback to fire. ([#25](https://github.com/saberzero1/motions/issues/25))
-
-~~**Source mode regression**: The frontmatter interception fired unconditionally in both live-preview and source mode. In source mode, frontmatter is plain text with no properties widget — the interception found no focus target and left the cursor stuck below the frontmatter.~~ Fixed by gating the entire frontmatter interception on Obsidian's `editorLivePreviewField` state field via the fork's new `setLivePreviewField()` API. In source mode (`editorLivePreviewField = false`), the block is skipped and the cursor moves through raw frontmatter text normally. ([#77](https://github.com/saberzero1/motions/issues/77))
-
-**Test coverage**: `test/specs/vim-builtin/g-commands.e2e.ts` — 3 regression tests: `gk` navigates wrapped display lines before entering properties, `gk` enters properties on non-wrapping line, `k` enters properties from first content line.
-
-## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)
-
-The bundled vim extension is now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. Latex Suite's auto-snippets, tabstop navigation, and math-mode features work normally in vim insert mode.
-
-## ~~Visual line navigation and replaced widget decorations~~ (Fixed)
-
-`gj`/`gk` (and `j`/`k` when mapped to `gj`/`gk`) now correctly navigate into block MathJax (`$$`) and other replaced widget decorations in Obsidian's live preview. Previously, CM6's `moveVertically` treated replaced decorations as atomic, causing the cursor to skip over the entire widget's source range in a single step.
-
-The fork's `findPosV` applies three corrections to CM6's `moveVertically` result:
-
-1. **Multi-line jump clamp**: When `moveVertically` jumps more than one document line and no fold exists in the skipped range, the cursor is clamped to the adjacent document line (±1). This prevents line-skipping on both replaced widgets (MathJax) and variable-height lines (headings with larger fonts).
-
-2. **Tall non-wrapped line detection**: When `moveVertically` stays on the same document line (`lineJump === 0`) but the Y coordinate change is less than half of `defaultLineHeight`, the cursor is "stuck" on a tall non-wrapped line — headings with large font size and/or line-height produce line blocks taller than `defaultLineHeight`, causing `moveVertically` to take multiple steps through the block even though the text doesn't wrap. The fix detects this via `coordsAtPos` comparison and force-moves to the adjacent document line. Legitimate within-line moves (wrapped display lines) produce Y deltas greater than the threshold and are not affected.
-
-3. **Column 0 fallback**: When `moveVertically` correctly crosses one line but drops the cursor at column 0 despite a non-zero goalColumn, `posAtCoords` resolves the correct character position from the pixel X coordinate.
-
-([#26](https://github.com/saberzero1/motions/issues/26))
-
-**Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents), `test/specs/spikes/spike-gk-issue26-repro.e2e.ts` (6 tests covering reporter's exact content with consecutive h2 headings, long wrapped lines, and empty lines).
-
 ## `gk`/`gj` column drift on heading lines
 
 **Status**: Known deviation from Neovim. Pixel-preserving behavior is correct for GUI editors.
@@ -1092,25 +871,6 @@ The surround operator implements the full vim-surround command set: `ds`/`cs`/`y
 - `f`/`F` in replacement position triggers function wrapping (was literal `f`/`F` as delimiters).
 - `S` in visual mode now surrounds instead of substituting (was `S` → `VdO` keyToKey).
 
-## ~~Block visual mode (CTRL-V) insert not supported~~ (Fixed)
-
-**Status**: Fixed. Block insert, change, cursor positioning, and zero-width blocks all match Neovim. Zero deviations remaining.
-
-`I` and `A` in block visual mode (`CTRL-V`) previously did not enter insert mode with aligned cursors on every selected line. Six fork-level fixes were required:
-
-1. **`enterInsertMode` preserves `wasInVisualBlock`** before `exitVisualMode` clears `vim.visualBlock`, so `multiSelectHandleKey` routes subsequent insert-mode keys correctly through CM6's native multi-selection text input.
-2. **`selectForInsert` skips short lines** instead of clipping the cursor to the line end. Lines shorter than the block column are left unchanged, matching Neovim.
-3. **`operators.change` block visual path** uses `cm.replaceSelections()` to delete the block selection before entering insert mode at the block's left column. Handles both `c` (change block) and `C` (change to EOL via `applyOperator`'s linewise head extension).
-4. **`exitInsertMode` uses `blockInsertLeft`** to position the cursor at the block's original left column instead of the standard `ch - 1`. This fixes `A` cursor placement after `<Esc>`.
-5. **`makeCmSelection` zero-width block fix** changes `fromCh < toCh` to `fromCh <= toCh` so that zero-width blocks (`fromCh === toCh`) correctly include the character at the cursor position instead of creating a backwards range.
-6. **`repeatInsertModeChanges` cursor positioning** uses `blockInsertLeft` (stored on `lastInsertModeChanges`) for the final cursor position after dot-repeat, instead of a hardcoded `+1` offset.
-
-CM6's native multi-cursor support means typed text appears on all lines in real-time (unlike Neovim, where text is only visible on the primary cursor until `<Esc>`).
-
-Block visual operations that were already working: delete (`d`), yank (`y`), paste (`p`/`P`), indent (`>`/`<`), replace (`r`), case toggle (`~`), corner swap (`o`/`O`). Now also working: insert (`I`/`A`), change (`c`/`C`).
-
-**Test coverage**: `test/specs/vim-builtin/visual-block-golden.e2e.ts` — 15 golden Neovim comparison tests covering block insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, upward selection, `$` escape cursor position, and `$` delete to EOL.
-
 ## Lua configuration (`init.lua`)
 
 **Status**: Working. Sandboxed Lua 5.3 runtime via [Fengari fork](https://github.com/saberzero1/fengari) (pure JS, browser-only — all Node.js dependencies stripped). ([#46](https://github.com/saberzero1/motions/issues/46))
@@ -1142,7 +902,7 @@ Limitations:
 
 Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across all editors — split panes, popover hover-preview editors, and canvas card text inputs — when using the bundled vim fork (recommended setup with built-in vim mode OFF). Built-in vim mode retains active-leaf-only behavior for these events.
 
-Other adapter-dependent events (`TextYankPost`, `CursorMoved`, `CursorHold`, `CmdlineEnter`, `CmdlineLeave`) are still active-leaf-only. Planned for future per-view support.
+~~Other adapter-dependent events (`TextYankPost`, `CursorMoved`, `CursorHold`, `CmdlineEnter`, `CmdlineLeave`) are still active-leaf-only~~. Fixed. All 5 events now fire per-view via `AutocmdEventWatcher` CM6 ViewPlugin, following the same pattern as `AutocmdModeWatcher`. `CursorMoved` fires independently per view with position-change detection. `CursorHold` uses a per-view timer with configurable delay. `CmdlineEnter`/`CmdlineLeave` route through the per-view watcher but inherently fire on the active adapter only (the dialog opens on the focused editor).
 
 `getModeState()` returns global state reflecting the most recent mode event from any view, not per-view state. `vim.obsidian.mode()` reads the active leaf's mode, not the event source's mode — if a popover fires `InsertEnter`, `vim.obsidian.mode()` may still return `'n'` if the active leaf is in normal mode.
 
@@ -1686,7 +1446,7 @@ Enable/disable via **Settings → Vim Motions → Vim features → Yank-ring pas
 
 **Known limitations**:
 
-- **Visual-mode paste cycling not supported**: Cycling only works after normal-mode paste (`p`, `P`, `gp`, `gP`). Visual-mode paste replaces the selection and shifts registers, making cycling state tracking complex. Deferred.
+- ~~**Visual-mode paste cycling not supported**~~: Fixed. Cycling now works after visual-mode paste (`viw` + `p` + `<C-p>`). Detects visual paste via anchor/cursor position comparison at snapshot time. Computes paste range via doc-length arithmetic (`pasteLen = newDocLen - oldDocLen + selectionLen`). Visual block paste is excluded. `gp`/`gP` in visual mode bypass the yank-ring (they use custom paste actions that don't trigger `vim-keypress`).
 - **System clipboard paste timing**: The fork's `paste` action uses `navigator.clipboard.readText()` asynchronously for system clipboard registers (`"+p`). The paste override captures state via `setTimeout(0)`, which may fire before the clipboard Promise resolves. Cycling after system clipboard paste is unreliable.
 - **Workspace navigation dependency**: `P`, `gp`, `gP` paste actions are defined by `registerWorkspaceNavigation()`. If workspace navigation is disabled (`enableWorkspaceNav=false`), cycling after these three commands silently fails. Cycling after `p` still works (fork's built-in action).
 - **Dot-repeat**: Pressing `.` after cycling repeats the original paste, not the final cycled text. Updating the fork's `lastEditInfo` for cycled content is deferred.
@@ -1738,14 +1498,256 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 
 ## Settings: leader bindings and which-key labels use imperative rendering
 
-**Status**: Known limitation. Deferred.
+**Status**: Known limitation. Architecturally incompatible with `SettingDefinitionList`.
 
 The leader key bindings, which-key group labels, and which-key command labels groups use `render` callbacks in the declarative settings path (`getSettingDefinitions()`) that delegate to imperative methods (`renderLeaderBindings`, `renderGroupLabels`, `renderCommandLabels`). These render methods build the UI manually with `new Setting()` calls, add/remove buttons, and dynamic row management.
 
-Obsidian 1.13+ provides `SettingDefinitionList` (`type: 'list'`) with built-in drag-to-reorder, delete buttons, add-item affordance, and `emptyState` — which would replace these custom render methods with a declarative approach. However, converting requires:
+Investigation found that Obsidian 1.13+'s `SettingDefinitionList` (`type: 'list'`) is designed for lists of single-control items, not multi-column table rows. Each leader binding row has 2 text inputs + 2 buttons; each group/command label row has 4 text inputs + 1 button. `SettingDefinitionList` items are `SettingDefinitionItem[]` with one control per item — there is no built-in support for multi-input rows. Converting would require either losing the multi-column layout (poor UX) or using `render` callbacks inside the list (losing the native drag/delete/add affordances that motivated the migration).
 
-1. Restructuring the data model from imperative DOM building to declarative item definitions with `onReorder`/`onDelete`/`addItem` callbacks
-2. Ensuring the pre-1.13 imperative path still works (the render methods are shared)
-3. Handling vimrc-originated read-only rows (which-key labels set by vimrc appear as non-editable entries)
+The current `render` callback approach is the correct pattern for these complex settings. The imperative path works identically on pre-1.13. No migration planned.
 
-The current implementation works correctly in both settings paths. The `SettingDefinitionList` conversion is a UX improvement (native drag handles, consistent delete UI, empty state) but not a functional gap. Tracked for a future dedicated refactor.
+## Resolved Issues
+
+## ~~Vim keymaps intermittently stop working~~ (Fixed)
+
+**Status**: Fixed. Multi-layered defense implemented across fork and plugin. ([#18](https://github.com/saberzero1/motions/issues/18))
+
+`gg`, `G`, and other keymaps could intermittently stop working until Obsidian was reloaded. The issue had multiple contributing root causes in the codemirror-vim fork's state management:
+
+1. **Stale normal-mode key prefix**: Typing `g` buffers it in `inputState.keyBuffer` as a partial match. If the editor lost focus (tab switch, modal open, window blur) before the second key, the prefix persisted indefinitely — no timeout exists for normal-mode partials (unlike insert mode's `lastInsertModeKeyTimer`), and no blur/focus handler existed. On refocus, the next key combined with the stale `g` to produce an invalid sequence (`gG`, `gj`, etc.), which was silently swallowed. **Fix**: blur handler on `contentDOM` calls `clearInputState()` on focus loss; pane-switch handler in the plugin provides belt-and-suspenders coverage.
+
+2. **Global keymap corruption via `unmap()`**: The fork's `defaultKeymap` is a global singleton shared across all editors. `unmap()` used `splice()` to remove entries, including built-in defaults like `gg` or `j`. During plugin lifecycle churn (enable/disable/reload), `unregisterAll()` called `unmap()` on registered keys, which could accidentally remove defaults. Once removed, the key was permanently gone until page reload — `mapclear()` only removed user mappings, and there was no `resetKeymap()`. **Fix**: defaults tagged with `_isDefault`, `unmap()` skips them, `resetKeymap()` restores from frozen snapshot, `mapclear()` uses flag-based partitioning.
+
+3. **Incomplete `leaveVimMode()` cleanup**: When an editor was destroyed while in insert mode, the `change` and `keydown` listeners registered by `enterInsertMode()` were not removed (only `exitInsertMode()` removes them, and `leaveVimMode()` didn't call it). The global `lastInsertModeKeyTimer` could also fire against a destroyed editor. **Fix**: `leaveVimMode()` now manually removes insert-mode listeners, clears the timer, clears `virtualPrompt`, and resets `inputState`.
+
+4. **Async motion race conditions**: Async motion callbacks (used by EasyMotion operator-pending mode) had no way to detect if a newer command had superseded them. A `d` + async motion that resolved after the user typed another key could apply the delete at the wrong position. **Fix**: `_commandGeneration` counter on vim state, captured before dispatch and validated in the `.then()` callback.
+
+**Test coverage**: 10 fork unit tests + 7 plugin e2e tests covering blur recovery, plugin reload, keymap protection, `resetKeymap()` recovery, and `leaveVimMode` cleanup.
+
+5. **Stale jumpList markers after document switch**: The global jumpList (`vimGlobalState.jumpList`) stores `Marker` objects with absolute document offsets. When switching between documents of different lengths (especially via PDF++ or other non-editor views), markers from the old (longer) document held offsets exceeding the new document's length. `jumpList.add()` called `curMark.find()` → `posFromIndex(this.offset)` → `doc.lineAt(offset)` with no bounds check, throwing `RangeError`. The exception bubbled through `processMotion` → `processCommand` → the `cm.operation()` try-catch, which wiped vim state (`cm.state.vim = undefined; maybeInitVimState(cm)`) and re-threw. The re-initialized state lost per-instance configuration. **Fix** (three layers):
+    - `posFromIndex` clamps offset to `[0, doc.length]` before calling `doc.lineAt()`, mirroring the bounds checking already present in `indexFromPos`
+    - `Marker.find()` catches exceptions and returns `null` — all callers (`jumpList.add`, `jumpList.move`, `jumpList.find`) already handle `null` gracefully
+    - `Marker.update()` catches `RangeError` from `mapPos()` when the marker offset exceeds the changeset's starting document length, setting `offset = null`
+    - Plugin: `reloadFeatures()` now calls `vim.resetKeymap()` to match `onload()` behavior, closing a defense gap where settings-triggered reloads could corrupt the keymap without recovery
+
+**Additional test coverage**: 5 fork tests (posFromIndex clamping, negative offset, valid offset, marker doc-shrink, gg/G with stale jumpList) + 3 plugin e2e tests (gg/G after document switch, gg/G after reloadFeatures on shorter document).
+
+## ~~Custom text objects via Lua (vim.textobject)~~ (Fixed)
+
+**Status**: Fixed. Lua text object specs are now persisted and re-registered after `reloadFeatures()`.
+
+The `vim.textobject.add()` / `vim.gen_spec.pair()` API registers custom text objects from Lua configuration. The pair matching logic (asymmetric delimiters, nesting, multi-line) is verified working via 26 unit tests on `createAsymmetricPairTextObject` and 5 passing E2E tests.
+
+Root cause of the original issue: `loadLuaConfigInternal()` called `reloadFeatures()` AFTER the Lua config registered text objects. `reloadFeatures()` destroyed the `VimRegistration` instance that held the Lua-registered keybindings and created a fresh one that had no knowledge of them. Fix: text object specs are stored in `this.luaTextObjectSpecs[]` during the `onTextObjectAdd` callback, then `reregisterLuaTextObjects()` replays them on the new `VimRegistration` instance after `reloadFeatures()` completes.
+
+## ~~Block cursor displays wrong character after editor refocus~~ (Fixed)
+
+**Status**: Fixed in the codemirror-vim fork. ([#71](https://github.com/saberzero1/motions/issues/71))
+
+When the editor lost and regained focus (e.g., opening/closing DevTools, switching windows), the vim block cursor could display the wrong character. This occurred because Obsidian's Live Preview re-expands hidden markdown formatting (like `## ` in headings) when the editor regains focus, but the block cursor's `requestMeasure` ran in the same animation frame — before the browser reflowed the newly expanded decorations. `coordsAtPos()` returned stale layout coordinates from the pre-reflow DOM, causing the cursor to render the character from the old visual position.
+
+Fixed with two changes in the fork:
+
+1. `BlockCursorPlugin.update()` now includes `update.focusChanged` in its redraw trigger, ensuring the cursor re-measures on focus transitions.
+2. On focus gain, a deferred `requestAnimationFrame` schedules a second `requestMeasure` that runs after the browser has reflowed the decoration DOM changes.
+
+## ~~Smart list continuation and frontmatter~~ (Fixed)
+
+`O` (open line above) on the first content line after YAML frontmatter previously behaved like `o` (open line below). The smart list continuation override in `src/actions/open-line.ts` compared `curLine === cm.firstLine()` to decide whether to use the "insert at document start" path. With frontmatter present, `cm.firstLine()` returns 0 (the opening `---`) while the cursor is on the first post-frontmatter line (e.g. line 3), so the check was always false. The else branch inserted at the end of the previous line — which fell inside the frontmatter region, causing Obsidian's properties UI to swallow the new line.
+
+Fixed in both layers:
+
+- **Fork** (`vim.js`): `newLineAndEnterInsertMode` now scans past `---`-delimited frontmatter to find the first editable line and uses `insertAt.line <= firstEditable` as the boundary check. The insertion point uses `{ line: insertAt.line, ch: 0 }` instead of hardcoded `cm.firstLine()`. This fixes `O` on all line types (plain text, headings, etc.).
+- **Plugin** (`open-line.ts`): the smart list continuation override adds `firstEditableLine()` with the same frontmatter scan, changing the boundary check to `curLine <= firstEditableLine(cm)`. This fixes `O` on list lines specifically.
+
+Documents without frontmatter are unaffected — both paths fall back to `cm.firstLine()` when the first line is not `---`.
+
+**Test coverage**: `test/specs/open-line-list.e2e.ts` — 7 regression tests: `O` on unordered/ordered/task list after frontmatter inserts above, `o` on list after frontmatter inserts below, `O` on non-list line after frontmatter inserts above, `o` on non-list line after frontmatter inserts below, `O` on second line after frontmatter uses normal insertion path.
+
+## ~~Scrolloff line height assumption~~ (Fixed)
+
+Scrolloff now uses `EditorView.defaultLineHeight` to dynamically measure the actual line height instead of assuming 22px. The margin adapts automatically when the user changes font size or line height. Note: `defaultLineHeight` returns an average line height — documents with mixed-height lines (e.g., headings with larger fonts) may not have pixel-perfect scrolloff distances.
+
+The scrolloff value accepts 0–9999 (previously capped at 20). Setting `set scrolloff=999` in your vimrc keeps the cursor vertically centered while scrolling, matching standard Vim behavior. The Settings UI uses a validated number input field instead of a slider. The scroll margin is clamped to half the viewport height at runtime, mirroring Vim's silent cap of `scrolloff` to `(window_height - 1) / 2`. ([#40](https://github.com/saberzero1/motions/issues/40), [#48](https://github.com/saberzero1/motions/issues/48))
+
+## ~~Absolute line number highlight not updating on cursor movement~~ (Fixed)
+
+**Status**: Fixed. `lineMarkerChange` now includes `update.selectionSet` in absolute mode. ([#68](https://github.com/saberzero1/motions/issues/68))
+
+When only absolute line numbers were enabled (`set number` without `set relativenumber`), the `vim-motions-line-num-current` CSS class (bold highlight on the current line number) did not update when the cursor moved. The highlight stayed stuck on whichever line was current when the document was last modified, only updating incidentally when entering special content (MathJax, images) that triggered `docChanged` or `viewportChanged`.
+
+Root cause: the `lineMarkerChange` callback in the CM6 `gutter()` configuration — in both the standalone line number gutter (`src/vim/line-number-gutter.ts`) and the unified `statuscolumn` gutter (`src/vim/statuscolumn.ts`) — returned `update.docChanged` (without `update.selectionSet`) when the mode was absolute-only. This was an optimization assuming the displayed text doesn't change on cursor movement (true for absolute numbers), but it forgot that the `isCurrent` flag on each `LineNumberMarker` also changes — without a re-render, the CSS class was never added/removed. Relative and hybrid modes were unaffected because they already included `update.selectionSet` (the displayed numbers change on every cursor move).
+
+## ~~Fold gutter click does not unfold~~ (Fixed)
+
+**Status**: Fixed. A transaction extender normalizes `unfoldEffect` ranges for all fold sources. ([#80](https://github.com/saberzero1/motions/issues/80))
+
+Clicking a fold marker to unfold had no effect. CM6's `foldState` requires an exact `{from, to}` match to remove a fold decoration; a mismatched range is silently ignored.
+
+Two layers were fixed: (1) The plugin's own custom gutters (`fold-column.ts`, `statuscolumn.ts`) dispatched `unfoldEffect` with `{ from: line.from, to: line.from }` (zero-width range) instead of the actual fold range. Fixed by capturing the fold end from `foldedRanges().between()`. (2) The broader issue: these custom gutters are off by default, and Obsidian's **native** fold gutter can also dispatch unfold effects with ranges that don't exactly match the stored fold. Fixed by adding `unfoldNormalizerExtender` in `src/vim/fold-sync.ts` — a `transactionExtender` that detects mismatched unfold effects and appends a corrective effect with the actual stored fold range. This works for all fold sources: Obsidian's native gutter, the plugin's custom gutters, and vim commands.
+
+## ~~Properties fold observer causes scroll jump with third-party plugins~~ (Fixed)
+
+**Status**: Fixed. The observer now only reacts to `is-collapsed` class toggles. ([#89](https://github.com/saberzero1/motions/issues/89))
+
+The `propertiesFoldObserver` ViewPlugin in `src/vim/fold-sync.ts` watches `.metadata-container` for class mutations and dispatches `EditorView.scrollIntoView()` to keep the cursor visible after properties fold/unfold. The observer originally reacted to ANY class attribute change — including no-op re-assignments and non-fold mutations from third-party plugins (e.g., Meta Bind input fields in the properties panel). This caused the editor to scroll back to the last vim cursor position whenever a plugin triggered a class mutation on the metadata container.
+
+Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and comparing old vs new `is-collapsed` presence. The observer now only fires when the fold state actually changes. No-op mutations (identical class string before and after) and non-fold mutations (any class other than `is-collapsed`) are ignored.
+
+**Test coverage**: `test/specs/properties-fold-scroll.e2e.ts` — 4 regression tests: non-fold class mutation preserves scroll, no-op class re-assignment preserves scroll, fold toggle triggers scroll, unfold toggle triggers scroll.
+
+## ~~Insert mode escape (`set insertmodeescape=jk`) not working~~ (Fixed)
+
+**Status**: Fixed. `InsertEscapeHandler` rewritten to use DOM `keydown` events; timeout made configurable. ([#31](https://github.com/saberzero1/motions/issues/31))
+
+`set insertmodeescape=jk` required frame-perfect input timing (effectively unusable). Two issues were identified:
+
+1. **Wrong event source**: The handler listened to `vim-keypress` events on the codemirror-vim adapter. In insert mode, regular character keys (`j`, `k`) bypass the vim command pipeline entirely and go through CM6's text input handler — `vim-keypress` only fires for keys that codemirror-vim processes as vim commands (e.g., `<Esc>`, mapped sequences). The handler never saw insert-mode character keystrokes.
+
+2. **Option value not retrievable**: The `insertmodeescape` option's `defineOption` callback did not store the value for `getOption()` retrieval. When `getOption('insertmodeescape')` was called, it returned `undefined` (the callback returned nothing on query), so the handler's escape sequence check always short-circuited at `escapeSeq.length < 2`.
+
+**Fix**: Rewrote `InsertEscapeHandler` (`src/vim/insert-escape.ts`) to use DOM `keydown` events captured on the editor element. The handler filters for single printable characters (ignoring Ctrl/Alt/Meta modifiers), checks the vim state for insert mode via the adapter, and accumulates a sequence buffer with configurable timeout. On match, `e.preventDefault()` + `e.stopPropagation()` blocks the final character from being inserted, then `<BS>` × sequence length + `<Esc>` is dispatched through the vim API. Added module-level storage for both `insertmodeescape` and `insertmodeescapetimeout` option values so `getOption()` returns the configured values.
+
+**Timeout**: Configurable via `set insertmodeescapetimeout=N` (alias `imet`, range 100–5000ms, default 1000ms — matching Neovim's `timeoutlen`). Previously hardcoded at 200ms. Also configurable via **Settings → Vim Motions → Vim engine → Insert mode escape timeout**.
+
+**Test coverage**: `test/specs/vimrc.e2e.ts` — two tests: `jk` typed within timeout exits insert mode, `jk` typed after timeout stays in insert mode.
+
+## ~~EasyMotion leader key conflict with `mapCommand`~~ (Fixed)
+
+EasyMotion and hint mode bindings call `unmapDefaultBinding(leader)` before `mapCommand` registration. This removes the leader key's default Vim binding (e.g. `<Space>` → `l`, `,` → `repeatLastCharacterSearch`) from codemirror-vim's keymap so that `mapCommand` multi-key sequences starting with the leader can accumulate in the input buffer. The vimrc parser correctly handles `let mapleader = " "` (space inside quotes). EasyMotion works with any leader key, including space, comma, and semicolon.
+
+`unmapDefaultBinding` passes `{ includeDefaults: true }` to `vim.unmap()`, which is required because codemirror-vim's default keymap entries are tagged with `_isDefault` and `unmap()` silently skips them without this flag. Without `includeDefaults`, keys with built-in bindings (`,`, `;`, `-`, `+`, etc.) would not be unmapped, causing the default single-key binding to consume the first keystroke before the multi-key EasyMotion sequence (e.g. `,,w`) could accumulate.
+
+The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — independent of which features are enabled. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so keys with default bindings (most notably space, whose `<Space>` → `l` default caused it to move the cursor right instead of acting as leader) only worked as leader when EasyMotion was enabled. All leader-dependent features (table manipulation, hint mode, settings leader bindings) now work with any leader key even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
+
+The fork also normalizes literal special characters in key strings to angle-bracket notation when they enter the keymap. The `<leader>` substitution in the vimrc loader replaces `<leader>` with the literal leader character — for space, this produces `' j'` from `nmap <leader>j gj`. However, `vimKeyFromEvent` converts space key presses to `'<Space>'` (angle-bracket notation). Without normalization, `commandMatch('<Space>', ' j')` would never match because it uses exact string comparison. The fork's `normalizeKeyString` converts `' j'` to `'<Space>j'` in `_mapCommand` before the entry is stored, so the dispatched `'<Space>'` correctly partial-matches and `'<Space>j'` fully matches. This normalization also applies to `toKeys` (the rhs of `keyToKey` mappings), `unmap()`, and `removeMapCommand()`.
+
+When `.obsidian.vimrc` sets a custom leader via `let mapleader = ","`, the plugin properly cleans up the initial backslash-leader bindings and re-registers all leader-dependent features (EasyMotion, hint mode, table manipulation, settings leader bindings) with the new leader. Previously, the old `\`-leader `mapCommand` entries persisted in the keymap alongside the new leader bindings because `Vim.unmap()` could not remove `mapCommand`-created entries. The fork provides `Vim.removeMapCommand(keys)` for clean removal.
+
+## ~~Visual mode on single-character text objects~~ (Fixed)
+
+**Status**: Fixed. The formatting mark transaction filter that caused cursor snapping has been removed.
+
+`vi*` on `*x*` previously selected `*` (the delimiter) instead of `x` (the content). The root cause was believed to be Live Preview cursor snapping from Obsidian's `Decoration.replace({})` hiding formatting marks. An `EditorState.transactionFilter` was introduced to compensate by snapping cursor positions away from formatting mark ranges.
+
+Investigation (issue [#33](https://github.com/saberzero1/motions/issues/33)) found that the transaction filter was the **sole cause** of cursor snapping for double-character marks (`**`, `__`, `~~`, `==`). Empirical testing confirmed:
+
+- On the active line, Obsidian uses `Decoration.mark` (not `Decoration.replace`) — formatting marks are real text nodes with full width in the DOM
+- With the filter disabled, `h`/`l` movement through `**hi**` visits every position without skipping
+- Mark visibility in Live Preview is controlled entirely by Obsidian based on cursor proximity, unaffected by the filter
+- `vi*`, `di*`, `da*` and other text objects work correctly without the filter
+
+The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed.
+
+~~**Permanent limitation: `ci*` in Live Preview**~~ — Investigation (spike27) found that `ci*` works correctly in Live Preview for multi-character content (`**bold text**` → `ci*` → type replacement → correct result). On the active line, Obsidian uses `Decoration.mark` (visible text nodes), not `Decoration.replace` — the cursor is not displaced by collapsed decorations. The original limitation was overstated based on early testing with a transaction filter that has since been removed.
+
+**Test coverage**: `test/specs/text-objects.e2e.ts` — `ci*` unskipped and passing for multi-character bold content.
+
+## ~~Visual line selection overlap in Live Preview~~ (Fixed)
+
+**Status**: Fixed. Double-highlight eliminated, cursor displacement resolved. ([#41](https://github.com/saberzero1/motions/issues/41))
+
+Two issues affected visual-line mode (`V`) in Live Preview:
+
+1. **Double highlight**: The plugin's custom `linewiseVisualHighlight` decoration (full-line highlight via `Decoration.line`) and the native CM6 `::selection` CSS rendered simultaneously. The native `::selection` was hidden in normal mode via `.cm-vimMode:not(.cm-vimVisual)` but was intentionally left visible in all visual modes (needed for charwise and blockwise). Fixed by adding a `.cm-vimVisualLine` class toggle and extending the `::selection` suppression to include visual-line mode. Charwise and blockwise visual modes remain unaffected.
+
+2. **Cursor displacement over collapsed markup**: Navigating with `j`/`k` on lines containing collapsed markup (`[[wikilinks]]`, `[text](url)`) caused Obsidian to uncollapse the hidden content, reflowing the line. This happened because `updateCmSelection` set a spanning CM6 `EditorSelection` range across the full line content, and Obsidian's Live Preview detects selection overlap with `Decoration.replace` ranges and reveals them (this is Obsidian plugin-level behavior, not CM6 core). Fixed by setting a cursor-only CM6 selection in visual-line mode — the `linewiseVisualHighlight` ViewPlugin provides the visual highlight independently from `vim.sel`, and operators recompute their own selection at dispatch time.
+
+Actions that read from the CM6 selection in visual mode (`joinLines`, `replace`) were updated to read from `vim.sel` instead, and a Ctrl+C special-case copies linewise text from `vim.sel` when `somethingSelected()` returns false. The async motion `.then()` callback (used by EasyMotion in visual mode) now wraps `updateCmSelection` in `cm.operation()` with `isVimOp = true` to prevent `handleExternalSelection` from exiting visual mode when it sees cursor-only selection. The cursor-only selection always uses column 0 (matching Neovim) to avoid landing inside widget decorations (checkboxes, collapsed links) on the head line.
+
+**Obsidian command passthrough** (two layers):
+
+1. **Fork-side (keyboard events)**: When a key is NOT handled by vim in visual-line mode, `handleKey` in the fork's `index.ts` temporarily expands the CM6 selection to the full linewise range before the event propagates. The cursor-only selection is restored via microtask after Obsidian processes the command. This covers commands triggered by keys that pass through CM6's bubble-phase event handler.
+
+2. **Plugin-side (all invocation paths)**: `app.commands.executeCommand` is wrapped via the `around()` utility (`src/vim/visual-line-command-fix.ts`). When the active editor is in visual-line mode, the wrapper expands the CM6 selection before the command executes and restores cursor-only after. This covers all invocation paths: Obsidian hotkeys (which fire in the capture phase on `window`, before CM6's bubble-phase handler), command palette, toolbar buttons, and programmatic `executeCommandById` calls. The wrapper uses the same `around()` pattern as the table widget suppressor, stacking safely with other plugins that patch `executeCommand`.
+
+**Trade-off**: `cm.somethingSelected()` and `cm.getSelection()` return false/empty in visual-line mode during vim key processing. Third-party plugins that depend on CM6 selection state during visual-line mode may not detect the selection. The canonical integration point `window.CodeMirrorAdapter.Vim` is unaffected. Obsidian's own commands see the correct linewise selection because of the passthrough mechanisms above.
+
+**Test coverage**: 8 Neovim golden comparison cases + 7 e2e functional tests covering yank, delete, join, mode transitions, `gv`, register content verification, and mid-column visual-line with checkbox content. 10 spike tests (`spike23-visual-line-hotkey-commands.e2e.ts`) verifying command execution via `executeCommandById`, hotkey path, and selection state inspection.
+
+## ~~Visual-line mode highlight missing on replaced widget blocks~~ (Fixed)
+
+**Status**: Fixed. Replaced widget blocks (MathJax, embeds, etc.) now receive visual-line highlight. ([#57](https://github.com/saberzero1/motions/issues/57))
+
+In visual-line mode (`V`), the fork's `linewiseVisualHighlight` ViewPlugin uses `Decoration.line()` to apply `.cm-vim-linewise-selection` to each `.cm-line` element. When Obsidian's Live Preview replaces content with rendered widgets (block MathJax `$$`, note embeds `![[note]]`, plugin table widgets), the `.cm-line` elements are removed from the DOM and replaced by widget container elements. `Decoration.line()` silently drops decorations for lines inside replaced ranges, leaving those widget blocks visually unhighlighted during selection.
+
+Fixed by adding a plugin-side `LinewiseWidgetHighlight` ViewPlugin (`src/vim/linewise-widget-highlight.ts`) that supplements the fork's line-level highlighting. On each CM6 update during visual-line mode, the plugin scans `contentDOM` direct children for non-`.cm-line` elements (widget containers), maps them to document positions via `view.posAtDOM()`, and toggles `cm-vim-linewise-widget-selection` on widgets whose document range overlaps the visual-line selection. The class is removed on mode exit and `destroy()`.
+
+The fix is generic — it highlights any replaced widget type based on DOM structure (non-`.cm-line` direct child of `contentDOM` with non-zero height), not specific widget classes. `Decoration.mark()` was validated as non-viable (marks only wrap text content nodes, which replaced widgets lack). The fork's `linewiseVisualHighlight` remains unchanged.
+
+**Test coverage**: spike24 (`spike24-visual-line-widget-highlight.e2e.ts`) — 12 tests covering MathJax, embed, and code block DOM structure discovery; visual-line highlight verification; decoration facet analysis; `posAtDOM()` reliability on MathJax and embed widgets; `Decoration.mark()` validation; and `update()` trigger verification during cursor-only selection.
+
+## ~~Visual mode cursor displaced at end-of-line~~ (Fixed)
+
+**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison.
+
+In charwise visual mode (`v`), selecting the last character on a line caused the block cursor to render one character past the end of the visible line content. Two issues were identified and fixed:
+
+1. **`exitVisualMode` cursor clipping** (`src/vim.js`): `exitVisualMode()` called `clipCursorToContent()` while `vim.visualMode` was still `true`. In visual mode, `clipCursorToContent` allows `ch = text.length` (the linebreak position). After clearing `vim.visualMode` on the next line, the cursor was already set one position past the last character. Reproducible as: `vlll<Esc>` on "abc" — `l` past the last char is allowed in visual mode, but Escape should clip back to normal-mode bounds (`ch = text.length - 1`). Fixed by clearing visual flags before `setCursor`, while preserving the `updateLastSelection` call order. ([#15](https://github.com/saberzero1/motions/issues/15))
+
+2. **`measureCursor` EOL adjustment** (`src/block-cursor.ts`): The `letter != "\n"` comparison used loose equality (`!=`). When `head >= doc.length` (cursor past document end), the short-circuit `head < doc.length && sliceDoc(...)` produced `false`, and `false != "\n"` evaluated to `false` due to JS type coercion (both coerce to `0`). This caused the wrong branch to execute at document end. Fixed by producing `""` instead of `false` and using strict inequality (`!==`).
+
+3. **`measureCursor` visual-block EOL step-back** (`src/block-cursor.ts`): After the `makeCmSelection` per-line clamping fix (issue #38), block selection heads legitimately land on newline positions (`head = lineLen`). The `else if (!vim.visualLine && !vim.visualBlock)` guard prevented the `head--` step-back in visual-block mode, causing the cursor to render one position past the last visible character. Fixed by removing `&& !vim.visualBlock` — visual-block now applies the same EOL step-back as charwise visual. The `!vim.visualLine` guard remains because visual-line mode manages cursor positioning independently via cursor-only CM6 selection. ([#41](https://github.com/saberzero1/motions/issues/41))
+
+## ~~Visual-block `A` skips short lines~~ (Fixed)
+
+**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison (`upstream-gaps` suite).
+
+When using `<C-v>` block visual mode with `A` (append) on a block spanning lines shorter than the block column, the fork's `selectForInsert` skipped those lines entirely. Neovim pads short lines with spaces to reach the block's right edge before appending. Fixed by adding a `padShortLines` parameter to `selectForInsert` — the `A` (`endOfSelectedArea`) path passes `true` to pad, while the `I` (`startOfSelectedArea`) path passes `false` to skip (matching Neovim, which also skips short lines for `I`). ([#41](https://github.com/saberzero1/motions/issues/41))
+
+## ~~Visual charwise `r` off-by-one across line boundary~~ (Fixed)
+
+**Status**: Fixed in fork. Verified against Neovim 0.12.2 golden comparison (`upstream-gaps` suite).
+
+The `replace` action in the fork set `curEnd = selEnd` for charwise visual mode. Since `cm.getRange(from, to)` treats `to` as exclusive, this replaced one fewer character than the visual selection covered when the selection spanned a newline. For example, `vjhr ` from position (0,4) on `wuuuet\nanother` replaced 5 characters instead of 6, producing `wuuu  \n   ther` instead of the correct `wuuu  \n    her`. Fixed by using `new Pos(selEnd.line, selEnd.ch + 1)` for `curEnd`, matching the inclusive-to-exclusive conversion used elsewhere (e.g. `makeCmSelection` char mode). ([#41](https://github.com/saberzero1/motions/issues/41))
+
+## ~~Properties navigation in bundled fork mode~~ (Fixed)
+
+Properties navigation now works in bundled fork mode. The fork's `findPosV` adapter detects when `moveVertically` lands the cursor inside the frontmatter region or when the cursor is stuck at the boundary of the properties widget, and provides a `focusBefore` callback that focuses the "Add property" button in Obsidian's metadata container. Both `k` and `gk` enter the properties panel — `gk` (`moveByDisplayLines`) checks `focusBefore` on the `findPosV` result, matching the existing check in `moveByLines`.
+
+The `stuckAtBoundary` check uses `range.head === startOffset` to distinguish "cursor truly couldn't move" from "cursor moved to a different display line within a wrapped line." Without this guard, `gk` on a long wrapped first content line would fire `focusBefore` immediately instead of navigating through the wrapped display lines first — the cursor stayed on the same document line (`pos.line === start.line`) but at a different character offset.
+
+The plugin's `tableAwareMoveUp` motion (which overrides `k` when table navigation is enabled) bypasses `findPosV` with its own line arithmetic. To preserve frontmatter navigation, `tableAwareMoveUp` delegates to `findPosV` when the computed target line falls inside the frontmatter region, allowing the `focusBefore` callback to fire. ([#25](https://github.com/saberzero1/motions/issues/25))
+
+~~**Source mode regression**: The frontmatter interception fired unconditionally in both live-preview and source mode. In source mode, frontmatter is plain text with no properties widget — the interception found no focus target and left the cursor stuck below the frontmatter.~~ Fixed by gating the entire frontmatter interception on Obsidian's `editorLivePreviewField` state field via the fork's new `setLivePreviewField()` API. In source mode (`editorLivePreviewField = false`), the block is skipped and the cursor moves through raw frontmatter text normally. ([#77](https://github.com/saberzero1/motions/issues/77))
+
+**Test coverage**: `test/specs/vim-builtin/g-commands.e2e.ts` — 3 regression tests: `gk` navigates wrapped display lines before entering properties, `gk` enters properties on non-wrapping line, `k` enters properties from first content line.
+
+## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)
+
+The bundled vim extension is now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. Latex Suite's auto-snippets, tabstop navigation, and math-mode features work normally in vim insert mode.
+
+## ~~Visual line navigation and replaced widget decorations~~ (Fixed)
+
+`gj`/`gk` (and `j`/`k` when mapped to `gj`/`gk`) now correctly navigate into block MathJax (`$$`) and other replaced widget decorations in Obsidian's live preview. Previously, CM6's `moveVertically` treated replaced decorations as atomic, causing the cursor to skip over the entire widget's source range in a single step.
+
+The fork's `findPosV` applies three corrections to CM6's `moveVertically` result:
+
+1. **Multi-line jump clamp**: When `moveVertically` jumps more than one document line and no fold exists in the skipped range, the cursor is clamped to the adjacent document line (±1). This prevents line-skipping on both replaced widgets (MathJax) and variable-height lines (headings with larger fonts).
+
+2. **Tall non-wrapped line detection**: When `moveVertically` stays on the same document line (`lineJump === 0`) but the Y coordinate change is less than half of `defaultLineHeight`, the cursor is "stuck" on a tall non-wrapped line — headings with large font size and/or line-height produce line blocks taller than `defaultLineHeight`, causing `moveVertically` to take multiple steps through the block even though the text doesn't wrap. The fix detects this via `coordsAtPos` comparison and force-moves to the adjacent document line. Legitimate within-line moves (wrapped display lines) produce Y deltas greater than the threshold and are not affected.
+
+3. **Column 0 fallback**: When `moveVertically` correctly crosses one line but drops the cursor at column 0 despite a non-zero goalColumn, `posAtCoords` resolves the correct character position from the pixel X coordinate.
+
+([#26](https://github.com/saberzero1/motions/issues/26))
+
+**Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents), `test/specs/spikes/spike-gk-issue26-repro.e2e.ts` (6 tests covering reporter's exact content with consecutive h2 headings, long wrapped lines, and empty lines).
+
+## ~~Block visual mode (CTRL-V) insert not supported~~ (Fixed)
+
+**Status**: Fixed. Block insert, change, cursor positioning, and zero-width blocks all match Neovim. Zero deviations remaining.
+
+`I` and `A` in block visual mode (`CTRL-V`) previously did not enter insert mode with aligned cursors on every selected line. Six fork-level fixes were required:
+
+1. **`enterInsertMode` preserves `wasInVisualBlock`** before `exitVisualMode` clears `vim.visualBlock`, so `multiSelectHandleKey` routes subsequent insert-mode keys correctly through CM6's native multi-selection text input.
+2. **`selectForInsert` skips short lines** instead of clipping the cursor to the line end. Lines shorter than the block column are left unchanged, matching Neovim.
+3. **`operators.change` block visual path** uses `cm.replaceSelections()` to delete the block selection before entering insert mode at the block's left column. Handles both `c` (change block) and `C` (change to EOL via `applyOperator`'s linewise head extension).
+4. **`exitInsertMode` uses `blockInsertLeft`** to position the cursor at the block's original left column instead of the standard `ch - 1`. This fixes `A` cursor placement after `<Esc>`.
+5. **`makeCmSelection` zero-width block fix** changes `fromCh < toCh` to `fromCh <= toCh` so that zero-width blocks (`fromCh === toCh`) correctly include the character at the cursor position instead of creating a backwards range.
+6. **`repeatInsertModeChanges` cursor positioning** uses `blockInsertLeft` (stored on `lastInsertModeChanges`) for the final cursor position after dot-repeat, instead of a hardcoded `+1` offset.
+
+CM6's native multi-cursor support means typed text appears on all lines in real-time (unlike Neovim, where text is only visible on the primary cursor until `<Esc>`).
+
+Block visual operations that were already working: delete (`d`), yank (`y`), paste (`p`/`P`), indent (`>`/`<`), replace (`r`), case toggle (`~`), corner swap (`o`/`O`). Now also working: insert (`I`/`A`), change (`c`/`C`).
+
+**Test coverage**: `test/specs/vim-builtin/visual-block-golden.e2e.ts` — 15 golden Neovim comparison tests covering block insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, upward selection, `$` escape cursor position, and `$` delete to EOL.

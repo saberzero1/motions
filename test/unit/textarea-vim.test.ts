@@ -1,6 +1,30 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+
+vi.mock('obsidian', () => ({
+    AbstractInputSuggest: class {},
+    App: class {},
+    Modal: class {
+        open() {}
+    },
+    Notice: class {},
+    Platform: { isDesktop: true },
+    PluginSettingTab: class {},
+    Setting: class {
+        addButton() {
+            return this;
+        }
+    },
+    SuggestModal: class {},
+    TFile: class {},
+    TextComponent: class {},
+    setIcon: () => {},
+}));
+
 import { DEFAULT_SETTINGS } from '../../src/settings';
-import { KNOWN_SET_OPTIONS } from '../../src/vimrc/loader';
+import {
+    KNOWN_SET_OPTIONS,
+    clearSetOptionWarnings,
+} from '../../src/vimrc/loader';
 
 describe('textarea vim settings', () => {
     it('enableVimTextareas defaults to false', () => {
@@ -21,5 +45,22 @@ describe('textarea vim settings', () => {
             type: 'boolean',
             settingsKey: 'enableVimTextareas',
         });
+    });
+});
+
+describe('clearSetOptionWarnings', () => {
+    beforeEach(() => {
+        clearSetOptionWarnings();
+    });
+
+    it('is a function export from the loader', () => {
+        expect(typeof clearSetOptionWarnings).toBe('function');
+    });
+
+    it('does not throw when called multiple times', () => {
+        expect(() => {
+            clearSetOptionWarnings();
+            clearSetOptionWarnings();
+        }).not.toThrow();
     });
 });

@@ -39,6 +39,7 @@ export interface SerializedUndoTree {
     currentSeq: number;
     headSeq: number;
     seqCounter: number;
+    docLength?: number;
 }
 
 export interface NeovimUndoEntry {

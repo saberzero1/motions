@@ -512,6 +512,25 @@ describe('UndoTree', () => {
             expect(restored.getNodeCount()).toBe(3);
             expect(restored.getNode(2)!.parent).toBeNull(); // orphan has no parent
         });
+
+        it('round-trip preserves docLength when set', () => {
+            tree.recordEdit({ inserted: 1, deleted: 0 });
+            const serialized = tree.serialize();
+            serialized.docLength = 42;
+            const restored = UndoTree.deserialize(serialized, 1000);
+            expect(restored.getNodeCount()).toBe(2);
+            expect(serialized.docLength).toBe(42);
+        });
+
+        it('deserializes legacy data without docLength', () => {
+            tree.recordEdit({ inserted: 1, deleted: 0 });
+            const serialized = tree.serialize();
+            delete serialized.docLength;
+            expect(serialized.docLength).toBeUndefined();
+            const restored = UndoTree.deserialize(serialized, 1000);
+            expect(restored.getNodeCount()).toBe(2);
+            expect(restored.getCurrentSeq()).toBe(1);
+        });
     });
 
     describe('findBySaveCount', () => {

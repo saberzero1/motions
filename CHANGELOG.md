@@ -7,16 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hotkey conflict detection wizard** — on plugin load, detects when Obsidian's default hotkeys (Ctrl+W, Ctrl+D, Ctrl+F, Ctrl+B) conflict with workspace navigation keys. Shows a one-time Notice per plugin version with a "Check hotkey conflicts" button in **Settings → Vim Motions → Navigation** that lists each active conflict with step-by-step unbinding instructions. Skipped on mobile and when workspace nav is disabled.
+    - Plugin: `src/workspace/hotkey-conflicts.ts` (new — conflict detection via `hotkeys.json`, `VimInfoModal` display), `src/settings.ts` (`conflictNoticeDismissedVersion` setting, button in both declarative and imperative settings paths), `src/main.ts` (detection on `onLayoutReady`)
+- **Per-view `CursorMoved`/`TextYankPost`/`CursorHold`/`CmdlineEnter`/`CmdlineLeave` autocmd events** — extends the per-view autocmd pattern (already implemented for mode events via `AutocmdModeWatcher`) to 5 additional events. `CursorMoved` fires independently per view with position-change detection (only fires when cursor actually moved). `TextYankPost` fires from any view including popovers. `CursorHold` fires per-view with configurable delay. Built-in vim mode retains active-leaf-only behavior.
+    - Plugin: `src/vim/autocmd-event-watcher.ts` (new — `AutocmdEventWatcher` ViewPlugin), `src/lua/autocmd.ts` (`useEventViewPlugin` flag, per-view handler methods, gated legacy bindings), `src/main.ts` (extension registration, callback wiring, hold delay sync)
+- **Visual-mode paste cycling** — yank-ring paste cycling now works after visual-mode paste (`viw` + `p` + `<C-p>` to cycle). Detects visual paste via anchor/cursor position comparison at snapshot time. Computes paste range via doc-length arithmetic. Visual block paste is excluded. Normal-mode paste cycling is unaffected.
+    - Plugin: `src/vim/yank-ring.ts` (`snapshot()` helper, `posMin()`, visual paste detection in `onCommandDone`, `prevAnchor`/`prevDocLength`/`prevSelectionLength`/`prevVisualLine`/`prevVisualBlock` tracking)
+- **Console warning for unknown `set` options** — unknown `set` options in vimrc now produce a `console.warn` on first encounter per vimrc load. Options recognized by either the plugin (`KNOWN_SET_OPTIONS`) or CM Vim built-in options are not warned about. Deduplication prevents repeated warnings for the same option.
+    - Plugin: `src/vimrc/loader.ts` (`KNOWN_CM_VIM_OPTIONS` set, `warnedSetOptions` deduplication, `clearSetOptionWarnings()`)
+
+### Changed
+
+- **Flash count prefix now honored with labels** — `3f{char}` with 2+ matches now jumps directly to the 3rd match without showing the label overlay. When the count exceeds available matches, the last match is used (Neovim parity). `f{char}` without a count prefix still shows labels for 2+ matches. Works in operator-pending mode (`d3f{char}`) and with `t`/`T` till motions.
+    - Plugin: `src/flash/char-mode.ts` (count prefix check before label overlay)
+- **Flash dot-repeat clarified** — dot-repeat after `df{char}{label}` already works correctly. The fork stores the resolved position via `_asyncMotionTarget` and `repeatLastEdit` replays the operator to the same relative offset. The label UI does not re-appear (correct vim behavior). KNOWN_LIMITATIONS.md entry clarified.
+
 ### Fixed
 
 - **Cursor focus lost when pressing Tab to navigate cells in Embedded table widget** — pressing `Tab` in insert mode inside an embedded table cell editor froze the editor. The cursor disappeared, vim mode got stuck in Insert mode, and `Escape` stopped working. Root cause: `exitCellEdit()` scheduled a 50ms `refreshAfterOp()` timer that was non-cancellable and had no state guard. When `Tab` called `exitCellEdit()` → `enterCellEdit()` synchronously, the deferred refresh fired while the new cell editor was active — removing its key handlers, potentially rebuilding the widget DOM (orphaning the editor), and leaving the controller in an inconsistent state (`cell-edit` state with `table-nav` handlers). Fixed with four layers of defense: (1) `refreshAfterOp()` now stores and deduplicates the timer ID in a `refreshTimer` member, cancelled in `exitTable()`, `enterCellEdit()`, and `destroy()`. (2) `doRefreshAfterOp()` guards against firing in `cell-edit` or `inactive` state. (3) `exitCellEdit()` accepts `{ skipRefresh: true }` — the Tab handler skips both `setActiveEditTableRange(null)` and `refreshAfterOp()` to prevent widget DOM rebuilds during cell-to-cell transitions. (4) `enterCellEdit()` cancels any pending refresh timer as belt-and-suspenders protection. Additionally, `Tab` at the last cell of the last row (or `Shift-Tab` at the first cell) now returns to table-nav mode instead of silently re-entering the same cell. ([#92](https://github.com/saberzero1/motions/issues/92))
     - Plugin: `src/vim/table-nav-controller.ts` (`refreshTimer` member, `refreshAfterOp` timer storage/dedup, `doRefreshAfterOp` state guard, `exitCellEdit` `skipRefresh` param, `handleCellEditKey` rewrite with widget re-query and boundary handling, `enterCellEdit` timer cancel and `pendingD` cleanup)
+- **Visual mode highlighting in embedded table cell editors** — entering charwise visual mode (`v`) in an embedded table cell editor now shows selection highlighting. The cell editor's CM6 instance doesn't receive `.cm-focused`, which previously caused the browser to hide `::selection` highlights. Fixed by adding a `CSSStyleSheet` on `document.adoptedStyleSheets` that forces `::selection` visibility in `.cm-vimVisual:not(.cm-vimVisualLine)` scoped to `.vim-table-cell-editor`. Linewise visual mode (`V`) already worked via the fork's focus-independent `linewiseVisualHighlight` ViewPlugin. ([#19](https://github.com/saberzero1/motions/issues/19))
+    - Plugin: `src/vim/table-cell-editor.ts` (`visualSelectionSheet` via `adoptedStyleSheets`)
+- **Undo tree memory eviction on file close** — in-memory undo trees (`undoTreeMap`) are now evicted when all editors for a file are closed, preventing unbounded memory growth in long sessions. Dirty trees are persisted before eviction when `undoFile` is enabled. Persisted data on disk is not deleted — reopening a file restores from persistence or starts fresh.
+    - Plugin: `src/main.ts` (undo tree eviction in `active-leaf-change` handler)
+- **Undo tree stale-tree notification** — when `undoFile` is enabled and a file was modified outside Obsidian between sessions, an Obsidian Notice is now shown when the persisted undo tree's `docLength` doesn't match the current file size. Detection fires at most once per file per session. Legacy persisted trees without `docLength` gracefully skip the check.
+    - Plugin: `src/main.ts` (`activateUndoTreeForFile` — `docLength` comparison + Notice), `src/vim/undo-tree.ts` (`docLength` field on `SerializedUndoTree`)
+- **`vim.v.insertmode` now populated** — returns `'i'` for insert mode, `'r'` for replace mode (`R`), `'v'` for virtual replace mode (`gR`), and `''` in normal/visual modes. Available in keymap function callbacks via `getInsertModeChar()`. Autocmd callbacks default to `''` (no adapter context available).
+    - Plugin: `src/lua/api.ts` (`getInsertModeChar` helper, `insertmode` added to 5 `setVimVContext` callsites)
+
+### Tests
+
+- 2 unit tests in `test/unit/undo-tree.test.ts`: `docLength` round-trip preservation, legacy data without `docLength` graceful deserialization
+- 9 unit tests in `test/unit/lua/vim-v.test.ts`: `insertmode` `'r'`/`'v'` context values, 7 `getInsertModeChar` tests (null, normal, insert, replace, virtual replace, priority, missing state)
+- 2 unit tests in `test/unit/textarea-vim.test.ts`: `clearSetOptionWarnings` export and idempotency
+- 5 e2e tests in `test/specs/flash-char-mode.e2e.ts`: `3fa` direct jump, `5fa` clamp to last match, `2fa` direct jump, `d3fa` operator-pending, `1fa` single match
+- 8 unit tests in `test/unit/hotkey-conflicts.test.ts`: conflict array structure, detection logic (empty, full, partial, custom binding, unrelated keys)
+- 10 unit tests in `test/unit/vim/autocmd-event-watcher.test.ts`: callback wiring (set/clear/extension), CursorMoved detection (fires on move, skips unchanged, fires on each distinct move), CursorHold timer (fires after delay, resets on new move, custom delay), TextYankPost
+- 1 e2e test in `test/specs/yank-ring.e2e.ts`: normal-mode paste cycling regression after visual-paste changes
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added Tab cell navigation race condition fix to table cell vim modality section
-- `docs/features/tables.md`: Updated cell editing keybindings with Tab boundary behavior
+- `KNOWN_LIMITATIONS.md`: Reorganized — moved 20 fixed top-level sections to new "Resolved Issues" section at bottom; updated flash count prefix, undo tree eviction, undo tree stale notification, visual mode cell editor, `vim.v.insertmode`, exmap soft-reload, unknown set option, flash dot-repeat, hotkey conflicts, per-view autocmd events, visual paste cycling, and SettingDefinitionList investigation entries
+- `docs/features/flash.md`: Added count prefix behavior and dot-repeat note
+- `docs/features/undo-tree.md`: Updated memory management and stale-tree notification
+- `docs/features/tables.md`: Updated visual mode highlighting fix in cell editors
+- `docs/features/quality-of-life.md`: Updated yank-ring with visual-mode paste cycling
+- `docs/configuration/lua-config.md`: Updated `vim.v.insertmode` from deferred to active, updated per-view autocmd event list
+- `docs/configuration/vimrc.md`: Added unknown set option warning behavior, updated exmap soft-reload
+- `docs/configuration/settings.md`: Added hotkey conflict detection button to workspace navigation settings
+- `docs/getting-started/recommended-setup.md`: Added hotkey conflict wizard note
+- `README.md`: Updated flash motions, workspace navigation, and Lua configuration feature descriptions
+- `AGENTS.md`: Updated autocmd event list with per-view CursorMoved/TextYankPost/CursorHold/CmdlineEnter/CmdlineLeave
 
 ## [0.86.0] - 2026-07-28
 

@@ -5,6 +5,7 @@ import {
     injectVimApi,
     setVimVContext,
     clearVimVContext,
+    getInsertModeChar,
 } from '../../../src/lua/api';
 import { AutocmdManager } from '../../../src/lua/autocmd';
 
@@ -266,10 +267,24 @@ describe('vim.v.insertmode', () => {
         destroyState(L);
     });
 
-    it('reads from context when set', () => {
+    it('reads from context when set to i (insert)', () => {
         const L = setup();
         setVimVContext({ insertmode: 'i' });
         expect(runLuaString(L, 'vim.v.insertmode')).toBe('i');
+        destroyState(L);
+    });
+
+    it('reads from context when set to r (replace)', () => {
+        const L = setup();
+        setVimVContext({ insertmode: 'r' });
+        expect(runLuaString(L, 'vim.v.insertmode')).toBe('r');
+        destroyState(L);
+    });
+
+    it('reads from context when set to v (virtual replace)', () => {
+        const L = setup();
+        setVimVContext({ insertmode: 'v' });
+        expect(runLuaString(L, 'vim.v.insertmode')).toBe('v');
         destroyState(L);
     });
 });
@@ -559,5 +574,49 @@ describe('vim.v unknown keys', () => {
         const L = setup();
         expect(runLuaIsNil(L, 'vim.v.foobar')).toBe(true);
         destroyState(L);
+    });
+});
+
+describe('getInsertModeChar', () => {
+    it('returns empty string for null/undefined input', () => {
+        expect(getInsertModeChar(null)).toBe('');
+        expect(getInsertModeChar(undefined)).toBe('');
+    });
+
+    it('returns empty string when not in insert mode', () => {
+        const cm = { state: { vim: { insertMode: false } } };
+        expect(getInsertModeChar(cm)).toBe('');
+    });
+
+    it('returns i for insert mode', () => {
+        const cm = { state: { vim: { insertMode: true }, overwrite: false } };
+        expect(getInsertModeChar(cm)).toBe('i');
+    });
+
+    it('returns r for replace mode (overwrite)', () => {
+        const cm = { state: { vim: { insertMode: true }, overwrite: true } };
+        expect(getInsertModeChar(cm)).toBe('r');
+    });
+
+    it('returns v for virtual replace mode', () => {
+        const cm = {
+            state: { vim: { insertMode: true, virtualReplace: true } },
+        };
+        expect(getInsertModeChar(cm)).toBe('v');
+    });
+
+    it('prioritizes virtualReplace over overwrite', () => {
+        const cm = {
+            state: {
+                vim: { insertMode: true, virtualReplace: true },
+                overwrite: true,
+            },
+        };
+        expect(getInsertModeChar(cm)).toBe('v');
+    });
+
+    it('returns empty string when state.vim is missing', () => {
+        const cm = { state: {} };
+        expect(getInsertModeChar(cm)).toBe('');
     });
 });

@@ -39,6 +39,7 @@ import { registerExCommands, registerObCommand } from './workspace/commands';
 import { registerWorkspaceNavigation } from './workspace/navigation';
 import { YankRingManager, registerYankRing } from './vim/yank-ring';
 import { GlobalKeyHandler } from './workspace/global-key-handler';
+import { detectHotkeyConflicts } from './workspace/hotkey-conflicts';
 import {
     GlobalMappingRegistry,
     normalizeKeyString,
@@ -219,6 +220,12 @@ import {
     setAutocmdModeCallbacks,
     clearAutocmdModeCallbacks,
 } from './vim/autocmd-mode-watcher';
+import {
+    createAutocmdEventExtension,
+    setAutocmdEventCallbacks,
+    clearAutocmdEventCallbacks,
+    setAutocmdEventHoldDelay,
+} from './vim/autocmd-event-watcher';
 import { expandTilde } from './util/external-fs';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
@@ -268,6 +275,7 @@ export default class VimMotionsPlugin extends Plugin {
     private jumpListSaveDirty = false;
     private undoTreeSaveDirty = false;
     private undoTreeDirtyPaths: Set<string> = new Set();
+    private undoTreeStaleNotified: Set<string> = new Set();
     private undoTreeMap: Map<string, UndoTree> = new Map();
     private activeUndoFilePath: string | null = null;
     private previousLeafId: string | null = null;
@@ -679,6 +687,7 @@ export default class VimMotionsPlugin extends Plugin {
             } else if (key === 'updatetime') {
                 if (typeof value === 'number') {
                     this.autocmdManager?.setUpdateTime(value);
+                    setAutocmdEventHoldDelay(value);
                     overrides.set(key, directive ?? `set updatetime=${value}`);
                     applied = true;
                 }
@@ -1069,14 +1078,29 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.app.workspace.onLayoutReady(() => {
             this.registerBundledIntegrations();
-            // Trigger vimrc/lua loading early when layout is ready,
-            // rather than waiting for the first active-leaf-change event.
-            // This fires the same active-leaf-change handler below.
             if (this.vimrcEnabled && !this.vimrcLoaded && !this.vimrcLoading) {
                 const leaf = this.app.workspace.getMostRecentLeaf();
                 if (leaf) {
                     this.app.workspace.trigger('active-leaf-change', leaf);
                 }
+            }
+            if (
+                this.settings.enableWorkspaceNav &&
+                Platform.isDesktop &&
+                this.settings.conflictNoticeDismissedVersion !==
+                    this.manifest.version
+            ) {
+                void detectHotkeyConflicts(this.app).then((conflicts) => {
+                    if (conflicts.length > 0) {
+                        new Notice(
+                            `Vim Motions: ${conflicts.length} hotkey conflict(s) detected — some workspace navigation keys won't work. See Settings → Vim Motions → Navigation.`,
+                            10000,
+                        );
+                        this.settings.conflictNoticeDismissedVersion =
+                            this.manifest.version;
+                        void this.saveData(this.settings);
+                    }
+                });
             }
         });
 
@@ -1153,6 +1177,22 @@ export default class VimMotionsPlugin extends Plugin {
                 }
                 this.activeUndoFilePath = activePath;
                 this.activateUndoTreeForFile(activePath);
+
+                const openPaths = new Set<string>();
+                this.app.workspace.iterateAllLeaves((leaf) => {
+                    if (leaf.view instanceof MarkdownView && leaf.view.file) {
+                        openPaths.add(leaf.view.file.path);
+                    }
+                });
+                for (const key of [...this.undoTreeMap.keys()]) {
+                    if (key === activePath) continue;
+                    if (openPaths.has(key)) continue;
+                    if (this.undoTreeDirtyPaths.has(key)) {
+                        this.persistUndoTreeForFile(key);
+                    }
+                    this.undoTreeMap.delete(key);
+                    this.undoTreeDirtyPaths.delete(key);
+                }
             }),
         );
 
@@ -2043,6 +2083,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(createCompositionTrackerExtension());
         this.registerEditorExtension(createImModeWatcherExtension());
         this.registerEditorExtension(createAutocmdModeWatcherExtension());
+        this.registerEditorExtension(createAutocmdEventExtension());
         this.registerEditorExtension(foldSyncExtension());
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
         this.registerEditorExtension(foldLevelExtension());
@@ -3416,6 +3457,21 @@ export default class VimMotionsPlugin extends Plugin {
                 this.autocmdManager?.handleModeChangeFromView(mode);
             });
             this.autocmdManager.setUseViewPlugin(true);
+
+            const acm = this.autocmdManager;
+            setAutocmdEventCallbacks({
+                onCursorMoved: (filePath) =>
+                    acm.handleCursorMovedFromView(filePath),
+                onCursorHold: (filePath) =>
+                    acm.handleCursorHoldFromView(filePath),
+                onTextYankPost: (filePath, payload) =>
+                    acm.handleTextYankPostFromView(filePath, payload),
+                onCmdlineEnter: (filePath, cmdtype) =>
+                    acm.handleCmdlineFromView(filePath, true, cmdtype),
+                onCmdlineLeave: (filePath, cmdtype) =>
+                    acm.handleCmdlineFromView(filePath, false, cmdtype),
+            });
+            this.autocmdManager.setUseEventViewPlugin(true);
         }
 
         this.oilKeybindingManager?.setAutocmdManager(
@@ -4003,6 +4059,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.imSwitcher?.destroy();
         this.imSwitcher = null;
         clearAutocmdModeCallbacks();
+        clearAutocmdEventCallbacks();
         this.autocmdManager?.destroy();
         this.autocmdManager = null;
         this.highlightManager?.destroy();
@@ -4078,6 +4135,24 @@ export default class VimMotionsPlugin extends Plugin {
                     persisted,
                     this.settings.undoTreeMaxNodes,
                 );
+                if (
+                    persisted.docLength != null &&
+                    !this.undoTreeStaleNotified.has(filePath)
+                ) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (
+                        file &&
+                        'stat' in file &&
+                        (file as { stat: { size: number } }).stat.size !==
+                            persisted.docLength
+                    ) {
+                        const name = filePath.split('/').pop() ?? filePath;
+                        new Notice(
+                            `Vim Motions: undo tree for "${name}" is stale — file was modified externally. Undo navigation disabled for this session.`,
+                        );
+                        this.undoTreeStaleNotified.add(filePath);
+                    }
+                }
             }
         }
 
@@ -4140,6 +4215,12 @@ export default class VimMotionsPlugin extends Plugin {
         if (!tree) return;
 
         const serialized = tree.serialize();
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file && 'stat' in file) {
+            serialized.docLength = (
+                file as { stat: { size: number } }
+            ).stat.size;
+        }
         const persisted = { ...this.settings.persistedUndoTrees };
         delete persisted[filePath];
         persisted[filePath] = serialized;

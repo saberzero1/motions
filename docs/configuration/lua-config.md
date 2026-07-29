@@ -759,7 +759,7 @@ Registered commands are immediately available via `:CommandName` in the ex comma
 Vim Motions supports a Neovim-compatible autocommand system for reacting to editor events.
 
 > [!tip] Per-view mode events
-> Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across all editors — split panes, popover editors, and canvas card text inputs — when using the bundled vim fork (recommended setup). This means autocmd callbacks for mode changes work in every editor, not just the active leaf.
+> Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) and cursor/yank/cmdline events (`CursorMoved`, `CursorHold`, `TextYankPost`, `CmdlineEnter`, `CmdlineLeave`) fire per-view across all editors — split panes, popover editors, and canvas card text inputs — when using the bundled vim fork (recommended setup). This means autocmd callbacks work in every editor, not just the active leaf.
 
 ### Supported events
 
@@ -767,8 +767,8 @@ Vim Motions supports a Neovim-compatible autocommand system for reacting to edit
 | -------------- | ------------------------------------------------------- | ----------------------------------------------------- |
 | `InsertEnter`  | Entering insert or replace mode (per-view)              | No                                                    |
 | `InsertLeave`  | Leaving insert or replace mode (per-view)               | No                                                    |
-| `CursorMoved`  | After cursor moves in normal mode                       | No                                                    |
-| `CursorHold`   | After cursor is idle for `updatetime` ms (default 4000) | No                                                    |
+| `CursorMoved`  | After cursor moves in normal mode (per-view)            | No                                                    |
+| `CursorHold`   | After cursor is idle for `updatetime` ms (per-view)     | No                                                    |
 | `ModeChanged`  | Any mode transition (per-view)                          | `"old:new"` with `*` wildcard                         |
 | `BufEnter`     | A file becomes the active note                          | Vault-relative path globs (`"*.md"`, `"projects/**"`) |
 | `BufLeave`     | A file is deactivated (switching away)                  | Vault-relative path globs                             |
@@ -779,11 +779,11 @@ Vim Motions supports a Neovim-compatible autocommand system for reacting to edit
 | `FileType`     | After `BufEnter` when filetype is detected              | No                                                    |
 | `FocusGained`  | Obsidian window gains focus                             | No                                                    |
 | `FocusLost`    | Obsidian window loses focus                             | No                                                    |
-| `TextYankPost` | After yank, delete, or change operation                 | No                                                    |
+| `TextYankPost` | After yank, delete, or change operation (per-view)      | No                                                    |
 | `OilEnter`     | An oil explorer buffer becomes active                   | No                                                    |
 | `OilLeave`     | Leaving an oil explorer buffer                          | No                                                    |
-| `CmdlineEnter` | Opening `:`, `/`, or `?` command-line prompt            | No (`data.cmdtype` = `":"`, `"/"`, or `"?"`)          |
-| `CmdlineLeave` | Closing a command-line prompt (Enter, Escape, or blur)  | No (`data.cmdtype` = `":"`, `"/"`, or `"?"`)          |
+| `CmdlineEnter` | Opening `:`, `/`, or `?` prompt (per-view, active only) | No (`data.cmdtype` = `":"`, `"/"`, or `"?"`)          |
+| `CmdlineLeave` | Closing a command-line prompt (per-view, active only)   | No (`data.cmdtype` = `":"`, `"/"`, or `"?"`)          |
 
 > [!tip] CursorHold timing
 > Configure the idle timeout with `vim.opt.updatetime = 1000` (milliseconds). Default is 4000ms, matching Neovim.

@@ -16,13 +16,17 @@ export class YankRingManager {
     private currentCommandId = 0;
     private lastKeyWasPaste = false;
     private prevCursor: VimPos = { line: 0, ch: 0 };
+    private prevAnchor: VimPos = { line: 0, ch: 0 };
     private prevLineCount = 0;
+    private prevDocLength = 0;
+    private prevSelectionLength = 0;
+    private prevVisualLine = false;
+    private prevVisualBlock = false;
     private cm: CmAdapter | null = null;
 
     setAdapter(cm: CmAdapter): void {
         this.cm = cm;
-        this.prevCursor = cm.getCursor();
-        this.prevLineCount = cm.lineCount();
+        this.snapshot();
     }
 
     onKeypress(key: string): void {
@@ -91,6 +95,51 @@ export class YankRingManager {
 
         if (this.lastKeyWasPaste && this.cm) {
             this.lastKeyWasPaste = false;
+
+            const hadSelection =
+                this.prevCursor.line !== this.prevAnchor.line ||
+                this.prevCursor.ch !== this.prevAnchor.ch;
+
+            if (hadSelection) {
+                if (this.prevVisualBlock) {
+                    this.snapshot();
+                    return;
+                }
+
+                // Visual-mode paste: compute range from selection + doc
+                // length change.  The pasted text starts where the old
+                // selection began and its length equals the document growth
+                // plus the removed selection length.
+                const selStart = this.prevVisualLine
+                    ? {
+                          line: Math.min(
+                              this.prevCursor.line,
+                              this.prevAnchor.line,
+                          ),
+                          ch: 0,
+                      }
+                    : this.posMin(this.prevCursor, this.prevAnchor);
+                const afterDocLength = this.cm.cm6.state.doc.length;
+                const pasteLen =
+                    afterDocLength -
+                    this.prevDocLength +
+                    this.prevSelectionLength;
+
+                if (pasteLen > 0) {
+                    const startOffset = this.cm.indexFromPos(selStart);
+                    this.state = {
+                        active: true,
+                        registerIndex: 1,
+                        pasteStart: selStart,
+                        pasteEnd: this.cm.posFromIndex(startOffset + pasteLen),
+                        pasteLinewise: this.prevVisualLine,
+                    };
+                }
+
+                this.snapshot();
+                return;
+            }
+
             const afterCursor = this.cm.getCursor();
             const afterLineCount = this.cm.lineCount();
             const lineDelta = afterLineCount - this.prevLineCount;
@@ -115,8 +164,7 @@ export class YankRingManager {
                 pasteEnd: end,
                 pasteLinewise: linewise,
             };
-            this.prevCursor = afterCursor;
-            this.prevLineCount = afterLineCount;
+            this.snapshot();
             return;
         }
 
@@ -129,10 +177,7 @@ export class YankRingManager {
             this.cancel();
         }
 
-        if (this.cm) {
-            this.prevCursor = this.cm.getCursor();
-            this.prevLineCount = this.cm.lineCount();
-        }
+        this.snapshot();
     }
 
     cancel(): void {
@@ -141,6 +186,48 @@ export class YankRingManager {
 
     isActive(): boolean {
         return this.state?.active ?? false;
+    }
+
+    private snapshot(): void {
+        if (!this.cm) return;
+        const head = this.cm.getCursor();
+        const anchor = this.cm.getCursor('anchor');
+        this.prevCursor = head;
+        this.prevAnchor = anchor;
+        this.prevLineCount = this.cm.lineCount();
+        this.prevDocLength = this.cm.cm6.state.doc.length;
+
+        const vim = this.cm.state.vim;
+        this.prevVisualLine = !!vim?.visualLine;
+        this.prevVisualBlock = !!vim?.visualBlock;
+
+        if (head.line !== anchor.line || head.ch !== anchor.ch) {
+            if (this.prevVisualLine) {
+                const startLine = Math.min(head.line, anchor.line);
+                const endLine = Math.max(head.line, anchor.line);
+                const startOffset = this.cm.indexFromPos({
+                    line: startLine,
+                    ch: 0,
+                });
+                const endOffset =
+                    endLine + 1 < this.cm.lineCount()
+                        ? this.cm.indexFromPos({ line: endLine + 1, ch: 0 })
+                        : this.cm.cm6.state.doc.length;
+                this.prevSelectionLength = endOffset - startOffset;
+            } else {
+                this.prevSelectionLength = Math.abs(
+                    this.cm.indexFromPos(head) - this.cm.indexFromPos(anchor),
+                );
+            }
+        } else {
+            this.prevSelectionLength = 0;
+        }
+    }
+
+    private posMin(a: VimPos, b: VimPos): VimPos {
+        if (a.line < b.line) return a;
+        if (a.line > b.line) return b;
+        return a.ch <= b.ch ? a : b;
     }
 
     private findNextNonEmpty(

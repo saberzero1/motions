@@ -53,6 +53,26 @@ interface SideEffectOpt {
 
 type KnownOpt = BoolOpt | NumOpt | StrOpt | SideEffectOpt;
 
+/**
+ * CM Vim built-in options that the plugin forwards via `vim.handleEx`.
+ * These are NOT in KNOWN_SET_OPTIONS but are valid — don't warn about them.
+ */
+const KNOWN_CM_VIM_OPTIONS = new Set([
+    'number',
+    'relativenumber',
+    'wrap',
+    'ignorecase',
+    'smartcase',
+    'hlsearch',
+    'incsearch',
+]);
+
+let warnedSetOptions = new Set<string>();
+
+export function clearSetOptionWarnings(): void {
+    warnedSetOptions = new Set();
+}
+
 export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     textobjects: { type: 'boolean', settingsKey: 'enableTextObjects' },
     to: { type: 'boolean', settingsKey: 'enableTextObjects' },
@@ -806,6 +826,7 @@ export function applyVimrcCommands(
     leaderRegistry?: LeaderRegistry,
     onSettingOverride?: SettingOverrideFn,
 ): ApplyResult {
+    clearSetOptionWarnings();
     let currentLeader = leaderKey;
     let applied = 0;
     const deferredMaps: DeferredMap[] = [];
@@ -1026,6 +1047,15 @@ export function applyVimrcCommands(
                 }
             } else {
                 pendingExCommands.push(processedLine);
+            }
+            if (
+                !KNOWN_CM_VIM_OPTIONS.has(optName) &&
+                !warnedSetOptions.has(optName)
+            ) {
+                console.warn(
+                    `Vim Motions: unknown set option "${optName}" in vimrc`,
+                );
+                warnedSetOptions.add(optName);
             }
             applied++;
             continue;
