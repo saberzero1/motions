@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.89.0] - 2026-07-30
+
 ### Fixed
 
 - **Insert-mode surround dot-repeat** — `.` after `i<C-G>s{char}text<Esc>` now replays the full surround + typed text. Previously, dot-repeat replayed only the typed text without delimiters. The fork stores `_surroundInsertChar` and `_surroundInsertNewline` on `lastInsertModeChanges`. During replay, `replaySurroundAwareInsert` (inside `repeatLastEdit`) strips the delimiter entry from `changes[0]`, inserts `pair.open`, replays typed text via `repeatInsert`, then inserts `pair.close`. Wrapped in `cm.operation()` for undo atomicity. Counted dot-repeat (`2.`) repeats the text inside one set of delimiters. This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken ([nvim-surround #301](https://github.com/kylechui/nvim-surround/issues/301)). ([#82](https://github.com/saberzero1/motions/issues/82))

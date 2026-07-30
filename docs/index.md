@@ -31,10 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.88.0
+## What's new in 0.89.0
 
-- **Yank-ring dot-repeat** — pressing `.` after paste cycling (`p` + `<C-p>`/`<C-n>`) now repeats the final cycled text instead of the original paste. Follows [yanky.nvim](https://github.com/gbprod/yanky.nvim) semantics.
-- **`undefineEx` fork API** — the codemirror-vim fork now exposes `Vim.undefineEx(name)` to remove ex commands registered via `defineEx`.
-- **Exmap unregistration on vimrc soft-reload** — removing an `exmap` definition from the vimrc file now unregisters the old handler on save, keeping the command namespace clean across reloads.
+- **Insert-mode surround dot-repeat** — `.` after `i<C-G>s{char}text<Esc>` now replays the full surround + typed text. Previously, dot-repeat replayed only the typed text without delimiters. This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken.
 
 See the [[changelog|full changelog]] for details.
