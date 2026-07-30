@@ -31,15 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.87.0
+## What's new in 0.88.0
 
-- **Hotkey conflict detection wizard** — on plugin load, detects when Obsidian's default hotkeys conflict with workspace navigation keys. Shows a one-time Notice with a "Check hotkey conflicts" button in **Settings → Vim Motions → Navigation** that lists each conflict with step-by-step unbinding instructions.
-- **Per-view autocmd events** — `CursorMoved`, `TextYankPost`, `CursorHold`, `CmdlineEnter`, and `CmdlineLeave` now fire independently per view (matching the existing per-view mode events). `CursorMoved` only fires when the cursor actually moved; `CursorHold` respects configurable delay.
-- **Visual-mode paste cycling** — yank-ring paste cycling (`<C-p>`/`<C-n>`) now works after visual-mode paste (`viw` + `p` + `<C-p>` to cycle through registers).
-- **Flash count prefix honored** — `3f{char}` jumps directly to the 3rd match without showing labels. When the count exceeds available matches, the last match is used (Neovim parity).
-- **Fixed cursor lost on Tab in embedded table cell editors** — pressing `Tab` in insert mode inside table cell editors no longer freezes the editor. ([#92](https://github.com/saberzero1/motions/issues/92))
-- **Fixed visual mode highlighting in table cell editors** — charwise visual mode (`v`) in embedded table cell editors now shows selection highlighting. ([#19](https://github.com/saberzero1/motions/issues/19))
-- **Undo tree memory eviction** — in-memory undo trees are now evicted when all editors for a file close, preventing unbounded memory growth.
-- **`vim.v.insertmode` now populated** — returns `'i'`/`'r'`/`'v'` for insert/replace/virtual replace modes.
+- **Yank-ring dot-repeat** — pressing `.` after paste cycling (`p` + `<C-p>`/`<C-n>`) now repeats the final cycled text instead of the original paste. Follows [yanky.nvim](https://github.com/gbprod/yanky.nvim) semantics.
+- **`undefineEx` fork API** — the codemirror-vim fork now exposes `Vim.undefineEx(name)` to remove ex commands registered via `defineEx`.
+- **Exmap unregistration on vimrc soft-reload** — removing an `exmap` definition from the vimrc file now unregisters the old handler on save, keeping the command namespace clean across reloads.
 
 See the [[changelog|full changelog]] for details.

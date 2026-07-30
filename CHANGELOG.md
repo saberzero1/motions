@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-07-30
+
 ### Added
 
 - **Yank-ring dot-repeat** — pressing `.` after paste cycling (`p` + `<C-p>`/`<C-n>`) now repeats the final cycled text instead of the original paste. On cycling exit, the final cycled content is written to the original paste register. The fork's `repeatLastEdit` re-reads the register at replay time. Follows [yanky.nvim](https://github.com/gbprod/yanky.nvim)'s `update_register_on_cycle` semantics. System clipboard registers (`"+`/`"*`) are excluded.
