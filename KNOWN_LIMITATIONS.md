@@ -1012,6 +1012,22 @@ When built-in vim is enabled, vim state is shared globally through Obsidian's ed
 
 When "Show hidden files" is enabled, Oil discovers dotfiles (`.gitignore`, `.hidden-folder/`, etc.) via the Obsidian adapter API. These files appear in the directory listing and can be opened, but renaming, deleting, or moving them via Oil buffer editing may fail because Obsidian's Vault API does not index dotfiles. Full CRUD operations on hidden files are not yet supported.
 
+### ~~Cannot open files/folders from vault root~~ (Fixed)
+
+**Status**: Fixed. Cache ID desync in `discoverAndMergeHidden()` caused buffer entry IDs to become permanently out of sync with the cache after the async hidden-file discovery flow. The method called `cache.loadDirectory()` three times per refresh cycle, each clearing and reassigning IDs. Fixed by passing the expected buffer content as a parameter and eliminating the redundant re-render. ([#93](https://github.com/saberzero1/motions/issues/93))
+
+### ~~Title bar does not update when navigating directories~~ (Fixed)
+
+**Status**: Fixed. `setDirectory()` and `refreshContent()` now call `leaf.updateHeader()` after changing `dirPath`, signaling Obsidian to re-read `getDisplayText()`. ([#93](https://github.com/saberzero1/motions/issues/93))
+
+### ~~Hidden files toggle (`g.`) has no effect~~ (Fixed)
+
+**Status**: Fixed. The `??` operator on the boolean-typed `oilShowHiddenFiles` setting never fell through to the runtime toggle. Replaced with a `showHiddenOverride: boolean | null` field that takes priority when set by `g.`. ([#93](https://github.com/saberzero1/motions/issues/93))
+
+### ~~`<CR>` opens file in new tab instead of same leaf~~ (Fixed)
+
+**Status**: Fixed. `openEntryAtCursor()` now uses `leaf.openFile()` directly on the Oil leaf to replace the Oil view, matching oil.nvim's default `select` behavior. `<C-t>` is available for opening in a new tab. ([#93](https://github.com/saberzero1/motions/issues/93))
+
 ### Third-party CM6 extensions not available in oil
 
 Extensions registered by other plugins via `registerEditorExtension()` do not appear in the oil editor. The embedded editor only includes extensions explicitly passed through `buildLocalExtensions()` — currently the oil conceal extension and (when built-in vim is disabled) the bundled vim extension. Syntax highlighting and markdown rendering from Obsidian's core are included.
@@ -1047,7 +1063,7 @@ The embedded editor is created by extracting Obsidian's internal `ScrollableMark
 Every keybinding is remappable through one of four mechanisms depending on context:
 
 - **Editor keybindings** (motions, actions, operators): All have ex command aliases (e.g., `:nextheading`, `:focuspaneleft`, `:tablenextcell`, `:hintactivate`). Remap via `vim.keymap.set('n', 'key', ':excommand<CR>')` in Lua or `nmap key :excommand<CR>` in vimrc.
-- **Oil explorer keybindings**: Exposed as ex commands (`:oilparent`, `:oilroot`, etc.) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys registered as `vim.map` mappings. Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
+- **Oil explorer keybindings**: Exposed as ex commands (`:oilopen`, `:oilopentab`, `:oilopensv`, `:oilopensh`, `:oilparent`, `:oilroot`, `:oilclose`, `:oilrefresh`, `:oiltogglehidden`, `:oilcyclesort`, `:oilyankpath`, `:oilreveal`, `:oilopenexternal`, `:oilhelp`) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys match oil.nvim conventions (`<CR>` same-leaf, `<C-t>` new tab, `<C-s>` vertical split, `<C-h>` horizontal split, `<C-c>`/`q` close, `gx` open external). Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
 - **Picker keybindings**: Configurable via `vim.obsidian.pick_keymap()` in Lua. Not available via vimrc (picker operates outside the vim keymap system).
 - **Global workspace navigation**: Remappable via `vim.obsidian.keymap.set`/`del` (Lua) and `:gmap`/`:gunmap`/`:gmaps` (vimrc and ex command line). Each default is tagged with a stable name.
 

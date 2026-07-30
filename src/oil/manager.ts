@@ -1,4 +1,4 @@
-import { type App, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
+import { type App, MarkdownView, Modal, Notice, Plugin, TFile } from 'obsidian';
 import type { VimMotionsSettings } from '../settings';
 import { OilCache } from './cache';
 import { discoverHiddenEntries, renderDirectory } from './render';
@@ -8,7 +8,7 @@ import { validateActions, executeActions } from './actions';
 import type { OilEntry, OilMergedDiff } from './types';
 import { OIL_VIEW_TYPE, type OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
-import { navigateWithJump } from '../workspace/navigate';
+import { navigateWithJump, navigateWithJumpFile } from '../workspace/navigate';
 
 export function entriesToBufferText(entries: OilEntry[]): string {
     if (entries.length === 0) return '';
@@ -24,7 +24,7 @@ export function entriesToBufferText(entries: OilEntry[]): string {
 }
 
 export class OilManager {
-    private showHidden = false;
+    private showHiddenOverride: boolean | null = null;
     private sortKey: 'name' | 'mtime' | 'size' = 'name';
     private refreshDebounceTimer: number | null = null;
 
@@ -186,8 +186,15 @@ export class OilManager {
     }
 
     toggleHidden(): void {
-        this.showHidden = !this.showHidden;
-        new Notice(`Oil: hidden files ${this.showHidden ? 'shown' : 'hidden'}`);
+        const current = this.getEffectiveShowHidden();
+        this.showHiddenOverride = !current;
+        new Notice(
+            `Oil: hidden files ${this.showHiddenOverride ? 'shown' : 'hidden'}`,
+        );
+    }
+
+    private getEffectiveShowHidden(): boolean {
+        return this.showHiddenOverride ?? this.settings.oilShowHiddenFiles;
     }
 
     cycleSortKey(): void {
@@ -255,6 +262,20 @@ export class OilManager {
     }
 
     openEntryAtCursor(): void {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        if (!leaf) return;
+        const view = leaf.view;
+        if (!this.isOilView(view)) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry) return;
+        if (entry.type === 'folder') {
+            void this.navigateToDirectory(entry.path);
+        } else {
+            this.openFileInLeaf(leaf, entry.path);
+        }
+    }
+
+    openEntryAtCursorInNewTab(): void {
         const view = this.getActiveOilView();
         if (!view) return;
         const entry = this.getEntryAtCursor(view);
@@ -262,8 +283,58 @@ export class OilManager {
         if (entry.type === 'folder') {
             void this.navigateToDirectory(entry.path);
         } else {
-            void navigateWithJump(this.app, entry.path, '');
+            void navigateWithJump(this.app, entry.path, '', { newTab: true });
         }
+    }
+
+    openEntryAtCursorInSplit(direction: 'vertical' | 'horizontal'): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry) return;
+        if (entry.type === 'folder') {
+            void this.navigateToDirectory(entry.path);
+            return;
+        }
+        const file = this.app.vault.getAbstractFileByPath(entry.path);
+        if (!(file instanceof TFile)) return;
+        const leaf = this.app.workspace.getLeaf('split', direction);
+        void navigateWithJumpFile(this.app, leaf, file);
+    }
+
+    openEntryExternalAtCursor(): void {
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry) return;
+        const opener = (
+            this.app as unknown as {
+                openWithDefaultApp?: (path: string) => void;
+            }
+        ).openWithDefaultApp;
+        if (opener) {
+            opener.call(this.app, entry.path);
+        }
+    }
+
+    private openFileInLeaf(
+        leaf: import('obsidian').WorkspaceLeaf,
+        path: string,
+    ): void {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (!(file instanceof TFile)) return;
+        const view = leaf.view;
+        const previousViewMode = this.isOilView(view)
+            ? view.getPreviousViewMode()
+            : null;
+        void navigateWithJumpFile(this.app, leaf, file).then(() => {
+            if (previousViewMode) {
+                void leaf.setViewState({
+                    type: 'markdown',
+                    state: previousViewMode,
+                });
+            }
+        });
     }
 
     private getActiveOilView(): OilView | null {
@@ -306,15 +377,18 @@ export class OilManager {
     }
 
     renderDirectoryToBuffer(dirPath: string): string {
-        const showHidden = this.settings.oilShowHiddenFiles ?? this.showHidden;
+        const showHidden = this.getEffectiveShowHidden();
         const sort = this.settings.oilDefaultSort ?? this.sortKey;
         const rawEntries = renderDirectory(this.app, dirPath, showHidden, sort);
         const entries = this.cache.loadDirectory(dirPath, rawEntries);
         return entriesToBufferText(entries);
     }
 
-    async discoverAndMergeHidden(dirPath: string): Promise<void> {
-        const showHidden = this.settings.oilShowHiddenFiles ?? this.showHidden;
+    async discoverAndMergeHidden(
+        dirPath: string,
+        expectedContent: string,
+    ): Promise<void> {
+        const showHidden = this.getEffectiveShowHidden();
         if (!showHidden) return;
 
         const hiddenEntries = await discoverHiddenEntries(this.app, dirPath);
@@ -343,12 +417,11 @@ export class OilManager {
         const entries = this.cache.loadDirectory(dirPath, allRaw);
         const mergedContent = entriesToBufferText(entries);
 
-        const expectedSyncContent = this.renderDirectoryToBuffer(dirPath);
         this.app.workspace.iterateAllLeaves((leaf) => {
             const view = leaf.view;
             if (this.isOilView(view) && view.getDirPath() === dirPath) {
                 const currentContent = view.getBufferContent();
-                if (currentContent === expectedSyncContent) {
+                if (currentContent === expectedContent) {
                     view.setEditorContent(mergedContent);
                 }
             }

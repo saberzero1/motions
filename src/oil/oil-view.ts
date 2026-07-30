@@ -66,11 +66,17 @@ export class OilView extends View {
         });
         this.addChild(this.editor as unknown as Component);
         this.focusEditor();
-        void this.manager.discoverAndMergeHidden(this.dirPath);
+        void this.manager.discoverAndMergeHidden(this.dirPath, renderedContent);
     }
 
     focusEditor(): void {
         window.requestAnimationFrame(() => this.editor?.focus());
+    }
+
+    private notifyHeaderChanged(): void {
+        (
+            this.leaf as unknown as { updateHeader?: () => void }
+        ).updateHeader?.();
     }
 
     protected async onClose(): Promise<void> {
@@ -102,6 +108,7 @@ export class OilView extends View {
     ): Promise<void> {
         const nextDir = typeof state?.dirPath === 'string' ? state.dirPath : '';
         this.dirPath = nextDir;
+        this.notifyHeaderChanged();
         if (state?.previousFile !== undefined) {
             this.previousFile = state.previousFile ?? null;
         }
@@ -122,16 +129,18 @@ export class OilView extends View {
     refreshContent(dirPath?: string): void {
         if (dirPath !== undefined) {
             this.dirPath = dirPath;
+            this.notifyHeaderChanged();
         }
         if (!this.editor) return;
         const content = this.manager.renderDirectoryToBuffer(this.dirPath);
         this.cache.snapshot(this.dirPath);
         this.editor.setValue(content);
-        void this.manager.discoverAndMergeHidden(this.dirPath);
+        void this.manager.discoverAndMergeHidden(this.dirPath, content);
     }
 
     setDirectory(dirPath: string): void {
         this.dirPath = dirPath;
+        this.notifyHeaderChanged();
         this.refreshContent();
     }
 

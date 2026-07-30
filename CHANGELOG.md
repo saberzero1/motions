@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cannot open files/folders from Oil explorer at vault root** — after the v0.90.0 fix, pressing `<CR>` on any file or folder in the Oil explorer did nothing. Root cause: `discoverAndMergeHidden()` called `cache.loadDirectory()` three times during a single refresh cycle, causing buffer entry IDs to become out of sync with the cache. Entry lookup by ID returned `undefined`, so `openEntryAtCursor()` silently aborted. Fixed by passing the expected buffer content from the initial render as a parameter to `discoverAndMergeHidden()`, eliminating the redundant `renderDirectoryToBuffer()` call that triggered the third `cache.loadDirectory()`. The cache is now updated exactly once per merge. Confirmed by spike unit test demonstrating ID desync (buffer IDs [1,2] vs cache IDs [6,7]). ([#93](https://github.com/saberzero1/motions/issues/93))
+    - Plugin: `src/oil/manager.ts` (`discoverAndMergeHidden` — accepts `expectedContent` parameter, removed redundant `renderDirectoryToBuffer` call), `src/oil/oil-view.ts` (callers pass rendered content)
+- **Oil explorer title bar does not update when navigating directories** — after navigating from one directory to another, the tab header continued to show the original directory name. Root cause: `setDirectory()` and `refreshContent()` updated `this.dirPath` but never signaled Obsidian to re-read `getDisplayText()`. Fixed by adding `notifyHeaderChanged()` which calls `leaf.updateHeader()` (Obsidian internal) after dirPath changes, in `setDirectory()`, `refreshContent()`, and `setState()`. ([#93](https://github.com/saberzero1/motions/issues/93))
+    - Plugin: `src/oil/oil-view.ts` (`notifyHeaderChanged` private method, called from `setDirectory`, `refreshContent`, `setState`)
+- **Hidden files toggle (`g.`) has no effect** — pressing `g.` in Oil to toggle hidden files did nothing. Root cause: `this.settings.oilShowHiddenFiles ?? this.showHidden` used the nullish coalescing operator (`??`), but `oilShowHiddenFiles` is typed as `boolean` (default `false`), so `??` never fell through to the runtime toggle `this.showHidden`. Fixed by replacing the boolean field with a `showHiddenOverride: boolean | null` (null = use setting) and a `getEffectiveShowHidden()` helper that prioritizes the override when set. ([#93](https://github.com/saberzero1/motions/issues/93))
+    - Plugin: `src/oil/manager.ts` (`showHiddenOverride` field, `getEffectiveShowHidden()` helper, `toggleHidden()` rewritten)
+- **`<CR>` in Oil opens file in new tab instead of replacing Oil view** — pressing Enter on a file in Oil opened it in a new tab, leaving the Oil view in the original tab. In oil.nvim, `<CR>` (select) opens the file in the same window, replacing the oil buffer. Root cause: `navigateWithJump()` used `openLinkText()` which cannot replace a custom view type. Fixed by using `leaf.openFile()` directly on the Oil leaf via `navigateWithJumpFile()`, matching the pattern used by `closeOil()`. ([#93](https://github.com/saberzero1/motions/issues/93))
+    - Plugin: `src/oil/manager.ts` (`openEntryAtCursor` rewritten to use `openFileInLeaf`, new `openFileInLeaf` private method), `src/oil/keybindings.ts` (`oilOpenEntry` delegates to `manager.openEntryAtCursor()`)
+
+### Added
+
+- **Oil `<C-t>` open in new tab** — new `:oilopentab` ex command mapped to `<C-t>`, matching oil.nvim's default. Opens the file under cursor in a new tab while keeping the Oil view in the current tab.
+    - Plugin: `src/oil/manager.ts` (`openEntryAtCursorInNewTab`), `src/oil/keybindings.ts` (mapping + action)
+- **Oil `<C-s>` / `<C-h>` split open** — new `:oilopensv` and `:oilopensh` ex commands mapped to `<C-s>` (vertical split) and `<C-h>` (horizontal split), matching oil.nvim's defaults. Opens the file under cursor in a split pane alongside the Oil view.
+    - Plugin: `src/oil/manager.ts` (`openEntryAtCursorInSplit`), `src/oil/keybindings.ts` (mappings + actions)
+- **Oil `<C-c>` close** — `<C-c>` now maps to `:oilclose`, matching oil.nvim's default close binding. `q` remains as an additional close key.
+    - Plugin: `src/oil/keybindings.ts` (mapping)
+- **Oil `gx` open in default app** — new `:oilopenexternal` ex command mapped to `gx`, matching oil.nvim's default. Opens the file under cursor in the system's default application via `app.openWithDefaultApp()`.
+    - Plugin: `src/oil/manager.ts` (`openEntryExternalAtCursor`), `src/oil/keybindings.ts` (mapping + action)
+
+### Tests
+
+- 12 unit tests in `test/unit/oil-cache-sync.test.ts`: cache ID synchronization after render (5 tests), `getEffectiveShowHidden` override logic (5 tests), `renderDirectory` at vault root (2 tests)
+- 11 e2e tests in `test/specs/oil-poc.e2e.ts`: vault root folder navigation (2 tests), title bar update on directory change (2 tests), hidden files toggle (1 test), same-leaf file open (1 test), `<C-t>` keymap registration (1 test), vertical and horizontal split open (2 tests), `gx` method registration (1 test), Obsidian reload for split cleanup (1 test)
+- `Modal` class added to `test/unit/__mocks__/obsidian.ts` to unblock unit tests importing `manager.ts`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked Oil cache desync, title bar, and hidden toggle as fixed; added `<CR>` same-leaf fix; added new keymaps (`<C-t>`, `<C-s>`, `<C-h>`, `<C-c>`, `gx`)
+- `docs/features/oil-explorer.md`: Updated Oil ex commands table with new keymaps
+- `docs/features/ex-commands.md`: Updated Oil ex commands table with new keymaps
+- `docs/reference/keybindings.md`: Updated Oil keybindings table with new keymaps
+- `CONTRIBUTING.md`: Updated Oil keybindings description
+- `README.md`: Updated Oil feature description with oil.nvim-matching keybindings
+
 ## [0.90.0] - 2026-07-30
 
 ### Fixed

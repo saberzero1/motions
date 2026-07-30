@@ -5,7 +5,6 @@ import { getVimApi } from '../vim/vim-api';
 import { OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
 import { VimInfoModal } from '../ui/vim-info-modal';
-import { navigateWithJump } from '../workspace/navigate';
 
 interface OilMapping {
     lhs: string;
@@ -50,6 +49,41 @@ const OIL_MAPPINGS: OilMapping[] = [
         exName: 'oilclose',
         exShort: 'oilcl',
         desc: 'Close oil',
+    },
+    {
+        lhs: '<C-c>',
+        actionName: 'oilClose',
+        exName: 'oilclose',
+        exShort: 'oilcl',
+        desc: 'Close oil',
+    },
+    {
+        lhs: '<C-t>',
+        actionName: 'oilOpenEntryNewTab',
+        exName: 'oilopentab',
+        exShort: 'oilot',
+        desc: 'Open in new tab',
+    },
+    {
+        lhs: '<C-s>',
+        actionName: 'oilOpenEntrySplitVertical',
+        exName: 'oilopensv',
+        exShort: 'oilsv',
+        desc: 'Open in vertical split',
+    },
+    {
+        lhs: '<C-h>',
+        actionName: 'oilOpenEntrySplitHorizontal',
+        exName: 'oilopensh',
+        exShort: 'oilsh',
+        desc: 'Open in horizontal split',
+    },
+    {
+        lhs: 'gx',
+        actionName: 'oilOpenExternal',
+        exName: 'oilopenexternal',
+        exShort: 'oilge',
+        desc: 'Open in default app',
     },
     {
         lhs: 'g.',
@@ -165,11 +199,15 @@ export class OilKeybindingManager {
         const manager = this.manager;
 
         const actions = this.buildActions(app, manager);
+        const registered = new Set<string>();
         for (const m of OIL_MAPPINGS) {
             const fn = actions[m.actionName];
             if (!fn) continue;
-            vim.defineAction(m.actionName, fn);
-            vim.defineEx(m.exName, m.exShort, fn);
+            if (!registered.has(m.actionName)) {
+                vim.defineAction(m.actionName, fn);
+                vim.defineEx(m.exName, m.exShort, fn);
+                registered.add(m.actionName);
+            }
         }
     }
 
@@ -192,18 +230,19 @@ export class OilKeybindingManager {
 
         return {
             oilOpenEntry: () => {
-                const view = getActiveOilView();
-                if (!view) return;
-                const cursorLine = getCursorLine(view);
-                if (cursorLine === null) return;
-                const lineText = view.getLineText(cursorLine);
-                const entry = manager.getEntryAtLine(lineText);
-                if (!entry) return;
-                if (entry.type === 'folder') {
-                    void manager.navigateToDirectory(entry.path);
-                } else {
-                    void navigateWithJump(app, entry.path, '');
-                }
+                manager.openEntryAtCursor();
+            },
+            oilOpenEntryNewTab: () => {
+                manager.openEntryAtCursorInNewTab();
+            },
+            oilOpenEntrySplitVertical: () => {
+                manager.openEntryAtCursorInSplit('vertical');
+            },
+            oilOpenEntrySplitHorizontal: () => {
+                manager.openEntryAtCursorInSplit('horizontal');
+            },
+            oilOpenExternal: () => {
+                manager.openEntryExternalAtCursor();
             },
             oilParent: () => {
                 const view = getActiveOilView();

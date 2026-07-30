@@ -6,6 +6,15 @@ export class App {
         configDir: '.obsidian',
     };
 }
+export class Modal {
+    app: App;
+    contentEl = {} as HTMLElement;
+    constructor(app: App) {
+        this.app = app;
+    }
+    open() {}
+    close() {}
+}
 export class Notice {
     constructor(_msg: string) {}
 }

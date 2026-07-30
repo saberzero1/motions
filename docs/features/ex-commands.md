@@ -235,17 +235,21 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 
 ### Oil explorer
 
-| Command            | Default key | Description                  |
-| ------------------ | ----------- | ---------------------------- |
-| `:oilopen`         | `<CR>`      | Open file / enter directory  |
-| `:oilparent`       | `-`         | Navigate to parent directory |
-| `:oilroot`         | `~`         | Navigate to vault root       |
-| `:oilrefresh`      | `<C-l>`     | Refresh directory listing    |
-| `:oilclose`        | `q`         | Close oil buffer             |
-| `:oiltogglehidden` | `g.`        | Toggle hidden files          |
-| `:oilcyclesort`    | `gs`        | Cycle sort order             |
-| `:oilyankpath`     | `y.`        | Yank file path to clipboard  |
-| `:oilreveal`       | `gf`        | Reveal in file explorer      |
+| Command            | Default key  | Description                   |
+| ------------------ | ------------ | ----------------------------- |
+| `:oilopen`         | `<CR>`       | Open file / enter directory   |
+| `:oilopentab`      | `<C-t>`      | Open file in new tab          |
+| `:oilopensv`       | `<C-s>`      | Open file in vertical split   |
+| `:oilopensh`       | `<C-h>`      | Open file in horizontal split |
+| `:oilparent`       | `-`          | Navigate to parent directory  |
+| `:oilroot`         | `~`          | Navigate to vault root        |
+| `:oilrefresh`      | `<C-l>`      | Refresh directory listing     |
+| `:oilclose`        | `q`, `<C-c>` | Close oil buffer              |
+| `:oiltogglehidden` | `g.`         | Toggle hidden files           |
+| `:oilcyclesort`    | `gs`         | Cycle sort order              |
+| `:oilyankpath`     | `y.`         | Yank file path to clipboard   |
+| `:oilreveal`       | `gf`         | Reveal in file explorer       |
+| `:oilopenexternal` | `gx`         | Open in default app           |
 
 ## Global mapping commands
 
