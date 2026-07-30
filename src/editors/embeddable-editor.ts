@@ -10,7 +10,11 @@
  */
 
 import { App, Scope } from 'obsidian';
-import { EditorSelection, type Extension } from '@codemirror/state';
+import {
+    EditorSelection,
+    StateEffect,
+    type Extension,
+} from '@codemirror/state';
 import {
     EditorView,
     keymap,
@@ -19,11 +23,12 @@ import {
 } from '@codemirror/view';
 import { around } from '../util/around';
 import { pushKeymapScope, popKeymapScope } from '../util/keymap';
-import { isVimEnabled } from '../vim/vim-api';
+import { getCM } from '@replit/codemirror-vim';
 import {
     createBundledVimExtension,
     isBundledVimActive,
 } from '../vim/bundled-vim';
+import { isBuiltinVimEnabled } from '../util/vault';
 import type { CursorShapes } from '../settings';
 
 // -- Obsidian internal types (undocumented, used by embedRegistry) --
@@ -228,8 +233,6 @@ function buildEditorClass(
 ) => EmbeddableMarkdownEditor {
     const BaseCtor = resolveEditorPrototype(app);
 
-    const builtinVimOn = isVimEnabled(app);
-
     class ConcreteEmbeddableEditor extends (BaseCtor as unknown as {
         new (...args: unknown[]): ScrollableMarkdownEditorInstance;
     }) {
@@ -271,6 +274,7 @@ function buildEditorClass(
             this.owner.editor = self.editor;
 
             this.set(opts.value);
+            this.ensureVimExtension();
 
             this.register(
                 around(
@@ -325,11 +329,6 @@ function buildEditorClass(
         buildLocalExtensions(): Extension[] {
             const extensions = super.buildLocalExtensions();
 
-            if (!builtinVimOn && isBundledVimActive()) {
-                const shapes = this._opts?.cursorShapes ?? pendingCursorShapes;
-                extensions.push(createBundledVimExtension(shapes));
-            }
-
             if (this._opts?.extensions?.length > 0) {
                 extensions.push(...this._opts.extensions);
             }
@@ -379,6 +378,21 @@ function buildEditorClass(
             );
 
             return extensions;
+        }
+
+        private ensureVimExtension(): void {
+            if (isBuiltinVimEnabled(app)) return;
+            if (!isBundledVimActive()) return;
+
+            const cm = getCM(this.editor.cm);
+            if (cm) return;
+
+            const shapes = this._opts?.cursorShapes ?? pendingCursorShapes;
+            this.editor.cm.dispatch({
+                effects: StateEffect.appendConfig.of([
+                    createBundledVimExtension(shapes),
+                ]),
+            });
         }
 
         onUpdate(update: ViewUpdate, changed: boolean): void {

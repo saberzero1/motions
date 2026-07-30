@@ -84,6 +84,10 @@ export class OilManager {
             }
         }
 
+        if (!activeView) {
+            await leaf.setViewState({ type: 'markdown', state: {} });
+        }
+
         await leaf.setViewState({
             type: OIL_VIEW_TYPE,
             state: { dirPath, previousFile, previousViewMode },

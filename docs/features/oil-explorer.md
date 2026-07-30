@@ -124,6 +124,10 @@ When you close Oil (via `q`, `:q`, `:wq`, or `vim.ob.oil.close()`), the editor r
 
 If you switch away from the Oil tab and then switch back (via `gT`, `gt`, or clicking the tab), the Oil editor automatically regains focus. You can start typing vim commands immediately without needing to click.
 
+### Opening from non-editor contexts
+
+Oil works correctly when opened from any context — including empty panes, settings, graph view, or the command palette with no file open. The plugin automatically primes the workspace leaf with editor infrastructure before creating the Oil view, ensuring vim keybindings, conceal decorations, and which-key all function as expected.
+
 ### Hidden files (dotfiles)
 
 When **Show hidden files** is enabled in **Settings → Vim Motions → File explorer**, Oil shows dotfiles and hidden folders (`.gitignore`, `.git/`, etc.) that Obsidian normally hides. These are discovered via the Obsidian adapter API, which accesses the filesystem directly.

@@ -185,7 +185,7 @@ src/
     types.d.ts             # Lua engine type declarations
   oil/
     oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery
-    manager.ts             # Oil session lifecycle management — openOil() captures editor mode, closeOil() restores mode via leaf.openFile({ state }), discoverAndMergeHidden(dirPath, expectedContent) async dotfile discovery with cache-safe single loadDirectory call, openEntryAtCursor() same-leaf open via leaf.openFile(), openEntryAtCursorInNewTab/InSplit/ExternalAtCursor for tab/split/external open
+    manager.ts             # Oil session lifecycle management — openOil() captures editor mode + primes non-editor leaves with markdown view state before Oil, closeOil() restores mode via leaf.openFile({ state }), discoverAndMergeHidden(dirPath, expectedContent) async dotfile discovery with cache-safe single loadDirectory call, openEntryAtCursor() same-leaf open via leaf.openFile(), openEntryAtCursorInNewTab/InSplit/ExternalAtCursor for tab/split/external open
     parser.ts              # Buffer text ↔ directory entry parsing
     diff.ts                # Diff buffer edits to file system operations
     actions.ts             # File operations (create, rename, delete, move)
@@ -240,7 +240,7 @@ src/
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
     bundled/               # Bundled Obsidian-specific snippets
   editors/
-    embeddable-editor.ts   # Reusable embeddable editor component (used by table cell editor and textarea vim overlay)
+    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent
   keybindings/
     action-registry.ts     # Centralized action registry for cross-context keybindings
   ui/
