@@ -78,6 +78,10 @@ Several commands allow you to place delimiters on their own lines.
 
 You can add surroundings while typing in insert mode using `<C-G>s{char}`. This inserts the pair and places the cursor inside. Pressing `Esc` leaves the cursor on the last typed character, matching vim-surround's behavior. If no text was typed, the cursor rests on the opening delimiter.
 
+Insert-mode surround supports full dot-repeat: pressing `.` after `i<C-G>s)hello<Esc>` replays `(hello)` at the new cursor position. Counted dot-repeat (`2.`) repeats the typed text inside one set of delimiters (e.g., `(hellohello)`). This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken.
+
+`<C-G>S{char}` is the newline variant — places delimiters on separate lines with indentation.
+
 ## Custom surround pairs
 
 Define your own single-character triggers that map to arbitrary delimiters — including multi-character ones like `[[wikilinks]]` or `$$math$$`.
@@ -123,7 +127,7 @@ See [[lua-config#Custom surround pairs]] for the full API reference.
 
 ## Dot-repeat
 
-All surround commands support the `.` command. You can repeat your last add, change, or delete operation across different parts of your document.
+All surround commands support the `.` command — including insert-mode surround (`<C-G>s`). You can repeat your last add, change, delete, or insert-mode surround operation across different parts of your document.
 
 ## nvim-surround parity
 

@@ -142,12 +142,17 @@ Settings: `set operatorshadowtimeout=1000` (vimrc), `vim.opt.operatorshadowtimeo
 
 **Not in scope**: Full non-operator `timeoutlen` — keys that are both a built-in prefix and a mapping prefix (e.g., remapping `g` to something other than a prefix) are not covered by the operator-prefix resolver. The existing `keyBuffer` partial match system handles `g`/`z`/`<C-w>` prefixes without timeouts (matching Neovim's behavior for built-in multi-key commands). Full non-operator `timeoutlen` would require a global key dispatch rewrite with broader UX implications and is deferred unless demand arises.
 
-## Insert-mode surround dot-repeat and macro recording
+## ~~Insert-mode surround dot-repeat~~ (Fixed)
+
+**Status**: Fixed. `.` after `i<C-G>s{char}text<Esc>` now replays the full surround + typed text. This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken ([nvim-surround #301](https://github.com/kylechui/nvim-surround/issues/301)). ([#82](https://github.com/saberzero1/motions/issues/82))
+
+The fork stores `_surroundInsertChar` and `_surroundInsertNewline` on `lastInsertModeChanges` during `surroundInsert`/`surroundInsertNewline`. During replay, `replaySurroundAwareInsert` (inside `repeatLastEdit`) strips the delimiter entry from `changes[0]`, inserts `pair.open`, replays typed text, then inserts `pair.close`. Wrapped in `cm.operation()` for undo atomicity. Counted dot-repeat (`2.`) repeats the text inside one set of delimiters. Surround metadata is cleared in `recordLastEdit` (new session), `onCursorActivity` (cursor movement), and `createInsertModeChanges` (default init) to prevent cross-session leakage. Text typed before `<C-G>s` in the same insert session is not preserved in dot-repeat, matching canonical behavior.
+
+## Insert-mode surround macro recording
 
 **Status**: Known limitation.
 
-- **Dot-repeat**: `.` after `i<C-G>s{char}text<Esc>` replays only the typed text, not the surrounding delimiters. In vim-surround, dot-repeat includes the delimiters because they are inserted via Vim's register/paste mechanism, which has no CodeMirror equivalent. The degradation is clean — `.` inserts `text` without delimiters rather than producing garbled output.
-- **Macro recording**: `<C-g>s{char}` keys typed during insert mode are not logged to the macro key buffer. This is a pre-existing limitation of the fork's insert-mode macro key logging (`logKey` is only called from `handleKeyNonInsertMode`, not from `handleKeyInsertMode`).
+`<C-g>s{char}` keys typed during insert mode are not logged to the macro key buffer. This is a pre-existing limitation of the fork's insert-mode macro key logging (`logKey` is only called from `handleKeyNonInsertMode`, not from `handleKeyInsertMode`).
 
 ## EasyMotion operator-pending mode
 

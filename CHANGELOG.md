@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Insert-mode surround dot-repeat** — `.` after `i<C-G>s{char}text<Esc>` now replays the full surround + typed text. Previously, dot-repeat replayed only the typed text without delimiters. The fork stores `_surroundInsertChar` and `_surroundInsertNewline` on `lastInsertModeChanges`. During replay, `replaySurroundAwareInsert` (inside `repeatLastEdit`) strips the delimiter entry from `changes[0]`, inserts `pair.open`, replays typed text via `repeatInsert`, then inserts `pair.close`. Wrapped in `cm.operation()` for undo atomicity. Counted dot-repeat (`2.`) repeats the text inside one set of delimiters. This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken ([nvim-surround #301](https://github.com/kylechui/nvim-surround/issues/301)). ([#82](https://github.com/saberzero1/motions/issues/82))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`createInsertModeChanges`, `recordLastEdit`, `surroundInsert`, `surroundInsertNewline`, `replaySurroundAwareInsert` in `repeatLastEdit`, `onCursorActivity`), `~/Repos/codemirror-vim/src/types.ts` (`_surroundInsertChar`, `_surroundInsertNewline` fields)
+
+### Tests
+
+- 9 fork tests in `~/Repos/codemirror-vim/test/vim_test.js`: `dot_insert_surround_unspaced`, `dot_insert_surround_spaced`, `dot_insert_surround_quotes`, `dot_insert_surround_empty`, `dot_insert_surround_counted`, `dot_insert_surround_no_cross_session_leak`, `dot_insert_surround_no_leak_after_o`, `dot_insert_surround_before_text_lost`, `dot_insert_surround_alias_b`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked insert-mode surround dot-repeat as fixed; separated macro recording limitation into own section
+- `README.md`: Updated surround feature description with insert-mode dot-repeat
+- `AGENTS.md`: Updated codemirror-vim fork description with insert-mode surround dot-repeat and test count (1870)
+- `DIFFERENCES.md` (fork): Updated insert-mode surround section with dot-repeat implementation details
+- `docs/features/surround.md`: Updated insert mode and dot-repeat sections with insert-mode dot-repeat behavior
+
 ## [0.88.0] - 2026-07-30
 
 ### Added
