@@ -197,7 +197,7 @@ describe('gmap / gnoremap / gunmap', function () {
             await browser.pause(PAUSE.EDITOR_SETTLE);
         });
 
-        it('sequence timeout should reset state', async function () {
+        it('sequence timeout should keep partial match alive (g + delay + t triggers gt)', async function () {
             await loadTwoTabs();
             expect(await getActiveViewType()).toBe('graph');
 
@@ -206,7 +206,7 @@ describe('gmap / gnoremap / gunmap', function () {
             await browser.keys(['t']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            expect(await getActiveViewType()).toBe('graph');
+            expect(await getActiveViewType()).toBe('markdown');
         });
     });
 
