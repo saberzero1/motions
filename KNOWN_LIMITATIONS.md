@@ -154,6 +154,14 @@ The fork stores `_surroundInsertChar` and `_surroundInsertNewline` on `lastInser
 
 `<C-g>s{char}` keys typed during insert mode are not logged to the macro key buffer. This is a pre-existing limitation of the fork's insert-mode macro key logging (`logKey` is only called from `handleKeyNonInsertMode`, not from `handleKeyInsertMode`).
 
+## ~~Surround does nothing on doubled symmetric delimiters~~ (Fixed)
+
+**Status**: Fixed. `ds$` on `$$example$$` now correctly deletes the innermost `$` pair to produce `$example$`. ([#96](https://github.com/saberzero1/motions/issues/96))
+
+`findSurroundingQuotes()` in the codemirror-vim fork used sequential pairing (`i += 2`) over collected quote positions. For `$$example$$` with positions `[0, 1, 9, 10]`, this created pairs `(0,1)` and `(9,10)` — the two adjacent `$$` on each side — and the cursor between them matched neither. `ds$`, `cs$`, `ds"` on `""hi""`, and other doubled symmetric surround characters all silently did nothing.
+
+Fixed by replacing sequential pairing with cursor-expansion: search backward from cursor for the nearest quote (open), then forward for the next one (close). This handles both doubled delimiters and adjacent pairs (`"hello" "world"`) correctly.
+
 ## EasyMotion operator-pending mode
 
 **Status**: Working via fork's async motion support.

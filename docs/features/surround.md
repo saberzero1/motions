@@ -62,6 +62,8 @@ Markdown formatting marks use a count-prefix to distinguish between single and d
 
 To delete these repeated delimiters, use a count with the delete command, such as `2ds*`.
 
+Doubled symmetric delimiters also work with single-character `ds`/`cs` — `ds$` on `$$example$$` deletes the innermost `$` pair to produce `$example$`, and `cs$)` changes it to `$(example)$`. This applies to all symmetric surround characters (`$`, `"`, `'`, `` ` ``, etc.).
+
 > [!tip]
 > Use the count-prefix for fast Markdown formatting. It's often quicker than typing the marks manually.
 

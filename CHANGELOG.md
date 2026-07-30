@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Inconsistent behavior when deleting surroundings with doubled symmetric delimiters** — `ds$` on `$$example$$` did nothing instead of deleting the innermost `$` pair to produce `$example$`. Same failure for `ds"` on `""hi""`, `cs$` on `$$example$$`, and other symmetric (same open/close) surround characters when doubled. Root cause: `findSurroundingQuotes()` in the codemirror-vim fork paired all quote positions sequentially at even/odd indices (`i += 2`). For `$$example$$` with positions `[0, 1, 9, 10]`, this created pairs `(0,1)` and `(9,10)` — the two adjacent `$$` on each side — leaving the cursor between them with no match. Fixed by replacing the sequential pairing with cursor-expansion: search backward from cursor for the nearest quote character (open), then forward for the next one (close). This correctly handles both doubled delimiters (`$$example$$` → finds inner pair `(1, 9)`) and adjacent pairs (`"hello" "world"` → finds pair around cursor). ([#96](https://github.com/saberzero1/motions/issues/96))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`findSurroundingQuotes` — cursor-expansion algorithm replacing sequential `i += 2` pairing)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Symmetric surround quote matching" section)
+
 - **Snippet ex commands do not work after vimrc/Lua config reload** — `:snippet <name>` and `:snippets` ex commands silently stopped working after any `reloadFeatures()` cycle (triggered by vimrc loading, Lua config loading, or settings changes). Root cause: `registerSnippetCommands()` was called only in `onload()`, but `reloadFeatures()` calls `unregisterAll()` which replaces all registered ex commands with no-ops — and snippet commands were never re-registered. The Picker-based snippet insertion was unaffected because it uses a separate `pickerRegistry` not managed by `VimRegistration`. Fixed by adding `registerSnippetCommands()` to `reloadFeatures()`, matching the pattern used by all other feature registrations. ([#95](https://github.com/saberzero1/motions/issues/95))
     - Plugin: `src/main.ts` (`reloadFeatures` — added `registerSnippetCommands` call gated by `enableSnippets`)
 
@@ -17,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 6 fork tests in `~/Repos/codemirror-vim/test/vim_test.js`: `ds_doubled_dollar_deletes_inner`, `ds_doubled_quote_deletes_inner`, `cs_doubled_dollar_changes_inner`, `ds_single_dollar_pair`, `ds_adjacent_dollar_pairs`, `ds_dollar_cursor_on_delimiter`
+- 5 e2e tests in `test/specs/surround.e2e.ts` (doubled symmetric delimiters — #96): `ds$` on `$$example$$` in Live Preview, `ds"` on `""hi""`, `cs$` on `$$example$$`, `ds$` on single `$hello$`, `ds$` on adjacent `$hello$ $world$`
 - 28 unit tests in `test/unit/which-key.test.ts`: `LeaderRegistry` normalization (raw space leader, pre-normalized leader, format consistency, non-leader rejection, bare-leader rejection, deduplication, backslash leader, comma leader), group label normalization (raw vs normalized prefix, cross-format consistency), `clearBuiltinBindings` with normalized keys, double-leader drill-down (issue #94 scenario — EasyMotion bindings filterable by `<Space>` prefix, single-leader bindings excluded), `isSpecialKey` (`<Space>` exempt, other angle-bracket keys special, plain keys not special)
 - 2 e2e tests unskipped in `test/specs/snippets/snippet-variables.e2e.ts`: `:snippet` command expands by name, `:snippets` opens picker
 - 1 e2e test in `test/specs/settings-reload.e2e.ts`: snippet ex commands survive `reloadFeatures()` (regression test for [#95](https://github.com/saberzero1/motions/issues/95))
@@ -24,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added surround doubled symmetric delimiter fix
+- `AGENTS.md`: Updated fork test count (1882)
+- `DIFFERENCES.md` (fork): Added "Symmetric surround quote matching" section
+- `docs/features/surround.md`: Added doubled delimiter behavior note
 - `KNOWN_LIMITATIONS.md`: Marked ex command snippet expansion as fixed; added which-key EasyMotion double-leader fix to which-key overlay section
 - `docs/features/snippets.md`: Updated ex command trigger description noting reload survival
 - `docs/configuration/which-key.md`: Added note about double-leader prefix grouping for EasyMotion

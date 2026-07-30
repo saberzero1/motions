@@ -7,6 +7,7 @@ import {
     getCursorPos,
     getEditorValue,
     sendVimEscape,
+    ensureLivePreview,
     PAUSE,
 } from '../helpers';
 
@@ -786,6 +787,39 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
             await setupEditor('  hello world', { line: 0, ch: 2 });
             await vimKeys('y', 'S', 'i', 'w', ')');
             expect(await getEditorValue()).toBe('  (\n  hello\n  ) world');
+        });
+    });
+
+    describe('doubled symmetric delimiters — #96', function () {
+        it('ds$ on $$example$$ should delete inner $ pair (live preview)', async function () {
+            await ensureLivePreview();
+            await setupEditor('$$example$$ world', { line: 0, ch: 5 });
+            await vimKeys('d', 's', '$');
+            expect(await getEditorValue()).toBe('$example$ world');
+        });
+
+        it('ds" on ""hi"" should delete inner " pair', async function () {
+            await setupEditor('""hi"" world', { line: 0, ch: 3 });
+            await vimKeys('d', 's', '"');
+            expect(await getEditorValue()).toBe('"hi" world');
+        });
+
+        it('cs$ on $$example$$ should change inner $ to parens', async function () {
+            await setupEditor('$$example$$ world', { line: 0, ch: 5 });
+            await vimKeys('c', 's', '$', ')');
+            expect(await getEditorValue()).toBe('$(example)$ world');
+        });
+
+        it('ds$ on $hello$ should delete the only $ pair', async function () {
+            await setupEditor('$hello$ world', { line: 0, ch: 3 });
+            await vimKeys('d', 's', '$');
+            expect(await getEditorValue()).toBe('hello world');
+        });
+
+        it('ds$ on adjacent pairs should delete pair around cursor', async function () {
+            await setupEditor('$hello$ $world$', { line: 0, ch: 9 });
+            await vimKeys('d', 's', '$');
+            expect(await getEditorValue()).toBe('$hello$ world');
         });
     });
 });
