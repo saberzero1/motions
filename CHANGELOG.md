@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.90.0] - 2026-07-30
+
 ### Fixed
 
 - **Note freezes in Reading Mode after closing Oil explorer** — closing the Oil explorer view (via `q`, `:q`, `:wq`, or Lua `vim.ob.oil.close()`) reopened the previous file in Obsidian's default mode (often Reading/Preview) instead of the mode the user was in when they opened Oil. Root cause: `openOil()` captured `previousFile` (path only) but not the editor's view mode. Fixed by capturing `previousViewMode` (the `MarkdownView` state: source mode, live preview, or reading mode) when opening Oil and restoring it via `leaf.openFile(file, { state: previousViewMode })` on close. All 4 close paths (keybindings `q`, ex commands `:q`/`:wq`, and Lua API `vim.ob.oil.close()`) are unified into a single `closeOil()` method on `OilManager`. ([#93](https://github.com/saberzero1/motions/issues/93))

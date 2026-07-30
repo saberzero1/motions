@@ -31,8 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.89.0
+## What's new in 0.90.0
 
-- **Insert-mode surround dot-repeat** — `.` after `i<C-G>s{char}text<Esc>` now replays the full surround + typed text. Previously, dot-repeat replayed only the typed text without delimiters. This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken.
+- **Oil explorer fixes** — closing Oil now restores your previous editor mode (source/live preview/reading) instead of defaulting to reading mode; cursor focus is properly restored when switching back to an Oil tab; `:Oil .` and `:Oil /` correctly open the vault root; hidden files (dotfiles) are now visible in Oil listings ([#93](https://github.com/saberzero1/motions/issues/93))
+- **Surround doubled symmetric delimiters** — `ds$` on `$$example$$` now correctly deletes the inner pair; same fix for `cs$`, `ds"` on `""hi""`, and other doubled same-open/close delimiters ([#96](https://github.com/saberzero1/motions/issues/96))
+- **Snippet ex commands survive config reload** — `:snippet` and `:snippets` no longer silently break after vimrc/Lua config reload ([#95](https://github.com/saberzero1/motions/issues/95))
+- **Which-key EasyMotion with space leader** — EasyMotion commands now appear correctly in the which-key popup when using space as the leader key ([#94](https://github.com/saberzero1/motions/issues/94))
 
 See the [[changelog|full changelog]] for details.
