@@ -42,22 +42,22 @@ All oil keybindings can be remapped via Lua or vimrc. Each keybinding maps to an
 
 ### Oil ex commands
 
-| Ex command         | Short     | Default key  | Description                      |
-| ------------------ | --------- | ------------ | -------------------------------- |
-| `:oilopen`         | `:oilo`   | `<CR>`       | Open file / enter directory      |
-| `:oilopentab`      | `:oilot`  | `<C-t>`      | Open file in new tab             |
-| `:oilopensv`       | `:oilsv`  | `<C-s>`      | Open file in vertical split      |
-| `:oilopensh`       | `:oilsh`  | `<C-h>`      | Open file in horizontal split    |
-| `:oilparent`       | `:oilp`   | `-`          | Navigate to parent directory     |
-| `:oilroot`         | `:oilro`  | `~`          | Navigate to vault root           |
-| `:oilrefresh`      | `:oilref` | `<C-l>`      | Refresh directory listing        |
-| `:oilclose`        | `:oilcl`  | `q`, `<C-c>` | Close oil buffer                 |
-| `:oiltogglehidden` | `:oilt`   | `g.`         | Toggle hidden files              |
-| `:oilcyclesort`    | `:oilcy`  | `gs`         | Cycle sort order                 |
-| `:oilyankpath`     | `:oily`   | `y.`         | Yank file path to clipboard      |
-| `:oilreveal`       | `:oilrev` | `gf`         | Reveal in Obsidian file explorer |
-| `:oilopenexternal` | `:oilge`  | `gx`         | Open in default app              |
-| `:oilhelp`         | `:oilh`   | `g?`         | Show keybinding help modal       |
+| Ex command         | Short        | Default key  | Description                      |
+| ------------------ | ------------ | ------------ | -------------------------------- |
+| `:oilopen`         | `:oilo`      | `<CR>`       | Open file / enter directory      |
+| `:oilopentab`      | `:oilopent`  | `<C-t>`      | Open file in new tab             |
+| `:oilopensv`       | `:oilopensv` | `<C-s>`      | Open file in vertical split      |
+| `:oilopensh`       | `:oilopensh` | `<C-h>`      | Open file in horizontal split    |
+| `:oilparent`       | `:oilp`      | `-`          | Navigate to parent directory     |
+| `:oilroot`         | `:oilro`     | `~`          | Navigate to vault root           |
+| `:oilrefresh`      | `:oilref`    | `<C-l>`      | Refresh directory listing        |
+| `:oilclose`        | `:oilcl`     | `q`, `<C-c>` | Close oil buffer                 |
+| `:oiltogglehidden` | `:oilt`      | `g.`         | Toggle hidden files              |
+| `:oilcyclesort`    | `:oilcy`     | `gs`         | Cycle sort order                 |
+| `:oilyankpath`     | `:oily`      | `y.`         | Yank file path to clipboard      |
+| `:oilreveal`       | `:oilrev`    | `gf`         | Reveal in Obsidian file explorer |
+| `:oilopenexternal` | `:oilopene`  | `gx`         | Open in default app              |
+| `:oilhelp`         | `:oilh`      | `g?`         | Show keybinding help modal       |
 
 ### Remap via Lua (recommended)
 
