@@ -755,6 +755,7 @@ export interface VimrcLoadResult {
         color?: string;
     }>;
     pendingExCommands: string[];
+    exmapNames?: string[];
 }
 
 export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
@@ -816,6 +817,7 @@ interface ApplyResult {
         color?: string;
     }>;
     pendingExCommands: string[];
+    exmapNames: string[];
 }
 
 export function applyVimrcCommands(
@@ -845,6 +847,7 @@ export function applyVimrcCommands(
         color?: string;
     }> = [];
     const pendingExCommands: string[] = [];
+    const exmapNames: string[] = [];
 
     vim.defineEx('whichkeygroup', 'whichkeyg', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
@@ -1068,6 +1071,7 @@ export function applyVimrcCommands(
             vim.defineEx(exName, '', (cm2) => {
                 vim.handleEx(cm2, exArgs);
             });
+            exmapNames.push(exName);
             applied++;
             continue;
         }
@@ -1114,6 +1118,7 @@ export function applyVimrcCommands(
         globalWhichKeyLabels,
         globalWhichKeyGroups,
         pendingExCommands,
+        exmapNames,
     };
 }
 
@@ -1186,6 +1191,7 @@ export async function loadVimrc(
         globalWhichKeyLabels: result.globalWhichKeyLabels,
         globalWhichKeyGroups: result.globalWhichKeyGroups,
         pendingExCommands: result.pendingExCommands,
+        exmapNames: result.exmapNames,
     };
 }
 

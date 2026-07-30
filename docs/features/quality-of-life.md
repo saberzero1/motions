@@ -49,6 +49,8 @@ After `p`, `P`, `gp`, or `gP`, press `<C-p>` to replace the pasted text with the
 
 Visual-mode paste cycling also works: select text with `viw` or `V`, press `p` to paste, then `<C-p>`/`<C-n>` to cycle through registers. Visual block paste (`<C-v>`) is excluded.
 
+Dot-repeat (`.`) after cycling pastes the final cycled text, not the original. When cycling exits, the paste register is updated with the final content so the fork's `repeatLastEdit` replays the correct text. This matches [yanky.nvim](https://github.com/gbprod/yanky.nvim)'s `update_register_on_cycle` behavior. System clipboard registers (`"+`/`"*`) are excluded from the register update.
+
 Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycling**, `vim.opt.yankring = false` in Lua, or `set noyankring` in vimrc.
 
 ## Change list navigation

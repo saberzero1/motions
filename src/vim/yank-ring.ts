@@ -8,6 +8,7 @@ interface YankRingState {
     pasteStart: VimPos;
     pasteEnd: VimPos;
     pasteLinewise: boolean;
+    originalPasteRegister: string;
 }
 
 export class YankRingManager {
@@ -23,10 +24,15 @@ export class YankRingManager {
     private prevVisualLine = false;
     private prevVisualBlock = false;
     private cm: CmAdapter | null = null;
+    private vim: VimApi | null = null;
 
     setAdapter(cm: CmAdapter): void {
         this.cm = cm;
         this.snapshot();
+    }
+
+    setVim(vim: VimApi): void {
+        this.vim = vim;
     }
 
     onKeypress(key: string): void {
@@ -133,6 +139,7 @@ export class YankRingManager {
                         pasteStart: selStart,
                         pasteEnd: this.cm.posFromIndex(startOffset + pasteLen),
                         pasteLinewise: this.prevVisualLine,
+                        originalPasteRegister: this.getPasteRegisterName(),
                     };
                 }
 
@@ -163,6 +170,7 @@ export class YankRingManager {
                 pasteStart: start,
                 pasteEnd: end,
                 pasteLinewise: linewise,
+                originalPasteRegister: this.getPasteRegisterName(),
             };
             this.snapshot();
             return;
@@ -181,6 +189,24 @@ export class YankRingManager {
     }
 
     cancel(): void {
+        if (this.state?.active && this.state.registerIndex !== 1 && this.vim) {
+            const regName = this.state.originalPasteRegister;
+            if (regName !== '+' && regName !== '*') {
+                const rc = this.vim.getRegisterController();
+                const sourceReg = rc.getRegister
+                    ? rc.getRegister(String(this.state.registerIndex))
+                    : rc.registers[String(this.state.registerIndex)];
+                const targetReg = rc.getRegister
+                    ? rc.getRegister(regName)
+                    : rc.registers[regName];
+                if (sourceReg && targetReg) {
+                    targetReg.setText(
+                        sourceReg.toString(),
+                        this.state.pasteLinewise,
+                    );
+                }
+            }
+        }
         this.state = null;
     }
 
@@ -224,6 +250,11 @@ export class YankRingManager {
         }
     }
 
+    private getPasteRegisterName(): string {
+        const regName = this.cm?.state?.vim?.lastEditInputState?.registerName;
+        return regName || '"';
+    }
+
     private posMin(a: VimPos, b: VimPos): VimPos {
         if (a.line < b.line) return a;
         if (a.line > b.line) return b;
@@ -250,6 +281,7 @@ export function registerYankRing(
     vim: VimApi,
     yankRing: YankRingManager,
 ): void {
+    yankRing.setVim(vim);
     vim.unmap('<C-p>', 'normal', { includeDefaults: true });
     vim.unmap('<C-n>', 'normal', { includeDefaults: true });
 

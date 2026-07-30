@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Yank-ring dot-repeat** — pressing `.` after paste cycling (`p` + `<C-p>`/`<C-n>`) now repeats the final cycled text instead of the original paste. On cycling exit, the final cycled content is written to the original paste register. The fork's `repeatLastEdit` re-reads the register at replay time. Follows [yanky.nvim](https://github.com/gbprod/yanky.nvim)'s `update_register_on_cycle` semantics. System clipboard registers (`"+`/`"*`) are excluded.
+    - Plugin: `src/vim/yank-ring.ts` (`originalPasteRegister` tracking, `getPasteRegisterName()`, register write in `cancel()`, `setVim()`)
+- **`undefineEx` fork API** — the codemirror-vim fork now exposes `Vim.undefineEx(name)` to remove ex commands registered via `defineEx`. Cleans both the `exCommands` function map and `commandMap_` prefix lookup. Returns `true` if the command existed, `false` otherwise.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`undefineEx` on `vimApi`)
+- **Exmap unregistration on vimrc soft-reload** — removing an `exmap` definition from the vimrc file now unregisters the old handler on save. Exmap names are tracked per vimrc load in `vimrcExmapNames` and cleaned via `undefineEx` before re-applying on soft-reload. Plugin-defined and fork built-in ex commands are unaffected.
+    - Plugin: `src/main.ts` (`vimrcExmapNames` Set, cleanup in `softReloadVimrc`), `src/vimrc/loader.ts` (`exmapNames` in `ApplyResult` and `VimrcLoadResult`), `src/types/vim-api.d.ts` (`undefineEx` type, `setText` on registers, `lastEditInputState` on `VimState`)
+
+### Tests
+
+- 3 fork tests in `~/Repos/codemirror-vim/test/vim_test.js`: `ex_undefineEx` (define → undefine → verify removed), `ex_undefineEx_nonexistent` (returns false), `ex_undefineEx_short_name` (short name prefix cleaned)
+- 3 e2e tests in `test/specs/yank-ring.e2e.ts`: dot-repeat after single cycle pastes cycled text, dot-repeat without cycling pastes original (regression), single cycle then dot-repeat pastes cycled text
+- 4 e2e tests in `test/specs/vimrc-exmap-reload.e2e.ts`: `vimrcExmapNames` field exists, `undefineEx` available on Vim API, returns false for nonexistent, defineEx + undefineEx round-trip with built-in survival
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Removed `:earlier`/`:later` and `:sign` from N/A table (contradicted implemented features); clarified flash dot-repeat as working correctly; updated exmap soft-reload to reflect unregistration support; updated yank-ring dot-repeat as fixed
+- `README.md`: Updated yank-ring feature description with dot-repeat
+- `AGENTS.md`: Updated codemirror-vim fork description with `undefineEx` API and test count
+- `docs/features/quality-of-life.md`: Updated yank-ring section with dot-repeat behavior
+- `docs/configuration/vimrc.md`: Updated soft-reload section — exmap removal now works
+
 ## [0.87.0] - 2026-07-29
 
 ### Added

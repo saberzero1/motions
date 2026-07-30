@@ -327,6 +327,7 @@ export default class VimMotionsPlugin extends Plugin {
     vimrcCommandCount = 0;
     private pendingVimrcExCommands: string[] = [];
     private vimrcMapKeys: Set<string> = new Set();
+    private vimrcExmapNames: Set<string> = new Set();
     private vimrcWatchPath: string | null = null;
     private luaLoading = false;
     private luaMapOperations: LuaLoadResult['mapOperations'] = [];
@@ -1405,6 +1406,9 @@ export default class VimMotionsPlugin extends Plugin {
                         this.vimrcMaps = vimrcResult.maps;
                         this.vimrcMapKeys = new Set(
                             vimrcResult.maps.map((m) => m.lhs),
+                        );
+                        this.vimrcExmapNames = new Set(
+                            vimrcResult.exmapNames ?? [],
                         );
                         this.vimrcWatchPath = vimrcFound
                             ? vimrcResult.path
@@ -2913,6 +2917,11 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.vimrcMapKeys.clear();
 
+        for (const name of this.vimrcExmapNames) {
+            vim.undefineEx(name);
+        }
+        this.vimrcExmapNames.clear();
+
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         const cm = view ? getCmAdapter(view) : null;
         const leaderKey = this.leaderRegistry?.getLeaderKey() ?? '\\';
@@ -2928,6 +2937,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.vimrcMaps = result.deferredMaps;
         this.vimrcMapKeys = new Set(result.deferredMaps.map((m) => m.lhs));
+        this.vimrcExmapNames = new Set(result.exmapNames);
         this.vimrcCommandCount = result.commandCount;
         applyVimrcMaps(vim, this.vimrcMaps);
 

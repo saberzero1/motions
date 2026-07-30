@@ -298,7 +298,7 @@ Unknown `set` options produce a `console.warn` on first encounter per vimrc load
 
 ## Soft-reload
 
-The vimrc file is watched for changes. When you save the file, `nmap`, `set`, `exmap`, and other commands are re-applied without reloading the plugin. Note: removing an `exmap` definition does not unregister the old handler — stale handlers persist until plugin reload.
+The vimrc file is watched for changes. When you save the file, `nmap`, `set`, `exmap`, and other commands are re-applied without reloading the plugin. Adding, modifying, or removing `exmap` definitions all take effect on save — the fork's `undefineEx()` API cleans up stale handlers automatically.
 
 ## Known issues
 

@@ -114,7 +114,7 @@ Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches 
 - ~~**Line motions target hidden formatting in Live Preview**~~: Fixed. EasyMotion line motions (`<leader><leader>j`/`k`) now skip hidden markdown formatting (heading markers, bold/italic syntax) in Live Preview using `skipHiddenPrefix()` to find the first visually visible character via `coordsAtPos()`. ([#79](https://github.com/saberzero1/motions/issues/79))
 - **RTL (right-to-left) label positioning**: Jump labels always appear to the right of the target, which is incorrect for RTL text. When Obsidian's editor direction is set to RTL, labels should appear to the left. No existing jump-label implementation (flash.nvim, leap.nvim, vim-easymotion, VSCodeVim, AceJump) handles RTL — this is a universally unaddressed problem. Obsidian provides per-line RTL detection via `dir` attributes on `.cm-line` elements, and CM6 offers `EditorView.textDirectionAt(pos)`. A proper fix requires per-target direction detection, flipped label placement, adjusted collision logic, and RTL testing infrastructure. Deferred as a separate feature. ([#79](https://github.com/saberzero1/motions/issues/79))
 - **No macro recording**: Flash label selection is not recorded in macros. Macros capture the search character (`f{char}`) but not the label keypress. This is the same limitation as EasyMotion.
-- **No dot-repeat for label selection**: After `df{char}{label}`, pressing `.` replays the delete-to-char operator but does not replay the label selection. The operator applies to the same relative offset.
+- ~~**No dot-repeat for label selection**~~: Clarified. Dot-repeat after `df{char}{label}` already works correctly — the fork stores the resolved position via `_asyncMotionTarget` and `repeatLastEdit` replays the operator to the same relative offset. The label UI does not re-appear during dot-repeat, which is correct vim behavior (Neovim's `.` never re-shows interactive selection UI).
 - **No remote operations**: flash.nvim's remote mode (`yr{target}` to yank at a distance without moving cursor) is not implemented. This requires vim state manipulation not available in the codemirror-vim fork.
 - **No treesitter mode**: flash.nvim's treesitter node selection is not feasible — CM6 uses Lezer, not treesitter, and does not expose node selection APIs.
 - ~~**Count prefix ignored with labels**~~: Fixed. `3f{char}` now jumps directly to the 3rd match without showing labels. When the count exceeds available matches, the last match is used (Neovim parity). `f{char}` without a count prefix still shows labels for 2+ matches. Works in operator-pending mode (`d3f{char}`) and with `t`/`T` till motions.
@@ -236,7 +236,7 @@ The suppression works by intercepting CM6's `RangeSetBuilder.add` and skipping t
 
 Vimrc maps and settings are soft-reloaded when the vimrc file is modified — changes to `nmap`, `set`, and other map/setting commands take effect without reloading the plugin. The plugin watches the vimrc file via `vault.on('modify')` and re-applies maps and settings on change.
 
-~~**Limitation**: `exmap` definitions only parsed during initial load~~ (Fixed). `exmap` definitions are now soft-reloaded — `softReloadVimrc()` calls `applyVimrcCommands()` which processes `exmap` entries, and `vim.defineEx()` replaces existing handlers. Adding, modifying, or replacing `exmap` entries takes effect on save. Note: removing an `exmap` from vimrc does not unregister the old handler — the fork provides no `undefineEx`. Stale handlers persist until plugin reload.
+~~**Limitation**: `exmap` definitions only parsed during initial load~~ (Fixed). `exmap` definitions are now soft-reloaded — `softReloadVimrc()` calls `applyVimrcCommands()` which processes `exmap` entries, and `vim.defineEx()` replaces existing handlers. Adding, modifying, replacing, or removing `exmap` entries takes effect on save. The fork's `undefineEx()` API cleans up stale handlers — exmap names are tracked per vimrc load and unregistered before re-applying on soft-reload.
 
 ### Config file resolution
 
@@ -649,13 +649,11 @@ The following Neovim Ex commands have no meaningful equivalent in Obsidian and w
 
 | Command                                | Neovim description        | Why N/A                                                   |
 | -------------------------------------- | ------------------------- | --------------------------------------------------------- |
-| `:earlier` / `:later`                  | Time-based undo           | CM Vim does not track undo history by timestamp           |
 | `:args` / `:argdo` / `:next` / `:prev` | Argument list             | No arglist concept — Obsidian manages open files via tabs |
 | `:resize`                              | Resize window             | Obsidian manages pane sizing automatically                |
 | `:tabmove`                             | Reorder tabs              | Obsidian does not expose a tab reorder API                |
 | `:view`                                | Open file read-only       | Obsidian has no read-only mode for notes                  |
 | `:bunload`                             | Unload buffer from memory | Obsidian manages editor memory internally                 |
-| `:sign`                                | Place signs in gutter     | No sign column in Obsidian                                |
 | `:menu`                                | Create GUI menus          | No Vim-style menu system                                  |
 | `:spell*`                              | Spelling commands         | Obsidian has its own built-in spell checker               |
 
@@ -1449,7 +1447,7 @@ Enable/disable via **Settings → Vim Motions → Vim features → Yank-ring pas
 - ~~**Visual-mode paste cycling not supported**~~: Fixed. Cycling now works after visual-mode paste (`viw` + `p` + `<C-p>`). Detects visual paste via anchor/cursor position comparison at snapshot time. Computes paste range via doc-length arithmetic (`pasteLen = newDocLen - oldDocLen + selectionLen`). Visual block paste is excluded. `gp`/`gP` in visual mode bypass the yank-ring (they use custom paste actions that don't trigger `vim-keypress`).
 - **System clipboard paste timing**: The fork's `paste` action uses `navigator.clipboard.readText()` asynchronously for system clipboard registers (`"+p`). The paste override captures state via `setTimeout(0)`, which may fire before the clipboard Promise resolves. Cycling after system clipboard paste is unreliable.
 - **Workspace navigation dependency**: `P`, `gp`, `gP` paste actions are defined by `registerWorkspaceNavigation()`. If workspace navigation is disabled (`enableWorkspaceNav=false`), cycling after these three commands silently fails. Cycling after `p` still works (fork's built-in action).
-- **Dot-repeat**: Pressing `.` after cycling repeats the original paste, not the final cycled text. Updating the fork's `lastEditInfo` for cycled content is deferred.
+- ~~**Dot-repeat**: Pressing `.` after cycling repeats the original paste, not the final cycled text.~~ Fixed. On cycling exit, the final cycled content is written to the original paste register. The fork's `repeatLastEdit` re-reads the register at replay time, so `.` pastes the final cycled text. Follows yanky.nvim's `update_register_on_cycle` semantics. System clipboard registers (`"+`/`"*`) are excluded.
 - **Undo grouping**: Each cycle replacement uses `addToHistory.of(false)` so it does not create a separate undo entry. Pressing `u` after cycling undoes the entire paste+cycle sequence.
 - **Register traversal**: Only numbered registers `"1`–`"9` are traversed (delete/change history). Register `"0` (last yank) and `"-` (small delete) are not included in the cycle.
 

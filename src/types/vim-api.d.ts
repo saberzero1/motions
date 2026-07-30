@@ -100,6 +100,10 @@ export interface VimState {
         keyBuffer: string[];
         [key: string]: unknown;
     };
+    lastEditInputState?: {
+        registerName?: string;
+        [key: string]: unknown;
+    };
     marks?: Record<string, { find(): VimPos | undefined; clear(): void }>;
     status?: string;
 }
@@ -204,6 +208,7 @@ export interface VimApi {
     ): void;
     defineOperator(name: string, fn: OperatorFn): void;
     defineEx(name: string, shortName: string, fn: ExCommandFn): void;
+    undefineEx(name: string): boolean;
 
     map(lhs: string, rhs: string, context?: MapContext): void;
     noremap(lhs: string, rhs: string, context?: MapContext): void;
@@ -298,6 +303,11 @@ export interface VimApi {
             string,
             {
                 toString(): string;
+                setText(
+                    text: string,
+                    linewise?: boolean,
+                    blockwise?: boolean,
+                ): void;
                 keyBuffer: string[];
                 linewise: boolean;
                 blockwise: boolean;
@@ -305,6 +315,11 @@ export interface VimApi {
         >;
         getRegister?(name: string): {
             toString(): string;
+            setText(
+                text: string,
+                linewise?: boolean,
+                blockwise?: boolean,
+            ): void;
             keyBuffer: string[];
             linewise: boolean;
             blockwise: boolean;

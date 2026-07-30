@@ -159,7 +159,81 @@ describe('Yank-ring paste cycling', function () {
         });
     });
 
+    describe('dot-repeat after cycling', function () {
+        beforeEach(async function () {
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+        });
+
+        it('dot-repeat should paste the final cycled text', async function () {
+            await setupEditor('aaa\nbbb\nccc\nddd', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await vimKeys('d', 'd');
+            await vimKeys('p');
+            await browser.pause(100);
+
+            await vimHandleKeys('<C-p>');
+            const afterCycle = await getEditorValue();
+            expect(afterCycle).toContain('aaa');
+
+            await vimKeys('j');
+            await browser.pause(100);
+            await vimKeys('.');
+            await browser.pause(100);
+
+            const afterDot = await getEditorValue();
+            const matches = afterDot.match(/aaa/g);
+            expect(matches?.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('dot-repeat without cycling should paste original text', async function () {
+            await setupEditor('xxx\nyyy\nzzz', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await vimKeys('d', 'd');
+            await vimKeys('p');
+            await browser.pause(100);
+
+            const afterPaste = await getEditorValue();
+            expect(afterPaste).toContain('yyy');
+
+            await vimKeys('j');
+            await browser.pause(100);
+            await vimKeys('.');
+            await browser.pause(100);
+
+            const afterDot = await getEditorValue();
+            const matches = afterDot.match(/yyy/g);
+            expect(matches?.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('single cycle then dot-repeat should paste cycled text', async function () {
+            await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await vimKeys('d', 'd');
+            await vimKeys('p');
+            await browser.pause(100);
+
+            await vimHandleKeys('<C-p>');
+            const afterCycle = await getEditorValue();
+            expect(afterCycle).toContain('aaa');
+
+            await vimKeys('j');
+            await browser.pause(100);
+            await vimKeys('.');
+            await browser.pause(100);
+
+            const afterDot = await getEditorValue();
+            const matches = afterDot.match(/aaa/g);
+            expect(matches?.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+
     describe('visual-mode paste cycling', function () {
+        before(async function () {
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+        });
+
         it('normal-mode paste cycling still works (regression)', async function () {
             await setupEditor('line1\nline2\nline3', { line: 0, ch: 0 });
             await vimHandleKeys('dd');
