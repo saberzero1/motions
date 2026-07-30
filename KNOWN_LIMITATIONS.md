@@ -1016,6 +1016,26 @@ When Obsidian's built-in vim is disabled and the plugin provides vim via the bun
 
 When built-in vim is enabled, vim state is shared globally through Obsidian's editor infrastructure. This limitation only affects fork mode.
 
+### Oil editor degraded when opened from non-editor context
+
+When Oil is opened from a non-editor context — such as a fresh Obsidian start with no file open, or from a non-markdown view (settings, graph view) — the embedded editor may not receive the full extension stack. Observed symptoms:
+
+- **Conceal decorations not applied**: The raw buffer format (`/001 d foldername`) is visible instead of the `📁`/`📄` icon replacements. The cursor can `h`/`l` through individual characters of the prefix, confirming the `oilConcealExtension()` `Decoration.replace` is not active.
+- **Which-key overlay not working**: The which-key popup does not appear on partial key sequences (`g` prefix).
+- **Oil keybindings may not activate**: `g?`, `g.`, and other multi-key Oil bindings may not function.
+
+**Suspected cause**: The `CachedEditorClass` in `embeddable-editor.ts` is built lazily on first `createEmbeddableEditor` call. The class captures `builtinVimOn` at build time and checks `isBundledVimActive()` in `buildLocalExtensions()`. When the first Oil view is created before Obsidian's editor infrastructure has fully initialized (e.g., workspace state restoration during startup, or when no MarkdownView has ever been created in the session), the bundled vim extension or the conceal extension may fail to load into the CM6 instance. The `buildLocalExtensions()` override adds extensions via `super.buildLocalExtensions()` followed by the oil-specific extensions — if the base class method behaves differently without an active editor context, extensions may be silently dropped.
+
+**Investigation needed**:
+
+1. Check whether `resolveEditorPrototype()` produces a different prototype when no MarkdownView exists
+2. Check whether `buildLocalExtensions()` is called at all (or if an error aborts it silently)
+3. Check whether `window.CodeMirrorAdapter.Vim` is available when Oil opens before any editor leaf
+4. Check whether the `OilKeybindingManager.apply()` succeeds (do `vim.map()` calls throw when no adapter exists?)
+5. Reproduce by opening Obsidian with Oil as the only saved workspace view (no markdown files open)
+
+**Workaround**: Open any markdown file first (to initialize the editor infrastructure), then open Oil.
+
 ### Hidden files (dotfiles) are view-only
 
 When "Show hidden files" is enabled, Oil discovers dotfiles (`.gitignore`, `.hidden-folder/`, etc.) via the Obsidian adapter API. These files appear in the directory listing and can be opened, but renaming, deleting, or moving them via Oil buffer editing may fail because Obsidian's Vault API does not index dotfiles. Full CRUD operations on hidden files are not yet supported.
