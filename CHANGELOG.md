@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.91.0] - 2026-07-30
+
 ### Fixed
 
 - **Which-key popup disappears quickly in non-editor views** — in non-editor views (reading view, graph, canvas, etc.), the which-key popup appeared and vanished after ~500ms instead of staying visible until the user completed the key sequence. Root cause: the global key handler's 1000ms `SEQUENCE_TIMEOUT` fired `resetSequence()` unconditionally, dismissing the popup even when partial completions existed. In editor mode, the which-key overlay stays open until the command completes (driven by `vim-keypress`/`vim-command-done` events, not a fixed timer). Fixed by checking for partial matches when the timeout fires — if the current key buffer has pending completions in the registry, the timeout restarts instead of resetting. The popup now stays alive until the user completes or abandons the sequence. ([#97](https://github.com/saberzero1/motions/issues/97))

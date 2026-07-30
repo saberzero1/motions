@@ -31,11 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.90.0
+## What's new in 0.91.0
 
-- **Oil explorer fixes** — closing Oil now restores your previous editor mode (source/live preview/reading) instead of defaulting to reading mode; cursor focus is properly restored when switching back to an Oil tab; `:Oil .` and `:Oil /` correctly open the vault root; hidden files (dotfiles) are now visible in Oil listings ([#93](https://github.com/saberzero1/motions/issues/93))
-- **Surround doubled symmetric delimiters** — `ds$` on `$$example$$` now correctly deletes the inner pair; same fix for `cs$`, `ds"` on `""hi""`, and other doubled same-open/close delimiters ([#96](https://github.com/saberzero1/motions/issues/96))
-- **Snippet ex commands survive config reload** — `:snippet` and `:snippets` no longer silently break after vimrc/Lua config reload ([#95](https://github.com/saberzero1/motions/issues/95))
-- **Which-key EasyMotion with space leader** — EasyMotion commands now appear correctly in the which-key popup when using space as the leader key ([#94](https://github.com/saberzero1/motions/issues/94))
+- **Which-key popup persistence in non-editor views** — the which-key popup no longer vanishes after ~500ms in reading view, graph, canvas, and other non-editor contexts; partial-match sequences now keep the popup alive until completed or abandoned ([#97](https://github.com/saberzero1/motions/issues/97))
+- **`gt`/`Ngt` tab navigation** — `gt` without a count now correctly goes to the next tab (not the first) in both editor and non-editor views; `2gt`/`3gt` go to the Nth tab; sidebar leaves are no longer counted in tab numbering ([#97](https://github.com/saberzero1/motions/issues/97))
+- **Oil explorer robustness** — Oil now works correctly when opened from non-editor contexts (empty pane, settings, graph); file/folder opening at vault root no longer silently fails; the tab title updates when navigating directories; `g.` hidden files toggle works; `<CR>` opens files in the same leaf instead of a new tab ([#93](https://github.com/saberzero1/motions/issues/93))
+- **New Oil keybindings** — `<C-t>` (new tab), `<C-s>`/`<C-h>` (vertical/horizontal split), `<C-c>` (close), and `gx` (open in default app), matching oil.nvim defaults
 
 See the [[changelog|full changelog]] for details.
