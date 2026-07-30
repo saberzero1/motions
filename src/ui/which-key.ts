@@ -139,7 +139,8 @@ function isValidInOperatorPending(entry: {
     return OPERATOR_PENDING_TYPES.has(entry.type) || !!entry.operatorPending;
 }
 
-function isSpecialKey(key: string): boolean {
+export function isSpecialKey(key: string): boolean {
+    if (key === '<Space>') return false;
     return key.startsWith('<') && key.endsWith('>');
 }
 
@@ -988,9 +989,10 @@ export class LeaderRegistry {
         rhs: string,
         source: 'builtin' | 'user' = 'user',
     ): void {
-        const leader = this.leaderKey;
-        if (!lhs.startsWith(leader)) return;
-        const key = lhs.slice(leader.length);
+        const leader = normalizeVimKey(this.leaderKey);
+        const normalizedLhs = normalizeVimKey(lhs);
+        if (!normalizedLhs.startsWith(leader)) return;
+        const key = normalizedLhs.slice(leader.length);
         if (key.length === 0) return;
 
         const existing = this.bindings.find((b) => b.key === key);
@@ -1009,7 +1011,12 @@ export class LeaderRegistry {
         icon?: string,
         color?: string,
     ): void {
-        this.groupLabels.set(prefix, { label, builtin, icon, color });
+        this.groupLabels.set(normalizeVimKey(prefix), {
+            label,
+            builtin,
+            icon,
+            color,
+        });
     }
 
     clearBuiltinBindings(): void {

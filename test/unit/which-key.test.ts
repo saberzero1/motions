@@ -4,6 +4,8 @@ import {
     normalizeVimKey,
     lookupObsidianCommandName,
     describeKeymapEntry,
+    LeaderRegistry,
+    isSpecialKey,
 } from '../../src/ui/which-key';
 
 describe('normalizeVimKey', () => {
@@ -258,5 +260,200 @@ describe('describeKeymapEntry', () => {
                 describeKeymapEntry({ type: 'keyToKey', toKeys: ':ob' }, app),
             ).toBe(':ob');
         });
+    });
+});
+
+describe('LeaderRegistry', () => {
+    function makeRegistry(leaderKey: string): LeaderRegistry {
+        const reg = new LeaderRegistry();
+        reg.setLeaderKey(leaderKey);
+        return reg;
+    }
+
+    describe('addBinding normalization', () => {
+        it('normalizes literal space leader when storing bindings', () => {
+            const reg = makeRegistry(' ');
+            reg.addBinding('  f', 'Find char', 'builtin');
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.key).toBe('<Space>f');
+        });
+
+        it('normalizes already-normalized leader when storing bindings', () => {
+            const reg = makeRegistry('<Space>');
+            reg.addBinding('<Space><Space>f', 'Find char', 'builtin');
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.key).toBe('<Space>f');
+        });
+
+        it('stores consistent keys regardless of leader format', () => {
+            const regRaw = makeRegistry(' ');
+            regRaw.addBinding('  f', 'Find char', 'builtin');
+
+            const regNorm = makeRegistry('<Space>');
+            regNorm.addBinding('<Space><Space>f', 'Find char', 'builtin');
+
+            expect(regRaw.getBindings()[0]!.key).toBe(
+                regNorm.getBindings()[0]!.key,
+            );
+        });
+
+        it('rejects bindings that do not start with leader', () => {
+            const reg = makeRegistry(' ');
+            reg.addBinding('xf', 'something', 'builtin');
+            expect(reg.getBindings()).toHaveLength(0);
+        });
+
+        it('rejects binding that is just the leader key', () => {
+            const reg = makeRegistry(' ');
+            reg.addBinding(' ', 'bare leader', 'builtin');
+            expect(reg.getBindings()).toHaveLength(0);
+        });
+
+        it('updates existing binding with same normalized key', () => {
+            const reg = makeRegistry(' ');
+            reg.addBinding(' f', 'First', 'builtin');
+            reg.addBinding(' f', 'Updated', 'user');
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.command).toBe('Updated');
+            expect(bindings[0]!.source).toBe('user');
+        });
+
+        it('handles backslash leader (default)', () => {
+            const reg = new LeaderRegistry();
+            reg.addBinding('\\f', 'Find', 'builtin');
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.key).toBe('f');
+        });
+
+        it('handles comma leader', () => {
+            const reg = makeRegistry(',');
+            reg.addBinding(',w', 'Save', 'user');
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.key).toBe('w');
+        });
+    });
+
+    describe('addGroupLabel normalization', () => {
+        it('normalizes literal space prefix in group labels', () => {
+            const reg = makeRegistry(' ');
+            reg.addGroupLabel(' ', 'EasyMotion', true, 'zap', 'yellow');
+            const labels = reg.getGroupLabels();
+            expect(labels.has('<Space>')).toBe(true);
+            expect(labels.get('<Space>')!.label).toBe('EasyMotion');
+        });
+
+        it('normalizes already-normalized prefix in group labels', () => {
+            const reg = makeRegistry('<Space>');
+            reg.addGroupLabel('<Space>', 'EasyMotion', true, 'zap', 'yellow');
+            const labels = reg.getGroupLabels();
+            expect(labels.has('<Space>')).toBe(true);
+        });
+
+        it('stores same label regardless of prefix format', () => {
+            const regRaw = makeRegistry(' ');
+            regRaw.addGroupLabel(' ', 'EasyMotion', true);
+
+            const regNorm = makeRegistry('<Space>');
+            regNorm.addGroupLabel('<Space>', 'EasyMotion', true);
+
+            const rawKeys = [...regRaw.getGroupLabels().keys()];
+            const normKeys = [...regNorm.getGroupLabels().keys()];
+            expect(rawKeys).toEqual(normKeys);
+        });
+    });
+
+    describe('clearBuiltinBindings', () => {
+        it('removes builtin bindings but keeps user bindings', () => {
+            const reg = makeRegistry(' ');
+            reg.addBinding(' f', 'Builtin find', 'builtin');
+            reg.addBinding(' w', 'User save', 'user');
+            reg.addGroupLabel(' ', 'EasyMotion', true);
+            reg.addGroupLabel('g', 'Git', false);
+
+            reg.clearBuiltinBindings();
+
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.key).toBe('w');
+
+            const labels = reg.getGroupLabels();
+            expect(labels.has('<Space>')).toBe(false);
+            expect(labels.has('g')).toBe(true);
+        });
+    });
+
+    describe('double-leader drill-down (issue #94)', () => {
+        it('EasyMotion bindings have normalized keys that match <Space> prefix', () => {
+            const reg = makeRegistry(' ');
+
+            // Simulate EasyMotion registration: leader + leader + keySuffix
+            const leader = reg.getLeaderKey();
+            const defs = ['f', 'F', 's', 'w', 'b', 'j', 'k'];
+            for (const suffix of defs) {
+                reg.addBinding(
+                    leader + leader + suffix,
+                    `EM ${suffix}`,
+                    'builtin',
+                );
+            }
+            reg.addGroupLabel(leader, 'EasyMotion', true, 'zap', 'yellow');
+
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(defs.length);
+
+            // All bindings should have keys starting with <Space> (normalized)
+            for (const b of bindings) {
+                expect(b.key.startsWith('<Space>')).toBe(true);
+            }
+
+            // Drill-down: filter by <Space> prefix (simulating second leader press)
+            const drillDown = bindings.filter((b) =>
+                b.key.startsWith('<Space>'),
+            );
+            expect(drillDown).toHaveLength(defs.length);
+
+            // Group label should be findable at normalized key
+            const labels = reg.getGroupLabels();
+            expect(labels.has('<Space>')).toBe(true);
+            expect(labels.get('<Space>')!.label).toBe('EasyMotion');
+        });
+
+        it('single-leader bindings do not start with <Space> prefix', () => {
+            const reg = makeRegistry(' ');
+            const leader = reg.getLeaderKey();
+
+            // Single-leader binding: leader + "w"
+            reg.addBinding(leader + 'w', 'Save', 'user');
+
+            const bindings = reg.getBindings();
+            expect(bindings).toHaveLength(1);
+            expect(bindings[0]!.key).toBe('w');
+            // Should NOT match <Space> drill-down filter
+            expect(bindings[0]!.key.startsWith('<Space>')).toBe(false);
+        });
+    });
+});
+
+describe('isSpecialKey', () => {
+    it('returns false for <Space>', () => {
+        expect(isSpecialKey('<Space>')).toBe(false);
+    });
+
+    it('returns true for other angle-bracket keys', () => {
+        expect(isSpecialKey('<CR>')).toBe(true);
+        expect(isSpecialKey('<Left>')).toBe(true);
+        expect(isSpecialKey('<C-n>')).toBe(true);
+        expect(isSpecialKey('<Esc>')).toBe(true);
+    });
+
+    it('returns false for plain keys', () => {
+        expect(isSpecialKey('f')).toBe(false);
+        expect(isSpecialKey('\\')).toBe(false);
+        expect(isSpecialKey(',')).toBe(false);
     });
 });

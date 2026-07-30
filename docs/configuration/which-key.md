@@ -48,6 +48,8 @@ Configure via **Settings → Vim Motions → Which-key leader grouping**, `vim.o
 | `grouped` | Collapse bindings by prefix (default). Pressing `<leader>` shows `t → Table (+11)` instead of listing all table commands. Press `t` to drill into the group. |
 | `flat`    | Show all bindings in a flat list without grouping                                                                                                            |
 
+Multi-key prefixes are grouped correctly. EasyMotion commands (`<leader><leader>f`, `<leader><leader>w`, etc.) appear as a single "EasyMotion" group after the first `<leader>` press. Pressing the second `<leader>` drills into the group to show individual EasyMotion commands.
+
 ## Sort order
 
 Configure via **Settings → Vim Motions → Which-key hints → Which-key sort order**, `vim.opt.whichkeysort = "order"` in Lua, or `set whichkeysort=<order>` (alias `wks`) in vimrc.

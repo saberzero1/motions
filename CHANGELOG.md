@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Which-key shows EasyMotion commands incorrectly with space leader** — EasyMotion commands (prefixed with `<leader><leader>`) appeared at the wrong level in the which-key popup when using space as the leader key. Two root causes: (1) `LeaderRegistry.addBinding()` stripped the leader prefix using the raw leader key (`" "`), but `onKeyPressLeaderOnly()` compared against normalized keys (`"<Space>"` from `vim-keypress` events). The stored binding keys (`" f"`) never matched the normalized drill-down prefix (`"<Space>"`). Similarly, `addGroupLabel()` stored the group label key in raw format, causing `getRelativeGroupLabels()` lookups to miss. Fixed by normalizing both `lhs` and `prefix` via `normalizeVimKey()` at storage time in `addBinding()` and `addGroupLabel()`. (2) In grouped mode, `buildNextKeyEntries()` called `isSpecialKey()` to filter out non-typeable keys like `<CR>`, `<Left>`, etc. — but `<Space>` was also treated as special, causing all EasyMotion bindings (whose first key after leader-stripping is `<Space>`) to be silently dropped from the grouping. Fixed by exempting `<Space>` from the special key check. ([#94](https://github.com/saberzero1/motions/issues/94))
+    - Plugin: `src/ui/which-key.ts` (`LeaderRegistry.addBinding` — normalize `lhs` and leader before stripping; `LeaderRegistry.addGroupLabel` — normalize `prefix` before storing; `isSpecialKey` — exempt `<Space>` from special key filtering)
+
+### Tests
+
+- 28 unit tests in `test/unit/which-key.test.ts`: `LeaderRegistry` normalization (raw space leader, pre-normalized leader, format consistency, non-leader rejection, bare-leader rejection, deduplication, backslash leader, comma leader), group label normalization (raw vs normalized prefix, cross-format consistency), `clearBuiltinBindings` with normalized keys, double-leader drill-down (issue #94 scenario — EasyMotion bindings filterable by `<Space>` prefix, single-leader bindings excluded), `isSpecialKey` (`<Space>` exempt, other angle-bracket keys special, plain keys not special)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added which-key EasyMotion double-leader fix to which-key overlay section
+- `docs/configuration/which-key.md`: Added note about double-leader prefix grouping for EasyMotion
+
 ## [0.89.0] - 2026-07-30
 
 ### Fixed

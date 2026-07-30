@@ -407,6 +407,12 @@ Groups are labeled with a generic `+N keys` text by default. Custom labels can b
 
 Built-in features register default labels (Table, EasyMotion) that user entries can override. Whitespace in the prefix field is trimmed.
 
+### ~~EasyMotion commands shown incorrectly with space leader~~ (Fixed)
+
+**Status**: Fixed. `LeaderRegistry.addBinding()` and `addGroupLabel()` now normalize keys via `normalizeVimKey()` at storage time, ensuring consistent `<Space>` notation across all comparison paths. ([#94](https://github.com/saberzero1/motions/issues/94))
+
+EasyMotion commands (prefixed with `<leader><leader>`) appeared at the wrong level in the which-key popup when using space as the leader key. Two root causes: (1) The stored binding keys used raw space (`" f"`) while the drill-down prefix used normalized notation (`"<Space>"`), so the `startsWith` filter never matched. The group label had the same mismatch. Both `addBinding()` and `addGroupLabel()` now normalize their inputs. (2) In grouped mode, `buildNextKeyEntries()` treated `<Space>` as a "special key" (like `<CR>`, `<Left>`) and silently dropped all entries whose first key was `<Space>` from the grouping display. Fixed by exempting `<Space>` from the special key check — it is a typeable key that users press.
+
 ### ~~Descriptions not showing for Lua keymaps with space leader~~ (Fixed)
 
 **Status**: Fixed. Key normalization unified between the codemirror-vim fork and the which-key overlay. ([#58](https://github.com/saberzero1/motions/issues/58))
