@@ -152,9 +152,12 @@ export function createJumpListWalkOverride(
 }
 
 function gotoNthTab(app: App, n: number): void {
+    const rootSplit = app.workspace.rootSplit;
     const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
     app.workspace.iterateAllLeaves((leaf) => {
-        leaves.push(leaf);
+        if (leaf.getRoot() === rootSplit) {
+            leaves.push(leaf);
+        }
     });
     const target = leaves[n - 1];
     if (target) {
@@ -228,7 +231,7 @@ export function registerDefaultGlobalMappings(
         'j',
         {
             type: 'builtin',
-            fn: (app2, count) => scrollBy(app2, LINE_HEIGHT * count),
+            fn: (app2, count) => scrollBy(app2, LINE_HEIGHT * (count || 1)),
         },
         'standard',
         'scrollDown',
@@ -237,7 +240,7 @@ export function registerDefaultGlobalMappings(
         'k',
         {
             type: 'builtin',
-            fn: (app2, count) => scrollBy(app2, -LINE_HEIGHT * count),
+            fn: (app2, count) => scrollBy(app2, -LINE_HEIGHT * (count || 1)),
         },
         'standard',
         'scrollUp',
@@ -392,7 +395,7 @@ export function registerDefaultGlobalMappings(
             'f',
             {
                 type: 'builtin',
-                fn: (_app2, count) => hintActions.activate(count),
+                fn: (_app2, count) => hintActions.activate(count || 1),
             },
             'hint',
         );
@@ -400,18 +403,24 @@ export function registerDefaultGlobalMappings(
             'F',
             {
                 type: 'builtin',
-                fn: (_app2, count) => hintActions.openNew(count),
+                fn: (_app2, count) => hintActions.openNew(count || 1),
             },
             'hint',
         );
         add(
             'yf',
-            { type: 'builtin', fn: (_app2, count) => hintActions.yank(count) },
+            {
+                type: 'builtin',
+                fn: (_app2, count) => hintActions.yank(count || 1),
+            },
             'hint',
         );
         add(
             'df',
-            { type: 'builtin', fn: (_app2, count) => hintActions.close(count) },
+            {
+                type: 'builtin',
+                fn: (_app2, count) => hintActions.close(count || 1),
+            },
             'hint',
         );
     }

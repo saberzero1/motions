@@ -125,10 +125,19 @@ export class GlobalKeyHandler {
 
     private startTimeout(): void {
         if (this.timer !== null) window.clearTimeout(this.timer);
-        this.timer = window.setTimeout(
-            () => this.resetSequence(),
-            SEQUENCE_TIMEOUT,
-        );
+        this.timer = window.setTimeout(() => {
+            // Keep sequence alive while which-key has pending completions
+            // (matches editor which-key behavior: popup stays until command completes).
+            const seq = this.keyBuffer.join('');
+            if (seq) {
+                const result = this.registry.resolve(seq);
+                if (result.type === 'partial') {
+                    this.startTimeout();
+                    return;
+                }
+            }
+            this.resetSequence();
+        }, SEQUENCE_TIMEOUT);
     }
 
     private chordText(): string {
@@ -195,10 +204,10 @@ export class GlobalKeyHandler {
     }
 
     private dispatch(entry: GlobalMapEntry): void {
-        const count = this.count || 1;
         const action = entry.action;
         if (action.type === 'obcommand') {
-            for (let i = 0; i < count; i++) {
+            const repeat = this.count || 1;
+            for (let i = 0; i < repeat; i++) {
                 executeCommand(this.app, action.commandId);
             }
         } else if (action.type === 'ex') {
@@ -209,7 +218,7 @@ export class GlobalKeyHandler {
                 this.openPicker,
             );
         } else if (action.type === 'builtin') {
-            action.fn(this.app, count);
+            action.fn(this.app, this.count);
         }
     }
 

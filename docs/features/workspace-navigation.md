@@ -16,6 +16,18 @@ Manage your workspace layout using standard Vim window commands. The plugin supp
 
 The `<C-w>` prefix allows for intuitive movement between splits. Use `<C-w>h`, `<C-w>j`, `<C-w>k`, and `<C-w>l` to move focus to the left, bottom, top, or right pane respectively.
 
+## Tab navigation
+
+`gt` and `gT` cycle through tabs. `gt` supports a count prefix matching Neovim behavior:
+
+- `gt` — go to the next tab (wraps around)
+- `gT` — go to the previous tab
+- `Ngt` — go to the Nth tab (e.g., `3gt` goes to the 3rd tab)
+
+Tab numbering only counts main editor area tabs — sidebar panes are excluded. When the count exceeds the number of open tabs, the cursor stays on the current tab.
+
+This works in both editor and non-editor views (graph, canvas, reading view, etc.).
+
 > [!warning] Control-W Conflict
 > Obsidian's default **Close current tab** hotkey is bound to `Ctrl+W`. You must unbind it in **Settings → Hotkeys** (search for "Close current tab") for the `<C-w>` prefix commands to work. Once unbound, you can close tabs using `:q`, `:quit`, `<C-w>c`, or `<C-w>q`.
 

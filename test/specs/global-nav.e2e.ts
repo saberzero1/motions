@@ -96,6 +96,59 @@ async function loadTwoTabs(): Promise<void> {
     await browser.pause(PAUSE.OBSIDIAN_LOAD);
 }
 
+async function loadThreeTabs(): Promise<void> {
+    await obsidianPage.write('Note-A.md', 'Content A');
+    await obsidianPage.write('Note-B.md', 'Content B');
+    await obsidianPage.loadWorkspaceLayout({
+        main: {
+            id: 'tabs-root-3',
+            type: 'split',
+            children: [
+                {
+                    id: 'tab-group-3',
+                    type: 'tabs',
+                    children: [
+                        {
+                            id: 'tab3-1',
+                            type: 'leaf',
+                            state: {
+                                type: 'markdown',
+                                state: { file: 'Welcome.md', mode: 'source' },
+                            },
+                        },
+                        {
+                            id: 'tab3-2',
+                            type: 'leaf',
+                            state: {
+                                type: 'markdown',
+                                state: { file: 'Note-A.md', mode: 'source' },
+                            },
+                        },
+                        {
+                            id: 'tab3-3',
+                            type: 'leaf',
+                            state: {
+                                type: 'graph',
+                                state: {},
+                            },
+                        },
+                    ],
+                },
+            ],
+            direction: 'vertical',
+        },
+        active: 'tab3-3',
+        lastOpenFiles: [],
+    });
+    await browser.pause(PAUSE.OBSIDIAN_LOAD);
+}
+
+async function getActiveFilePath(): Promise<string> {
+    return (await browser.executeObsidian(({ app }) => {
+        return app.workspace.getActiveFile()?.path ?? '';
+    })) as string;
+}
+
 describe('Global workspace navigation', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -148,6 +201,139 @@ describe('Global workspace navigation', function () {
 
             const viewType = await getActiveViewType();
             expect(viewType).toBe('markdown');
+        });
+    });
+
+    describe('Tab navigation with count from editor (Ngt)', function () {
+        async function loadThreeTabsEditorOnLast(): Promise<void> {
+            await obsidianPage.write('Note-A.md', 'Content A');
+            await obsidianPage.write('Note-B.md', 'Content B');
+            await obsidianPage.loadWorkspaceLayout({
+                main: {
+                    id: 'editor-ngt-root',
+                    type: 'split',
+                    children: [
+                        {
+                            id: 'editor-ngt-tabs',
+                            type: 'tabs',
+                            children: [
+                                {
+                                    id: 'editor-ngt-1',
+                                    type: 'leaf',
+                                    state: {
+                                        type: 'markdown',
+                                        state: {
+                                            file: 'Welcome.md',
+                                            mode: 'source',
+                                        },
+                                    },
+                                },
+                                {
+                                    id: 'editor-ngt-2',
+                                    type: 'leaf',
+                                    state: {
+                                        type: 'markdown',
+                                        state: {
+                                            file: 'Note-A.md',
+                                            mode: 'source',
+                                        },
+                                    },
+                                },
+                                {
+                                    id: 'editor-ngt-3',
+                                    type: 'leaf',
+                                    state: {
+                                        type: 'markdown',
+                                        state: {
+                                            file: 'Note-B.md',
+                                            mode: 'source',
+                                        },
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    direction: 'vertical',
+                },
+                active: 'editor-ngt-3',
+                lastOpenFiles: [],
+            });
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (view) view.editor.focus();
+            });
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+        }
+
+        it('gt without count should go to next tab (not first)', async function () {
+            await loadThreeTabsEditorOnLast();
+
+            await browser.executeObsidian(({ app }) => {
+                const leaves = app.workspace.getLeavesOfType('markdown');
+                const noteA = leaves.find(
+                    (l) => l.view.getState()?.file === 'Note-A.md',
+                );
+                if (noteA) app.workspace.setActiveLeaf(noteA, { focus: true });
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+
+            const before = await getActiveFilePath();
+            expect(before).toBe('Note-A.md');
+
+            await browser.keys(['g', 't']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveFilePath();
+            expect(after).toBe('Note-B.md');
+        });
+
+        it('1gt should go to first tab', async function () {
+            await loadThreeTabsEditorOnLast();
+
+            await browser.keys(['1', 'g', 't']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveFilePath();
+            expect(after).toBe('Welcome.md');
+        });
+
+        it('2gt should go to second tab', async function () {
+            await loadThreeTabsEditorOnLast();
+            const before = await getActiveFilePath();
+            expect(before).toBe('Note-B.md');
+
+            await browser.keys(['2', 'g', 't']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveFilePath();
+            expect(after).toBe('Note-A.md');
+        });
+
+        it('3gt should go to third tab', async function () {
+            await loadThreeTabsEditorOnLast();
+
+            await browser.keys(['3', 'g', 't']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveFilePath();
+            expect(after).toBe('Note-B.md');
+        });
+
+        it('count exceeding tab count should stay on current tab', async function () {
+            await loadThreeTabsEditorOnLast();
+
+            await browser.keys(['9', 'g', 't']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveFilePath();
+            expect(after).toBe('Note-B.md');
         });
     });
 
@@ -276,8 +462,88 @@ describe('Global workspace navigation', function () {
         });
     });
 
+    describe('Tab navigation with count (Ngt)', function () {
+        it('gt without count should go to next tab', async function () {
+            await loadThreeTabs();
+            const before = await getActiveViewType();
+            expect(before).toBe('graph');
+
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['t']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveViewType();
+            expect(after).toBe('markdown');
+            const filePath = await getActiveFilePath();
+            expect(filePath).toBe('Welcome.md');
+        });
+
+        it('1gt should go to first tab', async function () {
+            await loadThreeTabs();
+            const before = await getActiveViewType();
+            expect(before).toBe('graph');
+
+            await browser.keys(['1']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['t']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const filePath = await getActiveFilePath();
+            expect(filePath).toBe('Welcome.md');
+        });
+
+        it('2gt should go to second tab', async function () {
+            await loadThreeTabs();
+            const before = await getActiveViewType();
+            expect(before).toBe('graph');
+
+            await browser.keys(['2']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['t']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const filePath = await getActiveFilePath();
+            expect(filePath).toBe('Note-A.md');
+        });
+
+        it('3gt should go to third tab', async function () {
+            await loadThreeTabs();
+
+            await browser.keys(['3']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['t']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveViewType();
+            expect(after).toBe('graph');
+        });
+
+        it('count exceeding tab count should not change tab', async function () {
+            await loadThreeTabs();
+            const before = await getActiveViewType();
+            expect(before).toBe('graph');
+
+            await browser.keys(['9']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['t']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getActiveViewType();
+            expect(after).toBe('graph');
+        });
+    });
+
     describe('Sequence timeout', function () {
-        it('g followed by timeout should not trigger gt', async function () {
+        it('g followed by delay then t should still trigger gt (partial match keeps sequence alive)', async function () {
             await loadTwoTabs();
             const before = await getActiveViewType();
             expect(before).toBe('graph');
@@ -288,7 +554,7 @@ describe('Global workspace navigation', function () {
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const after = await getActiveViewType();
-            expect(after).toBe('graph');
+            expect(after).toBe('markdown');
         });
     });
 

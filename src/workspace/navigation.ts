@@ -39,9 +39,12 @@ function createCloseOthersAction(app: App): ActionFn {
 function createGotoTabAction(app: App): ActionFn {
     return (_cm, actionArgs) => {
         const n = actionArgs.repeat ?? 1;
+        const rootSplit = app.workspace.rootSplit;
         const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
         app.workspace.iterateAllLeaves((leaf) => {
-            leaves.push(leaf);
+            if (leaf.getRoot() === rootSplit) {
+                leaves.push(leaf);
+            }
         });
         const target = leaves[n - 1];
         if (target) {
@@ -213,8 +216,28 @@ export function registerWorkspaceNavigation(
 
     const nextTabAction = createCommandAction(app, 'workspace:next-tab');
     reg.defineAction('nextTab', nextTabAction);
-    reg.mapCommand('gt', 'action', 'nextTab', {});
     exCommandFromAction(reg, 'nexttab', '', nextTabAction);
+
+    const gtAction: ActionFn = (_cm, actionArgs) => {
+        if (actionArgs.repeatIsExplicit) {
+            const n = actionArgs.repeat ?? 1;
+            const rootSplit = app.workspace.rootSplit;
+            const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.getRoot() === rootSplit) {
+                    leaves.push(leaf);
+                }
+            });
+            const target = leaves[n - 1];
+            if (target) {
+                app.workspace.setActiveLeaf(target, { focus: true });
+            }
+        } else {
+            executeCommand(app, 'workspace:next-tab');
+        }
+    };
+    reg.defineAction('gt', gtAction);
+    reg.mapCommand('gt', 'action', 'gt', {});
 
     const prevTabAction = createCommandAction(app, 'workspace:previous-tab');
     reg.defineAction('prevTab', prevTabAction);

@@ -138,13 +138,13 @@ src/
     dial-rules.ts          # Dial rules (checkbox, boolean, hex, date, CSS, integer)
     register-dial.ts       # Dial action override registration
   workspace/
-    navigation.ts          # Pane/tab/fold/gd/gx/gO/gf/hint-mode keybindings + <leader>r* note actions
+    navigation.ts          # Pane/tab/fold/gd/gx/gO/gf/hint-mode keybindings + <leader>r* note actions — gt uses repeatIsExplicit for Ngt count support, gotoNthTab filters to rootSplit
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation
-    global-key-handler.ts  # Global key event handling (outside editor)
+    global-key-handler.ts  # Global key event handling (outside editor) — dispatch passes raw count to builtin handlers, sequence timeout restarts on partial match (which-key parity)
     global-mapping-registry.ts  # Registry for global key mappings
-    global-defaults.ts     # Default global keybindings
+    global-defaults.ts     # Default global keybindings — gotoNthTab filters to rootSplit leaves only
   easymotion/
     register.ts            # Wires EasyMotion to keybindings
     targets.ts             # Target detection (words, lines, chars)

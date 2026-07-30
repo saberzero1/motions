@@ -374,6 +374,8 @@ The which-key overlay has three modes (configurable via **Settings → Vim Motio
 
 The popup delay is configurable via **Settings → Vim Motions → Which-key popup delay** or `set whichkeydelay=<ms>` in vimrc (range 0–2000ms, default 500ms). Once the popup is visible, subsequent keystrokes update it instantly — the delay only applies to the initial appearance.
 
+~~**Global which-key popup disappears quickly in non-editor views**~~: Fixed. The global key handler's sequence timeout now restarts when partial completions exist instead of resetting unconditionally. This matches editor which-key behavior where the popup stays until the command completes. ([#97](https://github.com/saberzero1/motions/issues/97))
+
 In "all" mode, the overlay reads the fork's `getInputState()` to detect operator-pending state and `vim.status` for partial key chords. Operator-pending mode shows grouped next-key options filtered to motions, text objects, and operatorPending actions. Prefix keys (like `g`, `z`) show `getCompletions()` results. Special keys (`<Left>`, `<C-n>`, etc.) and insert-only entries are filtered out. When the key buffer is in leader scope (starts with the leader key and not in operator-pending mode), `showCompletions()` uses `leaderBindings` instead of `getCompletions()` to show only user-visible leader keymaps — matching the behavior of the "leader key only" mode. ([#91](https://github.com/saberzero1/motions/issues/91))
 
 The overlay attaches to the active editor pane's `contentEl` with `position: absolute`, so it stays within the editor bounds and doesn't cover other panes. Maximum height is 40% of the pane. The multi-column grid layout uses `auto-fill` with `minmax(200px, 1fr)` columns.
@@ -488,6 +490,12 @@ In standard Vim, `H`/`L` move the cursor to the top/bottom of the visible screen
 ### `Ctrl-o`/`Ctrl-i` dual purpose
 
 In editor context, codemirror-vim uses `<C-o>`/`<C-i>` for the within-file jumplist. In non-editor views, the global handler maps them to `app:go-back`/`app:go-forward` (Obsidian's history navigation). There is no conflict because the global handler only fires when no editor is focused.
+
+### ~~`gt` always goes to first tab / `Ngt` count ignored~~ (Fixed)
+
+**Status**: Fixed. `gt` now goes to next tab (no count) or Nth tab (with count) in both editor and non-editor views. ([#97](https://github.com/saberzero1/motions/issues/97))
+
+Three bugs fixed: (1) In non-editor views, the global key handler's `dispatch()` used `this.count || 1`, making count 0 (no count typed) indistinguishable from count 1 — `gt` always called `gotoNthTab(1)`. (2) In editor views, `gt` was mapped to `workspace:next-tab` which ignores `actionArgs.repeat` entirely — `2gt` always went to next tab. Fixed by using `actionArgs.repeatIsExplicit` to distinguish "no count" from "explicit count". (3) `gotoNthTab` counted all workspace leaves including sidebar panes — `3gt` could navigate to a sidebar pane. Fixed by filtering with `leaf.getRoot() === rootSplit`.
 
 ### `Editor-only ex commands`
 
