@@ -123,6 +123,11 @@ export class OilKeybindingManager {
             this.autocmdManager?.fire('OilLeave');
         }
         this.wasInOil = isOil;
+
+        if (isOil) {
+            const view = leaf?.view instanceof OilView ? leaf.view : null;
+            view?.focusEditor();
+        }
     }
 
     private apply(): void {
@@ -224,19 +229,7 @@ export class OilKeybindingManager {
                 void manager.navigateToDirectory(view.getDirPath());
             },
             oilClose: () => {
-                const view = getActiveOilView();
-                if (!view) return;
-                const leaf = app.workspace.getMostRecentLeaf();
-                if (!leaf) return;
-                const previousFile = view.getPreviousFile();
-                const file = previousFile
-                    ? app.vault.getAbstractFileByPath(previousFile)
-                    : null;
-                if (file) {
-                    void leaf.openFile(file as import('obsidian').TFile);
-                } else {
-                    leaf.detach();
-                }
+                manager.closeOil();
             },
             oilToggleHidden: () => {
                 const view = getActiveOilView();

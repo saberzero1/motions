@@ -184,13 +184,13 @@ src/
     strftime.ts            # os.date-compatible time formatting
     types.d.ts             # Lua engine type declarations
   oil/
-    oil-view.ts            # Oil file explorer view (ItemView)
-    manager.ts             # Oil session lifecycle management
+    oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery
+    manager.ts             # Oil session lifecycle management — openOil() captures editor mode, closeOil() restores mode via leaf.openFile({ state }), discoverAndMergeHidden() async dotfile discovery with race condition guard
     parser.ts              # Buffer text ↔ directory entry parsing
     diff.ts                # Diff buffer edits to file system operations
     actions.ts             # File operations (create, rename, delete, move)
-    render.ts              # Directory listing rendering
-    keybindings.ts         # Oil-specific vim keybindings
+    render.ts              # Directory listing rendering — discoverHiddenEntries() via adapter.list() for dotfiles not in Vault index
+    keybindings.ts         # Oil-specific vim keybindings — oilClose delegates to manager.closeOil(), focus restoration in onActiveLeafChange
     extensions.ts          # CM6 extensions for Oil buffers
     cache.ts               # Directory listing cache
     types.ts               # Oil type definitions

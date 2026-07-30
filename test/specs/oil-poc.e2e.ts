@@ -1,6 +1,12 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { PAUSE } from '../helpers';
+import {
+    PAUSE,
+    ensureLivePreview,
+    ensureSourceMode,
+    isLivePreview,
+    isSourceMode,
+} from '../helpers';
 
 type VimHandle = {
     handleEx: (cm: unknown, input: string) => void;
@@ -578,6 +584,140 @@ describe('Oil explorer', function () {
                 return app.workspace.getMostRecentLeaf() !== null;
             })) as boolean;
             expect(hasLeaf).toBe(true);
+
+            const viewType = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewType).toBe('markdown');
+        });
+    });
+
+    describe(':Oil path resolution', function () {
+        it(':Oil . opens vault root', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await runExCommand('Oil .');
+            await browser.pause(1500);
+
+            const dirPath = (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                if (leaf?.view?.getViewType() !== 'oil-explorer') return null;
+                return (
+                    leaf.view as unknown as { getDirPath?: () => string }
+                ).getDirPath?.();
+            })) as string | null;
+
+            expect(dirPath).toBe('');
+        });
+
+        it(':Oil / opens vault root', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await runExCommand('Oil /');
+            await browser.pause(1500);
+
+            const dirPath = (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                if (leaf?.view?.getViewType() !== 'oil-explorer') return null;
+                return (
+                    leaf.view as unknown as { getDirPath?: () => string }
+                ).getDirPath?.();
+            })) as string | null;
+
+            expect(dirPath).toBe('');
+        });
+    });
+
+    describe('mode restoration', function () {
+        it('closing oil restores source mode', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await ensureSourceMode();
+            expect(await isSourceMode()).toBe(true);
+
+            await openOilAndWait();
+            const viewType = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewType).toBe('oil-explorer');
+
+            await browser.executeObsidian(async ({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                (plugin.oilManager as { closeOil?: () => void }).closeOil?.();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+            const activeFile = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getActiveFile()?.path ?? '';
+            })) as string;
+            expect(activeFile).toBe('Welcome.md');
+            expect(await isSourceMode()).toBe(true);
+        });
+
+        it('closing oil restores live preview mode', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await ensureLivePreview();
+            expect(await isLivePreview()).toBe(true);
+
+            await openOilAndWait();
+
+            await browser.executeObsidian(async ({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                (plugin.oilManager as { closeOil?: () => void }).closeOil?.();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE * 3);
+
+            const activeFile = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getActiveFile()?.path ?? '';
+            })) as string;
+            expect(activeFile).toBe('Welcome.md');
+            expect(await isLivePreview()).toBe(true);
+        });
+
+        it('closeOil() restores previous file', async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await openOilAndWait();
+
+            await browser.executeObsidian(async ({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                (plugin.oilManager as { closeOil?: () => void }).closeOil?.();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+            const activeFile = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getActiveFile()?.path ?? '';
+            })) as string;
+            expect(activeFile).toBe('Welcome.md');
 
             const viewType = (await browser.executeObsidian(({ app }) => {
                 return (

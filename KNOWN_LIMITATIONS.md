@@ -1008,6 +1008,10 @@ When Obsidian's built-in vim is disabled and the plugin provides vim via the bun
 
 When built-in vim is enabled, vim state is shared globally through Obsidian's editor infrastructure. This limitation only affects fork mode.
 
+### Hidden files (dotfiles) are view-only
+
+When "Show hidden files" is enabled, Oil discovers dotfiles (`.gitignore`, `.hidden-folder/`, etc.) via the Obsidian adapter API. These files appear in the directory listing and can be opened, but renaming, deleting, or moving them via Oil buffer editing may fail because Obsidian's Vault API does not index dotfiles. Full CRUD operations on hidden files are not yet supported.
+
 ### Third-party CM6 extensions not available in oil
 
 Extensions registered by other plugins via `registerEditorExtension()` do not appear in the oil editor. The embedded editor only includes extensions explicitly passed through `buildLocalExtensions()` — currently the oil conceal extension and (when built-in vim is disabled) the bundled vim extension. Syntax highlighting and markdown rendering from Obsidian's core are included.
@@ -1015,6 +1019,18 @@ Extensions registered by other plugins via `registerEditorExtension()` do not ap
 ### Oil uses undocumented Obsidian internal API
 
 The embedded editor is created by extracting Obsidian's internal `ScrollableMarkdownEditor` prototype via `app.embedRegistry.embedByExtension.md()`. This is an undocumented internal API used by the Kanban plugin (500k+ installs) since 2022 without breakage. A runtime guard produces a descriptive error if the API changes in a future Obsidian update. The oil feature will degrade gracefully (error notice, oil unavailable) rather than crashing.
+
+### ~~Note freezes in Reading Mode after closing Oil~~ (Fixed)
+
+**Status**: Fixed. Closing Oil now restores the original editor mode (source, live preview, or reading). The mode is captured when Oil opens via `MarkdownView.getState()` and restored via `leaf.openFile(file, { state: previousViewMode })` on close. All close paths (keybindings, ex commands, Lua API) use a unified `closeOil()` method. ([#93](https://github.com/saberzero1/motions/issues/93))
+
+### ~~Cursor focus lost when switching back to Oil tab~~ (Fixed)
+
+**Status**: Fixed. Switching back to an Oil tab via `gT` or Obsidian's tab navigation now re-focuses the embedded editor. `OilKeybindingManager.onActiveLeafChange()` calls `view.focusEditor()` when the active leaf is an Oil view. ([#93](https://github.com/saberzero1/motions/issues/93))
+
+### ~~`:Oil .` opens current file's directory instead of vault root~~ (Fixed)
+
+**Status**: Fixed. `:Oil .` and `:Oil /` now correctly open the vault root. The empty-argument case (`:Oil` with no args) still opens the current file's parent directory. Both the vim ex command handler and the global ex command palette are updated. ([#93](https://github.com/saberzero1/motions/issues/93))
 
 ### ~~Oil temp files visible with `oil~` prefix~~ (Fixed)
 

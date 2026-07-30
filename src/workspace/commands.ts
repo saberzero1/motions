@@ -162,18 +162,8 @@ function saveWithEvents(
     autocmdManager?.fire('BufWritePost', { file: path });
 }
 
-function closeOilView(app: App, view: OilView): void {
-    const previousFile = view.getPreviousFile();
-    const leaf = app.workspace.getMostRecentLeaf();
-    if (previousFile && leaf) {
-        void leaf.openFile(
-            app.vault.getAbstractFileByPath(
-                previousFile,
-            ) as import('obsidian').TFile,
-        );
-    } else {
-        executeCommand(app, 'workspace:close');
-    }
+function closeOilView(oilManager: OilManager): void {
+    oilManager.closeOil();
 }
 
 function createWriteQuitCommand(
@@ -185,7 +175,7 @@ function createWriteQuitCommand(
         const activeLeaf = app.workspace.getMostRecentLeaf();
         if (activeLeaf?.view instanceof OilView && oilManager) {
             void oilManager.commit().then(() => {
-                closeOilView(app, activeLeaf.view as OilView);
+                closeOilView(oilManager);
             });
             return;
         }
@@ -373,7 +363,7 @@ function createXitCommand(
         const activeLeaf = app.workspace.getMostRecentLeaf();
         if (activeLeaf?.view instanceof OilView && oilManager) {
             void oilManager.commit().then(() => {
-                closeOilView(app, activeLeaf.view as OilView);
+                closeOilView(oilManager);
             });
             return;
         }
@@ -573,8 +563,8 @@ export function registerExCommands(
     );
     reg.defineEx('quit', 'q', () => {
         const activeLeaf = app.workspace.getMostRecentLeaf();
-        if (activeLeaf?.view instanceof OilView) {
-            closeOilView(app, activeLeaf.view);
+        if (activeLeaf?.view instanceof OilView && oilManager) {
+            closeOilView(oilManager);
             return;
         }
         executeCommand(app, 'workspace:close');
@@ -932,7 +922,9 @@ export function registerExCommands(
         reg.defineEx('Oil', '', (_cm, params) => {
             const argPath = (params.argString ?? '').trim();
             let dirPath = argPath;
-            if (!dirPath || dirPath === '.' || dirPath === '/') {
+            if (dirPath === '.' || dirPath === '/') {
+                dirPath = '';
+            } else if (!dirPath) {
                 const activeFile = app.workspace.getActiveFile();
                 if (activeFile) {
                     dirPath = activeFile.path.includes('/')

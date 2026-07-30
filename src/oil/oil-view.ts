@@ -22,6 +22,7 @@ export class OilView extends View {
     static VIEW_TYPE = OIL_VIEW_TYPE;
     private dirPath = '';
     private previousFile: string | null = null;
+    private previousViewMode: { mode: string; source?: boolean } | null = null;
     private editor: EmbeddableMarkdownEditor | null = null;
 
     constructor(
@@ -64,6 +65,11 @@ export class OilView extends View {
             cls: 'vim-motions-oil-editor',
         });
         this.addChild(this.editor as unknown as Component);
+        this.focusEditor();
+        void this.manager.discoverAndMergeHidden(this.dirPath);
+    }
+
+    focusEditor(): void {
         window.requestAnimationFrame(() => this.editor?.focus());
     }
 
@@ -74,12 +80,24 @@ export class OilView extends View {
         }
     }
 
-    getState(): { dirPath: string; previousFile: string | null } {
-        return { dirPath: this.dirPath, previousFile: this.previousFile };
+    getState(): {
+        dirPath: string;
+        previousFile: string | null;
+        previousViewMode: { mode: string; source?: boolean } | null;
+    } {
+        return {
+            dirPath: this.dirPath,
+            previousFile: this.previousFile,
+            previousViewMode: this.previousViewMode,
+        };
     }
 
     async setState(
-        state: { dirPath?: string; previousFile?: string | null },
+        state: {
+            dirPath?: string;
+            previousFile?: string | null;
+            previousViewMode?: { mode: string; source?: boolean } | null;
+        },
         _result: ViewStateResult,
     ): Promise<void> {
         const nextDir = typeof state?.dirPath === 'string' ? state.dirPath : '';
@@ -87,11 +105,18 @@ export class OilView extends View {
         if (state?.previousFile !== undefined) {
             this.previousFile = state.previousFile ?? null;
         }
+        if (state?.previousViewMode !== undefined) {
+            this.previousViewMode = state.previousViewMode ?? null;
+        }
         this.refreshContent();
     }
 
     getPreviousFile(): string | null {
         return this.previousFile;
+    }
+
+    getPreviousViewMode(): { mode: string; source?: boolean } | null {
+        return this.previousViewMode;
     }
 
     refreshContent(dirPath?: string): void {
@@ -102,6 +127,7 @@ export class OilView extends View {
         const content = this.manager.renderDirectoryToBuffer(this.dirPath);
         this.cache.snapshot(this.dirPath);
         this.editor.setValue(content);
+        void this.manager.discoverAndMergeHidden(this.dirPath);
     }
 
     setDirectory(dirPath: string): void {
@@ -115,6 +141,11 @@ export class OilView extends View {
 
     getBufferContent(): string {
         return this.editor?.getValue() ?? '';
+    }
+
+    setEditorContent(content: string): void {
+        if (!this.editor) return;
+        this.editor.setValue(content);
     }
 
     getLineText(line: number): string {

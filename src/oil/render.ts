@@ -1,11 +1,11 @@
-import { App, TFile, TFolder } from 'obsidian';
+import { App, type ListedFiles, TFile, TFolder } from 'obsidian';
 import type { OilEntry } from './types';
 
-function getParentPath(path: string): string {
+export function getParentPath(path: string): string {
     return path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
 }
 
-function isInConfigDir(path: string, configDir: string): boolean {
+export function isInConfigDir(path: string, configDir: string): boolean {
     return path === configDir || path.startsWith(`${configDir}/`);
 }
 
@@ -95,4 +95,60 @@ export function renderDirectory(
     });
 
     return all.map((item) => item.entry);
+}
+
+export async function discoverHiddenEntries(
+    app: App,
+    dirPath: string,
+): Promise<Array<Omit<OilEntry, 'id'>>> {
+    const configDir = app.vault.configDir;
+
+    let listing: ListedFiles;
+    try {
+        listing = await app.vault.adapter.list(dirPath);
+    } catch {
+        return [];
+    }
+
+    const indexedPaths = new Set<string>();
+    for (const file of app.vault.getFiles()) {
+        indexedPaths.add(file.path);
+    }
+    for (const folder of app.vault.getAllFolders()) {
+        indexedPaths.add(folder.path);
+    }
+
+    const entries: Array<Omit<OilEntry, 'id'>> = [];
+
+    for (const filePath of listing.files) {
+        if (indexedPaths.has(filePath)) continue;
+        if (isInConfigDir(filePath, configDir)) continue;
+        const name = filePath.includes('/')
+            ? filePath.substring(filePath.lastIndexOf('/') + 1)
+            : filePath;
+        if (!name.startsWith('.')) continue;
+        entries.push({
+            name,
+            type: 'file',
+            path: filePath,
+            parentPath: getParentPath(filePath),
+        });
+    }
+
+    for (const folderPath of listing.folders) {
+        if (indexedPaths.has(folderPath)) continue;
+        if (isInConfigDir(folderPath, configDir)) continue;
+        const name = folderPath.includes('/')
+            ? folderPath.substring(folderPath.lastIndexOf('/') + 1)
+            : folderPath;
+        if (!name.startsWith('.')) continue;
+        entries.push({
+            name,
+            type: 'folder',
+            path: folderPath,
+            parentPath: getParentPath(folderPath),
+        });
+    }
+
+    return entries;
 }

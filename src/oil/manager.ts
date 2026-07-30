@@ -1,7 +1,7 @@
-import { type App, Modal, Notice, Plugin } from 'obsidian';
+import { type App, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import type { VimMotionsSettings } from '../settings';
 import { OilCache } from './cache';
-import { renderDirectory } from './render';
+import { discoverHiddenEntries, renderDirectory } from './render';
 import { parseBufferLines } from './parser';
 import { computeDiff, mergeMultiBufferDiffs, type BufferDiff } from './diff';
 import { validateActions, executeActions } from './actions';
@@ -70,10 +70,44 @@ export class OilManager {
     async openOil(dirPath: string): Promise<void> {
         const leaf = this.app.workspace.getLeaf(false);
         const previousFile = this.app.workspace.getActiveFile()?.path ?? null;
+
+        let previousViewMode: { mode: string; source?: boolean } | null = null;
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView) {
+            const state = activeView.getState() as {
+                mode: string;
+                source?: boolean;
+            };
+            previousViewMode = { mode: state.mode };
+            if (state.source !== undefined) {
+                previousViewMode.source = state.source;
+            }
+        }
+
         await leaf.setViewState({
             type: OIL_VIEW_TYPE,
-            state: { dirPath, previousFile },
+            state: { dirPath, previousFile, previousViewMode },
         });
+    }
+
+    closeOil(): void {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        if (!leaf) return;
+        const view = leaf.view;
+        if (!this.isOilView(view)) return;
+        const previousFile = view.getPreviousFile();
+        const file = previousFile
+            ? this.app.vault.getAbstractFileByPath(previousFile)
+            : null;
+        if (file) {
+            const previousViewMode = view.getPreviousViewMode();
+            void leaf.openFile(
+                file as import('obsidian').TFile,
+                previousViewMode ? { state: previousViewMode } : undefined,
+            );
+        } else {
+            leaf.detach();
+        }
     }
 
     async commit(): Promise<void> {
@@ -277,6 +311,48 @@ export class OilManager {
         const rawEntries = renderDirectory(this.app, dirPath, showHidden, sort);
         const entries = this.cache.loadDirectory(dirPath, rawEntries);
         return entriesToBufferText(entries);
+    }
+
+    async discoverAndMergeHidden(dirPath: string): Promise<void> {
+        const showHidden = this.settings.oilShowHiddenFiles ?? this.showHidden;
+        if (!showHidden) return;
+
+        const hiddenEntries = await discoverHiddenEntries(this.app, dirPath);
+        if (hiddenEntries.length === 0) return;
+
+        const sort = this.settings.oilDefaultSort ?? this.sortKey;
+        const indexedEntries = renderDirectory(
+            this.app,
+            dirPath,
+            showHidden,
+            sort,
+        );
+        const allRaw = [...indexedEntries, ...hiddenEntries];
+
+        allRaw.sort((a, b) => {
+            const typeOrder =
+                a.type === b.type ? 0 : a.type === 'folder' ? -1 : 1;
+            if (typeOrder !== 0) return typeOrder;
+            return a.name
+                .toLowerCase()
+                .localeCompare(b.name.toLowerCase(), undefined, {
+                    sensitivity: 'base',
+                });
+        });
+
+        const entries = this.cache.loadDirectory(dirPath, allRaw);
+        const mergedContent = entriesToBufferText(entries);
+
+        const expectedSyncContent = this.renderDirectoryToBuffer(dirPath);
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            const view = leaf.view;
+            if (this.isOilView(view) && view.getDirPath() === dirPath) {
+                const currentContent = view.getBufferContent();
+                if (currentContent === expectedSyncContent) {
+                    view.setEditorContent(mergedContent);
+                }
+            }
+        });
     }
 
     private cleanupLegacyTempFiles(): void {

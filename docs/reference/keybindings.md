@@ -524,22 +524,22 @@ Snippet keybindings are active during snippet expansion (after a snippet has bee
 
 Oil keybindings are only active when an oil buffer is focused. All keybindings are user-remappable via Lua or vimrc — see [[oil-explorer#Remapping keybindings]] for details.
 
-| Keybinding | Ex command         | Description                                           |
-| ---------- | ------------------ | ----------------------------------------------------- |
-| `<CR>`     | `:oilopen`         | Open file under cursor / navigate into directory      |
-| `-`        | `:oilparent`       | Navigate to parent directory                          |
-| `~`        | `:oilroot`         | Navigate to vault root                                |
-| `q`        | `:oilclose`        | Close oil buffer                                      |
-| `<C-l>`    | `:oilrefresh`      | Refresh directory listing                             |
-| `g.`       | `:oiltogglehidden` | Toggle hidden files (dotfiles)                        |
-| `gs`       | `:oilcyclesort`    | Cycle sort order (name → modified time → size)        |
-| `y.`       | `:oilyankpath`     | Yank vault-relative file path to clipboard            |
-| `gf`       | `:oilreveal`       | Reveal file under cursor in Obsidian file explorer    |
-| `dd`       |                    | Stage file deletion (commit with `:w`)                |
-| `o`        |                    | Stage file creation — type filename, commit with `:w` |
-| `cw`       |                    | Stage file rename — edit filename, commit with `:w`   |
-| `:w`       |                    | Commit all staged changes (create/rename/delete)      |
-| `:Oil`     |                    | Open oil explorer for current file's directory        |
+| Keybinding | Ex command         | Description                                                                        |
+| ---------- | ------------------ | ---------------------------------------------------------------------------------- |
+| `<CR>`     | `:oilopen`         | Open file under cursor / navigate into directory                                   |
+| `-`        | `:oilparent`       | Navigate to parent directory                                                       |
+| `~`        | `:oilroot`         | Navigate to vault root                                                             |
+| `q`        | `:oilclose`        | Close oil buffer                                                                   |
+| `<C-l>`    | `:oilrefresh`      | Refresh directory listing                                                          |
+| `g.`       | `:oiltogglehidden` | Toggle hidden files (dotfiles)                                                     |
+| `gs`       | `:oilcyclesort`    | Cycle sort order (name → modified time → size)                                     |
+| `y.`       | `:oilyankpath`     | Yank vault-relative file path to clipboard                                         |
+| `gf`       | `:oilreveal`       | Reveal file under cursor in Obsidian file explorer                                 |
+| `dd`       |                    | Stage file deletion (commit with `:w`)                                             |
+| `o`        |                    | Stage file creation — type filename, commit with `:w`                              |
+| `cw`       |                    | Stage file rename — edit filename, commit with `:w`                                |
+| `:w`       |                    | Commit all staged changes (create/rename/delete)                                   |
+| `:Oil`     |                    | Open oil explorer (no arg: current dir, `.`/`/`: vault root, `path`: specific dir) |
 
 ## Quality of life
 

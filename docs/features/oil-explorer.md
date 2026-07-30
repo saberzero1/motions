@@ -15,6 +15,7 @@ Oil is not intended to replace the Obsidian file explorer, but rather to provide
 - `:Oil` opens the directory containing the current file.
 - `:Oil path/to/dir` opens a specific directory.
 - `:Oil .` opens the vault root.
+- `:Oil /` opens the vault root.
 
 ## Keybindings
 
@@ -109,11 +110,28 @@ You can customize Oil explorer behavior in **Settings → Vim Motions → File e
 
 See [[settings#File explorer]] for details.
 
+## Behavior
+
+### Mode restoration
+
+When you close Oil (via `q`, `:q`, `:wq`, or `vim.ob.oil.close()`), the editor reopens your previous file in the same mode you were in when you opened Oil — source mode, live preview, or reading mode.
+
+### Focus on tab switch
+
+If you switch away from the Oil tab and then switch back (via `gT`, `gt`, or clicking the tab), the Oil editor automatically regains focus. You can start typing vim commands immediately without needing to click.
+
+### Hidden files (dotfiles)
+
+When **Show hidden files** is enabled in **Settings → Vim Motions → File explorer**, Oil shows dotfiles and hidden folders (`.gitignore`, `.git/`, etc.) that Obsidian normally hides. These are discovered via the Obsidian adapter API, which accesses the filesystem directly.
+
+> [!bug] View-only limitation
+> Hidden files appear in the listing and can be opened, but renaming, deleting, or moving them via Oil buffer editing may fail because Obsidian's Vault API does not index dotfiles. Full CRUD operations on hidden files are not yet supported.
+
 ## How it works
 
 When you open Oil, the plugin creates a dedicated Oil explorer view with an embedded Markdown editor. The directory listing is rendered as editable text directly in the view — no temporary files are created in the vault.
 
-Because Oil uses a full CodeMirror 6 editor, all existing Vim features like EasyMotion, surround, and text objects work natively within the Oil view. The view state (current directory) persists across workspace restarts.
+Because Oil uses a full CodeMirror 6 editor, all existing Vim features like EasyMotion, surround, and text objects work natively within the Oil view. The view state (current directory and previous file's editor mode) persists across workspace restarts.
 
 > [!warning]
 > **Cross-directory moves**: Moving a file from one directory to another (e.g., `dd` in one Oil buffer and `p` in another) is supported but requires both directories to be open in separate Oil buffers simultaneously. See [[known-limitations#Oil explorer]] for details.

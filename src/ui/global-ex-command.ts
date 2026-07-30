@@ -540,7 +540,9 @@ export function buildGlobalExCommands(
                       shortName: '',
                       fn: (_app, args) => {
                           let dirPath = args.trim();
-                          if (!dirPath || dirPath === '.' || dirPath === '/') {
+                          if (dirPath === '.' || dirPath === '/') {
+                              dirPath = '';
+                          } else if (!dirPath) {
                               const activeFile = _app.workspace.getActiveFile();
                               if (activeFile) {
                                   dirPath = activeFile.path.includes('/')

@@ -3367,20 +3367,7 @@ export default class VimMotionsPlugin extends Plugin {
                 void oilMgr.openOil(path);
             },
             oilClose: () => {
-                const leaf = this.app.workspace.getMostRecentLeaf();
-                if (!leaf) return;
-                const view = leaf.view;
-                if (oilMgr?.isOilView(view)) {
-                    const previousFile = view.getPreviousFile();
-                    const file = previousFile
-                        ? this.app.vault.getAbstractFileByPath(previousFile)
-                        : null;
-                    if (file) {
-                        void leaf.openFile(file as import('obsidian').TFile);
-                        return;
-                    }
-                }
-                leaf.detach();
+                oilMgr?.closeOil();
             },
             oilParent: () => void oilMgr?.navigateToParent(),
             oilRoot: () => void oilMgr?.navigateToDirectory(''),
