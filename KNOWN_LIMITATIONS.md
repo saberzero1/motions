@@ -1227,9 +1227,9 @@ The following are intentionally not implemented in v1:
 - Nested `d()` nodes (dynamic nodes inside dynamic nodes) are not supported.
 - User snippet directory scanning requires desktop — vault-relative paths work on mobile, but absolute paths and `~` expansion are desktop-only.
 
-### Ex command snippet expansion
+### ~~Ex command snippet expansion~~ (Fixed)
 
-`:snippet <name>` and `:snippets` (picker) commands are registered but expansion via the test harness's `Vim.handleEx()` bridge does not produce visible results. The commands work correctly when typed directly in the ex command line. The issue is that `getActiveEditorView(app)` returns a view reference that differs from the adapter's CM6 view when invoked through the programmatic `handleEx` path. This is a test infrastructure limitation, not a user-facing bug.
+~~`:snippet <name>` and `:snippets` (picker) commands are registered but expansion via the test harness's `Vim.handleEx()` bridge does not produce visible results.~~ Fixed. The commands were silently broken after any `reloadFeatures()` cycle (vimrc load, Lua config load, settings change). `registerSnippetCommands()` was only called in `onload()`, but `reloadFeatures()` calls `unregisterAll()` which replaced all snippet ex commands with no-ops and never re-registered them. The Picker-based snippet insertion was unaffected (separate `pickerRegistry`). Fixed by adding `registerSnippetCommands()` to `reloadFeatures()`. ([#95](https://github.com/saberzero1/motions/issues/95))
 
 ## Vim keybindings in text areas
 

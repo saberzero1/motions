@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     getEditorValue,
     getRegisterContent,
+    PAUSE,
     setupEditor,
     vimKeys,
     sendVimEscape,
@@ -556,5 +557,94 @@ describe('Settings hot-reload', function () {
             plugin.reloadFeatures();
         });
         await browser.pause(300);
+    });
+
+    it('snippet ex commands should survive reloadFeatures', async function () {
+        // Ensure snippets are loaded before testing
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(({ app }) => {
+                    const plugin = (
+                        app as unknown as {
+                            plugins: {
+                                plugins: Record<
+                                    string,
+                                    {
+                                        snippetRegistry?: {
+                                            getAll: () => unknown[];
+                                        };
+                                    }
+                                >;
+                            };
+                        }
+                    ).plugins.plugins['vim-motions'];
+                    const all = plugin?.snippetRegistry?.getAll();
+                    return Array.isArray(all) && all.length > 0;
+                })) as boolean,
+            { timeout: 10000, interval: 200 },
+        );
+
+        // Trigger reloadFeatures (simulates vimrc/lua config reload)
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        // :snippet <name> should still work after reload
+        await setupEditor('', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const result = (await browser.executeObsidian(
+            ({ app, obsidian }, cmd: string) => {
+                try {
+                    const Vim = (
+                        window as unknown as Record<string, unknown> & {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleEx: (
+                                        cm: unknown,
+                                        input: string,
+                                    ) => void;
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    if (!Vim) return { error: 'No Vim' };
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { error: 'No view' };
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm;
+                    if (!adapter) return { error: 'No adapter' };
+                    Vim.handleEx(adapter, cmd);
+                    return { success: true };
+                } catch (e) {
+                    return { error: String(e) };
+                }
+            },
+            'snippet Wikilink',
+        )) as { success?: true; error?: string };
+
+        expect(result).toHaveProperty('success', true);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        const value = await getEditorValue();
+        expect(value).toContain('[[');
     });
 });

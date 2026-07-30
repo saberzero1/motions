@@ -113,7 +113,7 @@ describe('Snippet variables and ex commands', function () {
         );
     });
 
-    it.skip(':snippet command should expand by name', async function () {
+    it(':snippet command should expand by name', async function () {
         await setupEditor('', { line: 0, ch: 0 });
         await browser.pause(PAUSE.OBSIDIAN_LOAD);
         const result = await handleEx('snippet Wikilink');
@@ -123,7 +123,7 @@ describe('Snippet variables and ex commands', function () {
         expect(value).toContain('[[');
     });
 
-    it.skip(':snippets should open picker', async function () {
+    it(':snippets should open picker', async function () {
         await browser.pause(PAUSE.OBSIDIAN_LOAD);
         const result = await handleEx('snippets');
         expect(result).toHaveProperty('success', true);

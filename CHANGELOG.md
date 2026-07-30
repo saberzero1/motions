@@ -9,17 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Snippet ex commands do not work after vimrc/Lua config reload** — `:snippet <name>` and `:snippets` ex commands silently stopped working after any `reloadFeatures()` cycle (triggered by vimrc loading, Lua config loading, or settings changes). Root cause: `registerSnippetCommands()` was called only in `onload()`, but `reloadFeatures()` calls `unregisterAll()` which replaces all registered ex commands with no-ops — and snippet commands were never re-registered. The Picker-based snippet insertion was unaffected because it uses a separate `pickerRegistry` not managed by `VimRegistration`. Fixed by adding `registerSnippetCommands()` to `reloadFeatures()`, matching the pattern used by all other feature registrations. ([#95](https://github.com/saberzero1/motions/issues/95))
+    - Plugin: `src/main.ts` (`reloadFeatures` — added `registerSnippetCommands` call gated by `enableSnippets`)
+
 - **Which-key shows EasyMotion commands incorrectly with space leader** — EasyMotion commands (prefixed with `<leader><leader>`) appeared at the wrong level in the which-key popup when using space as the leader key. Two root causes: (1) `LeaderRegistry.addBinding()` stripped the leader prefix using the raw leader key (`" "`), but `onKeyPressLeaderOnly()` compared against normalized keys (`"<Space>"` from `vim-keypress` events). The stored binding keys (`" f"`) never matched the normalized drill-down prefix (`"<Space>"`). Similarly, `addGroupLabel()` stored the group label key in raw format, causing `getRelativeGroupLabels()` lookups to miss. Fixed by normalizing both `lhs` and `prefix` via `normalizeVimKey()` at storage time in `addBinding()` and `addGroupLabel()`. (2) In grouped mode, `buildNextKeyEntries()` called `isSpecialKey()` to filter out non-typeable keys like `<CR>`, `<Left>`, etc. — but `<Space>` was also treated as special, causing all EasyMotion bindings (whose first key after leader-stripping is `<Space>`) to be silently dropped from the grouping. Fixed by exempting `<Space>` from the special key check. ([#94](https://github.com/saberzero1/motions/issues/94))
     - Plugin: `src/ui/which-key.ts` (`LeaderRegistry.addBinding` — normalize `lhs` and leader before stripping; `LeaderRegistry.addGroupLabel` — normalize `prefix` before storing; `isSpecialKey` — exempt `<Space>` from special key filtering)
 
 ### Tests
 
 - 28 unit tests in `test/unit/which-key.test.ts`: `LeaderRegistry` normalization (raw space leader, pre-normalized leader, format consistency, non-leader rejection, bare-leader rejection, deduplication, backslash leader, comma leader), group label normalization (raw vs normalized prefix, cross-format consistency), `clearBuiltinBindings` with normalized keys, double-leader drill-down (issue #94 scenario — EasyMotion bindings filterable by `<Space>` prefix, single-leader bindings excluded), `isSpecialKey` (`<Space>` exempt, other angle-bracket keys special, plain keys not special)
+- 2 e2e tests unskipped in `test/specs/snippets/snippet-variables.e2e.ts`: `:snippet` command expands by name, `:snippets` opens picker
+- 1 e2e test in `test/specs/settings-reload.e2e.ts`: snippet ex commands survive `reloadFeatures()` (regression test for [#95](https://github.com/saberzero1/motions/issues/95))
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added which-key EasyMotion double-leader fix to which-key overlay section
+- `KNOWN_LIMITATIONS.md`: Marked ex command snippet expansion as fixed; added which-key EasyMotion double-leader fix to which-key overlay section
+- `docs/features/snippets.md`: Updated ex command trigger description noting reload survival
 - `docs/configuration/which-key.md`: Added note about double-leader prefix grouping for EasyMotion
 
 ## [0.89.0] - 2026-07-30

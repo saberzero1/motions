@@ -2381,6 +2381,15 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.registerHarpoonExCommands();
         this.registerImExCommands();
+        if (this.settings.enableSnippets && this.registration) {
+            registerSnippetCommands(
+                this.registration,
+                this.app,
+                () => this.snippetRegistry,
+                () => this.getSnippetPreprocessContext(),
+                () => this.openPicker ?? undefined,
+            );
+        }
         if (!Platform.isMobile) {
             registerFlash(this.registration, this.app, this.settings, vim);
             this.flashSearchCleanup?.();
