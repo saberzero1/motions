@@ -117,6 +117,7 @@ export class OilView extends View {
 
     protected async onClose(): Promise<void> {
         if (this.editor) {
+            this.editor.destroy();
             this.removeChild(this.editor as unknown as Component);
             this.editor = null;
         }

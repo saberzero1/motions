@@ -595,6 +595,154 @@ describe('Oil explorer', function () {
         });
     });
 
+    describe('scope cleanup after close', function () {
+        beforeEach(async function () {
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+        });
+
+        it('Ctrl keys work on restored file after closing Oil via closeOil()', async function () {
+            await ensureSourceMode();
+            await openOilAndWait();
+
+            const viewBeforeClose = (await browser.executeObsidian(
+                ({ app }) => {
+                    return (
+                        app.workspace
+                            .getMostRecentLeaf()
+                            ?.view?.getViewType() ?? ''
+                    );
+                },
+            )) as string;
+            expect(viewBeforeClose).toBe('oil-explorer');
+
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                (plugin.oilManager as { closeOil?: () => void }).closeOil?.();
+            });
+            await browser.pause(1000);
+
+            const viewAfterClose = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewAfterClose).toBe('markdown');
+
+            const ctrlSResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const Vim = (
+                        window as unknown as {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleKey: (
+                                        cm: unknown,
+                                        key: string,
+                                    ) => boolean;
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view || !Vim) return { error: 'no view or vim' };
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm;
+                    if (!adapter) return { error: 'no adapter' };
+                    const handled = Vim.handleKey(adapter, '<C-d>');
+                    return { handled };
+                },
+            )) as { error?: string; handled?: boolean };
+
+            expect(ctrlSResult.error).toBeUndefined();
+            expect(ctrlSResult.handled).toBe(true);
+        });
+
+        it('Ctrl keys work after opening and closing Oil multiple times', async function () {
+            await ensureSourceMode();
+
+            for (let i = 0; i < 3; i++) {
+                await openOilAndWait();
+
+                const isOil = (await browser.executeObsidian(({ app }) => {
+                    return (
+                        app.workspace
+                            .getMostRecentLeaf()
+                            ?.view?.getViewType() ?? ''
+                    );
+                })) as string;
+                expect(isOil).toBe('oil-explorer');
+
+                await browser.executeObsidian(({ app }) => {
+                    const plugin = (
+                        app as unknown as {
+                            plugins?: {
+                                plugins?: Record<
+                                    string,
+                                    { oilManager?: unknown }
+                                >;
+                            };
+                        }
+                    ).plugins?.plugins?.['vim-motions'];
+                    if (!plugin?.oilManager) return;
+                    (
+                        plugin.oilManager as { closeOil?: () => void }
+                    ).closeOil?.();
+                });
+                await browser.pause(1000);
+            }
+
+            const viewAfter = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewAfter).toBe('markdown');
+
+            const ctrlResult = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const Vim = (
+                        window as unknown as {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleKey: (
+                                        cm: unknown,
+                                        key: string,
+                                    ) => boolean;
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view || !Vim) return { error: 'no view or vim' };
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm;
+                    if (!adapter) return { error: 'no adapter' };
+                    const handled = Vim.handleKey(adapter, '<C-d>');
+                    return { handled };
+                },
+            )) as { error?: string; handled?: boolean };
+
+            expect(ctrlResult.error).toBeUndefined();
+            expect(ctrlResult.handled).toBe(true);
+        });
+    });
+
     describe(':Oil path resolution', function () {
         it(':Oil . opens vault root', async function () {
             await obsidianPage.openFile('Welcome.md');

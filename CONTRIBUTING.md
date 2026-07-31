@@ -184,7 +184,7 @@ src/
     strftime.ts            # os.date-compatible time formatting
     types.d.ts             # Lua engine type declarations
   oil/
-    oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery; registerOilScopeKeys() registers Ctrl-key combos (<C-t>, <C-s>, <C-h>, <C-l>, <C-c>) on the editor's Obsidian Scope to intercept before Obsidian's default hotkeys, with blur-before-navigate for cross-leaf actions
+    oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery; registerOilScopeKeys() registers Ctrl-key combos (<C-t>, <C-s>, <C-h>, <C-l>, <C-c>) on the editor's Obsidian Scope to intercept before Obsidian's default hotkeys, with blur-before-navigate for cross-leaf actions; onClose() calls editor.destroy() before removeChild() to pop the Obsidian Scope and prevent Ctrl-key interception leaking to the restored file
     manager.ts             # Oil session lifecycle management — openOil() captures editor mode + primes non-editor leaves with markdown view state before Oil, closeOil() restores mode via leaf.openFile({ state }), discoverAndMergeHidden(dirPath, expectedContent) async dotfile discovery with cache-safe single loadDirectory call, openEntryAtCursor() same-leaf open via leaf.openFile(), openEntryAtCursorInNewTab/InSplit/ExternalAtCursor for tab/split/external open
     parser.ts              # Buffer text ↔ directory entry parsing
     diff.ts                # Diff buffer edits to file system operations

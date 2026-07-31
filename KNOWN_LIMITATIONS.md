@@ -1044,6 +1044,10 @@ When "Show hidden files" is enabled, Oil discovers dotfiles (`.gitignore`, `.hid
 
 **Status**: Fixed. Obsidian's default hotkeys (`Ctrl+T` = new tab, `Ctrl+S` = save, `Ctrl+H` = search & replace) intercepted these keys at the Electron level before the embeddable editor's vim handler received them. Fixed by registering these keys (plus `<C-l>` and `<C-c>`) on the embeddable editor's Obsidian `Scope`, which fires before default hotkeys. Navigation keys blur the editor before navigating so the `setActiveLeaf` guard allows the new leaf through. ([#93](https://github.com/saberzero1/motions/issues/93))
 
+### ~~Ctrl hotkeys broken after closing Oil~~ (Fixed)
+
+**Status**: Fixed. Closing Oil left the Obsidian `Scope` (with Oil's `Ctrl+T/S/H/L/C` handlers) pushed on the keymap stack, intercepting Ctrl keys on the restored file. Fixed by calling `editor.destroy()` in `OilView.onClose()` before `removeChild()`, which pops the scope. ([#93](https://github.com/saberzero1/motions/issues/93))
+
 ### Third-party CM6 extensions not available in oil
 
 Extensions registered by other plugins via `registerEditorExtension()` do not appear in the oil editor. The embedded editor only includes extensions explicitly passed through `buildLocalExtensions()` — currently the oil conceal extension and (when built-in vim is disabled) the bundled vim extension. Syntax highlighting and markdown rendering from Obsidian's core are included.
