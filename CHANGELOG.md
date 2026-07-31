@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.92.1] - 2026-07-31
+
 ### Fixed
 
 - **Ctrl hotkeys broken on active tab after closing Oil explorer** — after closing Oil (via `q`, `:q`, or `closeOil()`), `Ctrl`-based hotkeys (`<C-d>`, `<C-f>`, `<C-b>`, etc.) stopped working on the restored file until the user switched to another tab and back. Root cause: `OilView.onClose()` called `removeChild(editor)` which triggers `unload()` but not `destroy()`. The `popKeymapScope` call that removes the Oil-specific Obsidian `Scope` (with `Ctrl+T/S/H/L/C` handlers) lives in `destroy()`, so the scope remained pushed on the keymap stack after Oil was gone — intercepting Ctrl keys and silently consuming them. Fixed by calling `this.editor.destroy()` before `removeChild()` in `onClose()`. ([#93](https://github.com/saberzero1/motions/issues/93))

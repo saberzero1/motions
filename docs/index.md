@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.92.0
+## What's new in 0.92.1
 
-- **Oil `<C-t>`/`<C-s>`/`<C-h>` keybindings fixed** — these keys were intercepted by Obsidian's default hotkeys (`Ctrl+T` = new tab, `Ctrl+S` = save, `Ctrl+H` = search & replace) before the Oil editor could handle them. Now registered on the embeddable editor's Obsidian `Scope` so they fire before Obsidian's defaults ([#93](https://github.com/saberzero1/motions/issues/93))
+- **Ctrl hotkeys broken after closing Oil explorer** — after closing Oil, `Ctrl`-based hotkeys (`<C-d>`, `<C-f>`, `<C-b>`, etc.) stopped working until switching tabs. Fixed by properly disposing the Oil-specific Obsidian `Scope` on close ([#93](https://github.com/saberzero1/motions/issues/93))
 
 See the [[changelog|full changelog]] for details.
