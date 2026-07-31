@@ -2742,8 +2742,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.hintModeLabels,
             () => this.settings.labelFontSize,
         );
-        reg.defineAction('hintMode', () => {
-            this.hintActions?.activate();
+        reg.defineAction('hintMode', (_cm, actionArgs) => {
+            this.hintActions?.activate(actionArgs.repeat);
         });
         reg.defineEx('hintactivate', 'hinta', () => {
             this.hintActions?.activate();

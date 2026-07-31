@@ -175,6 +175,15 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
         };
 
         const handler = (e: KeyboardEvent) => {
+            if (
+                e.key === 'Shift' ||
+                e.key === 'Control' ||
+                e.key === 'Alt' ||
+                e.key === 'Meta'
+            ) {
+                return;
+            }
+
             e.preventDefault();
             e.stopPropagation();
 
@@ -609,6 +618,9 @@ function createHintAction(
 
         showHints(targets, container);
 
+        const originalLeaf =
+            count && count > 1 ? app.workspace.getMostRecentLeaf() : null;
+
         void waitForHintKey(targets).then((result) => {
             container.remove();
             if (!result.target) return;
@@ -626,14 +638,14 @@ function createHintAction(
             }
 
             const shouldRefocus = action(app, result.target);
-            if (shouldRefocus) {
-                refocusEditor(app);
-            }
 
-            if (count && count > 1) {
+            if (count && count > 1 && originalLeaf) {
+                app.workspace.setActiveLeaf(originalLeaf, { focus: true });
                 window.requestAnimationFrame(() => {
                     run(count - 1, false);
                 });
+            } else if (shouldRefocus) {
+                refocusEditor(app);
             }
         });
     };

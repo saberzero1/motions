@@ -585,6 +585,14 @@ During hint label selection, GlobalKeyHandler bails entirely via an `isHintModeA
 
 `hintYank` uses `navigator.clipboard.writeText()` with a fallback to a temporary textarea + `document.execCommand('copy')` for environments where the Clipboard API is restricted. The deprecated `execCommand` path is defensive — in Obsidian's Electron runtime, `navigator.clipboard` should always work.
 
+### ~~Modifier keys dismiss hint overlay~~ (Fixed)
+
+**Status**: Fixed. Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone during hint mode no longer clears labels. The `waitForHintKey()` handler now filters modifier-only keydown events (where `e.key` is `"Control"`, `"Shift"`, `"Alt"`, or `"Meta"`) with an early return, matching the pattern in `global-key-handler.ts`. Modifier keys combined with label characters still work as before (e.g., Ctrl+label upgrades activate to open-new). ([#98](https://github.com/saberzero1/motions/issues/98))
+
+### ~~Count prefix (`2F`) shifts focus to new tab~~ (Fixed)
+
+**Status**: Fixed. When using a count prefix (e.g., `2F`) in non-editor context, focus now stays on the original leaf between activations. The `createHintAction` `run()` function saves the active leaf before `waitForHintKey` when count > 1 and restores it via `setActiveLeaf` after each activation, before scheduling the next round. The `hintMode` vim action (`<leader><leader>h`) now passes `actionArgs.repeat` to `activate()`, enabling count prefix in editor context as well. ([#98](https://github.com/saberzero1/motions/issues/98))
+
 ### Stale target handling
 
 Targets are validated via `el.isConnected` before action execution. If an element has been removed from the DOM between overlay display and label selection (e.g., Obsidian re-rendered a view), a Notice is shown and the action is aborted. During count iterations, if re-activation finds no visible targets, it stops silently without repeated Notices.

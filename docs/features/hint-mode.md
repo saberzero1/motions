@@ -21,7 +21,7 @@ When a non-editor view is focused (such as the Graph view, a PDF, Canvas, or the
 
 ### Count support
 
-Hint actions support count prefixes. For example, `3f` allows you to activate three targets sequentially, with the hint overlay re-appearing after each selection. Similarly, `3yf` yanks three URLs in succession.
+Hint actions support count prefixes. For example, `3f` allows you to activate three targets sequentially, with the hint overlay re-appearing after each selection. Similarly, `3yf` yanks three URLs in succession. When using a count with `F` (e.g., `2F`), each target opens in a new background tab while focus stays on the original view, allowing you to continue selecting labels for the remaining count.
 
 ## Editor context
 
@@ -51,6 +51,7 @@ Smart label assignment prioritizes the home row. Single-character labels are use
 - **Filtering**: Only visible elements within the current scroll container are labeled.
 - **Correction**: Press `Backspace` to reset the first character of a two-character label if you mistype.
 - **Cancellation**: Press `Escape` to exit hint mode without taking action.
+- **Modifier keys**: Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone does not dismiss the overlay. These keys are ignored until a label character is typed. Hold `Ctrl`/`Cmd` while typing the final label character to upgrade the action (e.g., open in new tab instead of activate).
 - **Modal interaction**: Hint mode remains active in modals, allowing you to navigate settings or the command palette.
 
 > [!note]

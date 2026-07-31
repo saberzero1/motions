@@ -789,6 +789,184 @@ describe('Hint mode', function () {
         });
     });
 
+    describe('Modifier keys should not dismiss overlay (#98)', function () {
+        beforeEach(async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        });
+
+        it('pressing Ctrl alone should keep hint labels visible', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+            expect((result.labelCount ?? 0) > 0).toBe(true);
+
+            await browser.pause(100);
+            await browser.keys([Key.Ctrl]);
+            await browser.pause(300);
+
+            const afterCtrl = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return { overlayPresent: false, labelCount: 0 };
+                const labels = overlay.querySelectorAll(
+                    '.vim-motions-hint-label',
+                );
+                return { overlayPresent: true, labelCount: labels.length };
+            })) as { overlayPresent: boolean; labelCount: number };
+
+            expect(afterCtrl.overlayPresent).toBe(true);
+            expect(afterCtrl.labelCount).toBeGreaterThan(0);
+        });
+
+        it('pressing Shift alone should keep hint labels visible', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+
+            await browser.pause(100);
+            await browser.keys([Key.Shift]);
+            await browser.pause(300);
+
+            const afterShift = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                return { overlayPresent: !!overlay };
+            })) as { overlayPresent: boolean };
+
+            expect(afterShift.overlayPresent).toBe(true);
+        });
+
+        it('pressing Alt alone should keep hint labels visible', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+
+            await browser.pause(100);
+            await browser.keys([Key.Alt]);
+            await browser.pause(300);
+
+            const afterAlt = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                return { overlayPresent: !!overlay };
+            })) as { overlayPresent: boolean };
+
+            expect(afterAlt.overlayPresent).toBe(true);
+        });
+
+        it('pressing Meta alone should keep hint labels visible', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+
+            await browser.pause(100);
+            await browser.executeObsidian(() => {
+                activeDocument.dispatchEvent(
+                    new KeyboardEvent('keydown', {
+                        key: 'Meta',
+                        bubbles: true,
+                        cancelable: true,
+                    }),
+                );
+            });
+            await browser.pause(300);
+
+            const afterMeta = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                return { overlayPresent: !!overlay };
+            })) as { overlayPresent: boolean };
+
+            expect(afterMeta.overlayPresent).toBe(true);
+        });
+
+        it('Ctrl then first label char should still narrow labels', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+            expect((result.labelCount ?? 0) > 1).toBe(true);
+
+            await browser.pause(100);
+            await browser.keys([Key.Ctrl]);
+            await browser.pause(200);
+
+            await browser.keys(['a']);
+            await browser.pause(200);
+
+            const dimState = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return { error: 'overlay gone' };
+                const all = overlay.querySelectorAll('.vim-motions-hint-label');
+                let dimmed = 0;
+                let visible = 0;
+                for (const label of Array.from(all)) {
+                    if (label.classList.contains('is-dimmed')) {
+                        dimmed++;
+                    } else {
+                        visible++;
+                    }
+                }
+                return { total: all.length, dimmed, visible };
+            })) as {
+                total: number;
+                dimmed: number;
+                visible: number;
+                error?: string;
+            };
+            expect(dimState).not.toHaveProperty('error');
+            expect(dimState.dimmed).toBeGreaterThan(0);
+            expect(dimState.visible).toBeGreaterThan(0);
+        });
+    });
+
+    describe('Count prefix with F should keep focus (#98)', function () {
+        beforeEach(async function () {
+            await loadTwoTabs();
+        });
+
+        it('2F should open first target without shifting focus away from graph view', async function () {
+            await browser.keys(['2']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['F']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+            expect(hasOverlay).toBe(true);
+
+            const firstLabel = (await browser.executeObsidian(() => {
+                const label = activeDocument.querySelector(
+                    '.vim-motions-hint-label',
+                );
+                return label?.textContent ?? '';
+            })) as string;
+            expect(firstLabel.length).toBeGreaterThanOrEqual(1);
+
+            for (const ch of firstLabel) {
+                await browser.keys([ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const secondOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+
+            const activeLeafType = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.activeLeaf?.view?.getViewType() ?? '';
+            })) as string;
+
+            expect(activeLeafType).toBe('graph');
+        });
+    });
+
     describe('Command registration', function () {
         it('Obsidian command hint-open-new-pane should be registered', async function () {
             const hasCommand = (await browser.executeObsidian(({ app }) => {

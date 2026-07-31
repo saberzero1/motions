@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hint mode: pressing Ctrl/Shift/Alt/Meta alone clears labels** — pressing any modifier key alone during hint mode dismissed the overlay. Root cause: `waitForHintKey()` in `hint-mode.ts` treated modifier-only keydown events (where `e.key` is `"Control"`, `"Shift"`, etc.) as unmatched first characters, triggering cleanup. The global key handler (`global-key-handler.ts:228-234`) already filtered modifier-only keys correctly. Fixed by adding the same guard at the top of `waitForHintKey()`'s handler. ([#98](https://github.com/saberzero1/motions/issues/98))
+    - Plugin: `src/ui/hint-mode.ts` (`waitForHintKey` handler — modifier-key guard before `preventDefault`)
+- **Hint mode: count prefix (`2F`) shifts focus to new tab immediately** — when using a count prefix (e.g., `2F`) in non-editor context, the first hint activation shifted focus to the newly opened tab, causing the second round of hints to appear on the wrong tab. Root cause: `hintActivate()` with `openInNewPane=true` calls `navigateWithJump()` or `duplicateLeaf()`, both of which focus the new leaf. The next `run(count-1)` then showed hints on the new tab. Fixed by saving the original active leaf before `waitForHintKey` when count > 1, and restoring focus to it after each activation before scheduling the next round. ([#98](https://github.com/saberzero1/motions/issues/98))
+    - Plugin: `src/ui/hint-mode.ts` (`createHintAction` — `originalLeaf` capture + `setActiveLeaf` restore before recursive `run`)
+- **Hint mode: `<leader><leader>h` ignores count prefix** — the `hintMode` action defined via `defineAction` did not accept `ActionArgs`, so `actionArgs.repeat` (the count from vim's input state) was never passed to `activate()`. Count prefix only worked in non-editor context (via global key handler). Fixed by accepting `(_cm, actionArgs)` and passing `actionArgs.repeat`. ([#98](https://github.com/saberzero1/motions/issues/98))
+    - Plugin: `src/main.ts` (`defineAction('hintMode')` — accept `actionArgs`, pass `repeat` to `activate`)
+
+### Tests
+
+- 6 e2e tests in `test/specs/hint-mode.e2e.ts` (issue #98): Ctrl alone keeps labels, Shift alone keeps labels, Alt alone keeps labels, Meta alone keeps labels, Ctrl then label char still narrows labels, `2F` keeps focus on original graph view leaf
+
 ## [0.92.1] - 2026-07-31
 
 ### Fixed
