@@ -120,6 +120,10 @@ See [[settings#File explorer]] for details.
 
 When you close Oil (via `q`, `:q`, `:wq`, or `vim.ob.oil.close()`), the editor reopens your previous file in the same mode you were in when you opened Oil — source mode, live preview, or reading mode.
 
+### Obsidian hotkey handling
+
+Oil's Ctrl-key keybindings (`<C-t>`, `<C-s>`, `<C-h>`, `<C-l>`, `<C-c>`) are registered on the editor's Obsidian Scope, which fires before Obsidian's default hotkeys. This means `<C-t>` correctly opens in a new tab instead of triggering Obsidian's "New tab" hotkey, `<C-s>` opens a vertical split instead of saving, and `<C-h>` opens a horizontal split instead of opening search & replace. No manual hotkey unbinding is required for Oil keybindings to work.
+
 ### Focus on tab switch
 
 If you switch away from the Oil tab and then switch back (via `gT`, `gt`, or clicking the tab), the Oil editor automatically regains focus. You can start typing vim commands immediately without needing to click.

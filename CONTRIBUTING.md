@@ -184,13 +184,13 @@ src/
     strftime.ts            # os.date-compatible time formatting
     types.d.ts             # Lua engine type declarations
   oil/
-    oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery
+    oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery; registerOilScopeKeys() registers Ctrl-key combos (<C-t>, <C-s>, <C-h>, <C-l>, <C-c>) on the editor's Obsidian Scope to intercept before Obsidian's default hotkeys, with blur-before-navigate for cross-leaf actions
     manager.ts             # Oil session lifecycle management — openOil() captures editor mode + primes non-editor leaves with markdown view state before Oil, closeOil() restores mode via leaf.openFile({ state }), discoverAndMergeHidden(dirPath, expectedContent) async dotfile discovery with cache-safe single loadDirectory call, openEntryAtCursor() same-leaf open via leaf.openFile(), openEntryAtCursorInNewTab/InSplit/ExternalAtCursor for tab/split/external open
     parser.ts              # Buffer text ↔ directory entry parsing
     diff.ts                # Diff buffer edits to file system operations
     actions.ts             # File operations (create, rename, delete, move)
     render.ts              # Directory listing rendering — discoverHiddenEntries() via adapter.list() for dotfiles not in Vault index
-    keybindings.ts         # Oil-specific vim keybindings — 15 mappings matching oil.nvim defaults (<CR> same-leaf, <C-t> new tab, <C-s>/<C-h> splits, <C-c>/q close, gx open external, g. toggle hidden, gs cycle sort, y. yank path, gf reveal, g? help), oilClose delegates to manager.closeOil(), focus restoration in onActiveLeafChange
+    keybindings.ts         # Oil-specific vim keybindings — 15 mappings matching oil.nvim defaults (<CR> same-leaf, <C-t> new tab, <C-s>/<C-h> splits, <C-c>/q close, gx open external, g. toggle hidden, gs cycle sort, y. yank path, gf reveal, g? help), oilClose delegates to manager.closeOil(), focus restoration in onActiveLeafChange; Ctrl-key combos (<C-t>, <C-s>, <C-h>, <C-l>, <C-c>) are handled via Obsidian Scope in oil-view.ts to avoid Obsidian default hotkey conflicts
     extensions.ts          # CM6 extensions for Oil buffers
     cache.ts               # Directory listing cache
     types.ts               # Oil type definitions
@@ -240,7 +240,7 @@ src/
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
     bundled/               # Bundled Obsidian-specific snippets
   editors/
-    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent
+    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent; registerScopeKey() exposes the internal Obsidian Scope for registering key handlers that fire before Obsidian's default hotkeys (used by Oil for Ctrl-key combos)
   keybindings/
     action-registry.ts     # Centralized action registry for cross-context keybindings
   ui/

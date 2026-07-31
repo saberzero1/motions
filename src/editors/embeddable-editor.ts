@@ -181,6 +181,11 @@ export interface EmbeddableMarkdownEditor {
     setValue(content: string): void;
     getEditorView(): EditorView;
     focus(): void;
+    registerScopeKey(
+        modifiers: string[],
+        key: string | null,
+        callback: (e: KeyboardEvent) => boolean | undefined,
+    ): void;
 
     _loaded: boolean;
     load(): void;
@@ -428,6 +433,18 @@ function buildEditorClass(
 
         focus(): void {
             this.editor.cm.focus();
+        }
+
+        registerScopeKey(
+            modifiers: string[],
+            key: string | null,
+            callback: (e: KeyboardEvent) => boolean | undefined,
+        ): void {
+            this._scope.register(
+                modifiers as import('obsidian').Modifier[],
+                key,
+                callback,
+            );
         }
     }
 

@@ -64,9 +64,45 @@ export class OilView extends View {
             cursorShapes: this.settings.cursorShapes,
             cls: 'vim-motions-oil-editor',
         });
+        this.registerOilScopeKeys();
         this.addChild(this.editor as unknown as Component);
         this.focusEditor();
         void this.manager.discoverAndMergeHidden(this.dirPath, renderedContent);
+    }
+
+    private registerOilScopeKeys(): void {
+        if (!this.editor) return;
+        const blurAndRun = (fn: () => void) => {
+            this.editor?.getEditorView()?.contentDOM.blur();
+            fn();
+        };
+        this.editor.registerScopeKey(['Ctrl'], 'T', (e) => {
+            e.preventDefault();
+            blurAndRun(() => this.manager.openEntryAtCursorInNewTab());
+            return false;
+        });
+        this.editor.registerScopeKey(['Ctrl'], 'S', (e) => {
+            e.preventDefault();
+            blurAndRun(() => this.manager.openEntryAtCursorInSplit('vertical'));
+            return false;
+        });
+        this.editor.registerScopeKey(['Ctrl'], 'H', (e) => {
+            e.preventDefault();
+            blurAndRun(() =>
+                this.manager.openEntryAtCursorInSplit('horizontal'),
+            );
+            return false;
+        });
+        this.editor.registerScopeKey(['Ctrl'], 'L', (e) => {
+            e.preventDefault();
+            this.manager.refreshActiveOilView();
+            return false;
+        });
+        this.editor.registerScopeKey(['Ctrl'], 'C', (e) => {
+            e.preventDefault();
+            this.manager.closeOil();
+            return false;
+        });
     }
 
     focusEditor(): void {

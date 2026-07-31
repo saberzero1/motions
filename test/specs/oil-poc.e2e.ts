@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     PAUSE,
@@ -1065,6 +1066,69 @@ describe('Oil explorer', function () {
             })) as boolean;
 
             expect(hasMapping).toBe(true);
+        });
+
+        it('C-t opens file in new tab and focuses it', async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const dir = 'oil-ct-test-dir';
+                const existing = app.vault.getAbstractFileByPath(dir);
+                if (!existing) await app.vault.createFolder(dir);
+                const f = app.vault.getAbstractFileByPath(`${dir}/Target.md`);
+                if (!f) await app.vault.create(`${dir}/Target.md`, 'target');
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await openOilAndWait('oil-ct-test-dir');
+            await focusOilEditor();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const beforeLeafCount = (await browser.executeObsidian(
+                ({ app }) => {
+                    let count = 0;
+                    app.workspace.iterateAllLeaves(() => count++);
+                    return count;
+                },
+            )) as number;
+
+            await browser.keys([Key.Ctrl, 't']);
+            await browser.pause(1000);
+
+            const after = (await browser.executeObsidian(({ app }) => {
+                let leafCount = 0;
+                let hasOil = false;
+                app.workspace.iterateAllLeaves((leaf) => {
+                    leafCount++;
+                    if (leaf.view?.getViewType() === 'oil-explorer') {
+                        hasOil = true;
+                    }
+                });
+                return {
+                    leafCount,
+                    hasOil,
+                    activeFile: app.workspace.getActiveFile()?.path ?? '',
+                    activeViewType:
+                        app.workspace
+                            .getMostRecentLeaf()
+                            ?.view?.getViewType() ?? '',
+                };
+            })) as {
+                leafCount: number;
+                hasOil: boolean;
+                activeFile: string;
+                activeViewType: string;
+            };
+
+            expect(after.leafCount).toBeGreaterThan(beforeLeafCount);
+            expect(after.hasOil).toBe(true);
+            expect(after.activeFile).toBe('oil-ct-test-dir/Target.md');
+            expect(after.activeViewType).toBe('markdown');
+
+            await cleanupOilViews();
+            await browser.executeObsidian(async ({ app }) => {
+                const folder =
+                    app.vault.getAbstractFileByPath('oil-ct-test-dir');
+                if (folder) await app.vault.delete(folder, true);
+            });
         });
     });
 

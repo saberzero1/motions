@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Oil `<C-t>`/`<C-s>`/`<C-h>` keybindings intercepted by Obsidian default hotkeys** — pressing `<C-t>` in Oil opened an empty Obsidian tab instead of the file under cursor. `<C-s>` triggered Obsidian's save and `<C-h>` triggered search & replace. Root cause: Obsidian's default hotkeys (`Ctrl+T` = new tab, `Ctrl+S` = save, `Ctrl+H` = search & replace) fire at the Electron level before the embeddable editor's vim key handler receives the event. The vim mapping (`vim.map('<C-t>', ':oilopentab<CR>', 'normal')`) never executed. Fixed by registering `Ctrl+T`, `Ctrl+S`, `Ctrl+H`, `Ctrl+L`, and `Ctrl+C` on the embeddable editor's Obsidian `Scope` (the same mechanism that already intercepts `Mod+Enter`). Scope-registered keys fire before Obsidian's default hotkeys. Navigation keys (`<C-t>`, `<C-s>`, `<C-h>`) blur the editor before calling the manager action so the `setActiveLeaf` guard in the embeddable editor allows the new leaf through. Non-navigation keys (`<C-l>` refresh, `<C-c>` close) call the manager directly. The ex commands (`:oilopent`, `:oilopensv`, `:oilopensh`, `:oilrefresh`, `:oilclose`) continue to work via `vim.defineEx` for users who prefer typing them. ([#93](https://github.com/saberzero1/motions/issues/93))
+    - Plugin: `src/editors/embeddable-editor.ts` (`registerScopeKey()` method on `EmbeddableMarkdownEditor` interface and `ConcreteEmbeddableEditor` class — delegates to the internal Obsidian `Scope`), `src/oil/oil-view.ts` (`registerOilScopeKeys()` — registers 5 Ctrl-key combos on the editor scope with blur-before-navigate for cross-leaf actions)
+
+### Tests
+
+- 1 e2e test in `test/specs/oil-poc.e2e.ts`: `<C-t>` opens file in new tab and focuses it (regression test — verifies active file is the target, active view type is markdown, Oil view still exists, leaf count increased)
+
 ## [0.91.0] - 2026-07-30
 
 ### Fixed
