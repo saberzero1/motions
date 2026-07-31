@@ -31,8 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.92.1
+## What's new in 0.93.0
 
-- **Ctrl hotkeys broken after closing Oil explorer** — after closing Oil, `Ctrl`-based hotkeys (`<C-d>`, `<C-f>`, `<C-b>`, etc.) stopped working until switching tabs. Fixed by properly disposing the Oil-specific Obsidian `Scope` on close ([#93](https://github.com/saberzero1/motions/issues/93))
+- **Hint mode: modifier keys no longer clear labels** — pressing Ctrl, Shift, Alt, or Meta alone during hint mode no longer dismisses the overlay ([#98](https://github.com/saberzero1/motions/issues/98))
+- **Hint mode: count prefix (`2F`) stays on original tab** — using a count prefix no longer shifts focus away between rounds ([#98](https://github.com/saberzero1/motions/issues/98))
+- **Hint mode: `<leader><leader>h` honors count prefix** — count is now correctly passed through to hint activation ([#98](https://github.com/saberzero1/motions/issues/98))
 
 See the [[changelog|full changelog]] for details.

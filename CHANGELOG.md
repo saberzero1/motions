@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.93.0] - 2026-07-31
+
 ### Fixed
 
 - **Hint mode: pressing Ctrl/Shift/Alt/Meta alone clears labels** — pressing any modifier key alone during hint mode dismissed the overlay. Root cause: `waitForHintKey()` in `hint-mode.ts` treated modifier-only keydown events (where `e.key` is `"Control"`, `"Shift"`, etc.) as unmatched first characters, triggering cleanup. The global key handler (`global-key-handler.ts:228-234`) already filtered modifier-only keys correctly. Fixed by adding the same guard at the top of `waitForHintKey()`'s handler. ([#98](https://github.com/saberzero1/motions/issues/98))
