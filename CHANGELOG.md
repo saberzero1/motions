@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.94.0] - 2026-08-01
+
 ### Fixed
 
 - **Gutter settings ignored when set via vimrc or Lua** — `set nonumber`, `set signcolumn=no`, `vim.opt.number = false`, and other gutter-related settings (`number`, `relativenumber`, `numberwidth`, `linenumbermode`, `cursorline`, `cursorlineopt`, `signcolumn`, `statuscolumn`, `foldcolumn`) had no effect when configured via `.obsidian.vimrc` or `.obsidian.init.lua`. Root cause: vimrc/Lua overrides were in-memory only and never persisted, but gutter CM6 extensions are created at startup from persisted values. Fixed with a `configOverrides` persistence system: after vimrc/Lua loading, override values are captured and persisted in `data.json`. On next startup, `configOverrides` are merged on top of base settings before CM6 extensions are created, so gutters use the correct values from the start. Also added gutter reconfiguration calls to `reloadFeatures()` for in-session changes. ([#101](https://github.com/saberzero1/motions/issues/101))

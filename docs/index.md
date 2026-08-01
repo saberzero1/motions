@@ -31,10 +31,14 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.93.0
+## What's new in 0.94.0
 
-- **Hint mode: modifier keys no longer clear labels** — pressing Ctrl, Shift, Alt, or Meta alone during hint mode no longer dismisses the overlay ([#98](https://github.com/saberzero1/motions/issues/98))
-- **Hint mode: count prefix (`2F`) stays on original tab** — using a count prefix no longer shifts focus away between rounds ([#98](https://github.com/saberzero1/motions/issues/98))
-- **Hint mode: `<leader><leader>h` honors count prefix** — count is now correctly passed through to hint activation ([#98](https://github.com/saberzero1/motions/issues/98))
+- **Gutter settings now work via vimrc and Lua** — `set nonumber`, `vim.opt.number = false`, and other gutter options (`relativenumber`, `numberwidth`, `signcolumn`, `foldcolumn`, etc.) are now correctly persisted and applied at startup ([#101](https://github.com/saberzero1/motions/issues/101))
+- **27 new vimrc/Lua configurable options** — picker, Oil, ripgrep, input method, undo tree, and hint mode settings are now available via `:set` and `vim.opt`
+- **Oil explorer: focus retained after commit** — committing staged changes (`:w`) no longer steals focus from the Oil editor ([#100](https://github.com/saberzero1/motions/issues/100))
+- **Hint mode: modifier keys fully isolated** — modifier-only keydown events no longer leak to Obsidian's hotkey system ([#98](https://github.com/saberzero1/motions/issues/98))
+- **Hint mode: `2F` focus race fixed** — async navigation is now fully awaited before restoring focus, eliminating race conditions ([#98](https://github.com/saberzero1/motions/issues/98))
+- **`:sort` and `CTRL-V $ d` cursor positioning** — both now match Neovim behavior
+- **Runtime invariant system** — `invariant()` and `devAssert()` helpers with `:violations` ex command for inspecting runtime invariant violations
 
 See the [[changelog|full changelog]] for details.
