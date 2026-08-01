@@ -934,7 +934,7 @@ export function registerExCommands(
             .join('\n');
         new Notice(`${vList.length} violation(s):\n${summary}`, 15000);
     });
-    reg.defineEx('violations!', 'viol!', () => {
+    reg.defineEx('violations!', '', () => {
         clearViolations();
         new Notice('Violations cleared.');
     });
