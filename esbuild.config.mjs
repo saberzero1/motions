@@ -10,6 +10,7 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = process.argv[2] === 'production';
+const ciTest = process.argv[2] === 'ci-test';
 const dev = process.argv[2] === 'development';
 
 const context = await esbuild.context({
@@ -45,7 +46,7 @@ const context = await esbuild.context({
     },
 });
 
-if (prod) {
+if (prod || ciTest) {
     await context.rebuild();
     process.exit(0);
 } else if (dev) {

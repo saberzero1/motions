@@ -40,7 +40,7 @@ jobs:
               run: npm install --include=dev
 
             - name: Build
-              run: npm run build:dev
+              run: npm run build:ci-test
 
             - name: Cache Obsidian
               uses: actions/cache@v5
