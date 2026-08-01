@@ -5,6 +5,7 @@ import type { ModePrompts } from '../settings';
 import { getCmAdapter, getVimApi } from './vim-api';
 import { getActiveCellEditor, hasActiveCellEditor } from './table-cell-editor';
 import { countSearchMatches, formatSearchCount } from './search-counter';
+import { invariant } from '../util/invariant';
 
 const DEFAULT_MODE_LABELS: Record<string, string> = {
     normal: 'NORMAL',
@@ -90,7 +91,12 @@ export class VimModeTracker {
     attach(app: App): void {
         const modeHandler = (mode: VimModeChange) => {
             if (this.cellEditorActive || hasActiveCellEditor()) return;
-            this.currentMode = this.resolveMode(mode.mode, mode.subMode);
+            const resolved = this.resolveMode(mode.mode, mode.subMode);
+            invariant(
+                resolved in DEFAULT_MODE_LABELS,
+                `Invalid vim mode: "${resolved}" (raw: mode="${mode.mode}", subMode="${mode.subMode}")`,
+            );
+            this.currentMode = resolved;
             if (mode.mode !== 'normal') {
                 this.hideSearchCount();
             }
@@ -111,13 +117,26 @@ export class VimModeTracker {
             if (dialog) {
                 const prefix = this.getDialogPrefix(dialog);
                 if (prefix === ':') {
+                    invariant(
+                        this.preDialogMode === null,
+                        `Entering command mode but preDialogMode already set to "${this.preDialogMode}"`,
+                    );
                     this.preDialogMode = this.currentMode;
                     this.currentMode = 'command';
                 } else if (prefix === '/' || prefix === '?') {
+                    invariant(
+                        this.preDialogMode === null,
+                        `Entering search mode but preDialogMode already set to "${this.preDialogMode}"`,
+                    );
                     this.preDialogMode = this.currentMode;
                     this.currentMode = 'search';
                 }
             } else if (this.preDialogMode) {
+                invariant(
+                    this.currentMode === 'command' ||
+                        this.currentMode === 'search',
+                    `Restoring preDialogMode but currentMode is "${this.currentMode}", expected command or search`,
+                );
                 this.currentMode = this.preDialogMode;
                 this.preDialogMode = null;
             }

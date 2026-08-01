@@ -54,14 +54,6 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
     },
 
     {
-        testPattern: 'CTRL-V $ delete to EOL',
-        description:
-            'Cursor lands at ch:1 instead of ch:0 after block delete to EOL',
-        reason: 'Cursor repositioning after block delete does not account for shortened line',
-        fields: ['cursor'],
-    },
-
-    {
         testPattern: 'N after / search should go to previous match',
         description:
             'N after /word search: cursor stays at (5,5) instead of moving to (5,0). CM6 search panel timing prevents reliable automated dispatch of /pattern followed by N.',
@@ -128,13 +120,6 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         description: 'gh/gH select mode not entered via vimRawKeys dispatch',
         reason: 'Test infrastructure: browser.keys dispatches g and h as separate DOM events; the g prefix is consumed but gh action does not trigger in headless test environment',
         fields: ['content'],
-    },
-
-    {
-        testPattern: ':2,3sort range',
-        description: 'Cursor at line 0 instead of line 1 after ranged :sort',
-        reason: 'Fork :sort cursor positioning does not move to the first line of the sorted range',
-        fields: ['cursor'],
     },
 
     {

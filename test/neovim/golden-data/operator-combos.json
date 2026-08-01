@@ -1,7 +1,7 @@
 {
     "suite": "operator-combos",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-18T16:12:28.491Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-01T08:45:48.863Z",
     "cases": [
         {
             "name": "dw should delete to next word",
@@ -759,6 +759,538 @@
                 "cursor": {
                     "line": 0,
                     "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cw should change word",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "cwnew\u001b",
+            "result": {
+                "content": "new two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "c$ should change to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "c$end\u001b",
+            "result": {
+                "content": "helloend",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "c0 should change to start of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "c0start \u001b",
+            "result": {
+                "content": "start world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yw should yank word",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ywP",
+            "result": {
+                "content": "one one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "y$ should yank to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "y$P",
+            "result": {
+                "content": "hello world world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dG should delete to end of file",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "dG",
+            "result": {
+                "content": "one",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "d% should delete to matching bracket",
+            "initial": {
+                "content": "foo(bar)baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "d%",
+            "result": {
+                "content": "foobaz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gUiw should uppercase inner word",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gUiw",
+            "result": {
+                "content": "HELLO world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "guiw should lowercase inner word",
+            "initial": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "guiw",
+            "result": {
+                "content": "hello WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "g~iw should toggle case inner word",
+            "initial": {
+                "content": "Hello World",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "g~iw",
+            "result": {
+                "content": "hELLO World",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ">ip should indent paragraph",
+            "initial": {
+                "content": "one\ntwo\nthree\n\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ">ip",
+            "result": {
+                "content": "\tone\n\ttwo\n\tthree\n\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cf. should change to next dot",
+            "initial": {
+                "content": "foo.bar.baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "cf.x\u001b",
+            "result": {
+                "content": "xbar.baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dt. should delete to (not including) dot",
+            "initial": {
+                "content": "foo.bar.baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dt.",
+            "result": {
+                "content": ".bar.baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "c2w should change 2 words",
+            "initial": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "c2wX\u001b",
+            "result": {
+                "content": "X three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "y2w should yank 2 words",
+            "initial": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "y2wP",
+            "result": {
+                "content": "one two one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "gUU should uppercase entire line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gUU",
+            "result": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "guu should lowercase entire line",
+            "initial": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "guu",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "g~~ should toggle case entire line",
+            "initial": {
+                "content": "Hello World",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "g~~",
+            "result": {
+                "content": "hELLO wORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "diw should delete inner word",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "diw",
+            "result": {
+                "content": "one  three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "daw should delete a word including space",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "daw",
+            "result": {
+                "content": "one three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "ciw should change inner word",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "ciwX\u001b",
+            "result": {
+                "content": "one X three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yiw should yank inner word",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "yiwP",
+            "result": {
+                "content": "one twotwo three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "S should change entire line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "Snew\u001b",
+            "result": {
+                "content": "new",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "C should change to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "Cnew\u001b",
+            "result": {
+                "content": "helnew",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dip should delete inner paragraph",
+            "initial": {
+                "content": "one\ntwo\n\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dip",
+            "result": {
+                "content": "\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "yip should yank inner paragraph",
+            "initial": {
+                "content": "one\ntwo\n\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yipP",
+            "result": {
+                "content": "one\ntwo\none\ntwo\n\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "dap should delete around paragraph",
+            "initial": {
+                "content": "one\ntwo\n\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dap",
+            "result": {
+                "content": "three\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cap should change around paragraph",
+            "initial": {
+                "content": "one\ntwo\n\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "capnew\u001b",
+            "result": {
+                "content": "new\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
                 },
                 "mode": "normal"
             }

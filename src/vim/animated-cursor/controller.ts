@@ -20,6 +20,7 @@ import {
     setCursorSuppressedForView,
     clearCursorSuppressedForView,
 } from '@replit/codemirror-vim';
+import { invariant, devAssert } from '../../util/invariant';
 
 const STALE_THRESHOLD_MS = 100;
 
@@ -104,6 +105,10 @@ class CursorController implements Tickable {
     };
 
     update(vu: ViewUpdate): void {
+        devAssert(
+            !this.destroyed,
+            'CursorController.update() called after destroy',
+        );
         if (this.destroyed) return;
 
         const config = getAnimatedCursorConfig();
@@ -427,6 +432,10 @@ class CursorController implements Tickable {
     }
 
     destroy(): void {
+        invariant(
+            !this.destroyed,
+            'CursorController.destroy() called on already-destroyed controller',
+        );
         this.destroyed = true;
         clearCursorSuppressedForView(this.view);
         getAnimatedCursorManager().deregister(this);

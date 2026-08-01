@@ -2,6 +2,7 @@ import { lua, lauxlib, lualib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import { Notice } from 'obsidian';
 import type { CoroutineRunner } from './coroutine-runner';
+import { invariant } from '../util/invariant';
 
 export const INSTRUCTION_LIMIT = 1_000_000;
 export const LUA_TIMEOUT_ERROR = 'Lua execution timed out';
@@ -25,6 +26,7 @@ export function withInstructionGuard(
     limit: number,
     fn: () => number,
 ): number {
+    invariant(limit > 0, `Instruction limit must be positive, got ${limit}`);
     lua.lua_sethook(
         L,
         (hookState: lua_State) => {

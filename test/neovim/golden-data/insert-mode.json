@@ -1,7 +1,7 @@
 {
     "suite": "insert-mode",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-18T16:12:28.569Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-01T08:45:48.963Z",
     "cases": [
         {
             "name": "Escape from insert should allow x to delete",
@@ -75,6 +75,234 @@
                 "cursor": {
                     "line": 0,
                     "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-W should delete word before cursor in existing text",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 15
+                }
+            },
+            "keys": "A\u0017\u001b",
+            "result": {
+                "content": "hello world ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-U should delete to start of inserted text",
+            "initial": {
+                "content": "prefix",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "A suffix\u0015\u001b",
+            "result": {
+                "content": "prefix",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Ctrl-O dd should delete line from insert mode",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "i\u000fdd\u001b",
+            "result": {
+                "content": "one\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "A should append at end of line",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "A world\u001b",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "I should insert at first non-blank",
+            "initial": {
+                "content": "  hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "Istart \u001b",
+            "result": {
+                "content": "  start hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 7
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "O should open line above",
+            "initial": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Onew\u001b",
+            "result": {
+                "content": "one\nnew\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "o should open line below",
+            "initial": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "onew\u001b",
+            "result": {
+                "content": "one\nnew\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "i + text + Escape cursor position",
+            "initial": {
+                "content": "abc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "iXY\u001b",
+            "result": {
+                "content": "aXYbc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "a should append after cursor",
+            "initial": {
+                "content": "abc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "aX\u001b",
+            "result": {
+                "content": "aXbc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "O on first line",
+            "initial": {
+                "content": "only",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Onew\u001b",
+            "result": {
+                "content": "new\nonly",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "o on last line",
+            "initial": {
+                "content": "only",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "onew\u001b",
+            "result": {
+                "content": "only\nnew",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "cc should change entire line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                }
+            },
+            "keys": "ccnew\u001b",
+            "result": {
+                "content": "new",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
                 },
                 "mode": "normal"
             }

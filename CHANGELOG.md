@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Runtime invariant system** — `invariant()` (always-on, type-narrowing) and `devAssert()` (dev-only, stripped from production) helpers in `src/util/invariant.ts`. 21 invariants placed across 9 source files protecting mode transitions, dual-vim architecture, settings resolution, Lua engine lifecycle, extension cleanup, cursor state, and cell editor singleton. Violations are logged to console, rate-limited via Notice, and inspectable via the `:violations` ex command. `__DEV__` build-time flag via esbuild `define` enables dev-only checks in development/watch builds and strips them from production.
+    - Plugin: `src/util/invariant.ts` (new — `invariant`, `devAssert`, `getViolations`, `clearViolations`), `src/types/globals.ts` (new — `__DEV__` global type declaration), `esbuild.config.mjs` (`define` option), `vitest.config.ts` (`define` option)
+- **`:violations` ex command** — displays accumulated invariant violations with timestamps. `:violations!` clears the violation log.
+    - Plugin: `src/workspace/commands.ts` (`:violations` and `:violations!` registration)
+
+### Fixed
+
+- **`:sort` cursor positioning** — `:sort` (and ranged `:2,3sort`) now positions the cursor at the first line of the sorted range, matching Neovim. Previously the cursor stayed at line 0 regardless of the sort range.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`exCommands.sort` — `cm.setCursor` after `replaceRange`)
+- **`CTRL-V $ d` cursor overshoot** — after a block visual delete to end-of-line (`CTRL-V jj $ d`), the cursor column is now clamped to the remaining line length. Previously the cursor could land past the last character on shortened lines.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`operators.delete` — block visual cursor clamping)
+
+### Tests
+
+- 57 new unit tests across 5 new test files:
+    - `test/unit/invariant.test.ts` (12 tests): invariant/devAssert helpers, violation cap, rate limiting, stack traces, shallow copy
+    - `test/unit/mode-tracker.test.ts` (11 tests): getDialogPrefix, resolveMode logic
+    - `test/unit/dual-vim.test.ts` (7 tests): bundled-vim lifecycle, bridge install/uninstall, invariant trigger
+    - `test/unit/settings-resolution.test.ts` (16 tests): DEFAULT_SETTINGS completeness, settings merge, configMode migration, signcolumn migration, idempotency
+    - `test/unit/lua/lifecycle.test.ts` (8 tests): sandboxed state creation/destruction, instruction guard, coroutine runner lifecycle
+- 3 expanded tests in `test/unit/animated-cursor.test.ts`: manager register/deregister, destroy clears all, MAX_CONTROLLERS warning
+- 70 new Neovim golden test cases (490 → 560): operator+motion combos (+28), visual mode operations (+15), insert mode operations (+12), ex command operations (+15)
+- 2 Neovim deviations closed (22 → 20): `:2,3sort` cursor positioning, `CTRL-V $ delete to EOL` cursor overshoot
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked `:sort` cursor and `CTRL-V $` cursor deviations as fixed
+- `CONTRIBUTING.md`: Added invariant system to codebase structure, updated testing instructions for `build:dev`
+- `AGENTS.md`: Updated manual testing instructions for `build:dev`, added `:violations` command, updated golden test count and deviation count
+- `README.md`: Added `npm run test:unit` to development commands
+- `DIFFERENCES.md` (fork): Added `:sort` cursor positioning and block visual delete cursor clamping sections
+- `docs/features/ex-commands.md`: Added `:violations` and `:violations!` ex commands
+
 ## [0.93.0] - 2026-07-31
 
 ### Fixed

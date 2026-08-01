@@ -1828,3 +1828,11 @@ CM6's native multi-cursor support means typed text appears on all lines in real-
 Block visual operations that were already working: delete (`d`), yank (`y`), paste (`p`/`P`), indent (`>`/`<`), replace (`r`), case toggle (`~`), corner swap (`o`/`O`). Now also working: insert (`I`/`A`), change (`c`/`C`).
 
 **Test coverage**: `test/specs/vim-builtin/visual-block-golden.e2e.ts` — 15 golden Neovim comparison tests covering block insert, append, change, change-to-EOL, delete, case toggle, replace, short-line handling, block yank/paste, zero-width block C, zero-width block I, A cursor position, upward selection, `$` escape cursor position, and `$` delete to EOL.
+
+## ~~`:sort` cursor positioning~~ (Fixed)
+
+**Status**: Fixed. `:sort` (and ranged `:2,3sort`) now positions the cursor at the first line of the sorted range via `cm.setCursor()`, matching Neovim. Previously the cursor stayed at line 0 regardless of the sort range.
+
+## ~~`CTRL-V $ d` cursor overshoot~~ (Fixed)
+
+**Status**: Fixed. After a block visual delete to end-of-line (`CTRL-V jj $ d`), the cursor column is now clamped to the remaining line length. Previously `cursorMin(head, anchor)` preserved the original anchor column, which could exceed the shortened line length after deletion.

@@ -102,11 +102,14 @@ npm run build
 
 ### Manual testing
 
-- Copy `main.js`, `manifest.json`, `styles.css` (if any) to:
+- Build with `npm run build:dev` (development build — includes `__DEV__` runtime assertions, inline sourcemaps, and auto-copies artifacts to `test-vault/.obsidian/plugins/vim-motions/`).
+- If testing in a different vault, copy `main.js`, `manifest.json`, `styles.css` (if any) to:
     ```
     <Vault>/.obsidian/plugins/<plugin-id>/
     ```
 - Reload Obsidian and enable the plugin in **Settings → Community plugins**.
+- Use `:violations` in the editor command line to inspect any runtime invariant violations caught during the session.
+- **Do not use `npm run build` for testing** — production builds strip `__DEV__` assertions and minify, making debugging harder.
 
 ### Automated testing
 
@@ -148,7 +151,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 
 - **Golden files**: `test/neovim/golden-data/*.json` — committed to the repo, recorded against a pinned Neovim version.
 - **Test definitions**: `test/neovim/test-definitions.ts` — single source of truth for test cases used by both golden recording and `testWithNeovim()` calls.
-- **Deviation registry**: `test/neovim/deviations.ts` — known intentional differences between the plugin and Neovim. Each entry is a "feels different from Neovim" item; shrinking this list is the roadmap toward parity.
+- **Deviation registry**: `test/neovim/deviations.ts` — 20 known intentional differences between the plugin and Neovim. Each entry is a "feels different from Neovim" item; shrinking this list is the roadmap toward parity.
 - **Record golden files**: `npm run test:neovim-record` (requires `nvim` binary).
 - **Live comparison**: `NEOVIM_COMPARE=1 npm run test:e2e` (requires `nvim` binary).
 - **Smoke test**: `npm run test:neovim-smoke` (requires `nvim` binary).
@@ -158,7 +161,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 - `test/specs/vim-builtin/` — Tier 1 tests (built-in CM Vim behavior). Use `testWithNeovim()` as primary format.
 - `test/specs/` — Tier 2 tests (plugin features: text objects, navigation, workspace, operators, vimrc, settings, jump list, table cell vim mode).
 - `test/specs/spikes/` — exploratory/R&D tests.
-- `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, etc.).
+- `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, invariants, mode-tracker, settings-resolution, dual-vim, animated-cursor, etc.).
 - `test/neovim/` — Neovim comparison infrastructure (client, compare, golden, deviations, wrapper, definitions, recording).
 - `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`, `ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`).
 

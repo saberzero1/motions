@@ -11,6 +11,7 @@ import {
     setCursorSuppressedForView,
     clearCursorSuppressedForView,
 } from '@replit/codemirror-vim';
+import { devAssert } from '../util/invariant';
 
 export interface CellEditorHandle {
     editor: EmbeddableMarkdownEditor;
@@ -78,6 +79,10 @@ export function openCellEditor(
     rawMarkdown?: string,
 ): CellEditorHandle | null {
     closeCellEditor(null); // close any previous
+    devAssert(
+        activeHandle === null,
+        'activeHandle still set after closeCellEditor — previous editor not fully closed',
+    );
 
     const wrapper = cellEl.querySelector<HTMLElement>('.table-cell-wrapper');
     if (!wrapper) return null;

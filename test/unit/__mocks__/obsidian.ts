@@ -16,7 +16,7 @@ export class Modal {
     close() {}
 }
 export class Notice {
-    constructor(_msg: string) {}
+    constructor(_msg: string, _duration?: number) {}
 }
 export class Plugin {}
 export class PluginSettingTab {}

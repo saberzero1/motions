@@ -24,9 +24,12 @@ npm run lint
 
 ### Testing locally in Obsidian
 
-1. Run `npm run build` to produce `main.js`.
-2. Copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/vim-motions/` directory.
+1. Run `npm run build:dev` to produce `main.js` with `__DEV__` runtime assertions enabled (inline sourcemaps, auto-copies to `test-vault/`).
+2. If testing in a different vault, copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/vim-motions/` directory.
 3. Reload Obsidian and enable the plugin in **Settings → Community plugins**.
+4. Use `:violations` in the editor command line to inspect any runtime invariant violations caught during the session.
+
+**Do not use `npm run build` for testing** — production builds strip `__DEV__` assertions and minify, making debugging harder.
 
 Alternatively, symlink the project root into your vault's plugin directory for faster iteration during development.
 
@@ -56,6 +59,7 @@ src/
   types/
     vim-api.d.ts           # Type declarations for the Vim API (CmAdapter, VimApi, etc.)
     codemirror-vim.d.ts    # CodeMirror Vim type declarations
+    globals.ts             # __DEV__ build-time constant type declaration
   vim/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations
@@ -259,6 +263,7 @@ src/
     leaf.ts                # getLeafId(), isLeafPinned(), getViewFilePath(), getViewFileBasename() — typed access to internal leaf/view properties
     metadata.ts            # getResolvedLinks() — typed access to app.metadataCache.resolvedLinks
     vault.ts               # getVaultConfig(), isBuiltinVimEnabled() — typed access to app.vault.getConfig
+    invariant.ts           # Runtime invariant system — invariant() (always-on, type-narrowing), devAssert() (dev-only), violation tracking + :violations ex command
     keymap.ts              # pushKeymapScope(), popKeymapScope() — typed access to app.keymap scope management
     around.ts              # Monkey-patching utility (around pattern)
     external-fs.ts         # External filesystem access helpers
@@ -437,6 +442,13 @@ reg.mapCommand('gX', 'action', 'myAction', {});
 - Use `window.setTimeout`/`window.clearTimeout` instead of `setTimeout`/`clearTimeout`.
 - Use CSS classes and variables instead of inline styles.
 - Sentence case for UI text.
+
+### Runtime invariants
+
+- Use `invariant(condition, message)` for state checks that should always run (mode transitions, settings completeness, lifecycle guards). Logs to console + accumulates violations inspectable via `:violations`.
+- Use `devAssert(condition, message)` for expensive checks on hot paths (per-keystroke, per-render). Stripped from production builds via `__DEV__` flag.
+- Neither function throws — the plugin continues running after a violation. Both narrow TypeScript types via `asserts condition`.
+- See `src/util/invariant.ts` for the implementation and `.sisyphus/plans/invariant-system.md` for the placement plan.
 
 ### File organization
 

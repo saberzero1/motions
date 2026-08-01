@@ -1,7 +1,7 @@
 {
     "suite": "ex-commands-expanded",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-18T16:12:28.580Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-01T08:45:48.987Z",
     "cases": [
         {
             "name": ":yank should not error",
@@ -112,6 +112,291 @@
                 "content": "keep\nkeep",
                 "cursor": {
                     "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":d3 should delete 3 lines",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":d3\n",
+            "result": {
+                "content": "four\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":1,3d should delete range",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1,3d\n",
+            "result": {
+                "content": "four\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":m+1 should move line down",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":m+1\n",
+            "result": {
+                "content": "two\none\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":m-2 should move line up",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": ":m-2\n",
+            "result": {
+                "content": "one\nthree\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":co+1 should copy line down",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":co+1\n",
+            "result": {
+                "content": "one\ntwo\none\nthree",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":1,2co3 should copy range",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1,2co3\n",
+            "result": {
+                "content": "one\ntwo\nthree\none\ntwo\nfour",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":s with special chars should work",
+            "initial": {
+                "content": "foo/bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":s/foo/baz/\n",
+            "result": {
+                "content": "baz/bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":sort! should sort reverse",
+            "initial": {
+                "content": "apple\ncherry\nbanana",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":sort!\n",
+            "result": {
+                "content": "cherry\nbanana\napple",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":v/pattern/d should delete non-matching",
+            "initial": {
+                "content": "keep\nremove\nkeep\nremove",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":v/keep/d\n",
+            "result": {
+                "content": "keep\nkeep",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":1,3m4 should move range",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1,3m4\n",
+            "result": {
+                "content": "four\none\ntwo\nthree\nfive",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":.d should delete current line",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": ":.d\n",
+            "result": {
+                "content": "one\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":$d should delete last line",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":$d\n",
+            "result": {
+                "content": "one\ntwo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":2,4s/x/y/g range substitute",
+            "initial": {
+                "content": "axb\ncxd\nexf\ngxh\nixj",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":2,4s/x/y/g\n",
+            "result": {
+                "content": "axb\ncyd\neyf\ngyh\nixj",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":s with ampersand in replacement",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":s/hello/(&)/\n",
+            "result": {
+                "content": "(hello)",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": ":g/pattern/m0 should reverse matching lines",
+            "initial": {
+                "content": "a\nb\nc\nd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":g/^/m0\n",
+            "result": {
+                "content": "d\nc\nb\na",
+                "cursor": {
+                    "line": 0,
                     "ch": 0
                 },
                 "mode": "normal"

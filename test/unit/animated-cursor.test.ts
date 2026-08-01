@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 import { SmoothCursor } from '../../src/vim/animated-cursor/smooth-cursor';
 import { SmearPhysics } from '../../src/vim/animated-cursor/physics';
@@ -368,5 +368,112 @@ describe('getCursorShapeForMode', () => {
         expect(getCursorShapeForMode('visual')).toBe('bar');
         expect(getCursorShapeForMode('replace')).toBe('block');
         expect(getCursorShapeForMode('operator-pending')).toBe('bar');
+    });
+});
+
+describe('AnimatedCursorManager', () => {
+    let savedDocument: unknown;
+    let savedRAF: unknown;
+    let savedCAF: unknown;
+    let savedRO: unknown;
+
+    beforeEach(() => {
+        savedDocument = (globalThis as Record<string, unknown>).document;
+        savedRAF = (globalThis as Record<string, unknown>)
+            .requestAnimationFrame;
+        savedCAF = (globalThis as Record<string, unknown>).cancelAnimationFrame;
+        savedRO = (globalThis as Record<string, unknown>).ResizeObserver;
+
+        const stubEl = {
+            getContext: () => null,
+            remove: () => {},
+            style: {},
+            className: '',
+            width: 0,
+            height: 0,
+        };
+        (globalThis as Record<string, unknown>).document = {
+            querySelector: () => null,
+            body: { createEl: () => stubEl },
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            hidden: false,
+            documentElement: {},
+            adoptedStyleSheets: [],
+        };
+        (globalThis as Record<string, unknown>).requestAnimationFrame = () => 1;
+        (globalThis as Record<string, unknown>).cancelAnimationFrame = () => {};
+        (globalThis as Record<string, unknown>).ResizeObserver = class {
+            observe() {}
+            disconnect() {}
+        };
+    });
+
+    const restoreDoc = () => {
+        const g = globalThis as Record<string, unknown>;
+        g.document = savedDocument;
+        g.requestAnimationFrame = savedRAF;
+        g.cancelAnimationFrame = savedCAF;
+        g.ResizeObserver = savedRO;
+    };
+
+    it('register adds and deregister removes a controller', async () => {
+        vi.resetModules();
+        const { AnimatedCursorManager } =
+            await import('../../src/vim/animated-cursor/manager');
+        const manager = new AnimatedCursorManager();
+        const stub = { tick: vi.fn(), isActive: () => false };
+        manager.register(stub);
+        expect(
+            (manager as unknown as { controllers: Set<unknown> }).controllers
+                .size,
+        ).toBe(1);
+        manager.deregister(stub);
+        expect(
+            (manager as unknown as { controllers: Set<unknown> }).controllers
+                .size,
+        ).toBe(0);
+        manager.destroy();
+        restoreDoc();
+    });
+
+    it('destroy clears all controllers', async () => {
+        vi.resetModules();
+        const { AnimatedCursorManager } =
+            await import('../../src/vim/animated-cursor/manager');
+        const manager = new AnimatedCursorManager();
+        const stub1 = { tick: vi.fn(), isActive: () => false };
+        const stub2 = { tick: vi.fn(), isActive: () => false };
+        manager.register(stub1);
+        manager.register(stub2);
+        expect(
+            (manager as unknown as { controllers: Set<unknown> }).controllers
+                .size,
+        ).toBe(2);
+        manager.destroy();
+        expect(
+            (manager as unknown as { controllers: Set<unknown> }).controllers
+                .size,
+        ).toBe(0);
+        restoreDoc();
+    });
+
+    it('warns when exceeding MAX_CONTROLLERS', async () => {
+        vi.resetModules();
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { AnimatedCursorManager } =
+            await import('../../src/vim/animated-cursor/manager');
+        const manager = new AnimatedCursorManager();
+        for (let i = 0; i < 17; i++) {
+            manager.register({ tick: vi.fn(), isActive: () => false });
+        }
+        expect(warnSpy).toHaveBeenCalled();
+        expect(
+            (manager as unknown as { controllers: Set<unknown> }).controllers
+                .size,
+        ).toBe(16);
+        manager.destroy();
+        warnSpy.mockRestore();
+        restoreDoc();
     });
 });

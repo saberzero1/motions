@@ -506,6 +506,8 @@ Execute commands via the `:` command line, grouped by function.
 | `:reg` / `:registers`              | Browse vim registers (paste on select) |
 | `:delmarks {marks}`                | Delete specified marks                 |
 | `:version` / `:ve`                 | Show plugin version                    |
+| `:violations` / `:viol`            | Show runtime invariant violations      |
+| `:violations!` / `:viol!`          | Clear invariant violation log          |
 | `:gmap`                            | List all active global bindings        |
 
 ## Snippets

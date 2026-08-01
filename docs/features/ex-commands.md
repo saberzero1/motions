@@ -271,6 +271,16 @@ The rhs must start with `:` — either `:command` (ex command) or `:obcommand co
 
 See [[vimrc#Global key mappings]] for configuring global mappings in `.obsidian.vimrc`, or [[lua-config#Global keymaps]] for Lua configuration via `vim.obsidian.keymap.set`.
 
+## Debug commands
+
+| Command        | Short    | Description                                   |
+| -------------- | -------- | --------------------------------------------- |
+| `:violations`  | `:viol`  | Show accumulated runtime invariant violations |
+| `:violations!` | `:viol!` | Clear all recorded violations                 |
+| `:version`     | `:ve`    | Show plugin name and version                  |
+
+`:violations` displays the last 20 invariant violations with timestamps. These are recorded when runtime state checks detect unexpected conditions (e.g., invalid vim mode, leaked managers after unload). In normal operation, this list should be empty. Non-empty results indicate a potential bug worth reporting.
+
 ## Non-editor ex command line
 
 Pressing `:` in a non-editor view (PDF, graph, canvas, etc.) opens a standalone command modal with tab-completion. Only globally-safe commands are available from this modal — commands that require an active editor (`:e!`, `:saveas`, `:read`, `:marks`) show a notice when invoked.

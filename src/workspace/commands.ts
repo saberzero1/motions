@@ -12,6 +12,7 @@ import { getResolvedLinks } from '../util/metadata';
 import type { JumpList } from '../vim/jumplist';
 import type { UndoTree } from '../vim/undo-tree';
 import { navigateWithJump, navigateWithJumpSetActive } from './navigate';
+import { getViolations, clearViolations } from '../util/invariant';
 
 type OpenPicker = (
     source: string,
@@ -916,6 +917,26 @@ export function registerExCommands(
         if (!globalRegistry.removeMapping(key)) {
             new Notice(`No global mapping for: ${key}`);
         }
+    });
+
+    reg.defineEx('violations', 'viol', () => {
+        const vList = getViolations();
+        if (vList.length === 0) {
+            new Notice('No invariant violations recorded.');
+            return;
+        }
+        const summary = vList
+            .slice(-20)
+            .map(
+                (v, i) =>
+                    `${i + 1}. [${new Date(v.timestamp).toLocaleTimeString()}] ${v.message}`,
+            )
+            .join('\n');
+        new Notice(`${vList.length} violation(s):\n${summary}`, 15000);
+    });
+    reg.defineEx('violations!', 'viol!', () => {
+        clearViolations();
+        new Notice('Violations cleared.');
     });
 
     if (oilManager) {

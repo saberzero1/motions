@@ -1,6 +1,7 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import type { lua_State } from 'fengari';
 import { pushLuaAny } from './api';
+import { invariant } from '../util/invariant';
 
 const ASYNC_TIMEOUT_MS = 10_000;
 const MAX_CONCURRENT = 16;
@@ -69,6 +70,10 @@ export class CoroutineRunner {
         if (this.destroyed) {
             return { ok: false, error: 'Lua state destroyed' };
         }
+        invariant(
+            this.handles.size <= MAX_CONCURRENT,
+            `Coroutine handles (${this.handles.size}) exceeded MAX_CONCURRENT (${MAX_CONCURRENT})`,
+        );
         if (this.handles.size >= MAX_CONCURRENT) {
             return {
                 ok: false,
@@ -194,6 +199,10 @@ export class CoroutineRunner {
     }
 
     destroyAll(): void {
+        invariant(
+            !this.destroyed,
+            'CoroutineRunner.destroyAll() called on already-destroyed runner',
+        );
         this.destroyed = true;
         for (const handle of this.handles.values()) {
             if (handle.timeoutId !== null) {

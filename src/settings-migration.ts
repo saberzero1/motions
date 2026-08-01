@@ -1,4 +1,5 @@
 import type { VimMotionsSettings } from './settings';
+import { invariant } from './util/invariant';
 
 export function migrateConfigModeSettings(
     data:
@@ -24,6 +25,10 @@ export function migrateConfigModeSettings(
         else if (vimrc) data.configMode = 'vimrc';
         else if (lua) data.configMode = 'lua';
         else data.configMode = 'settings';
+        invariant(
+            ['lua-vimrc', 'lua', 'vimrc', 'settings'].includes(data.configMode),
+            `Migration produced invalid configMode: "${data.configMode}"`,
+        );
         delete data.enableVimrc;
         delete data.enableLuaConfig;
     }

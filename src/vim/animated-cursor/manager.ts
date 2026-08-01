@@ -1,3 +1,5 @@
+import { devAssert } from '../../util/invariant';
+
 export interface Tickable {
     tick(dt: number, ctx: CanvasRenderingContext2D): void;
     isActive(): boolean;
@@ -36,6 +38,10 @@ export class AnimatedCursorManager {
             return;
         }
         this.controllers.add(controller);
+        devAssert(
+            this.controllers.size <= MAX_CONTROLLERS,
+            `Controller count (${this.controllers.size}) exceeds MAX_CONTROLLERS (${MAX_CONTROLLERS})`,
+        );
         this.ensureCanvas();
         this.wake();
     }

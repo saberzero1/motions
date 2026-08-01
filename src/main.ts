@@ -230,6 +230,7 @@ import { expandTilde } from './util/external-fs';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
 import { isBuiltinVimEnabled } from './util/vault';
+import { invariant, devAssert } from './util/invariant';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -655,6 +656,11 @@ export default class VimMotionsPlugin extends Plugin {
                 createBundledVimExtension(this.settings.cursorShapes),
             );
         }
+
+        devAssert(
+            builtinVimOn !== isBundledVimActive(),
+            `Vim mode conflict: builtinVimOn=${builtinVimOn}, bundledActive=${isBundledVimActive()}`,
+        );
 
         const vim = getVimApi();
         if (!vim) {
@@ -3301,6 +3307,10 @@ export default class VimMotionsPlugin extends Plugin {
     ): Promise<LuaLoadResult | null> {
         if (!this.luaConfigEnabled) return null;
         if (this.luaLoaded || this.luaLoading) return null;
+        invariant(
+            !(this.luaLoading && this.luaLoaded),
+            `Lua state inconsistency: luaLoading=${this.luaLoading}, luaLoaded=${this.luaLoaded}`,
+        );
         this.luaLoading = true;
         this.luaTextObjectSpecs = [];
         this.luaGroupLabels = [];
@@ -4084,6 +4094,35 @@ export default class VimMotionsPlugin extends Plugin {
             destroyState(this.luaState);
             this.luaState = null;
         }
+
+        if (__DEV__) {
+            const residuals = (
+                [
+                    ['modeTracker', this.modeTracker],
+                    ['scrolloffManager', this.scrolloffManager],
+                    ['insertEscapeHandler', this.insertEscapeHandler],
+                    ['whichKeyOverlay', this.whichKeyOverlay],
+                    ['exSuggest', this.exSuggest],
+                    ['globalKeyHandler', this.globalKeyHandler],
+                    ['globalWhichKeyOverlay', this.globalWhichKeyOverlay],
+                    ['registration', this.registration],
+                    ['timerManager', this.timerManager],
+                    ['autocmdManager', this.autocmdManager],
+                    ['highlightManager', this.highlightManager],
+                    ['luaState', this.luaState],
+                    ['imSwitcher', this.imSwitcher],
+                    ['oilManager', this.oilManager],
+                    ['bufferKeymapManager', this.bufferKeymapManager],
+                    ['oilKeybindingManager', this.oilKeybindingManager],
+                ] as const
+            ).filter(([, v]) => v != null);
+
+            devAssert(
+                residuals.length === 0,
+                `Leaked managers after onunload: ${residuals.map(([n]) => n).join(', ')}`,
+            );
+        }
+
         uninstallVimBridge();
         this.app.workspace.trigger('parse-style-settings');
     }
@@ -4100,6 +4139,27 @@ export default class VimMotionsPlugin extends Plugin {
         );
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated ?? {});
         this.migrateLegacySettings(migrated);
+
+        invariant(
+            ['lua-vimrc', 'lua', 'vimrc', 'settings'].includes(
+                this.settings.configMode,
+            ),
+            `Invalid configMode after load: "${this.settings.configMode}"`,
+        );
+
+        if (__DEV__) {
+            const optionalFields = new Set(['frecencyData']);
+            for (const [key, defaultVal] of Object.entries(DEFAULT_SETTINGS)) {
+                if (optionalFields.has(key)) continue;
+                devAssert(
+                    key in this.settings &&
+                        (this.settings as unknown as Record<string, unknown>)[
+                            key
+                        ] !== undefined,
+                    `Settings field "${key}" is undefined after load (default: ${JSON.stringify(defaultVal)})`,
+                );
+            }
+        }
     }
 
     private migrateLegacySettings(raw: Record<string, unknown> | null): void {

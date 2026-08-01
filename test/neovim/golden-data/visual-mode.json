@@ -1,7 +1,7 @@
 {
     "suite": "visual-mode",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-18T16:12:28.549Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-01T08:45:48.935Z",
     "cases": [
         {
             "name": "v + e + d should delete selection",
@@ -474,6 +474,291 @@
                 "cursor": {
                     "line": 0,
                     "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "viw + c should change word",
+            "initial": {
+                "content": "hello world foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "viwcX\u001b",
+            "result": {
+                "content": "hello X foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "Vk + d should delete upward",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "Vkd",
+            "result": {
+                "content": "one",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v0 + d should delete to start of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "v0d",
+            "result": {
+                "content": "orld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "viw + ~ should toggle case",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "viw~",
+            "result": {
+                "content": "HELLO world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "viw + U should uppercase",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "viwU",
+            "result": {
+                "content": "HELLO world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "viw + u should lowercase",
+            "initial": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "viwu",
+            "result": {
+                "content": "hello WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v2w + d should delete 2 words",
+            "initial": {
+                "content": "one two three four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "v2wd",
+            "result": {
+                "content": "hree four",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "vt. + d should delete to dot",
+            "initial": {
+                "content": "foo.bar.baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "vt.d",
+            "result": {
+                "content": ".bar.baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V3j + J should join 4 lines",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "V3jJ",
+            "result": {
+                "content": "one two three four\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 13
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "vip + d should delete inner paragraph",
+            "initial": {
+                "content": "one\ntwo\n\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "vipd",
+            "result": {
+                "content": "\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v$ + d should delete to end of line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "v$d",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + < should unindent line",
+            "initial": {
+                "content": "\thello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "V<",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v + r should replace selection",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "vllrX",
+            "result": {
+                "content": "XXXlo world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "V + y should yank line",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "Vy",
+            "result": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal"
+            }
+        },
+        {
+            "name": "v + aw + d should delete a word with space",
+            "initial": {
+                "content": "one two three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                }
+            },
+            "keys": "vawd",
+            "result": {
+                "content": "one three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
                 },
                 "mode": "normal"
             }

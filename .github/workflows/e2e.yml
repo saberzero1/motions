@@ -37,10 +37,10 @@ jobs:
                   cache: 'npm'
 
             - name: Install dependencies
-              run: npm install
+              run: npm install --include=dev
 
             - name: Build
-              run: npm run build
+              run: npm run build:dev
 
             - name: Cache Obsidian
               uses: actions/cache@v5

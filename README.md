@@ -79,11 +79,13 @@ Full documentation: **https://saberzero1.github.io/motions**
 ## Development
 
 ```bash
-npm install      # Install dependencies
-npm run dev      # Development build (watch mode)
-npm run build    # Production build
-npm run lint     # Lint
-npm run test:e2e # E2E tests (requires nix develop)
+npm install       # Install dependencies
+npm run dev       # Development build (watch mode)
+npm run build:dev # Development build (one-shot, with __DEV__ assertions)
+npm run build     # Production build
+npm run lint      # Lint
+npm run test:unit # Unit tests (Vitest)
+npm run test:e2e  # E2E tests (requires nix develop)
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide, testing strategy, and contribution guidelines.
