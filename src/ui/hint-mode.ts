@@ -181,6 +181,8 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
                 e.key === 'Alt' ||
                 e.key === 'Meta'
             ) {
+                e.preventDefault();
+                e.stopPropagation();
                 return;
             }
 
@@ -364,18 +366,18 @@ function classifyTarget(
     return { targetType: 'generic' };
 }
 
-function hintActivate(
+async function hintActivate(
     app: App,
     target: HintTarget,
     openInNewPane: boolean,
-): boolean {
+): Promise<boolean> {
     const el = target.element as HTMLElement;
     const inModal = !!el.closest('.modal-container');
 
     if (target.targetType === 'pane') {
         if (target.leaf) {
             if (openInNewPane) {
-                void app.workspace.duplicateLeaf(target.leaf, 'tab');
+                await app.workspace.duplicateLeaf(target.leaf, 'tab');
             } else {
                 app.workspace.setActiveLeaf(target.leaf, { focus: true });
                 const mdView = app.workspace.getActiveViewOfType(MarkdownView);
@@ -409,7 +411,7 @@ function hintActivate(
 
     if (isInternalLink) {
         const activeFile = app.workspace.getActiveFile()?.path ?? '';
-        void navigateWithJump(app, linkHref, activeFile, {
+        await navigateWithJump(app, linkHref, activeFile, {
             newTab: openInNewPane,
         });
         return !inModal;
@@ -449,7 +451,7 @@ function hintActivate(
     return !inModal;
 }
 
-function hintOpenNew(app: App, target: HintTarget): boolean {
+function hintOpenNew(app: App, target: HintTarget): Promise<boolean> {
     return hintActivate(app, target, true);
 }
 
@@ -548,8 +550,10 @@ function createHintAction(
         activate: (app: App, target: HintTarget) =>
             hintActivate(app, target, false),
         openNew: hintOpenNew,
-        yank: hintYank,
-        close: hintClose,
+        yank: (app: App, target: HintTarget) =>
+            Promise.resolve(hintYank(app, target)),
+        close: (app: App, target: HintTarget) =>
+            Promise.resolve(hintClose(app, target)),
     } as const;
 
     const run = (count?: number, showNotice: boolean = true): void => {
@@ -621,7 +625,7 @@ function createHintAction(
         const originalLeaf =
             count && count > 1 ? app.workspace.getMostRecentLeaf() : null;
 
-        void waitForHintKey(targets).then((result) => {
+        void waitForHintKey(targets).then(async (result) => {
             container.remove();
             if (!result.target) return;
             if (!result.target.element.isConnected) {
@@ -637,7 +641,7 @@ function createHintAction(
                 action = actions.openNew;
             }
 
-            const shouldRefocus = action(app, result.target);
+            const shouldRefocus = await action(app, result.target);
 
             if (count && count > 1 && originalLeaf) {
                 app.workspace.setActiveLeaf(originalLeaf, { focus: true });

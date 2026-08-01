@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`exCommands.sort` — `cm.setCursor` after `replaceRange`)
 - **`CTRL-V $ d` cursor overshoot** — after a block visual delete to end-of-line (`CTRL-V jj $ d`), the cursor column is now clamped to the remaining line length. Previously the cursor could land past the last character on shortened lines.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`operators.delete` — block visual cursor clamping)
+- **Hint mode: modifier keydown event propagates to Obsidian handlers** — pressing `Ctrl` alone during hint mode could trigger Obsidian's own key handlers because the modifier-only early return in `waitForHintKey()` did not call `preventDefault()` or `stopPropagation()`. The event leaked through to Obsidian's hotkey system via bubble-phase listeners, potentially causing side effects depending on the user's Obsidian configuration. Fixed by adding `e.preventDefault()` and `e.stopPropagation()` before the early return for modifier-only keys. ([#98](https://github.com/saberzero1/motions/issues/98))
+    - Plugin: `src/ui/hint-mode.ts` (`waitForHintKey` handler — `preventDefault`+`stopPropagation` on modifier-only keydown)
+- **Hint mode: count prefix (`2F`) focus restoration races with async navigation** — when using `2F` on an internal link target, `hintActivate()` fired `navigateWithJump()` without awaiting it (via `void`), then `setActiveLeaf(originalLeaf)` ran synchronously. The async `openLinkText()` inside `navigateWithJump` could resolve after the focus restoration and steal focus back to the new tab — a race condition that manifested on slower machines or with heavier vaults. Similarly, `duplicateLeaf()` was fire-and-forgotten. Fixed by making `hintActivate` async and awaiting both `navigateWithJump()` and `duplicateLeaf()`. The `createHintAction` callback now awaits the action result before restoring focus, making the behavior deterministic. ([#98](https://github.com/saberzero1/motions/issues/98))
+    - Plugin: `src/ui/hint-mode.ts` (`hintActivate` — `async`, `await navigateWithJump`, `await duplicateLeaf`; `hintOpenNew` — returns `Promise<boolean>`; `createHintAction` — `async` callback, `await action()`, `Promise.resolve()` wrappers for sync actions)
 
 ### Added
 
@@ -46,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 30 unit tests in `test/unit/known-set-options.test.ts`: KNOWN_SET_OPTIONS coverage guard (every non-excluded settings key has an entry, excluded keys list has no stale entries, no settingsKey points to non-existent setting), 27 new option entry validations (type, settingsKey, validValues)
 - 6 e2e tests in `test/specs/gutter-vimrc-lua.e2e.ts`: gutter settings via Lua config (enable/disable line numbers, enable/disable sign column, disable all gutter elements, hybrid line numbers)
 - 4 e2e tests in `test/specs/oil-poc.e2e.ts` (issue #100): oil retains focus after no-op commit, oil retains focus after confirmed destructive commit, oil retains focus after cancelled destructive commit, oil retains focus after Esc-dismissing the confirm modal
+- 3 e2e tests in `test/specs/hint-mode.e2e.ts` (issue #98): `F` on wikilink opens in new tab via command, `openNew(2)` on wikilink keeps focus on original leaf after first hint, Ctrl keydown stopped from propagating during hint mode
 
 ### Documentation
 
@@ -63,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md`: Added `npm run test:unit` to development commands
 - `DIFFERENCES.md` (fork): Added `:sort` cursor positioning and block visual delete cursor clamping sections
 - `docs/features/ex-commands.md`: Added `:violations` and `:violations!` ex commands
+- `KNOWN_LIMITATIONS.md`: Updated hint mode modifier key fix with `stopPropagation`; updated count prefix focus fix with async `hintActivate`
+- `AGENTS.md`: Updated `hint-mode.ts` description with async `hintActivate` and modifier `stopPropagation`
 
 ## [0.93.0] - 2026-07-31
 

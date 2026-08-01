@@ -605,11 +605,11 @@ During hint label selection, GlobalKeyHandler bails entirely via an `isHintModeA
 
 ### ~~Modifier keys dismiss hint overlay~~ (Fixed)
 
-**Status**: Fixed. Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone during hint mode no longer clears labels. The `waitForHintKey()` handler now filters modifier-only keydown events (where `e.key` is `"Control"`, `"Shift"`, `"Alt"`, or `"Meta"`) with an early return, matching the pattern in `global-key-handler.ts`. Modifier keys combined with label characters still work as before (e.g., Ctrl+label upgrades activate to open-new). ([#98](https://github.com/saberzero1/motions/issues/98))
+**Status**: Fixed. Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone during hint mode no longer clears labels. The `waitForHintKey()` handler filters modifier-only keydown events with an early return and calls `e.preventDefault()` + `e.stopPropagation()` to prevent the event from propagating to Obsidian's hotkey system. Without `stopPropagation`, the modifier keydown could leak through to bubble-phase listeners in Obsidian and cause side effects depending on the user's configuration. Modifier keys combined with label characters still work as before (e.g., Ctrl+label upgrades activate to open-new). ([#98](https://github.com/saberzero1/motions/issues/98))
 
 ### ~~Count prefix (`2F`) shifts focus to new tab~~ (Fixed)
 
-**Status**: Fixed. When using a count prefix (e.g., `2F`) in non-editor context, focus now stays on the original leaf between activations. The `createHintAction` `run()` function saves the active leaf before `waitForHintKey` when count > 1 and restores it via `setActiveLeaf` after each activation, before scheduling the next round. The `hintMode` vim action (`<leader><leader>h`) now passes `actionArgs.repeat` to `activate()`, enabling count prefix in editor context as well. ([#98](https://github.com/saberzero1/motions/issues/98))
+**Status**: Fixed. When using a count prefix (e.g., `2F`), focus now stays on the original leaf between activations. The `createHintAction` `run()` function saves the active leaf before `waitForHintKey` when count > 1 and restores it via `setActiveLeaf` after each activation, before scheduling the next round. `hintActivate` is now `async` and awaits `navigateWithJump()` and `duplicateLeaf()` — previously these were fire-and-forgotten via `void`, causing a race condition where `openLinkText()` could resolve after `setActiveLeaf(originalLeaf)` and steal focus back to the new tab. The race manifested on slower machines or with heavier vaults. The `hintMode` vim action (`<leader><leader>h`) now passes `actionArgs.repeat` to `activate()`, enabling count prefix in editor context as well. ([#98](https://github.com/saberzero1/motions/issues/98))
 
 ### Stale target handling
 

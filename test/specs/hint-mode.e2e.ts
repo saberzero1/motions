@@ -2,7 +2,12 @@ import { browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { PAUSE, sendVimEscape } from '../helpers';
+import {
+    PAUSE,
+    sendVimEscape,
+    setupEditor,
+    ensureLivePreview,
+} from '../helpers';
 function getVimHandle() {
     return browser.executeObsidian(({ app, obsidian }) => {
         const Vim = (
@@ -103,6 +108,77 @@ async function loadTwoTabs(): Promise<void> {
         lastOpenFiles: [],
     });
     await browser.pause(PAUSE.OBSIDIAN_LOAD);
+}
+
+function executeCommand(commandId: string): Promise<void> {
+    return browser.executeObsidian(({ app }, id: string) => {
+        (
+            app as unknown as {
+                commands: {
+                    executeCommandById: (id: string) => boolean;
+                };
+            }
+        ).commands.executeCommandById(id);
+    }, commandId) as Promise<void>;
+}
+
+function triggerHintOpenNewViaCommand(): Promise<void> {
+    return executeCommand('vim-motions:hint-open-new-pane');
+}
+
+async function findHintLabelForInternalLink(
+    textMatch: string,
+): Promise<string | null> {
+    return (await browser.executeObsidian(({}, text: string) => {
+        const overlay = activeDocument.querySelector(
+            '.vim-motions-hint-overlay',
+        );
+        if (!overlay) return null;
+
+        const labels = Array.from(
+            overlay.querySelectorAll('.vim-motions-hint-label'),
+        ) as HTMLElement[];
+
+        const cmEditor = activeDocument.querySelector('.cm-editor');
+        if (!cmEditor) return null;
+
+        const underlines = Array.from(
+            cmEditor.querySelectorAll('.cm-underline, .cm-hmd-internal-link'),
+        ).filter((el) => {
+            const rect = el.getBoundingClientRect();
+            return (
+                rect.width > 0 &&
+                rect.height > 0 &&
+                el.textContent?.includes(text)
+            );
+        });
+
+        const target = underlines[0];
+        if (!target) return null;
+        const targetRect = target.getBoundingClientRect();
+        const targetLeft = targetRect.left + activeWindow.scrollX;
+        const targetTop = targetRect.top + activeWindow.scrollY;
+
+        let closestLabel = '';
+        let closestDist = Infinity;
+        for (const labelEl of labels) {
+            const left = Number.parseFloat(
+                labelEl.style.getPropertyValue('--vim-motions-hint-left'),
+            );
+            const top = Number.parseFloat(
+                labelEl.style.getPropertyValue('--vim-motions-hint-top'),
+            );
+            if (Number.isNaN(left) || Number.isNaN(top)) continue;
+            const dist = Math.hypot(left - targetLeft, top - targetTop);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestLabel = labelEl.textContent ?? '';
+            }
+        }
+
+        if (!closestLabel || closestDist > 50) return null;
+        return closestLabel;
+    }, textMatch)) as string | null;
 }
 
 describe('Hint mode', function () {
@@ -964,6 +1040,178 @@ describe('Hint mode', function () {
             })) as string;
 
             expect(activeLeafType).toBe('graph');
+        });
+    });
+
+    describe('Count prefix with F on internal links should keep focus (#98)', function () {
+        beforeEach(async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await ensureLivePreview();
+            await setupEditor('[[Target]]\n\n[[Welcome]]\n\nPlain text.', {
+                line: 4,
+                ch: 0,
+            });
+            await browser.pause(500);
+        });
+
+        afterEach(async function () {
+            await browser.executeObsidian(() => {
+                activeDocument
+                    .querySelectorAll('.vim-motions-hint-overlay')
+                    .forEach((el) => el.remove());
+            });
+            await browser.pause(100);
+
+            await browser.executeObsidian(({ app }) => {
+                const leaves = app.workspace.getLeavesOfType('markdown');
+                for (let i = leaves.length - 1; i > 0; i--) {
+                    leaves[i]!.detach();
+                }
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        });
+
+        it('F on wikilink should open in new tab via command', async function () {
+            const beforeLeafCount = (await browser.executeObsidian(
+                ({ app }) => {
+                    return app.workspace.getLeavesOfType('markdown').length;
+                },
+            )) as number;
+
+            await triggerHintOpenNewViaCommand();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const label = await findHintLabelForInternalLink('Target');
+            if (!label) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            for (const ch of label) {
+                await browser.keys([ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+            const afterLeafCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+            expect(afterLeafCount).toBeGreaterThan(beforeLeafCount);
+        });
+
+        it('openNew(2) on wikilink should keep focus on original leaf after first hint', async function () {
+            const originalLeafId = (await browser.executeObsidian(({ app }) => {
+                return (app.workspace.activeLeaf as { id?: string })?.id ?? '';
+            })) as string;
+            expect(originalLeafId).not.toBe('');
+
+            const beforeLeafCount = (await browser.executeObsidian(
+                ({ app }) => {
+                    return app.workspace.getLeavesOfType('markdown').length;
+                },
+            )) as number;
+
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<string, Record<string, unknown>>;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                const hintActions = plugin?.hintActions as
+                    | { openNew: (count?: number) => void }
+                    | undefined;
+                if (hintActions) {
+                    hintActions.openNew(2);
+                }
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+            expect(hasOverlay).toBe(true);
+
+            const label = await findHintLabelForInternalLink('Target');
+            if (!label) {
+                await browser.keys(['Escape']);
+                return;
+            }
+
+            for (const ch of label) {
+                await browser.keys([ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+
+            await browser.pause(1500);
+
+            const afterLeafCount = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getLeavesOfType('markdown').length;
+            })) as number;
+            expect(afterLeafCount).toBeGreaterThan(beforeLeafCount);
+
+            const activeLeafId = (await browser.executeObsidian(({ app }) => {
+                return (app.workspace.activeLeaf as { id?: string })?.id ?? '';
+            })) as string;
+            expect(activeLeafId).toBe(originalLeafId);
+
+            const activeFile = (await browser.executeObsidian(({ app }) => {
+                return app.workspace.getActiveFile()?.path ?? '';
+            })) as string;
+            expect(activeFile).toBe('Welcome.md');
+        });
+    });
+
+    describe('Modifier key event propagation (#98)', function () {
+        beforeEach(async function () {
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        });
+
+        it('Ctrl keydown should be stopped from propagating during hint mode', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+            expect((result.labelCount ?? 0) > 0).toBe(true);
+
+            await browser.pause(100);
+
+            const propagated = (await browser.executeObsidian(() => {
+                let reached = false;
+                const spy = () => {
+                    reached = true;
+                };
+                activeDocument.addEventListener('keydown', spy, false);
+
+                activeDocument.dispatchEvent(
+                    new KeyboardEvent('keydown', {
+                        key: 'Control',
+                        bubbles: true,
+                        cancelable: true,
+                    }),
+                );
+
+                activeDocument.removeEventListener('keydown', spy, false);
+                return reached;
+            })) as boolean;
+
+            const afterCtrl = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return { overlayPresent: false, labelCount: 0 };
+                const labels = overlay.querySelectorAll(
+                    '.vim-motions-hint-label',
+                );
+                return { overlayPresent: true, labelCount: labels.length };
+            })) as { overlayPresent: boolean; labelCount: number };
+
+            expect(afterCtrl.overlayPresent).toBe(true);
+            expect(afterCtrl.labelCount).toBeGreaterThan(0);
+            expect(propagated).toBe(false);
         });
     });
 
