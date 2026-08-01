@@ -1410,6 +1410,255 @@ describe('Oil explorer', function () {
         });
     });
 
+    describe('focus after commit (issue #100)', function () {
+        async function isOilEditorFocused(): Promise<boolean> {
+            return (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                if (leaf?.view?.getViewType() !== 'oil-explorer') return false;
+                const editorView = (
+                    leaf.view as unknown as {
+                        getEditorView?: () => OilEditorView;
+                    }
+                ).getEditorView?.();
+                return editorView
+                    ? document.activeElement?.closest('.cm-editor') ===
+                          editorView.dom
+                    : false;
+            })) as boolean;
+        }
+
+        it('oil retains focus after no-op commit', async function () {
+            await openOilAndWait();
+            await focusOilEditor();
+            expect(await isOilEditorFocused()).toBe(true);
+
+            const commitResult = await runOilCommit();
+            expect(commitResult).toHaveProperty('success', true);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const viewType = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewType).toBe('oil-explorer');
+        });
+
+        it('oil retains focus after confirmed destructive commit', async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const existing = app.vault.getAbstractFileByPath(
+                    'oil-focus-delete.md',
+                );
+                if (existing) await app.vault.delete(existing);
+                await app.vault.create(
+                    'oil-focus-delete.md',
+                    'focus test delete',
+                );
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    settings?: {
+                                        oilConfirmDeleteThreshold?: number;
+                                    };
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                if (plugin?.settings) {
+                    plugin.settings.oilConfirmDeleteThreshold = 1;
+                }
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await openOilAndWait();
+            await focusOilEditor();
+
+            await deleteLineContaining('oil-focus-delete.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            // Fire-and-forget: commit() blocks on the modal promise, so we
+            // cannot await it — we interact with the modal from the test side.
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                void (
+                    plugin.oilManager as { commit?: () => Promise<void> }
+                ).commit?.();
+            });
+            await browser.pause(500);
+
+            const confirmBtn = await browser.$(
+                '.vim-motions-oil-confirm-btn-confirm',
+            );
+            if (await confirmBtn.isExisting()) {
+                await confirmBtn.click();
+            }
+            await browser.pause(1000);
+
+            const viewType = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewType).toBe('oil-explorer');
+            expect(await isOilEditorFocused()).toBe(true);
+
+            await cleanupTestFiles('oil-focus-delete.md');
+        });
+
+        it('oil retains focus after cancelled destructive commit', async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const existing = app.vault.getAbstractFileByPath(
+                    'oil-focus-cancel.md',
+                );
+                if (existing) await app.vault.delete(existing);
+                await app.vault.create(
+                    'oil-focus-cancel.md',
+                    'focus test cancel',
+                );
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    settings?: {
+                                        oilConfirmDeleteThreshold?: number;
+                                    };
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                if (plugin?.settings) {
+                    plugin.settings.oilConfirmDeleteThreshold = 1;
+                }
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await openOilAndWait();
+            await focusOilEditor();
+
+            await deleteLineContaining('oil-focus-cancel.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            // Fire-and-forget: commit() blocks on the modal promise, so we
+            // cannot await it — we interact with the modal from the test side.
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                void (
+                    plugin.oilManager as { commit?: () => Promise<void> }
+                ).commit?.();
+            });
+            await browser.pause(500);
+
+            const cancelBtn = await browser.$(
+                '.vim-motions-oil-confirm-btn-cancel',
+            );
+            if (await cancelBtn.isExisting()) {
+                await cancelBtn.click();
+            }
+            await browser.pause(500);
+
+            const viewType = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewType).toBe('oil-explorer');
+            expect(await isOilEditorFocused()).toBe(true);
+
+            expect(await fileExists('oil-focus-cancel.md')).toBe(true);
+
+            await cleanupTestFiles('oil-focus-cancel.md');
+        });
+
+        it('oil retains focus after Esc-dismissing the confirm modal', async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const existing =
+                    app.vault.getAbstractFileByPath('oil-focus-esc.md');
+                if (existing) await app.vault.delete(existing);
+                await app.vault.create(
+                    'oil-focus-esc.md',
+                    'focus test esc dismiss',
+                );
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                {
+                                    settings?: {
+                                        oilConfirmDeleteThreshold?: number;
+                                    };
+                                }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                if (plugin?.settings) {
+                    plugin.settings.oilConfirmDeleteThreshold = 1;
+                }
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await openOilAndWait();
+            await focusOilEditor();
+
+            await deleteLineContaining('oil-focus-esc.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            // Fire-and-forget: commit() blocks on the modal promise, so we
+            // cannot await it — we interact with the modal from the test side.
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                void (
+                    plugin.oilManager as { commit?: () => Promise<void> }
+                ).commit?.();
+            });
+            await browser.pause(500);
+
+            await browser.keys([Key.Escape]);
+            await browser.pause(500);
+
+            const viewType = (await browser.executeObsidian(({ app }) => {
+                return (
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
+                );
+            })) as string;
+            expect(viewType).toBe('oil-explorer');
+            expect(await isOilEditorFocused()).toBe(true);
+
+            expect(await fileExists('oil-focus-esc.md')).toBe(true);
+
+            await cleanupTestFiles('oil-focus-esc.md');
+        });
+    });
+
     after(async function () {
         await cleanupOilViews();
         await cleanupTestFiles(

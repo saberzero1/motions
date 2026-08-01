@@ -128,6 +128,10 @@ Oil's Ctrl-key keybindings (`<C-t>`, `<C-s>`, `<C-h>`, `<C-l>`, `<C-c>`) are reg
 
 If you switch away from the Oil tab and then switch back (via `gT`, `gt`, or clicking the tab), the Oil editor automatically regains focus. You can start typing vim commands immediately without needing to click.
 
+### Focus after commit
+
+When committing changes with `:w`, the Oil editor retains focus after the operation completes — whether the commit succeeds, the confirmation dialog is cancelled, or the dialog is dismissed with `Esc`. You can continue editing or navigating immediately without needing to re-focus the editor.
+
 ### Opening from non-editor contexts
 
 Oil works correctly when opened from any context — including empty panes, settings, graph view, or the command palette with no file open. The plugin automatically primes the workspace leaf with editor infrastructure before creating the Oil view, ensuring vim keybindings, conceal decorations, and which-key all function as expected.

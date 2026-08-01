@@ -150,6 +150,7 @@ export class OilManager {
             const confirmed = await this.confirmDestructive(merged);
             if (!confirmed) {
                 new Notice('Oil: commit cancelled');
+                view.focusEditor();
                 return;
             }
         }
@@ -165,6 +166,7 @@ export class OilManager {
         new Notice(`Oil: ${msg.join(', ')}`);
 
         view.refreshContent(dirPath);
+        view.focusEditor();
     }
 
     async navigateToDirectory(dirPath: string): Promise<void> {
@@ -454,6 +456,8 @@ export class OilManager {
 }
 
 class OilConfirmModal extends Modal {
+    private resolved = false;
+
     constructor(
         app: App,
         private readonly diff: OilMergedDiff,
@@ -532,6 +536,7 @@ class OilConfirmModal extends Modal {
             cls: 'vim-motions-oil-confirm-btn-confirm',
         });
         confirmBtn.addEventListener('click', () => {
+            this.resolved = true;
             this.resolve(true);
             this.close();
         });
@@ -540,6 +545,7 @@ class OilConfirmModal extends Modal {
             cls: 'vim-motions-oil-confirm-btn-cancel',
         });
         cancelBtn.addEventListener('click', () => {
+            this.resolved = true;
             this.resolve(false);
             this.close();
         });
@@ -547,6 +553,10 @@ class OilConfirmModal extends Modal {
     }
 
     onClose(): void {
+        if (!this.resolved) {
+            this.resolved = true;
+            this.resolve(false);
+        }
         this.contentEl.empty();
     }
 }

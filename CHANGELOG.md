@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/main.ts` (line 677 — deep copy nested objects in `preVimrcSettings` snapshot)
 - **Clipboard/textwidth falsely shown as "Set by vimrc"** — the initial settings restoration at startup called `onSettingOverride()` for `clipboard` and `textwidth`, writing to `vimrcOverrides` even without a vimrc file. Fixed by using direct side-effect calls.
     - Plugin: `src/main.ts` (replaced `onSettingOverride` calls with direct `setClipboardOption`/`setTextwidth` calls)
+- **Oil explorer loses focus after committing staged changes** — after making changes in Oil (e.g., deleting a file) and committing with `:w`, the Oil editor lost focus when the confirmation dialog was confirmed or dismissed. Two bugs: (1) `OilConfirmModal.onClose()` never resolved the promise when the user pressed `Esc` to dismiss the modal, causing `commit()` to hang permanently. Fixed by adding a `resolved` guard — `onClose()` resolves `false` when no button was clicked. (2) After the confirmation dialog closed (via Confirm, Cancel, or Esc), focus was never returned to the Oil editor. Fixed by calling `view.focusEditor()` on both the cancel and commit paths. ([#100](https://github.com/saberzero1/motions/issues/100))
+    - Plugin: `src/oil/manager.ts` (`OilConfirmModal` — `resolved` guard flag, `onClose` resolves on Esc dismissal; `commit` — `view.focusEditor()` after confirm and cancel paths)
 - **`:sort` cursor positioning** — `:sort` (and ranged `:2,3sort`) now positions the cursor at the first line of the sorted range, matching Neovim. Previously the cursor stayed at line 0 regardless of the sort range.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`exCommands.sort` — `cm.setCursor` after `replaceRange`)
 - **`CTRL-V $ d` cursor overshoot** — after a block visual delete to end-of-line (`CTRL-V jj $ d`), the cursor column is now clamped to the remaining line length. Previously the cursor could land past the last character on shortened lines.
@@ -43,11 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 2 Neovim deviations closed (22 → 20): `:2,3sort` cursor positioning, `CTRL-V $ delete to EOL` cursor overshoot
 - 30 unit tests in `test/unit/known-set-options.test.ts`: KNOWN_SET_OPTIONS coverage guard (every non-excluded settings key has an entry, excluded keys list has no stale entries, no settingsKey points to non-existent setting), 27 new option entry validations (type, settingsKey, validValues)
 - 6 e2e tests in `test/specs/gutter-vimrc-lua.e2e.ts`: gutter settings via Lua config (enable/disable line numbers, enable/disable sign column, disable all gutter elements, hybrid line numbers)
+- 4 e2e tests in `test/specs/oil-poc.e2e.ts` (issue #100): oil retains focus after no-op commit, oil retains focus after confirmed destructive commit, oil retains focus after cancelled destructive commit, oil retains focus after Esc-dismissing the confirm modal
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Marked gutter vimrc/Lua reconfiguration as fixed; marked preVimrcSettings shallow copy as fixed; marked clipboard/textwidth false override as fixed; updated `set` option scope section with configOverrides persistence
+- `KNOWN_LIMITATIONS.md`: Marked gutter vimrc/Lua reconfiguration as fixed; marked preVimrcSettings shallow copy as fixed; marked clipboard/textwidth false override as fixed; updated `set` option scope section with configOverrides persistence; marked Oil focus loss after commit as fixed
+- `docs/features/oil-explorer.md`: Added focus retention after commit note
 - `AGENTS.md`: Updated hint mode page ownership with `hinthotkey`
 - `README.md`: Updated vimrc configurable settings count
 - `CONTRIBUTING.md`: Added configOverrides persistence and `clearSettingOverride` helper to conventions; updated vimrc loader description

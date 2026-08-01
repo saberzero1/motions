@@ -1074,6 +1074,10 @@ When "Show hidden files" is enabled, Oil discovers dotfiles (`.gitignore`, `.hid
 
 **Status**: Fixed. Closing Oil left the Obsidian `Scope` (with Oil's `Ctrl+T/S/H/L/C` handlers) pushed on the keymap stack, intercepting Ctrl keys on the restored file. Fixed by calling `editor.destroy()` in `OilView.onClose()` before `removeChild()`, which pops the scope. ([#93](https://github.com/saberzero1/motions/issues/93))
 
+### ~~Oil loses focus after committing staged changes~~ (Fixed)
+
+**Status**: Fixed. After making changes in Oil (e.g., deleting a file) and committing with `:w`, the Oil editor lost focus when the confirmation dialog was confirmed, cancelled, or dismissed via `Esc`. Two bugs: (1) `OilConfirmModal.onClose()` never resolved the promise on `Esc` dismissal, causing `commit()` to hang permanently. (2) No `focusEditor()` call after the modal closed. Fixed with a `resolved` guard in the modal and `view.focusEditor()` on both confirm and cancel paths. ([#100](https://github.com/saberzero1/motions/issues/100))
+
 ### Third-party CM6 extensions not available in oil
 
 Extensions registered by other plugins via `registerEditorExtension()` do not appear in the oil editor. The embedded editor only includes extensions explicitly passed through `buildLocalExtensions()` — currently the oil conceal extension and (when built-in vim is disabled) the bundled vim extension. Syntax highlighting and markdown rendering from Obsidian's core are included.
