@@ -66,8 +66,11 @@ import {
 } from './ui/which-key';
 import type { WhichKeyLabelInfo } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
-import { registerVimOptions } from './vim/options';
-import { KNOWN_SET_OPTIONS } from './vimrc/loader';
+import {
+    registerVimOptions,
+    setClipboardOption,
+    setTextwidth,
+} from './vim/options';
 import { VimRegistration } from './vim/registration';
 import {
     ChangeList,
@@ -320,6 +323,8 @@ export default class VimMotionsPlugin extends Plugin {
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
     vimrcOverrides: Map<string, string> = new Map();
+    private configOverrides: Record<string, unknown> = {};
+    private baseSettings!: VimMotionsSettings;
     preVimrcSettings!: VimMotionsSettings;
     vimrcGroupLabels: GroupLabel[] = [];
     vimrcCommandLabels: CommandLabel[] = [];
@@ -550,6 +555,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.vimRef,
             this.onLuaSettingOverrideRef,
         );
+        this.captureConfigOverrides();
     }
 
     async onload() {
@@ -670,7 +676,22 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.vimrcOverrides = new Map();
         this.luaOverrides = new Map();
-        this.preVimrcSettings = { ...this.settings };
+        this.preVimrcSettings = {
+            ...this.baseSettings,
+            cursorShapes: { ...this.baseSettings.cursorShapes },
+            modePrompts: { ...this.baseSettings.modePrompts },
+            pickerKeymap: {
+                moveDown: [...this.settings.pickerKeymap.moveDown],
+                moveUp: [...this.settings.pickerKeymap.moveUp],
+                confirm: [...this.settings.pickerKeymap.confirm],
+                splitH: [...this.settings.pickerKeymap.splitH],
+                splitV: [...this.settings.pickerKeymap.splitV],
+                openTab: [...this.settings.pickerKeymap.openTab],
+                scrollDown: [...this.settings.pickerKeymap.scrollDown],
+                scrollUp: [...this.settings.pickerKeymap.scrollUp],
+                close: [...this.settings.pickerKeymap.close],
+            },
+        };
         this.vimrcGroupLabels = [];
         this.vimrcCommandLabels = [];
         this.luaGroupLabels = [];
@@ -864,28 +885,20 @@ export default class VimMotionsPlugin extends Plugin {
             vim.resetKeymap();
         }
         registerVimOptions(vim, onSettingOverride);
-        for (const [key, savedValue] of Object.entries({
-            clipboard: this.settings.clipboard,
-            textwidth:
-                this.settings.textwidth !== 80
-                    ? this.settings.textwidth
-                    : undefined,
-        })) {
-            if (savedValue === undefined || savedValue === '') continue;
-            const spec = KNOWN_SET_OPTIONS[key];
-            if (spec?.type === 'sideEffect') {
-                spec.apply(
-                    savedValue,
-                    (sKey, sValue, sDirective) => {
-                        onSettingOverride(sKey, sValue, sDirective);
-                        try {
-                            vim.setOption(key, sValue);
-                        } catch {
-                            return;
-                        }
-                    },
-                    `setting ${key}`,
-                );
+        if (this.settings.clipboard) {
+            setClipboardOption(this.settings.clipboard);
+            try {
+                vim.setOption('clipboard', this.settings.clipboard);
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
+        if (this.settings.textwidth !== 80) {
+            setTextwidth(this.settings.textwidth);
+            try {
+                vim.setOption('textwidth', this.settings.textwidth);
+            } catch {
+                /* option may not be registered in fork */
             }
         }
         this.registration = new VimRegistration(vim);
@@ -1440,6 +1453,10 @@ export default class VimMotionsPlugin extends Plugin {
                             vim,
                             onLuaSettingOverride,
                         );
+                        if (!vimrcFound && !luaResult?.found) {
+                            this.restoreBaseSettings();
+                        }
+                        this.captureConfigOverrides();
                         if (
                             this.settings.configMode === 'lua-vimrc' &&
                             !vimrcFound &&
@@ -1482,7 +1499,14 @@ export default class VimMotionsPlugin extends Plugin {
                         this.applyLuaPendingExCommands(vim);
                         return;
                     }
-                    await this.loadLuaConfigInternal(vim, onLuaSettingOverride);
+                    const luaResult = await this.loadLuaConfigInternal(
+                        vim,
+                        onLuaSettingOverride,
+                    );
+                    if (!luaResult?.found) {
+                        this.restoreBaseSettings();
+                    }
+                    this.captureConfigOverrides();
                 }),
             );
         }
@@ -2560,6 +2584,15 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.pickerAPI) {
             this.registerBundledIntegrations();
         }
+
+        // Reconfigure gutter compartments so that settings applied during
+        // vimrc/Lua loading (where per-option reconfiguration is deferred)
+        // take effect in a single batch.
+        this.reconfigureLineNumberGutter();
+        this.reconfigureCursorlineHighlight();
+        this.reconfigureFoldColumnGutter();
+        this.reconfigureSignColumnGutter();
+        this.reconfigureStatusColumnGutter();
     }
 
     private rebuildExSuggest(): void {
@@ -2923,6 +2956,27 @@ export default class VimMotionsPlugin extends Plugin {
         const parsed = await readAndParseVimrcFile(this.app, path);
         if (!parsed.found || parsed.commands.length === 0) return;
 
+        for (const key of this.vimrcOverrides.keys()) {
+            if (key.startsWith('modePrompts.')) {
+                const mode = key.replace(
+                    'modePrompts.',
+                    '',
+                ) as keyof VimMotionsSettings['modePrompts'];
+                this.settings.modePrompts[mode] =
+                    this.preVimrcSettings.modePrompts[mode];
+            } else if (key === 'cursorShapes') {
+                Object.assign(
+                    this.settings.cursorShapes,
+                    this.preVimrcSettings.cursorShapes,
+                );
+            } else if (key in this.preVimrcSettings) {
+                (this.settings as unknown as Record<string, unknown>)[key] = (
+                    this.preVimrcSettings as unknown as Record<string, unknown>
+                )[key];
+            }
+        }
+        this.vimrcOverrides.clear();
+
         for (const key of this.vimrcMapKeys) {
             try {
                 vim.unmap(key, 'normal');
@@ -2966,6 +3020,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.applyGlobalMaps();
         this.reregisterLeaderFeatures();
         this.rebuildWhichKey();
+        this.captureConfigOverrides();
 
         if (this.settings.showConfigNotifications) {
             new Notice(
@@ -4132,13 +4187,52 @@ export default class VimMotionsPlugin extends Plugin {
             | (Partial<VimMotionsSettings> & {
                   enableVimrc?: boolean;
                   enableLuaConfig?: boolean;
+                  configOverrides?: Record<string, unknown>;
               })
             | null;
+        const savedOverrides = data?.configOverrides;
+        if (data) {
+            delete (data as Record<string, unknown>).configOverrides;
+        }
         const migrated = migrateSigncolumnSettings(
             migrateConfigModeSettings(data),
         );
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated ?? {});
         this.migrateLegacySettings(migrated);
+        this.baseSettings = {
+            ...this.settings,
+            cursorShapes: { ...this.settings.cursorShapes },
+            modePrompts: { ...this.settings.modePrompts },
+        };
+        this.configOverrides = savedOverrides ?? {};
+        if (this.settings.configMode === 'settings') {
+            this.configOverrides = {};
+        } else {
+            for (const [key, value] of Object.entries(this.configOverrides)) {
+                if (
+                    key === 'cursorShapes' &&
+                    typeof value === 'object' &&
+                    value
+                ) {
+                    Object.assign(
+                        this.settings.cursorShapes,
+                        value as Record<string, unknown>,
+                    );
+                } else if (
+                    key === 'modePrompts' &&
+                    typeof value === 'object' &&
+                    value
+                ) {
+                    Object.assign(
+                        this.settings.modePrompts,
+                        value as Record<string, unknown>,
+                    );
+                } else if (key in DEFAULT_SETTINGS) {
+                    (this.settings as unknown as Record<string, unknown>)[key] =
+                        value;
+                }
+            }
+        }
 
         invariant(
             ['lua-vimrc', 'lua', 'vimrc', 'settings'].includes(
@@ -4354,35 +4448,101 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    clearSettingOverride(key: string): void {
+        this.vimrcOverrides?.delete(key);
+        this.luaOverrides?.delete(key);
+        if (this.configOverrides) delete this.configOverrides[key];
+        if (key === 'cursorShapes' || key.startsWith('cursorShapes.')) {
+            this.vimrcOverrides?.delete('cursorShapes');
+            this.luaOverrides?.delete('cursorShapes');
+            if (this.configOverrides)
+                delete this.configOverrides['cursorShapes'];
+        }
+        if (key.startsWith('modePrompts.')) {
+            this.vimrcOverrides?.delete(key);
+            this.luaOverrides?.delete(key);
+            if (this.configOverrides)
+                delete this.configOverrides['modePrompts'];
+        }
+    }
+
+    private restoreBaseSettings(): void {
+        for (const key of Object.keys(this.configOverrides)) {
+            if (key === 'cursorShapes') {
+                Object.assign(
+                    this.settings.cursorShapes,
+                    this.baseSettings.cursorShapes,
+                );
+            } else if (key === 'modePrompts') {
+                Object.assign(
+                    this.settings.modePrompts,
+                    this.baseSettings.modePrompts,
+                );
+            } else if (key in this.baseSettings) {
+                (this.settings as unknown as Record<string, unknown>)[key] = (
+                    this.baseSettings as unknown as Record<string, unknown>
+                )[key];
+            }
+        }
+    }
+
+    private captureConfigOverrides(): void {
+        const overrides: Record<string, unknown> = {};
+        const allOverrideKeys = new Set([
+            ...this.vimrcOverrides.keys(),
+            ...this.luaOverrides.keys(),
+        ]);
+        for (const key of allOverrideKeys) {
+            if (key.includes('.')) continue;
+            if (!(key in DEFAULT_SETTINGS)) continue;
+            const value = (this.settings as unknown as Record<string, unknown>)[
+                key
+            ];
+            if (key === 'cursorShapes' && typeof value === 'object' && value) {
+                overrides[key] = { ...(value as Record<string, unknown>) };
+            } else {
+                overrides[key] = value;
+            }
+        }
+        const hasModePromptOverride = [...allOverrideKeys].some((k) =>
+            k.startsWith('modePrompts.'),
+        );
+        if (hasModePromptOverride) {
+            overrides['modePrompts'] = { ...this.settings.modePrompts };
+        }
+        this.configOverrides = overrides;
+        void this.saveSettings();
+    }
+
     async saveSettings() {
         const toSave: VimMotionsSettings = {
-            ...this.settings,
-            modePrompts: { ...this.settings.modePrompts },
-            cursorShapes: { ...this.settings.cursorShapes },
+            ...this.baseSettings,
+            modePrompts: { ...this.baseSettings.modePrompts },
+            cursorShapes: { ...this.baseSettings.cursorShapes },
         };
         const overrideKeys = new Set([
             ...this.vimrcOverrides.keys(),
             ...this.luaOverrides.keys(),
+            ...Object.keys(this.configOverrides),
         ]);
-        for (const key of overrideKeys) {
-            if (key.startsWith('modePrompts.')) {
-                const mode = key.replace(
-                    'modePrompts.',
-                    '',
-                ) as keyof VimMotionsSettings['modePrompts'];
-                toSave.modePrompts[mode] =
-                    this.preVimrcSettings.modePrompts[mode];
-                continue;
-            }
+        for (const key of Object.keys(this.settings)) {
+            if (overrideKeys.has(key)) continue;
             if (key === 'cursorShapes') {
-                toSave.cursorShapes = { ...this.preVimrcSettings.cursorShapes };
+                toSave.cursorShapes = { ...this.settings.cursorShapes };
                 continue;
             }
-            if (key in this.preVimrcSettings) {
-                (toSave as unknown as Record<string, unknown>)[key] = (
-                    this.preVimrcSettings as unknown as Record<string, unknown>
-                )[key];
+            if (key === 'modePrompts') {
+                toSave.modePrompts = { ...this.settings.modePrompts };
+                continue;
             }
+            (toSave as unknown as Record<string, unknown>)[key] = (
+                this.settings as unknown as Record<string, unknown>
+            )[key];
+        }
+        if (Object.keys(this.configOverrides).length > 0) {
+            (toSave as unknown as Record<string, unknown>).configOverrides = {
+                ...this.configOverrides,
+            };
         }
         await this.saveData(toSave);
     }

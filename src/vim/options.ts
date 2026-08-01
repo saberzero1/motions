@@ -567,6 +567,184 @@ export function registerVimOptions(
         const enabled = !!value;
         notify('enableDial', enabled, `set ${enabled ? '' : 'no'}dial`);
     });
+    vim.defineOption('subword', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'enableSubwordMotions',
+            enabled,
+            `set ${enabled ? '' : 'no'}subword`,
+        );
+    });
+    vim.defineOption('picker', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('picker', enabled, `set ${enabled ? '' : 'no'}picker`);
+    });
+    vim.defineOption('pickerleadermappings', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'pickerLeaderMappings',
+            enabled,
+            `set ${enabled ? '' : 'no'}pickerleadermappings`,
+        );
+    });
+    vim.defineOption('pickermatcher', 'ufuzzy', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'ufuzzy' || str === 'obsidian') {
+            notify('pickerMatcherEngine', str, `set pickermatcher=${str}`);
+        }
+    });
+    vim.defineOption('pickeromnisearch', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'pickerOmnisearch',
+            enabled,
+            `set ${enabled ? '' : 'no'}pickeromnisearch`,
+        );
+    });
+    vim.defineOption('pickertasks', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('pickerTasks', enabled, `set ${enabled ? '' : 'no'}pickertasks`);
+    });
+    vim.defineOption('pickerdataview', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'pickerDataview',
+            enabled,
+            `set ${enabled ? '' : 'no'}pickerdataview`,
+        );
+    });
+    vim.defineOption('ripgrep', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('ripgrepEnabled', enabled, `set ${enabled ? '' : 'no'}ripgrep`);
+    });
+    vim.defineOption('ripgreppath', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('ripgrepBinaryPath', str, `set ripgreppath=${str}`);
+    });
+    vim.defineOption('ripgrepargs', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('ripgrepArgs', str, `set ripgrepargs=${str}`);
+    });
+    vim.defineOption('grepmode', 'ripgrep', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'ripgrep' || str === 'grep') {
+            notify('grepMode', str, `set grepmode=${str}`);
+        }
+    });
+    vim.defineOption('oil', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('oilExplorer', enabled, `set ${enabled ? '' : 'no'}oil`);
+    });
+    vim.defineOption('oilhiddenfiles', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'oilShowHiddenFiles',
+            enabled,
+            `set ${enabled ? '' : 'no'}oilhiddenfiles`,
+        );
+    });
+    vim.defineOption('oilconfirmdeletethreshold', 5, 'number', [], (value) => {
+        if (value === undefined) return;
+        const n = typeof value === 'number' ? value : Number(value);
+        if (!isNaN(n) && n >= 0 && n <= 100) {
+            notify(
+                'oilConfirmDeleteThreshold',
+                n,
+                `set oilconfirmdeletethreshold=${n}`,
+            );
+        }
+    });
+    vim.defineOption('oilsort', 'name', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'name' || str === 'mtime' || str === 'size') {
+            notify('oilDefaultSort', str, `set oilsort=${str}`);
+        }
+    });
+    vim.defineOption('hinthotkey', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('hintModeHotkey', str, `set hinthotkey=${str}`);
+    });
+    vim.defineOption('undotreeposition', 'right', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'left' || str === 'right') {
+            notify('undoTreePosition', str, `set undotreeposition=${str}`);
+        }
+    });
+    vim.defineOption('undotreeautoopen', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'undoTreeAutoOpen',
+            enabled,
+            `set ${enabled ? '' : 'no'}undotreeautoopen`,
+        );
+    });
+    vim.defineOption('imswitching', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('imEnabled', enabled, `set ${enabled ? '' : 'no'}imswitching`);
+    });
+    vim.defineOption('impreset', 'custom', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (
+            str === 'custom' ||
+            str === 'macism' ||
+            str === 'im-select' ||
+            str === 'fcitx5-remote' ||
+            str === 'ibus'
+        ) {
+            notify('imPreset', str, `set impreset=${str}`);
+        }
+    });
+    vim.defineOption('imbinarypath', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('imBinaryPath', str, `set imbinarypath=${str}`);
+    });
+    vim.defineOption('imobtainargs', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('imObtainArgs', str, `set imobtainargs=${str}`);
+    });
+    vim.defineOption('imswitchargs', '{im}', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('imSwitchArgs', str, `set imswitchargs=${str}`);
+    });
+    vim.defineOption('imdefaultnormal', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('imDefaultNormalIm', str, `set imdefaultnormal=${str}`);
+    });
+    vim.defineOption('imrestorebehavior', 'restore', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        if (str === 'restore' || str === 'default') {
+            notify('imRestoreBehavior', str, `set imrestorebehavior=${str}`);
+        }
+    });
+    vim.defineOption('imdefaultinsert', '', 'string', [], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        notify('imDefaultInsertIm', str, `set imdefaultinsert=${str}`);
+    });
     registered = true;
 }
 

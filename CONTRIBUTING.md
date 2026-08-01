@@ -270,7 +270,7 @@ src/
     subword.ts             # Shared subword boundary detection (camelCase/snake_case/kebab-case)
   vimrc/
     parser.ts              # Line-by-line .obsidian.vimrc parser
-    loader.ts              # Two-phase vimrc loader: readAndParseVimrcFile (no CM needed) → applyVimrcCommands (14 types explicit)
+    loader.ts              # Two-phase vimrc loader: readAndParseVimrcFile (no CM needed) → applyVimrcCommands (14 types explicit); KNOWN_SET_OPTIONS registry for all :set options
 ```
 
 ## Adding a new feature
@@ -464,6 +464,19 @@ All Vim API registrations must go through `VimRegistration` so they're cleaned u
 ### Settings hot-reload
 
 When adding a new setting toggle, wire it in both `onload()` and `reloadFeatures()` in `main.ts`, and call `this.plugin.reloadFeatures()` in the setting's `onChange` handler.
+
+### Settings override cleanup
+
+When a user changes a setting via the Settings UI, the override must be cleared from all three override stores. Use `this.plugin.clearSettingOverride(key)` — this deletes from `vimrcOverrides`, `luaOverrides`, and `configOverrides` in one call. Never call `this.plugin.vimrcOverrides?.delete(key)` directly.
+
+### Config overrides persistence
+
+Vimrc/Lua setting overrides are persisted in a `configOverrides` block in `data.json` (separate from base settings). This allows settings that only take effect at CM6 extension creation time (gutter settings) to survive Obsidian restarts. The lifecycle:
+
+1. `loadSettings()` extracts `configOverrides` from raw data, merges on top of settings
+2. After vimrc/Lua loading, `captureConfigOverrides()` captures current override values and persists
+3. `saveSettings()` attaches `configOverrides` alongside base settings (which are stripped of runtime overrides)
+4. Settings UI changes call `clearSettingOverride(key)` to remove from all override stores
 
 ## Testing
 

@@ -18,6 +18,24 @@ The plugin provides a Lua 5.3 runtime via a browser-only fork of fengari. Config
 
 12 plugin settings (`yankring`, `yankhighlightmode`, `yankhighlightduration`, `undotree`, `undofile`, `undotreemaxnodes`, `jumplist`, `jumplistsize`, `foldawarenavigation`, `foldpersistence`, `harpoon`, `dial`) were documented in the `vim.opt` table but never registered in `KNOWN_SET_OPTIONS` (the registry checked by the `vim.opt` proxy). Setting them via `vim.opt` or `:set` in vimrc produced `"unknown vim.opt option"` console warnings and had no effect. 10 of the 12 were also missing from the vimrc `:set` pathway (`vim.defineOption`); `jumplist` and `jumplistsize` already worked via `:set` but not via `vim.opt`. All 12 options now work identically across Settings UI, vimrc, and Lua.
 
+### ~~Gutter settings ignored when set via vimrc or Lua~~ (Fixed)
+
+**Status**: Fixed. Gutter-related settings (`number`, `relativenumber`, `numberwidth`, `linenumbermode`, `cursorline`, `cursorlineopt`, `signcolumn`, `statuscolumn`, `foldcolumn`) now take effect when configured via `.obsidian.vimrc` or `.obsidian.init.lua`. ([#101](https://github.com/saberzero1/motions/issues/101))
+
+Two issues: (1) vimrc/Lua overrides were in-memory only — `saveSettings()` stripped them to preserve UI values, so they were lost on restart. CM6 gutter extensions are created at startup from persisted values, so the overrides never took effect. (2) `reloadFeatures()` never called gutter reconfiguration functions.
+
+Fixed with a `configOverrides` persistence system: after vimrc/Lua loading, override values are captured in a `configOverrides` block in `data.json`. On next startup, these are merged on top of base settings before CM6 extensions are created. Gutter settings require one restart after the first config file change to take effect (same as the Settings UI). Also added gutter reconfiguration calls to `reloadFeatures()` for in-session changes.
+
+Additionally, 27 settings that were previously UI-only are now configurable via vimrc/Lua: `subword`, `picker`, `pickerleadermappings`, `pickermatcher`, `pickeromnisearch`, `pickertasks`, `pickerdataview`, `ripgrep`, `ripgreppath`, `ripgrepargs`, `grepmode`, `oil`, `oilhiddenfiles`, `oilconfirmdeletethreshold`, `oilsort`, `hinthotkey`, `undotreeposition`, `undotreeautoopen`, `imswitching`, `impreset`, `imbinarypath`, `imobtainargs`, `imswitchargs`, `imdefaultnormal`, `imrestorebehavior`, `imdefaultinsert`.
+
+### ~~`preVimrcSettings` shallow copy bug~~ (Fixed)
+
+**Status**: Fixed. `preVimrcSettings` snapshot at line 677 now deep-copies `cursorShapes`, `modePrompts`, and `pickerKeymap`. Previously, nested objects shared references with `this.settings`, causing `Object.assign` mutations in `applySettingOverride` to leak through to `preVimrcSettings` — making `saveSettings()` accidentally persist overridden values (e.g., cursor shapes set via `set guicursor` in vimrc were permanently saved to `data.json`).
+
+### ~~Clipboard/textwidth falsely shown as "Set by vimrc"~~ (Fixed)
+
+**Status**: Fixed. The initial settings restoration at startup used `onSettingOverride()` for `clipboard` and `textwidth`, which wrote to `vimrcOverrides` even without a vimrc file. These settings appeared as "Set by vimrc" in the Settings UI and `saveSettings()` stripped them. Fixed by using direct side-effect calls (`setClipboardOption`, `setTextwidth`) that bypass the override pathway.
+
 ### Expr mapping limitations
 
 - **String expr mappings are not supported** — `vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true })` requires Vimscript expression evaluation which is not available. Use a Lua function callback instead.
@@ -295,7 +313,7 @@ The initial settings load during `onload()` is guarded by an `initializing` flag
 
 ## `set` option scope
 
-All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values. See the full options table in `README.md` → "Supported `set` options".
+All plugin settings are now configurable via `set` options in `.obsidian.vimrc`. When vimrc is enabled (the default), vimrc values override the corresponding Settings UI values for the current session. Overrides are persisted in a `configOverrides` block in `data.json` so they survive Obsidian restarts — the base settings always reflect UI-set values, while `configOverrides` captures the last-known vimrc/Lua values. On startup, `configOverrides` are merged on top of base settings before CM6 extensions are created. See the full options table in `README.md` → "Supported `set` options".
 
 Additionally, `whichkeygroup` and `whichkeylabel` ex commands allow configuring which-key labels, and `let g:mode_prompt_*` allows customizing status bar mode text. These use merge semantics with the Settings UI (both sources contribute; vimrc wins on conflict).
 
@@ -306,8 +324,8 @@ The following settings are intentionally **not** exposed via vimrc:
 | Setting          | Reason                                                                                    |
 | ---------------- | ----------------------------------------------------------------------------------------- |
 | `configMode`     | Circular dependency — can't control config file loading from vimrc or init.lua            |
-| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)                                 |
 | `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc or `vim.keymap.set` in init.lua |
+| `pickerKeymap`   | Complex array-valued keys — not suited for `:set` syntax                                  |
 
 Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
 

@@ -7,19 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Runtime invariant system** — `invariant()` (always-on, type-narrowing) and `devAssert()` (dev-only, stripped from production) helpers in `src/util/invariant.ts`. 21 invariants placed across 9 source files protecting mode transitions, dual-vim architecture, settings resolution, Lua engine lifecycle, extension cleanup, cursor state, and cell editor singleton. Violations are logged to console, rate-limited via Notice, and inspectable via the `:violations` ex command. `__DEV__` build-time flag via esbuild `define` enables dev-only checks in development/watch builds and strips them from production.
-    - Plugin: `src/util/invariant.ts` (new — `invariant`, `devAssert`, `getViolations`, `clearViolations`), `src/types/globals.ts` (new — `__DEV__` global type declaration), `esbuild.config.mjs` (`define` option), `vitest.config.ts` (`define` option)
-- **`:violations` ex command** — displays accumulated invariant violations with timestamps. `:violations!` clears the violation log.
-    - Plugin: `src/workspace/commands.ts` (`:violations` and `:violations!` registration)
-
 ### Fixed
 
+- **Gutter settings ignored when set via vimrc or Lua** — `set nonumber`, `set signcolumn=no`, `vim.opt.number = false`, and other gutter-related settings (`number`, `relativenumber`, `numberwidth`, `linenumbermode`, `cursorline`, `cursorlineopt`, `signcolumn`, `statuscolumn`, `foldcolumn`) had no effect when configured via `.obsidian.vimrc` or `.obsidian.init.lua`. Root cause: vimrc/Lua overrides were in-memory only and never persisted, but gutter CM6 extensions are created at startup from persisted values. Fixed with a `configOverrides` persistence system: after vimrc/Lua loading, override values are captured and persisted in `data.json`. On next startup, `configOverrides` are merged on top of base settings before CM6 extensions are created, so gutters use the correct values from the start. Also added gutter reconfiguration calls to `reloadFeatures()` for in-session changes. ([#101](https://github.com/saberzero1/motions/issues/101))
+    - Plugin: `src/main.ts` (`loadSettings` — configOverrides extraction and merge; `captureConfigOverrides` — new shared capture method; `saveSettings` — persist configOverrides; `reloadFeatures` — gutter reconfiguration; `softReloadVimrc` — clear stale overrides and re-capture; `clearSettingOverride` — new helper)
+    - Plugin: `src/settings.ts` (replaced `vimrcOverrides?.delete` with `clearSettingOverride` across all onChange handlers — covers both declarative and imperative paths, fixes missing `luaOverrides` deletion)
+- **`preVimrcSettings` shallow copy** — nested objects (`cursorShapes`, `modePrompts`, `pickerKeymap`) shared references with `this.settings`, causing `saveSettings()` to accidentally persist overridden cursor shapes. Fixed with deep copy.
+    - Plugin: `src/main.ts` (line 677 — deep copy nested objects in `preVimrcSettings` snapshot)
+- **Clipboard/textwidth falsely shown as "Set by vimrc"** — the initial settings restoration at startup called `onSettingOverride()` for `clipboard` and `textwidth`, writing to `vimrcOverrides` even without a vimrc file. Fixed by using direct side-effect calls.
+    - Plugin: `src/main.ts` (replaced `onSettingOverride` calls with direct `setClipboardOption`/`setTextwidth` calls)
 - **`:sort` cursor positioning** — `:sort` (and ranged `:2,3sort`) now positions the cursor at the first line of the sorted range, matching Neovim. Previously the cursor stayed at line 0 regardless of the sort range.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`exCommands.sort` — `cm.setCursor` after `replaceRange`)
 - **`CTRL-V $ d` cursor overshoot** — after a block visual delete to end-of-line (`CTRL-V jj $ d`), the cursor column is now clamped to the remaining line length. Previously the cursor could land past the last character on shortened lines.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`operators.delete` — block visual cursor clamping)
+
+### Added
+
+- **27 new vimrc/Lua configurable options** — the following settings were previously only configurable via the Settings UI and are now available via `:set` in vimrc and `vim.opt` in Lua: `subword`, `picker`, `pickerleadermappings`, `pickermatcher`, `pickeromnisearch`, `pickertasks`, `pickerdataview`, `ripgrep`, `ripgreppath`, `ripgrepargs`, `grepmode`, `oil`, `oilhiddenfiles`, `oilconfirmdeletethreshold`, `oilsort`, `hinthotkey`, `undotreeposition`, `undotreeautoopen`, `imswitching`, `impreset`, `imbinarypath`, `imobtainargs`, `imswitchargs`, `imdefaultnormal`, `imrestorebehavior`, `imdefaultinsert`. All options work identically across Settings UI, vimrc, and Lua.
+    - Plugin: `src/vimrc/loader.ts` (27 new `KNOWN_SET_OPTIONS` entries)
+- **Runtime invariant system** — `invariant()` (always-on, type-narrowing) and `devAssert()` (dev-only, stripped from production) helpers in `src/util/invariant.ts`. 21 invariants placed across 9 source files protecting mode transitions, dual-vim architecture, settings resolution, Lua engine lifecycle, extension cleanup, cursor state, and cell editor singleton. Violations are logged to console, rate-limited via Notice, and inspectable via the `:violations` ex command. `__DEV__` build-time flag via esbuild `define` enables dev-only checks in development/watch builds and strips them from production.
+    - Plugin: `src/util/invariant.ts` (new — `invariant`, `devAssert`, `getViolations`, `clearViolations`), `src/types/globals.ts` (new — `__DEV__` global type declaration), `esbuild.config.mjs` (`define` option), `vitest.config.ts` (`define` option)
+- **`:violations` ex command** — displays accumulated invariant violations with timestamps. `:violations!` clears the violation log.
+    - Plugin: `src/workspace/commands.ts` (`:violations` and `:violations!` registration)
 
 ### Tests
 
@@ -32,10 +41,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 3 expanded tests in `test/unit/animated-cursor.test.ts`: manager register/deregister, destroy clears all, MAX_CONTROLLERS warning
 - 70 new Neovim golden test cases (490 → 560): operator+motion combos (+28), visual mode operations (+15), insert mode operations (+12), ex command operations (+15)
 - 2 Neovim deviations closed (22 → 20): `:2,3sort` cursor positioning, `CTRL-V $ delete to EOL` cursor overshoot
+- 30 unit tests in `test/unit/known-set-options.test.ts`: KNOWN_SET_OPTIONS coverage guard (every non-excluded settings key has an entry, excluded keys list has no stale entries, no settingsKey points to non-existent setting), 27 new option entry validations (type, settingsKey, validValues)
+- 6 e2e tests in `test/specs/gutter-vimrc-lua.e2e.ts`: gutter settings via Lua config (enable/disable line numbers, enable/disable sign column, disable all gutter elements, hybrid line numbers)
 
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked gutter vimrc/Lua reconfiguration as fixed; marked preVimrcSettings shallow copy as fixed; marked clipboard/textwidth false override as fixed; updated `set` option scope section with configOverrides persistence
+- `AGENTS.md`: Updated hint mode page ownership with `hinthotkey`
+- `README.md`: Updated vimrc configurable settings count
+- `CONTRIBUTING.md`: Added configOverrides persistence and `clearSettingOverride` helper to conventions; updated vimrc loader description
+- `docs/configuration/vimrc.md`: Added 27 new options to vimrc tables; updated override behavior section with configOverrides persistence and gutter restart note
+- `docs/configuration/lua-config.md`: Added 27 new options to vim.opt table
 - `KNOWN_LIMITATIONS.md`: Marked `:sort` cursor and `CTRL-V $` cursor deviations as fixed
 - `CONTRIBUTING.md`: Added invariant system to codebase structure, updated testing instructions for `build:dev`
 - `AGENTS.md`: Updated manual testing instructions for `build:dev`, added `:violations` command, updated golden test count and deviation count

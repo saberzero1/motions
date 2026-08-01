@@ -120,47 +120,58 @@ surroundmap m $$ $$
 
 Use `set <option>` to enable, `set no<option>` to disable.
 
-| Option                | Alias  | Description                             | Default |
-| --------------------- | ------ | --------------------------------------- | ------- |
-| `textobjects`         | `to`   | Markdown-aware text objects             | on      |
-| `replacewithregister` | `rwr`  | Replace-with-register operator          | on      |
-| `navigation`          | `nav`  | Heading, list, and link navigation      | on      |
-| `hardwrap`            | `hw`   | `gq`/`gw` hard-wrap operators           | on      |
-| `listcontinuation`    | `lc`   | Smart list continuation on `o`/`O`      | on      |
-| `tablenav`            | `tn`   | Table cell navigation                   | on      |
-| `workspacenav`        | `wn`   | Pane/tab/sidebar control                | on      |
-| `number`              | `nu`   | Show absolute line numbers              | off     |
-| `relativenumber`      | `rnu`  | Show relative line numbers              | off     |
-| `flash`               | —      | Flash-style f/F/t/T labels              | on      |
-| `flashmultiline`      | `fml`  | Flash searches beyond current line      | on      |
-| `flashjump`           | —      | Flash bidirectional jump mode (s)       | off     |
-| `flashcleverf`        | —      | Clever-f repetition                     | off     |
-| `flashsearch`         | —      | Labels on /? search matches             | on      |
-| `labelmatchfontsize`  | `lmfs` | Scale labels to match line font size    | off     |
-| `easymotion`          | `em`   | EasyMotion/Hop navigation               | on      |
-| `easymotiondimming`   | `emd`  | Dim non-target text during EasyMotion   | on      |
-| `hintmode`            | `hm`   | Vimium-style hint labels                | on      |
-| `statusbar`           | `sb`   | Vim mode in status bar                  | on      |
-| `chorddisplay`        | `cd`   | Pending keystrokes in status bar        | on      |
-| `powerline`           | `pl`   | Colored powerline status bar            | off     |
-| `expandtab`           | `et`   | Use spaces instead of tabs              | on      |
-| `cursorline`          | `cul`  | Cursor line highlight                   | on      |
-| `foldcolumn`          | `fdc`  | Fold column indicators                  | off     |
-| `markgutter`          | —      | Alias for `signcolumn` (compat)         | on      |
-| `snippets`            | —      | Enable snippet expansion                | on      |
-| `snippetbundled`      | —      | Include bundled Obsidian snippets       | on      |
-| `vimtextareas`        | `vta`  | Vim keybindings in text areas           | off     |
-| `yankring`            | —      | Yank-ring paste cycling                 | on      |
-| `harpoon`             | —      | Harpoon file pinning                    | on      |
-| `dial`                | —      | Enhanced increment/decrement            | off     |
-| `jumplist`            | —      | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
-| `foldawarenavigation` | —      | Auto-unfold on navigation               | on      |
-| `foldpersistence`     | —      | Persist fold state across sessions      | off     |
-| `undotree`            | `ut`   | Enable undo tree tracking               | on      |
-| `undofile`            | `udf`  | Persist undo tree across sessions       | off     |
-| `smoothcursor`        | `sc`   | Enable animated cursor                  | off     |
-| `smoothcursorglide`   | `scg`  | Smooth cursor movement (glide)          | on      |
-| `smoothcursorsmear`   | `scm`  | Enable smear trail                      | on      |
+| Option                 | Alias  | Description                             | Default |
+| ---------------------- | ------ | --------------------------------------- | ------- |
+| `textobjects`          | `to`   | Markdown-aware text objects             | on      |
+| `replacewithregister`  | `rwr`  | Replace-with-register operator          | on      |
+| `navigation`           | `nav`  | Heading, list, and link navigation      | on      |
+| `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators           | on      |
+| `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`      | on      |
+| `tablenav`             | `tn`   | Table cell navigation                   | on      |
+| `workspacenav`         | `wn`   | Pane/tab/sidebar control                | on      |
+| `number`               | `nu`   | Show absolute line numbers              | off     |
+| `relativenumber`       | `rnu`  | Show relative line numbers              | off     |
+| `flash`                | —      | Flash-style f/F/t/T labels              | on      |
+| `flashmultiline`       | `fml`  | Flash searches beyond current line      | on      |
+| `flashjump`            | —      | Flash bidirectional jump mode (s)       | off     |
+| `flashcleverf`         | —      | Clever-f repetition                     | off     |
+| `flashsearch`          | —      | Labels on /? search matches             | on      |
+| `labelmatchfontsize`   | `lmfs` | Scale labels to match line font size    | off     |
+| `easymotion`           | `em`   | EasyMotion/Hop navigation               | on      |
+| `easymotiondimming`    | `emd`  | Dim non-target text during EasyMotion   | on      |
+| `hintmode`             | `hm`   | Vimium-style hint labels                | on      |
+| `statusbar`            | `sb`   | Vim mode in status bar                  | on      |
+| `chorddisplay`         | `cd`   | Pending keystrokes in status bar        | on      |
+| `powerline`            | `pl`   | Colored powerline status bar            | off     |
+| `expandtab`            | `et`   | Use spaces instead of tabs              | on      |
+| `cursorline`           | `cul`  | Cursor line highlight                   | on      |
+| `foldcolumn`           | `fdc`  | Fold column indicators                  | off     |
+| `markgutter`           | —      | Alias for `signcolumn` (compat)         | on      |
+| `snippets`             | —      | Enable snippet expansion                | on      |
+| `snippetbundled`       | —      | Include bundled Obsidian snippets       | on      |
+| `vimtextareas`         | `vta`  | Vim keybindings in text areas           | off     |
+| `yankring`             | —      | Yank-ring paste cycling                 | on      |
+| `harpoon`              | —      | Harpoon file pinning                    | on      |
+| `dial`                 | —      | Enhanced increment/decrement            | off     |
+| `jumplist`             | —      | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
+| `foldawarenavigation`  | —      | Auto-unfold on navigation               | on      |
+| `foldpersistence`      | —      | Persist fold state across sessions      | off     |
+| `undotree`             | `ut`   | Enable undo tree tracking               | on      |
+| `undofile`             | `udf`  | Persist undo tree across sessions       | off     |
+| `smoothcursor`         | `sc`   | Enable animated cursor                  | off     |
+| `smoothcursorglide`    | `scg`  | Smooth cursor movement (glide)          | on      |
+| `smoothcursorsmear`    | `scm`  | Enable smear trail                      | on      |
+| `subword`              | —      | Spider.nvim-style subword motions       | off     |
+| `picker`               | —      | Telescope-style picker                  | on      |
+| `pickerleadermappings` | —      | Leader key picker shortcuts             | on      |
+| `pickeromnisearch`     | —      | Omnisearch picker integration           | off     |
+| `pickertasks`          | —      | Obsidian Tasks picker integration       | off     |
+| `pickerdataview`       | —      | Dataview picker integration             | off     |
+| `ripgrep`              | —      | Use ripgrep binary for grep             | off     |
+| `oil`                  | —      | Oil file explorer                       | off     |
+| `oilhiddenfiles`       | —      | Show hidden files in Oil                | off     |
+| `undotreeautoopen`     | —      | Auto-open undo tree on branch           | off     |
+| `imswitching`          | —      | Input method auto-switching             | off     |
 
 ## Number options
 
@@ -185,33 +196,48 @@ Use `set <option>=<value>`.
 | `smoothcursortrailstiffness` | `scts` | Smear trail tail stiffness                      | 0.3     | 0.1-1    |
 | `smoothcursordamping`        | `scd`  | Smear trail velocity decay                      | 0.85    | 0.1-0.99 |
 | `smoothcursormaxlength`      | `scml` | Maximum smear trail length (px)                 | 400     | 50-800   |
+| `oilconfirmdeletethreshold`  | —      | Oil delete confirmation threshold               | 5       | 0-100    |
 
 ## String options
 
 Use `set <option>=<value>`.
 
-| Option                  | Alias    | Description                                            | Default                                                                    |
-| ----------------------- | -------- | ------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)        | (off)                                                                      |
-| `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                   | (off)                                                                      |
-| `flashjumpkey`          | —        | Key to trigger flash jump mode                         | `s`                                                                        |
-| `flashminpatternlength` | `fmpl`   | Minimum chars before labels in jump mode               | `1`                                                                        |
-| `yankhighlightmode`     | —        | Yank highlight style (`off`/`solid`/`fade`)            | `solid`                                                                    |
-| `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels             | `asdghklqwertyuiopzxcvbnmfj`                                               |
-| `hintlabels`            | `hl`     | Characters for hint mode labels                        | `asdfghjkl`                                                                |
-| `guicursor`             | —        | Per-mode cursor shapes                                 | (block/bar/block/underline/underline)                                      |
-| `tablewidget`           | —        | Table widget mode (`off`/`cursor`/`always`/`embedded`) | `cursor`                                                                   |
-| `whichkey`              | `wk`     | Which-key hints (`off`/`leader`/`all`)                 | `off`                                                                      |
-| `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                  | `grouped`                                                                  |
-| `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)      | `which-key`                                                                |
-| `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                           | `on`                                                                       |
-| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception              | (empty — uses defaults: markdown, graph, pdf, canvas, empty, image, bases) |
-| `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)    | `number`                                                                   |
-| `signcolumn`            | `scl`    | Sign column visibility (`auto[:N]`/`yes[:N]`/`no`)     | `auto`                                                                     |
-| `linenumbermode`        | `lnm`    | Line number display (deprecated — use `statuscolumn`)  | `hybrid`                                                                   |
-| `statuscolumn`          | `stc`    | Custom gutter layout format string                     | (empty — plugin-managed)                                                   |
-| `snippetdir`            | —        | Path to user snippet JSON directory                    | (off)                                                                      |
-| `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)       | `both`                                                                     |
+| Option                  | Alias    | Description                                                      | Default                                                                    |
+| ----------------------- | -------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)                  | (off)                                                                      |
+| `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                             | (off)                                                                      |
+| `flashjumpkey`          | —        | Key to trigger flash jump mode                                   | `s`                                                                        |
+| `flashminpatternlength` | `fmpl`   | Minimum chars before labels in jump mode                         | `1`                                                                        |
+| `yankhighlightmode`     | —        | Yank highlight style (`off`/`solid`/`fade`)                      | `solid`                                                                    |
+| `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels                       | `asdghklqwertyuiopzxcvbnmfj`                                               |
+| `hintlabels`            | `hl`     | Characters for hint mode labels                                  | `asdfghjkl`                                                                |
+| `guicursor`             | —        | Per-mode cursor shapes                                           | (block/bar/block/underline/underline)                                      |
+| `tablewidget`           | —        | Table widget mode (`off`/`cursor`/`always`/`embedded`)           | `cursor`                                                                   |
+| `whichkey`              | `wk`     | Which-key hints (`off`/`leader`/`all`)                           | `off`                                                                      |
+| `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                            | `grouped`                                                                  |
+| `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)                | `which-key`                                                                |
+| `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                                     | `on`                                                                       |
+| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception                        | (empty — uses defaults: markdown, graph, pdf, canvas, empty, image, bases) |
+| `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)              | `number`                                                                   |
+| `signcolumn`            | `scl`    | Sign column visibility (`auto[:N]`/`yes[:N]`/`no`)               | `auto`                                                                     |
+| `linenumbermode`        | `lnm`    | Line number display (deprecated — use `statuscolumn`)            | `hybrid`                                                                   |
+| `statuscolumn`          | `stc`    | Custom gutter layout format string                               | (empty — plugin-managed)                                                   |
+| `snippetdir`            | —        | Path to user snippet JSON directory                              | (off)                                                                      |
+| `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)                 | `both`                                                                     |
+| `pickermatcher`         | —        | Picker match engine (`ufuzzy`/`obsidian`)                        | `ufuzzy`                                                                   |
+| `ripgreppath`           | —        | Path to ripgrep binary                                           | (off)                                                                      |
+| `ripgrepargs`           | —        | Additional ripgrep arguments                                     | (off)                                                                      |
+| `grepmode`              | —        | Grep backend (`ripgrep`/`grep`)                                  | `ripgrep`                                                                  |
+| `oilsort`               | —        | Oil default sort (`name`/`mtime`/`size`)                         | `name`                                                                     |
+| `hinthotkey`            | —        | Key to trigger hint mode                                         | (off)                                                                      |
+| `undotreeposition`      | —        | Undo tree sidebar position (`left`/`right`)                      | `right`                                                                    |
+| `impreset`              | —        | IM preset (`custom`/`macism`/`im-select`/`fcitx5-remote`/`ibus`) | `custom`                                                                   |
+| `imbinarypath`          | —        | Path to IM binary                                                | (off)                                                                      |
+| `imobtainargs`          | —        | Args for obtaining current IM                                    | (off)                                                                      |
+| `imswitchargs`          | —        | Args for switching IM                                            | `{im}`                                                                     |
+| `imdefaultnormal`       | —        | Default IM for normal mode                                       | (off)                                                                      |
+| `imrestorebehavior`     | —        | IM restore behavior (`restore`/`default`)                        | `restore`                                                                  |
+| `imdefaultinsert`       | —        | Default IM for insert mode                                       | (off)                                                                      |
 
 ## Mode prompt customization
 
@@ -282,17 +308,20 @@ These labels appear in the which-key overlay when a partial global key sequence 
 
 ## Override behavior
 
-When configuration mode includes vimrc (Lua + Vimrc or Vimrc only), vimrc values override the corresponding Settings UI values for the current session. Overrides are in-memory only — the on-disk settings file always reflects UI-set values.
+When configuration mode includes vimrc (Lua + Vimrc or Vimrc only), vimrc values override the corresponding Settings UI values for the current session. Overrides are persisted in a `configOverrides` block in `data.json` so they survive Obsidian restarts. The base settings always reflect UI-set values — `configOverrides` captures the last-known vimrc/Lua values and merges them on top at startup.
 
-Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`").
+Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`"). Changing a setting via the Settings UI clears the override for that key.
+
+> [!info] Gutter settings require one restart
+> Settings that control CM6 gutter extensions (`number`, `relativenumber`, `signcolumn`, `foldcolumn`, `cursorline`, `statuscolumn`) take effect on the next Obsidian restart after the first config file change. This matches the Settings UI behavior — these extensions are created once at startup.
 
 ## Settings not available via vimrc
 
 | Setting          | Reason                                                              |
 | ---------------- | ------------------------------------------------------------------- |
 | `configMode`     | Circular dependency — cannot control config file loading from vimrc |
-| `hintModeHotkey` | Requires modifier key capture UI (press-to-record widget)           |
 | `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc           |
+| `pickerKeymap`   | Complex array-valued keys — not suited for `:set` syntax            |
 
 Unknown `set` options produce a `console.warn` on first encounter per vimrc load, helping you identify typos or Neovim-only options. Options recognized by the plugin or CM Vim built-in options (`number`, `relativenumber`, `wrap`, etc.) are not warned about.
 

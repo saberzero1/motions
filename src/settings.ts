@@ -2820,7 +2820,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             s[key] = value;
         }
 
-        this.plugin.vimrcOverrides?.delete(key);
+        this.plugin.clearSettingOverride(key);
 
         await this.plugin.saveSettings();
 
@@ -2887,7 +2887,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         const serialized = mods.join(',') + ':' + key;
 
                         this.plugin.settings.hintModeHotkey = serialized;
-                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        this.plugin.clearSettingOverride('hintModeHotkey');
                         void this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
 
@@ -2905,7 +2905,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(hotkeyOverridden)
                     .onClick(() => {
                         this.plugin.settings.hintModeHotkey = '';
-                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        this.plugin.clearSettingOverride('hintModeHotkey');
                         void this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         hotkeyDisplay.textContent = '';
@@ -3077,7 +3077,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableTextObjects'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableTextObjects = value;
-                        this.plugin.vimrcOverrides?.delete('enableTextObjects');
+                        this.plugin.clearSettingOverride('enableTextObjects');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3097,7 +3097,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableNavigation'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableNavigation = value;
-                        this.plugin.vimrcOverrides?.delete('enableNavigation');
+                        this.plugin.clearSettingOverride('enableNavigation');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3117,7 +3117,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableSubwordMotions'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableSubwordMotions = value;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'enableSubwordMotions',
                         );
                         await this.plugin.saveSettings();
@@ -3139,7 +3139,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableHardWrap'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableHardWrap = value;
-                        this.plugin.vimrcOverrides?.delete('enableHardWrap');
+                        this.plugin.clearSettingOverride('enableHardWrap');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3161,7 +3161,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableReplaceWithRegister'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableReplaceWithRegister = value;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'enableReplaceWithRegister',
                         );
                         await this.plugin.saveSettings();
@@ -3183,7 +3183,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableDial'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableDial = value;
-                        this.plugin.vimrcOverrides?.delete('enableDial');
+                        this.plugin.clearSettingOverride('enableDial');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3204,7 +3204,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('listContinuationOnOpen'))
                     .onChange(async (value) => {
                         this.plugin.settings.listContinuationOnOpen = value;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'listContinuationOnOpen',
                         );
                         await this.plugin.saveSettings();
@@ -3226,7 +3226,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableTableNav'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableTableNav = value;
-                        this.plugin.vimrcOverrides?.delete('enableTableNav');
+                        this.plugin.clearSettingOverride('enableTableNav');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3255,7 +3255,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.tableWidgetMode =
                             value as VimMotionsSettings['tableWidgetMode'];
-                        this.plugin.vimrcOverrides?.delete('tableWidgetMode');
+                        this.plugin.clearSettingOverride('tableWidgetMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3279,7 +3279,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('picker'))
                     .onChange(async (value) => {
                         this.plugin.settings.picker = value;
-                        this.plugin.vimrcOverrides?.delete('picker');
+                        this.plugin.clearSettingOverride('picker');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3459,7 +3459,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setDisabled(isOverridden('enableVimTextareas'))
                         .onChange(async (value) => {
                             this.plugin.settings.enableVimTextareas = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'enableVimTextareas',
                             );
                             await this.plugin.saveSettings();
@@ -3489,7 +3489,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('clipboard'))
                     .onChange(async (value) => {
                         this.plugin.settings.clipboard = value;
-                        this.plugin.vimrcOverrides?.delete('clipboard');
+                        this.plugin.clearSettingOverride('clipboard');
                         await this.plugin.saveSettings();
                         setClipboardOption(value);
                         const vim = getVimApi();
@@ -3507,7 +3507,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('tabstop'))
                     .onChange(async (value) => {
                         this.plugin.settings.tabstop = value;
-                        this.plugin.vimrcOverrides?.delete('tabstop');
+                        this.plugin.clearSettingOverride('tabstop');
                         await this.plugin.saveSettings();
                         const vim = getVimApi();
                         if (vim) vim.setOption('tabstop', value);
@@ -3524,7 +3524,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('shiftwidth'))
                     .onChange(async (value) => {
                         this.plugin.settings.shiftwidth = value;
-                        this.plugin.vimrcOverrides?.delete('shiftwidth');
+                        this.plugin.clearSettingOverride('shiftwidth');
                         await this.plugin.saveSettings();
                         const vim = getVimApi();
                         if (vim) vim.setOption('shiftwidth', value);
@@ -3542,7 +3542,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('expandtab'))
                     .onChange(async (value) => {
                         this.plugin.settings.expandtab = value;
-                        this.plugin.vimrcOverrides?.delete('expandtab');
+                        this.plugin.clearSettingOverride('expandtab');
                         await this.plugin.saveSettings();
                         const vim = getVimApi();
                         if (vim) vim.setOption('expandtab', value);
@@ -3563,7 +3563,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('insertmodeescape'))
                     .onChange(async (value) => {
                         this.plugin.settings.insertmodeescape = value;
-                        this.plugin.vimrcOverrides?.delete('insertmodeescape');
+                        this.plugin.clearSettingOverride('insertmodeescape');
                         await this.plugin.saveSettings();
                         const vim = getVimApi();
                         if (vim) vim.setOption('insertmodeescape', value);
@@ -3592,9 +3592,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         ? 1000
                         : Math.max(100, Math.min(5000, n));
                     this.plugin.settings.insertmodeescapetimeout = clamped;
-                    this.plugin.vimrcOverrides?.delete(
-                        'insertmodeescapetimeout',
-                    );
+                    this.plugin.clearSettingOverride('insertmodeescapetimeout');
                     await this.plugin.saveSettings();
                     const vim = getVimApi();
                     if (vim) vim.setOption('insertmodeescapetimeout', clamped);
@@ -3623,7 +3621,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         ? 1000
                         : Math.max(0, Math.min(5000, n));
                     this.plugin.settings.operatorshadowtimeout = clamped;
-                    this.plugin.vimrcOverrides?.delete('operatorshadowtimeout');
+                    this.plugin.clearSettingOverride('operatorshadowtimeout');
                     await this.plugin.saveSettings();
                     const vim = getVimApi();
                     if (vim) vim.setOption('operatorshadowtimeout', clamped);
@@ -3650,7 +3648,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         ? 0
                         : Math.max(0, Math.min(200, n));
                     this.plugin.settings.textwidth = clamped;
-                    this.plugin.vimrcOverrides?.delete('textwidth');
+                    this.plugin.clearSettingOverride('textwidth');
                     await this.plugin.saveSettings();
                     if (clamped > 0) setTextwidth(clamped);
                     const vim = getVimApi();
@@ -3682,7 +3680,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('number'))
                     .onChange(async (value) => {
                         this.plugin.settings.number = value;
-                        this.plugin.vimrcOverrides?.delete('number');
+                        this.plugin.clearSettingOverride('number');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureLineNumberGutter();
                     }),
@@ -3702,7 +3700,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('relativenumber'))
                     .onChange(async (value) => {
                         this.plugin.settings.relativenumber = value;
-                        this.plugin.vimrcOverrides?.delete('relativenumber');
+                        this.plugin.clearSettingOverride('relativenumber');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureLineNumberGutter();
                     }),
@@ -3726,7 +3724,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     const n = Number(val);
                     if (!isNaN(n) && n >= 1 && n <= 20) {
                         this.plugin.settings.numberwidth = n;
-                        this.plugin.vimrcOverrides?.delete('numberwidth');
+                        this.plugin.clearSettingOverride('numberwidth');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureLineNumberGutter();
                     }
@@ -3755,7 +3753,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             | 'hybrid'
                             | 'dual'
                             | 'dual-rel-abs';
-                        this.plugin.vimrcOverrides?.delete('linenumbermode');
+                        this.plugin.clearSettingOverride('linenumbermode');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureLineNumberGutter();
                     }),
@@ -3775,7 +3773,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('cursorline'))
                     .onChange(async (value) => {
                         this.plugin.settings.cursorline = value;
-                        this.plugin.vimrcOverrides?.delete('cursorline');
+                        this.plugin.clearSettingOverride('cursorline');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureCursorlineHighlight();
                     }),
@@ -3803,7 +3801,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             | 'number'
                             | 'line'
                             | 'both';
-                        this.plugin.vimrcOverrides?.delete('cursorlineopt');
+                        this.plugin.clearSettingOverride('cursorlineopt');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureCursorlineHighlight();
                     }),
@@ -3832,7 +3830,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('signcolumn'))
                     .onChange(async (value) => {
                         this.plugin.settings.signcolumn = value;
-                        this.plugin.vimrcOverrides?.delete('signcolumn');
+                        this.plugin.clearSettingOverride('signcolumn');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureSignColumnGutter();
                     }),
@@ -3852,7 +3850,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('foldcolumn'))
                     .onChange(async (value) => {
                         this.plugin.settings.foldcolumn = value;
-                        this.plugin.vimrcOverrides?.delete('foldcolumn');
+                        this.plugin.clearSettingOverride('foldcolumn');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureFoldColumnGutter();
                     }),
@@ -3882,7 +3880,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableStatusBar'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableStatusBar = value;
-                        this.plugin.vimrcOverrides?.delete('enableStatusBar');
+                        this.plugin.clearSettingOverride('enableStatusBar');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -3910,9 +3908,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableChordDisplay'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableChordDisplay = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'enableChordDisplay',
-                        );
+                        this.plugin.clearSettingOverride('enableChordDisplay');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3932,7 +3928,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enablePowerline'))
                     .onChange(async (value) => {
                         this.plugin.settings.enablePowerline = value;
-                        this.plugin.vimrcOverrides?.delete('enablePowerline');
+                        this.plugin.clearSettingOverride('enablePowerline');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3958,9 +3954,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.normal =
                             value || DEFAULT_MODE_PROMPTS.normal;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.normal',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.normal');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3980,9 +3974,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.insert =
                             value || DEFAULT_MODE_PROMPTS.insert;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.insert',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.insert');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4002,9 +3994,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.visual =
                             value || DEFAULT_MODE_PROMPTS.visual;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.visual',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.visual');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4024,9 +4014,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.replace =
                             value || DEFAULT_MODE_PROMPTS.replace;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.replace',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.replace');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4046,7 +4034,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.visualLine =
                             value || DEFAULT_MODE_PROMPTS.visualLine;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'modePrompts.visualLine',
                         );
                         await this.plugin.saveSettings();
@@ -4068,7 +4056,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.visualBlock =
                             value || DEFAULT_MODE_PROMPTS.visualBlock;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'modePrompts.visualBlock',
                         );
                         await this.plugin.saveSettings();
@@ -4090,9 +4078,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.select =
                             value || DEFAULT_MODE_PROMPTS.select;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.select',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.select');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4112,7 +4098,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.vreplace =
                             value || DEFAULT_MODE_PROMPTS.vreplace;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'modePrompts.vreplace',
                         );
                         await this.plugin.saveSettings();
@@ -4134,9 +4120,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.command =
                             value || DEFAULT_MODE_PROMPTS.command;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.command',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.command');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4156,9 +4140,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.search =
                             value || DEFAULT_MODE_PROMPTS.search;
-                        this.plugin.vimrcOverrides?.delete(
-                            'modePrompts.search',
-                        );
+                        this.plugin.clearSettingOverride('modePrompts.search');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4178,7 +4160,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.modePrompts.insertNormal =
                             value || DEFAULT_MODE_PROMPTS.insertNormal;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'modePrompts.insertNormal',
                         );
                         await this.plugin.saveSettings();
@@ -4232,7 +4214,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.cursorShapes[key] =
                             value as CursorShape;
-                        this.plugin.vimrcOverrides?.delete('cursorShapes');
+                        this.plugin.clearSettingOverride('cursorShapes');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     });
@@ -4452,7 +4434,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.yankHighlightMode =
                             value as VimMotionsSettings['yankHighlightMode'];
-                        this.plugin.vimrcOverrides?.delete('yankHighlightMode');
+                        this.plugin.clearSettingOverride('yankHighlightMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -4481,7 +4463,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('yankHighlightDuration'))
                     .onChange(async (value) => {
                         this.plugin.settings.yankHighlightDuration = value;
-                        this.plugin.vimrcOverrides?.delete(
+                        this.plugin.clearSettingOverride(
                             'yankHighlightDuration',
                         );
                         await this.plugin.saveSettings();
@@ -4533,7 +4515,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableEasyMotion'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableEasyMotion = value;
-                        this.plugin.vimrcOverrides?.delete('enableEasyMotion');
+                        this.plugin.clearSettingOverride('enableEasyMotion');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -4561,7 +4543,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('easyMotionDimming'))
                     .onChange(async (value) => {
                         this.plugin.settings.easyMotionDimming = value;
-                        this.plugin.vimrcOverrides?.delete('easyMotionDimming');
+                        this.plugin.clearSettingOverride('easyMotionDimming');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -4581,7 +4563,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.easyMotionLabels =
                             value || 'asdghklqwertyuiopzxcvbnmfj';
-                        this.plugin.vimrcOverrides?.delete('easyMotionLabels');
+                        this.plugin.clearSettingOverride('easyMotionLabels');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -4600,7 +4582,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableFlash'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableFlash = value;
-                        this.plugin.vimrcOverrides?.delete('enableFlash');
+                        this.plugin.clearSettingOverride('enableFlash');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -4628,7 +4610,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('flashMultiLine'))
                     .onChange(async (value) => {
                         this.plugin.settings.flashMultiLine = value;
-                        this.plugin.vimrcOverrides?.delete('flashMultiLine');
+                        this.plugin.clearSettingOverride('flashMultiLine');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4648,7 +4630,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('flashJumpEnabled'))
                     .onChange(async (value) => {
                         this.plugin.settings.flashJumpEnabled = value;
-                        this.plugin.vimrcOverrides?.delete('flashJumpEnabled');
+                        this.plugin.clearSettingOverride('flashJumpEnabled');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -4676,7 +4658,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('flashJumpKey'))
                     .onChange(async (value) => {
                         this.plugin.settings.flashJumpKey = value;
-                        this.plugin.vimrcOverrides?.delete('flashJumpKey');
+                        this.plugin.clearSettingOverride('flashJumpKey');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4696,7 +4678,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('flashCleverF'))
                     .onChange(async (value) => {
                         this.plugin.settings.flashCleverF = value;
-                        this.plugin.vimrcOverrides?.delete('flashCleverF');
+                        this.plugin.clearSettingOverride('flashCleverF');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4724,7 +4706,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         ? 1
                         : Math.max(1, Math.min(10, Math.floor(n)));
                     this.plugin.settings.flashMinPatternLength = clamped;
-                    this.plugin.vimrcOverrides?.delete('flashMinPatternLength');
+                    this.plugin.clearSettingOverride('flashMinPatternLength');
                     await this.plugin.saveSettings();
                     this.plugin.reloadFeatures();
                 });
@@ -4744,7 +4726,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('flashSearch'))
                     .onChange(async (value) => {
                         this.plugin.settings.flashSearch = value;
-                        this.plugin.vimrcOverrides?.delete('flashSearch');
+                        this.plugin.clearSettingOverride('flashSearch');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4764,7 +4746,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableHarpoon'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableHarpoon = value;
-                        this.plugin.vimrcOverrides?.delete('enableHarpoon');
+                        this.plugin.clearSettingOverride('enableHarpoon');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4784,7 +4766,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableYankRing'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableYankRing = value;
-                        this.plugin.vimrcOverrides?.delete('enableYankRing');
+                        this.plugin.clearSettingOverride('enableYankRing');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -4804,7 +4786,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableHintMode'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableHintMode = value;
-                        this.plugin.vimrcOverrides?.delete('enableHintMode');
+                        this.plugin.clearSettingOverride('enableHintMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -4833,7 +4815,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.hintModeLabels =
                             value || 'asdfghjkl';
-                        this.plugin.vimrcOverrides?.delete('hintModeLabels');
+                        this.plugin.clearSettingOverride('hintModeLabels');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -4887,7 +4869,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         const serialized = mods.join(',') + ':' + key;
 
                         this.plugin.settings.hintModeHotkey = serialized;
-                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        this.plugin.clearSettingOverride('hintModeHotkey');
                         void this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
 
@@ -4905,7 +4887,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(hotkeyOverridden)
                     .onClick(() => {
                         this.plugin.settings.hintModeHotkey = '';
-                        this.plugin.vimrcOverrides?.delete('hintModeHotkey');
+                        this.plugin.clearSettingOverride('hintModeHotkey');
                         void this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         hotkeyDisplay.textContent = '';
@@ -4932,7 +4914,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('labelFontSize'))
                     .onChange(async (value) => {
                         this.plugin.settings.labelFontSize = value;
-                        this.plugin.vimrcOverrides?.delete('labelFontSize');
+                        this.plugin.clearSettingOverride('labelFontSize');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -4951,9 +4933,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('labelMatchFontSize'))
                     .onChange(async (value) => {
                         this.plugin.settings.labelMatchFontSize = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'labelMatchFontSize',
-                        );
+                        this.plugin.clearSettingOverride('labelMatchFontSize');
                         await this.plugin.saveSettings();
                     }),
             );
@@ -4982,9 +4962,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('enableWorkspaceNav'))
                     .onChange(async (value) => {
                         this.plugin.settings.enableWorkspaceNav = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'enableWorkspaceNav',
-                        );
+                        this.plugin.clearSettingOverride('enableWorkspaceNav');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -5029,9 +5007,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('foldAwareNavigation'))
                     .onChange(async (value) => {
                         this.plugin.settings.foldAwareNavigation = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'foldAwareNavigation',
-                        );
+                        this.plugin.clearSettingOverride('foldAwareNavigation');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -5051,7 +5027,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('foldPersistence'))
                     .onChange(async (value) => {
                         this.plugin.settings.foldPersistence = value;
-                        this.plugin.vimrcOverrides?.delete('foldPersistence');
+                        this.plugin.clearSettingOverride('foldPersistence');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -5132,7 +5108,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             | 'off'
                             | 'leader'
                             | 'all';
-                        this.plugin.vimrcOverrides?.delete('whichKeyMode');
+                        this.plugin.clearSettingOverride('whichKeyMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
@@ -5168,7 +5144,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.whichKeyGrouping = value as
                             | 'flat'
                             | 'grouped';
-                        this.plugin.vimrcOverrides?.delete('whichKeyGrouping');
+                        this.plugin.clearSettingOverride('whichKeyGrouping');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -5195,7 +5171,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         ? 500
                         : Math.max(0, Math.min(2000, Math.floor(n)));
                     this.plugin.settings.whichKeyDelay = clamped;
-                    this.plugin.vimrcOverrides?.delete('whichKeyDelay');
+                    this.plugin.clearSettingOverride('whichKeyDelay');
                     await this.plugin.saveSettings();
                     this.plugin.reloadFeatures();
                 });
@@ -5225,7 +5201,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.whichKeySortOrder = value as
                             | 'which-key'
                             | 'groups-first';
-                        this.plugin.vimrcOverrides?.delete('whichKeySortOrder');
+                        this.plugin.clearSettingOverride('whichKeySortOrder');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -5245,7 +5221,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('whichKeyIcons'))
                     .onChange(async (value) => {
                         this.plugin.settings.whichKeyIcons = value;
-                        this.plugin.vimrcOverrides?.delete('whichKeyIcons');
+                        this.plugin.clearSettingOverride('whichKeyIcons');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -5289,6 +5265,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         describeOverride: (key: string, desc?: string) => string,
         isOverridden: (key: string) => boolean,
     ): void {
+        void describeOverride;
+        void isOverridden;
         // ── Snippets ─────────────────────────────────────────────────
 
         new Setting(containerEl).setName('Snippets').setHeading();
@@ -5583,7 +5561,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         ? 5
                         : Math.max(0, Math.min(9999, Math.floor(n)));
                     this.plugin.settings.scrolloffLines = clamped;
-                    this.plugin.vimrcOverrides?.delete('scrolloffLines');
+                    this.plugin.clearSettingOverride('scrolloffLines');
                     await this.plugin.saveSettings();
                     this.plugin.reloadFeatures();
                 });
@@ -5604,9 +5582,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('multilineScanLimit'))
                     .onChange(async (value) => {
                         this.plugin.settings.multilineScanLimit = value;
-                        this.plugin.vimrcOverrides?.delete(
-                            'multilineScanLimit',
-                        );
+                        this.plugin.clearSettingOverride('multilineScanLimit');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -5644,7 +5620,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             | 'lua'
                             | 'vimrc'
                             | 'settings';
-                        this.plugin.vimrcOverrides?.delete('configMode');
+                        this.plugin.clearSettingOverride('configMode');
                         this.plugin.luaOverrides?.delete('configMode');
                         await this.plugin.saveSettings();
                         this.renderConfigSettings(
@@ -5997,7 +5973,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.key)
                         .onChange(async (value) => {
                             entry.key = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyGroupLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6010,7 +5986,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.label)
                         .onChange(async (value) => {
                             entry.label = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyGroupLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6023,7 +5999,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.icon ?? '')
                         .onChange(async (value) => {
                             entry.icon = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyGroupLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6036,7 +6012,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.color ?? '')
                         .onChange(async (value) => {
                             entry.color = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyGroupLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6124,7 +6100,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.key)
                         .onChange(async (value) => {
                             entry.key = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyCommandLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6137,7 +6113,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.label)
                         .onChange(async (value) => {
                             entry.label = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyCommandLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6150,7 +6126,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.icon ?? '')
                         .onChange(async (value) => {
                             entry.icon = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyCommandLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6163,7 +6139,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(entry.color ?? '')
                         .onChange(async (value) => {
                             entry.color = value;
-                            this.plugin.vimrcOverrides?.delete(
+                            this.plugin.clearSettingOverride(
                                 'whichKeyCommandLabels',
                             );
                             await this.plugin.saveSettings();
@@ -6209,9 +6185,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(binding.key)
                         .onChange(async (value) => {
                             binding.key = value.slice(0, 3);
-                            this.plugin.vimrcOverrides?.delete(
-                                'leaderBindings',
-                            );
+                            this.plugin.clearSettingOverride('leaderBindings');
                             await this.plugin.saveSettings();
                         }),
                 )
@@ -6221,9 +6195,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         .setValue(binding.commandId)
                         .onChange(async (value) => {
                             binding.commandId = value;
-                            this.plugin.vimrcOverrides?.delete(
-                                'leaderBindings',
-                            );
+                            this.plugin.clearSettingOverride('leaderBindings');
                             await this.plugin.saveSettings();
                         }),
                 )

@@ -298,7 +298,7 @@ When making a change, update these docs pages:
 | Flash motions         | `features/flash.md`                 | Jump navigation (flash, flashmultiline, flashjump, flashjumpkey, flashcleverf, flashminpatternlength, flashsearch)                                 |
 | Animated cursor       | `features/animated-cursor.md`       | Animated cursor (animatedCursor, smoothCursor, cursorSmoothness, smearTrail, smearStiffness, smearTrailingStiffness, smearDamping, smearMaxLength) |
 | EasyMotion            | `features/easymotion.md`            | Jump navigation (easymotion, dimming, labels, labelfontsize, labelmatchfontsize)                                                                   |
-| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey)                                                                                                 |
+| Hint mode             | `features/hint-mode.md`             | Jump navigation (hintmode, hintlabels, hinthotkey — all configurable via vimrc/Lua)                                                                |
 | Workspace nav         | `features/workspace-navigation.md`  | Workspace navigation (workspacenav, workspacenavviewtypes)                                                                                         |
 | Folding               | `features/workspace-navigation.md`  | Workspace navigation (foldawarenavigation, foldpersistence)                                                                                        |
 | Surround              | `features/surround.md`              | (no settings — fork feature)                                                                                                                       |
