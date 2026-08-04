@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Linewise visual select highlighting not visible inside callouts** — in visual-line mode (`V`), callout content did not show the selection highlight in two scenarios: (1) When the callout was collapsed as a widget (`cm-embed-block cm-callout`), the `cm-vim-linewise-widget-selection` background was overridden by the callout's own styling. (2) When the cursor was inside the callout (unfolded as `.cm-line` elements with `HyperMD-quote` classes), Obsidian's `.HyperMD-quote { background-color: var(--blockquote-background-color) }` rule overrode the `cm-vim-linewise-selection` background due to CSS cascade ordering. Fixed by increasing CSS specificity of the selection rules to (0,5,0) via `.cm-editor .cm-scroller .cm-content` ancestor chain, outranking Obsidian's (0,4,0) blockquote rule without using `!important`. ([#103](https://github.com/saberzero1/motions/issues/103))
+    - Plugin: `styles.css` (increased specificity on `.cm-vim-linewise-selection` and `.cm-vim-linewise-widget-selection` rules)
+- **Hint mode does not label the vault switcher** — the vault switcher button (`.workspace-drawer-vault-switcher`) in the left sidebar was not discoverable by hint mode because its CSS class was not in the `OBSIDIAN_SELECTORS` list. The element is a plain `<div>` without button semantics (`role="button"`, `<button>` tag, etc.), so it was not matched by any standard or Obsidian-specific selector. Fixed by adding `.workspace-drawer-vault-switcher` to `OBSIDIAN_SELECTORS`. ([#104](https://github.com/saberzero1/motions/issues/104))
+    - Plugin: `src/ui/hint-mode.ts` (added `.workspace-drawer-vault-switcher` to `OBSIDIAN_SELECTORS`)
+- **Animated cursor displaced rightward at end-of-line in visual mode** — with animated cursor enabled, the block cursor rendered one character past the last visible character when visual selection reached the end of a line. Root cause: `refreshTarget()` stepped back from `sel.head` in forward selections to render the cursor on the last selected character, but the `ch !== '\n'` guard prevented the step-back when `sel.head` pointed to a newline (end of line). Fixed by replacing the character-based guard with a line-boundary guard (`pos > line.from`), which correctly handles end-of-line, empty lines, and document end. ([#105](https://github.com/saberzero1/motions/issues/105))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`refreshTarget` — line-boundary guard replacing character guard)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated visual-line widget highlight section with callout CSS specificity fix; added vault switcher to hint mode target list; added animated cursor EoL visual mode fix
+
 ## [0.94.0] - 2026-08-01
 
 ### Fixed
