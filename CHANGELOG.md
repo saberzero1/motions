@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.95.0] - 2026-08-04
+
 ### Fixed
 
 - **Linewise visual select highlighting not visible inside callouts** — in visual-line mode (`V`), callout content did not show the selection highlight in two scenarios: (1) When the callout was collapsed as a widget (`cm-embed-block cm-callout`), the `cm-vim-linewise-widget-selection` background was overridden by the callout's own styling. (2) When the cursor was inside the callout (unfolded as `.cm-line` elements with `HyperMD-quote` classes), Obsidian's `.HyperMD-quote { background-color: var(--blockquote-background-color) }` rule overrode the `cm-vim-linewise-selection` background due to CSS cascade ordering. Fixed by increasing CSS specificity of the selection rules to (0,5,0) via `.cm-editor .cm-scroller .cm-content` ancestor chain, outranking Obsidian's (0,4,0) blockquote rule without using `!important`. ([#103](https://github.com/saberzero1/motions/issues/103))

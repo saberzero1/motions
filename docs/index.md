@@ -31,14 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.94.0
+## What's new in 0.95.0
 
-- **Gutter settings now work via vimrc and Lua** — `set nonumber`, `vim.opt.number = false`, and other gutter options (`relativenumber`, `numberwidth`, `signcolumn`, `foldcolumn`, etc.) are now correctly persisted and applied at startup ([#101](https://github.com/saberzero1/motions/issues/101))
-- **27 new vimrc/Lua configurable options** — picker, Oil, ripgrep, input method, undo tree, and hint mode settings are now available via `:set` and `vim.opt`
-- **Oil explorer: focus retained after commit** — committing staged changes (`:w`) no longer steals focus from the Oil editor ([#100](https://github.com/saberzero1/motions/issues/100))
-- **Hint mode: modifier keys fully isolated** — modifier-only keydown events no longer leak to Obsidian's hotkey system ([#98](https://github.com/saberzero1/motions/issues/98))
-- **Hint mode: `2F` focus race fixed** — async navigation is now fully awaited before restoring focus, eliminating race conditions ([#98](https://github.com/saberzero1/motions/issues/98))
-- **`:sort` and `CTRL-V $ d` cursor positioning** — both now match Neovim behavior
-- **Runtime invariant system** — `invariant()` and `devAssert()` helpers with `:violations` ex command for inspecting runtime invariant violations
+- **Visual-line highlighting now visible inside callouts** — `V` selection highlight inside collapsed and unfolded callouts is no longer overridden by Obsidian's blockquote background styling ([#103](https://github.com/saberzero1/motions/issues/103))
+- **Hint mode labels the vault switcher** — the vault switcher button in the left sidebar is now discoverable by hint mode ([#104](https://github.com/saberzero1/motions/issues/104))
+- **Animated cursor: end-of-line displacement fixed** — the block cursor no longer renders one character past the last visible character in visual mode at end-of-line ([#105](https://github.com/saberzero1/motions/issues/105))
 
 See the [[changelog|full changelog]] for details.
