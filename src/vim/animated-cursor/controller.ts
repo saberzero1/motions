@@ -350,9 +350,9 @@ class CursorController implements Tickable {
         try {
             const sel = this.view.state.selection.main;
             let pos = sel.head;
-            if (sel.anchor < sel.head && pos < this.view.state.doc.length) {
-                const ch = this.view.state.doc.sliceString(pos, pos + 1);
-                if (ch !== '\n') pos--;
+            if (sel.anchor < sel.head) {
+                const line = this.view.state.doc.lineAt(pos);
+                if (pos > line.from) pos--;
             }
             const rect = coordsToRect(this.view, pos);
             if (!rect) return;
