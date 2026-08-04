@@ -163,6 +163,7 @@ interface HintResult {
     target: HintTarget | null;
     ctrlKey: boolean;
     metaKey: boolean;
+    shiftKey: boolean;
 }
 
 function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
@@ -192,21 +193,33 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
 
             if (e.key === 'Escape') {
                 cleanup();
-                resolve({ target: null, ctrlKey: false, metaKey: false });
+                resolve({
+                    target: null,
+                    ctrlKey: false,
+                    metaKey: false,
+                    shiftKey: false,
+                });
                 return;
             }
+
+            const key = e.shiftKey ? e.key.toLowerCase() : e.key;
 
             if (firstChar === '') {
                 if (e.key === 'Backspace') return;
 
-                const anyMatch = targets.some((t) => t.label.startsWith(e.key));
+                const anyMatch = targets.some((t) => t.label.startsWith(key));
                 if (!anyMatch) {
                     cleanup();
-                    resolve({ target: null, ctrlKey: false, metaKey: false });
+                    resolve({
+                        target: null,
+                        ctrlKey: false,
+                        metaKey: false,
+                        shiftKey: false,
+                    });
                     return;
                 }
 
-                firstChar = e.key;
+                firstChar = key;
                 for (const t of targets) {
                     if (!t.label.startsWith(firstChar)) {
                         t.labelEl.classList.add('is-dimmed');
@@ -220,6 +233,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
                         target: exactMatch,
                         ctrlKey: e.ctrlKey,
                         metaKey: e.metaKey,
+                        shiftKey: e.shiftKey,
                     });
                 }
                 return;
@@ -234,12 +248,13 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
             }
 
             cleanup();
-            const fullLabel = firstChar + e.key;
+            const fullLabel = firstChar + key;
             const match = targets.find((t) => t.label === fullLabel);
             resolve({
                 target: match ?? null,
                 ctrlKey: e.ctrlKey,
                 metaKey: e.metaKey,
+                shiftKey: e.shiftKey,
             });
         };
 
@@ -367,6 +382,14 @@ function classifyTarget(
     return { targetType: 'generic' };
 }
 
+function getElementCenter(el: Element): { clientX: number; clientY: number } {
+    const rect = el.getBoundingClientRect();
+    return {
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+    };
+}
+
 async function hintActivate(
     app: App,
     target: HintTarget,
@@ -424,24 +447,45 @@ async function hintActivate(
     }
 
     if (openInNewPane) {
+        const { clientX, clientY } = getElementCenter(el);
         el.dispatchEvent(
             new MouseEvent('click', {
                 bubbles: true,
                 cancelable: true,
                 ctrlKey: true,
                 metaKey: true,
+                clientX,
+                clientY,
             }),
         );
         return !inModal;
     }
 
+    const { clientX, clientY } = getElementCenter(el);
     el.dispatchEvent(
-        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+        new PointerEvent('pointerdown', {
+            bubbles: true,
+            cancelable: true,
+            clientX,
+            clientY,
+        }),
     );
     el.dispatchEvent(
-        new PointerEvent('pointerup', { bubbles: true, cancelable: true }),
+        new PointerEvent('pointerup', {
+            bubbles: true,
+            cancelable: true,
+            clientX,
+            clientY,
+        }),
     );
-    el.click();
+    el.dispatchEvent(
+        new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            clientX,
+            clientY,
+        }),
+    );
     if (inModal) {
         el.blur();
         const focused = activeDocument.activeElement as HTMLElement | null;
@@ -524,6 +568,20 @@ function hintClose(_app: App, target: HintTarget): boolean {
     return false;
 }
 
+function hintContextMenu(_app: App, target: HintTarget): boolean {
+    const el = target.element as HTMLElement;
+    const { clientX, clientY } = getElementCenter(el);
+    el.dispatchEvent(
+        new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX,
+            clientY,
+        }),
+    );
+    return true;
+}
+
 function refocusEditor(app: App): void {
     window.setTimeout(() => {
         const view = app.workspace.getActiveViewOfType(MarkdownView);
@@ -543,7 +601,7 @@ export function createHintModeAction(
 
 function createHintAction(
     app: App,
-    actionName: 'activate' | 'openNew' | 'yank' | 'close',
+    actionName: 'activate' | 'openNew' | 'yank' | 'close' | 'contextMenu',
     hintChars?: string,
     fontSize?: () => number,
 ): (count?: number) => void {
@@ -555,6 +613,8 @@ function createHintAction(
             Promise.resolve(hintYank(app, target)),
         close: (app: App, target: HintTarget) =>
             Promise.resolve(hintClose(app, target)),
+        contextMenu: (app: App, target: HintTarget) =>
+            Promise.resolve(hintContextMenu(app, target)),
     } as const;
 
     const run = (count?: number, showNotice: boolean = true): void => {
@@ -635,11 +695,12 @@ function createHintAction(
             }
 
             let action = actions[actionName];
-            if (
-                actionName === 'activate' &&
-                (result.ctrlKey || result.metaKey)
-            ) {
-                action = actions.openNew;
+            if (actionName === 'activate') {
+                if (result.ctrlKey || result.metaKey) {
+                    action = actions.openNew;
+                } else if (result.shiftKey) {
+                    action = actions.contextMenu;
+                }
             }
 
             const shouldRefocus = await action(app, result.target);
@@ -667,11 +728,13 @@ export function createHintActions(
     openNew: (count?: number) => void;
     yank: (count?: number) => void;
     close: (count?: number) => void;
+    contextMenu: (count?: number) => void;
 } {
     return {
         activate: createHintAction(app, 'activate', hintChars, fontSize),
         openNew: createHintAction(app, 'openNew', hintChars, fontSize),
         yank: createHintAction(app, 'yank', hintChars, fontSize),
         close: createHintAction(app, 'close', hintChars, fontSize),
+        contextMenu: createHintAction(app, 'contextMenu', hintChars, fontSize),
     };
 }

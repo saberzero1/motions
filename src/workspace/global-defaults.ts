@@ -209,6 +209,7 @@ export function registerDefaultGlobalMappings(
         openNew: (count?: number) => void;
         yank: (count?: number) => void;
         close: (count?: number) => void;
+        contextMenu: (count?: number) => void;
     } | null,
     openPicker?: (source: string, opts?: { query?: string }) => void,
     oilManager?: OilManager,
@@ -420,6 +421,14 @@ export function registerDefaultGlobalMappings(
             {
                 type: 'builtin',
                 fn: (_app2, count) => hintActions.close(count || 1),
+            },
+            'hint',
+        );
+        add(
+            'gf',
+            {
+                type: 'builtin',
+                fn: (_app2, count) => hintActions.contextMenu(count || 1),
             },
             'hint',
         );

@@ -1848,6 +1848,11 @@ export default class VimMotionsPlugin extends Plugin {
                 name: 'Hint: close tab or pane',
                 callback: () => this.hintActions?.close(),
             });
+            this.addCommand({
+                id: 'hint-context-menu',
+                name: 'Hint: open context menu',
+                callback: () => this.hintActions?.contextMenu(),
+            });
             this.setupHintModeWindows();
         }
         this.registration.endLeaderScope();
@@ -2770,6 +2775,7 @@ export default class VimMotionsPlugin extends Plugin {
         openNew: (count?: number) => void;
         yank: (count?: number) => void;
         close: (count?: number) => void;
+        contextMenu: (count?: number) => void;
     } | null = null;
 
     private registerHintActions(
@@ -2795,6 +2801,9 @@ export default class VimMotionsPlugin extends Plugin {
         });
         reg.defineEx('hintclose', 'hintc', () => {
             this.hintActions?.close();
+        });
+        reg.defineEx('hintcontextmenu', 'hintco', () => {
+            this.hintActions?.contextMenu();
         });
         const leader = leaderRegistry.getLeaderKey();
         const hintKeys = leader + leader + 'h';

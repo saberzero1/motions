@@ -383,6 +383,7 @@ Navigate and interact with non-editor views like PDFs, graphs, and canvases.
 | `F`                 | Show hint labels, open target in new pane                |
 | `yf`                | Show hint labels, yank target URL or text to clipboard   |
 | `df`                | Show hint labels, close target tab or pane               |
+| `gf`                | Show hint labels, open context menu on target            |
 | `Nf`                | Activate N targets sequentially (e.g., `3f` activates 3) |
 | `j` / `k`           | Scroll down/up one line                                  |
 | `Nj` / `Nk`         | Scroll N lines (e.g., `5j` scrolls 5 lines down)         |

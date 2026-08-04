@@ -226,12 +226,13 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 
 ### Hint mode
 
-| Command         | Description             |
-| --------------- | ----------------------- |
-| `:hintactivate` | Activate hint labels    |
-| `:hintopennew`  | Hint: open in new pane  |
-| `:hintyank`     | Hint: yank link or text |
-| `:hintclose`    | Hint: close tab or pane |
+| Command            | Description             |
+| ------------------ | ----------------------- |
+| `:hintactivate`    | Activate hint labels    |
+| `:hintopennew`     | Hint: open in new pane  |
+| `:hintyank`        | Hint: yank link or text |
+| `:hintclose`       | Hint: close tab or pane |
+| `:hintcontextmenu` | Hint: open context menu |
 
 ### Oil explorer
 

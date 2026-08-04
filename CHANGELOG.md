@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hint mode dropdown menus appear at top-left corner** — synthetic click events dispatched by hint mode lacked `clientX`/`clientY` coordinates, causing Obsidian's dropdown menus (vault switcher, context menus, etc.) to position at `(0, 0)` instead of near the clicked element. Fixed by computing the element's center from `getBoundingClientRect()` and passing coordinates to all `MouseEvent` and `PointerEvent` dispatches. Also replaced `el.click()` with a coordinate-aware `MouseEvent` dispatch. ([#104](https://github.com/saberzero1/motions/issues/104))
+    - Plugin: `src/ui/hint-mode.ts` (`getElementCenter` helper, coordinate injection in `hintActivate` — openInNewPane `MouseEvent`, normal click `PointerEvent`s, and `el.click()` replacement)
+
+### Added
+
+- **Hint mode right-click (context menu) action** — new `gf` binding in non-editor views and Shift+label modifier in editor context to open the right-click context menu on any hint target. Dispatches a `contextmenu` `MouseEvent` with proper coordinates from `getElementCenter()`. Also available as `:hintcontextmenu` (`:hintco`) ex command and `vim-motions:hint-context-menu` Obsidian command. Shift key normalization in `waitForHintKey()` ensures Shift-held characters match lowercase labels correctly. ([#104](https://github.com/saberzero1/motions/issues/104))
+    - Plugin: `src/ui/hint-mode.ts` (`hintContextMenu` action, `contextMenu` in `createHintAction`/`createHintActions`, `shiftKey` in `HintResult`, Shift→contextMenu upgrade in action selection, `e.key.toLowerCase()` normalization when Shift held), `src/workspace/global-defaults.ts` (`gf` binding, `contextMenu` in `hintActions` parameter type), `src/main.ts` (`:hintcontextmenu` ex command, `vim-motions:hint-context-menu` Obsidian command, `contextMenu` in `hintActions` type)
+
+### Tests
+
+- 5 e2e tests in `test/specs/hint-mode.e2e.ts` (issue #104): `gf` from graph view shows hint overlay, `gf` label dispatches contextmenu event with non-zero coordinates, Shift+label dispatches contextmenu in editor, Shift+label matches lowercase labels (case-sensitivity regression), `hint-context-menu` Obsidian command registered
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated hint mode actions with context menu action, coordinate fix, and Shift modifier
+- `AGENTS.md`: Updated `hint-mode.ts` description with `getElementCenter`, `hintContextMenu`, and Shift modifier
+- `CONTRIBUTING.md`: Updated `hint-mode.ts` description
+- `README.md`: Updated Vimium-style hints feature line with `gf`
+- `docs/features/hint-mode.md`: Added `gf` to non-editor keybinding table, Shift modifier to editor context, `vim-motions:hint-context-menu` to commands
+- `docs/reference/keybindings.md`: Added `gf` to non-editor view bindings table
+- `docs/features/ex-commands.md`: Added `:hintcontextmenu` to hint ex commands table
+
 ## [0.95.0] - 2026-08-04
 
 ### Fixed

@@ -863,6 +863,84 @@ describe('Hint mode', function () {
 
             expect(hasOverlay).toBe(false);
         });
+
+        it('gf from graph view should show hint overlay (#104)', async function () {
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['f']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasOverlay = (await browser.executeObsidian(() => {
+                return !!activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+            })) as boolean;
+
+            expect(hasOverlay).toBe(true);
+        });
+
+        it('gf label should dispatch contextmenu event (#104)', async function () {
+            await browser.executeObsidian(() => {
+                (
+                    window as unknown as Record<string, unknown>
+                ).__hintTestContextMenuFired = false;
+                activeDocument.addEventListener(
+                    'contextmenu',
+                    (e) => {
+                        (
+                            window as unknown as Record<string, unknown>
+                        ).__hintTestContextMenuFired = true;
+                        (
+                            window as unknown as Record<string, unknown>
+                        ).__hintTestContextMenuX = e.clientX;
+                        (
+                            window as unknown as Record<string, unknown>
+                        ).__hintTestContextMenuY = e.clientY;
+                        e.preventDefault();
+                    },
+                    { once: true },
+                );
+            });
+
+            await browser.keys(['g']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['f']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const firstLabel = (await browser.executeObsidian(() => {
+                const label = activeDocument.querySelector(
+                    '.vim-motions-hint-label',
+                );
+                return label?.textContent ?? '';
+            })) as string;
+            expect(firstLabel.length).toBeGreaterThanOrEqual(1);
+
+            for (const ch of firstLabel) {
+                await browser.keys([ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const result = (await browser.executeObsidian(() => {
+                const fired = (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuFired as boolean;
+                const x = (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuX as number;
+                const y = (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuY as number;
+                delete (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuFired;
+                delete (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuX;
+                delete (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuY;
+                return { fired, x, y };
+            })) as { fired: boolean; x: number; y: number };
+
+            expect(result.fired).toBe(true);
+            expect(result.x).toBeGreaterThan(0);
+            expect(result.y).toBeGreaterThan(0);
+        });
     });
 
     describe('Modifier keys should not dismiss overlay (#98)', function () {
@@ -994,6 +1072,94 @@ describe('Hint mode', function () {
             expect(dimState).not.toHaveProperty('error');
             expect(dimState.dimmed).toBeGreaterThan(0);
             expect(dimState.visible).toBeGreaterThan(0);
+        });
+
+        it('Shift+label should dispatch contextmenu in editor (#104)', async function () {
+            await browser.executeObsidian(() => {
+                (
+                    window as unknown as Record<string, unknown>
+                ).__hintTestContextMenuFired = false;
+                activeDocument.addEventListener(
+                    'contextmenu',
+                    (e) => {
+                        (
+                            window as unknown as Record<string, unknown>
+                        ).__hintTestContextMenuFired = true;
+                        (
+                            window as unknown as Record<string, unknown>
+                        ).__hintTestContextMenuX = e.clientX;
+                        (
+                            window as unknown as Record<string, unknown>
+                        ).__hintTestContextMenuY = e.clientY;
+                        e.preventDefault();
+                    },
+                    { once: true },
+                );
+            });
+
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+
+            const firstLabel = (await browser.executeObsidian(() => {
+                const label = activeDocument.querySelector(
+                    '.vim-motions-hint-label',
+                );
+                return label?.textContent ?? '';
+            })) as string;
+            expect(firstLabel.length).toBeGreaterThanOrEqual(1);
+
+            for (const ch of firstLabel) {
+                await browser.keys([Key.Shift, ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const cmResult = (await browser.executeObsidian(() => {
+                const fired = (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuFired as boolean;
+                const x = (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuX as number;
+                const y = (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuY as number;
+                delete (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuFired;
+                delete (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuX;
+                delete (window as unknown as Record<string, unknown>)
+                    .__hintTestContextMenuY;
+                return { fired, x, y };
+            })) as { fired: boolean; x: number; y: number };
+
+            expect(cmResult.fired).toBe(true);
+            expect(cmResult.x).toBeGreaterThan(0);
+            expect(cmResult.y).toBeGreaterThan(0);
+        });
+
+        it('Shift+label should match lowercase labels (#104)', async function () {
+            const result = await triggerHintMode();
+            expect(result).toHaveProperty('hasOverlay', true);
+
+            const firstLabel = (await browser.executeObsidian(() => {
+                const label = activeDocument.querySelector(
+                    '.vim-motions-hint-label',
+                );
+                return label?.textContent ?? '';
+            })) as string;
+            expect(firstLabel.length).toBeGreaterThanOrEqual(1);
+
+            for (const ch of firstLabel) {
+                await browser.keys([Key.Shift, ch]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const afterActivation = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                return { overlayGone: !overlay };
+            })) as { overlayGone: boolean };
+            expect(afterActivation.overlayGone).toBe(true);
         });
     });
 
@@ -1254,6 +1420,20 @@ describe('Hint mode', function () {
                     }
                 ).commands.commands;
                 return 'vim-motions:hint-close' in commands;
+            })) as boolean;
+            expect(hasCommand).toBe(true);
+        });
+
+        it('Obsidian command hint-context-menu should be registered (#104)', async function () {
+            const hasCommand = (await browser.executeObsidian(({ app }) => {
+                const commands = (
+                    app as unknown as {
+                        commands: {
+                            commands: Record<string, unknown>;
+                        };
+                    }
+                ).commands.commands;
+                return 'vim-motions:hint-context-menu' in commands;
             })) as boolean;
             expect(hasCommand).toBe(true);
         });

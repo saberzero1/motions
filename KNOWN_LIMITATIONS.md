@@ -541,12 +541,13 @@ When workspace navigation is enabled, the global key handler uses a three-gate i
 
 When a non-editor view (graph, PDF, canvas, etc.) is focused, full vimium-style hint bindings are available:
 
-| Key  | Action   | Behavior                                                                                                          |
-| ---- | -------- | ----------------------------------------------------------------------------------------------------------------- |
-| `f`  | Activate | Click button, focus pane, navigate link, focus input                                                              |
-| `F`  | Open new | Open target in new tab (Ctrl+Meta click for generic targets, `openLinkText` for links, `duplicateLeaf` for panes) |
-| `yf` | Yank     | Copy URL for links, note path for tabs, display text for others                                                   |
-| `df` | Close    | Close tab/pane via `leaf.detach()`; Notice for non-closeable targets                                              |
+| Key  | Action       | Behavior                                                                                                          |
+| ---- | ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `f`  | Activate     | Click button, focus pane, navigate link, focus input                                                              |
+| `F`  | Open new     | Open target in new tab (Ctrl+Meta click for generic targets, `openLinkText` for links, `duplicateLeaf` for panes) |
+| `yf` | Yank         | Copy URL for links, note path for tabs, display text for others                                                   |
+| `df` | Close        | Close tab/pane via `leaf.detach()`; Notice for non-closeable targets                                              |
+| `gf` | Context menu | Open right-click context menu on target via `contextmenu` `MouseEvent` with element-center coordinates            |
 
 Count prefix works: `3f` activates three targets sequentially (overlay re-shown between each). `3yf` yanks three URLs. `3df` closes three tabs.
 
@@ -558,12 +559,16 @@ The `y` and `d` keys enter pending states (`Y_PENDING`/`D_PENDING`) that only ac
 
 - No modifier → activate (click/focus/navigate)
 - Ctrl/Cmd held while typing label → open in new pane
+- Shift held while typing label → open context menu
 
-Yank and close are not mapped to editor key sequences (they conflict with vim's native `y` and `d` operators). They are registered as Obsidian commands for custom hotkey assignment:
+Shift key normalization: `waitForHintKey()` lowercases `e.key` when Shift is held so that Shift+`a` matches the lowercase label `a` instead of dismissing the overlay. ([#104](https://github.com/saberzero1/motions/issues/104))
+
+Yank, close, and context menu are not mapped to editor key sequences (they conflict with vim's native operators). They are registered as Obsidian commands for custom hotkey assignment:
 
 - `vim-motions:hint-open-new-pane` — "Hint: open in new pane"
 - `vim-motions:hint-yank` — "Hint: yank link or text"
 - `vim-motions:hint-close` — "Hint: close tab or pane"
+- `vim-motions:hint-context-menu` — "Hint: open context menu"
 
 ### Target classification
 
@@ -575,7 +580,7 @@ Each hint target is classified by type during discovery, before label assignment
 - `input`, `textarea`, `select`, `[contenteditable]` → `input` (focus; `<select>` cycles to next option)
 - `button`, `.clickable-icon`, `[role="button"]` → `button` (click)
 - `.workspace-drawer-vault-switcher` → `button` (click — opens vault switcher menu). Added in response to [#104](https://github.com/saberzero1/motions/issues/104): the vault switcher is a plain `<div>` without button semantics, so it was not matched by any standard selector
-- everything else → `generic` (pointer event sequence + click)
+- everything else → `generic` (pointer event sequence + click). All synthetic events include `clientX`/`clientY` from the element's bounding rect center via `getElementCenter()`, ensuring dropdown menus and popovers position correctly near the clicked element instead of at `(0, 0)`. ([#104](https://github.com/saberzero1/motions/issues/104))
 
 Target discovery filters:
 

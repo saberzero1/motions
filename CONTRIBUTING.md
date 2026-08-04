@@ -148,7 +148,7 @@ src/
     vault-search.ts        # :grep vault-wide search implementation
     global-key-handler.ts  # Global key event handling (outside editor) — dispatch passes raw count to builtin handlers, sequence timeout restarts on partial match (which-key parity)
     global-mapping-registry.ts  # Registry for global key mappings
-    global-defaults.ts     # Default global keybindings — gotoNthTab filters to rootSplit leaves only
+    global-defaults.ts     # Default global keybindings — gotoNthTab filters to rootSplit leaves only; gf hint binding for context menu action
   easymotion/
     register.ts            # Wires EasyMotion to keybindings
     targets.ts             # Target detection (words, lines, chars)
@@ -251,7 +251,7 @@ src/
     vim-info-modal.ts      # Reusable table modal base (used by :reg, :marks, :buffers, :backlinks)
     outline-modal.ts       # gO document outline (SuggestModal)
     context-actions.ts     # gra context-aware action picker
-    hint-mode.ts           # Vimium-style label overlay for clickable UI elements (link resolution via posAtDOM + findLinkAtCursor for .cm-underline, .cm-hmd-internal-link, .cm-link, .cm-url with deduplication filters; EditorView access via MarkdownView.editor.cm fallback; external URLs via window.open; waitForHintKey modifier-key guard filters Ctrl/Shift/Alt/Meta-only keydowns with preventDefault+stopPropagation; async hintActivate awaits navigateWithJump/duplicateLeaf for deterministic focus restoration; count>1 preserves original leaf focus between activations)
+    hint-mode.ts           # Vimium-style label overlay for clickable UI elements (link resolution via posAtDOM + findLinkAtCursor for .cm-underline, .cm-hmd-internal-link, .cm-link, .cm-url with deduplication filters; EditorView access via MarkdownView.editor.cm fallback; external URLs via window.open; waitForHintKey modifier-key guard filters Ctrl/Shift/Alt/Meta-only keydowns with preventDefault+stopPropagation, Shift-held keys lowercased for label matching, shiftKey captured in HintResult; async hintActivate awaits navigateWithJump/duplicateLeaf for deterministic focus restoration; count>1 preserves original leaf focus between activations; getElementCenter helper provides clientX/clientY from getBoundingClientRect for all synthetic events; hintContextMenu dispatches contextmenu MouseEvent; gf in global-defaults.ts, :hintcontextmenu/:hintco ex command and vim-motions:hint-context-menu Obsidian command in main.ts)
     which-key.ts           # Leader key hint overlay + LeaderRegistry
     global-which-key.ts    # Which-key overlay outside editor context
     ex-suggest.ts          # Ex command tab completion

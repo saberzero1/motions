@@ -12,12 +12,13 @@ Hint mode provides Vimium-style keyboard navigation for the entire Obsidian inte
 
 When a non-editor view is focused (such as the Graph view, a PDF, Canvas, or the File Explorer), the following bindings are available:
 
-| Key  | Action   | Behavior                                                                                    |
-| ---- | -------- | ------------------------------------------------------------------------------------------- |
-| `f`  | Activate | Click buttons, focus panes, navigate links, or focus inputs.                                |
-| `F`  | Open new | Open a link, pane, or file explorer item in a new tab. Uses Ctrl+click for generic targets. |
-| `yf` | Yank     | Copy the URL for links, the note path for tabs, or display text for other elements.         |
-| `df` | Close    | Close the targeted tab or pane.                                                             |
+| Key  | Action       | Behavior                                                                                    |
+| ---- | ------------ | ------------------------------------------------------------------------------------------- |
+| `f`  | Activate     | Click buttons, focus panes, navigate links, or focus inputs.                                |
+| `F`  | Open new     | Open a link, pane, or file explorer item in a new tab. Uses Ctrl+click for generic targets. |
+| `yf` | Yank         | Copy the URL for links, the note path for tabs, or display text for other elements.         |
+| `df` | Close        | Close the targeted tab or pane.                                                             |
+| `gf` | Context menu | Open the right-click context menu on the targeted element.                                  |
 
 ### Count support
 
@@ -29,6 +30,7 @@ In the Markdown editor, hint mode is triggered via `<leader><leader>h` or a conf
 
 - **Activate**: Type the label to click or focus the target.
 - **Open in new pane**: Hold `Ctrl` (Windows/Linux) or `Cmd` (macOS) while typing the final character of the label.
+- **Context menu**: Hold `Shift` while typing the final character of the label to open the right-click context menu on the target.
 
 > [!note]
 > Yank (`yf`) and close (`df`) actions are not mapped to editor key sequences to avoid conflicts with native Vim operators. Use the [Obsidian commands](#obsidian-commands) to trigger these actions from the editor.
@@ -51,7 +53,7 @@ Smart label assignment prioritizes the home row. Single-character labels are use
 - **Filtering**: Only visible elements within the current scroll container are labeled.
 - **Correction**: Press `Backspace` to reset the first character of a two-character label if you mistype.
 - **Cancellation**: Press `Escape` to exit hint mode without taking action.
-- **Modifier keys**: Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone does not dismiss the overlay. These keys are ignored until a label character is typed. Hold `Ctrl`/`Cmd` while typing the final label character to upgrade the action (e.g., open in new tab instead of activate).
+- **Modifier keys**: Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone does not dismiss the overlay. These keys are ignored until a label character is typed. Hold `Ctrl`/`Cmd` while typing the final label character to open in a new tab. Hold `Shift` to open the context menu instead.
 - **Modal interaction**: Hint mode remains active in modals, allowing you to navigate settings or the command palette.
 
 > [!note]
@@ -83,6 +85,7 @@ The following commands are available in the Command Palette for custom hotkey as
 - `vim-motions:hint-open-new-pane`: Trigger hint mode to open targets in a new pane.
 - `vim-motions:hint-yank`: Trigger hint mode to yank link URLs or text.
 - `vim-motions:hint-close`: Trigger hint mode to close tabs or panes.
+- `vim-motions:hint-context-menu`: Trigger hint mode to open the context menu on a target.
 
 ## Configuration
 
