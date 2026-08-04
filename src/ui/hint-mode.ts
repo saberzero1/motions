@@ -47,6 +47,7 @@ const OBSIDIAN_SELECTORS = [
     '.vertical-tab-nav-item',
     '.checkbox-container',
     '.modal-header-button',
+    '.workspace-drawer-vault-switcher',
 ];
 
 export const TARGET_SELECTOR = [
