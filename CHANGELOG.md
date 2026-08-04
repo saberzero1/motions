@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.0] - 2026-08-04
+
 ### Fixed
 
 - **Hint mode dropdown menus appear at top-left corner** — synthetic click events dispatched by hint mode lacked `clientX`/`clientY` coordinates, causing Obsidian's dropdown menus (vault switcher, context menus, etc.) to position at `(0, 0)` instead of near the clicked element. Fixed by computing the element's center from `getBoundingClientRect()` and passing coordinates to all `MouseEvent` and `PointerEvent` dispatches. Also replaced `el.click()` with a coordinate-aware `MouseEvent` dispatch. ([#104](https://github.com/saberzero1/motions/issues/104))

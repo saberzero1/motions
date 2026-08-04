@@ -31,10 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.95.0
+## What's new in 0.96.0
 
-- **Visual-line highlighting now visible inside callouts** — `V` selection highlight inside collapsed and unfolded callouts is no longer overridden by Obsidian's blockquote background styling ([#103](https://github.com/saberzero1/motions/issues/103))
-- **Hint mode labels the vault switcher** — the vault switcher button in the left sidebar is now discoverable by hint mode ([#104](https://github.com/saberzero1/motions/issues/104))
-- **Animated cursor: end-of-line displacement fixed** — the block cursor no longer renders one character past the last visible character in visual mode at end-of-line ([#105](https://github.com/saberzero1/motions/issues/105))
+- **Hint mode right-click action** — new `gf` binding (non-editor) and Shift+label modifier (editor) to open the context menu on any hint target. Also available as `:hintcontextmenu` ex command ([#104](https://github.com/saberzero1/motions/issues/104))
+- **Hint mode dropdown positioning fixed** — dropdown menus triggered by hint mode (vault switcher, context menus, etc.) no longer appear at the top-left corner of the screen ([#104](https://github.com/saberzero1/motions/issues/104))
 
 See the [[changelog|full changelog]] for details.
