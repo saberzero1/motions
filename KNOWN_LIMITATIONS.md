@@ -1823,7 +1823,7 @@ The plugin's `tableAwareMoveUp` motion (which overrides `k` when table navigatio
 
 ## ~~Latex Suite interaction in bundled fork mode~~ (Fixed)
 
-The bundled vim extension is now registered at `Prec.highest` so its keydown handler fires before Latex Suite's handlers, preventing duplicate key consumption in large math blocks. Latex Suite's auto-snippets, tabstop navigation, and math-mode features work normally in vim insert mode.
+The fork's keydown handler now uses a capture-phase document-level listener that fires before any CM6 extension's bubble-phase handlers, regardless of `Prec` ordering or plugin load order. This eliminates the previous dependency on Obsidian's `community-plugins.json` ordering — the vim key handler is guaranteed to fire first even when other plugins (Latex Suite, etc.) also use `Prec.highest`. Latex Suite's auto-snippets, tabstop navigation, and math-mode features work normally in vim insert mode. ([#107](https://github.com/saberzero1/motions/issues/107))
 
 ## ~~Visual line navigation and replaced widget decorations~~ (Fixed)
 
