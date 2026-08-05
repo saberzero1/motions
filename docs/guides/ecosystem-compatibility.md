@@ -12,7 +12,7 @@ Vim Motions is designed to coexist with other Vim-related Obsidian plugins. When
 Vim Motions is compatible with other Vim-related plugins by design, not through per-plugin special-casing. The compatibility approach is generic:
 
 - **Vim API bridge**: When the bundled fork is active (built-in vim disabled), the plugin installs a property descriptor at `window.CodeMirrorAdapter.Vim` that returns the fork's Vim singleton. Any plugin that discovers the Vim API via this standard path — the same path Obsidian's own code uses — automatically works with the fork's enhanced API.
-- **Extension priority**: The bundled vim extension uses a capture-phase document-level keydown listener that fires before any CM6 extension's bubble-phase handlers, regardless of `Prec` ordering or plugin load order. This guarantees vim processes keys first even when other plugins (e.g., Latex Suite) also register handlers at `Prec.highest`.
+- **Extension priority**: The bundled vim extension registers its keydown processing as a CM6 DOM event observer (`eventObservers.keydown`) instead of a handler. In CM6's dispatch order, observers run before handlers, guaranteeing vim processes keys first regardless of `Prec` ordering or plugin load order — even when other plugins (e.g., Latex Suite) also register handlers at `Prec.highest`.
 - **Global key handler**: Non-editor views (PDF, graph, canvas, etc.) are handled by a global key handler that intercepts workspace-relevant keystrokes. This works regardless of what plugin rendered the view.
 
 These mechanisms are not targeted at specific plugins — they ensure compatibility with the entire ecosystem of plugins that use the standard Vim API discovery path.
