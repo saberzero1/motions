@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.98.0] - 2026-08-05
+
 ### Fixed
 
 - **Animated cursor character displaced on lines with tall content** — on lines containing tall inline elements (e.g., MathJax with `\dfrac`), the character rendered beneath the block cursor shifted vertically. Root cause: the renderer's baseline formula centered the character within the `coordsAtPos()` rect height, which on some platforms/fonts returns the full line height instead of the per-character height. For a ~80px tall line with ~19px font height, this produced a ~30px downward shift. Fixed by using the actual DOM character bounding rect (`Range.getBoundingClientRect()` via `view.domAtPos()`) for baseline calculation, falling back to `coordsAtPos()` when the DOM rect is unavailable. ([#106](https://github.com/saberzero1/motions/issues/106))

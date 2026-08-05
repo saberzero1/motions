@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.97.0
+## What's new in 0.98.0
 
-- **Priority over Latex Suite and other CM6 extensions** — vim's keydown handler no longer depends on plugin load order to fire before other extensions that use `Prec.highest`. The codemirror-vim fork now uses a CM6 DOM event observer instead of an event handler, guaranteeing vim processes keys first regardless of `Prec` ordering or `community-plugins.json` order ([#107](https://github.com/saberzero1/motions/issues/107))
+- **Animated cursor character displacement fix** — on lines containing tall inline elements (e.g., MathJax `\dfrac`), the character rendered beneath the block cursor no longer shifts vertically. The renderer now uses the actual DOM character bounding rect for baseline calculation, falling back to `coordsAtPos()` when unavailable ([#106](https://github.com/saberzero1/motions/issues/106))
 
 See the [[changelog|full changelog]] for details.
