@@ -316,7 +316,29 @@ class CursorController implements Tickable {
                 style.backgroundColor ||
                 '#ffffff';
 
-            return { char, font, textColor };
+            let charTop: number | undefined;
+            let charHeight: number | undefined;
+            try {
+                const textNode = domAtPos.node;
+                const range = document.createRange();
+                range.setStart(textNode, domAtPos.offset);
+                range.setEnd(
+                    textNode,
+                    Math.min(
+                        domAtPos.offset + 1,
+                        textNode.textContent?.length ?? 0,
+                    ),
+                );
+                const r = range.getBoundingClientRect();
+                if (r.height > 0) {
+                    charTop = r.top;
+                    charHeight = r.height;
+                }
+            } catch {
+                // Falls back to coordsAtPos rect via undefined fields
+            }
+
+            return { char, font, textColor, charTop, charHeight };
         } catch {
             return undefined;
         }

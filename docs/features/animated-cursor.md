@@ -118,6 +118,10 @@ The animated cursor is incompatible with other cursor animation plugins:
 
 Disable these plugins when using the built-in animated cursor.
 
+## Tall line character positioning
+
+On lines containing tall inline content (e.g., MathJax `\dfrac` expressions), the character beneath the block cursor previously shifted downward on some platforms and fonts. The renderer now uses the actual DOM character bounding rect for baseline calculation, which keeps the character at its correct vertical position regardless of line height.
+
 ## Known limitations
 
 See [[known-limitations#Animated cursor (smear + smooth movement)]].

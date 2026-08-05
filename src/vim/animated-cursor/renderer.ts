@@ -8,6 +8,8 @@ export interface BlockCharInfo {
     char: string;
     font: string;
     textColor: string;
+    charTop?: number;
+    charHeight?: number;
 }
 
 export function drawCursorShape(
@@ -27,17 +29,19 @@ export function drawCursorShape(
                 ctx.font = blockChar.font;
                 ctx.textBaseline = 'alphabetic';
                 const metrics = ctx.measureText(blockChar.char);
+                const baseTop = blockChar.charTop ?? rect.top;
+                const baseHeight = blockChar.charHeight ?? rect.height;
                 const ascent =
                     metrics.fontBoundingBoxAscent ??
                     metrics.actualBoundingBoxAscent ??
-                    rect.height * 0.8;
+                    baseHeight * 0.8;
                 const descent =
                     metrics.fontBoundingBoxDescent ??
                     metrics.actualBoundingBoxDescent ??
-                    rect.height * 0.2;
+                    baseHeight * 0.2;
                 const fontHeight = ascent + descent;
                 const baseline =
-                    rect.top + (rect.height - fontHeight) / 2 + ascent;
+                    baseTop + (baseHeight - fontHeight) / 2 + ascent;
                 ctx.fillText(blockChar.char, rect.left, baseline);
             }
             break;
@@ -101,17 +105,18 @@ export function drawSmearCursor(
         ctx.font = blockChar.font;
         ctx.textBaseline = 'alphabetic';
         const metrics = ctx.measureText(blockChar.char);
+        const baseTop = blockChar.charTop ?? targetRect.top;
+        const baseHeight = blockChar.charHeight ?? targetRect.height;
         const ascent =
             metrics.fontBoundingBoxAscent ??
             metrics.actualBoundingBoxAscent ??
-            targetRect.height * 0.8;
+            baseHeight * 0.8;
         const descent =
             metrics.fontBoundingBoxDescent ??
             metrics.actualBoundingBoxDescent ??
-            targetRect.height * 0.2;
+            baseHeight * 0.2;
         const fontHeight = ascent + descent;
-        const baseline =
-            targetRect.top + (targetRect.height - fontHeight) / 2 + ascent;
+        const baseline = baseTop + (baseHeight - fontHeight) / 2 + ascent;
         ctx.fillText(blockChar.char, targetRect.left, baseline);
         ctx.restore();
     }

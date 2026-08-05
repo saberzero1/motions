@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Animated cursor character displaced on lines with tall content** — on lines containing tall inline elements (e.g., MathJax with `\dfrac`), the character rendered beneath the block cursor shifted vertically. Root cause: the renderer's baseline formula centered the character within the `coordsAtPos()` rect height, which on some platforms/fonts returns the full line height instead of the per-character height. For a ~80px tall line with ~19px font height, this produced a ~30px downward shift. Fixed by using the actual DOM character bounding rect (`Range.getBoundingClientRect()` via `view.domAtPos()`) for baseline calculation, falling back to `coordsAtPos()` when the DOM rect is unavailable. ([#106](https://github.com/saberzero1/motions/issues/106))
+    - Plugin: `src/vim/animated-cursor/renderer.ts` (`BlockCharInfo` — added `charTop`/`charHeight` fields; `drawCursorShape` and `drawSmearCursor` — baseline anchored to DOM char rect when available)
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`resolveBlockChar` — extracts DOM character bounding rect via `Range.getBoundingClientRect()`)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked animated cursor tall-line character displacement as fixed
+- `CONTRIBUTING.md`: Updated `renderer.ts` description with DOM-based baseline calculation
+- `AGENTS.md`: Updated `renderer.ts` description in animated cursor codebase structure
+- `docs/features/animated-cursor.md`: Added tall-line displacement fix to known limitations
+
 ## [0.97.0] - 2026-08-05
 
 ### Fixed

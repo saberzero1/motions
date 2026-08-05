@@ -102,7 +102,7 @@ src/
       types.ts               # Shared interfaces (CursorRect, SmearQuad, AnimatedCursorConfig)
       smooth-cursor.ts       # Exponential position interpolation with convergence detection
       physics.ts             # 4-corner spring-damper simulation (smear trail)
-      renderer.ts            # Canvas cursor shape drawing + smear quad rendering
+      renderer.ts            # Canvas cursor shape drawing + smear quad rendering + DOM-based baseline calculation (charTop/charHeight from BlockCharInfo)
       manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery
       controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only)
       config.ts              # Module-level getters/setters + per-view pause/resume API
