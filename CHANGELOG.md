@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.97.0] - 2026-08-05
+
 ### Fixed
 
 - **Priority over Latex Suite and other CM6 extensions** — the codemirror-vim fork's keydown handler no longer depends on plugin load order to fire before other extensions that use `Prec.highest`. The fork now uses a CM6 `eventObservers.keydown` (DOM event observer) instead of `eventHandlers.keydown` — in CM6's dispatch order, observers run before handlers, guaranteeing vim processes keys first regardless of `Prec` ordering or `community-plugins.json` order. Previously, both the fork and Latex Suite registered keydown handlers at `Prec.highest`, and the first-registered handler won — making key handling dependent on which plugin loaded first. ([#107](https://github.com/saberzero1/motions/issues/107))

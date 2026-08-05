@@ -31,9 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.96.0
+## What's new in 0.97.0
 
-- **Hint mode right-click action** — new `gf` binding (non-editor) and Shift+label modifier (editor) to open the context menu on any hint target. Also available as `:hintcontextmenu` ex command ([#104](https://github.com/saberzero1/motions/issues/104))
-- **Hint mode dropdown positioning fixed** — dropdown menus triggered by hint mode (vault switcher, context menus, etc.) no longer appear at the top-left corner of the screen ([#104](https://github.com/saberzero1/motions/issues/104))
+- **Priority over Latex Suite and other CM6 extensions** — vim's keydown handler no longer depends on plugin load order to fire before other extensions that use `Prec.highest`. The codemirror-vim fork now uses a CM6 DOM event observer instead of an event handler, guaranteeing vim processes keys first regardless of `Prec` ordering or `community-plugins.json` order ([#107](https://github.com/saberzero1/motions/issues/107))
 
 See the [[changelog|full changelog]] for details.
