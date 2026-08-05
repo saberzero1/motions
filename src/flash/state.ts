@@ -1,3 +1,5 @@
+import { setKeyInterceptActive } from '@replit/codemirror-vim';
+
 let flashActive = false;
 
 export function isFlashActive(): boolean {
@@ -6,10 +8,12 @@ export function isFlashActive(): boolean {
 
 export function setFlashActive(active: boolean): void {
     flashActive = active;
+    setKeyInterceptActive(active);
 }
 
 export function cancelFlash(): void {
     flashActive = false;
+    setKeyInterceptActive(false);
 }
 
 interface LastFlashSearch {

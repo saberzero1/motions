@@ -1,6 +1,7 @@
 import { MarkdownView, Notice, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
+import { setKeyInterceptActive } from '@replit/codemirror-vim';
 import { findLinkAtCursor } from '../motions/goto-definition';
 import { navigateWithJump } from '../workspace/navigate';
 
@@ -170,9 +171,11 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
     return new Promise((resolve) => {
         let firstChar = '';
         hintModeActive = true;
+        setKeyInterceptActive(true);
 
         const cleanup = () => {
             hintModeActive = false;
+            setKeyInterceptActive(false);
             activeDocument.removeEventListener('keydown', handler, true);
         };
 

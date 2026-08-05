@@ -1,5 +1,6 @@
 import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
+import { setKeyInterceptActive } from '@replit/codemirror-vim';
 import type { CmAdapter } from '../types/vim-api';
 import { getCmAdapter } from '../vim/vim-api';
 import { getVimApi } from '../vim/vim-api';
@@ -47,6 +48,7 @@ function createMotionTrigger(
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
         easyMotionActive = true;
+        setKeyInterceptActive(true);
         try {
             const targets = filterVisibleTargets(cm, findTargets(cm));
             if (targets.length === 0) return null;
@@ -69,6 +71,7 @@ function createMotionTrigger(
             }
         } finally {
             easyMotionActive = false;
+            setKeyInterceptActive(false);
         }
     };
 }
@@ -80,6 +83,7 @@ function createCharMotionTrigger(
 ): (cm: CmAdapter) => Promise<{ line: number; ch: number } | null> {
     return async (cm) => {
         easyMotionActive = true;
+        setKeyInterceptActive(true);
         try {
             const charKey = await waitForKey();
             if (!charKey || charKey.length !== 1) return null;
@@ -105,6 +109,7 @@ function createCharMotionTrigger(
             }
         } finally {
             easyMotionActive = false;
+            setKeyInterceptActive(false);
         }
     };
 }

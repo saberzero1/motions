@@ -10,14 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Priority over Latex Suite and other CM6 extensions** — the codemirror-vim fork's keydown handler no longer depends on plugin load order to fire before other extensions that use `Prec.highest`. The fork now uses a capture-phase document-level keydown listener that fires before CM6's bubble-phase dispatch, guaranteeing vim processes keys first regardless of `Prec` ordering or `community-plugins.json` order. Previously, both the fork and Latex Suite registered keydown handlers at `Prec.highest`, and the first-registered handler won — making key handling dependent on which plugin loaded first. ([#107](https://github.com/saberzero1/motions/issues/107))
-    - Fork: `~/Repos/codemirror-vim/src/index.ts` (generalized `_escapeHandler` → `_keyHandler` capture-phase listener, removed bubble-phase `eventHandlers.keydown` from ViewPlugin)
-    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated "Capture-phase keydown handler" section)
+    - Fork: `~/Repos/codemirror-vim/src/index.ts` (generalized `_escapeHandler` → `_keyHandler` capture-phase listener, removed bubble-phase `eventHandlers.keydown` from ViewPlugin, added `setKeyInterceptActive` API)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated "Capture-phase keydown handler" section, added "setKeyInterceptActive API" section)
+    - Plugin: `src/flash/state.ts` (`setFlashActive` and `cancelFlash` call `setKeyInterceptActive`)
+    - Plugin: `src/easymotion/register.ts` (`createMotionTrigger` and `createCharMotionTrigger` bracket try/finally with `setKeyInterceptActive`)
+    - Plugin: `src/ui/hint-mode.ts` (`waitForHintKey` sets `setKeyInterceptActive` on entry and cleanup)
 
 ### Documentation
 
 - `CHANGELOG.md`
 - `KNOWN_LIMITATIONS.md`: Updated Latex Suite interaction section with capture-phase keydown handler fix
-- `AGENTS.md`: Updated codemirror-vim fork description with capture-phase keydown handler
+- `AGENTS.md`: Updated codemirror-vim fork description with capture-phase keydown handler and `setKeyInterceptActive` API
 - `docs/guides/ecosystem-compatibility.md`: Updated extension priority description with capture-phase mechanism
 
 ## [0.96.0] - 2026-08-04
