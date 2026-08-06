@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-08-06
+
 ### Added
 
 - **`set nopcre` — Vim-style regular expressions** — users can now switch from JavaScript/PCRE regexps to Vim-style regex syntax in search and substitution via `set nopcre` (vimrc), `vim.opt.pcre = false` (Lua), or the Settings UI toggle (**Settings → Vim Motions → Vim engine → PCRE**). The codemirror-vim fork already implemented the full `pcre` option (regex translation with magic modes, `\<`/`\>` word boundaries, `\zs`/`\ze`, backreference conversion); this change wires it into the plugin's option tracking, settings UI, and documentation. Default: `true` (JavaScript regexps, no behavior change for existing users). ([#111](https://github.com/saberzero1/motions/issues/111))
