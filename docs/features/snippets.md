@@ -123,24 +123,68 @@ User snippets override bundled snippets when they share the same prefix. The dir
 
 ### Supported variables
 
-| Variable              | Value                              |
-| --------------------- | ---------------------------------- |
-| `$CURRENT_YEAR`       | Full year (e.g. `2026`)            |
-| `$CURRENT_MONTH`      | Month 01–12                        |
-| `$CURRENT_DATE`       | Day 01–31                          |
-| `$CURRENT_HOUR`       | Hour 00–23                         |
-| `$CURRENT_MINUTE`     | Minute 00–59                       |
-| `$CURRENT_SECOND`     | Second 00–59                       |
-| `$CURRENT_DAY_NAME`   | Weekday name (e.g. `Monday`)       |
-| `$CURRENT_MONTH_NAME` | Month name (e.g. `July`)           |
-| `$TM_FILENAME`        | Current filename with extension    |
-| `$TM_FILENAME_BASE`   | Current filename without extension |
-| `$TM_FILEPATH`        | Full vault path                    |
-| `$TM_DIRECTORY`       | Parent directory path              |
-| `$CLIPBOARD`          | Clipboard contents                 |
-| `$UUID`               | Random UUID v4                     |
-| `$RANDOM`             | 6-digit random number              |
-| `$RANDOM_HEX`         | 6-digit random hex                 |
+#### Selection and content
+
+| Variable            | Value                                          |
+| ------------------- | ---------------------------------------------- |
+| `$TM_SELECTED_TEXT` | Currently selected text                        |
+| `$VISUAL`           | Alias for `$TM_SELECTED_TEXT` (vim convention) |
+| `$TM_CURRENT_LINE`  | Contents of the current line                   |
+| `$TM_CURRENT_WORD`  | Word under cursor                              |
+| `$WORD`             | Alias for `$TM_CURRENT_WORD` (vim convention)  |
+| `$TM_LINE_NUMBER`   | Line number (1-based)                          |
+| `$TM_LINE_INDEX`    | Line number (0-based)                          |
+| `$CLIPBOARD`        | Clipboard contents                             |
+
+#### File and path
+
+| Variable             | Value                                                    |
+| -------------------- | -------------------------------------------------------- |
+| `$TM_FILENAME`       | Current filename with extension                          |
+| `$TM_FILENAME_BASE`  | Current filename without extension                       |
+| `$TM_FILEPATH`       | Full vault path                                          |
+| `$TM_DIRECTORY`      | Parent directory path                                    |
+| `$RELATIVE_FILEPATH` | Vault-relative path (same as `$TM_FILEPATH` in Obsidian) |
+
+#### Workspace and cursor
+
+| Variable            | Value                                                |
+| ------------------- | ---------------------------------------------------- |
+| `$WORKSPACE_NAME`   | Vault name                                           |
+| `$WORKSPACE_FOLDER` | Vault name (absolute path not available in Obsidian) |
+| `$CURSOR_INDEX`     | Cursor index (0-based, always 0)                     |
+| `$CURSOR_NUMBER`    | Cursor number (1-based, always 1)                    |
+
+#### Date and time
+
+| Variable                     | Value                                               |
+| ---------------------------- | --------------------------------------------------- |
+| `$CURRENT_YEAR`              | Full year (e.g. `2026`)                             |
+| `$CURRENT_YEAR_SHORT`        | Last 2 digits of year                               |
+| `$CURRENT_MONTH`             | Month 01–12                                         |
+| `$CURRENT_MONTH_NAME`        | Month name (e.g. `July`)                            |
+| `$CURRENT_MONTH_NAME_SHORT`  | Month name abbreviation (e.g. `Jul`)                |
+| `$CURRENT_DATE`              | Day 01–31                                           |
+| `$CURRENT_DAY_NAME`          | Weekday name (e.g. `Monday`)                        |
+| `$CURRENT_DAY_NAME_SHORT`    | Weekday abbreviation (e.g. `Mon`)                   |
+| `$CURRENT_HOUR`              | Hour 00–23                                          |
+| `$CURRENT_MINUTE`            | Minute 00–59                                        |
+| `$CURRENT_SECOND`            | Second 00–59                                        |
+| `$CURRENT_MILLISECOND`       | Millisecond 000–999                                 |
+| `$CURRENT_SECONDS_UNIX`      | Unix timestamp (seconds)                            |
+| `$CURRENT_MILLISECONDS_UNIX` | Unix timestamp (milliseconds)                       |
+| `$CURRENT_TIMEZONE_OFFSET`   | UTC offset (e.g. `+0200`)                           |
+| `$CURRENT_TIMEZONE_NAME`     | Timezone name (e.g. `Central European Summer Time`) |
+
+#### Random
+
+| Variable      | Value                 |
+| ------------- | --------------------- |
+| `$RANDOM`     | 6-digit random number |
+| `$RANDOM_HEX` | 6-digit random hex    |
+| `$UUID`       | Random UUID v4        |
+
+> [!info] `$TM_SELECTED_TEXT` / `$VISUAL` resolve to the editor selection at expansion time. In tab-expand mode, selection is not available (tab expansion requires an empty selection). Use the `:snippet` command or completion trigger to expand snippets that use selection text. On mobile, `$CLIPBOARD` may resolve to empty due to browser clipboard API restrictions.
 
 ### Context filtering
 

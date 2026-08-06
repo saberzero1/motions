@@ -48,6 +48,22 @@ function pad2(value: number): string {
     return value.toString().padStart(2, '0');
 }
 
+function pad3(value: number): string {
+    return value.toString().padStart(3, '0');
+}
+
+function getTimezoneName(date: Date): string {
+    try {
+        return (
+            Intl.DateTimeFormat(undefined, { timeZoneName: 'long' })
+                .formatToParts(date)
+                .find((p) => p.type === 'timeZoneName')?.value ?? ''
+        );
+    } catch {
+        return '';
+    }
+}
+
 function getFileName(filePath: string): string {
     if (!filePath) return '';
     const lastSlash = Math.max(
@@ -119,14 +135,28 @@ export function resolveVariables(
         CURRENT_HOUR: pad2(date.getHours()),
         CURRENT_MINUTE: pad2(date.getMinutes()),
         CURRENT_SECOND: pad2(date.getSeconds()),
+        CURRENT_MILLISECOND: pad3(date.getMilliseconds()),
         CURRENT_SECONDS_UNIX: Math.floor(Date.now() / 1000).toString(),
+        CURRENT_MILLISECONDS_UNIX: Date.now().toString(),
         CURRENT_TIMEZONE_OFFSET: getTimezoneOffset(date),
+        CURRENT_TIMEZONE_NAME: getTimezoneName(date),
         TM_FILENAME: fileName,
         TM_FILENAME_BASE: getFileBaseName(fileName),
         TM_DIRECTORY: getDirectory(ctx.filePath),
         TM_FILEPATH: ctx.filePath,
+        RELATIVE_FILEPATH: ctx.filePath,
         TM_SELECTED_TEXT: ctx.selectedText,
+        VISUAL: ctx.selectedText,
+        TM_CURRENT_LINE: ctx.currentLine,
+        TM_CURRENT_WORD: ctx.currentWord,
+        WORD: ctx.currentWord,
+        TM_LINE_NUMBER: ctx.lineNumber.toString(),
+        TM_LINE_INDEX: ctx.lineIndex.toString(),
         CLIPBOARD: ctx.clipboard,
+        WORKSPACE_NAME: ctx.workspaceName,
+        WORKSPACE_FOLDER: ctx.workspaceName,
+        CURSOR_INDEX: '0',
+        CURSOR_NUMBER: '1',
         RANDOM: Math.floor(Math.random() * 1000000)
             .toString()
             .padStart(6, '0'),

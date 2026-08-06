@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **37 snippet variables (up from 16 documented)** — expanded the snippet variable system to cover the full VSCode snippet specification, plus vim-ecosystem aliases. New variables: `$TM_SELECTED_TEXT` (wired — was stubbed), `$VISUAL` (alias for `$TM_SELECTED_TEXT`, vim convention), `$TM_CURRENT_LINE`, `$TM_CURRENT_WORD`, `$WORD` (alias for `$TM_CURRENT_WORD`, vim convention), `$TM_LINE_NUMBER` (1-based), `$TM_LINE_INDEX` (0-based), `$CLIPBOARD` (wired via cache-ahead pattern — was stubbed), `$RELATIVE_FILEPATH`, `$WORKSPACE_NAME`, `$WORKSPACE_FOLDER`, `$CURSOR_INDEX`, `$CURSOR_NUMBER`, `$CURRENT_MILLISECOND`, `$CURRENT_MILLISECONDS_UNIX`, `$CURRENT_TIMEZONE_NAME`, plus previously undocumented `$CURRENT_YEAR_SHORT`, `$CURRENT_MONTH_NAME_SHORT`, `$CURRENT_DAY_NAME_SHORT`, `$CURRENT_SECONDS_UNIX`, `$CURRENT_TIMEZONE_OFFSET`. `$CLIPBOARD` uses a cache-ahead pattern (refreshed on `window focus` and `visibilitychange`) to avoid making the synchronous snippet pipeline async. On mobile, `$CLIPBOARD` resolves to empty due to browser clipboard API restrictions. `$TM_SELECTED_TEXT` / `$VISUAL` resolve to the editor selection at expansion time; in tab-expand mode, selection is not available (tab expansion requires an empty selection). ([#110](https://github.com/saberzero1/motions/issues/110))
+    - Plugin: `src/snippets/types.ts` (`PreprocessContext` — added `currentLine`, `currentWord`, `lineNumber`, `lineIndex`, `workspaceName` fields)
+    - Plugin: `src/snippets/variables.ts` (added 15 new variable entries including `VISUAL`, `WORD`, `TM_CURRENT_LINE`, `TM_CURRENT_WORD`, `TM_LINE_NUMBER`, `TM_LINE_INDEX`, `RELATIVE_FILEPATH`, `WORKSPACE_NAME`, `WORKSPACE_FOLDER`, `CURSOR_INDEX`, `CURSOR_NUMBER`, `CURRENT_MILLISECOND`, `CURRENT_MILLISECONDS_UNIX`, `CURRENT_TIMEZONE_NAME`; added `pad3()` and `getTimezoneName()` helpers)
+    - Plugin: `src/main.ts` (`_clipboardCache` field, `refreshClipboardCache()` method, clipboard cache listeners on `window focus` + `visibilitychange` + initial population; `getSnippetPreprocessContext()` rewritten to populate all fields from the active editor including selection, current line/word, line number, and workspace name)
+
 ### Fixed
 
 - **Cursor stuck below YAML frontmatter in Live Preview with "Properties in document: Source"** — `k`, `gk`, and `<Up>` could not move into the frontmatter region when the editor was in Live Preview mode and Obsidian's "Properties in document" setting was set to "Source". In this configuration, the `.metadata-container` DOM element exists but is hidden (`display: none`). The fork's `focusBefore` callback found the hidden element via `querySelector`, focused it (no visible effect), and `moveByLines`/`moveByDisplayLines` returned the original cursor position — leaving the cursor stuck. Fixed by adding a `setPropertiesSource(fn: () => boolean)` API to the fork, parallel to `setLivePreviewField`. When the callback returns `true`, the frontmatter interception block is skipped entirely and the cursor moves through raw frontmatter text normally. The plugin passes `() => getVaultConfig(app, 'propertiesInDocument') === 'source'`, evaluated per cursor movement so runtime setting changes take effect immediately. ([#77](https://github.com/saberzero1/motions/issues/77))
@@ -19,14 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 49 unit tests in `test/unit/snippets/variables.test.ts`: `resolveVariables()` coverage for all 37 variables (selection/content, file/path, workspace/cursor, date/time, random), syntax variants (`$VAR` and `${VAR}`), alias parity (`$VISUAL` = `$TM_SELECTED_TEXT`, `$WORD` = `$TM_CURRENT_WORD`, `$RELATIVE_FILEPATH` = `$TM_FILEPATH`, `$WORKSPACE_FOLDER` = `$WORKSPACE_NAME`), edge cases (empty fields, unknown variables, tabstop defaults, adjacent variables)
+- 20 e2e tests in `test/specs/snippets/snippet-variables-integration.e2e.ts` (issue #110): file/path variables against live `Welcome.md` (5 tests), editor content variables with cursor positioning (4 tests), line number variables 1-based/0-based (3 tests), workspace name and alias (2 tests), cursor index/number constants (2 tests), selection variable resolution via `getSnippetPreprocessContext()` (3 tests), combined multi-variable expansion (1 test)
 - 3 e2e tests in `test/specs/vim-builtin/g-commands.e2e.ts` (issue #77): `k` moves up through source-rendered frontmatter, `k` navigates through multiple frontmatter properties, `gk` moves up through source-rendered frontmatter. Tests set `propertiesInDocument` to `'source'` and ensure Live Preview mode, with save/restore of the original setting.
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage
+- `KNOWN_LIMITATIONS.md`: Added snippet variable limitations section (`$CLIPBOARD` mobile restriction, `$TM_SELECTED_TEXT` tab-expand limitation, `snip.env` deferred, comment variables deferred); updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage
+- `CONTRIBUTING.md`: Updated `variables.ts` description in codebase structure; updated `bundled-vim.ts` description with `setPropertiesSource` wiring
+- `README.md`: Updated Snippets feature line with variable count and vim-ecosystem aliases
 - `AGENTS.md`: Updated codemirror-vim fork description with `setPropertiesSource` API
-- `CONTRIBUTING.md`: Updated `bundled-vim.ts` description with `setPropertiesSource` wiring
+- `docs/features/snippets.md`: Expanded variable table from 16 to 37 entries organized into sections (selection/content, file/path, workspace/cursor, date/time, random) with info callout about selection and clipboard behavior
 - `DIFFERENCES.md` (fork): Added `setPropertiesSource` API section, updated "Properties navigation" section with two-level gate
 
 ## [0.98.0] - 2026-08-05

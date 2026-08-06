@@ -238,7 +238,7 @@ src/
   snippets/
     manager.ts             # Snippet session and expansion management
     parser.ts              # VS Code snippet format parser
-    variables.ts           # Snippet variable resolution ($UUID, $DATE, etc.)
+    variables.ts           # Snippet variable resolution (37 variables: selection/content, file/path, workspace/cursor, date/time, random — full VSCode spec + $VISUAL/$WORD vim aliases)
     context.ts             # Snippet context filtering (prose, code, frontmatter)
     provider.ts            # Snippet source provider (bundled + user)
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)

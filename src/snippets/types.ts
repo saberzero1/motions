@@ -23,4 +23,9 @@ export interface PreprocessContext {
     filePath: string;
     clipboard: string;
     selectedText: string;
+    currentLine: string;
+    currentWord: string;
+    lineNumber: number;
+    lineIndex: number;
+    workspaceName: string;
 }

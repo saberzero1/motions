@@ -377,13 +377,58 @@ export default class VimMotionsPlugin extends Plugin {
         };
     }> = [];
     private imSwitcher: ImSwitcher | null = null;
+    private _clipboardCache = '';
+
+    private async refreshClipboardCache(): Promise<void> {
+        try {
+            if (typeof navigator.clipboard?.readText === 'function') {
+                this._clipboardCache = await navigator.clipboard.readText();
+            }
+        } catch {
+            // Permission denied, mobile, non-secure context — keep last cached value
+        }
+    }
 
     private getSnippetPreprocessContext(): PreprocessContext {
         const activeFile = this.app.workspace.getActiveFile();
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const editor = mdView?.editor;
+
+        let selectedText = '';
+        let currentLine = '';
+        let currentWord = '';
+        let lineNumber = 1;
+        let lineIndex = 0;
+
+        if (editor) {
+            selectedText = editor.getSelection() || '';
+            const cursor = editor.getCursor();
+            lineNumber = cursor.line + 1;
+            lineIndex = cursor.line;
+            currentLine = editor.getLine(cursor.line) || '';
+
+            const editorView = getEditorView(mdView);
+            if (editorView) {
+                const pos = editorView.state.selection.main.head;
+                const wordRange = editorView.state.wordAt(pos);
+                if (wordRange) {
+                    currentWord = editorView.state.sliceDoc(
+                        wordRange.from,
+                        wordRange.to,
+                    );
+                }
+            }
+        }
+
         return {
             filePath: activeFile?.path ?? '',
-            clipboard: '',
-            selectedText: '',
+            clipboard: this._clipboardCache,
+            selectedText,
+            currentLine,
+            currentWord,
+            lineNumber,
+            lineIndex,
+            workspaceName: this.app.vault.getName(),
         };
     }
 
@@ -613,6 +658,16 @@ export default class VimMotionsPlugin extends Plugin {
                 (viewId) => this.imSwitcher?.cleanupView(viewId),
             );
         }
+
+        this.registerDomEvent(window, 'focus', () => {
+            void this.refreshClipboardCache();
+        });
+        this.registerDomEvent(document, 'visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                void this.refreshClipboardCache();
+            }
+        });
+        void this.refreshClipboardCache();
 
         // --- Mobile gate ---
         // Always register settings tab and toggle command so users can

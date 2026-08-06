@@ -1323,6 +1323,13 @@ The following are intentionally not implemented in v1:
 - Nested `d()` nodes (dynamic nodes inside dynamic nodes) are not supported.
 - User snippet directory scanning requires desktop — vault-relative paths work on mobile, but absolute paths and `~` expansion are desktop-only.
 
+### Snippet variable limitations
+
+- **`$CLIPBOARD` on mobile** — `navigator.clipboard.readText()` may be unavailable or permission-denied on mobile platforms and non-secure contexts. `$CLIPBOARD` resolves to `''` silently in these cases. On desktop, the clipboard is cached on `window focus` and `visibilitychange` events and read synchronously at expansion time. Intra-app vim `y`/`d` operations do not trigger the cache refresh — `$CLIPBOARD` reflects the system clipboard at the last focus/visibility event.
+- **`$TM_SELECTED_TEXT` / `$VISUAL` in tab-expand mode** — tab expansion requires an empty selection (`tab-expand.ts` returns `false` when selection is non-empty). `$TM_SELECTED_TEXT` and `$VISUAL` always resolve to `''` in tab-expand mode. Use the `:snippet` command or completion trigger to expand snippets that use selection text.
+- **`snip.env` for Lua `f()`/`d()` callbacks** — deferred. The current `f(args, parent)` / `d(args, parent, old_state)` callback signatures do not carry environment variables. LuaSnip exposes `snip.env.TM_SELECTED_TEXT`, `snip.env.LS_SELECT_RAW`, etc. Adding this requires changes to `dynamic-bridge.ts` and the Lua function invocation protocol.
+- **`$LINE_COMMENT` / `$BLOCK_COMMENT_START` / `$BLOCK_COMMENT_END`** — deferred. These require cursor-context-aware language detection for code blocks. The simple case (`%%` always for Markdown) is trivial but not useful inside code blocks where `//`, `/* */`, `#`, etc. would be expected.
+
 ### ~~Ex command snippet expansion~~ (Fixed)
 
 ~~`:snippet <name>` and `:snippets` (picker) commands are registered but expansion via the test harness's `Vim.handleEx()` bridge does not produce visible results.~~ Fixed. The commands were silently broken after any `reloadFeatures()` cycle (vimrc load, Lua config load, settings change). `registerSnippetCommands()` was only called in `onload()`, but `reloadFeatures()` calls `unregisterAll()` which replaced all snippet ex commands with no-ops and never re-registered them. The Picker-based snippet insertion was unaffected (separate `pickerRegistry`). Fixed by adding `registerSnippetCommands()` to `reloadFeatures()`. ([#95](https://github.com/saberzero1/motions/issues/95))
