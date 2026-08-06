@@ -41,13 +41,14 @@ EasyMotion integrates natively with visual mode. Pressing `v` or `V` followed by
 
 ## Operator-pending mode
 
-EasyMotion supports operator-pending mode for `d`, `c`, and `y`. This allows for powerful combinations like `d` + `<leader><leader>w` + `{label}` to delete from the cursor to a specific word.
+EasyMotion supports operator-pending mode for `d`, `c`, `y`, and `ys` (surround). This allows for powerful combinations like `d` + `<leader><leader>w` + `{label}` to delete from the cursor to a specific word.
+
+Motions follow native Vim inclusivity semantics — `f`, `t`, `e`, `s` are inclusive (the target character is included in the operation), while `w`, `b`, `F`, `T` are exclusive (matching their Vim counterparts). For example, `y<leader><leader>fk{label}` yanks text including the target `k`.
 
 > [!info]
 > Operator-pending support requires the **bundled fork mode** (Obsidian's built-in Vim mode disabled). It uses the fork's async motion support to resolve the jump target before applying the operator.
 
-> [!note]
-> Dot-repeat (`.`) does not currently replay operator-pending EasyMotion operations.
+Dot-repeat (`.`) works with operator-pending EasyMotion — the fork stores the resolved position and replays the operator to the same relative offset without re-showing the label overlay.
 
 ## Label positioning
 

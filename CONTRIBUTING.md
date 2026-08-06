@@ -150,7 +150,7 @@ src/
     global-mapping-registry.ts  # Registry for global key mappings
     global-defaults.ts     # Default global keybindings — gotoNthTab filters to rootSplit leaves only; gf hint binding for context menu action
   easymotion/
-    register.ts            # Wires EasyMotion to keybindings
+    register.ts            # Wires EasyMotion to keybindings — per-motion motionArgs (inclusive flag) for correct operator-pending inclusivity matching native Vim semantics
     targets.ts             # Target detection (words, lines, chars)
     overlay.ts             # Label + highlight overlay rendering (measureTarget, measureLabelAnchor, renderHighlightSpans)
     labels.ts              # Label generation and assignment

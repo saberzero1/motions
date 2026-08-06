@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **EasyMotion operator-pending inclusivity** — EasyMotion motions (`f`, `t`, `e`, `s`, `ge`, `E`, `gE`) now correctly include the target character in operator-pending mode, matching native Vim semantics. Previously, all EasyMotion motions were registered with empty `motionArgs`, so the fork treated them as exclusive — `y<leader><leader>fk{label}` excluded the target `k` from the yank. Visual mode was unaffected (it extends the selection directly without consulting the `inclusive` flag). Backward motions (`F`, `T`) remain exclusive, matching native Vim. ([#109](https://github.com/saberzero1/motions/issues/109))
+    - Plugin: `src/easymotion/register.ts` (`EasyMotionDef` interface — added `motionArgs?: Record<string, unknown>`; `EASYMOTION_DEFS` — added `motionArgs: { inclusive: true }` to 8 of 17 defs matching Vim's native inclusivity; registration loop — passes `def.motionArgs ?? {}` to `mapCommand`)
 - **Cursor stuck below YAML frontmatter in Live Preview with "Properties in document: Source"** — `k`, `gk`, and `<Up>` could not move into the frontmatter region when the editor was in Live Preview mode and Obsidian's "Properties in document" setting was set to "Source". In this configuration, the `.metadata-container` DOM element exists but is hidden (`display: none`). The fork's `focusBefore` callback found the hidden element via `querySelector`, focused it (no visible effect), and `moveByLines`/`moveByDisplayLines` returned the original cursor position — leaving the cursor stuck. Fixed by adding a `setPropertiesSource(fn: () => boolean)` API to the fork, parallel to `setLivePreviewField`. When the callback returns `true`, the frontmatter interception block is skipped entirely and the cursor moves through raw frontmatter text normally. The plugin passes `() => getVaultConfig(app, 'propertiesInDocument') === 'source'`, evaluated per cursor movement so runtime setting changes take effect immediately. ([#77](https://github.com/saberzero1/motions/issues/77))
     - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`setPropertiesSource` API, `_propertiesSourceFn` gate in `findPosV`)
     - Fork: `~/Repos/codemirror-vim/src/index.ts` (export `setPropertiesSource`)
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 4 e2e tests in `test/specs/easymotion-comprehensive.e2e.ts` (issue #109): inclusive `f` yank includes target character, inclusive `e` delete includes end-of-word character, exclusive `w` yank excludes target (regression), visual mode `f` yank includes target (regression)
 - 1 unit test in `test/unit/known-set-options.test.ts` (issue #111): `pcre` option registered in `KNOWN_SET_OPTIONS` with correct type and settingsKey, default value verified
 - 49 unit tests in `test/unit/snippets/variables.test.ts`: `resolveVariables()` coverage for all 37 variables (selection/content, file/path, workspace/cursor, date/time, random), syntax variants (`$VAR` and `${VAR}`), alias parity (`$VISUAL` = `$TM_SELECTED_TEXT`, `$WORD` = `$TM_CURRENT_WORD`, `$RELATIVE_FILEPATH` = `$TM_FILEPATH`, `$WORKSPACE_FOLDER` = `$WORKSPACE_NAME`), edge cases (empty fields, unknown variables, tabstop defaults, adjacent variables)
 - 20 e2e tests in `test/specs/snippets/snippet-variables-integration.e2e.ts` (issue #110): file/path variables against live `Welcome.md` (5 tests), editor content variables with cursor positioning (4 tests), line number variables 1-based/0-based (3 tests), workspace name and alias (2 tests), cursor index/number constants (2 tests), selection variable resolution via `getSnippetPreprocessContext()` (3 tests), combined multi-variable expansion (1 test)
@@ -39,11 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated `KNOWN_CM_VIM_OPTIONS` list in `set` option scope section to include `pcre`; added snippet variable limitations section (`$CLIPBOARD` mobile restriction, `$TM_SELECTED_TEXT` tab-expand limitation, `snip.env` deferred, comment variables deferred); updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage
-- `CONTRIBUTING.md`: Updated `variables.ts` description in codebase structure; updated `bundled-vim.ts` description with `setPropertiesSource` wiring
+- `KNOWN_LIMITATIONS.md`: Updated `KNOWN_CM_VIM_OPTIONS` list in `set` option scope section to include `pcre`; added snippet variable limitations section (`$CLIPBOARD` mobile restriction, `$TM_SELECTED_TEXT` tab-expand limitation, `snip.env` deferred, comment variables deferred); updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage; marked EasyMotion operator-pending inclusivity as fixed; added 4 new known limitations (linewise `j`/`k`, `motionArgs.forward`/`clipToLine`, `EXTRA_DEFS` bidirectional motions, `easyMotionRepeat` operator-pending)
+- `CONTRIBUTING.md`: Updated `variables.ts` description in codebase structure; updated `bundled-vim.ts` description with `setPropertiesSource` wiring; updated `easymotion/register.ts` description with per-motion `motionArgs` for operator-pending inclusivity
 - `README.md`: Updated Snippets feature line with variable count and vim-ecosystem aliases
 - `AGENTS.md`: Updated codemirror-vim fork description with `setPropertiesSource` API
 - `docs/features/snippets.md`: Expanded variable table from 16 to 37 entries organized into sections (selection/content, file/path, workspace/cursor, date/time, random) with info callout about selection and clipboard behavior
+- `docs/features/easymotion.md`: Updated operator-pending section with inclusivity semantics; fixed stale dot-repeat note
 - `docs/configuration/vimrc.md`: Added `pcre` row to boolean options table
 - `docs/configuration/settings.md`: Added `pcre` row to Vim engine settings table
 - `docs/configuration/lua-config.md`: Added `pcre` row to `vim.opt` options table

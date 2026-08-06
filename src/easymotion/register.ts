@@ -119,6 +119,7 @@ interface EasyMotionDef {
     keySuffix: string;
     description: string;
     createTrigger: MotionTriggerFactory;
+    motionArgs?: Record<string, unknown>;
 }
 
 function wordTrigger(
@@ -180,6 +181,7 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
         keySuffix: 'f',
         description: 'EasyMotion: find char',
         createTrigger: charTrigger('forward'),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionFindCharBack',
@@ -192,12 +194,14 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
         keySuffix: 's',
         description: 'EasyMotion: find char bidirectional',
         createTrigger: charTrigger('bidirectional'),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionTillChar',
         keySuffix: 't',
         description: 'EasyMotion: till char',
         createTrigger: tillTrigger('forward'),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionTillCharBack',
@@ -222,12 +226,14 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
         keySuffix: 'e',
         description: 'EasyMotion: end of word',
         createTrigger: wordEndTrigger('forward', false),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionEndWordBack',
         keySuffix: 'ge',
         description: 'EasyMotion: end of word backward',
         createTrigger: wordEndTrigger('backward', false),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionWORD',
@@ -246,12 +252,14 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
         keySuffix: 'E',
         description: 'EasyMotion: end of WORD',
         createTrigger: wordEndTrigger('forward', true),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionEndWORDBack',
         keySuffix: 'gE',
         description: 'EasyMotion: end of WORD backward',
         createTrigger: wordEndTrigger('backward', true),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionLine',
@@ -353,7 +361,7 @@ export function registerEasyMotion(
             return recordJumpOnResolve(app, cm, motionFactory);
         });
         const keys = leader + leader + def.keySuffix;
-        reg.mapCommand(keys, 'motion', def.name, {});
+        reg.mapCommand(keys, 'motion', def.name, def.motionArgs ?? {});
         leaderRegistry.addBinding(keys, def.description, 'builtin');
     }
 

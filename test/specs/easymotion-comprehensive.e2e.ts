@@ -4,6 +4,8 @@ import {
     setupEditor,
     getCursorPos,
     getSelection,
+    getEditorValue,
+    getRegisterContent,
     sendVimEscape,
 } from '../helpers';
 
@@ -752,6 +754,133 @@ describe('EasyMotion comprehensive', function () {
             )) as { text: string; register: string };
             expect(state.text).toBe('alpha beta gamma delta');
             expect(state.register.length).toBeGreaterThan(0);
+        });
+
+        it('y + easymotion f should include the target character (inclusive)', async function () {
+            // Issue #109: f motion is inclusive — yank should include the target char
+            // 'alpha beta gamma': cursor at 0, search for 'g', label for 'g' at ch=11
+            await triggerEasyMotion('alpha beta gamma', { line: 0, ch: 0 }, [
+                'y',
+                '\\',
+                '\\',
+                'f',
+            ]);
+            await browser.keys(['g']);
+            await browser.pause(300);
+
+            const labels = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-easymotion',
+                );
+                if (!overlay) return [];
+                const els = overlay.querySelectorAll(
+                    '.vim-motions-easymotion-label',
+                );
+                const result: string[] = [];
+                els.forEach((el) => result.push(el.textContent ?? ''));
+                return result;
+            })) as string[];
+            expect(labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([labels[0]!]);
+            await browser.pause(500);
+
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            // Inclusive: yank from 'a' (ch=0) through 'g' (ch=11) = "alpha beta g"
+            expect(reg!.text).toBe('alpha beta g');
+        });
+
+        it('d + easymotion e should include the end-of-word character (inclusive)', async function () {
+            // e motion is inclusive — delete should include the last char of the word
+            const result = await triggerEasyMotion(
+                'alpha beta gamma',
+                { line: 0, ch: 0 },
+                ['d', '\\', '\\', 'e'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(1);
+
+            // First label = end of 'alpha' (ch=4)
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(500);
+
+            const text = await getEditorValue();
+            // Inclusive: delete 'alpha' (ch 0-4 inclusive), leaving ' beta gamma'
+            expect(text).toBe(' beta gamma');
+        });
+
+        it('y + easymotion w should NOT include the target character (exclusive)', async function () {
+            // w motion is exclusive — yank should stop before the target word
+            const result = await triggerEasyMotion(
+                'alpha beta gamma',
+                { line: 0, ch: 0 },
+                ['y', '\\', '\\', 'w'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+
+            // Second label = 'gamma' at ch=11
+            await browser.keys([result.labels[1]!]);
+            await browser.pause(500);
+
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            // Exclusive: yank from 'a' (ch=0) up to but not including 'g' (ch=11) = "alpha beta "
+            expect(reg!.text).toBe('alpha beta ');
+        });
+
+        it('v + easymotion f + y should include the target character (visual regression)', async function () {
+            // Visual mode must still include target char — regression test
+            await setupEditor('alpha beta gamma', { line: 0, ch: 0 });
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: { Vim?: VimHandle };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return;
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setValue('alpha beta gamma');
+                view.editor.setCursor(0, 0);
+                view.editor.focus();
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return;
+                Vim.handleKey(adapter, 'v');
+                Vim.handleKey(adapter, '\\');
+                Vim.handleKey(adapter, '\\');
+                Vim.handleKey(adapter, 'f');
+            });
+            await browser.keys(['g']);
+            await browser.pause(300);
+
+            const labels = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-easymotion',
+                );
+                if (!overlay) return [];
+                const els = overlay.querySelectorAll(
+                    '.vim-motions-easymotion-label',
+                );
+                const result: string[] = [];
+                els.forEach((el) => result.push(el.textContent ?? ''));
+                return result;
+            })) as string[];
+            expect(labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([labels[0]!]);
+            await browser.pause(300);
+
+            await browser.keys(['y']);
+            await browser.pause(300);
+
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            // Visual mode includes the target char
+            expect(reg!.text).toBe('alpha beta g');
         });
 
         it('c + easymotion w should change to target and enter insert mode', async function () {
