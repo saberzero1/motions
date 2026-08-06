@@ -188,6 +188,7 @@ export interface VimMotionsSettings {
     tabstop: number;
     shiftwidth: number;
     expandtab: boolean;
+    pcre: boolean;
     insertmodeescape: string;
     insertmodeescapetimeout: number;
     operatorshadowtimeout: number;
@@ -321,6 +322,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     tabstop: 4,
     shiftwidth: 4,
     expandtab: true,
+    pcre: true,
     insertmodeescape: '',
     insertmodeescapetimeout: 1000,
     operatorshadowtimeout: 1000,
@@ -1024,6 +1026,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     defaultValue: true,
                                     disabled: () =>
                                         this.isOverridden('expandtab'),
+                                },
+                            },
+                            {
+                                name: 'PCRE',
+                                desc: this.describeOverride(
+                                    'pcre',
+                                    'Use JavaScript regular expressions in search and substitution. When off, uses Vim-style regex syntax.',
+                                ),
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'pcre',
+                                    defaultValue: true,
+                                    disabled: () => this.isOverridden('pcre'),
                                 },
                             },
                             {
@@ -3546,6 +3561,27 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                         const vim = getVimApi();
                         if (vim) vim.setOption('expandtab', value);
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('PCRE')
+            .setDesc(
+                describeOverride(
+                    'pcre',
+                    'Use JavaScript regular expressions in search and substitution. When off, uses Vim-style regex syntax.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.pcre)
+                    .setDisabled(isOverridden('pcre'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.pcre = value;
+                        this.plugin.clearSettingOverride('pcre');
+                        await this.plugin.saveSettings();
+                        const vim = getVimApi();
+                        if (vim) vim.setOption('pcre', value);
                     }),
             );
 

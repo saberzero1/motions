@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`set nopcre` — Vim-style regular expressions** — users can now switch from JavaScript/PCRE regexps to Vim-style regex syntax in search and substitution via `set nopcre` (vimrc), `vim.opt.pcre = false` (Lua), or the Settings UI toggle (**Settings → Vim Motions → Vim engine → PCRE**). The codemirror-vim fork already implemented the full `pcre` option (regex translation with magic modes, `\<`/`\>` word boundaries, `\zs`/`\ze`, backreference conversion); this change wires it into the plugin's option tracking, settings UI, and documentation. Default: `true` (JavaScript regexps, no behavior change for existing users). ([#111](https://github.com/saberzero1/motions/issues/111))
+    - Plugin: `src/settings.ts` (`pcre: boolean` in `VimMotionsSettings`, `pcre: true` in `DEFAULT_SETTINGS`, toggle in both declarative and imperative settings UI — General page, Vim engine group)
+    - Plugin: `src/vimrc/loader.ts` (`pcre` added to `KNOWN_SET_OPTIONS` and `KNOWN_CM_VIM_OPTIONS`)
+    - Plugin: `src/main.ts` (initialization sync — `vim.setOption('pcre', false)` when user has disabled PCRE)
+    - Plugin: `test/unit/known-set-options.test.ts` (`pcre` added to `newOptions` test array)
 - **37 snippet variables (up from 16 documented)** — expanded the snippet variable system to cover the full VSCode snippet specification, plus vim-ecosystem aliases. New variables: `$TM_SELECTED_TEXT` (wired — was stubbed), `$VISUAL` (alias for `$TM_SELECTED_TEXT`, vim convention), `$TM_CURRENT_LINE`, `$TM_CURRENT_WORD`, `$WORD` (alias for `$TM_CURRENT_WORD`, vim convention), `$TM_LINE_NUMBER` (1-based), `$TM_LINE_INDEX` (0-based), `$CLIPBOARD` (wired via cache-ahead pattern — was stubbed), `$RELATIVE_FILEPATH`, `$WORKSPACE_NAME`, `$WORKSPACE_FOLDER`, `$CURSOR_INDEX`, `$CURSOR_NUMBER`, `$CURRENT_MILLISECOND`, `$CURRENT_MILLISECONDS_UNIX`, `$CURRENT_TIMEZONE_NAME`, plus previously undocumented `$CURRENT_YEAR_SHORT`, `$CURRENT_MONTH_NAME_SHORT`, `$CURRENT_DAY_NAME_SHORT`, `$CURRENT_SECONDS_UNIX`, `$CURRENT_TIMEZONE_OFFSET`. `$CLIPBOARD` uses a cache-ahead pattern (refreshed on `window focus` and `visibilitychange`) to avoid making the synchronous snippet pipeline async. On mobile, `$CLIPBOARD` resolves to empty due to browser clipboard API restrictions. `$TM_SELECTED_TEXT` / `$VISUAL` resolve to the editor selection at expansion time; in tab-expand mode, selection is not available (tab expansion requires an empty selection). ([#110](https://github.com/saberzero1/motions/issues/110))
     - Plugin: `src/snippets/types.ts` (`PreprocessContext` — added `currentLine`, `currentWord`, `lineNumber`, `lineIndex`, `workspaceName` fields)
     - Plugin: `src/snippets/variables.ts` (added 15 new variable entries including `VISUAL`, `WORD`, `TM_CURRENT_LINE`, `TM_CURRENT_WORD`, `TM_LINE_NUMBER`, `TM_LINE_INDEX`, `RELATIVE_FILEPATH`, `WORKSPACE_NAME`, `WORKSPACE_FOLDER`, `CURSOR_INDEX`, `CURSOR_NUMBER`, `CURRENT_MILLISECOND`, `CURRENT_MILLISECONDS_UNIX`, `CURRENT_TIMEZONE_NAME`; added `pad3()` and `getTimezoneName()` helpers)
@@ -26,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 1 unit test in `test/unit/known-set-options.test.ts` (issue #111): `pcre` option registered in `KNOWN_SET_OPTIONS` with correct type and settingsKey, default value verified
 - 49 unit tests in `test/unit/snippets/variables.test.ts`: `resolveVariables()` coverage for all 37 variables (selection/content, file/path, workspace/cursor, date/time, random), syntax variants (`$VAR` and `${VAR}`), alias parity (`$VISUAL` = `$TM_SELECTED_TEXT`, `$WORD` = `$TM_CURRENT_WORD`, `$RELATIVE_FILEPATH` = `$TM_FILEPATH`, `$WORKSPACE_FOLDER` = `$WORKSPACE_NAME`), edge cases (empty fields, unknown variables, tabstop defaults, adjacent variables)
 - 20 e2e tests in `test/specs/snippets/snippet-variables-integration.e2e.ts` (issue #110): file/path variables against live `Welcome.md` (5 tests), editor content variables with cursor positioning (4 tests), line number variables 1-based/0-based (3 tests), workspace name and alias (2 tests), cursor index/number constants (2 tests), selection variable resolution via `getSnippetPreprocessContext()` (3 tests), combined multi-variable expansion (1 test)
 - 3 e2e tests in `test/specs/vim-builtin/g-commands.e2e.ts` (issue #77): `k` moves up through source-rendered frontmatter, `k` navigates through multiple frontmatter properties, `gk` moves up through source-rendered frontmatter. Tests set `propertiesInDocument` to `'source'` and ensure Live Preview mode, with save/restore of the original setting.
@@ -33,11 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added snippet variable limitations section (`$CLIPBOARD` mobile restriction, `$TM_SELECTED_TEXT` tab-expand limitation, `snip.env` deferred, comment variables deferred); updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage
+- `KNOWN_LIMITATIONS.md`: Updated `KNOWN_CM_VIM_OPTIONS` list in `set` option scope section to include `pcre`; added snippet variable limitations section (`$CLIPBOARD` mobile restriction, `$TM_SELECTED_TEXT` tab-expand limitation, `snip.env` deferred, comment variables deferred); updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage
 - `CONTRIBUTING.md`: Updated `variables.ts` description in codebase structure; updated `bundled-vim.ts` description with `setPropertiesSource` wiring
 - `README.md`: Updated Snippets feature line with variable count and vim-ecosystem aliases
 - `AGENTS.md`: Updated codemirror-vim fork description with `setPropertiesSource` API
 - `docs/features/snippets.md`: Expanded variable table from 16 to 37 entries organized into sections (selection/content, file/path, workspace/cursor, date/time, random) with info callout about selection and clipboard behavior
+- `docs/configuration/vimrc.md`: Added `pcre` row to boolean options table
+- `docs/configuration/settings.md`: Added `pcre` row to Vim engine settings table
+- `docs/configuration/lua-config.md`: Added `pcre` row to `vim.opt` options table
 - `DIFFERENCES.md` (fork): Added `setPropertiesSource` API section, updated "Properties navigation" section with two-level gate
 
 ## [0.98.0] - 2026-08-05

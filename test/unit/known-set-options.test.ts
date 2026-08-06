@@ -257,6 +257,7 @@ describe('new option entries', () => {
             type: 'string',
             settingsKey: 'imDefaultInsertIm',
         },
+        { name: 'pcre', type: 'boolean', settingsKey: 'pcre' },
     ];
 
     for (const opt of newOptions) {

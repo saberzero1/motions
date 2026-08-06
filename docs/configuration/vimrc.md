@@ -144,6 +144,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `chorddisplay`         | `cd`   | Pending keystrokes in status bar        | on      |
 | `powerline`            | `pl`   | Colored powerline status bar            | off     |
 | `expandtab`            | `et`   | Use spaces instead of tabs              | on      |
+| `pcre`                 | —      | Use JavaScript regexps in search/subst  | on      |
 | `cursorline`           | `cul`  | Cursor line highlight                   | on      |
 | `foldcolumn`           | `fdc`  | Fold column indicators                  | off     |
 | `markgutter`           | —      | Alias for `signcolumn` (compat)         | on      |

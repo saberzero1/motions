@@ -961,6 +961,13 @@ export default class VimMotionsPlugin extends Plugin {
                 /* option may not be registered in fork */
             }
         }
+        if (!this.settings.pcre) {
+            try {
+                vim.setOption('pcre', false);
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
         this.registration = new VimRegistration(vim);
 
         this.matcher?.dispose();

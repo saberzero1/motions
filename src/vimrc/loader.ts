@@ -65,6 +65,7 @@ const KNOWN_CM_VIM_OPTIONS = new Set([
     'smartcase',
     'hlsearch',
     'incsearch',
+    'pcre',
 ]);
 
 let warnedSetOptions = new Set<string>();
@@ -130,6 +131,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     pl: { type: 'boolean', settingsKey: 'enablePowerline' },
     expandtab: { type: 'boolean', settingsKey: 'expandtab' },
     et: { type: 'boolean', settingsKey: 'expandtab' },
+    pcre: { type: 'boolean', settingsKey: 'pcre' },
     scrolloff: {
         type: 'number',
         settingsKey: 'scrolloffLines',
