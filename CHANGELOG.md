@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cursor stuck below YAML frontmatter in Live Preview with "Properties in document: Source"** — `k`, `gk`, and `<Up>` could not move into the frontmatter region when the editor was in Live Preview mode and Obsidian's "Properties in document" setting was set to "Source". In this configuration, the `.metadata-container` DOM element exists but is hidden (`display: none`). The fork's `focusBefore` callback found the hidden element via `querySelector`, focused it (no visible effect), and `moveByLines`/`moveByDisplayLines` returned the original cursor position — leaving the cursor stuck. Fixed by adding a `setPropertiesSource(fn: () => boolean)` API to the fork, parallel to `setLivePreviewField`. When the callback returns `true`, the frontmatter interception block is skipped entirely and the cursor moves through raw frontmatter text normally. The plugin passes `() => getVaultConfig(app, 'propertiesInDocument') === 'source'`, evaluated per cursor movement so runtime setting changes take effect immediately. ([#77](https://github.com/saberzero1/motions/issues/77))
+    - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`setPropertiesSource` API, `_propertiesSourceFn` gate in `findPosV`)
+    - Fork: `~/Repos/codemirror-vim/src/index.ts` (export `setPropertiesSource`)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added `setPropertiesSource` API section, updated "Properties navigation" section with two-level gate)
+    - Plugin: `src/vim/bundled-vim.ts` (`createBundledVimExtension` accepts `isPropertiesSource` callback, calls `setPropertiesSource`)
+    - Plugin: `src/main.ts` (passes `propertiesInDocument === 'source'` callback)
+    - Plugin: `src/types/codemirror-vim.d.ts` (added `setPropertiesSource` type declaration)
+
+### Tests
+
+- 3 e2e tests in `test/specs/vim-builtin/g-commands.e2e.ts` (issue #77): `k` moves up through source-rendered frontmatter, `k` navigates through multiple frontmatter properties, `gk` moves up through source-rendered frontmatter. Tests set `propertiesInDocument` to `'source'` and ensure Live Preview mode, with save/restore of the original setting.
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated properties navigation section with "Properties in document: Source" edge case fix and updated test coverage
+- `AGENTS.md`: Updated codemirror-vim fork description with `setPropertiesSource` API
+- `CONTRIBUTING.md`: Updated `bundled-vim.ts` description with `setPropertiesSource` wiring
+- `DIFFERENCES.md` (fork): Added `setPropertiesSource` API section, updated "Properties navigation" section with two-level gate
+
 ## [0.98.0] - 2026-08-05
 
 ### Fixed

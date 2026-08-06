@@ -232,7 +232,7 @@ import {
 import { expandTilde } from './util/external-fs';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
-import { isBuiltinVimEnabled } from './util/vault';
+import { isBuiltinVimEnabled, getVaultConfig } from './util/vault';
 import { invariant, devAssert } from './util/invariant';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
@@ -659,7 +659,12 @@ export default class VimMotionsPlugin extends Plugin {
         if (!builtinVimOn) {
             installVimBridge();
             this.registerEditorExtension(
-                createBundledVimExtension(this.settings.cursorShapes),
+                createBundledVimExtension(
+                    this.settings.cursorShapes,
+                    () =>
+                        getVaultConfig(this.app, 'propertiesInDocument') ===
+                        'source',
+                ),
             );
         }
 

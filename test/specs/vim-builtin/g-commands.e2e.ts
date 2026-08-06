@@ -6,6 +6,8 @@ import {
     getCursorPos,
     getEditorValue,
     sendVimEscape,
+    ensureLivePreview,
+    PAUSE,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -242,6 +244,93 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             // Instead it either enters properties (cursor stays) or stays put.
             const after = await getCursorPos();
             expect(after.line).toBeGreaterThanOrEqual(3);
+        });
+    });
+
+    describe('k / gk with "Properties in document: Source" in Live Preview (#77)', function () {
+        let savedPropertiesMode: string | undefined;
+
+        before(async function () {
+            await ensureLivePreview();
+            savedPropertiesMode = (await browser.executeObsidian(({ app }) => {
+                const vault = app.vault as unknown as {
+                    getConfig: (k: string) => unknown;
+                    setConfig: (k: string, v: unknown) => void;
+                };
+                const prev = vault.getConfig('propertiesInDocument') as string;
+                vault.setConfig('propertiesInDocument', 'source');
+                return prev;
+            })) as string;
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        });
+
+        after(async function () {
+            if (savedPropertiesMode !== undefined) {
+                await browser.executeObsidian(({ app }, mode: string) => {
+                    (
+                        app.vault as unknown as {
+                            setConfig: (k: string, v: unknown) => void;
+                        }
+                    ).setConfig('propertiesInDocument', mode);
+                }, savedPropertiesMode);
+                await browser.pause(PAUSE.EDITOR_SETTLE);
+            }
+        });
+
+        it('k should move up through source-rendered frontmatter (#77)', async function () {
+            const content = [
+                '---',
+                'title: test',
+                '---',
+                'first line',
+                'second line',
+            ].join('\n');
+            await setupEditor(content, { line: 3, ch: 0 });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            const before = await getCursorPos();
+            expect(before.line).toBe(3);
+
+            await vimKeys('k');
+            const after = await getCursorPos();
+            console.log('[cursor after k]', JSON.stringify(after));
+            expect(after.line).toBeLessThan(3);
+        });
+
+        it('k should navigate through multiple frontmatter properties (#77)', async function () {
+            const content = [
+                '---',
+                'title: test',
+                'tags: [a, b]',
+                'date: 2026-01-01',
+                '---',
+                'first line',
+            ].join('\n');
+            await setupEditor(content, { line: 5, ch: 0 });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            const visited = new Set<number>();
+            visited.add((await getCursorPos()).line);
+            for (let i = 0; i < 6; i++) {
+                await vimKeys('k');
+                visited.add((await getCursorPos()).line);
+            }
+            expect(visited.has(0)).toBe(true);
+        });
+
+        it('gk should move up through source-rendered frontmatter (#77)', async function () {
+            const content = [
+                '---',
+                'title: test',
+                '---',
+                'first line',
+                'second line',
+            ].join('\n');
+            await setupEditor(content, { line: 3, ch: 0 });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            const before = await getCursorPos();
+            expect(before.line).toBe(3);
+            await vimKeys('g', 'k');
+            const after = await getCursorPos();
+            expect(after.line).toBeLessThan(3);
         });
     });
 
