@@ -134,6 +134,7 @@ export class TextareaVimManager {
                 value,
                 cursorShapes: this.cursorShapes,
                 skipActiveEditor: true,
+                isolateKeyEvents: true,
                 onEscape: () => this.handleEscapeAndRedispatch(),
                 onBlur: () => this.handleBlur(),
                 onChange: (update: ViewUpdate) =>

@@ -232,6 +232,91 @@ describe('Textarea vim replacement', function () {
         expect(await hasOverlay()).toBe(false);
     });
 
+    it('Escape in operator-pending mode does not exit the overlay', async function () {
+        await injectTextarea('test-ta', 'hello world');
+        await focusElement('test-ta');
+        await browser.pause(500);
+
+        expect(await hasOverlay()).toBe(true);
+
+        // Exit insert mode → normal mode
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+        expect(await hasOverlay()).toBe(true);
+
+        // d + Escape: operator should be cleared, overlay stays
+        await browser.keys(['d']);
+        await browser.pause(50);
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+
+        expect(await hasOverlay()).toBe(true);
+    });
+
+    it('Escape in idle normal mode exits the overlay', async function () {
+        await injectTextarea('test-ta', 'hello world');
+        await focusElement('test-ta');
+        await browser.pause(500);
+
+        expect(await hasOverlay()).toBe(true);
+
+        // Exit insert mode → normal mode
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+        expect(await hasOverlay()).toBe(true);
+
+        // Escape in idle normal mode → exits
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+        expect(await hasOverlay()).toBe(false);
+    });
+
+    it('typing in insert mode does not leak keydown to parent modal', async function () {
+        await browser.executeObsidian(() => {
+            const existing = document.getElementById('test-ta-modal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-container';
+            modal.id = 'test-ta-modal';
+
+            const textarea = document.createElement('textarea');
+            textarea.id = 'test-ta';
+            textarea.value = '';
+            textarea.style.width = '300px';
+            textarea.style.height = '100px';
+
+            modal.appendChild(textarea);
+
+            (window as unknown as Record<string, unknown>).__leakedKeys = [];
+            modal.addEventListener('keydown', (e: KeyboardEvent) => {
+                (
+                    (window as unknown as Record<string, unknown>)
+                        .__leakedKeys as string[]
+                ).push(e.key);
+            });
+
+            document.body.appendChild(modal);
+        });
+
+        await focusElement('test-ta');
+        await browser.pause(500);
+        expect(await hasOverlay()).toBe(true);
+
+        await browser.keys(['a', 'b', ' ', 'c']);
+        await browser.pause(200);
+
+        const leaked = (await browser.executeObsidian(() => {
+            return (window as unknown as Record<string, unknown>)
+                .__leakedKeys as string[];
+        })) as string[];
+        expect(leaked).toEqual([]);
+
+        await browser.executeObsidian(() => {
+            delete (window as unknown as Record<string, unknown>).__leakedKeys;
+        });
+    });
+
     it('overlay teardown does not close host Obsidian Modal', async function () {
         // Open a real Obsidian Modal containing a textarea
         await browser.executeObsidian(({ app, obsidian }) => {

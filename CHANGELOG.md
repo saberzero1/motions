@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/bundled-vim.ts` (`createBundledVimExtension` accepts `isPropertiesSource` callback, calls `setPropertiesSource`)
     - Plugin: `src/main.ts` (passes `propertiesInDocument === 'source'` callback)
     - Plugin: `src/types/codemirror-vim.d.ts` (added `setPropertiesSource` type declaration)
+- **Escape in operator-pending mode exits embedded text area editor** — pressing `d` then `Escape` in the textarea vim overlay exited the editor instead of clearing the pending operator. The Escape handler checked `vim.mode === 'normal'` without accounting for operator-pending, surround, partial key sequences, and literal-character-await sub-states. Additionally, the CM6 keymap handler could never run because vim's `eventObservers.keydown` called `e.preventDefault()` before CM6 keymaps processed the event. Fixed by moving Escape handling to an Obsidian `Scope.register` handler (fires before vim's observer) with a new `isVimIdle()` check covering all compound-command sub-states. ([#112](https://github.com/saberzero1/motions/issues/112))
+    - Plugin: `src/editors/embeddable-editor.ts` (`isVimIdle` helper, `VimIdleState` interface, Scope-based Escape handler replacing CM6 keymap handler)
+- **Keydown events leak from embedded text area editor to parent modals** — typing keys (e.g., Space) in insert mode inside the textarea vim overlay propagated `keydown` events to the parent modal, triggering unintended actions in third-party plugins (e.g., Spaced Repetition). Fixed with a new opt-in `isolateKeyEvents` option on `EmbeddableEditorOptions` that stops `keydown` and `keyup` propagation via CM6 `domEventHandlers`. Only enabled for textarea-vim overlays; Oil and table-cell editors are unaffected. ([#112](https://github.com/saberzero1/motions/issues/112))
+    - Plugin: `src/editors/embeddable-editor.ts` (`isolateKeyEvents` option, `domEventHandlers` with `stopPropagation`)
+    - Plugin: `src/vim/textarea-vim-manager.ts` (`isolateKeyEvents: true`)
 
 ### Tests
 
@@ -38,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 49 unit tests in `test/unit/snippets/variables.test.ts`: `resolveVariables()` coverage for all 37 variables (selection/content, file/path, workspace/cursor, date/time, random), syntax variants (`$VAR` and `${VAR}`), alias parity (`$VISUAL` = `$TM_SELECTED_TEXT`, `$WORD` = `$TM_CURRENT_WORD`, `$RELATIVE_FILEPATH` = `$TM_FILEPATH`, `$WORKSPACE_FOLDER` = `$WORKSPACE_NAME`), edge cases (empty fields, unknown variables, tabstop defaults, adjacent variables)
 - 20 e2e tests in `test/specs/snippets/snippet-variables-integration.e2e.ts` (issue #110): file/path variables against live `Welcome.md` (5 tests), editor content variables with cursor positioning (4 tests), line number variables 1-based/0-based (3 tests), workspace name and alias (2 tests), cursor index/number constants (2 tests), selection variable resolution via `getSnippetPreprocessContext()` (3 tests), combined multi-variable expansion (1 test)
 - 3 e2e tests in `test/specs/vim-builtin/g-commands.e2e.ts` (issue #77): `k` moves up through source-rendered frontmatter, `k` navigates through multiple frontmatter properties, `gk` moves up through source-rendered frontmatter. Tests set `propertiesInDocument` to `'source'` and ensure Live Preview mode, with save/restore of the original setting.
+- 13 unit tests in `test/unit/embedded-editor-idle.test.ts` (issue #112): `isVimIdle` coverage for null/undefined, idle normal, insert/visual/replace modes, operator pending, surround state, partial key buffer, expectLiteralNext, multiple sub-states, missing inputState, missing keyBuffer
+- 3 e2e tests in `test/specs/textarea-vim.e2e.ts` (issue #112): operator-pending Escape does not exit overlay, idle normal Escape exits overlay, insert-mode typing does not leak keydown to parent modal
 
 ### Documentation
 
@@ -52,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/configuration/settings.md`: Added `pcre` row to Vim engine settings table
 - `docs/configuration/lua-config.md`: Added `pcre` row to `vim.opt` options table
 - `DIFFERENCES.md` (fork): Added `setPropertiesSource` API section, updated "Properties navigation" section with two-level gate
+- `KNOWN_LIMITATIONS.md`: Updated embedded editor Escape handler description with Scope-based approach and `isVimIdle` sub-state detection; added key event isolation note
+- `CONTRIBUTING.md`: Updated `embeddable-editor.ts` description with `isVimIdle` helper, Scope-based Escape, and `isolateKeyEvents` option
+- `AGENTS.md`: Updated dual-vim architecture section with Scope-based Escape handling for embedded editors
 
 ## [0.98.0] - 2026-08-05
 

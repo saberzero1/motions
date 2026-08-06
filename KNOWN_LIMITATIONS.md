@@ -88,7 +88,7 @@ Cell editors in embedded table widget mode (`set tablewidget=embedded`) now supp
 
 **Implementation notes**:
 
-- The Escape handler in `embeddable-editor.ts` uses the `adapter.state.vim.mode` pattern (proven in `table-format-on-exit.ts`) to check vim mode. When the cell editor is in normal mode, Escape fires `onEscape()` to exit. When in insert/visual mode, Escape returns `false` to let the vim extension handle the mode transition.
+- The Escape handler in `embeddable-editor.ts` uses Obsidian's `Scope.register([], 'Escape', ...)` to handle Escape — this fires before vim's `eventObservers.keydown` observer, ensuring the handler sees vim state before vim clears it. The `isVimIdle()` helper checks all compound-command sub-states (`inputState.operator`, `surroundState`, `inputState.keyBuffer`, `expectLiteralNext`) in addition to `vim.mode`. When vim is idle (normal mode, no pending operation), Escape fires `onEscape()` to exit. Otherwise, the handler returns `true` to prevent parent Obsidian scopes from intercepting Escape, letting vim process the mode transition. The textarea-vim overlay additionally enables `isolateKeyEvents` which stops `keydown`/`keyup` propagation to prevent key events from leaking to parent modals.
 - Entry mode dispatch uses `vim.handleKey(adapter, key)` deferred via `setTimeout(fn, 0)` to ensure the vim extension has initialized on the cell editor's CM6 instance before dispatching keys.
 - The `ir`/`ar` text objects follow the `tableCellTextObject` pattern: return `[VimPos, VimPos]` range, branch on `motionArgs.textObjectInner`, call `adjustRangeForVisualMode()`.
 

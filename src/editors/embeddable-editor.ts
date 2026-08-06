@@ -124,6 +124,33 @@ export function resetEditorPrototype(): void {
     resolvedCtor = null;
 }
 
+// -- Vim idle detection --
+
+/** Vim state shape used by {@link isVimIdle}. */
+export interface VimIdleState {
+    mode?: string;
+    inputState?: { operator?: string; keyBuffer?: string[] };
+    surroundState?: unknown;
+    expectLiteralNext?: boolean;
+}
+
+/**
+ * Returns true when the vim state is in "idle" normal mode — no pending
+ * operator, surround, partial key sequence, or literal-character await.
+ * Used by the embedded editor's Escape handler to decide whether Escape
+ * should exit the editor or just clear the pending vim state.
+ */
+export function isVimIdle(vim: VimIdleState | null | undefined): boolean {
+    if (!vim) return true; // no vim state → treat as idle (non-vim editor)
+    if (vim.mode !== 'normal') return false; // insert/visual/replace → not idle
+    if (vim.inputState?.operator) return false;
+    if (vim.surroundState) return false;
+    if (vim.inputState?.keyBuffer && vim.inputState.keyBuffer.length > 0)
+        return false;
+    if (vim.expectLiteralNext) return false;
+    return true;
+}
+
 // -- Options --
 
 export interface EmbeddableEditorOptions {
@@ -141,6 +168,14 @@ export interface EmbeddableEditorOptions {
      * Obsidian's editor tracking.
      */
     skipActiveEditor?: boolean;
+    /**
+     * When true, `keydown` and `keyup` events are stopped from
+     * propagating beyond the editor's DOM.  Prevents typing keys
+     * from leaking to parent modals or plugin UI.  Only needed for
+     * editors embedded inside third-party modal DOM — Oil and
+     * table-cell editors should leave this off.
+     */
+    isolateKeyEvents?: boolean;
 
     onEnter?: (
         editor: EmbeddableMarkdownEditor,
@@ -165,6 +200,7 @@ const defaultOptions: Required<EmbeddableEditorOptions> = {
     cursorShapes: undefined!,
     cursorLocation: { anchor: 0, head: 0 },
     skipActiveEditor: false,
+    isolateKeyEvents: false,
     onEnter: noopFalse,
     onEscape: noop,
     onSubmit: noop,
@@ -273,6 +309,16 @@ function buildEditorClass(
 
             this._scope.register(['Mod'], 'Enter', () => true);
 
+            this._scope.register([], 'Escape', () => {
+                const cm = getCM(this.editor.cm);
+                const vim = (cm as unknown as Record<string, unknown>)
+                    ?.state as { vim?: VimIdleState } | undefined;
+                if (isVimIdle(vim?.vim)) {
+                    opts.onEscape(this);
+                }
+                return true;
+            });
+
             // eslint-disable-next-line @typescript-eslint/no-this-alias -- needed for closure capture in event listeners
             const self = this;
             this.owner.editMode = self;
@@ -362,25 +408,21 @@ function buildEditorClass(
                         run: () => this._opts.onEnter(this, true, false),
                         shift: () => this._opts.onEnter(this, true, true),
                     },
-                    {
-                        key: 'Escape',
-                        run: (view: EditorView) => {
-                            const adapter = (
-                                view as unknown as Record<string, unknown>
-                            ).cm as
-                                | { state?: { vim?: { mode?: string } } }
-                                | undefined;
-                            const vimMode = adapter?.state?.vim?.mode ?? null;
-                            if (vimMode === 'normal') {
-                                this._opts.onEscape(this);
-                                return true;
-                            }
-                            return false;
-                        },
-                        preventDefault: false,
-                    },
                 ]),
             );
+
+            if (this._opts.isolateKeyEvents) {
+                extensions.push(
+                    EditorView.domEventHandlers({
+                        keydown: (event) => {
+                            event.stopPropagation();
+                        },
+                        keyup: (event) => {
+                            event.stopPropagation();
+                        },
+                    }),
+                );
+            }
 
             return extensions;
         }
