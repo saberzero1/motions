@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keydown events leak from embedded text area editor to parent modals** — typing keys (e.g., Space) in insert mode inside the textarea vim overlay propagated `keydown` events to the parent modal, triggering unintended actions in third-party plugins (e.g., Spaced Repetition). Fixed with a new opt-in `isolateKeyEvents` option on `EmbeddableEditorOptions` that stops `keydown` and `keyup` propagation via CM6 `domEventHandlers`. Only enabled for textarea-vim overlays; Oil and table-cell editors are unaffected. ([#112](https://github.com/saberzero1/motions/issues/112))
     - Plugin: `src/editors/embeddable-editor.ts` (`isolateKeyEvents` option, `domEventHandlers` with `stopPropagation`)
     - Plugin: `src/vim/textarea-vim-manager.ts` (`isolateKeyEvents: true`)
+- **Unmatched `<Space>` inserted as text after failed multi-key sequence** — pressing an unmapped key after a partial multi-key sequence (e.g., `<leader><leader><Space>` where no EasyMotion motion matches) inserted a literal space character into the document. Root cause: the fork's `findKey` used `key.length === 1` to suppress unmatched single-character keys in normal mode, but `vimKeyFromEvent` converts Space to `"<Space>"` (7 characters) via the `specialKey` map, bypassing the guard. The function returned `undefined` instead of a consuming no-op, letting the keydown propagate to CM6's text input handler. Fixed by replacing the guard with `key.length === 1 || /^<.+>$/.test(key)` to match both plain characters and angle-bracket notation keys. ([#112](https://github.com/saberzero1/motions/issues/112))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`findKey` — generalized key length guard)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Unmatched angle-bracket keys consumed in normal mode" section)
 
 ### Tests
 
@@ -62,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `KNOWN_LIMITATIONS.md`: Updated embedded editor Escape handler description with Scope-based approach and `isVimIdle` sub-state detection; added key event isolation note
 - `CONTRIBUTING.md`: Updated `embeddable-editor.ts` description with `isVimIdle` helper, Scope-based Escape, and `isolateKeyEvents` option
 - `AGENTS.md`: Updated dual-vim architecture section with Scope-based Escape handling for embedded editors
+- `DIFFERENCES.md` (fork): Added "Unmatched angle-bracket keys consumed in normal mode" section under Behavioral fixes
 
 ## [0.98.0] - 2026-08-05
 
