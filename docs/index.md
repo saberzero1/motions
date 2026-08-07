@@ -31,12 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.99.0
+## What's new in 0.100.0
 
-- **`set nopcre` — Vim-style regular expressions** — switch from JavaScript/PCRE regexps to Vim-style regex syntax in search and substitution via `set nopcre`, `vim.opt.pcre = false`, or the Settings UI ([#111](https://github.com/saberzero1/motions/issues/111))
-- **37 snippet variables** — expanded from 16 to 37 variables covering the full VSCode snippet spec, plus vim-ecosystem aliases (`$VISUAL`, `$WORD`). New: `$TM_SELECTED_TEXT` (wired), `$CLIPBOARD` (cache-ahead pattern), `$TM_CURRENT_LINE`, `$TM_LINE_NUMBER`, `$RELATIVE_FILEPATH`, `$WORKSPACE_NAME`, and more ([#110](https://github.com/saberzero1/motions/issues/110))
-- **EasyMotion operator-pending inclusivity fix** — `y<leader><leader>fk{label}` now correctly includes the target character, matching native Vim semantics ([#109](https://github.com/saberzero1/motions/issues/109))
-- **Cursor no longer stuck below YAML frontmatter** — fixed `k`/`gk`/`<Up>` unable to enter frontmatter in Live Preview with "Properties in document: Source" ([#77](https://github.com/saberzero1/motions/issues/77))
-- **Embedded editor fixes** — Escape in operator-pending mode no longer exits textarea editors; keydown events no longer leak to parent modals; unmatched `<Space>` after failed multi-key sequences no longer inserts text ([#112](https://github.com/saberzero1/motions/issues/112))
+- **`:snippet` visual selection fixed** — running `:snippet <name>` from visual mode now correctly wraps the selected text. Previously, `$TM_SELECTED_TEXT` / `$VISUAL` resolved to empty because vim's ex-command dispatcher exits visual mode before the handler runs. Fixed by recovering the selection from vim's `'<`/`'>` marks. Visual line mode (`V`) is fully supported. ([Discussion #108](https://github.com/saberzero1/motions/discussions/108))
 
 See the [[changelog|full changelog]] for details.

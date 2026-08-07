@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.100.0] - 2026-08-07
+
 ### Fixed
 
 - **`:snippet` visual selection not captured** — running `:snippet <name>` from visual mode now correctly wraps the selected text. Previously, `$TM_SELECTED_TEXT` / `$VISUAL` resolved to empty and the snippet was inserted at the cursor instead of replacing the selection. Root cause: vim's ex-command dispatcher calls `exitVisualMode()` before the `:snippet` handler runs, collapsing the CM6 selection. Fixed by reading the visual selection from vim's `'<'`/`'>'` marks (which survive `exitVisualMode`) via the `cm` adapter parameter, extracting the text with `cm.getRange()`, and overriding `ctx.selectedText` before preprocessing. Visual line mode (`V`) normalizes the start to `ch: 0` and extends the end to full line length. ([Discussion #108](https://github.com/saberzero1/motions/discussions/108))
