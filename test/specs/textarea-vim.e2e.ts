@@ -370,4 +370,75 @@ describe('Textarea vim replacement', function () {
         });
         await browser.pause(200);
     });
+
+    it('Escape exit does not leak to parent scope or change active leaf (#112)', async function () {
+        const leafIdBefore = (await browser.executeObsidian(({ app }) => {
+            return (app.workspace.activeLeaf as { id?: string })?.id ?? '';
+        })) as string;
+        expect(leafIdBefore).not.toBe('');
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const modal = new obsidian.Modal(app);
+            modal.contentEl.createEl('textarea', {
+                attr: { id: 'test-ta' },
+            });
+            const ta = modal.contentEl.querySelector(
+                '#test-ta',
+            ) as HTMLTextAreaElement;
+            ta.value = 'test content';
+            ta.style.width = '300px';
+            ta.style.height = '100px';
+            modal.open();
+
+            const container = modal.containerEl;
+            (window as unknown as Record<string, unknown>).__escapeLeakCount =
+                0;
+            container.addEventListener('keydown', (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    ((window as unknown as Record<string, unknown>)
+                        .__escapeLeakCount as number)++;
+                }
+            });
+        });
+        await browser.pause(400);
+
+        await focusElement('test-ta');
+        await browser.pause(500);
+        expect(await hasOverlay()).toBe(true);
+
+        // insert → normal
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+        expect(await hasOverlay()).toBe(true);
+
+        // normal → exit overlay (this Escape must not leak)
+        await browser.keys(['Escape']);
+        await browser.pause(500);
+        expect(await hasOverlay()).toBe(false);
+
+        const leakCount = (await browser.executeObsidian(() => {
+            return (window as unknown as Record<string, unknown>)
+                .__escapeLeakCount as number;
+        })) as number;
+        expect(leakCount).toBe(0);
+
+        const modalStillOpen = (await browser.executeObsidian(() => {
+            return !!document.querySelector('.modal-container');
+        })) as boolean;
+        expect(modalStillOpen).toBe(true);
+
+        const leafIdAfter = (await browser.executeObsidian(({ app }) => {
+            return (app.workspace.activeLeaf as { id?: string })?.id ?? '';
+        })) as string;
+        expect(leafIdAfter).toBe(leafIdBefore);
+
+        await browser.executeObsidian(() => {
+            delete (window as unknown as Record<string, unknown>)
+                .__escapeLeakCount;
+            document
+                .querySelectorAll('.modal-container')
+                .forEach((el) => el.remove());
+        });
+        await browser.pause(200);
+    });
 });

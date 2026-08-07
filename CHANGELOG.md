@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Escape exit from textarea vim overlay leaks to parent scope** — pressing Escape twice (insert → normal → exit) in the textarea vim editor caused the Escape keydown event to propagate to the parent modal's DOM, closing it or switching the active leaf. Root cause: `handleEscapeAndRedispatch()` called `teardownActive()` synchronously inside the Obsidian `Scope.register` handler, which destroyed the editor and popped the keymap scope mid-handler. The `isolateKeyEvents` `stopPropagation()` handler was removed with the editor, so the DOM-level Escape continued propagating to parent elements. Fixed by deferring teardown via `requestAnimationFrame` — the Scope handler returns `true` (consuming the event) while the editor's scope is still on the stack. Also added a `_destroying` flag to `embeddable-editor.ts` to prevent the blur event listener from double-popping the keymap scope when `destroy()` is already handling cleanup. ([#112](https://github.com/saberzero1/motions/issues/112))
+    - Plugin: `src/vim/textarea-vim-manager.ts` (`handleEscapeAndRedispatch` — deferred teardown via `requestAnimationFrame`)
+    - Plugin: `src/editors/embeddable-editor.ts` (`_destroying` flag, blur handler guard)
+- **Escape exit from table cell editor leaks to parent scope** — same scope-pop-mid-handler vulnerability as the textarea vim overlay. The `onEscape` callback in `table-nav-controller.ts` called `exitCellEdit()` → `closeCellEditor()` → `editor.destroy()` → `popKeymapScope()` synchronously inside the Scope handler. Fixed with the same deferred-teardown pattern. ([#112](https://github.com/saberzero1/motions/issues/112))
+    - Plugin: `src/vim/table-nav-controller.ts` (`onEscape` callback — deferred `exitCellEdit` via `requestAnimationFrame`)
+
+### Tests
+
+- 1 e2e test in `test/specs/textarea-vim.e2e.ts` (issue #112): Escape exit does not leak Escape keydown to parent modal container DOM and does not change active leaf — verifies zero Escape events propagate to `modal.containerEl`, modal stays open, leaf ID unchanged
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated embedded editor Escape handler description with deferred teardown pattern, `_destroying` guard, and scope-pop-mid-handler fix
+- `CONTRIBUTING.md`: Updated `embeddable-editor.ts` description with `_destroying` guard; updated `textarea-vim-manager.ts` description with deferred teardown; updated `table-nav-controller.ts` description with deferred `onEscape`
+- `AGENTS.md`: Updated dual-vim architecture section with deferred teardown and `_destroying` guard
+
 ## [0.100.0] - 2026-08-07
 
 ### Fixed

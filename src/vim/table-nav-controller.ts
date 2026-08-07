@@ -239,7 +239,11 @@ class TableNavController implements PluginValue {
             this.activeCol,
             tableFirstLine,
             app,
-            () => this.exitCellEdit(),
+            () => {
+                // Defer so the Scope handler returns `true` (consuming the
+                // Escape) while the editor's scope is still on the stack.
+                window.requestAnimationFrame(() => this.exitCellEdit());
+            },
             cellRange?.text,
         );
         if (!handle) return;

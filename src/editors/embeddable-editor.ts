@@ -281,6 +281,7 @@ function buildEditorClass(
         _scope: Scope;
         _app: App;
         initialValue: string;
+        private _destroying = false;
 
         constructor(
             editorApp: App,
@@ -357,6 +358,7 @@ function buildEditorClass(
             });
 
             this.editor.cm.contentDOM.addEventListener('blur', () => {
+                if (self._destroying) return;
                 popKeymapScope(editorApp, self._scope);
                 if (self._loaded && opts.onBlur !== noop) {
                     opts.onBlur(self);
@@ -450,6 +452,7 @@ function buildEditorClass(
         }
 
         destroy(): void {
+            this._destroying = true;
             if (this._loaded) this.unload();
             popKeymapScope(this._app, this._scope);
             if (!this._opts.skipActiveEditor) {

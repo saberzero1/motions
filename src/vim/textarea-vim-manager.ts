@@ -233,8 +233,16 @@ export class TextareaVimManager {
         const { originalEl, editor } = this.active;
         this.syncNow(originalEl, editor);
         this.markRecentlyExited(originalEl);
-        this.teardownActive();
-        originalEl.focus();
+
+        // Defer teardown so the Scope handler returns `true` (consuming the
+        // Escape event) while the editor's scope is still on the stack.
+        // Tearing down synchronously pops the scope mid-handler, which lets
+        // Obsidian's keymap system re-evaluate the same Escape against the
+        // parent scope — closing modals or switching the active leaf.
+        window.requestAnimationFrame(() => {
+            this.teardownActive();
+            originalEl.focus();
+        });
     }
 
     private markRecentlyExited(el: HTMLTextAreaElement): void {

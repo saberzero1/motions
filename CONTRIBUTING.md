@@ -87,7 +87,7 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
-    table-nav-controller.ts    # Table cell navigation controller
+    table-nav-controller.ts    # Table cell navigation controller — onEscape callback defers exitCellEdit via requestAnimationFrame to prevent scope-pop-mid-handler leak
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
@@ -96,7 +96,7 @@ src/
     table-embedded-editor.ts   # Embedded editor within table widgets
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing
-    textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay)
+    textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack
     autocmd-mode-watcher.ts  # Per-view autocmd mode events (CM6 ViewPlugin — fires InsertEnter/InsertLeave/ModeChanged across all editors)
     animated-cursor/         # Canvas-based animated cursor (smear + smooth movement)
       types.ts               # Shared interfaces (CursorRect, SmearQuad, AnimatedCursorConfig)
@@ -245,7 +245,7 @@ src/
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
     bundled/               # Bundled Obsidian-specific snippets
   editors/
-    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent; registerScopeKey() exposes the internal Obsidian Scope for registering key handlers that fire before Obsidian's default hotkeys (used by Oil for Ctrl-key combos); Escape handling via Scope.register with isVimIdle() sub-state detection (operator, surround, keyBuffer, expectLiteralNext); isolateKeyEvents option stops keydown/keyup propagation for modal isolation (used by textarea-vim)
+    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent; registerScopeKey() exposes the internal Obsidian Scope for registering key handlers that fire before Obsidian's default hotkeys (used by Oil for Ctrl-key combos); Escape handling via Scope.register with isVimIdle() sub-state detection (operator, surround, keyBuffer, expectLiteralNext); isolateKeyEvents option stops keydown/keyup propagation for modal isolation (used by textarea-vim); _destroying flag prevents blur handler from double-popping keymap scope during destroy()
   keybindings/
     action-registry.ts     # Centralized action registry for cross-context keybindings
   ui/
