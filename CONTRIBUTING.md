@@ -236,6 +236,7 @@ src/
     composition-tracker.ts   # Per-view IME composition tracking (CM6 ViewPlugin)
     im-mode-watcher.ts       # Per-view vim mode change detection for IM switching (CM6 ViewPlugin)
   snippets/
+    commands.ts            # :snippet/:snippets ex commands — visual selection recovery via vim '</'> marks and lastSelection flags for $TM_SELECTED_TEXT/$VISUAL support in visual mode
     manager.ts             # Snippet session and expansion management
     parser.ts              # VS Code snippet format parser
     variables.ts           # Snippet variable resolution (37 variables: selection/content, file/path, workspace/cursor, date/time, random — full VSCode spec + $VISUAL/$WORD vim aliases)

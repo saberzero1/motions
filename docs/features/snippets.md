@@ -184,7 +184,7 @@ User snippets override bundled snippets when they share the same prefix. The dir
 | `$RANDOM_HEX` | 6-digit random hex    |
 | `$UUID`       | Random UUID v4        |
 
-> [!info] `$TM_SELECTED_TEXT` / `$VISUAL` resolve to the editor selection at expansion time. In tab-expand mode, selection is not available (tab expansion requires an empty selection). Use the `:snippet` command or completion trigger to expand snippets that use selection text. On mobile, `$CLIPBOARD` may resolve to empty due to browser clipboard API restrictions.
+> [!info] `$TM_SELECTED_TEXT` / `$VISUAL` resolve to the visual selection when expanding via the `:snippet` command. Select text in visual mode, then type `:snippet <name>` to wrap or transform the selection. In tab-expand mode, selection is not available (tab expansion requires an empty selection). On mobile, `$CLIPBOARD` may resolve to empty due to browser clipboard API restrictions.
 
 ### Context filtering
 

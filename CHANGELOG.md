@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`:snippet` visual selection not captured** — running `:snippet <name>` from visual mode now correctly wraps the selected text. Previously, `$TM_SELECTED_TEXT` / `$VISUAL` resolved to empty and the snippet was inserted at the cursor instead of replacing the selection. Root cause: vim's ex-command dispatcher calls `exitVisualMode()` before the `:snippet` handler runs, collapsing the CM6 selection. Fixed by reading the visual selection from vim's `'<'`/`'>'` marks (which survive `exitVisualMode`) via the `cm` adapter parameter, extracting the text with `cm.getRange()`, and overriding `ctx.selectedText` before preprocessing. Visual line mode (`V`) normalizes the start to `ch: 0` and extends the end to full line length. ([Discussion #108](https://github.com/saberzero1/motions/discussions/108))
+    - Plugin: `src/snippets/commands.ts` (`recoverVisualSelection()` — reads `'<'`/`'>'` marks + `lastSelection.visualMode`/`visualLine` flags; `:snippet` handler overrides `ctx.selectedText` and uses mark-derived `from`/`to` offsets for the `apply()` range)
+
+### Tests
+
+- 10 e2e tests in `test/specs/spikes/spike-snippet-visual-surround.e2e.ts` (Discussion #108): `$TM_SELECTED_TEXT` wraps word selection via `viw`, fills tabstop default in link snippet, `$VISUAL` alias parity, multiline callout wrapping, empty selection regression guard, link snippet structure, Lua `fmt()` wraps selection, Lua `t()`/`i()` bold wrapping, Lua link structure, Lua empty selection placeholder
+- 12 e2e tests in `test/specs/spikes/spike-snippet-visual-edge-cases.e2e.ts` (Discussion #108): visual line mode (`V`) wraps full line, multi-line `Vjj` wraps three lines, charwise `v` across lines, visual block mode (`<C-v>`) produces non-empty text, stale `lastSelection` uses marks (vim `gv` semantics), bookmark invalidation falls back to empty, picker baseline, normal mode after visual `:snippet` (documented pre-existing), correct snippet text despite normal mode, `v$` end-of-line, single char at EOL, `v$` mid-line to end
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated snippet variable limitations section — `$TM_SELECTED_TEXT`/`$VISUAL` tab-expand limitation clarified, visual-mode `:snippet` now works
+- `CONTRIBUTING.md`: Added `commands.ts` to snippets codebase structure with visual selection recovery description
+- `docs/features/snippets.md`: Updated `$TM_SELECTED_TEXT`/`$VISUAL` callout to confirm visual-mode `:snippet` works
+
 ## [0.99.0] - 2026-08-06
 
 ### Added
