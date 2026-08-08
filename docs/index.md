@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.100.0
+## What's new in 0.101.0
 
-- **`:snippet` visual selection fixed** — running `:snippet <name>` from visual mode now correctly wraps the selected text. Previously, `$TM_SELECTED_TEXT` / `$VISUAL` resolved to empty because vim's ex-command dispatcher exits visual mode before the handler runs. Fixed by recovering the selection from vim's `'<`/`'>` marks. Visual line mode (`V`) is fully supported. ([Discussion #108](https://github.com/saberzero1/motions/discussions/108))
+- **Escape no longer leaks from embedded editors** — pressing Escape to exit the textarea vim overlay or table cell editor no longer propagates to the parent modal, preventing unintended modal closures or leaf switches. ([#112](https://github.com/saberzero1/motions/issues/112))
 
 See the [[changelog|full changelog]] for details.

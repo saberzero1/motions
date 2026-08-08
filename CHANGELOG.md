@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.101.0] - 2026-08-08
+
 ### Fixed
 
 - **Escape exit from textarea vim overlay leaks to parent scope** — pressing Escape twice (insert → normal → exit) in the textarea vim editor caused the Escape keydown event to propagate to the parent modal's DOM, closing it or switching the active leaf. Root cause: `handleEscapeAndRedispatch()` called `teardownActive()` synchronously inside the Obsidian `Scope.register` handler, which destroyed the editor and popped the keymap scope mid-handler. The `isolateKeyEvents` `stopPropagation()` handler was removed with the editor, so the DOM-level Escape continued propagating to parent elements. Fixed by deferring teardown via `requestAnimationFrame` — the Scope handler returns `true` (consuming the event) while the editor's scope is still on the stack. Also added a `_destroying` flag to `embeddable-editor.ts` to prevent the blur event listener from double-popping the keymap scope when `destroy()` is already handling cleanup. ([#112](https://github.com/saberzero1/motions/issues/112))
