@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Vim `p` with non-text clipboard content silently does nothing** — when `clipboard=unnamed` or `clipboard=unnamedplus` is set, pressing `p` (or `]p`, `[p`, `:put`) with an image on the system clipboard did nothing. The fork's `paste` action called `navigator.clipboard.readText()` which returns `""` for image-only clipboard content, and `continuePaste()` bailed on the empty string with no error handling. Fixed by adding a `.catch()` handler to the `readText()` promise and a `fallbackToNativePaste()` method that calls `document.execCommand('paste')` when the text clipboard is empty or `readText()` rejects. This triggers Obsidian's native paste pipeline, which creates an attachment and inserts `![[Pasted image …]]`. A `programmaticPaste` flag suppresses the fork's `getOnPasteFn` listener during the fallback to prevent spurious insert-mode entry. The editor stays in normal mode after the fallback. Covers `p`, `]p`, `[p`, `:put`, and explicit `"+p` register paste. `P`/`gp`/`gP` are overridden by the host plugin's `pasteFromRegister()` and are not affected (separate issue).
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`programmaticPaste` flag, `getOnPasteFn` guard, `paste` action rewrite with `.catch()`, `fallbackToNativePaste` method)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (`fallbackToNativePaste` type signature in `vimActions`)
+
+### Tests
+
+- 3 e2e spike tests in `test/specs/spikes/spike-execcommand-paste.e2e.ts`: `execCommand('paste')` with image clipboard triggers native image paste, `execCommand('paste')` with text clipboard inserts text (control), vim `p` with image clipboard and `clipboard=unnamed` inserts image via native fallback
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added clipboard non-text paste fallback fix to yank-ring section
+- `AGENTS.md`: Updated codemirror-vim fork description with `fallbackToNativePaste` and `programmaticPaste` flag
+- `docs/configuration/settings.md`: Added note about non-text clipboard fallback to clipboard setting description
+
 ## [0.101.0] - 2026-08-08
 
 ### Fixed
