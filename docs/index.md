@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.102.0
+## What's new in 0.103.0
 
-- **Non-text clipboard paste now works** — pressing `p` with an image (or other non-text content) on the system clipboard no longer silently does nothing when `clipboard=unnamed` or `clipboard=unnamedplus` is set. The fork now falls back to `document.execCommand('paste')`, triggering Obsidian's native paste pipeline (e.g., creating `![[Pasted image …]]` attachments).
+- **Native Obsidian shortcuts work again in Normal/Visual mode** — `Tab`, `Shift+Tab`, `Ctrl+Shift+I`, `F1`–`F12`, and other functional keys were silently consumed since v0.99.0. These keys now correctly propagate to Obsidian, restoring DevTools, tab indentation, and all other native shortcuts. ([#113](https://github.com/saberzero1/motions/issues/113))
 
 See the [[changelog|full changelog]] for details.

@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.103.0] - 2026-08-08
+
 ### Fixed
 
-- **Native Obsidian shortcuts (Tab, Shift+Tab, Ctrl+Shift+I, F-keys) consumed in Normal/Visual mode** — since v0.99.0, unmapped functional keys were silently swallowed in Normal and Visual modes but worked in Insert mode. Root cause: the fork's `findKey` guard (commit `4aa1cc7`) used `/^<.+>$/` to suppress unmatched angle-bracket keys in normal mode, which consumed ALL angle-bracket keys — including `<Tab>`, `<S-Tab>`, `<C-S-I>`, `<F1>`–`<F12>`, and other keys that should propagate to the host application. The guard was intended to catch `<Space>` (which bypassed the original `key.length === 1` check), but the regex was too broad. Fixed by narrowing to a whitelist of text-producing special keys (`<Space>`, `<BS>`, `<Del>`, `<CR>`) and preserving the Mac Alt character guard (`<A-x>`) from upstream PR #194. Functional/navigation keys now return `undefined` from `findKey`, allowing Obsidian to handle them natively. ([#113](https://github.com/saberzero1/motions/issues/113))
-    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`findKey` — narrowed key consumption guard from `/^<.+>$/` to `/^<(Space|BS|Del|CR)>$/` + Mac `<A-.>` guard)
+- **Native Obsidian shortcuts (Tab, Shift+Tab, Ctrl+Shift+I, F-keys) consumed in Normal/Visual mode** — since v0.99.0, unmapped functional keys were silently swallowed in Normal and Visual modes but worked in Insert mode. Root cause: the fork's `findKey` guard (commit `4aa1cc7`) used `/^<.+>$/` to suppress unmatched angle-bracket keys in normal mode, which consumed ALL angle-bracket keys — including `<Tab>`, `<S-Tab>`, `<C-S-I>`, `<F1>`–`<F12>`, and other keys that should propagate to the host application. The guard was intended to catch `<Space>` (which bypassed the original `key.length === 1` check), but the regex was too broad. Fixed by narrowing to a whitelist of text-producing special keys (`<Space>`, `<BS>`, `<Del>`, `<CR>`) plus keys that must not propagate to the host (`<Esc>`, `<Ins>`), and preserving the Mac Alt character guard (`<A-x>`) from upstream PR #194. `<Esc>` is included because `handleEsc()` returns `undefined` in idle normal mode (intentional no-op), but the keydown event must still be consumed to prevent it from propagating to the DOM and triggering modal closes or scope pops. Functional/navigation keys now return `undefined` from `findKey`, allowing Obsidian to handle them natively. ([#113](https://github.com/saberzero1/motions/issues/113))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`findKey` — narrowed key consumption guard from `/^<.+>$/` to `/^<(Space|BS|Del|CR|Esc|Ins)>$/` + Mac `<A-.>` guard)
     - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated "Unmatched angle-bracket keys consumed in normal mode" section)
 
 ### Documentation
