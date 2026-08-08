@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.101.0
+## What's new in 0.102.0
 
-- **Escape no longer leaks from embedded editors** — pressing Escape to exit the textarea vim overlay or table cell editor no longer propagates to the parent modal, preventing unintended modal closures or leaf switches. ([#112](https://github.com/saberzero1/motions/issues/112))
+- **Non-text clipboard paste now works** — pressing `p` with an image (or other non-text content) on the system clipboard no longer silently does nothing when `clipboard=unnamed` or `clipboard=unnamedplus` is set. The fork now falls back to `document.execCommand('paste')`, triggering Obsidian's native paste pipeline (e.g., creating `![[Pasted image …]]` attachments).
 
 See the [[changelog|full changelog]] for details.

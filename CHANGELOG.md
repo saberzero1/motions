@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.102.0] - 2026-08-08
+
 ### Fixed
 
 - **Vim `p` with non-text clipboard content silently does nothing** — when `clipboard=unnamed` or `clipboard=unnamedplus` is set, pressing `p` (or `]p`, `[p`, `:put`) with an image on the system clipboard did nothing. The fork's `paste` action called `navigator.clipboard.readText()` which returns `""` for image-only clipboard content, and `continuePaste()` bailed on the empty string with no error handling. Fixed by adding a `.catch()` handler to the `readText()` promise and a `fallbackToNativePaste()` method that calls `document.execCommand('paste')` when the text clipboard is empty or `readText()` rejects. This triggers Obsidian's native paste pipeline, which creates an attachment and inserts `![[Pasted image …]]`. A `programmaticPaste` flag suppresses the fork's `getOnPasteFn` listener during the fallback to prevent spurious insert-mode entry. The editor stays in normal mode after the fallback. Covers `p`, `]p`, `[p`, `:put`, and explicit `"+p` register paste. `P`/`gp`/`gP` are overridden by the host plugin's `pasteFromRegister()` and are not affected (separate issue).
