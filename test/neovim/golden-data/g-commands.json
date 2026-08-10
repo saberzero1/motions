@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-01T08:45:48.948Z",
+    "recorded_at": "2026-08-10T08:32:37.222Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -19,7 +19,14 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 10
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -133,7 +175,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -152,7 +201,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -171,7 +227,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -190,7 +253,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -209,7 +279,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -228,7 +305,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -247,7 +331,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -266,7 +357,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -285,7 +383,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -304,7 +409,14 @@
                     "line": 1,
                     "ch": 16
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -323,7 +435,14 @@
                     "line": 0,
                     "ch": 16
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -342,7 +461,14 @@
                     "line": 2,
                     "ch": 16
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

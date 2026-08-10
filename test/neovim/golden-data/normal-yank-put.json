@@ -1,7 +1,7 @@
 {
     "suite": "normal-yank-put",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-01T08:45:48.902Z",
+    "recorded_at": "2026-08-10T08:32:37.167Z",
     "cases": [
         {
             "name": "yy then p should paste line below",
@@ -19,7 +19,14 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello world\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "first\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 16
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 2,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "alpha line\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 1,
                     "ch": 10
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -133,7 +175,14 @@
                     "line": 3,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -152,7 +201,14 @@
                     "line": 3,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "first\nsecond\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -171,7 +227,14 @@
                     "line": 2,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "beta\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -190,7 +253,14 @@
                     "line": 4,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

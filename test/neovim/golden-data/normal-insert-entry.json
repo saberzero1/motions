@@ -1,7 +1,7 @@
 {
     "suite": "normal-insert-entry",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-01T08:45:48.907Z",
+    "recorded_at": "2026-08-10T08:32:37.173Z",
     "cases": [
         {
             "name": "i should insert text before cursor",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 1,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 1,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "BBB\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

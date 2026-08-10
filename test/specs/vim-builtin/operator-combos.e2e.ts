@@ -384,6 +384,12 @@ describe('Operator-pending combinations (Tier 1)', function () {
                     keys: [tc.keys],
                 });
             }
+        } else {
+            it('suite "operator-combos" exists in test-definitions', function () {
+                throw new Error(
+                    'Suite "operator-combos" not found in SUITES — was it renamed in test-definitions.ts?',
+                );
+            });
         }
     });
 });

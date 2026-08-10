@@ -39,5 +39,11 @@ describe('Flash golden: stock f/F/t/T vs Neovim (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "flash-golden" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "flash-golden" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

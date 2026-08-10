@@ -1,7 +1,7 @@
 {
     "suite": "upstream-gaps",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-01T08:45:49.003Z",
+    "recorded_at": "2026-08-10T08:32:37.284Z",
     "cases": [
         {
             "name": "dip inside empty lines deletes empty paragraph block",
@@ -19,7 +19,14 @@
                     "line": 7,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "\n\n\n\n\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "\n\n\n\n\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "\n\n\n\n\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "\n\n\n\n\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 1,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "7891\nabc",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -133,7 +175,14 @@
                     "line": 0,
                     "ch": 33
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

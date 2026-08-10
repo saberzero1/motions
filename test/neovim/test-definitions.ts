@@ -4,6 +4,7 @@ export interface TestCaseDefinition {
     cursor: { line: number; ch: number };
     keys: string;
     luaSetup?: string;
+    useHandleKey?: boolean;
 }
 
 export interface SuiteDefinition {
@@ -1382,24 +1383,28 @@ export const SUITES: SuiteDefinition[] = [
                 content: 'foo.bar.baz',
                 cursor: { line: 0, ch: 0 },
                 keys: 'vt.d',
+                useHandleKey: true,
             },
             {
                 name: 'V3j + J should join 4 lines',
                 content: 'one\ntwo\nthree\nfour\nfive',
                 cursor: { line: 0, ch: 0 },
                 keys: 'V3jJ',
+                useHandleKey: true,
             },
             {
                 name: 'vip + d should delete inner paragraph',
                 content: 'one\ntwo\n\nthree\nfour',
                 cursor: { line: 0, ch: 0 },
                 keys: 'vipd',
+                useHandleKey: true,
             },
             {
                 name: 'v$ + d should delete to end of line',
                 content: 'hello world',
                 cursor: { line: 0, ch: 5 },
                 keys: 'v$d',
+                useHandleKey: true,
             },
             {
                 name: 'V + < should unindent line',
@@ -1412,6 +1417,7 @@ export const SUITES: SuiteDefinition[] = [
                 content: 'hello world',
                 cursor: { line: 0, ch: 0 },
                 keys: 'vllrX',
+                useHandleKey: true,
             },
             {
                 name: 'V + y should yank line',
@@ -1424,6 +1430,7 @@ export const SUITES: SuiteDefinition[] = [
                 content: 'one two three',
                 cursor: { line: 0, ch: 4 },
                 keys: 'vawd',
+                useHandleKey: true,
             },
         ],
     },
@@ -2866,7 +2873,7 @@ export const SUITES: SuiteDefinition[] = [
                 name: 'lua nmap change word',
                 content: 'hello world',
                 cursor: { line: 0, ch: 0 },
-                keys: 'Zfoo<Esc>',
+                keys: 'Zfoo\x1b',
                 luaSetup: "vim.keymap.set('n', 'Z', 'cw')",
             },
             {

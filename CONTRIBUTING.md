@@ -495,7 +495,7 @@ test/
   neovim/                    # Neovim golden comparison infrastructure
     test-definitions.ts      # Test case definitions (shared by golden recording + e2e)
     golden-data/             # Recorded Neovim output (committed, CI compares against these)
-    deviations.ts            # Known intentional differences from Neovim
+    deviations.ts            # Known differences from Neovim (categorized: intentional, infra-limitation, upstream-bug, upstream-unsupported, recording-issue)
     client.ts                # Headless Neovim client
     compare.ts               # Comparison logic
     test-wrapper.ts          # testWithNeovim() helper
@@ -532,6 +532,8 @@ testWithNeovim('suite-name', 'test description', {
 ```
 
 Add a matching entry in `test/neovim/test-definitions.ts` and re-record golden files with `npm run test:neovim-record`.
+
+For test cases where `vimRawKeys` DOM dispatch fails (visual-mode compound operations like `vt.d`, `vawd`, `V3jJ`), set `useHandleKey: true` on the `TestCaseDefinition`. This causes `testWithNeovim` to use `vimHandleKeys` instead of `vimRawKeys`, dispatching all keys synchronously through `Vim.handleKey()`.
 
 For viewport-dependent behavior (`H`/`M`/`L`, scroll, folds), use regular `it()` blocks — headless Neovim has no viewport to compare against.
 
@@ -584,7 +586,8 @@ describe('My feature', function () {
 
 - `setupEditor(content, cursor?)` — Set editor content and cursor position.
 - `vimKeys(...keys)` — Send Vim key sequence with proper pauses.
-- `vimRawKeys(keys)` — Send raw key string via `Vim.handleKey`.
+- `vimRawKeys(keys)` — Send raw key string character-by-character via DOM events (with `Vim.handleKey` for control chars).
+- `vimHandleKeys(keys)` — Send all keys synchronously through `Vim.handleKey()` in a single `executeObsidian` callback. No DOM event timing gaps. Use for visual-mode compound operations that fail with `vimRawKeys` (e.g., `vt.d`, `vawd`, `V3jJ`).
 - `getCursorPos()` — Get `{ line, ch }` cursor position.
 - `getEditorValue()` — Get editor text content.
 - `getSelection()` — Get selected text.

@@ -227,6 +227,44 @@ export async function vimRawKeys(keys: string): Promise<void> {
     await browser.pause(PAUSE.EDITOR_SETTLE - PAUSE.KEY_GAP);
 }
 
+export async function vimHandleKeys(keys: string): Promise<void> {
+    await sendVimEscape();
+    await browser.pause(PAUSE.MODE_SWITCH);
+    await browser.executeObsidian(({ app, obsidian }, keyStr: string) => {
+        const Vim = (
+            window as unknown as Record<string, unknown> & {
+                CodeMirrorAdapter?: {
+                    Vim?: {
+                        handleKey: (cm: unknown, key: string) => boolean;
+                    };
+                };
+            }
+        ).CodeMirrorAdapter?.Vim;
+        if (!Vim) return;
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return;
+        const cm = (
+            (view.editor as unknown as Record<string, unknown>).cm as Record<
+                string,
+                unknown
+            >
+        )?.cm;
+        if (!cm) return;
+        for (const ch of keyStr) {
+            const code = ch.charCodeAt(0);
+            if (code === 0x1b) {
+                Vim.handleKey(cm, '<Esc>');
+            } else if (code < 0x20) {
+                const letter = String.fromCharCode(code + 0x60);
+                Vim.handleKey(cm, '<C-' + letter + '>');
+            } else {
+                Vim.handleKey(cm, ch);
+            }
+        }
+    }, keys);
+    await browser.pause(PAUSE.EDITOR_SETTLE);
+}
+
 export async function loadSingleFileWorkspace(
     filePath = 'Welcome.md',
 ): Promise<void> {

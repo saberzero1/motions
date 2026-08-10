@@ -34,6 +34,12 @@ describe('Built-in ex commands (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "ex-commands-builtin" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "ex-commands-builtin" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     describe(':s (substitute)', function () {

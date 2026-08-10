@@ -1,7 +1,7 @@
 {
     "suite": "ex-sort",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.598Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-10T08:33:05.807Z",
     "cases": [
         {
             "name": ":sort alphabetically",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

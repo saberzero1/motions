@@ -35,6 +35,12 @@ describe('Insert mode commands (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "insert-mode" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "insert-mode" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     describe('Escape / CTRL-[ (exit insert)', function () {

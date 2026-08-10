@@ -34,6 +34,12 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "normal-marks-jumps" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "normal-marks-jumps" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     describe("m / ' / `", function () {

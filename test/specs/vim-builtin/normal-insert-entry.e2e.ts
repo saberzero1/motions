@@ -29,5 +29,11 @@ describe('Normal mode — insert entry commands (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "normal-insert-entry" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "normal-insert-entry" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

@@ -52,6 +52,10 @@ describe('Vimrc support (Phase 2)', function () {
     it('should load a .obsidian.vimrc with key mappings', async function () {
         await loadVimrc('"Test vimrc\nnmap j gj\nnmap k gk\n');
         await assertPluginLoaded();
+        await setupEditor('line1\nline2', { line: 0, ch: 0 });
+        await vimKeys('j');
+        const pos = await getCursorPos();
+        expect(pos.line).toBe(1);
     });
 
     it('should handle vimrc with exmap and obcommand', async function () {
@@ -59,6 +63,7 @@ describe('Vimrc support (Phase 2)', function () {
             '"Test vimrc with exmap\nexmap saveFile obcommand editor:save-file\nnmap <C-s> :saveFile\n',
         );
         await assertPluginLoaded();
+        // Note: exmap + obcommand integration is verified in Phase 2 tests (line 394+)
     });
 
     it('should survive malformed vimrc lines', async function () {
@@ -66,21 +71,39 @@ describe('Vimrc support (Phase 2)', function () {
             '"Test malformed\nnmap\nset\ngarbage line\nnmap j gj\n',
         );
         await assertPluginLoaded();
+        await setupEditor('line1\nline2', { line: 0, ch: 0 });
+        await vimKeys('j');
+        const pos = await getCursorPos();
+        expect(pos.line).toBe(1);
     });
 
     it('should apply let mapleader and replace <leader> in mappings', async function () {
         await loadVimrc('let mapleader = ","\nnmap <leader>j gj\n');
         await assertPluginLoaded();
+        await setupEditor('line1\nline2', { line: 0, ch: 0 });
+        await vimKeys(',', 'j');
+        await browser.pause(100);
+        const pos = await getCursorPos();
+        expect(pos.line).toBe(1);
     });
 
     it('should support nnoremap for non-recursive mappings', async function () {
         await loadVimrc('nnoremap j gj\nnnoremap k gk\n');
         await assertPluginLoaded();
+        await setupEditor('line1\nline2', { line: 0, ch: 0 });
+        await vimKeys('j');
+        const pos = await getCursorPos();
+        expect(pos.line).toBe(1);
     });
 
     it('should combine let mapleader with noremap', async function () {
         await loadVimrc('let mapleader = ","\nnnoremap <leader>j gj\n');
         await assertPluginLoaded();
+        await setupEditor('line1\nline2', { line: 0, ch: 0 });
+        await vimKeys(',', 'j');
+        await browser.pause(100);
+        const pos = await getCursorPos();
+        expect(pos.line).toBe(1);
     });
 
     it('should handle set options including textwidth and expandtab', async function () {

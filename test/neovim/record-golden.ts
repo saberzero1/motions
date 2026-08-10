@@ -27,6 +27,22 @@ async function recordSuite(
         await nvim.input(tc.keys);
 
         process.stderr.write(' ok\n');
+        let regText = '';
+        let regType = '';
+        try {
+            regText = await nvim.getRegister('"');
+            regType = await nvim.getRegisterType('"');
+        } catch {
+            regText = '';
+            regType = '';
+        }
+        const rawMode = await nvim.getRawMode();
+
+        let visualMode: 'charwise' | 'linewise' | 'blockwise' | null = null;
+        if (rawMode === 'v') visualMode = 'charwise';
+        else if (rawMode === 'V') visualMode = 'linewise';
+        else if (rawMode === '\x16') visualMode = 'blockwise';
+
         goldenCases.push({
             name: tc.name,
             initial: { content: tc.content, cursor: tc.cursor },
@@ -35,6 +51,10 @@ async function recordSuite(
                 content: await nvim.getContent(),
                 cursor: await nvim.getCursor(),
                 mode: await nvim.getMode(),
+                registers: regText
+                    ? { '"': { text: regText, linewise: regType === 'V' } }
+                    : undefined,
+                visualMode,
             },
         });
     }

@@ -29,5 +29,11 @@ describe('Macros (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "macros" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "macros" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

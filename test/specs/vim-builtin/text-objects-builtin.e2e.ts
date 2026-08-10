@@ -357,6 +357,12 @@ describe('Built-in text objects (Tier 1)', function () {
                     keys: [tc.keys],
                 });
             }
+        } else {
+            it('suite "text-objects-builtin" exists in test-definitions', function () {
+                throw new Error(
+                    'Suite "text-objects-builtin" not found in SUITES — was it renamed in test-definitions.ts?',
+                );
+            });
         }
     });
 });

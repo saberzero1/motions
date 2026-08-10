@@ -34,6 +34,12 @@ describe('Normal mode — scroll commands (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "normal-scroll" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "normal-scroll" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     const longContent = Array.from(

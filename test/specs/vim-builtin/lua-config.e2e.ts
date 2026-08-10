@@ -31,5 +31,11 @@ describe('Lua config keymaps (golden comparison)', function () {
                 luaSetup: tc.luaSetup,
             });
         }
+    } else {
+        it('suite "lua-keymaps" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "lua-keymaps" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

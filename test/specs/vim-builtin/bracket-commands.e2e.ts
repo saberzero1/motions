@@ -29,5 +29,11 @@ describe('Normal mode — bracket commands (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "bracket-commands" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "bracket-commands" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

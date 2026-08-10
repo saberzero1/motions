@@ -29,5 +29,11 @@ describe('Select mode extended (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "select-mode-extended" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "select-mode-extended" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

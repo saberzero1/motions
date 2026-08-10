@@ -238,6 +238,12 @@ describe('Normal mode — yank and put (Tier 1)', function () {
                     keys: [tc.keys],
                 });
             }
+        } else {
+            it('suite "normal-yank-put" exists in test-definitions', function () {
+                throw new Error(
+                    'Suite "normal-yank-put" not found in SUITES — was it renamed in test-definitions.ts?',
+                );
+            });
         }
     });
 });

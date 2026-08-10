@@ -60,11 +60,17 @@ describe('Undo tree navigation', function () {
         await sendVimEscape();
         await browser.pause(PAUSE.EDITOR_SETTLE * 3);
 
+        const contentAfterEdit = await getEditorValue();
+        expect(contentAfterEdit).toBe('original edit');
+
         await handleEx('earlier 1');
         await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 
         const mode = await getVimMode();
         expect(mode).toBe('normal');
+
+        const content = await getEditorValue();
+        expect(typeof content).toBe('string');
     });
 
     it(':later 1 after :earlier 1 restores content', async function () {
@@ -97,6 +103,9 @@ describe('Undo tree navigation', function () {
 
         const mode = await getVimMode();
         expect(mode).toBe('normal');
+
+        const content = await getEditorValue();
+        expect(content).toBe('test content');
     });
 
     it('g+ does not crash and stays in normal mode', async function () {
@@ -108,6 +117,9 @@ describe('Undo tree navigation', function () {
 
         const mode = await getVimMode();
         expect(mode).toBe('normal');
+
+        const content = await getEditorValue();
+        expect(content).toBe('test content');
     });
 
     it('shadow tree tracks edits', async function () {

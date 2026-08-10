@@ -13,6 +13,8 @@ export interface GoldenCase {
         content: string;
         cursor: { line: number; ch: number };
         mode: string;
+        registers?: Record<string, { text: string; linewise: boolean }>;
+        visualMode?: 'charwise' | 'linewise' | 'blockwise' | null;
     };
 }
 

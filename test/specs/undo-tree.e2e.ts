@@ -100,7 +100,7 @@ describe('Undo tree', function () {
             // At least 1 node beyond root should exist after typing
             expect(state!.nodeCount).toBeGreaterThan(1);
             const branches = await getUndoTreeBranches(state!.currentSeq);
-            expect(branches).toBeGreaterThanOrEqual(0);
+            expect(branches).toBe(0);
         });
 
         it('undo moves shadow tree current backward', async function () {
@@ -131,6 +131,9 @@ describe('Undo tree', function () {
             // Verify we're still in normal mode (no error)
             const mode = await getVimMode();
             expect(mode).toBe('normal');
+
+            const content = await getEditorValue();
+            expect(content).toBe('test');
         });
 
         it('g+ does not crash at head', async function () {
@@ -145,6 +148,9 @@ describe('Undo tree', function () {
 
             const mode = await getVimMode();
             expect(mode).toBe('normal');
+
+            const content = await getEditorValue();
+            expect(content).toBe('xtest');
         });
     });
 
@@ -156,9 +162,15 @@ describe('Undo tree', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
+            const contentAfterEdit = await getEditorValue();
+            expect(contentAfterEdit).toBe('xhello world');
+
             await handleEx('earlier 1');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
             const mode = await getVimMode();
             expect(mode).toBe('normal');
+            const contentAfterEarlier = await getEditorValue();
+            expect(typeof contentAfterEarlier).toBe('string');
         });
 
         it(':later 1 does not crash', async function () {
@@ -168,10 +180,16 @@ describe('Undo tree', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
+            const contentAfterEdit = await getEditorValue();
+            expect(contentAfterEdit).toBe('xhello world');
+
             await handleEx('earlier 1');
             await handleEx('later 1');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
             const mode = await getVimMode();
             expect(mode).toBe('normal');
+            const contentAfterLater = await getEditorValue();
+            expect(contentAfterLater).toBe('xhello world');
         });
 
         it(':earlier with no argument defaults to 1', async function () {
@@ -181,9 +199,15 @@ describe('Undo tree', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
+            const contentAfterEdit = await getEditorValue();
+            expect(contentAfterEdit).toBe('xhello world');
+
             await handleEx('earlier');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
             const mode = await getVimMode();
             expect(mode).toBe('normal');
+            const contentAfterEarlier = await getEditorValue();
+            expect(typeof contentAfterEarlier).toBe('string');
         });
     });
 

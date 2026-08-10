@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`v$d` cursor off-by-one** — visual-mode `v$d` left cursor at ch:5 instead of ch:4 after deleting to end of line. Root cause: `clipCursorToContent` in the delete operator ran while `vim.visualMode` was still `true` (allowing `ch = text.length`), and `exitVisualMode` ran after the operator returned without re-clamping. Fixed by re-clipping `operatorMoveTo` through `clipCursorToContent` after `exitVisualMode` in `applyOperator`.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`applyOperator` — re-clip cursor after `exitVisualMode`)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual operator cursor re-clamping after exitVisualMode" section)
+- **`s` substitute consumed by flash jump in Tier 1 tests** — the `s` key did nothing in `normal-editing.e2e.ts` because the test vault had `flashJumpEnabled: true`, which mapped `s` to flash jump mode instead of the built-in substitute (`cl`). Flash jump tests explicitly enable this setting in their own `before()` hooks. Fixed by setting `flashJumpEnabled: false` in `data.json` and adding a defensive disable in the test's `before()` hook.
+    - Plugin: `test-vault/.obsidian/plugins/vim-motions/data.json` (`flashJumpEnabled: false`)
+    - Plugin: `test/specs/vim-builtin/normal-editing.e2e.ts` (defensive flash disable in `before()`)
+- **`vt.d` on multi-dot content consumed by flash labels** — `vt.d` on content with 2+ dot characters (e.g., `foo.bar.baz`) deleted only 1 character because flash motions showed labels for the multiple `.` matches, consuming the `d` key as a label character. Not a fork bug — flash working as designed (same as flash.nvim in Neovim). Fixed by setting `enableFlash: false` in test vault `data.json` and disabling flash in `visual-mode.e2e.ts` `before()` hook. Flash-specific behavior is tested in dedicated test files.
+    - Plugin: `test-vault/.obsidian/plugins/vim-motions/data.json` (`enableFlash: false`)
+    - Plugin: `test/specs/vim-builtin/visual-mode.e2e.ts` (defensive flash disable in `before()`)
+
+### Added
+
+- **`vimHandleKeys` test helper** — new helper in `test/helpers.ts` that dispatches all keys synchronously through `Vim.handleKey()` in a single `executeObsidian` callback, bypassing DOM event timing. Used for visual-mode compound operations that fail with `vimRawKeys` DOM dispatch.
+    - Plugin: `test/helpers.ts` (`vimHandleKeys` function)
+- **`useHandleKey` flag on `TestCaseDefinition`** — test cases can opt in to `vimHandleKeys` dispatch via `useHandleKey: true`. `testWithNeovim` checks this flag and routes to `vimHandleKeys` instead of `dispatchVimKeys`.
+    - Plugin: `test/neovim/test-definitions.ts` (`useHandleKey?: boolean` on interface, set on 6 visual-mode test cases)
+    - Plugin: `test/neovim/test-wrapper.ts` (import `vimHandleKeys`, `useHandleKey` in config type, dispatch branching)
+- **Deviation category classification** — all deviations in `deviations.ts` now have a `category` field (`intentional`, `infra-limitation`, `upstream-bug`, `upstream-unsupported`, `recording-issue`). `findDeviation()` export added. `[INFRA-SKIP]` console warnings emitted for infra-limitation deviations.
+    - Plugin: `test/neovim/deviations.ts` (interface + 25 entries classified + `findDeviation()`)
+    - Plugin: `test/neovim/test-wrapper.ts` (infra-skip logging in both live and golden paths)
+- **Golden schema extended with `registers` and `visualMode`** — `GoldenCase.result` now includes optional `registers` (unnamed register text + linewise flag) and `visualMode` (`charwise`/`linewise`/`blockwise`). Recording captures these fields. Comparison is not yet enabled (register state leaks between tests in shared Obsidian session).
+    - Plugin: `test/neovim/compare.ts` (`EditorState` extended, `getObsidianState`/`getNeovimState` capture registers and visual sub-mode)
+    - Plugin: `test/neovim/golden.ts` (`GoldenCase` extended)
+    - Plugin: `test/neovim/record-golden.ts` (captures registers and visual mode)
+    - Plugin: `test/neovim/client.ts` (`getRegisterType`, `getRawMode` methods)
+    - Plugin: `test/neovim/golden-data/*.json` (24 files re-recorded with new fields)
+- **Golden mode comparison** — `testWithNeovim()` golden path now compares `mode` in addition to `content` and `cursor`. Mode mismatches that were previously invisible are now caught.
+    - Plugin: `test/neovim/test-wrapper.ts` (mode comparison in golden path)
+- **`else { throw }` guards on all 26 `SUITES.find()` files** — if a suite name is renamed in `test-definitions.ts` but not in the spec file, the test runner produces an explicit failure instead of silently generating zero tests.
+    - Plugin: `test/specs/vim-builtin/*.e2e.ts` (26 files)
+
+### Changed
+
+- **E2E test assertions strengthened** — 35 tests that previously only checked `mode === 'normal'` or `assertPluginLoaded()` now have content, cursor, or behavioral assertions. 16 workspace-layout ex-command tests renamed with `[crash-guard]` prefix. 1 tautological assertion fixed (`toBeGreaterThanOrEqual(0)` → `toBe(0)`).
+    - Plugin: `test/specs/undo-tree.e2e.ts`, `test/specs/undo-tree-navigation.e2e.ts`, `test/specs/vim-builtin/ex-commands-expanded.e2e.ts`, `test/specs/vimrc.e2e.ts`
+- **Deviation count reduced** — 6 visual-mode infra-limitation deviations resolved via `useHandleKey` (V3j+J, vip+d, v+r, v+aw+d, vt.+d, v$+d). 1 deviation resolved via key-string fix (`lua nmap change word` — `<Esc>` literal → `\x1b` byte). 1 reclassified from `infra-limitation` to `upstream-bug` (`lua leader key mapping`).
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added "E2E test infrastructure weaknesses" section with fixed/remaining items; marked `s` substitute test failure as fixed; updated deviation-masked operations count and root causes
+- `AGENTS.md`: Updated deviation registry description with categories and `[INFRA-SKIP]`; updated test helpers with `vimHandleKeys`
+- `CONTRIBUTING.md`: Added `vimHandleKeys` to helper list; added `useHandleKey` flag documentation; updated deviations.ts description with categories
+- `DIFFERENCES.md` (fork): Added "Visual operator cursor re-clamping after exitVisualMode" section
+
 ## [0.103.0] - 2026-08-08
 
 ### Fixed

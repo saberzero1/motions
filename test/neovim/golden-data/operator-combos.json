@@ -1,7 +1,7 @@
 {
     "suite": "operator-combos",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-01T08:45:48.863Z",
+    "recorded_at": "2026-08-10T08:32:37.124Z",
     "cases": [
         {
             "name": "dw should delete to next word",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 0,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "   ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -133,7 +175,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -152,7 +201,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -171,7 +227,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -190,7 +253,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -209,7 +279,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -228,7 +305,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -247,7 +331,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -266,7 +357,14 @@
                     "line": 0,
                     "ch": 6
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "wo",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -285,7 +383,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "cdef",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -304,7 +409,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "cdef",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -323,7 +435,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -342,7 +461,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -361,7 +487,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hell",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -380,7 +513,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "c",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -399,7 +539,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "b",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -418,7 +565,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "abc",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -437,7 +591,14 @@
                     "line": 1,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "line2\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -456,7 +617,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "  hello\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -475,7 +643,14 @@
                     "line": 0,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "  hello\n  world\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -494,7 +669,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "  aaa\n  bbb\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -513,7 +695,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "  aaa\n  bbb\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -532,7 +721,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -551,7 +747,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -570,7 +773,14 @@
                     "line": 0,
                     "ch": 6
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -589,7 +799,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -608,7 +825,14 @@
                     "line": 0,
                     "ch": 7
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -627,7 +851,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -646,7 +877,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -665,7 +903,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "long line here\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -684,7 +929,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -703,7 +955,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " word1\nword2\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -722,7 +981,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -741,7 +1007,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " word1\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -760,7 +1033,14 @@
                     "line": 0,
                     "ch": 6
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " word1\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -779,7 +1059,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -798,7 +1085,14 @@
                     "line": 0,
                     "ch": 7
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -817,7 +1111,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -836,7 +1137,14 @@
                     "line": 0,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -855,7 +1163,14 @@
                     "line": 0,
                     "ch": 10
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": " world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -874,7 +1189,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\nfour\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -893,7 +1215,14 @@
                     "line": 0,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "(bar)",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -912,7 +1241,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "(bar)",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -931,7 +1267,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "(bar)",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -950,7 +1293,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "(bar)",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -969,7 +1319,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "(bar)",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -988,7 +1345,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "foo.",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1007,7 +1371,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "foo",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1026,7 +1397,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one two",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1045,7 +1423,14 @@
                     "line": 0,
                     "ch": 7
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1064,7 +1449,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1083,7 +1475,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1102,7 +1501,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1121,7 +1527,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1140,7 +1553,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1159,7 +1579,14 @@
                     "line": 0,
                     "ch": 4
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1178,7 +1605,14 @@
                     "line": 0,
                     "ch": 6
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1197,7 +1631,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello world\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1216,7 +1657,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "lo world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1235,7 +1683,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1254,7 +1709,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1273,7 +1735,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -1292,7 +1761,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\n\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

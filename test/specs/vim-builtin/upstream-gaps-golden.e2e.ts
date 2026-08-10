@@ -29,5 +29,11 @@ describe('Upstream test gaps (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "upstream-gaps" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "upstream-gaps" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

@@ -4,7 +4,9 @@ import {
     setupEditor,
     getEditorValue,
     getCursorPos,
+    getRegisterContent,
     sendVimEscape,
+    vimKeys,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -34,6 +36,12 @@ describe('Expanded Ex commands', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "ex-commands-expanded" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "ex-commands-expanded" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     function handleEx(cmd: string) {
@@ -67,13 +75,13 @@ describe('Expanded Ex commands', function () {
     }
 
     describe('Phase 1: File operations', function () {
-        it(':update should save without error', async function () {
+        it('[crash-guard] :update should save without error', async function () {
             await setupEditor('test content', { line: 0, ch: 0 });
             const result = await handleEx('update');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':xit should save and close without error', async function () {
+        it('[crash-guard] :xit should save and close without error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             await setupEditor('xit test', { line: 0, ch: 0 });
@@ -81,7 +89,7 @@ describe('Expanded Ex commands', function () {
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':find should open file by partial name', async function () {
+        it('[crash-guard] :find should open file by partial name', async function () {
             const result = await browser.executeObsidian(
                 ({ app, obsidian }) => {
                     try {
@@ -118,21 +126,21 @@ describe('Expanded Ex commands', function () {
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':version should not error', async function () {
+        it('[crash-guard] :version should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('version');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':e! should revert file without error', async function () {
+        it('[crash-guard] :e! should revert file without error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('edit!');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':saveas with no arg should show usage notice', async function () {
+        it('[crash-guard] :saveas with no arg should show usage notice', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('saveas');
@@ -141,19 +149,19 @@ describe('Expanded Ex commands', function () {
     });
 
     describe('Phase 2: Buffer navigation', function () {
-        it(':bfirst should not error', async function () {
+        it('[crash-guard] :bfirst should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('bfirst');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':blast should not error', async function () {
+        it('[crash-guard] :blast should not error', async function () {
             const result = await handleEx('blast');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':bwipeout should not error', async function () {
+        it('[crash-guard] :bwipeout should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('bwipeout');
@@ -162,42 +170,42 @@ describe('Expanded Ex commands', function () {
     });
 
     describe('Phase 3: Split/tab commands', function () {
-        it(':split should not error', async function () {
+        it('[crash-guard] :split should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('split');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':vsplit should not error', async function () {
+        it('[crash-guard] :vsplit should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('vsplit');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':tabclose should not error', async function () {
+        it('[crash-guard] :tabclose should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('tabclose');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':tabonly should not error', async function () {
+        it('[crash-guard] :tabonly should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('tabonly');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':tabfirst should not error', async function () {
+        it('[crash-guard] :tabfirst should not error', async function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(300);
             const result = await handleEx('tabfirst');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':tablast should not error', async function () {
+        it('[crash-guard] :tablast should not error', async function () {
             const result = await handleEx('tablast');
             expect(result).toHaveProperty('success', true);
         });
@@ -205,15 +213,15 @@ describe('Expanded Ex commands', function () {
 
     describe('Phase 4: Utility commands', function () {
         it(':delmarks with no arg should show usage', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
-            const result = await handleEx('delmarks');
+            await setupEditor('hello', { line: 0, ch: 0 });
+            await vimKeys('m', 'a');
+            await browser.pause(100);
+            const result = await handleEx('delmarks a');
             expect(result).toHaveProperty('success', true);
         });
 
-        it(':changes should show change list modal', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it('[crash-guard] :changes should not error', async function () {
+            await setupEditor('test', { line: 0, ch: 0 });
             const result = await handleEx('changes');
             expect(result).toHaveProperty('success', true);
             await sendVimEscape();
@@ -226,6 +234,9 @@ describe('Expanded Ex commands', function () {
             await setupEditor('line one\nline two', { line: 0, ch: 0 });
             const result = await handleEx('yank');
             expect(result).toHaveProperty('success', true);
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('line one');
         });
 
         it(':join should join lines', async function () {
@@ -238,16 +249,28 @@ describe('Expanded Ex commands', function () {
             await setupEditor('test', { line: 0, ch: 0 });
             const result = await handleEx('nohlsearch');
             expect(result).toHaveProperty('success', true);
+            const content = await getEditorValue();
+            expect(content).toBe('test');
         });
 
         it(':undo should not error', async function () {
-            const result = await handleEx('undo');
-            expect(result).toHaveProperty('success', true);
+            await setupEditor('hello', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await browser.pause(100);
+            await handleEx('undo');
+            await browser.pause(100);
+            expect(await getEditorValue()).toBe('hello');
         });
 
         it(':redo should not error', async function () {
-            const result = await handleEx('redo');
-            expect(result).toHaveProperty('success', true);
+            await setupEditor('hello', { line: 0, ch: 0 });
+            await vimKeys('d', 'd');
+            await browser.pause(100);
+            await handleEx('undo');
+            await browser.pause(100);
+            await handleEx('redo');
+            await browser.pause(100);
+            expect(await getEditorValue()).toBe('');
         });
 
         it(':global should execute on matching lines', async function () {

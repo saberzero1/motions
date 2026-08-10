@@ -1,7 +1,7 @@
 {
     "suite": "normal-scroll",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-01T08:45:48.965Z",
+    "recorded_at": "2026-08-10T08:32:37.241Z",
     "cases": [
         {
             "name": "Ctrl-A should increment number",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 7
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello world\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 7
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello world\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

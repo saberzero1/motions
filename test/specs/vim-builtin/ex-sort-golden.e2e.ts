@@ -29,5 +29,11 @@ describe('Ex :sort (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "ex-sort" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "ex-sort" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

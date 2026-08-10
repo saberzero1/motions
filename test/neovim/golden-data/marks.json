@@ -1,7 +1,7 @@
 {
     "suite": "marks",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.632Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-10T08:33:00.500Z",
     "cases": [
         {
             "name": "ma then 'a should jump to marked line",
@@ -19,7 +19,14 @@
                     "line": 2,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "d",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 3,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "d",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 2,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "l",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "l",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 1,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "l",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

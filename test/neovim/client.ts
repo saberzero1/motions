@@ -121,7 +121,24 @@ export class NeovimClient {
     }
 
     async getRegister(name: string): Promise<string> {
-        return (await this.nvim.call('getreg', [name])) as string;
+        try {
+            return (await this.nvim.call('getreg', [name])) as string;
+        } catch {
+            return '';
+        }
+    }
+
+    async getRegisterType(name: string): Promise<string> {
+        try {
+            return (await this.nvim.call('getregtype', [name])) as string;
+        } catch {
+            return '';
+        }
+    }
+
+    async getRawMode(): Promise<string> {
+        const mode = await this.nvim.mode;
+        return mode.mode;
     }
 
     async getVersion(): Promise<string> {

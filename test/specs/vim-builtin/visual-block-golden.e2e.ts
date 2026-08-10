@@ -29,5 +29,11 @@ describe('Visual block mode (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "visual-block" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "visual-block" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

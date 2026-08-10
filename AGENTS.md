@@ -151,7 +151,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 
 - **Golden files**: `test/neovim/golden-data/*.json` — committed to the repo, recorded against a pinned Neovim version.
 - **Test definitions**: `test/neovim/test-definitions.ts` — single source of truth for test cases used by both golden recording and `testWithNeovim()` calls.
-- **Deviation registry**: `test/neovim/deviations.ts` — 20 known intentional differences between the plugin and Neovim. Each entry is a "feels different from Neovim" item; shrinking this list is the roadmap toward parity.
+- **Deviation registry**: `test/neovim/deviations.ts` — known differences between the plugin and Neovim, each classified by category (`intentional`, `infra-limitation`, `upstream-bug`, `upstream-unsupported`, `recording-issue`). `[INFRA-SKIP]` warnings are emitted in CI output for infra-limitation deviations. Shrinking this list is the roadmap toward parity.
 - **Record golden files**: `npm run test:neovim-record` (requires `nvim` binary).
 - **Live comparison**: `NEOVIM_COMPARE=1 npm run test:e2e` (requires `nvim` binary).
 - **Smoke test**: `npm run test:neovim-smoke` (requires `nvim` binary).
@@ -163,7 +163,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 - `test/specs/spikes/` — exploratory/R&D tests.
 - `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, invariants, mode-tracker, settings-resolution, dual-vim, animated-cursor, etc.).
 - `test/neovim/` — Neovim comparison infrastructure (client, compare, golden, deviations, wrapper, definitions, recording).
-- `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`, `ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`).
+- `test/helpers.ts` — shared WDIO helpers (`setupEditor`, `vimKeys`, `vimRawKeys`, `vimHandleKeys`, `getCursorPos`, `getEditorValue`, `getVimMode`, `getRegisterContent`, `ensureLivePreview`, `ensureSourceMode`, `isLivePreview`, `isSourceMode`). `vimHandleKeys` dispatches all keys synchronously through `Vim.handleKey()` in a single `executeObsidian` callback, bypassing DOM event timing. Used for visual-mode compound operations that fail with `vimRawKeys` DOM dispatch (via `useHandleKey` flag on `TestCaseDefinition`).
 
 ### Writing new Tier 1 tests
 

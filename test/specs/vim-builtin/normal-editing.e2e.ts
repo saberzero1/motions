@@ -15,6 +15,26 @@ describe('Normal mode — editing commands (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (plugin && plugin.settings.flashJumpEnabled) {
+                plugin.settings.flashJumpEnabled = false;
+                plugin.reloadFeatures();
+            }
+        });
+        await browser.pause(300);
         await startNvim();
     });
 
@@ -255,6 +275,12 @@ describe('Normal mode — editing commands (Tier 1)', function () {
                     keys: [tc.keys],
                 });
             }
+        } else {
+            it('suite "normal-editing" exists in test-definitions', function () {
+                throw new Error(
+                    'Suite "normal-editing" not found in SUITES — was it renamed in test-definitions.ts?',
+                );
+            });
         }
     });
 });

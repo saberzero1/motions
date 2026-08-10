@@ -46,6 +46,12 @@ describe('Normal mode — search and find (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "normal-search" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "normal-search" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     describe('[obsidian] ; / ,', function () {

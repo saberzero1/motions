@@ -1,9 +1,9 @@
 import { browser } from '@wdio/globals';
 import { NeovimClient } from './client';
-import { setupEditor, vimRawKeys, PAUSE } from '../helpers';
+import { setupEditor, vimRawKeys, vimHandleKeys, PAUSE } from '../helpers';
 import { compareStates, getObsidianState, getNeovimState } from './compare';
 import { findGoldenCase } from './golden';
-import { isKnownDeviation } from './deviations';
+import { isKnownDeviation, findDeviation } from './deviations';
 
 function findExColonIndex(keys: string): number {
     if (keys.startsWith(':')) return 0;
@@ -105,6 +105,7 @@ export function testWithNeovim(
         cursor: { line: number; ch: number };
         keys: string[];
         luaSetup?: string;
+        useHandleKey?: boolean;
     },
 ): void {
     it(`[nvim] ${name}`, async function () {
@@ -126,7 +127,11 @@ export function testWithNeovim(
             await browser.pause(PAUSE.EDITOR_SETTLE);
         }
         for (const segment of config.keys) {
-            await dispatchVimKeys(segment);
+            if (config.useHandleKey) {
+                await vimHandleKeys(segment);
+            } else {
+                await dispatchVimKeys(segment);
+            }
             await browser.pause(PAUSE.KEY_GAP);
         }
 
@@ -151,6 +156,13 @@ export function testWithNeovim(
                         `  Neovim:   ${JSON.stringify(result.neovim)}\n` +
                         `  Diffs:    ${result.diffs.join(', ')}`,
                 );
+            } else if (isKnownDeviation(name)) {
+                const deviation = findDeviation(name);
+                if (deviation?.category === 'infra-limitation') {
+                    console.warn(
+                        `[INFRA-SKIP] ${name}: ${deviation.description}`,
+                    );
+                }
             }
         } else if (!isKnownDeviation(name)) {
             const golden = findGoldenCase(suiteName, name);
@@ -173,6 +185,22 @@ export function testWithNeovim(
                             `  Golden:   ${JSON.stringify(golden.result.cursor)}`,
                     );
                 }
+                if (
+                    golden.result.mode &&
+                    obsState.mode !== golden.result.mode
+                ) {
+                    throw new Error(
+                        `Golden mismatch (mode):\n` +
+                            `  Obsidian: ${obsState.mode}\n` +
+                            `  Golden:   ${golden.result.mode}`,
+                    );
+                }
+            }
+        } else {
+            // Known deviation in golden path — log infra-limitations
+            const deviation = findDeviation(name);
+            if (deviation?.category === 'infra-limitation') {
+                console.warn(`[INFRA-SKIP] ${name}: ${deviation.description}`);
             }
         }
     });

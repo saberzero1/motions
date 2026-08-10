@@ -34,6 +34,12 @@ describe('Normal mode — cursor motions (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "normal-motions" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "normal-motions" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     describe('[obsidian] H / M / L (screen-relative)', function () {

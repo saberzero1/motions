@@ -1,7 +1,7 @@
 {
     "suite": "select-mode-extended",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:41:09.463Z",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-10T08:33:01.806Z",
     "cases": [
         {
             "name": "gh then type replaces selection",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "h",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 1,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "second\n",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 2
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "l",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -76,7 +97,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hel",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -95,7 +123,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "e",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -114,7 +149,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "h",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

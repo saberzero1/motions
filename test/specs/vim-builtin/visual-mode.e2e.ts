@@ -15,6 +15,26 @@ describe('Visual mode (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (plugin && plugin.settings.enableFlash) {
+                plugin.settings.enableFlash = false;
+                plugin.reloadFeatures();
+            }
+        });
+        await browser.pause(300);
         await startNvim();
     });
 
@@ -399,8 +419,15 @@ describe('Visual mode (Tier 1)', function () {
                     content: tc.content,
                     cursor: tc.cursor,
                     keys: [tc.keys],
+                    useHandleKey: tc.useHandleKey,
                 });
             }
+        } else {
+            it('suite "visual-mode" exists in test-definitions', function () {
+                throw new Error(
+                    'Suite "visual-mode" not found in SUITES — was it renamed in test-definitions.ts?',
+                );
+            });
         }
     });
 });

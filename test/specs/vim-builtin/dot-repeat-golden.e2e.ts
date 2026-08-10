@@ -29,5 +29,11 @@ describe('Dot repeat (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "dot-repeat" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "dot-repeat" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

@@ -37,6 +37,12 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "g-commands" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "g-commands" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 
     describe('gj / gk (display lines)', function () {

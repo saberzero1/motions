@@ -29,5 +29,11 @@ describe('Surround (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "surround" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "surround" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });

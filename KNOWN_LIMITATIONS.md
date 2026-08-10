@@ -1215,6 +1215,34 @@ Matching is `RegExp`-based for grep (with fallback to substring matching for inv
 
 uFuzzy adds +17.5KB. Combined with picker UI code, the picker subsystem adds ~50KB to the production bundle.
 
+## E2E test infrastructure weaknesses
+
+**Status**: Partially addressed.
+
+The e2e test suite had ~47 tests that did not reliably detect the regressions they claimed to guard against. A feature could be deleted or broken and these tests would still pass.
+
+**Fixed (this release)**:
+
+- **26 golden spec files** now have `else { throw }` guards on `SUITES.find()` — if a suite name is renamed in `test-definitions.ts` but not in the spec file, the test runner produces an explicit failure instead of silently generating zero tests
+- **Golden mode comparison** added to `testWithNeovim()` — golden data already contained `mode` values but the CI comparison path only checked `content` and `cursor`. Mode mismatches are now caught
+- **33 deviations classified** with a `category` field (`intentional`, `infra-limitation`, `upstream-bug`, `upstream-unsupported`, `recording-issue`). `findDeviation()` export added. `[INFRA-SKIP]` console warnings emitted for infra-limitation deviations so CI output shows how many tests are silently skipped due to infrastructure limitations
+- **8 undo-tree tests** strengthened with content assertions (previously only checked `mode === 'normal'`)
+- **4 ex-command tests** (`:undo`, `:redo`, `:yank`, `:nohlsearch`) strengthened with behavioral assertions. 16 workspace-layout ex-command tests renamed with `[crash-guard]` prefix to make their tier explicit
+- **6 vimrc mapping tests** strengthened with cursor movement verification (previously only called `assertPluginLoaded()`)
+- **1 tautological assertion** fixed (`toBeGreaterThanOrEqual(0)` → `toBe(0)` for undo tree branch count)
+
+**Remaining weaknesses**:
+
+- **7 deviation-masked operations effectively untested**: When `isKnownDeviation(name)` is true, `testWithNeovim()` skips ALL comparison. 7 remain as `infra-limitation` deviations: `gh`/`gH` select mode (6 tests — spike confirmed `handleKey` cannot enter select mode via `g`+`h` dispatch), `N after / search` (1 test — CM6 search panel timing). Previously 10 — resolved 3: `V3j+J`, `vip+d`, `v+r`, `v+aw+d` fixed via `useHandleKey` flag + `vimHandleKeys` helper (dispatches all keys through `Vim.handleKey()` synchronously, bypassing DOM event timing); `lua nmap change word` fixed via key-string encoding (`<Esc>` literal → `\x1b` byte); `lua leader key mapping` reclassified to `upstream-bug` (leaderRegistry propagation timing, not test dispatch); `vt.+d` and `v$+d` exposed as genuine `upstream-bug` behavioral deviations (visual-mode `t` range and `v$d` cursor position differ from Neovim)
+- **3 vimrc `set` option tests** (lines 109, 116, 121 in `vimrc.e2e.ts`) remain as `assertPluginLoaded()`-only. Root cause confirmed: the vimrc I/O timing issue (documented under [set textwidth via vimrc](#set-textwidth-via-vimrc-may-not-affect-gq)). `SideEffectOpt` options (`clipboard`, `expandtab`, `textwidth`) are applied via `onSettingOverride` → `applySettingOverride` → `this.settings[key] = value`, but `saveSettings()` strips these overrides using `preVimrcSettings`, and the `initializing` flag during `onload()` gates the override chain. By the time the test reads `plugin.settings.clipboard`, it returns `''` (the pre-vimrc default). `Vim.getOption('clipboard')` also returns `''`. The `vimrcOverrides` Map is empty by test time. The Lua `vim.opt` equivalent is verified and passing in `lua-config.e2e.ts` — the Lua path works because `loadLuaConfigForTest()` runs the override chain synchronously without the `initializing`/`saveSettings` stripping
+- **`:changes` ex command test** remains a crash-guard. The correct modal selector is `.vim-motions-info-modal` (confirmed from `VimInfoModal` source and verified working in `undo-tree.e2e.ts`'s `:undolist` test), but `:changes` invoked via the `handleEx` wrapper in `ex-commands-expanded.e2e.ts` does not produce a visible modal DOM element — the `VimInfoModal.open()` call completes without error but no `.vim-motions-info-modal` appears in the document (verified with `waitUntil` + 3s timeout). The `:undolist` test in `undo-tree.e2e.ts` uses a different `handleEx` function (without try/catch wrapper) and works. Root cause likely related to the ex-commands test's `handleEx` wrapper or test state
+- **`:e!` and `:update` ex command tests** remain crash-guards. Confirmed: `setupEditor()` uses `view.editor.setValue(text)` which sets in-memory content only — no `app.vault.adapter.write()` call. `:e!` reverts to the last saved disk state, not the `setupEditor` content. Behavioral assertions would require an explicit save step before `:e!`, which adds complexity beyond the test's scope
+- **Golden comparison does not check register state or visual sub-mode type** — `compareStates()` compares `content`, `cursor`, `mode` (mode comparison added this release). The golden schema (`GoldenCase`) and recording infrastructure now capture `registers` (unnamed register text + linewise flag) and `visualMode` (`charwise`/`linewise`/`blockwise`) — 24 of 29 golden files include these new fields. However, **register comparison is disabled at runtime** because register state leaks between tests within the same Obsidian session (each `testWithNeovim` test shares the same editor instance, so registers from previous tests persist). Neovim golden recording starts each test fresh, producing a clean register state. Enabling register comparison requires either per-test register reset in Obsidian or comparing only tests that explicitly opt in via a flag. The golden data with registers is preserved for future use
+
+### ~~`s` (substitute) test failure~~ (Fixed)
+
+**Status**: Fixed. Not a code regression — test vault `data.json` had `flashJumpEnabled: true`, which mapped `s` to flash jump mode instead of the built-in substitute (`cl`). Flash jump tests explicitly enable this setting in their own `before()` hooks and don't depend on the `data.json` value. Fixed by setting `flashJumpEnabled: false` in `data.json` and adding a defensive disable in `normal-editing.e2e.ts`'s `before()` hook.
+
 ## Neovim golden test coverage gaps
 
 The plugin verifies Vim behavior against headless Neovim via golden comparison tests (`test/neovim/`). The following areas of the fork's test suite are **not** covered by golden comparison because they cannot be meaningfully verified in a headless Neovim session:

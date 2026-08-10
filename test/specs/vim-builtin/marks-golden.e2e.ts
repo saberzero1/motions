@@ -29,5 +29,11 @@ describe('Marks (Tier 1 golden)', function () {
                 keys: [tc.keys],
             });
         }
+    } else {
+        it('suite "marks" exists in test-definitions', function () {
+            throw new Error(
+                'Suite "marks" not found in SUITES — was it renamed in test-definitions.ts?',
+            );
+        });
     }
 });
