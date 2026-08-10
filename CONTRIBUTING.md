@@ -151,7 +151,7 @@ src/
     global-defaults.ts     # Default global keybindings — gotoNthTab filters to rootSplit leaves only; gf hint binding for context menu action
   easymotion/
     register.ts            # Wires EasyMotion to keybindings — per-motion motionArgs (inclusive flag) for correct operator-pending inclusivity matching native Vim semantics
-    targets.ts             # Target detection (words, lines, chars)
+    targets.ts             # Target detection (words, lines, chars) — getVisibleRange uses view.visibleRanges for correct viewport calculation with collapsed frontmatter widgets in Live Preview
     overlay.ts             # Label + highlight overlay rendering (measureTarget, measureLabelAnchor, renderHighlightSpans)
     labels.ts              # Label generation and assignment
     keypress.ts            # Keypress handling during label selection (waitForKey with modifier-key guard, waitForLabel)

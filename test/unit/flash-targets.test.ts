@@ -5,17 +5,16 @@ import {
 } from '../../src/easymotion/targets';
 
 function stubCm(lines: string[]) {
+    const totalLen = lines.reduce((sum, l) => sum + l.length + 1, 0);
     return {
         getLine: (n: number) => lines[n] ?? '',
         getCursor: () => ({ line: 0, ch: 0 }),
         lastLine: () => lines.length - 1,
         cm6: {
             scrollDOM: { scrollTop: 0, clientHeight: 1000 },
-            lineBlockAtHeight: () => ({ from: 0, to: 0 }),
+            visibleRanges: [{ from: 0, to: Math.max(0, totalLen - 1) }],
             state: {
                 doc: {
-                    // Only reliable for single-line stubs; for multi-line,
-                    // expand the lineAt logic to map byte offsets to lines.
                     lineAt: (pos: number) => ({
                         number: pos === 0 ? 1 : lines.length,
                     }),

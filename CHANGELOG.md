@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Flash labels missing from top half of viewport with frontmatter scrolled off-screen** — in Live Preview mode, when YAML frontmatter properties (~10-15 lines) were collapsed into a widget and scrolled off-screen, flash `f`/`F`/`t`/`T` labels only appeared in the bottom half of the viewport. The number of missing lines matched the frontmatter line count. Root cause: `getVisibleRange()` in `src/easymotion/targets.ts` used `view.lineBlockAtHeight()` which relies on CM6's height map — when the collapsed frontmatter widget was off-screen, height estimation errors caused `coordsAtPos()` to return `null` for targets near the viewport top, and `filterVisibleTargets()` dropped them. Fixed by using `view.visibleRanges` (actually-rendered document ranges) instead of `lineBlockAtHeight`. Also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))
+    - Plugin: `src/easymotion/targets.ts` (`getVisibleRange` — replaced `lineBlockAtHeight` with `view.visibleRanges`)
+    - Plugin: `test/unit/flash-targets.test.ts` (updated CM6 stub to provide `visibleRanges`)
 - **`v$d` cursor off-by-one** — visual-mode `v$d` left cursor at ch:5 instead of ch:4 after deleting to end of line. Root cause: `clipCursorToContent` in the delete operator ran while `vim.visualMode` was still `true` (allowing `ch = text.length`), and `exitVisualMode` ran after the operator returned without re-clamping. Fixed by re-clipping `operatorMoveTo` through `clipCursorToContent` after `exitVisualMode` in `applyOperator`.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`applyOperator` — re-clip cursor after `exitVisualMode`)
     - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual operator cursor re-clamping after exitVisualMode" section)
@@ -46,12 +49,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `test/specs/undo-tree.e2e.ts`, `test/specs/undo-tree-navigation.e2e.ts`, `test/specs/vim-builtin/ex-commands-expanded.e2e.ts`, `test/specs/vimrc.e2e.ts`
 - **Deviation count reduced** — 6 visual-mode infra-limitation deviations resolved via `useHandleKey` (V3j+J, vip+d, v+r, v+aw+d, vt.+d, v$+d). 1 deviation resolved via key-string fix (`lua nmap change word` — `<Esc>` literal → `\x1b` byte). 1 reclassified from `infra-limitation` to `upstream-bug` (`lua leader key mapping`).
 
+### Tests
+
+- 1 e2e test in `test/specs/flash-frontmatter-viewport.e2e.ts` (issue #114): flash labels appear in top half of viewport when frontmatter properties are scrolled off-screen in Live Preview mode — verifies labels are not clustered in bottom half only
+
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Added "E2E test infrastructure weaknesses" section with fixed/remaining items; marked `s` substitute test failure as fixed; updated deviation-masked operations count and root causes
-- `AGENTS.md`: Updated deviation registry description with categories and `[INFRA-SKIP]`; updated test helpers with `vimHandleKeys`
-- `CONTRIBUTING.md`: Added `vimHandleKeys` to helper list; added `useHandleKey` flag documentation; updated deviations.ts description with categories
+- `KNOWN_LIMITATIONS.md`: Added "E2E test infrastructure weaknesses" section with fixed/remaining items; marked `s` substitute test failure as fixed; updated deviation-masked operations count and root causes; marked flash frontmatter viewport offset as fixed
+- `AGENTS.md`: Updated deviation registry description with categories and `[INFRA-SKIP]`; updated test helpers with `vimHandleKeys`; updated `targets.ts` description with `visibleRanges`
+- `CONTRIBUTING.md`: Added `vimHandleKeys` to helper list; added `useHandleKey` flag documentation; updated deviations.ts description with categories; updated `targets.ts` description with `visibleRanges`
 - `DIFFERENCES.md` (fork): Added "Visual operator cursor re-clamping after exitVisualMode" section
 
 ## [0.103.0] - 2026-08-08

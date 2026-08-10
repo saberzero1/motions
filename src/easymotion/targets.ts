@@ -6,12 +6,20 @@ export type Direction = 'forward' | 'backward' | 'bidirectional';
 export function getVisibleRange(cm: CmAdapter): VisibleRange {
     const view = cm.cm6;
     if (!view) return { fromLine: 0, toLine: cm.lastLine() };
-    const top = view.lineBlockAtHeight(view.scrollDOM.scrollTop);
-    const bottom = view.lineBlockAtHeight(
-        view.scrollDOM.scrollTop + view.scrollDOM.clientHeight,
-    );
-    const fromLine = view.state.doc.lineAt(top.from).number - 1;
-    const toLine = view.state.doc.lineAt(bottom.to).number - 1;
+
+    // Use view.visibleRanges instead of lineBlockAtHeight.
+    // In Live Preview mode, collapsed frontmatter widgets cause
+    // lineBlockAtHeight to miscalculate document positions when the
+    // widget is scrolled off-screen (height estimation error), which
+    // makes coordsAtPos return null for targets near the top of the
+    // viewport.  visibleRanges reflects the actually-rendered document
+    // ranges where coordsAtPos will succeed.
+    const ranges = view.visibleRanges;
+    if (ranges.length === 0) return { fromLine: 0, toLine: cm.lastLine() };
+
+    const fromLine = view.state.doc.lineAt(ranges[0]!.from).number - 1;
+    const toLine =
+        view.state.doc.lineAt(ranges[ranges.length - 1]!.to).number - 1;
     return { fromLine, toLine };
 }
 

@@ -147,6 +147,7 @@ Flash-style enhanced `f`/`F`/`t`/`T` motions show labels on all visible matches 
 - **Search mode post-commit only**: Flash search labels appear AFTER committing a `/` or `?` search with Enter, not during typing. This is a deliberate simplification from flash.nvim to avoid label-vs-search-char disambiguation. Labels auto-clear on any non-label key.
 - **Search mode single match**: Labels are only shown when 2+ matches exist. Single-match searches navigate directly without labels.
 - **Search labels with `*`/`#`**: Word-under-cursor search (`*`/`#`) does not trigger flash search labels because it bypasses the search dialog.
+- ~~**Labels missing from top half of viewport with frontmatter scrolled off-screen**~~: Fixed. In Live Preview mode, when frontmatter properties were collapsed into a widget and scrolled off-screen, flash labels only appeared in the bottom half of the viewport. Root cause: `getVisibleRange()` in `src/easymotion/targets.ts` used `view.lineBlockAtHeight()` to determine visible document lines, but CM6's height map uses estimated heights for off-screen widgets — the collapsed frontmatter widget's estimated height differed from its actual rendered height, causing `coordsAtPos()` to return `null` for targets near the viewport top. Fixed by using `view.visibleRanges` (which reflects actually-rendered document ranges) instead of `lineBlockAtHeight`. This also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))
 
 ## Operator-prefix key dispatch (`timeoutlen`)
 
