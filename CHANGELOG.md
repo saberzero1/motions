@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Enter in embedded table cell editor breaks table structure** — pressing Enter in insert mode inside an embedded table cell editor (`set tablewidget=embedded`) inserted a literal newline into the cell content. Upon exiting the table, the multi-line content was written back into the single-line markdown table row, breaking the table structure — the second line appeared outside the table. Fixed by converting newlines to `<br>` tags on cell editor close and converting `<br>` tags back to newlines on cell editor open, preserving multi-line cell content using standard HTML line breaks that Obsidian renders correctly within table cells. Existing `<br>` content in cells round-trips cleanly. ([#115](https://github.com/saberzero1/motions/issues/115))
+    - Plugin: `src/vim/table-utils.ts` (`cellBrToNewline`, `cellNewlineToBr` — new pure utility functions for `<br>` ↔ newline conversion)
+    - Plugin: `src/vim/table-cell-editor.ts` (`openCellEditor` — converts `<br>` to newlines on open; `closeCellEditor` — converts newlines to `<br>` on close)
+
+### Tests
+
+- 14 unit tests in `test/unit/table-cell-br.test.ts` (issue #115): `cellBrToNewline` (7 tests — `<br>`, `<br/>`, `<br />`, case-insensitive, multiple tags, no-op, empty string), `cellNewlineToBr` (4 tests — single/multiple newlines, no-op, empty string), round-trip (3 tests — newline→br→newline, br→newline→br, mixed markdown content)
+- 2 e2e test cases in `test/specs/table-cell-vim-mode.e2e.ts` (issue #115, skipped — embedded widget rendering limitation in WDIO): Enter in cell editor produces `<br>` and keeps table valid, round-trip of existing `<br>` in cell content
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked Enter-in-cell-editor table breakage as fixed with `<br>` conversion
+- `CONTRIBUTING.md`: Updated `table-utils.ts` description with `cellBrToNewline`/`cellNewlineToBr` helpers
+- `docs/features/tables.md`: Added multi-line cell content note with `<br>` support in embedded mode
+
 ## [0.104.0] - 2026-08-10
 
 ### Fixed

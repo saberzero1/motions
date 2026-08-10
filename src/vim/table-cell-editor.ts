@@ -4,7 +4,11 @@ import {
     createEmbeddableEditor,
     type EmbeddableMarkdownEditor,
 } from '../editors/embeddable-editor';
-import { getCellDocumentRange } from './table-utils';
+import {
+    getCellDocumentRange,
+    cellBrToNewline,
+    cellNewlineToBr,
+} from './table-utils';
 import type { CursorShape, CursorShapes } from '../settings';
 import { getAnimatedCursorConfig } from './animated-cursor/config';
 import {
@@ -87,7 +91,9 @@ export function openCellEditor(
     const wrapper = cellEl.querySelector<HTMLElement>('.table-cell-wrapper');
     if (!wrapper) return null;
 
-    const originalText = rawMarkdown ?? wrapper.textContent?.trim() ?? '';
+    const originalText = cellBrToNewline(
+        rawMarkdown ?? wrapper.textContent?.trim() ?? '',
+    );
 
     // Clear rendered content, create editor container
     wrapper.textContent = '';
@@ -147,7 +153,7 @@ export function closeCellEditor(mainView: EditorView | null): {
 
     const { editor, row, col, originalText, tableFromLine, wrapperEl, app } =
         activeHandle;
-    const newText = editor.getValue().trim();
+    const newText = cellNewlineToBr(editor.getValue()).trim();
     const changed = newText !== originalText;
 
     try {

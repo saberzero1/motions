@@ -228,3 +228,18 @@ export function getCellDocumentRange(
     const contentTo = contentFrom + text.length;
     return { from: contentFrom, to: contentTo, text };
 }
+
+/**
+ * Convert `<br>`, `<br/>`, `<br />` tags in cell markdown to real newlines
+ * for editing in the cell editor.
+ */
+export function cellBrToNewline(text: string): string {
+    return text.replace(/<br\s*\/?>/gi, '\n');
+}
+
+/**
+ * Convert real newlines back to `<br>` for single-line table cell storage.
+ */
+export function cellNewlineToBr(text: string): string {
+    return text.replace(/\n/g, '<br>');
+}

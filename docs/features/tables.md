@@ -130,6 +130,9 @@ When using **Embedded** mode, cell editors support full Vim modality. This allow
 > [!info] Cell editors use Live Preview
 > Cell editors use Obsidian's Live Preview rendering. Markdown syntax like wikilink brackets (`[[` `]]`) and formatting marks (`**`, `*`) is hidden during editing, but the underlying text is preserved. This matches the behavior of the main editor in Live Preview mode.
 
+> [!tip] Multi-line cell content
+> Pressing `Enter` inside a cell editor creates a line break. When the cell is saved, newlines are converted to `<br>` tags so the table structure stays valid. Re-opening the cell converts `<br>` back to real line breaks for natural editing. Existing `<br>` content in cells is preserved through round-trips.
+
 ### Table row text objects
 
 In raw Markdown mode, you can operate on entire table rows using the `ir` and `ar` text objects:

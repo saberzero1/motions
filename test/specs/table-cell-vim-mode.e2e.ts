@@ -76,7 +76,7 @@ async function setTableWidgetMode(mode: 'embedded' | 'cursor'): Promise<void> {
             })) as boolean,
         { timeout: 10000, interval: 200 },
     );
-    await browser.executeObsidian(({ app }, tableWidgetMode: string) => {
+    await browser.executeObsidian(async ({ app }, tableWidgetMode: string) => {
         const plugin = (
             app as unknown as {
                 plugins?: {
@@ -85,6 +85,7 @@ async function setTableWidgetMode(mode: 'embedded' | 'cursor'): Promise<void> {
                         {
                             settings: Record<string, unknown>;
                             reloadFeatures: () => void;
+                            saveData: (data: unknown) => Promise<void>;
                         }
                     >;
                 };
@@ -92,6 +93,7 @@ async function setTableWidgetMode(mode: 'embedded' | 'cursor'): Promise<void> {
         ).plugins?.plugins?.['vim-motions'];
         if (!plugin) return;
         plugin.settings.tableWidgetMode = tableWidgetMode;
+        await plugin.saveData(plugin.settings);
         plugin.reloadFeatures();
     }, mode);
     await browser.pause(PAUSE.OBSIDIAN_LOAD);
@@ -322,34 +324,30 @@ describe('Table cell vim mode (table rows + embedded editor)', function () {
             await prepareEmbeddedTable(TABLE_CONTENT, { line: 0, ch: 2 });
         });
 
-        // Embedded mode table widget rendering requires the CM6 extension
-        // pipeline to re-process the editor after reloadFeatures(). In the
-        // E2E test environment, the widget (.vim-table-rendered) does not
-        // appear despite correct settings (Live Preview active, embedded
-        // mode enabled via reloadFeatures). This is a test-environment
-        // limitation — the features work in manual Obsidian testing.
+        // Embedded mode table widget rendering requires a fresh Obsidian
+        // load to register the CM6 extension. Re-opening files or calling
+        // reloadFeatures() mid-session does not trigger widget creation.
         // TODO: investigate CM6 registerEditorExtension lifecycle in WDIO.
         before(function () {
             this.skip();
         });
 
         it('should enter table nav on cursor inside table', async function () {
-            const doc = ['Intro', TABLE_CONTENT].join('\n');
-            await prepareEmbeddedTable(doc, { line: 0, ch: 0 });
-            await waitForTableWidget();
-            await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return;
-                view.editor.setCursor(1, 2);
-                view.editor.focus();
-            });
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(1);
-            expect(pos.ch).toBeGreaterThanOrEqual(2);
+            const hasWidget = (await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return false;
+                    const container = (
+                        view as unknown as { contentEl: HTMLElement }
+                    ).contentEl;
+                    return (
+                        container.querySelector('.vim-table-rendered') !== null
+                    );
+                },
+            )) as boolean;
+            expect(hasWidget).toBe(true);
         });
 
         it('should require two Escapes to exit cell editor', async function () {
@@ -440,6 +438,52 @@ describe('Table cell vim mode (table rows + embedded editor)', function () {
 
             const line = (await getEditorValue()).split('\n')[0] ?? '';
             expect(line.replace(/\s/g, '')).toBe('|Z|B|C|');
+        });
+
+        it('Enter in cell editor should produce <br> and keep table valid', async function () {
+            await browser.keys(['i']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            expect(await hasCellEditor()).toBe(true);
+
+            // Type "X", press Enter, type "Y"
+            await browser.keys(['X']);
+            await browser.keys(['Enter']);
+            await browser.keys(['Y']);
+
+            // Exit: Esc (normal mode) → Esc (exit cell editor)
+            await browser.keys(['Escape']);
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['Escape']);
+            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+
+            expect(lines.length).toBe(3);
+            for (const line of lines) {
+                expect(line.trimStart().startsWith('|')).toBe(true);
+            }
+            expect(value).toMatch(/X<br>Y/i);
+        });
+
+        it('should round-trip existing <br> in cell content', async function () {
+            const content = '| hello<br>world | B |\n|---|---|\n| 1 | 2 |';
+            await prepareEmbeddedTable(content, { line: 0, ch: 2 });
+
+            await browser.keys(['i']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            expect(await hasCellEditor()).toBe(true);
+
+            await browser.keys(['Escape']);
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await browser.keys(['Escape']);
+            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+            const value = await getEditorValue();
+            const lines = value.split('\n');
+
+            expect(lines.length).toBe(3);
+            expect(lines[0]).toMatch(/<br>/i);
         });
 
         it('should share registers between cell editors', async function () {

@@ -86,7 +86,7 @@ src/
     fold-column.ts         # Fold column gutter (▸/▾ indicators with click-to-fold)
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
-    table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
+    table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting, cellBrToNewline/cellNewlineToBr for <br> ↔ newline conversion in cell editors
     table-nav-controller.ts    # Table cell navigation controller — onEscape callback defers exitCellEdit via requestAnimationFrame to prevent scope-pop-mid-handler leak
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
