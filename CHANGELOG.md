@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.104.0] - 2026-08-10
+
 ### Fixed
 
 - **Flash labels missing from top half of viewport with frontmatter scrolled off-screen** — in Live Preview mode, when YAML frontmatter properties (~10-15 lines) were collapsed into a widget and scrolled off-screen, flash `f`/`F`/`t`/`T` labels only appeared in the bottom half of the viewport. The number of missing lines matched the frontmatter line count. Root cause: `getVisibleRange()` in `src/easymotion/targets.ts` used `view.lineBlockAtHeight()` which relies on CM6's height map — when the collapsed frontmatter widget was off-screen, height estimation errors caused `coordsAtPos()` to return `null` for targets near the viewport top, and `filterVisibleTargets()` dropped them. Fixed by using `view.visibleRanges` (actually-rendered document ranges) instead of `lineBlockAtHeight`. Also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))

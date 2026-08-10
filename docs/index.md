@@ -31,8 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.103.0
+## What's new in 0.104.0
 
-- **Native Obsidian shortcuts work again in Normal/Visual mode** — `Tab`, `Shift+Tab`, `Ctrl+Shift+I`, `F1`–`F12`, and other functional keys were silently consumed since v0.99.0. These keys now correctly propagate to Obsidian, restoring DevTools, tab indentation, and all other native shortcuts. ([#113](https://github.com/saberzero1/motions/issues/113))
+- **Flash labels no longer missing near viewport top with frontmatter** — in Live Preview mode, flash `f`/`F`/`t`/`T` labels only appeared in the bottom half of the viewport when collapsed YAML frontmatter was scrolled off-screen. Fixed by using `view.visibleRanges` instead of `lineBlockAtHeight`. Also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))
+- **`v$d` cursor off-by-one fixed** — visual-mode `v$d` no longer leaves the cursor one position past the correct column after deleting to end of line.
 
 See the [[changelog|full changelog]] for details.
