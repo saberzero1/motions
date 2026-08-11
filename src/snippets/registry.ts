@@ -93,20 +93,53 @@ export class SnippetRegistry {
         };
     }
 
+    private static sourcePriority(source: 'bundled' | 'user' | 'lua'): number {
+        switch (source) {
+            case 'user':
+                return 2;
+            case 'lua':
+                return 1;
+            case 'bundled':
+                return 0;
+        }
+    }
+
     private addToPrefixIndex(prefix: string, entry: SnippetEntry): void {
         const existing = this.prefixIndex.get(prefix) ?? [];
-        if (entry.source === 'user') {
-            const bundledIndex = existing.findIndex(
-                (item) => item.source === 'bundled',
-            );
-            if (bundledIndex === -1) {
-                existing.push(entry);
-            } else {
-                existing.splice(bundledIndex, 0, entry);
+        const newPriority = SnippetRegistry.sourcePriority(entry.source);
+
+        const removed: SnippetEntry[] = [];
+        const kept = existing.filter((item) => {
+            const itemPriority = SnippetRegistry.sourcePriority(item.source);
+            if (itemPriority < newPriority) {
+                removed.push(item);
+                return false;
             }
-        } else {
-            existing.push(entry);
+            return true;
+        });
+
+        for (const removedEntry of removed) {
+            const stillReferenced = removedEntry.prefixes.some((p) => {
+                if (p === prefix) return false;
+                const arr = this.prefixIndex.get(p);
+                return arr !== undefined && arr.includes(removedEntry);
+            });
+            if (!stillReferenced) {
+                this.entries.delete(removedEntry.id);
+            }
         }
-        this.prefixIndex.set(prefix, existing);
+
+        let insertAt = kept.length;
+        for (let i = 0; i < kept.length; i++) {
+            const itemPriority = SnippetRegistry.sourcePriority(
+                kept[i]!.source,
+            );
+            if (newPriority > itemPriority) {
+                insertAt = i;
+                break;
+            }
+        }
+        kept.splice(insertAt, 0, entry);
+        this.prefixIndex.set(prefix, kept);
     }
 }

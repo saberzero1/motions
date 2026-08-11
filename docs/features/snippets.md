@@ -108,7 +108,7 @@ Point the **Snippet directory** setting to a folder containing `.json` files in 
 }
 ```
 
-User snippets override bundled snippets when they share the same prefix. The directory supports absolute paths (with `~` expansion) and vault-relative paths.
+User snippets override bundled snippets when they share the same prefix — the bundled entry is removed from the completion menu, picker, and Tab expansion. The override priority order is **user > lua > bundled**: user JSON snippets always win, Lua snippets override bundled but yield to user JSON, and bundled snippets are defaults that yield to any explicit definition. When a multi-prefix bundled snippet is partially overridden (e.g., user overrides prefix `a` but not prefix `b`), the bundled snippet remains accessible via the non-overridden prefix. The directory supports absolute paths (with `~` expansion) and vault-relative paths.
 
 ### Snippet body syntax
 

@@ -237,6 +237,11 @@ src/
     im-mode-watcher.ts       # Per-view vim mode change detection for IM switching (CM6 ViewPlugin)
   snippets/
     commands.ts            # :snippet/:snippets ex commands — visual selection recovery via vim '</'> marks and lastSelection flags for $TM_SELECTED_TEXT/$VISUAL support in visual mode
+    registry.ts            # SnippetRegistry — entry storage, prefix indexing, priority-based override (user > lua > bundled), orphan cleanup for multi-prefix entries
+    loader.ts              # Snippet loading (bundled JSON, user JSON directory, Lua DSL)
+    completion-source.ts   # CM6 autocomplete source for snippet prefix matching
+    tab-expand.ts          # Tab key snippet expansion in insert mode
+    picker-source.ts       # Snippet picker source for fuzzy finder
     manager.ts             # Snippet session and expansion management
     parser.ts              # VS Code snippet format parser
     variables.ts           # Snippet variable resolution (37 variables: selection/content, file/path, workspace/cursor, date/time, random — full VSCode spec + $VISUAL/$WORD vim aliases)

@@ -154,7 +154,8 @@
         "body": [
             "| ${1:Header 1} | ${2:Header 2} |",
             "| --- | --- |",
-            "| ${3:Cell 1} | ${4:Cell 2} |$0"
+            "| ${3:Cell 1} | ${4:Cell 2} |",
+            "$0"
         ],
         "description": "Insert a 2x2 table"
     },
@@ -163,7 +164,8 @@
         "body": [
             "| ${1:Header 1} | ${2:Header 2} | ${3:Header 3} |",
             "| --- | --- | --- |",
-            "| ${4:Cell 1} | ${5:Cell 2} | ${6:Cell 3} |$0"
+            "| ${4:Cell 1} | ${5:Cell 2} | ${6:Cell 3} |",
+            "$0"
         ],
         "description": "Insert a 3x3 table"
     },

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.105.2] - 2026-08-11
+
+### Fixed
+
+- **Bundled `table`/`table3` snippets missing trailing newline** — the `$0` final tabstop was inline on the last table row. When a table was inserted at the end of a document, there was no line below it, preventing cursor movement past the table. Fixed by adding a standalone `$0` as a separate final body element, matching the pattern used by the `Frontmatter` snippet. ([#118](https://github.com/saberzero1/motions/issues/118))
+    - Plugin: `src/snippets/bundled/obsidian-markdown.json` (`Table 2x2`, `Table 3x3` — moved `$0` from inline on last row to standalone final element)
+- **User-defined snippets duplicate bundled snippets instead of overriding them** — when a user defined a snippet with the same prefix as a bundled one (e.g., `table`), both appeared in the completion menu and picker instead of the user snippet replacing the bundled one. Root cause: `addToPrefixIndex()` in `SnippetRegistry` inserted user entries before bundled entries but never removed the bundled entry, and entry IDs were source-qualified (`bundled:Table 2x2` vs `user:My Table`) so both coexisted in the `entries` Map. Fixed with priority-based override logic (`user > lua > bundled`): when a higher-priority source registers a prefix colliding with a lower-priority entry, the lower-priority entry is removed from the prefix index and, if orphaned (no remaining prefixes), from the entries Map. ([#118](https://github.com/saberzero1/motions/issues/118))
+    - Plugin: `src/snippets/registry.ts` (`sourcePriority` static method; `addToPrefixIndex` rewritten with priority-based filtering, orphan cleanup, and priority-sorted insertion)
+
+### Tests
+
+- 10 unit tests in `test/unit/snippets/registry.test.ts` (issue #118): basic load and prefix indexing, user overrides bundled, lua overrides bundled, user overrides lua, full priority chain (`user > lua > bundled`), same-priority coexistence, multi-prefix partial overlap (keeps non-overlapping prefix), multi-prefix full overlap (removes orphaned entry), no-collision coexistence, bundled table snippet trailing newline validation
+- 7 e2e tests in `test/specs/snippets/snippet-override.e2e.ts` (issue #118): `table` snippet trailing newline via Tab, `table3` snippet trailing newline via `:snippet`, table at end of document produces content after last row, user override expands correct body, `lookupByPrefix` returns only user entry, `getAll` excludes shadowed bundled entry, non-overridden bundled snippet still works
+
+### Documentation
+
+- `CHANGELOG.md`
+- `CONTRIBUTING.md`: Added `registry.ts` to snippets codebase structure with priority-based override description
+- `docs/features/snippets.md`: Expanded override behavior documentation with priority order and Lua snippet override semantics
+
 ## [0.105.1] - 2026-08-11
 
 ### Fixed
