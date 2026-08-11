@@ -84,7 +84,7 @@ To provide a seamless editing experience, Vim Motions manages how tables are ren
 The rendered table widget processes cell content through Obsidian's markdown renderer. Inline formatting (bold, italic, code), images, links, and math expressions display correctly in the rendered view.
 
 > [!tip]
-> The **Embedded** mode provides the best vim editing experience for tables. The rendered table stays visible while editing, individual cells get their own vim editor, and structural commands let you add, delete, and move rows and columns without leaving the table.
+> The **Embedded** mode provides the best vim editing experience for tables. The rendered table stays visible while editing, individual cells get their own vim editor, and structural commands let you add, delete, and move rows and columns without leaving the table. Notes with multiple tables are fully supported — each table is independently navigable.
 
 ### Embedded mode keybindings
 

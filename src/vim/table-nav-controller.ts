@@ -38,6 +38,7 @@ import {
     tableMoveColLeft,
     tableRealign,
 } from './table-operations';
+import { devAssert } from '../util/invariant';
 
 let realignAfterCellEdit = false;
 export function setRealignAfterCellEdit(value: boolean): void {
@@ -118,12 +119,33 @@ class TableNavController implements PluginValue {
         }
     }
 
-    private findWidgetEl(): HTMLElement | null {
+    private findWidgetEl(tableFrom?: number): HTMLElement | null {
+        const targetFrom = tableFrom ?? this.activeTable?.from;
         const widgets = this.view.dom.querySelectorAll('.vim-table-rendered');
-        for (let i = 0; i < widgets.length; i++) {
-            const el = widgets[i] as HTMLElement;
-            if (el.closest('.cm-embed-block')) return el;
+        if (widgets.length === 0) return null;
+        if (widgets.length === 1) return widgets[0] as HTMLElement;
+
+        // Multiple widgets: match by document position
+        if (targetFrom !== undefined) {
+            let bestEl: HTMLElement | null = null;
+            let bestDist = Infinity;
+            for (let i = 0; i < widgets.length; i++) {
+                const el = widgets[i] as HTMLElement;
+                try {
+                    const pos = this.view.posAtDOM(el, 0);
+                    const dist = Math.abs(pos - targetFrom);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestEl = el;
+                    }
+                } catch {
+                    // Widget may be detached or offscreen — skip
+                }
+            }
+            if (bestEl) return bestEl;
         }
+
+        // Fallback: first widget (preserves single-table behavior)
         return (widgets[0] as HTMLElement) ?? null;
     }
 
@@ -131,10 +153,22 @@ class TableNavController implements PluginValue {
         this.activeTable = table;
         this.state = 'table-nav';
 
-        this.widgetEl = this.findWidgetEl();
+        this.widgetEl = this.findWidgetEl(table.from);
         if (!this.widgetEl) {
             this.state = 'inactive';
             return;
+        }
+
+        if (__DEV__) {
+            try {
+                const widgetPos = this.view.posAtDOM(this.widgetEl, 0);
+                devAssert(
+                    widgetPos === this.activeTable.from,
+                    `findWidgetEl returned widget at pos ${widgetPos}, expected ${this.activeTable.from}`,
+                );
+            } catch {
+                /* widget detached */
+            }
         }
 
         setCursorSuppressedForView(this.view, true);

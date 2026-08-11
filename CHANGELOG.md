@@ -17,12 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Embedded table mode does not handle multiple tables per note** — in embedded table widget mode (`set tablewidget=embedded`), when a note contained two or more tables, entering table-nav mode on any table other than the first always attached the cell highlight, key handlers, and cell editor to the first table's DOM widget. Entering from below selected the last cell of the first table. Root cause: `findWidgetEl()` in `table-nav-controller.ts` queried all `.vim-table-rendered` elements and returned the first match without considering which `TableRange` the cursor was in. Fixed by adding a `tableFrom` parameter to `findWidgetEl()` and using CM6's `view.posAtDOM()` to correlate each widget element with its document position, returning the nearest match to the active table's `from` offset. ([#117](https://github.com/saberzero1/motions/issues/117))
+    - Plugin: `src/vim/table-nav-controller.ts` (`findWidgetEl` — accepts optional `tableFrom` parameter, uses `posAtDOM` nearest-match with `try/catch` for detached elements; `enterTableNav` — passes `table.from` explicitly; `devAssert` import and `__DEV__` assertion verifying widget position matches active table)
 - **Enter in embedded table cell editor breaks table structure** — pressing Enter in insert mode inside an embedded table cell editor (`set tablewidget=embedded`) inserted a literal newline into the cell content. Upon exiting the table, the multi-line content was written back into the single-line markdown table row, breaking the table structure — the second line appeared outside the table. Fixed by converting newlines to `<br>` tags on cell editor close and converting `<br>` tags back to newlines on cell editor open, preserving multi-line cell content using standard HTML line breaks that Obsidian renders correctly within table cells. Existing `<br>` content in cells round-trips cleanly. ([#115](https://github.com/saberzero1/motions/issues/115))
     - Plugin: `src/vim/table-utils.ts` (`cellBrToNewline`, `cellNewlineToBr` — new pure utility functions for `<br>` ↔ newline conversion)
     - Plugin: `src/vim/table-cell-editor.ts` (`openCellEditor` — converts `<br>` to newlines on open; `closeCellEditor` — converts newlines to `<br>` on close)
 
 ### Tests
 
+- 4 e2e test cases in `test/specs/table-cell-vim-mode.e2e.ts` (issue #117, skipped — embedded widget rendering limitation in WDIO): entry into second table highlights correct widget, cell editor opens on second table not first, add row affects only second table, first table unaffected during second table navigation
 - 8 e2e tests in `test/specs/textarea-vim-which-key.e2e.ts`: which-key appears after partial chord (`d`, `g`) in normal mode, dismisses on command completion (`dd`), dismisses on Escape, suppressed in insert mode, suppressed when `whichKeyMode` is off, cleans up on editor close (blur), cleans up on modal removal
 - 14 unit tests in `test/unit/table-cell-br.test.ts` (issue #115): `cellBrToNewline` (7 tests — `<br>`, `<br/>`, `<br />`, case-insensitive, multiple tags, no-op, empty string), `cellNewlineToBr` (4 tests — single/multiple newlines, no-op, empty string), round-trip (3 tests — newline→br→newline, br→newline→br, mixed markdown content)
 - 2 e2e test cases in `test/specs/table-cell-vim-mode.e2e.ts` (issue #115, skipped — embedded widget rendering limitation in WDIO): Enter in cell editor produces `<br>` and keeps table valid, round-trip of existing `<br>` in cell content
@@ -30,10 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Marked Enter-in-cell-editor table breakage as fixed with `<br>` conversion; added which-key in embedded editors note to table cell section
-- `CONTRIBUTING.md`: Updated `table-utils.ts` description with `cellBrToNewline`/`cellNewlineToBr` helpers; updated `which-key.ts`, `table-cell-editor.ts`, and `textarea-vim-manager.ts` descriptions with which-key overlay lifecycle
+- `KNOWN_LIMITATIONS.md`: Marked multi-table widget selection as fixed with `posAtDOM` position matching; marked Enter-in-cell-editor table breakage as fixed with `<br>` conversion; added which-key in embedded editors note to table cell section
+- `CONTRIBUTING.md`: Updated `table-nav-controller.ts` description with `posAtDOM`-based widget matching for multi-table support; updated `table-utils.ts` description with `cellBrToNewline`/`cellNewlineToBr` helpers; updated `which-key.ts`, `table-cell-editor.ts`, and `textarea-vim-manager.ts` descriptions with which-key overlay lifecycle
 - `AGENTS.md`: Updated dual-vim architecture section with which-key in embedded editors via dependency injection
-- `docs/features/tables.md`: Added multi-line cell content note with `<br>` support in embedded mode; added which-key support note to embedded cell editor section
+- `docs/features/tables.md`: Added multi-table support note to embedded mode section; added multi-line cell content note with `<br>` support in embedded mode; added which-key support note to embedded cell editor section
 - `docs/configuration/which-key.md`: Added embedded editors section documenting which-key in table cell editors and textarea vim overlays
 
 ## [0.104.0] - 2026-08-10
