@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.105.1] - 2026-08-11
+
 ### Fixed
 
 - **Embedded table mode: cursor jumps to first table after cell edit** — follow-up to the multi-table fix in 0.105.0. After editing a cell in the second (or later) table and pressing Escape twice, the cursor jumped back to the first table. Two sub-bugs: (1) `activeEditTableRange` was cleared before `closeCellEditor`/`tableRealign` dispatches, causing `buildDecorations` to create a `Decoration.replace` for the active table and displacing the cursor — fixed by keeping `activeEditTableRange` set throughout the exit and refresh lifecycle. (2) After `tableRealign`, `doRefreshAfterOp` used `Array.find()` with a 200-position threshold to re-locate the table, which returned the first table within range rather than the closest — fixed by replacing with a nearest-match loop. ([#117](https://github.com/saberzero1/motions/issues/117))
