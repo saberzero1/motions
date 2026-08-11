@@ -31,10 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.105.0
+## What's new in 0.106.0
 
-- **Which-key popups in embedded editors** — which-key hints now appear in table cell editors and textarea vim overlays, with full access to user keymaps (vimrc, Lua). Bundled vim mode only.
-- **Embedded table mode multi-table fix** — entering table-nav mode in a note with multiple tables no longer always targets the first table. Fixed with `posAtDOM`-based widget matching. ([#117](https://github.com/saberzero1/motions/issues/117))
-- **Enter in embedded table cell editor no longer breaks table structure** — newlines are converted to `<br>` tags on close and restored on open, preserving multi-line cell content. ([#115](https://github.com/saberzero1/motions/issues/115))
+- **Snippet override priority** — user-defined snippets now properly override bundled snippets with the same prefix instead of duplicating them. Priority order: user > lua > bundled. ([#118](https://github.com/saberzero1/motions/issues/118))
+- **Bundled table snippet trailing newline fix** — `table` and `table3` snippets now place `$0` on a standalone final line, preventing the cursor from getting stuck when a table is inserted at the end of a document. ([#118](https://github.com/saberzero1/motions/issues/118))
 
 See the [[changelog|full changelog]] for details.
