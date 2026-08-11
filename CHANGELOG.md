@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Embedded table mode: cursor jumps to first table after cell edit** — follow-up to the multi-table fix in 0.105.0. After editing a cell in the second (or later) table and pressing Escape twice, the cursor jumped back to the first table. Two sub-bugs: (1) `activeEditTableRange` was cleared before `closeCellEditor`/`tableRealign` dispatches, causing `buildDecorations` to create a `Decoration.replace` for the active table and displacing the cursor — fixed by keeping `activeEditTableRange` set throughout the exit and refresh lifecycle. (2) After `tableRealign`, `doRefreshAfterOp` used `Array.find()` with a 200-position threshold to re-locate the table, which returned the first table within range rather than the closest — fixed by replacing with a nearest-match loop. ([#117](https://github.com/saberzero1/motions/issues/117))
+    - Plugin: `src/vim/table-nav-controller.ts` (`exitCellEdit` — removes premature `setActiveEditTableRange(null)` clear; `doRefreshAfterOp` — sets `activeEditTableRange` before `tableRealign` dispatch, replaces `Array.find` with nearest-match loop for post-realign table re-location)
+
+### Tests
+
+- 4 e2e test cases in `test/specs/table-cell-vim-mode.e2e.ts` (issue #117, skipped — embedded widget rendering limitation in WDIO): entry into second table highlights correct widget, cell editor opens on second table not first, add row affects only second table, first table unaffected during second table navigation
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated multi-table fix with `activeEditTableRange` lifecycle and `Array.find` nearest-match fixes
+- `CONTRIBUTING.md`: Updated `table-nav-controller.ts` description
+- `docs/features/tables.md`: Added multi-table support note to embedded mode section
+
 ## [0.105.0] - 2026-08-11
 
 ### Added

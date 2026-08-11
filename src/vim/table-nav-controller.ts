@@ -325,9 +325,10 @@ class TableNavController implements PluginValue {
     }
 
     private exitCellEdit(opts?: { skipRefresh?: boolean }): void {
-        if (!opts?.skipRefresh) {
-            setActiveEditTableRange(null);
-        }
+        // Keep activeEditTableRange set throughout — clearing it would
+        // cause buildDecorations to create a Decoration.replace for the
+        // active table, displacing the cursor. doRefreshAfterOp manages
+        // the activeEditTableRange lifecycle after the refresh delay.
         const { changed } = closeCellEditor(this.view);
         if (changed) realignAfterCellEdit = true;
         this.removeCellEditKeyHandler();
@@ -561,21 +562,31 @@ class TableNavController implements PluginValue {
             return;
         }
         this.activeTable = best;
+        // Set activeEditTableRange before tableRealign so the StateField
+        // fast-path (prev.map) fires during the realign dispatch instead
+        // of buildDecorations — avoids cursor displacement.
+        setActiveEditTableRange({ from: best.from, to: best.to });
         if (realignAfterCellEdit) {
             realignAfterCellEdit = false;
             tableRealign(this.view, best);
             const refreshedTables = findTableRanges(this.view.state);
-            const refreshed = refreshedTables.find(
-                (t) => Math.abs(t.from - best.from) < 200,
-            );
+            let refreshed: TableRange | null = null;
+            let refreshedDist = Infinity;
+            for (const t of refreshedTables) {
+                const d = Math.abs(t.from - best.from);
+                if (d < refreshedDist) {
+                    refreshedDist = d;
+                    refreshed = t;
+                }
+            }
             if (refreshed) {
                 this.activeTable = refreshed;
+                setActiveEditTableRange({
+                    from: refreshed.from,
+                    to: refreshed.to,
+                });
             }
         }
-        setActiveEditTableRange({
-            from: this.activeTable.from,
-            to: this.activeTable.to,
-        });
 
         this.removeKeyHandler();
         this.widgetEl = this.findWidgetEl();

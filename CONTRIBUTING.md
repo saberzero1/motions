@@ -87,7 +87,7 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting, cellBrToNewline/cellNewlineToBr for <br> ↔ newline conversion in cell editors
-    table-nav-controller.ts    # Table cell navigation controller — findWidgetEl uses posAtDOM nearest-match to correlate widget DOM elements with document positions for multi-table support; onEscape callback defers exitCellEdit via requestAnimationFrame to prevent scope-pop-mid-handler leak
+    table-nav-controller.ts    # Table cell navigation controller — findWidgetEl uses posAtDOM nearest-match to correlate widget DOM elements with document positions for multi-table support; exitCellEdit keeps activeEditTableRange set (never clears to null) so StateField fast-path fires during closeCellEditor and tableRealign dispatches, preventing cursor displacement; onEscape callback defers exitCellEdit via requestAnimationFrame to prevent scope-pop-mid-handler leak
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
