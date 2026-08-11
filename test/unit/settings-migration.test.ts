@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('obsidian', () => ({
     AbstractInputSuggest: class {},
     App: class {},
+    View: class {},
+    MarkdownView: class {},
     Modal: class {
         open() {}
     },

@@ -31,6 +31,22 @@ interface WhichKeyEntry {
     color?: string;
 }
 
+/** Configuration for which-key in embedded editors (table cell, textarea vim). */
+export interface WhichKeyConfig {
+    /** Whether which-key is enabled (`whichKeyMode !== 'off'`). */
+    enabled: boolean;
+    leaderKey: string;
+    leaderBindings: LeaderBinding[];
+    /** `true` when `whichKeyMode === 'all'`. */
+    generalMode: boolean;
+    groupLeaderBindings: boolean;
+    groupLabels: Map<string, WhichKeyLabelInfo>;
+    commandLabels: Map<string, WhichKeyLabelInfo>;
+    showIcons: boolean;
+    showDelay: number;
+    sortOrder: WhichKeySortOrder;
+}
+
 const DEFAULT_SHOW_DELAY = 500;
 
 /**
@@ -377,6 +393,8 @@ export class WhichKeyOverlay {
     private leafChangeRef: ReturnType<typeof this.app.workspace.on> | null =
         null;
     private lastAdapter: CmAdapter | null = null;
+    private injectedAdapter: CmAdapter | null = null;
+    private injectedContainer: HTMLElement | null = null;
     private pendingLeader = false;
     private leaderPrefix = '';
     private lastStatus = '';
@@ -406,6 +424,37 @@ export class WhichKeyOverlay {
         this.sortOrder = sortOrder ?? 'which-key';
     }
 
+    static forEmbeddedEditor(
+        app: App,
+        adapter: CmAdapter,
+        container: HTMLElement,
+        leaderKey: string,
+        leaderBindings: LeaderBinding[],
+        generalMode: boolean,
+        groupLeaderBindings: boolean,
+        groupLabels: Map<string, WhichKeyLabelInfo>,
+        commandLabels: Map<string, WhichKeyLabelInfo>,
+        showIcons: boolean,
+        showDelay?: number,
+        sortOrder?: WhichKeySortOrder,
+    ): WhichKeyOverlay {
+        const instance = new WhichKeyOverlay(
+            app,
+            leaderKey,
+            leaderBindings,
+            generalMode,
+            groupLeaderBindings,
+            groupLabels,
+            commandLabels,
+            showIcons,
+            showDelay,
+            sortOrder,
+        );
+        instance.injectedAdapter = adapter;
+        instance.injectedContainer = container;
+        return instance;
+    }
+
     attach(): void {
         const handler = (key: string) => {
             this.onKeyPress(key);
@@ -422,6 +471,11 @@ export class WhichKeyOverlay {
             adapter.on('vim-keypress', handler);
             adapter.on('vim-command-done', doneHandler);
         };
+
+        if (this.injectedAdapter) {
+            attachAdapter(this.injectedAdapter);
+            return;
+        }
 
         const tryAttach = () => {
             const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -454,17 +508,21 @@ export class WhichKeyOverlay {
 
     private detachAdapter(): void {
         if (this.lastAdapter) {
-            if (this.keyHandler) {
-                this.lastAdapter.off(
-                    'vim-keypress',
-                    this.keyHandler as (...args: unknown[]) => void,
-                );
-            }
-            if (this.commandDoneHandler) {
-                this.lastAdapter.off(
-                    'vim-command-done',
-                    this.commandDoneHandler,
-                );
+            try {
+                if (this.keyHandler) {
+                    this.lastAdapter.off(
+                        'vim-keypress',
+                        this.keyHandler as (...args: unknown[]) => void,
+                    );
+                }
+                if (this.commandDoneHandler) {
+                    this.lastAdapter.off(
+                        'vim-command-done',
+                        this.commandDoneHandler,
+                    );
+                }
+            } catch {
+                // Adapter's EditorView may already be destroyed (embedded editor teardown)
             }
             this.lastAdapter = null;
         }
@@ -477,6 +535,8 @@ export class WhichKeyOverlay {
         }
         this.detachAdapter();
         this.dismiss();
+        this.injectedAdapter = null;
+        this.injectedContainer = null;
     }
 
     private onKeyPress(key: string): void {
@@ -567,8 +627,9 @@ export class WhichKeyOverlay {
 
         const isOilActive =
             this.app.workspace.getMostRecentLeaf()?.view instanceof OilView;
+        const isEmbedded = this.injectedAdapter !== null;
 
-        if (this.showDelay > 0 && !isOilActive) {
+        if (this.showDelay > 0 && !isOilActive && !isEmbedded) {
             this.showTimer = window.setTimeout(() => {
                 this.showCompletionsIfPartial(capturedAdapter);
             }, this.showDelay);
@@ -893,7 +954,8 @@ export class WhichKeyOverlay {
 
         if (entries.length === 0) return;
 
-        const container = getEditorContainer(this.app);
+        const container =
+            this.injectedContainer ?? getEditorContainer(this.app);
         if (!container) return;
 
         this.overlay = createDiv({ cls: 'vim-motions-which-key' });
@@ -938,13 +1000,18 @@ export class WhichKeyOverlay {
 
         container.appendChild(this.overlay);
 
-        const statusBar =
-            container.doc.querySelector<HTMLElement>('.status-bar');
-        if (statusBar) {
-            const containerRect = container.getBoundingClientRect();
-            const statusBarRect = statusBar.getBoundingClientRect();
-            if (containerRect.bottom >= statusBarRect.top) {
-                this.overlay.style.paddingBottom = `${statusBar.offsetHeight}px`;
+        if (
+            !this.injectedContainer ||
+            this.injectedContainer.classList.contains('view-content')
+        ) {
+            const statusBar =
+                container.doc.querySelector<HTMLElement>('.status-bar');
+            if (statusBar) {
+                const containerRect = container.getBoundingClientRect();
+                const statusBarRect = statusBar.getBoundingClientRect();
+                if (containerRect.bottom >= statusBarRect.top) {
+                    this.overlay.style.paddingBottom = `${statusBar.offsetHeight}px`;
+                }
             }
         }
     }

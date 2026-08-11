@@ -17,9 +17,20 @@ Configure via **Settings → Vim Motions → Which-key hints**, `vim.opt.whichke
 | `leader` | Popup appears only after pressing the leader key |
 | `all`    | Popup appears after any partial key sequence     |
 
-This setting controls which-key in **both** editor and non-editor contexts. In non-editor views (graph, canvas, PDF, reading mode), the which-key popup shows global binding completions — for example, pressing `<C-w>` shows available window commands (`h`, `j`, `k`, `l`, `v`, `s`, etc.).
+This setting controls which-key in **all** contexts: the main editor, non-editor views, and embedded editors. In non-editor views (graph, canvas, PDF, reading mode), the which-key popup shows global binding completions — for example, pressing `<C-w>` shows available window commands (`h`, `j`, `k`, `l`, `v`, `s`, etc.).
 
 In `all` mode, pressing `d` shows available motions and text objects, `g` shows g-prefixed commands, `z` shows fold commands, `[` and `]` show bracket motions, etc.
+
+### Embedded editors
+
+Which-key works in **table cell editors** (embedded table widget mode) and **textarea vim overlays** (experimental vim-in-textareas feature). The popup renders in the parent note's viewport using the same position and styling as the main editor — visually seamless.
+
+All user keymaps (vimrc, Lua) are available in embedded editors since the vim keymap is shared globally. Leader key drill-down, group labels, command labels, and icons all work identically.
+
+In embedded editors, the popup show delay is bypassed — partial chords show completions immediately for fast, focused editing sessions.
+
+> [!info] Bundled vim mode only
+> Which-key in embedded editors requires the bundled vim fork (Obsidian's built-in vim mode disabled). Embedded editors do not receive vim in built-in vim mode.
 
 ## Popup delay
 

@@ -16,6 +16,8 @@ import {
     clearCursorSuppressedForView,
 } from '@replit/codemirror-vim';
 import { devAssert } from '../util/invariant';
+import { WhichKeyOverlay, type WhichKeyConfig } from '../ui/which-key';
+import { getCmAdapterFromEditorView } from './vim-api';
 
 export interface CellEditorHandle {
     editor: EmbeddableMarkdownEditor;
@@ -31,6 +33,8 @@ let activeHandle: CellEditorHandle | null = null;
 let cellEditorCursorShapes: CursorShapes | undefined;
 let cursorSheet: CSSStyleSheet | null = null;
 let visualSelectionSheet: CSSStyleSheet | null = null;
+let activeWhichKey: WhichKeyOverlay | null = null;
+let whichKeyConfig: WhichKeyConfig | null = null;
 
 function shapeCSS(shape: CursorShape): string {
     switch (shape) {
@@ -71,6 +75,12 @@ export function setCellEditorCursorShapes(
     if (shapes) {
         updateCursorStyleSheet(shapes);
     }
+}
+
+export function setCellEditorWhichKeyConfig(
+    config: WhichKeyConfig | null,
+): void {
+    whichKeyConfig = config;
 }
 
 export function openCellEditor(
@@ -143,6 +153,34 @@ export function openCellEditor(
         wrapperEl: wrapper,
         app,
     };
+
+    const capturedHandle = activeHandle;
+    window.setTimeout(() => {
+        if (activeHandle !== capturedHandle) return;
+        if (!whichKeyConfig?.enabled) return;
+        const cellView = capturedHandle.editor.getEditorView();
+        const adapter = getCmAdapterFromEditorView(cellView);
+        if (!adapter) return;
+        const viewContent: HTMLElement | null =
+            editorContainer.closest('.view-content');
+        if (!viewContent) return;
+        activeWhichKey = WhichKeyOverlay.forEmbeddedEditor(
+            app,
+            adapter,
+            viewContent,
+            whichKeyConfig.leaderKey,
+            whichKeyConfig.leaderBindings,
+            whichKeyConfig.generalMode,
+            whichKeyConfig.groupLeaderBindings,
+            whichKeyConfig.groupLabels,
+            whichKeyConfig.commandLabels,
+            whichKeyConfig.showIcons,
+            whichKeyConfig.showDelay,
+            whichKeyConfig.sortOrder,
+        );
+        activeWhichKey.attach();
+    }, 0);
+
     return activeHandle;
 }
 
@@ -155,6 +193,9 @@ export function closeCellEditor(mainView: EditorView | null): {
         activeHandle;
     const newText = cellNewlineToBr(editor.getValue()).trim();
     const changed = newText !== originalText;
+
+    activeWhichKey?.destroy();
+    activeWhichKey = null;
 
     try {
         clearCursorSuppressedForView(editor.getEditorView());

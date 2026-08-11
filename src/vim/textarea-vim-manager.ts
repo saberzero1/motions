@@ -7,6 +7,7 @@ import {
 import { getVimApi, getCmAdapterFromEditorView } from './vim-api';
 import { isBundledVimActive } from './bundled-vim';
 import type { CursorShapes } from '../settings';
+import { WhichKeyOverlay, type WhichKeyConfig } from '../ui/which-key';
 import { getAnimatedCursorConfig } from './animated-cursor/config';
 import {
     setCursorSuppressedForView,
@@ -26,6 +27,7 @@ interface ActiveReplacement {
     editor: EmbeddableMarkdownEditor;
     syncTimer: number | null;
     observer: MutationObserver | null;
+    whichKey: WhichKeyOverlay | null;
 }
 
 function shouldSkip(el: HTMLElement): boolean {
@@ -45,6 +47,7 @@ function shouldSkip(el: HTMLElement): boolean {
 export class TextareaVimManager {
     private app: App;
     private cursorShapes: CursorShapes | undefined;
+    private whichKeyConfig: WhichKeyConfig | null = null;
     private active: ActiveReplacement | null = null;
     private focusTimer: number | null = null;
     private handler: ((e: FocusEvent) => void) | null = null;
@@ -62,8 +65,14 @@ export class TextareaVimManager {
         activeDocument.addEventListener('focusin', this.handler, true);
     }
 
-    updateOptions(cursorShapes?: CursorShapes): void {
+    updateOptions(
+        cursorShapes?: CursorShapes,
+        whichKeyConfig?: WhichKeyConfig,
+    ): void {
         this.cursorShapes = cursorShapes;
+        if (whichKeyConfig !== undefined) {
+            this.whichKeyConfig = whichKeyConfig;
+        }
     }
 
     destroy(): void {
@@ -179,6 +188,7 @@ export class TextareaVimManager {
             editor,
             syncTimer: null,
             observer,
+            whichKey: null,
         };
 
         editor.load();
@@ -192,6 +202,37 @@ export class TextareaVimManager {
         editor.focus();
 
         this.enterInsertMode(editor);
+
+        window.setTimeout(() => {
+            if (!this.active) return;
+            if (!this.whichKeyConfig?.enabled) return;
+            const editorView = this.active.editor.getEditorView();
+            const adapter = getCmAdapterFromEditorView(editorView);
+            if (!adapter) return;
+            const container =
+                (this.active.wrapper.closest('.view-content') as HTMLElement) ??
+                (this.active.wrapper.closest(
+                    '.modal-container',
+                ) as HTMLElement) ??
+                null;
+            if (!container) return;
+            const cfg = this.whichKeyConfig;
+            this.active.whichKey = WhichKeyOverlay.forEmbeddedEditor(
+                this.app,
+                adapter,
+                container,
+                cfg.leaderKey,
+                cfg.leaderBindings,
+                cfg.generalMode,
+                cfg.groupLeaderBindings,
+                cfg.groupLabels,
+                cfg.commandLabels,
+                cfg.showIcons,
+                cfg.showDelay,
+                cfg.sortOrder,
+            );
+            this.active.whichKey.attach();
+        }, 0);
     }
 
     private enterInsertMode(editor: EmbeddableMarkdownEditor): void {
@@ -271,9 +312,11 @@ export class TextareaVimManager {
 
     private teardownActive(): void {
         if (!this.active) return;
-        const { originalEl, wrapper, editor, syncTimer, observer } =
+        const { originalEl, wrapper, editor, syncTimer, observer, whichKey } =
             this.active;
         this.active = null;
+
+        whichKey?.destroy();
 
         try {
             clearCursorSuppressedForView(editor.getEditorView());

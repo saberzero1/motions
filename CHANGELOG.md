@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Which-key popups in embedded editors** — which-key hints now appear in table cell editors (embedded mode) and textarea vim overlays. The popup renders in the parent note's viewport using the same position and styling as the main editor's which-key. User keymaps (vimrc, Lua) are fully available since the codemirror-vim keymap is global. Bundled vim mode only — embedded editors in built-in vim mode do not receive vim and are silently skipped.
+    - Plugin: `src/ui/which-key.ts` (`WhichKeyConfig` exported interface; `WhichKeyOverlay.forEmbeddedEditor()` static factory for dependency injection; `attach()` injected-mode early return; `showOverlay()` injected container fallback with status-bar padding guard; `onKeyPressGeneral()` delay bypass for embedded editors; `detachAdapter()` try/catch for destroyed adapters; `destroy()` clears injected references)
+    - Plugin: `src/vim/table-cell-editor.ts` (`setCellEditorWhichKeyConfig()` exported setter; `openCellEditor()` deferred which-key creation via `setTimeout(0)`; `closeCellEditor()` which-key cleanup before editor destroy)
+    - Plugin: `src/vim/textarea-vim-manager.ts` (`whichKeyConfig` class field; `updateOptions()` extended with which-key config; `ActiveReplacement.whichKey` field; `replace()` deferred which-key creation with `.view-content` → `.modal-container` fallback; `teardownActive()` which-key cleanup)
+    - Plugin: `src/main.ts` (`WhichKeyConfig` import; `setCellEditorWhichKeyConfig` import; embedded config construction and wiring after `WhichKeyOverlay` creation)
+
 ### Fixed
 
 - **Enter in embedded table cell editor breaks table structure** — pressing Enter in insert mode inside an embedded table cell editor (`set tablewidget=embedded`) inserted a literal newline into the cell content. Upon exiting the table, the multi-line content was written back into the single-line markdown table row, breaking the table structure — the second line appeared outside the table. Fixed by converting newlines to `<br>` tags on cell editor close and converting `<br>` tags back to newlines on cell editor open, preserving multi-line cell content using standard HTML line breaks that Obsidian renders correctly within table cells. Existing `<br>` content in cells round-trips cleanly. ([#115](https://github.com/saberzero1/motions/issues/115))
@@ -15,15 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 8 e2e tests in `test/specs/textarea-vim-which-key.e2e.ts`: which-key appears after partial chord (`d`, `g`) in normal mode, dismisses on command completion (`dd`), dismisses on Escape, suppressed in insert mode, suppressed when `whichKeyMode` is off, cleans up on editor close (blur), cleans up on modal removal
 - 14 unit tests in `test/unit/table-cell-br.test.ts` (issue #115): `cellBrToNewline` (7 tests — `<br>`, `<br/>`, `<br />`, case-insensitive, multiple tags, no-op, empty string), `cellNewlineToBr` (4 tests — single/multiple newlines, no-op, empty string), round-trip (3 tests — newline→br→newline, br→newline→br, mixed markdown content)
 - 2 e2e test cases in `test/specs/table-cell-vim-mode.e2e.ts` (issue #115, skipped — embedded widget rendering limitation in WDIO): Enter in cell editor produces `<br>` and keeps table valid, round-trip of existing `<br>` in cell content
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Marked Enter-in-cell-editor table breakage as fixed with `<br>` conversion
-- `CONTRIBUTING.md`: Updated `table-utils.ts` description with `cellBrToNewline`/`cellNewlineToBr` helpers
-- `docs/features/tables.md`: Added multi-line cell content note with `<br>` support in embedded mode
+- `KNOWN_LIMITATIONS.md`: Marked Enter-in-cell-editor table breakage as fixed with `<br>` conversion; added which-key in embedded editors note to table cell section
+- `CONTRIBUTING.md`: Updated `table-utils.ts` description with `cellBrToNewline`/`cellNewlineToBr` helpers; updated `which-key.ts`, `table-cell-editor.ts`, and `textarea-vim-manager.ts` descriptions with which-key overlay lifecycle
+- `AGENTS.md`: Updated dual-vim architecture section with which-key in embedded editors via dependency injection
+- `docs/features/tables.md`: Added multi-line cell content note with `<br>` support in embedded mode; added which-key support note to embedded cell editor section
+- `docs/configuration/which-key.md`: Added embedded editors section documenting which-key in table cell editors and textarea vim overlays
 
 ## [0.104.0] - 2026-08-10
 

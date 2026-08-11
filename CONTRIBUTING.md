@@ -92,11 +92,11 @@ src/
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
-    table-cell-editor.ts   # Per-cell editing with vim-enabled editor + dynamic cursor stylesheet
+    table-cell-editor.ts   # Per-cell editing with vim-enabled editor + dynamic cursor stylesheet + which-key overlay lifecycle (setCellEditorWhichKeyConfig, deferred creation via setTimeout(0), cleanup in closeCellEditor)
     table-embedded-editor.ts   # Embedded editor within table widgets
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing
-    textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack
+    textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack; which-key overlay lifecycle (whichKeyConfig field, deferred creation with .view-content → .modal-container fallback, cleanup in teardownActive)
     autocmd-mode-watcher.ts  # Per-view autocmd mode events (CM6 ViewPlugin — fires InsertEnter/InsertLeave/ModeChanged across all editors)
     animated-cursor/         # Canvas-based animated cursor (smear + smooth movement)
       types.ts               # Shared interfaces (CursorRect, SmearQuad, AnimatedCursorConfig)
@@ -253,7 +253,7 @@ src/
     outline-modal.ts       # gO document outline (SuggestModal)
     context-actions.ts     # gra context-aware action picker
     hint-mode.ts           # Vimium-style label overlay for clickable UI elements (link resolution via posAtDOM + findLinkAtCursor for .cm-underline, .cm-hmd-internal-link, .cm-link, .cm-url with deduplication filters; EditorView access via MarkdownView.editor.cm fallback; external URLs via window.open; waitForHintKey modifier-key guard filters Ctrl/Shift/Alt/Meta-only keydowns with preventDefault+stopPropagation, Shift-held keys lowercased for label matching, shiftKey captured in HintResult; async hintActivate awaits navigateWithJump/duplicateLeaf for deterministic focus restoration; count>1 preserves original leaf focus between activations; getElementCenter helper provides clientX/clientY from getBoundingClientRect for all synthetic events; hintContextMenu dispatches contextmenu MouseEvent; gf in global-defaults.ts, :hintcontextmenu/:hintco ex command and vim-motions:hint-context-menu Obsidian command in main.ts)
-    which-key.ts           # Leader key hint overlay + LeaderRegistry
+    which-key.ts           # Leader key hint overlay + LeaderRegistry + WhichKeyConfig interface + forEmbeddedEditor() factory for dependency injection (injected adapter/container mode skips discovery, bypasses show delay, guards status-bar padding for modal containers)
     global-which-key.ts    # Which-key overlay outside editor context
     ex-suggest.ts          # Ex command tab completion
     global-ex-command.ts   # Ex command input outside editor context

@@ -64,7 +64,7 @@ import {
     WhichKeyOverlay,
     normalizeVimKey,
 } from './ui/which-key';
-import type { WhichKeyLabelInfo } from './ui/which-key';
+import type { WhichKeyLabelInfo, WhichKeyConfig } from './ui/which-key';
 import { InsertEscapeHandler } from './vim/insert-escape';
 import {
     registerVimOptions,
@@ -98,6 +98,7 @@ import {
 } from './vim/table-embedded-editor';
 import {
     setCellEditorCursorShapes,
+    setCellEditorWhichKeyConfig,
     destroyCellEditorCursorSheet,
 } from './vim/table-cell-editor';
 import { EditorView } from '@codemirror/view';
@@ -2798,6 +2799,24 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.whichKeySortOrder,
         );
         this.whichKeyOverlay.attach();
+
+        const embeddedWhichKeyConfig: WhichKeyConfig = {
+            enabled: this.settings.whichKeyMode !== 'off',
+            leaderKey,
+            leaderBindings: bindings,
+            generalMode,
+            groupLeaderBindings: this.settings.whichKeyGrouping === 'grouped',
+            groupLabels,
+            commandLabels,
+            showIcons: this.settings.whichKeyIcons,
+            showDelay: this.settings.whichKeyDelay,
+            sortOrder: this.settings.whichKeySortOrder,
+        };
+        setCellEditorWhichKeyConfig(embeddedWhichKeyConfig);
+        this.textareaVimManager?.updateOptions(
+            undefined,
+            embeddedWhichKeyConfig,
+        );
     }
 
     private reregisterLeaderFeatures(): void {

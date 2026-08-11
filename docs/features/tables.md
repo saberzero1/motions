@@ -126,6 +126,7 @@ When using **Embedded** mode, cell editors support full Vim modality. This allow
     - `s`: Substitutes the cell content (clears and enters Insert mode).
 - **Register sharing**: Vim registers are shared between cell editors and the main document. You can yank text in one cell and paste it into another cell or elsewhere in your note.
 - **Visual mode**: Both charwise (`v`) and linewise (`V`) visual modes work in cell editors with full selection highlighting.
+- **Which-key**: [[which-key|Which-key]] popups work in cell editors. Partial chords (`d`, `g`, `z`, leader key) show completions in the parent note's viewport. All user keymaps are available.
 
 > [!info] Cell editors use Live Preview
 > Cell editors use Obsidian's Live Preview rendering. Markdown syntax like wikilink brackets (`[[` `]]`) and formatting marks (`**`, `*`) is hidden during editing, but the underlying text is preserved. This matches the behavior of the main editor in Live Preview mode.
