@@ -31,9 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.104.0
+## What's new in 0.105.0
 
-- **Flash labels no longer missing near viewport top with frontmatter** — in Live Preview mode, flash `f`/`F`/`t`/`T` labels only appeared in the bottom half of the viewport when collapsed YAML frontmatter was scrolled off-screen. Fixed by using `view.visibleRanges` instead of `lineBlockAtHeight`. Also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))
-- **`v$d` cursor off-by-one fixed** — visual-mode `v$d` no longer leaves the cursor one position past the correct column after deleting to end of line.
+- **Which-key popups in embedded editors** — which-key hints now appear in table cell editors and textarea vim overlays, with full access to user keymaps (vimrc, Lua). Bundled vim mode only.
+- **Embedded table mode multi-table fix** — entering table-nav mode in a note with multiple tables no longer always targets the first table. Fixed with `posAtDOM`-based widget matching. ([#117](https://github.com/saberzero1/motions/issues/117))
+- **Enter in embedded table cell editor no longer breaks table structure** — newlines are converted to `<br>` tags on close and restored on open, preserving multi-line cell content. ([#115](https://github.com/saberzero1/motions/issues/115))
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.105.0] - 2026-08-11
+
 ### Added
 
 - **Which-key popups in embedded editors** — which-key hints now appear in table cell editors (embedded mode) and textarea vim overlays. The popup renders in the parent note's viewport using the same position and styling as the main editor's which-key. User keymaps (vimrc, Lua) are fully available since the codemirror-vim keymap is global. Bundled vim mode only — embedded editors in built-in vim mode do not receive vim and are silently skipped.
