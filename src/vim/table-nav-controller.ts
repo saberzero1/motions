@@ -5,7 +5,8 @@ import {
     type PluginValue,
 } from '@codemirror/view';
 import { type Extension } from '@codemirror/state';
-import { type App, editorInfoField } from 'obsidian';
+import { type App, Scope, editorInfoField } from 'obsidian';
+import { pushKeymapScope, popKeymapScope } from '../util/keymap';
 import {
     findTableRanges,
     cursorInRange,
@@ -17,6 +18,7 @@ import {
 import { setActiveEditTableRange } from './table-render-widget';
 import { openCellEditor, closeCellEditor } from './table-cell-editor';
 import { getCmAdapterFromEditorView, getVimApi } from './vim-api';
+import { WhichKeyOverlay, type WhichKeyConfig } from '../ui/which-key';
 import {
     setCursorSuppressedForView,
     clearCursorSuppressedForView,
@@ -47,6 +49,11 @@ export function setRealignAfterCellEdit(value: boolean): void {
 
 type NavState = 'inactive' | 'table-nav' | 'cell-edit';
 
+let navWhichKeyConfig: WhichKeyConfig | null = null;
+export function setTableNavWhichKeyConfig(config: WhichKeyConfig | null): void {
+    navWhichKeyConfig = config;
+}
+
 let controllerEnabled = false;
 export function setTableNavControllerEnabled(value: boolean): void {
     controllerEnabled = value;
@@ -64,6 +71,9 @@ class TableNavController implements PluginValue {
     private refreshTimer: number | null = null;
     private cursorInTable = false;
     private exitingTable = false;
+    private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
+    private navScope: Scope | null = null;
+    private navWhichKey: WhichKeyOverlay | null = null;
 
     constructor(view: EditorView) {
         this.view = view;
@@ -78,7 +88,18 @@ class TableNavController implements PluginValue {
             if (this.state !== 'inactive') this.exitTable();
             return;
         }
-        if (this.state !== 'inactive') return;
+        if (this.state !== 'inactive') {
+            if (update.docChanged) {
+                const tables = findTableRanges(update.state);
+                const stillInTable = tables.some((t) =>
+                    cursorInRange(update.state, t.from, t.to),
+                );
+                if (!stillInTable) {
+                    this.exitTable();
+                }
+            }
+            return;
+        }
         if (!(update.selectionSet || update.docChanged)) return;
 
         if (update.selectionSet && !this.exitingTable) {
@@ -173,9 +194,9 @@ class TableNavController implements PluginValue {
 
         setCursorSuppressedForView(this.view, true);
         pauseAnimatedCursorForView(this.view);
-        this.view.dispatch();
 
         setActiveEditTableRange({ from: table.from, to: table.to });
+        this.view.dispatch();
 
         const cursorPos = this.view.state.selection.main.head;
         const enteredFromBottom = cursorPos > (table.from + table.to) / 2;
@@ -189,6 +210,63 @@ class TableNavController implements PluginValue {
 
         this.highlightCell();
         this.installKeyHandler();
+        this.installNavScope();
+        this.attachNavWhichKey();
+    }
+
+    private attachNavWhichKey(): void {
+        this.detachNavWhichKey();
+        if (!navWhichKeyConfig?.enabled) return;
+        const adapter = getCmAdapterFromEditorView(this.view);
+        if (!adapter) return;
+        const viewContent: HTMLElement | null =
+            this.widgetEl?.closest('.view-content') ?? null;
+        if (!viewContent) return;
+        const app = this.getApp();
+        if (!app) return;
+        this.navWhichKey = WhichKeyOverlay.forEmbeddedEditor(
+            app,
+            adapter,
+            viewContent,
+            navWhichKeyConfig.leaderKey,
+            navWhichKeyConfig.leaderBindings,
+            navWhichKeyConfig.generalMode,
+            navWhichKeyConfig.groupLeaderBindings,
+            navWhichKeyConfig.groupLabels,
+            navWhichKeyConfig.commandLabels,
+            navWhichKeyConfig.showIcons,
+            navWhichKeyConfig.showDelay,
+            navWhichKeyConfig.sortOrder,
+        );
+        this.navWhichKey.attach();
+    }
+
+    private detachNavWhichKey(): void {
+        this.navWhichKey?.destroy();
+        this.navWhichKey = null;
+    }
+
+    private installNavScope(): void {
+        this.removeNavScope();
+        const app = this.getApp();
+        if (!app) return;
+        this.navScope = new Scope();
+        this.navScope.register([], 'Escape', () => {
+            if (this.state === 'table-nav') {
+                this.exitTable();
+                return false;
+            }
+            return true;
+        });
+        pushKeymapScope(app, this.navScope);
+    }
+
+    private removeNavScope(): void {
+        if (this.navScope) {
+            const app = this.getApp();
+            if (app) popKeymapScope(app, this.navScope);
+            this.navScope = null;
+        }
     }
 
     private exitTableAtBoundary(direction: 'before' | 'after'): void {
@@ -203,11 +281,15 @@ class TableNavController implements PluginValue {
             this.view.dispatch({ selection: { anchor: pos } });
         } else {
             const tableLine = doc.lineAt(table.to);
-            const pos =
-                tableLine.number < doc.lines
-                    ? doc.line(tableLine.number + 1).from
-                    : doc.length;
-            this.view.dispatch({ selection: { anchor: pos } });
+            if (tableLine.number < doc.lines) {
+                const pos = doc.line(tableLine.number + 1).from;
+                this.view.dispatch({ selection: { anchor: pos } });
+            } else {
+                this.view.dispatch({
+                    changes: { from: doc.length, insert: '\n' },
+                    selection: { anchor: doc.length + 1 },
+                });
+            }
         }
     }
 
@@ -221,6 +303,8 @@ class TableNavController implements PluginValue {
         }
         this.removeHighlight();
         this.removeKeyHandler();
+        this.removeNavScope();
+        this.detachNavWhichKey();
         setActiveEditTableRange(null);
         this.activeTable = null;
         this.widgetEl = null;
@@ -362,6 +446,7 @@ class TableNavController implements PluginValue {
         };
         this.widgetEl?.addEventListener('keydown', this.navKeyHandler, true);
         activeDocument.addEventListener('keydown', this.navKeyHandler, true);
+        this.installClickOutsideHandler();
     }
 
     private installCellEditKeyHandler(): void {
@@ -391,7 +476,34 @@ class TableNavController implements PluginValue {
             );
             this.navKeyHandler = null;
         }
+        this.removeClickOutsideHandler();
         this.removeCellEditKeyHandler();
+    }
+
+    private installClickOutsideHandler(): void {
+        this.removeClickOutsideHandler();
+        this.clickOutsideHandler = (e: MouseEvent) => {
+            if (this.state === 'inactive') return;
+            const target = e.target as Node | null;
+            if (target && this.widgetEl?.contains(target)) return;
+            this.exitTable();
+        };
+        activeDocument.addEventListener(
+            'mousedown',
+            this.clickOutsideHandler,
+            true,
+        );
+    }
+
+    private removeClickOutsideHandler(): void {
+        if (this.clickOutsideHandler) {
+            activeDocument.removeEventListener(
+                'mousedown',
+                this.clickOutsideHandler,
+                true,
+            );
+            this.clickOutsideHandler = null;
+        }
     }
 
     private removeCellEditKeyHandler(): void {
@@ -423,11 +535,15 @@ class TableNavController implements PluginValue {
                 case 'c':
                     this.executeTableOp(tableDeleteCol, this.activeCol);
                     break;
+                default:
+                    return;
             }
             e.preventDefault();
             e.stopPropagation();
             return;
         }
+
+        let handled = true;
 
         switch (e.key) {
             case 'h':
@@ -515,11 +631,14 @@ class TableNavController implements PluginValue {
                 }
                 break;
             default:
+                handled = false;
                 break;
         }
 
-        e.preventDefault();
-        e.stopPropagation();
+        if (handled) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     }
 
     private executeTableOp(

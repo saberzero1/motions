@@ -77,6 +77,21 @@ To provide a seamless editing experience, Vim Motions manages how tables are ren
 - **Embedded**: The table renders as themed HTML. Moving the cursor into the table enters a two-layer editing mode:
     1. **Table navigation**: `h`/`j`/`k`/`l` moves a cell highlight. Structural commands (`o`, `O`, `dd`, `dc`, `J`, `K`, `H`, `L`, `I`, `A`, `=`) manipulate rows and columns directly.
     2. **Cell editing**: Press `i`, `a`, `c`, `s`, or `Enter` to open a vim-enabled editor in the highlighted cell. `Escape` returns to table navigation. A second `Escape` exits the table.
+
+#### Cell selection mode improvements
+
+In cell selection mode (cursor in table, cell highlight active but no cell editor open):
+
+- **Unhandled keys propagate to vim** — leader key sequences, which-key popups, and other vim bindings work during cell selection. Only table-nav commands (`h`/`j`/`k`/`l`, `i`/`a`/`c`/`s`, `o`/`O`, `dd`/`dc`, etc.) are consumed by the table handler.
+- **Which-key popups** — the which-key overlay appears in cell selection mode, matching the behavior in cell-edit mode.
+- **Click outside exits table-nav** — clicking anywhere outside the table widget exits cell selection and returns to normal editor mode.
+- **Escape exits table-nav** — pressing Escape in cell selection mode exits the table and returns to the main editor.
+
+#### Boundary handling
+
+- Pressing `j` at the last data row exits the table. If the table is on the last line of the document, a new line is created below the table.
+- Pressing `k` at the header row exits upward.
+- When the document content changes while in table-nav mode and the cursor is no longer in a table, table-nav exits automatically.
 - **Cursor-aware (Default)**: Tables are rendered as themed HTML when the cursor is outside, but switch to raw Markdown when the cursor enters the table. This allows for full Vim editing power within the table.
 - **Always raw**: Tables always display as plain Markdown.
 - **Off**: Restores Obsidian's default interactive table editor.

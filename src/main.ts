@@ -95,6 +95,7 @@ import {
     tableEmbeddedField,
     setEmbeddedModeEnabled,
     setTableEmbeddedMode,
+    setTableNavWhichKeyConfig,
 } from './vim/table-embedded-editor';
 import {
     setCellEditorCursorShapes,
@@ -2813,6 +2814,7 @@ export default class VimMotionsPlugin extends Plugin {
             sortOrder: this.settings.whichKeySortOrder,
         };
         setCellEditorWhichKeyConfig(embeddedWhichKeyConfig);
+        setTableNavWhichKeyConfig(embeddedWhichKeyConfig);
         this.textareaVimManager?.updateOptions(
             undefined,
             embeddedWhichKeyConfig,

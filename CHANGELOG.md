@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Embedded table: cannot leave table downwards on last line** — pressing `j` at the last data row when the table is at the end of the document now inserts a newline and moves the cursor below the table instead of getting stuck. ([#119](https://github.com/saberzero1/motions/issues/119))
+    - Plugin: `src/vim/table-nav-controller.ts` (`exitTableAtBoundary` — inserts `\n` when table is on last line instead of dispatching to `doc.length`)
+- **Embedded table: unhandled keys swallowed in cell selection mode** — the table-nav key handler previously consumed ALL keys with `preventDefault()`/`stopPropagation()`. Now only consumes keys the handler actually processes; unhandled keys propagate to vim. Enables leader key sequences, which-key popups, and other vim key bindings during cell selection. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `handled` flag gates `preventDefault`/`stopPropagation`; `pendingD` default case propagates instead of consuming)
+- **Embedded table: which-key popups in cell selection mode** — a `WhichKeyOverlay` instance is now attached during table-nav mode using the main editor's vim adapter. Previously only available in cell-edit mode. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`attachNavWhichKey`/`detachNavWhichKey`, `setTableNavWhichKeyConfig`)
+    - Plugin: `src/vim/table-embedded-editor.ts` (re-exports `setTableNavWhichKeyConfig`)
+    - Plugin: `src/main.ts` (wires `embeddedWhichKeyConfig` to table-nav controller)
+- **Embedded table: picker focus stays on table widget** — the `setActiveLeaf` override in `embeddable-editor.ts` now allows focus transfer when a modal is open by checking for `.modal-container` in the DOM. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/editors/embeddable-editor.ts` (`setActiveLeaf` override — modal container check)
+- **Embedded table: clicking outside table does not exit table-nav** — a capture-phase `mousedown` listener on `activeDocument` exits table-nav when clicks land outside the widget. ([#121](https://github.com/saberzero1/motions/issues/121))
+    - Plugin: `src/vim/table-nav-controller.ts` (`installClickOutsideHandler`/`removeClickOutsideHandler`)
+- **Embedded table: stale table-nav state after document replacement** — the ViewPlugin's `update()` now detects when `docChanged` fires and the cursor is no longer in a table, exiting table-nav gracefully. ([#119](https://github.com/saberzero1/motions/issues/119), [#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`update` — stale state check on `docChanged`)
+- **Embedded table: cursor displacement when entering table-nav** — `setActiveEditTableRange()` is now called before `this.view.dispatch()` in `enterTableNav()`, preventing decoration rebuild from snapping the cursor to the header row. ([#121](https://github.com/saberzero1/motions/issues/121))
+    - Plugin: `src/vim/table-nav-controller.ts` (`enterTableNav` — reordered `setActiveEditTableRange` before dispatch)
+- **Embedded table: Escape in table-nav uses Obsidian Scope** — table-nav mode now installs an Obsidian `Scope` with an Escape handler (matching the cell-editor pattern), in addition to the DOM capture-phase handler. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`installNavScope`/`removeNavScope`)
+
+### Tests
+
+- Unblocked 13 previously-skipped embedded table widget e2e tests in `test/specs/table-cell-vim-mode.e2e.ts` — root cause: missing `browser.reloadObsidian()` and table-only document content preventing widget rendering. All cell editing tests (two-Escape, entry modes, register sharing, `<br>` round-trip, multi-table navigation) now pass.
+- 2 regression tests for #119 in `test/specs/table-cell-vim-mode.e2e.ts`: `j` at last row exits table at end of document, cursor usable after exit
+- 2 regression tests for #120 in `test/specs/table-cell-vim-mode.e2e.ts`: Escape in cell selection mode (skipped — WDIO DOM Escape routing limitation), unhandled keys not swallowed
+- 3 regression tests for #121 in `test/specs/table-cell-bridge.e2e.ts`: `j` moves through proper table rows, cursor not stuck on header, cursor not jumping back
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Marked 7 table widget sub-issues as fixed (#119, #120, #121); updated embedded table e2e test coverage note
+- `AGENTS.md`: Updated table-nav-controller description with click-outside handler, Scope-based Escape, which-key in table-nav, stale state cleanup
+- `CONTRIBUTING.md`: Updated `table-nav-controller.ts` description
+
 ## [0.106.0] - 2026-08-11
 
 ### Fixed

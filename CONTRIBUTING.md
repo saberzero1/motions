@@ -87,13 +87,13 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting, cellBrToNewline/cellNewlineToBr for <br> ↔ newline conversion in cell editors
-    table-nav-controller.ts    # Table cell navigation controller — findWidgetEl uses posAtDOM nearest-match to correlate widget DOM elements with document positions for multi-table support; exitCellEdit keeps activeEditTableRange set (never clears to null) so StateField fast-path fires during closeCellEditor and tableRealign dispatches, preventing cursor displacement; onEscape callback defers exitCellEdit via requestAnimationFrame to prevent scope-pop-mid-handler leak
+    table-nav-controller.ts    # Table cell navigation controller — findWidgetEl uses posAtDOM nearest-match for multi-table support; exitTableAtBoundary inserts newline when table is on last line; handleTableNavKey only consumes handled keys (unhandled propagate to vim); Scope-based Escape via installNavScope/removeNavScope; click-outside detection via installClickOutsideHandler/removeClickOutsideHandler; which-key overlay in table-nav mode via attachNavWhichKey/detachNavWhichKey and setTableNavWhichKeyConfig; stale state cleanup in update() on docChanged; setActiveEditTableRange before dispatch to prevent cursor displacement; onEscape callback defers exitCellEdit via requestAnimationFrame
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
     table-cell-editor.ts   # Per-cell editing with vim-enabled editor + dynamic cursor stylesheet + which-key overlay lifecycle (setCellEditorWhichKeyConfig, deferred creation via setTimeout(0), cleanup in closeCellEditor)
-    table-embedded-editor.ts   # Embedded editor within table widgets
+    table-embedded-editor.ts   # Embedded editor within table widgets — re-exports setTableNavWhichKeyConfig
     table-render-widget.ts     # CM6 decoration widget for rendered tables
     table-widget-suppressor.ts # Suppress table widget when editing
     textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack; which-key overlay lifecycle (whichKeyConfig field, deferred creation with .view-content → .modal-container fallback, cleanup in teardownActive)
@@ -250,7 +250,7 @@ src/
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
     bundled/               # Bundled Obsidian-specific snippets
   editors/
-    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent; registerScopeKey() exposes the internal Obsidian Scope for registering key handlers that fire before Obsidian's default hotkeys (used by Oil for Ctrl-key combos); Escape handling via Scope.register with isVimIdle() sub-state detection (operator, surround, keyBuffer, expectLiteralNext); isolateKeyEvents option stops keydown/keyup propagation for modal isolation (used by textarea-vim); _destroying flag prevents blur handler from double-popping keymap scope during destroy()
+    embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent; registerScopeKey() exposes the internal Obsidian Scope for registering key handlers that fire before Obsidian's default hotkeys (used by Oil for Ctrl-key combos); Escape handling via Scope.register with isVimIdle() sub-state detection (operator, surround, keyBuffer, expectLiteralNext); isolateKeyEvents option stops keydown/keyup propagation for modal isolation (used by textarea-vim); _destroying flag prevents blur handler from double-popping keymap scope during destroy(); setActiveLeaf override allows focus transfer when modal is open (checks .modal-container)
   keybindings/
     action-registry.ts     # Centralized action registry for cross-context keybindings
   ui/

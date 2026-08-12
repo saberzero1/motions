@@ -889,3 +889,130 @@ describe('Cursor-aware table rendering', function () {
         expect(await countRenderedTables()).toBe(0);
     });
 });
+
+const PROPER_TABLE =
+    'Text above.\n\n| H1 | H2 |\n|:---|:---|\n| a  | b  |\n| c  | d  |';
+
+describe('Regression: #121 — raw/cursor-aware table cursor in Live Preview', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await ensureLivePreview();
+        await enableCursorAwareMode();
+    });
+
+    after(async function () {
+        await enableAlwaysRawMode();
+    });
+
+    it('j should move through header and data rows without getting stuck', async function () {
+        await setupEditor(PROPER_TABLE, { line: 2, ch: 2 });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        const positions = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view || !Vim) return [];
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return [];
+                const lines: number[] = [view.editor.getCursor().line];
+                for (let i = 0; i < 4; i++) {
+                    Vim.handleKey(adapter, 'j');
+                    lines.push(view.editor.getCursor().line);
+                }
+                return lines;
+            },
+        )) as number[];
+
+        for (let i = 1; i < positions.length; i++) {
+            expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]!);
+        }
+
+        const uniquePositions = new Set(positions);
+        expect(uniquePositions.size).toBeGreaterThan(1);
+    });
+
+    it('cursor should not get stuck on header row after creating a proper table', async function () {
+        await setupEditor(PROPER_TABLE, { line: 2, ch: 2 });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        const startPos = await getCursorPos();
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view || !Vim) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            Vim.handleKey(adapter, 'j');
+            Vim.handleKey(adapter, 'j');
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const endPos = await getCursorPos();
+        expect(endPos.line).toBeGreaterThan(startPos.line);
+    });
+
+    it('cursor should not jump back to header row after j', async function () {
+        await setupEditor(PROPER_TABLE, { line: 4, ch: 2 });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        const startLine = (await getCursorPos()).line;
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view || !Vim) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            Vim.handleKey(adapter, 'j');
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const endLine = (await getCursorPos()).line;
+        expect(endLine).toBeGreaterThanOrEqual(startLine);
+    });
+});

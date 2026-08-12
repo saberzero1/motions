@@ -338,7 +338,11 @@ function buildEditorClass(
                         setActiveLeaf:
                             (oldMethod) =>
                             (...args: unknown[]) => {
-                                if (!self.activeCM?.hasFocus) {
+                                const hasModal =
+                                    !!activeDocument.querySelector(
+                                        '.modal-container',
+                                    );
+                                if (!self.activeCM?.hasFocus || hasModal) {
                                     oldMethod.apply(editorApp.workspace, args);
                                 }
                             },
