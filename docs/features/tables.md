@@ -87,6 +87,11 @@ In cell selection mode (cursor in table, cell highlight active but no cell edito
 - **Click outside exits table-nav** — clicking anywhere outside the table widget exits cell selection and returns to normal editor mode.
 - **Escape exits table-nav** — pressing Escape in cell selection mode exits the table and returns to the main editor.
 
+#### Known limitations in cursor-aware mode
+
+- **Wikilink cursor displacement**: Typing `[[` inside a table cell in Live Preview cursor-aware mode may cause the cursor to jump past `]]` after a few characters. This is an Obsidian platform limitation. Workaround: use **Embedded** mode or **Source** mode for typing wikilinks in table cells.
+- **Cursor displacement guard**: The plugin includes a transaction filter that prevents the cursor from being snapped to the table header row during table creation in Live Preview. This guard is automatic and requires no configuration.
+
 #### Boundary handling
 
 - Pressing `j` at the last data row exits the table. If the table is on the last line of the document, a new line is created below the table.

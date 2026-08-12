@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Embedded table: table-nav key handler suppressed during modals** — `handleTableNavKey` and `handleCellEditKey` now check for `.modal-container` in the DOM and return immediately when a modal (picker, command palette, settings) is open. Previously, keys typed into a picker input while in cell selection mode were consumed by the table handler (`a` entered cell edit, `s` substituted, etc.). ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` and `handleCellEditKey` — modal container check)
+- **Cursor-aware table: cursor displacement guard for header-row jump** — a `transactionFilter` (`tableCursorGuard`) intercepts CM6 transactions that reposition the cursor to the table header row when the user was editing a data row. This prevents Obsidian's Live Preview from snapping the cursor to the header during table creation or editing. Only active in cursor-aware mode (not embedded mode). ([#121](https://github.com/saberzero1/motions/issues/121))
+    - Plugin: `src/vim/table-render-widget.ts` (`tableCursorGuard` transaction filter, separated from `Prec.high` StateField)
+
 ## [0.107.0] - 2026-08-12
 
 ### Fixed

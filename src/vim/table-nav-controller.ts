@@ -522,6 +522,7 @@ class TableNavController implements PluginValue {
     private handleTableNavKey(e: KeyboardEvent): void {
         if (!this.activeTable) return;
         if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (activeDocument.querySelector('.modal-container')) return;
 
         const dataRows = this.getDataRowIndices();
         const colCount = this.getColumnCount();
@@ -727,6 +728,7 @@ class TableNavController implements PluginValue {
     }
 
     private handleCellEditKey(e: KeyboardEvent): void {
+        if (activeDocument.querySelector('.modal-container')) return;
         if (e.key === 'Tab') {
             e.preventDefault();
             e.stopPropagation();

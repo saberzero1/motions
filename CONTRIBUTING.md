@@ -94,7 +94,7 @@ src/
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
     table-cell-editor.ts   # Per-cell editing with vim-enabled editor + dynamic cursor stylesheet + which-key overlay lifecycle (setCellEditorWhichKeyConfig, deferred creation via setTimeout(0), cleanup in closeCellEditor)
     table-embedded-editor.ts   # Embedded editor within table widgets — re-exports setTableNavWhichKeyConfig
-    table-render-widget.ts     # CM6 decoration widget for rendered tables
+    table-render-widget.ts     # CM6 decoration widget for rendered tables + tableCursorGuard transactionFilter that prevents Live Preview cursor displacement to table header row in cursor-aware mode
     table-widget-suppressor.ts # Suppress table widget when editing
     textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack; which-key overlay lifecycle (whichKeyConfig field, deferred creation with .view-content → .modal-container fallback, cleanup in teardownActive)
     autocmd-mode-watcher.ts  # Per-view autocmd mode events (CM6 ViewPlugin — fires InsertEnter/InsertLeave/ModeChanged across all editors)

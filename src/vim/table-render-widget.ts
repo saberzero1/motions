@@ -1,8 +1,8 @@
 import { WidgetType, EditorView } from '@codemirror/view';
 import {
     Prec,
+    EditorState,
     StateField,
-    type EditorState,
     type Extension,
     type Range,
 } from '@codemirror/state';
@@ -219,21 +219,58 @@ export function setActiveEditTableRange(
     activeEditTableRange = range;
 }
 
-export const tableRenderField: Extension = Prec.high(
-    StateField.define<DecorationSet>({
-        create(state) {
-            return enabled ? buildDecorations(state) : Decoration.none;
-        },
-        update(prev, tr) {
-            if (!enabled) return Decoration.none;
-            if (activeEditTableRange && tr.docChanged) {
-                return prev.map(tr.changes);
-            }
-            if (tr.docChanged || tr.selection) {
-                return buildDecorations(tr.state);
-            }
-            return prev;
-        },
-        provide: (f) => EditorView.decorations.from(f),
-    }),
-);
+const tableCursorGuard = EditorState.transactionFilter.of((tr) => {
+    if (!enabled || embeddedMode) return tr;
+    if (!tr.docChanged || !tr.selection) return tr;
+
+    const oldHead = tr.startState.selection.main.head;
+    const newHead = tr.selection.main.head;
+    if (oldHead === newHead) return tr;
+
+    const mappedOld = tr.changes.mapPos(oldHead, 1);
+    if (mappedOld === newHead) return tr;
+
+    const tables = findTableRanges(tr.state);
+    const oldInTable = tables.find(
+        (t) => mappedOld >= t.from && mappedOld <= t.to,
+    );
+    if (!oldInTable) return tr;
+
+    const newInSameTable =
+        newHead >= oldInTable.from && newHead <= oldInTable.to;
+    if (!newInSameTable) return tr;
+
+    const newLine = tr.state.doc.lineAt(newHead);
+    const oldLine = tr.state.doc.lineAt(mappedOld);
+    if (newLine.number === oldLine.number) return tr;
+
+    const tableStartLine = tr.state.doc.lineAt(oldInTable.from);
+    if (newLine.number !== tableStartLine.number) return tr;
+
+    return {
+        ...tr,
+        selection: { anchor: mappedOld },
+    };
+});
+
+export const tableRenderField: Extension = [
+    Prec.high(
+        StateField.define<DecorationSet>({
+            create(state) {
+                return enabled ? buildDecorations(state) : Decoration.none;
+            },
+            update(prev, tr) {
+                if (!enabled) return Decoration.none;
+                if (activeEditTableRange && tr.docChanged) {
+                    return prev.map(tr.changes);
+                }
+                if (tr.docChanged || tr.selection) {
+                    return buildDecorations(tr.state);
+                }
+                return prev;
+            },
+            provide: (f) => EditorView.decorations.from(f),
+        }),
+    ),
+    tableCursorGuard,
+];
