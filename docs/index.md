@@ -31,9 +31,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.106.0
+## What's new in 0.107.0
 
-- **Snippet override priority** — user-defined snippets now properly override bundled snippets with the same prefix instead of duplicating them. Priority order: user > lua > bundled. ([#118](https://github.com/saberzero1/motions/issues/118))
-- **Bundled table snippet trailing newline fix** — `table` and `table3` snippets now place `$0` on a standalone final line, preventing the cursor from getting stuck when a table is inserted at the end of a document. ([#118](https://github.com/saberzero1/motions/issues/118))
+- **Embedded table: exit downwards on last line** — pressing `j` at the last data row when the table is at the end of the document now inserts a newline and moves below the table instead of getting stuck. ([#119](https://github.com/saberzero1/motions/issues/119))
+- **Embedded table: unhandled keys no longer swallowed** — cell selection mode now only consumes keys it handles; unhandled keys propagate to vim, enabling leader key sequences and which-key popups during cell selection. ([#120](https://github.com/saberzero1/motions/issues/120))
+- **Embedded table: which-key in cell selection mode** — which-key hints now appear during table-nav mode, not just cell editing. ([#120](https://github.com/saberzero1/motions/issues/120))
+- **Embedded table: click outside exits table-nav** — clicking outside the table widget now exits cell selection mode. ([#121](https://github.com/saberzero1/motions/issues/121))
+- **Embedded table: stale state cleanup** — table-nav state is now cleared when document changes move the cursor outside the table. ([#119](https://github.com/saberzero1/motions/issues/119), [#120](https://github.com/saberzero1/motions/issues/120))
 
 See the [[changelog|full changelog]] for details.

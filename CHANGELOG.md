@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.107.0] - 2026-08-12
+
 ### Fixed
 
 - **Embedded table: cannot leave table downwards on last line** — pressing `j` at the last data row when the table is at the end of the document now inserts a newline and moves the cursor below the table instead of getting stuck. ([#119](https://github.com/saberzero1/motions/issues/119))
