@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.108.0] - 2026-08-12
+
 ### Added
 
 - **`@obsidian-typings/obsidian-public-latest` devDependency** — added community-maintained type definitions for Obsidian's internal APIs. Replaces ~50 unsafe `as unknown as` casts across 13 source files with properly typed access to `editor.cm`, `app.keymap`, `app.plugins`, `app.vault.getConfig()`, `app.metadataCache.resolvedLinks`, `WorkspaceLeaf.id`/`.pinned`, and more. Build-only dependency — no runtime impact.

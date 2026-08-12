@@ -31,12 +31,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.107.0
+## What's new in 0.108.0
 
-- **Embedded table: exit downwards on last line** — pressing `j` at the last data row when the table is at the end of the document now inserts a newline and moves below the table instead of getting stuck. ([#119](https://github.com/saberzero1/motions/issues/119))
-- **Embedded table: unhandled keys no longer swallowed** — cell selection mode now only consumes keys it handles; unhandled keys propagate to vim, enabling leader key sequences and which-key popups during cell selection. ([#120](https://github.com/saberzero1/motions/issues/120))
-- **Embedded table: which-key in cell selection mode** — which-key hints now appear during table-nav mode, not just cell editing. ([#120](https://github.com/saberzero1/motions/issues/120))
-- **Embedded table: click outside exits table-nav** — clicking outside the table widget now exits cell selection mode. ([#121](https://github.com/saberzero1/motions/issues/121))
-- **Embedded table: stale state cleanup** — table-nav state is now cleared when document changes move the cursor outside the table. ([#119](https://github.com/saberzero1/motions/issues/119), [#120](https://github.com/saberzero1/motions/issues/120))
+- **Native highlights cleared on Escape** — Obsidian's built-in `is-flashing` highlights (shown after following an internal link like `[[Note#heading]]`) now clear when pressing Escape in normal mode, matching the behavior of the plugin's own search highlights. ([#122](https://github.com/saberzero1/motions/issues/122))
+- **Chord display fixed for surround commands** — the status bar chord display now correctly accumulates all keystrokes during multi-key surround commands like `ysiwb` and `cs"(`. Previously, the chord disappeared partway through. ([#123](https://github.com/saberzero1/motions/issues/123))
+- **Embedded table: keys no longer consumed during modals** — table-nav and cell-edit key handlers now yield to open modals (picker, command palette, settings), preventing keys typed into modal inputs from being intercepted by the table handler. ([#120](https://github.com/saberzero1/motions/issues/120))
+- **Cursor-aware table: cursor displacement guard** — a transaction filter prevents Obsidian's Live Preview from snapping the cursor to the table header row during editing. ([#121](https://github.com/saberzero1/motions/issues/121))
+- **Type safety improvements** — replaced ~50 unsafe `as unknown as` casts with proper types via `@obsidian-typings/obsidian-public-latest`
 
 See the [[changelog|full changelog]] for details.
