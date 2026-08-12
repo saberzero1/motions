@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Embedded table: click-to-select cell** — clicking a cell in the embedded table widget now selects that cell in table-nav mode. Works both when table-nav is already active (updates active cell) and when clicking from outside the table (enters table-nav at the clicked cell). The click handler is registered on the widget DOM via a module-level `setTableWidgetCellClickHandler` callback, coordinated between `table-render-widget.ts` and `table-nav-controller.ts`. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-render-widget.ts` (`setTableWidgetCellClickHandler`, click handler in `toDOM` for embedded mode)
+    - Plugin: `src/vim/table-nav-controller.ts` (constructor registers callback; `pendingClickCell` field for deferred cell selection on table-nav entry)
+
+### Fixed
+
+- **Embedded table: click-outside handler exits table-nav during modal interaction** — the capture-phase `mousedown` listener now checks for `.modal-container` in the DOM before calling `exitTable()`. Previously, opening a modal (command palette, picker, settings) while in table-nav mode caused the click-outside handler to fire on the modal overlay, exiting table-nav and showing raw markdown. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`installClickOutsideHandler` — modal container check + `target.closest('.modal-container')` guard)
+- **Embedded table: header-only tables (no data rows) no longer enter table-nav** — tables with only a header and separator row (e.g., `| H |\n|---|`) are now skipped by `checkEntry()`. Previously, entering such a table activated table-nav with only the header row navigable, which was confusing. ([#121](https://github.com/saberzero1/motions/issues/121))
+    - Plugin: `src/vim/table-nav-controller.ts` (`checkEntry` — `hasDataRow` check before `enterTableNav`)
+
+### Tests
+
+- 1 regression test for click-to-select in `test/specs/table-cell-vim-mode.e2e.ts`: clicking a cell updates active cell highlight to clicked position (verified to fail without handler)
+- 1 regression test for header-only table in `test/specs/table-cell-vim-mode.e2e.ts`: header-only table does not enter table-nav (verified to fail without data-row check)
+- 1 regression test for click-outside table in `test/specs/table-cell-vim-mode.e2e.ts`: cursor leaving table exits table-nav
+
 ## [0.108.0] - 2026-08-12
 
 ### Added

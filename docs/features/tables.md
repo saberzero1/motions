@@ -83,6 +83,7 @@ To provide a seamless editing experience, Vim Motions manages how tables are ren
 In cell selection mode (cursor in table, cell highlight active but no cell editor open):
 
 - **Unhandled keys propagate to vim** — leader key sequences, which-key popups, and other vim bindings work during cell selection. Only table-nav commands (`h`/`j`/`k`/`l`, `i`/`a`/`c`/`s`, `o`/`O`, `dd`/`dc`, etc.) are consumed by the table handler.
+- **Click to select** — clicking a cell in the rendered table widget selects it, moving the cell highlight to the clicked position. Clicking a table widget from outside the table enters cell selection mode at the clicked cell.
 - **Which-key popups** — the which-key overlay appears in cell selection mode, matching the behavior in cell-edit mode.
 - **Click outside exits table-nav** — clicking anywhere outside the table widget exits cell selection and returns to normal editor mode.
 - **Escape exits table-nav** — pressing Escape in cell selection mode exits the table and returns to the main editor.

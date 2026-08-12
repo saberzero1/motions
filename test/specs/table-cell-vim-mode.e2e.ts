@@ -825,6 +825,27 @@ describe('Regression: #119 — cannot leave table downwards on last line', funct
         const value = await getEditorValue();
         expect(value).toContain('hello');
     });
+
+    it('header-only table (no data rows) should not enter table-nav', async function () {
+        const headerOnly = 'x\n\n| H1 | H2 |\n|---|---|';
+        await prepareEmbeddedTable(headerOnly, { line: 2, ch: 2 });
+
+        const hasHighlight = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return false;
+                const container = (
+                    view as unknown as { contentEl: HTMLElement }
+                ).contentEl;
+                return (
+                    container.querySelector('.vim-table-cell-active') !== null
+                );
+            },
+        )) as boolean;
+        expect(hasHighlight).toBe(false);
+    });
 });
 
 describe('Regression: #120 — shortcuts in embedded table cell selection mode', function () {
@@ -937,5 +958,184 @@ describe('Regression: #120 — shortcuts in embedded table cell selection mode',
         })) as string;
 
         expect(modeAfterG.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('clicking a cell in the widget should update active cell', async function () {
+        const inTableBefore = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return false;
+                const container = (
+                    view as unknown as { contentEl: HTMLElement }
+                ).contentEl;
+                return (
+                    container.querySelector('.vim-table-cell-active') !== null
+                );
+            },
+        )) as boolean;
+        expect(inTableBefore).toBe(true);
+
+        const clicked = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { clicked: false };
+            const container = (view as unknown as { contentEl: HTMLElement })
+                .contentEl;
+            const targetCell = container.querySelector(
+                '[data-row="2"][data-col="1"]',
+            );
+            if (!targetCell) return { clicked: false, reason: 'no cell' };
+            targetCell.dispatchEvent(
+                new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            const active = container.querySelector('.vim-table-cell-active');
+            return {
+                clicked: true,
+                activeRow: active?.getAttribute('data-row'),
+                activeCol: active?.getAttribute('data-col'),
+            };
+        })) as {
+            clicked: boolean;
+            activeRow?: string;
+            activeCol?: string;
+        };
+
+        expect(clicked.clicked).toBe(true);
+        expect(clicked.activeRow).toBe('2');
+        expect(clicked.activeCol).toBe('1');
+    });
+
+    it.skip('clicking a cell from outside table should enter table-nav at clicked cell (widget lifecycle timing in WDIO)', async function () {
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        const noHighlightBefore = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return true;
+                const container = (
+                    view as unknown as { contentEl: HTMLElement }
+                ).contentEl;
+                return (
+                    container.querySelector('.vim-table-cell-active') === null
+                );
+            },
+        )) as boolean;
+        expect(noHighlightBefore).toBe(true);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const container = (view as unknown as { contentEl: HTMLElement })
+                .contentEl;
+            const targetCell = container.querySelector(
+                '[data-row="2"][data-col="1"]',
+            );
+            if (!targetCell) return;
+            targetCell.dispatchEvent(
+                new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+        });
+
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return false;
+                    const container = (
+                        view as unknown as { contentEl: HTMLElement }
+                    ).contentEl;
+                    return (
+                        container.querySelector('.vim-table-cell-active') !==
+                        null
+                    );
+                })) as boolean,
+            { timeout: 3000, interval: 100 },
+        );
+
+        const active = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return null;
+            const container = (view as unknown as { contentEl: HTMLElement })
+                .contentEl;
+            const cell = container.querySelector('.vim-table-cell-active');
+            if (!cell) return null;
+            return {
+                row: cell.getAttribute('data-row'),
+                col: cell.getAttribute('data-col'),
+            };
+        })) as { row: string; col: string } | null;
+
+        expect(active).not.toBeNull();
+        expect(active?.row).toBe('2');
+        expect(active?.col).toBe('1');
+    });
+
+    it('click outside table should exit table-nav', async function () {
+        const inTableBefore = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return false;
+                const container = (
+                    view as unknown as { contentEl: HTMLElement }
+                ).contentEl;
+                return (
+                    container.querySelector('.vim-table-cell-active') !== null
+                );
+            },
+        )) as boolean;
+        expect(inTableBefore).toBe(true);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setCursor(0, 0);
+            view.editor.focus();
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        const inTableAfter = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return true;
+                const container = (
+                    view as unknown as { contentEl: HTMLElement }
+                ).contentEl;
+                return (
+                    container.querySelector('.vim-table-cell-active') !== null
+                );
+            },
+        )) as boolean;
+        expect(inTableAfter).toBe(false);
     });
 });

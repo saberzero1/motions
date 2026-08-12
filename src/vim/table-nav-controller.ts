@@ -15,7 +15,10 @@ import {
     splitCellsEscapeAware,
     getCellDocumentRange,
 } from './table-utils';
-import { setActiveEditTableRange } from './table-render-widget';
+import {
+    setActiveEditTableRange,
+    setTableWidgetCellClickHandler,
+} from './table-render-widget';
 import { openCellEditor, closeCellEditor } from './table-cell-editor';
 import { getCmAdapterFromEditorView, getVimApi } from './vim-api';
 import { WhichKeyOverlay, type WhichKeyConfig } from '../ui/which-key';
@@ -74,12 +77,45 @@ class TableNavController implements PluginValue {
     private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
     private navScope: Scope | null = null;
     private navWhichKey: WhichKeyOverlay | null = null;
+    private pendingClickCell: { row: number; col: number } | null = null;
 
     constructor(view: EditorView) {
         this.view = view;
         this.isNested = !!view.dom.closest(
             '.vim-table-embedded-editor, .vim-table-cell-editor',
         );
+        if (!this.isNested) {
+            setTableWidgetCellClickHandler((clickView, row, col, widgetEl) => {
+                if (clickView !== this.view) return;
+                if (this.state === 'cell-edit') return;
+                if (this.state === 'table-nav') {
+                    const dataRows = this.getDataRowIndices();
+                    if (!dataRows.includes(row)) return;
+                    this.activeRow = row;
+                    this.activeCol = col;
+                    this.highlightCell();
+                    return;
+                }
+                const tables = findTableRanges(this.view.state);
+                const table = tables.find((t) => {
+                    try {
+                        const pos = this.view.posAtDOM(widgetEl, 0);
+                        return pos >= t.from && pos <= t.to;
+                    } catch {
+                        return false;
+                    }
+                });
+                if (!table) return;
+                const hasDataRow = table.lines.some(
+                    (line, i) => i > 0 && !SEPARATOR_RE.test(line),
+                );
+                if (!hasDataRow) return;
+                this.pendingClickCell = { row, col };
+                this.view.dispatch({
+                    selection: { anchor: table.from },
+                });
+            });
+        }
     }
 
     update(update: ViewUpdate): void {
@@ -134,6 +170,10 @@ class TableNavController implements PluginValue {
         const tables = findTableRanges(state);
         for (const table of tables) {
             if (cursorInRange(state, table.from, table.to)) {
+                const hasDataRow = table.lines.some(
+                    (line, i) => i > 0 && !SEPARATOR_RE.test(line),
+                );
+                if (!hasDataRow) continue;
                 this.enterTableNav(table);
                 return;
             }
@@ -207,6 +247,15 @@ class TableNavController implements PluginValue {
             this.activeRow = 0;
         }
         this.activeCol = 0;
+
+        if (this.pendingClickCell) {
+            const dataRows = this.getDataRowIndices();
+            if (dataRows.includes(this.pendingClickCell.row)) {
+                this.activeRow = this.pendingClickCell.row;
+                this.activeCol = this.pendingClickCell.col;
+            }
+            this.pendingClickCell = null;
+        }
 
         this.highlightCell();
         this.installKeyHandler();
@@ -486,6 +535,12 @@ class TableNavController implements PluginValue {
             if (this.state === 'inactive') return;
             const target = e.target as Node | null;
             if (target && this.widgetEl?.contains(target)) return;
+            if (activeDocument.querySelector('.modal-container')) return;
+            if (
+                target instanceof HTMLElement &&
+                target.closest('.modal-container')
+            )
+                return;
             this.exitTable();
         };
         activeDocument.addEventListener(
@@ -834,6 +889,7 @@ class TableNavController implements PluginValue {
             window.clearTimeout(this.refreshTimer);
             this.refreshTimer = null;
         }
+        setTableWidgetCellClickHandler(null);
     }
 }
 

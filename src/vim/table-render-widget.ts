@@ -159,6 +159,24 @@ class TableRenderWidget extends WidgetType {
             }
         }
 
+        if (embeddedMode && onCellClick) {
+            const handler = onCellClick;
+            const editorView = view;
+            container.addEventListener('click', (e: MouseEvent) => {
+                const target = e.target as HTMLElement | null;
+                const cell = target?.closest<HTMLElement>(
+                    '[data-row][data-col]',
+                );
+                if (!cell) return;
+                const row = parseInt(cell.getAttribute('data-row') ?? '', 10);
+                const col = parseInt(cell.getAttribute('data-col') ?? '', 10);
+                if (isNaN(row) || isNaN(col)) return;
+                handler(editorView, row, col, container);
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        }
+
         return container;
     }
 
@@ -204,6 +222,20 @@ function buildDecorations(state: EditorState): DecorationSet {
 let enabled = false;
 let embeddedMode = false;
 let activeEditTableRange: { from: number; to: number } | null = null;
+
+type CellClickHandler = (
+    view: EditorView,
+    row: number,
+    col: number,
+    widgetEl: HTMLElement,
+) => void;
+let onCellClick: CellClickHandler | null = null;
+
+export function setTableWidgetCellClickHandler(
+    handler: CellClickHandler | null,
+): void {
+    onCellClick = handler;
+}
 
 export function setTableRenderEnabled(value: boolean): void {
     enabled = value;
