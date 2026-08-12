@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.109.0] - 2026-08-12
+
 ### Added
 
 - **Embedded table: click-to-select cell** — clicking a cell in the embedded table widget now selects that cell in table-nav mode. Works both when table-nav is already active (updates active cell) and when clicking from outside the table (enters table-nav at the clicked cell). The click handler is registered on the widget DOM via a module-level `setTableWidgetCellClickHandler` callback, coordinated between `table-render-widget.ts` and `table-nav-controller.ts`. ([#120](https://github.com/saberzero1/motions/issues/120))

@@ -31,12 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.108.0
+## What's new in 0.109.0
 
-- **Native highlights cleared on Escape** — Obsidian's built-in `is-flashing` highlights (shown after following an internal link like `[[Note#heading]]`) now clear when pressing Escape in normal mode, matching the behavior of the plugin's own search highlights. ([#122](https://github.com/saberzero1/motions/issues/122))
-- **Chord display fixed for surround commands** — the status bar chord display now correctly accumulates all keystrokes during multi-key surround commands like `ysiwb` and `cs"(`. Previously, the chord disappeared partway through. ([#123](https://github.com/saberzero1/motions/issues/123))
-- **Embedded table: keys no longer consumed during modals** — table-nav and cell-edit key handlers now yield to open modals (picker, command palette, settings), preventing keys typed into modal inputs from being intercepted by the table handler. ([#120](https://github.com/saberzero1/motions/issues/120))
-- **Cursor-aware table: cursor displacement guard** — a transaction filter prevents Obsidian's Live Preview from snapping the cursor to the table header row during editing. ([#121](https://github.com/saberzero1/motions/issues/121))
-- **Type safety improvements** — replaced ~50 unsafe `as unknown as` casts with proper types via `@obsidian-typings/obsidian-public-latest`
+- **Embedded table: click-to-select cell** — clicking a cell in the embedded table widget now selects that cell in table-nav mode, both when table-nav is already active and when clicking from outside the table. ([#120](https://github.com/saberzero1/motions/issues/120))
+- **Embedded table: modal interaction no longer exits table-nav** — opening a modal (command palette, picker, settings) while in table-nav mode no longer triggers the click-outside handler, preventing accidental exit to raw markdown. ([#120](https://github.com/saberzero1/motions/issues/120))
+- **Embedded table: header-only tables skipped** — tables with only a header and separator row (no data rows) no longer enter table-nav mode. ([#121](https://github.com/saberzero1/motions/issues/121))
 
 See the [[changelog|full changelog]] for details.
