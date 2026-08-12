@@ -44,10 +44,6 @@ export default defineConfig(
             reportUnusedDisableDirectives: 'off',
         },
         rules: {
-            '@typescript-eslint/no-misused-promises': [
-                'error',
-                { checksVoidReturn: false },
-            ],
             'import/no-nodejs-modules': [
                 'error',
                 {
