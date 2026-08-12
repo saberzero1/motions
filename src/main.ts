@@ -1319,9 +1319,7 @@ export default class VimMotionsPlugin extends Plugin {
                         }
                     });
                 }
-                this.previousLeafId = newLeaf
-                    ? ((newLeaf as unknown as { id?: string }).id ?? null)
-                    : null;
+                this.previousLeafId = newLeaf ? (newLeaf.id ?? null) : null;
             }),
         );
 

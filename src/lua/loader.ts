@@ -340,15 +340,7 @@ export async function loadInitLua(
         getVaultName: () => app.vault.getName(),
         getAppVersion: () => apiVersion,
         getPluginVersion: () => {
-            return (
-                (
-                    app as unknown as {
-                        plugins?: {
-                            manifests?: Record<string, { version?: string }>;
-                        };
-                    }
-                ).plugins?.manifests?.['vim-motions']?.version ?? ''
-            );
+            return app.plugins?.manifests?.['vim-motions']?.version ?? '';
         },
         openPicker: (source, opts) => {
             openPicker?.(source, opts);

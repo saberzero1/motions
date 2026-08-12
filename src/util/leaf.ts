@@ -1,11 +1,11 @@
 import type { View, WorkspaceLeaf } from 'obsidian';
 
 export function getLeafId(leaf: WorkspaceLeaf): string {
-    return (leaf as unknown as { id?: string }).id ?? '';
+    return leaf.id ?? '';
 }
 
 export function isLeafPinned(leaf: WorkspaceLeaf): boolean {
-    return (leaf as unknown as { pinned?: boolean }).pinned ?? false;
+    return leaf.pinned ?? false;
 }
 
 export function getViewFilePath(view: View): string | null {

@@ -501,16 +501,7 @@ function createTabNewCommand(app: App): ExCommandFn {
 
 function createVersionCommand(app: App): ExCommandFn {
     return () => {
-        const plugin = (
-            app as unknown as {
-                plugins: {
-                    plugins: Record<
-                        string,
-                        { manifest: { version: string; name: string } }
-                    >;
-                };
-            }
-        ).plugins.plugins['vim-motions'];
+        const plugin = app.plugins?.plugins?.['vim-motions'];
         const version = plugin?.manifest?.version ?? 'unknown';
         const name = plugin?.manifest?.name ?? 'Vim Motions';
         new Notice(`${name} v${version}`);

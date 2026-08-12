@@ -1,9 +1,9 @@
-import type { App } from 'obsidian';
+import type { App, Vault } from 'obsidian';
 
-export function getVaultConfig(app: App, key: string): unknown {
-    return (
-        app.vault as unknown as { getConfig: (key: string) => unknown }
-    ).getConfig(key);
+type VaultConfigKey = Parameters<Vault['getConfig']>[0];
+
+export function getVaultConfig(app: App, key: VaultConfigKey): unknown {
+    return app.vault.getConfig(key);
 }
 
 export function isBuiltinVimEnabled(app: App): boolean {

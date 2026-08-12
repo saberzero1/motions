@@ -155,16 +155,7 @@ export function buildGlobalExCommands(
     };
 
     const version: GlobalExFn = () => {
-        const plugin = (
-            app as unknown as {
-                plugins: {
-                    plugins: Record<
-                        string,
-                        { manifest: { version: string; name: string } }
-                    >;
-                };
-            }
-        ).plugins.plugins['vim-motions'];
+        const plugin = app.plugins?.plugins?.['vim-motions'];
         const v = plugin?.manifest?.version ?? 'unknown';
         const name = plugin?.manifest?.name ?? 'Vim Motions';
         new Notice(`${name} v${v}`);

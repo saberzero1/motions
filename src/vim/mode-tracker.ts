@@ -1,4 +1,4 @@
-import type { App, Plugin } from 'obsidian';
+import type { App, Editor, Plugin } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import type { ModePrompts } from '../settings';
@@ -56,6 +56,7 @@ export class VimModeTracker {
     private preDialogMode: string | null = null;
     private cellEditorActive = false;
     private cellEditorTimer: number | null = null;
+    private app: App | null = null;
     constructor(plugin: Plugin, options?: VimModeTrackerOptions) {
         this.modeLabels = options?.modePrompts
             ? { ...options.modePrompts }
@@ -89,6 +90,7 @@ export class VimModeTracker {
     }
 
     attach(app: App): void {
+        this.app = app;
         const modeHandler = (mode: VimModeChange) => {
             if (this.cellEditorActive || hasActiveCellEditor()) return;
             const resolved = this.resolveMode(mode.mode, mode.subMode);
@@ -106,9 +108,12 @@ export class VimModeTracker {
         };
         this.modeHandler = modeHandler;
 
-        const keyHandler = () => {
+        const keyHandler = (key?: string) => {
             this.syncRecordingState();
             this.syncChord();
+            if (key === '<Esc>' && this.currentMode === 'normal') {
+                this.clearNativeHighlights();
+            }
         };
         this.keyHandler = keyHandler;
 
@@ -297,6 +302,16 @@ export class VimModeTracker {
         if (!this.searchCountEl) return;
         this.searchCountEl.setText('');
         this.searchCountEl.hide();
+    }
+
+    private clearNativeHighlights(): void {
+        if (!this.app) return;
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const editor: Editor = view.editor;
+        if (editor.hasHighlight('is-flashing')) {
+            editor.removeHighlights('is-flashing');
+        }
     }
 
     setGlobalChord(text: string): void {

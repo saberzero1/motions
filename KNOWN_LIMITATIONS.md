@@ -885,11 +885,19 @@ If hint mode stops labeling certain UI elements after an Obsidian update, the se
 
 The vim mode indicator and chord display are positioned at the leftmost edge of the status bar via `parentElement.insertBefore(el, firstChild)` and `margin-right: auto`. This relies on Obsidian's status bar being a CSS flexbox container with `justify-content: flex-end` — if Obsidian changes its status bar layout in a future version, the positioning may break. The powerline `::after` pseudo-element (CSS border-triangle) also depends on the status bar's flex item sizing.
 
+## ~~Obsidian native highlights not cleared on Escape~~ (Fixed)
+
+**Status**: Fixed. Pressing Escape in normal mode now clears Obsidian's `is-flashing` highlights (the highlight shown after following an internal link to a heading like `[[Note#heading]]`). Uses the unofficial `editor.removeHighlights('is-flashing')` API. ([#122](https://github.com/saberzero1/motions/issues/122))
+
 ## Chord display reads internal `vim.status`
 
 The chord display reads `adapter.state.vim.status` directly from codemirror-vim's internal state rather than accumulating keystrokes from the `vim-keypress` event. This is necessary because in Obsidian's CM6 adapter, `vim-keypress` fires _after_ command processing — by which point `clearInputState` has already reset the input buffer for completed commands. Manual accumulation would cause stale keys to persist after single-key commands like `j` or `G`.
 
-The mode tracker listens to three events to sync the chord display: `vim-mode-change`, `vim-keypress`, and `vim-command-done`. The `vim-command-done` listener is needed because Escape in normal mode (cancelling a partial command like `d`) fires `vim-command-done` without a mode change or keypress event — without it, the stale chord would remain visible.
+The mode tracker listens to three events to sync the chord display: `vim-mode-change`, `vim-keypress`, and `vim-command-done`. The `vim-command-done` listener is needed because Escape in normal mode (cancelling a partial command like `d`) fires `vim-command-done` without a mode change or keypress event — without it, the stale chord would remain visible. The `vim-keypress` handler also clears Obsidian's native `is-flashing` highlights when `<Esc>` is pressed in normal mode.
+
+### ~~Chord display breaks during surround sub-state~~ (Fixed)
+
+**Status**: Fixed. Multi-key surround commands (`ysiwb`, `cs"(`, `yss"`, `2ysiw*`) now correctly accumulate all pending keystrokes in the chord display. Previously, the chord disappeared after the surround sub-state was entered because `processAction` called `clearInputState` (which fires `vim-command-done`, clearing `vim.status`) before the surround action set `vim.surroundState`. Fixed in the codemirror-vim fork by saving and restoring `vim.status` around `clearInputState` when the action sets a pending `vim.surroundState`, and explicitly clearing `vim.status` when the surround operation completes. ([#123](https://github.com/saberzero1/motions/issues/123))
 
 `vim.status` is not part of a public API — it is an internal string maintained by the CM6 vim plugin adapter. If Obsidian updates its bundled codemirror-vim and the status accumulation changes, the chord display may stop working or display incorrect values.
 

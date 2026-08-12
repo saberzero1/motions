@@ -38,17 +38,16 @@ export function getCmAdapterFromEditorView(
 
 export function getCmAdapter(view: MarkdownView): CmAdapter | null {
     try {
-        const editorView = (view.editor as unknown as Record<string, unknown>)
-            .cm as Record<string, unknown> | undefined;
+        const editorView = view.editor.cm;
         if (!editorView) return null;
 
         // Built-in vim path: editorView.cm is the CM5-compat adapter
-        const builtinAdapter = editorView.cm as CmAdapter | undefined;
+        const builtinAdapter = (editorView as unknown as { cm?: CmAdapter }).cm;
         if (builtinAdapter) return builtinAdapter;
 
         // Bundled vim path: the vim ViewPlugin sets view.cm on the EditorView
         if (isBundledVimActive()) {
-            return getBundledCmAdapter(editorView as unknown as EditorView);
+            return getBundledCmAdapter(editorView);
         }
 
         return null;

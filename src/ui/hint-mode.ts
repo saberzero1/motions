@@ -278,13 +278,7 @@ function findLeafForElement(app: App, el: HTMLElement): WorkspaceLeaf | null {
 
 function editorViewFromMarkdownView(mdView: MarkdownView): EditorView | null {
     try {
-        const outer = (mdView.editor as unknown as Record<string, unknown>)
-            .cm as Record<string, unknown> | undefined;
-        if (!outer) return null;
-        if (typeof outer.dispatch === 'function')
-            return outer as unknown as EditorView;
-        const inner = outer.cm6 as EditorView | undefined;
-        return inner ?? null;
+        return mdView.editor.cm ?? null;
     } catch {
         return null;
     }

@@ -32,6 +32,7 @@ export default defineConfig(
                         'vitest.config.ts',
                     ],
                 },
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- import.meta.dirname typed as string | undefined by obsidian-typings globals
                 tsconfigRootDir: import.meta.dirname,
                 extraFileExtensions: ['.json'],
             },
@@ -43,6 +44,10 @@ export default defineConfig(
             reportUnusedDisableDirectives: 'off',
         },
         rules: {
+            '@typescript-eslint/no-misused-promises': [
+                'error',
+                { checksVoidReturn: false },
+            ],
             'import/no-nodejs-modules': [
                 'error',
                 {

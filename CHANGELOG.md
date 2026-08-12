@@ -7,12 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`@obsidian-typings/obsidian-public-latest` devDependency** — added community-maintained type definitions for Obsidian's internal APIs. Replaces ~50 unsafe `as unknown as` casts across 13 source files with properly typed access to `editor.cm`, `app.keymap`, `app.plugins`, `app.vault.getConfig()`, `app.metadataCache.resolvedLinks`, `WorkspaceLeaf.id`/`.pinned`, and more. Build-only dependency — no runtime impact.
+    - Plugin: `package.json` (`@obsidian-typings/obsidian-public-latest` devDependency)
+    - Plugin: `tsconfig.json` (`"types": ["@obsidian-typings/obsidian-public-latest"]`)
+    - Plugin: `src/util/editor.ts`, `src/util/keymap.ts`, `src/util/leaf.ts`, `src/util/metadata.ts`, `src/util/vault.ts`, `src/ui/global-ex-command.ts`, `src/ui/hint-mode.ts`, `src/workspace/commands.ts`, `src/lua/loader.ts`, `src/main.ts`, `src/vim/vim-api.ts`, `src/picker/sources/dataview.ts` (cast removal)
+
 ### Fixed
 
+- **Obsidian native highlights not cleared on Escape** — Obsidian's `is-flashing` highlights (shown after following an internal link to a heading like `[[Note#heading]]`) now clear when Escape is pressed in normal mode. Previously, these highlights persisted until the user clicked elsewhere. Uses the unofficial `editor.removeHighlights('is-flashing')` API (documented in obsidian-typings, used by obsidian-quiet-outline and others). ([#122](https://github.com/saberzero1/motions/issues/122))
+    - Plugin: `src/vim/mode-tracker.ts` (`clearNativeHighlights` method; `vim-keypress` handler clears `is-flashing` on `<Esc>` in normal mode)
+- **Chord display breaks during surround commands** — the status bar chord display now correctly accumulates all pending keystrokes during multi-key surround commands like `ysiwb`, `cs"(`, `yss"`, and count-prefixed variants like `2ysiw*`. Previously, the chord disappeared after the surround sub-state was entered (e.g., `ys` showed correctly but `ysi` was blank). ([#123](https://github.com/saberzero1/motions/issues/123))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`processAction` — saves and restores `vim.status` around `clearInputState` when `vim.surroundState` is pending; `handleSurroundSubState` — clears `vim.status` on surround completion)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Chord display preservation during surround sub-state" section)
 - **Embedded table: table-nav key handler suppressed during modals** — `handleTableNavKey` and `handleCellEditKey` now check for `.modal-container` in the DOM and return immediately when a modal (picker, command palette, settings) is open. Previously, keys typed into a picker input while in cell selection mode were consumed by the table handler (`a` entered cell edit, `s` substituted, etc.). ([#120](https://github.com/saberzero1/motions/issues/120))
     - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` and `handleCellEditKey` — modal container check)
 - **Cursor-aware table: cursor displacement guard for header-row jump** — a `transactionFilter` (`tableCursorGuard`) intercepts CM6 transactions that reposition the cursor to the table header row when the user was editing a data row. This prevents Obsidian's Live Preview from snapping the cursor to the header during table creation or editing. Only active in cursor-aware mode (not embedded mode). ([#121](https://github.com/saberzero1/motions/issues/121))
     - Plugin: `src/vim/table-render-widget.ts` (`tableCursorGuard` transaction filter, separated from `Prec.high` StateField)
+
+### Tests
+
+- 2 e2e tests in `test/specs/native-highlight-escape.e2e.ts` (issue #122): Escape in normal mode clears `is-flashing` highlight, Escape without highlights does not error
+- 7 e2e tests in `test/specs/surround-chord-display.e2e.ts` (issue #123): `ysiwb`/`ysiw"`/`yse)` chord accumulation at each keystroke, `yss"` chord accumulation, `ds"` chord (passing baseline), `cs"(` chord accumulation, `2ysiw*` count-prefixed chord accumulation
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added #122 native highlight clearing as fixed; updated chord display section with surround sub-state fix (#123)
+- `AGENTS.md`: Added `@obsidian-typings/obsidian-public-latest` to environment & tooling; updated mode-tracker description with `clearNativeHighlights`
+- `CONTRIBUTING.md`: Updated utility function descriptions to reflect typed access via obsidian-typings; updated mode-tracker description
 
 ## [0.107.0] - 2026-08-12
 

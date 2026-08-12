@@ -1,4 +1,4 @@
-import type { App } from 'obsidian';
+import type { App, Plugin } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readFilePreview } from './preview-utils';
 import { openInSplit } from './split-open';
@@ -19,18 +19,23 @@ interface DataviewApiLike {
     pages(source?: string): { array(): DataviewPage[] };
 }
 
+function hasDataviewApi(
+    plugin: Plugin | undefined,
+): plugin is Plugin & { api: DataviewApiLike } {
+    return (
+        !!plugin &&
+        typeof (plugin as { api?: DataviewApiLike }).api?.pages === 'function'
+    );
+}
+
 function getDataviewApi(app: App): DataviewApiLike | undefined {
     const win = window as unknown as Record<string, unknown>;
     const api = win.DataviewAPI as DataviewApiLike | undefined;
     if (api && typeof api.pages === 'function') {
         return api;
     }
-    const plugin = (
-        app as unknown as {
-            plugins: { plugins: Record<string, { api?: DataviewApiLike }> };
-        }
-    ).plugins?.plugins?.dataview;
-    if (plugin?.api && typeof plugin.api.pages === 'function') {
+    const plugin = app.plugins?.plugins?.dataview;
+    if (hasDataviewApi(plugin)) {
         return plugin.api;
     }
     return undefined;
