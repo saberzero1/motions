@@ -87,7 +87,7 @@ In cell selection mode (cursor in table, cell highlight active but no cell edito
 - **Which-key popups** — the which-key overlay appears in cell selection mode, matching the behavior in cell-edit mode.
 - **Click outside exits table-nav** — clicking anywhere outside the table widget exits cell selection and returns to normal editor mode.
 - **Escape exits table-nav** — pressing Escape in cell selection mode exits the table and returns to the main editor.
-- **Obsidian shortcuts** — modifier key combinations (`Ctrl+P`, `Cmd+O`, etc.) work during cell selection, opening the command palette, file switcher, and other Obsidian commands as expected.
+- **Obsidian shortcuts** — modifier key combinations (`Ctrl+P`, `Cmd+O`, etc.) work during cell selection, opening the command palette, file switcher, and other Obsidian commands as expected. The `:` ex command prompt also works correctly — table-nav keys (`h`, `j`, `k`, `l`, etc.) are typed into the prompt instead of navigating cells.
 
 #### Known limitations in cursor-aware mode
 

@@ -578,8 +578,16 @@ class TableNavController implements PluginValue {
         if (!this.activeTable) return;
         if (e.ctrlKey || e.altKey || e.metaKey) {
             e.stopPropagation();
+            const app = this.getApp();
+            if (app) {
+                app.keymap.onKeyEvent(e);
+            }
             return;
         }
+
+        const adapter = getCmAdapterFromEditorView(this.view);
+        if (adapter?.state?.dialog) return;
+
         if (activeDocument.querySelector('.modal-container')) return;
 
         const dataRows = this.getDataRowIndices();

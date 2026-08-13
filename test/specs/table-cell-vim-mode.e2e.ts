@@ -1138,4 +1138,110 @@ describe('Regression: #120 — shortcuts in embedded table cell selection mode',
         )) as boolean;
         expect(inTableAfter).toBe(false);
     });
+
+    it('modifier combo should not move cursor in cell selection', async function () {
+        const posBefore = await getCursorPos();
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const container = (view as unknown as { contentEl: HTMLElement })
+                .contentEl;
+            const widget = container.querySelector('.vim-table-rendered');
+            if (!widget) return;
+            widget.dispatchEvent(
+                new KeyboardEvent('keydown', {
+                    key: 'p',
+                    code: 'KeyP',
+                    ctrlKey: true,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const posAfter = await getCursorPos();
+        expect(posAfter.line).toBe(posBefore.line);
+    });
+
+    it('keys should reach ex command dialog after colon', async function () {
+        await browser.keys(['l']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view || !Vim) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm as Record<string, unknown> | undefined;
+            if (!adapter) return;
+            Vim.handleKey(adapter, ':');
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const hasDialog = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return false;
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm as Record<string, unknown> | undefined;
+                return !!(adapter?.state as Record<string, unknown>)?.dialog;
+            },
+        )) as boolean;
+        expect(hasDialog).toBe(true);
+
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'no view' };
+            const container = (view as unknown as { contentEl: HTMLElement })
+                .contentEl;
+            const activeBefore = container.querySelector(
+                '.vim-table-cell-active',
+            );
+            const colBefore = activeBefore?.getAttribute('data-col') ?? '-1';
+
+            const widget = container.querySelector('.vim-table-rendered');
+            if (widget) {
+                widget.dispatchEvent(
+                    new KeyboardEvent('keydown', {
+                        key: 'h',
+                        code: 'KeyH',
+                        bubbles: true,
+                        cancelable: true,
+                    }),
+                );
+            }
+
+            const activeAfter = container.querySelector(
+                '.vim-table-cell-active',
+            );
+            const colAfter = activeAfter?.getAttribute('data-col') ?? '-1';
+
+            return { colBefore, colAfter };
+        })) as { colBefore: string; colAfter: string };
+
+        expect(result.colBefore).toBe(result.colAfter);
+
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+    });
 });

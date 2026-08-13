@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Embedded table: Obsidian shortcuts (Ctrl+P, Cmd+O) now work in cell selection mode** — modifier key combos in table-nav mode now call `e.stopPropagation()` to prevent vim's `eventObservers.keydown` from consuming them as cursor movement, then manually feed the event to Obsidian's keymap system via `app.keymap.onKeyEvent(e)`. This two-step approach blocks vim (which would process `<C-p>` as cursor-up) while still triggering Obsidian's hotkey bindings (command palette, file switcher, custom hotkeys). Uses the unofficial `Keymap.onKeyEvent` API from `obsidian-typings`. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `stopPropagation` + `app.keymap.onKeyEvent` for modifier combos)
+- **Embedded table: ex command dialog keys no longer consumed by table-nav** — when vim's ex command dialog is open (after pressing `:`), table-nav keys like `h`, `j`, `k`, `l`, `a`, `i`, `c` are no longer intercepted by the table-nav handler. The handler now checks `adapter.state.dialog` and returns early when a dialog is active. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `adapter.state.dialog` check)
+
+### Tests
+
+- 1 regression test for modifier combo in `test/specs/table-cell-vim-mode.e2e.ts`: modifier combo does not move cursor during cell selection
+- 1 regression test for ex dialog in `test/specs/table-cell-vim-mode.e2e.ts`: keys with table-nav meaning do not change active cell when ex dialog is open (verified to fail without dialog check)
+
 ## [0.109.1] - 2026-08-13
 
 ### Fixed
