@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Embedded table: modifier key combos (Ctrl+P, Cmd+O) consumed by vim during cell selection** — modifier key combos in table-nav mode now call `e.stopPropagation()` to prevent vim's `eventObservers.keydown` from processing them as cursor movement commands (e.g., `<C-p>` mapped to cursor-up). Previously, pressing `Ctrl+P` in cell selection mode moved the cursor up instead of opening the command palette. The `stopPropagation()` blocks the event from reaching vim's observer on the CM6 editor element while allowing Obsidian's hotkey system (which uses Electron's `before-input-event`) to handle it. ([#120](https://github.com/saberzero1/motions/issues/120))
+    - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `stopPropagation()` for modifier key combos)
+
 ## [0.109.0] - 2026-08-12
 
 ### Added

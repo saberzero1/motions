@@ -576,7 +576,10 @@ class TableNavController implements PluginValue {
 
     private handleTableNavKey(e: KeyboardEvent): void {
         if (!this.activeTable) return;
-        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            e.stopPropagation();
+            return;
+        }
         if (activeDocument.querySelector('.modal-container')) return;
 
         const dataRows = this.getDataRowIndices();
