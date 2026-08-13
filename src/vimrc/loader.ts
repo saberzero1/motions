@@ -192,7 +192,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     tablewidget: {
         type: 'string',
         settingsKey: 'tableWidgetMode',
-        validValues: ['off', 'cursor', 'always', 'embedded'],
+        validValues: ['native', 'raw', 'off', 'cursor', 'always', 'embedded'],
     },
 
     whichkey: {

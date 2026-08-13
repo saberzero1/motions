@@ -36,8 +36,6 @@ function shouldSkip(el: HTMLElement): boolean {
     if (el.classList.contains(REPLACED_CLASS)) return true;
     if (el.closest('.cm-editor')) return true;
     if (el.closest('.vim-motions-textarea-overlay')) return true;
-    if (el.closest('.vim-table-cell-editor')) return true;
-    if (el.closest('.vim-table-embedded-editor')) return true;
     if (el.closest('.vim-motions-picker')) return true;
     if (el.closest('.vim-motions-oil')) return true;
     if (el.closest('.cm-vim-panel')) return true;

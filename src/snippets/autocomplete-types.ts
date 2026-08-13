@@ -15,6 +15,7 @@ import type {
     StateField,
     Transaction,
 } from '@codemirror/state';
+import type { EditorView } from '@codemirror/view';
 
 // Runtime imports — values only, types come from local declarations
 import * as autocompleteModule from '@codemirror/autocomplete';
@@ -52,6 +53,7 @@ export interface CompletionContext {
     readonly state: EditorState;
     readonly pos: number;
     readonly explicit: boolean;
+    readonly view?: EditorView;
     matchBefore(
         expr: RegExp,
     ): { from: number; to: number; text: string } | null;

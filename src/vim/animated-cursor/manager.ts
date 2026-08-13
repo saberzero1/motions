@@ -1,9 +1,19 @@
 import { devAssert } from '../../util/invariant';
+import type { CursorRect } from './types';
 
 export interface Tickable {
     tick(dt: number, ctx: CanvasRenderingContext2D): void;
     isActive(): boolean;
 }
+
+/** Token-keyed position handoff for cross-cell cursor animation. */
+export interface CellCrossingHandoff {
+    token: number;
+    rect: CursorRect;
+    time: number;
+}
+
+const HANDOFF_TTL_MS = 200;
 
 const MAX_CONTROLLERS = 16;
 
@@ -28,6 +38,8 @@ export class AnimatedCursorManager {
     private heartbeatId: number | null = null;
     private tickErrorLogged = false;
     private onVisibilityChange: (() => void) | null = null;
+    private crossingHandoff: CellCrossingHandoff | null = null;
+    private crossingTokenCounter = 0;
 
     register(controller: Tickable): void {
         if (this.controllers.size >= MAX_CONTROLLERS) {
@@ -220,6 +232,25 @@ export class AnimatedCursorManager {
         this.stopHeartbeat();
     }
 
+    createCrossingToken(): number {
+        return ++this.crossingTokenCounter;
+    }
+
+    storeCrossingHandoff(token: number, rect: CursorRect): void {
+        this.crossingHandoff = { token, rect, time: performance.now() };
+    }
+
+    consumeCrossingHandoff(token: number): CursorRect | null {
+        const h = this.crossingHandoff;
+        if (!h || h.token !== token) return null;
+        if (performance.now() - h.time > HANDOFF_TTL_MS) {
+            this.crossingHandoff = null;
+            return null;
+        }
+        this.crossingHandoff = null;
+        return h.rect;
+    }
+
     destroy(): void {
         this.stop();
         this.controllers.clear();
@@ -239,4 +270,19 @@ export function getAnimatedCursorManager(): AnimatedCursorManager {
 export function destroyAnimatedCursorManager(): void {
     managerInstance?.destroy();
     managerInstance = null;
+}
+
+let pendingCrossingToken: number | null = null;
+
+export function signalCellCrossing(): void {
+    const mgr = getAnimatedCursorManager();
+    pendingCrossingToken = mgr.createCrossingToken();
+}
+
+export function getPendingCrossingToken(): number | null {
+    return pendingCrossingToken;
+}
+
+export function clearPendingCrossingToken(): void {
+    pendingCrossingToken = null;
 }

@@ -8,7 +8,12 @@ import {
     resolveAccentColor,
     type BlockCharInfo,
 } from './renderer';
-import { getAnimatedCursorManager, type Tickable } from './manager';
+import {
+    getAnimatedCursorManager,
+    getPendingCrossingToken,
+    clearPendingCrossingToken,
+    type Tickable,
+} from './manager';
 import type { CursorRect, CursorShape } from './types';
 import {
     getAnimatedCursorConfig,
@@ -16,10 +21,7 @@ import {
     isAnimatedCursorPausedForView,
 } from './config';
 import { getCmAdapterFromEditorView } from '../vim-api';
-import {
-    setCursorSuppressedForView,
-    clearCursorSuppressedForView,
-} from '@replit/codemirror-vim';
+import { setCursorSuppressedForView } from '@replit/codemirror-vim';
 import { invariant, devAssert } from '../../util/invariant';
 
 const STALE_THRESHOLD_MS = 100;
@@ -78,8 +80,15 @@ class CursorController implements Tickable {
     private composing = false;
     private destroyed = false;
 
+    private readonly isCell: boolean;
+
+    private crossingToken: number | null = null;
+
+    private cellTransitionActive = false;
+
     constructor(private view: EditorView) {
-        setCursorSuppressedForView(view, true);
+        this.isCell = view.dom.closest('.cm-table-widget') !== null;
+        setCursorSuppressedForView(view, this.isCell ? false : true);
 
         view.scrollDOM.addEventListener(
             'compositionstart',
@@ -91,6 +100,21 @@ class CursorController implements Tickable {
         );
 
         this.accentColor = resolveAccentColor(view.dom);
+
+        if (this.isCell) {
+            const token = getPendingCrossingToken();
+            if (token !== null) {
+                this.crossingToken = token;
+                clearPendingCrossingToken();
+                const mgr = getAnimatedCursorManager();
+                const seedRect = mgr.consumeCrossingHandoff(token);
+                if (seedRect) {
+                    this.cellTransitionActive = true;
+                    this.smooth.setTarget(seedRect);
+                    this.smear.setTarget(seedRect);
+                }
+            }
+        }
 
         getAnimatedCursorManager().register(this);
     }
@@ -118,8 +142,14 @@ class CursorController implements Tickable {
             ) {
                 this.view.dom.classList.add('vim-motions-animated-cursor');
             }
+            if (!this.isCell) {
+                setCursorSuppressedForView(this.view, true);
+            }
         } else {
             this.view.dom.classList.remove('vim-motions-animated-cursor');
+            if (!this.isCell) {
+                setCursorSuppressedForView(this.view, false);
+            }
             return;
         }
 
@@ -158,6 +188,8 @@ class CursorController implements Tickable {
         if (vu.focusChanged) {
             this.active = this.view.hasFocus;
             if (this.view.hasFocus) {
+                this.needsPositionUpdate = true;
+                this.snapOnNextTick = true;
                 this.lastMoveTime = performance.now();
                 getAnimatedCursorManager().wake();
             }
@@ -192,8 +224,10 @@ class CursorController implements Tickable {
         }
 
         if (!this.cachedRect) {
-            this.active = false;
-            return;
+            this.refreshTarget();
+            if (!this.cachedRect) {
+                return;
+            }
         }
 
         const now = performance.now();
@@ -241,13 +275,24 @@ class CursorController implements Tickable {
             this.smooth.tick(dt, config.smoothness);
         }
 
-        this.draw(ctx, config, useSmear, useSmooth);
-
         const animating = useSmear
             ? !this.smear.isConverged()
             : useSmooth
               ? !this.smooth.isConverged()
               : false;
+
+        if (this.isCell && !this.cellTransitionActive) {
+            this.active = false;
+            return;
+        }
+
+        if (this.isCell && this.cellTransitionActive && !animating) {
+            this.cellTransitionActive = false;
+            this.active = false;
+            return;
+        }
+
+        this.draw(ctx, config, useSmear, useSmooth);
         this.active = animating || this.view.hasFocus;
     }
 
@@ -459,8 +504,15 @@ class CursorController implements Tickable {
             'CursorController.destroy() called on already-destroyed controller',
         );
         this.destroyed = true;
-        clearCursorSuppressedForView(this.view);
-        getAnimatedCursorManager().deregister(this);
+
+        const mgr = getAnimatedCursorManager();
+        const token = getPendingCrossingToken();
+        if (this.isCell && token !== null && this.cachedShapeRect) {
+            mgr.storeCrossingHandoff(token, this.cachedShapeRect);
+        }
+
+        setCursorSuppressedForView(this.view, false);
+        mgr.deregister(this);
         this.view.scrollDOM.removeEventListener(
             'compositionstart',
             this.onCompositionStart,

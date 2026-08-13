@@ -1,3 +1,13 @@
+/* --- Hide plugin decorations in table cell editors --- */
+
+.cm-table-widget .cm-gutters {
+    display: none;
+}
+
+.vim-motions-raw-table .cm-editor .cm-table-widget {
+    display: none;
+}
+
 /* --- Vim panel (align fork with Obsidian theme) --- */
 
 .cm-vim-panel {
@@ -1237,44 +1247,6 @@ settings:
     flex: 1;
 }
 
-/* --- Embedded table editor --- */
-
-.vim-table-cell-active {
-    outline: 2px solid var(--interactive-accent);
-    outline-offset: -1px;
-    border-radius: var(--radius-s);
-}
-
-.vim-table-cell-editor {
-    min-width: 2em;
-}
-
-.vim-table-cell-editor .cm-gutters {
-    display: none;
-}
-
-.vim-table-cell-editor .cm-editor {
-    background: var(--background-primary);
-    font-size: inherit;
-    font-family: inherit;
-    line-height: inherit;
-}
-
-.vim-table-cell-editor .cm-editor .cm-scroller {
-    padding: 0;
-}
-
-.vim-table-cell-editor .cm-editor .cm-content {
-    padding: 0;
-    min-height: unset;
-    font-size: inherit;
-}
-
-.vim-table-cell-editor .cm-editor .cm-line {
-    padding: 0;
-    line-height: var(--table-line-height, var(--line-height-tight));
-}
-
 /* --- Yank highlight --- */
 
 .vim-motions-yank-highlight {
@@ -1389,7 +1361,7 @@ settings:
     top: 0;
     left: 0;
     pointer-events: none;
-    z-index: 5;
+    z-index: 15;
 }
 
 /* --- Fold column --- */

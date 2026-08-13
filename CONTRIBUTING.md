@@ -60,6 +60,7 @@ src/
     vim-api.d.ts           # Type declarations for the Vim API (CmAdapter, VimApi, etc.)
     codemirror-vim.d.ts    # CodeMirror Vim type declarations
     globals.ts             # __DEV__ build-time constant type declaration
+    table-editor.d.ts      # Runtime-discovered typings for Obsidian's native TableEditor API
   vim/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations
@@ -86,16 +87,15 @@ src/
     fold-column.ts         # Fold column gutter (▸/▾ indicators with click-to-fold)
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
-    table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting, cellBrToNewline/cellNewlineToBr for <br> ↔ newline conversion in cell editors
-    table-nav-controller.ts    # Table cell navigation controller — findWidgetEl uses posAtDOM nearest-match for multi-table support; exitTableAtBoundary inserts newline when table is on last line; handleTableNavKey only consumes handled keys (unhandled propagate to vim); Scope-based Escape via installNavScope/removeNavScope; click-outside detection via installClickOutsideHandler/removeClickOutsideHandler; which-key overlay in table-nav mode via attachNavWhichKey/detachNavWhichKey and setTableNavWhichKeyConfig; stale state cleanup in update() on docChanged; setActiveEditTableRange before dispatch to prevent cursor displacement; onEscape callback defers exitCellEdit via requestAnimationFrame; checkEntry skips header-only tables (no data rows); pendingClickCell for deferred cell selection on click-to-enter; click-outside handler checks .modal-container; modifier combos stopPropagation to prevent vim observer from consuming Ctrl+P/Cmd+O + app.keymap.onKeyEvent for Obsidian hotkey passthrough; adapter.state.dialog check bypasses handler during ex command input
+    table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
+    table-nav-overlay.ts   # Native table editor navigation overlay (uses Obsidian's TableEditor API for cell navigation, editing via setCellFocus, structural commands via insertRow/removeRow/etc.)
+    native-table-adapter.ts  # Typed abstraction for Obsidian's native TableEditor API access
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
+    table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
+    table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range, pauses animated cursor) and cellEditorCursorGuard (ensures native cursor in cell editors, restores parent on close)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
-    table-cell-editor.ts   # Per-cell editing with vim-enabled editor + dynamic cursor stylesheet + which-key overlay lifecycle (setCellEditorWhichKeyConfig, deferred creation via setTimeout(0), cleanup in closeCellEditor)
-    table-embedded-editor.ts   # Embedded editor within table widgets — re-exports setTableNavWhichKeyConfig
-    table-render-widget.ts     # CM6 decoration widget for rendered tables + tableCursorGuard transactionFilter that prevents Live Preview cursor displacement to table header row in cursor-aware mode + setTableWidgetCellClickHandler callback for click-to-select cell in embedded mode
-    table-widget-suppressor.ts # Suppress table widget when editing
     textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack; which-key overlay lifecycle (whichKeyConfig field, deferred creation with .view-content → .modal-container fallback, cleanup in teardownActive)
     autocmd-mode-watcher.ts  # Per-view autocmd mode events (CM6 ViewPlugin — fires InsertEnter/InsertLeave/ModeChanged across all editors)
     animated-cursor/         # Canvas-based animated cursor (smear + smooth movement)
@@ -103,8 +103,8 @@ src/
       smooth-cursor.ts       # Exponential position interpolation with convergence detection
       physics.ts             # 4-corner spring-damper simulation (smear trail)
       renderer.ts            # Canvas cursor shape drawing + smear quad rendering + DOM-based baseline calculation (charTop/charHeight from BlockCharInfo)
-      manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery
-      controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only)
+      manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery + cross-cell handoff (CellCrossingHandoff token, storeCrossingHandoff/consumeCrossingHandoff with TTL, signalCellCrossing/getPendingCrossingToken/clearPendingCrossingToken)
+      controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only). Cell editors: native cursor steady-state renderer, canvas draws only during cross-cell transitions (cellTransitionActive flag). Non-cell editors: canvas renders, native cursor suppressed
       config.ts              # Module-level getters/setters + per-view pause/resume API
   text-objects/
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)

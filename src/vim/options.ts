@@ -433,16 +433,25 @@ export function registerVimOptions(
         }
     });
 
-    vim.defineOption('tablewidget', 'cursor', 'string', [], (value) => {
+    vim.defineOption('tablewidget', 'native', 'string', [], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';
-        if (
-            str === 'off' ||
-            str === 'cursor' ||
-            str === 'always' ||
-            str === 'embedded'
-        ) {
-            notify('tableWidgetMode', str, `set tablewidget=${str}`);
+        const mapping: Record<string, string> = {
+            off: 'native',
+            cursor: 'native',
+            embedded: 'native',
+            always: 'raw',
+            native: 'native',
+            raw: 'raw',
+        };
+        const mapped = mapping[str];
+        if (mapped) {
+            if (mapped !== str) {
+                console.warn(
+                    `[Vim Motions] "set tablewidget=${str}" is deprecated. Using "${mapped}" instead.`,
+                );
+            }
+            notify('tableWidgetMode', mapped, `set tablewidget=${mapped}`);
         }
     });
 

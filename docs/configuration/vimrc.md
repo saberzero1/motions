@@ -213,7 +213,7 @@ Use `set <option>=<value>`.
 | `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels                       | `asdghklqwertyuiopzxcvbnmfj`                                               |
 | `hintlabels`            | `hl`     | Characters for hint mode labels                                  | `asdfghjkl`                                                                |
 | `guicursor`             | —        | Per-mode cursor shapes                                           | (block/bar/block/underline/underline)                                      |
-| `tablewidget`           | —        | Table widget mode (`off`/`cursor`/`always`/`embedded`)           | `cursor`                                                                   |
+| `tablewidget`           | —        | Table widget mode (`native`/`raw`)                               | `native`                                                                   |
 | `whichkey`              | `wk`     | Which-key hints (`off`/`leader`/`all`)                           | `off`                                                                      |
 | `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                            | `grouped`                                                                  |
 | `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)                | `which-key`                                                                |

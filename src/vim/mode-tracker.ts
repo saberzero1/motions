@@ -3,7 +3,10 @@ import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import type { ModePrompts } from '../settings';
 import { getCmAdapter, getVimApi } from './vim-api';
-import { getActiveCellEditor, hasActiveCellEditor } from './table-cell-editor';
+import {
+    getActiveTableCellEditorView,
+    hasActiveTableCell,
+} from './native-table-adapter';
 import { countSearchMatches, formatSearchCount } from './search-counter';
 import { invariant } from '../util/invariant';
 
@@ -92,7 +95,11 @@ export class VimModeTracker {
     attach(app: App): void {
         this.app = app;
         const modeHandler = (mode: VimModeChange) => {
-            if (this.cellEditorActive || hasActiveCellEditor()) return;
+            if (
+                this.cellEditorActive ||
+                (this.app && hasActiveTableCell(this.app))
+            )
+                return;
             const resolved = this.resolveMode(mode.mode, mode.subMode);
             invariant(
                 resolved in DEFAULT_MODE_LABELS,
@@ -205,7 +212,8 @@ export class VimModeTracker {
     private startCellEditorMonitor(): void {
         if (this.cellEditorTimer !== null) return;
         this.cellEditorTimer = window.setInterval(() => {
-            const active = hasActiveCellEditor();
+            if (!this.app) return;
+            const active = hasActiveTableCell(this.app);
             if (!active) {
                 if (this.cellEditorActive) {
                     this.cellEditorActive = false;
@@ -219,8 +227,7 @@ export class VimModeTracker {
                 return;
             }
 
-            const handle = getActiveCellEditor();
-            const editorView = handle?.editor.getEditorView();
+            const editorView = getActiveTableCellEditorView(this.app);
             if (!editorView) return;
             const adapter = (editorView as unknown as Record<string, unknown>)
                 .cm as { state?: { vim?: { mode?: string } } } | undefined;

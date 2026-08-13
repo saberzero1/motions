@@ -98,7 +98,12 @@ See [[vimrc#Boolean options]] and [[lua-config#Supported vim.opt options]] for t
 
 The animated cursor renders in the **oil explorer** — the file manager editor shares the same canvas as regular editors.
 
-Table cell editors and textarea vim overlays use the native cursor instead. These editors have short lifecycles, tiny viewports, and modal z-index constraints that make canvas-based rendering unreliable.
+Table cell editors and textarea vim overlays use the **native vim cursor** (the fork's `BlockCursorPlugin`) instead of the canvas. The global canvas (`position: fixed` on `.app-container`) renders behind table cell content due to CSS stacking contexts created by the table widget's DOM hierarchy. The native cursor — part of the cell editor's own DOM — renders reliably above cell content.
+
+When navigating between table cells via `h`/`j`/`k`/`l`, a token-based position handoff seeds the new cell's cursor controller with the previous cell's screen position. The infrastructure for smooth cross-cell animation is in place, but the transition is not visible because the canvas draws behind cells. Within a single cell, cursor movement uses the native vim cursor's standard rendering.
+
+> [!bug] Known limitation
+> Cross-cell cursor movement snaps instead of animating. See [[known-limitations#Table cell vim modality]] for details.
 
 ## Cross-platform resilience
 

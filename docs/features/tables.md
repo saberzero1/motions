@@ -1,6 +1,6 @@
 ---
 title: Tables
-description: Table cell navigation, text objects, manipulation commands, format-on-exit auto-alignment, and cursor-aware table widget for Live Preview.
+description: Table cell navigation, text objects, manipulation commands, format-on-exit auto-alignment, and native table editor integration for Live Preview.
 tags:
     - features
     - keybindings
@@ -8,7 +8,7 @@ tags:
 
 ## Introduction
 
-Vim Motions provides comprehensive support for Markdown tables, including structural navigation, cell-level text objects, manipulation commands, and a specialized table widget for Live Preview that preserves Vim's editing power.
+Vim Motions provides comprehensive support for Markdown tables, including structural navigation, cell-level text objects, manipulation commands, and native table editor integration for Live Preview that preserves Vim's editing power.
 
 ## Cell navigation
 
@@ -57,7 +57,7 @@ A suite of manipulation commands is available under the `<Leader>t` prefix for s
 - `<Leader>tr`: Realign the entire table.
 
 > [!note]
-> These manipulation commands call Obsidian's internal table commands. They require the interactive table widget to be disabled or the cursor to be inside the table in a mode where the widget is suppressed.
+> These manipulation commands call Obsidian's internal table commands. In `native` mode, they work when the cursor is inside the table. In `raw` mode, use Source mode or manual Markdown editing.
 
 ## Table auto-formatting
 
@@ -67,94 +67,48 @@ Vim Motions includes built-in auto-formatting for tables:
 - **Separator generation**: Typing `||` on a new line immediately below a table header row generates a correctly formatted separator row matching the header's column count.
 - **Manual realignment**: Use `<Leader>tr` or `:tablerealign` to realign at any time.
 
-> [!bug] Typing `|` inside table cells
-> In Live Preview, Obsidian's table editor intercepts the `|` keystroke at the DOM level before it reaches the text input pipeline. This means typing `|` inside a table cell does nothing — the character is swallowed. This is an Obsidian platform behavior, not a plugin issue (it occurs identically with built-in vim, the bundled fork, and with no vim at all). Use **Embedded** mode (`set tablewidget=embedded`) for per-cell vim editors where `|` can be typed normally. In **Cursor-aware** or **Always raw** mode, insert `\|` via `:normal a\|` or paste from the clipboard. See [[known-limitations#Table navigation and editing]] for details.
-
 ## Table widget in Live Preview
 
-To provide a seamless editing experience, Vim Motions manages how tables are rendered in Obsidian's Live Preview mode.
+Vim Motions integrates with Obsidian's native table editor in Live Preview. Two modes are available via `set tablewidget`:
 
-- **Embedded**: The table renders as themed HTML. Moving the cursor into the table enters a two-layer editing mode:
-    1. **Table navigation**: `h`/`j`/`k`/`l` moves a cell highlight. Structural commands (`o`, `O`, `dd`, `dc`, `J`, `K`, `H`, `L`, `I`, `A`, `=`) manipulate rows and columns directly.
-    2. **Cell editing**: Press `i`, `a`, `c`, `s`, or `Enter` to open a vim-enabled editor in the highlighted cell. `Escape` returns to table navigation. A second `Escape` exits the table.
-
-#### Cell selection mode improvements
-
-In cell selection mode (cursor in table, cell highlight active but no cell editor open):
-
-- **Unhandled keys propagate to vim** — leader key sequences, which-key popups, and other vim bindings work during cell selection. Only table-nav commands (`h`/`j`/`k`/`l`, `i`/`a`/`c`/`s`, `o`/`O`, `dd`/`dc`, etc.) are consumed by the table handler.
-- **Click to select** — clicking a cell in the rendered table widget selects it, moving the cell highlight to the clicked position. Clicking a table widget from outside the table enters cell selection mode at the clicked cell.
-- **Which-key popups** — the which-key overlay appears in cell selection mode, matching the behavior in cell-edit mode.
-- **Click outside exits table-nav** — clicking anywhere outside the table widget exits cell selection and returns to normal editor mode.
-- **Escape exits table-nav** — pressing Escape in cell selection mode exits the table and returns to the main editor.
-- **Obsidian shortcuts** — modifier key combinations (`Ctrl+P`, `Cmd+O`, etc.) work during cell selection, opening the command palette, file switcher, and other Obsidian commands as expected. The `:` ex command prompt also works correctly — table-nav keys (`h`, `j`, `k`, `l`, etc.) are typed into the prompt instead of navigating cells.
-
-#### Known limitations in cursor-aware mode
-
-- **Wikilink cursor displacement**: Typing `[[` inside a table cell in Live Preview cursor-aware mode may cause the cursor to jump past `]]` after a few characters. This is an Obsidian platform limitation. Workaround: use **Embedded** mode or **Source** mode for typing wikilinks in table cells.
-- **Cursor displacement guard**: The plugin includes a transaction filter that prevents the cursor from being snapped to the table header row during table creation in Live Preview. This guard is automatic and requires no configuration.
-
-#### Boundary handling
-
-- Pressing `j` at the last data row exits the table. If the table is on the last line of the document, a new line is created below the table.
-- Pressing `k` at the header row exits upward.
-- When the document content changes while in table-nav mode and the cursor is no longer in a table, table-nav exits automatically.
-- **Cursor-aware (Default)**: Tables are rendered as themed HTML when the cursor is outside, but switch to raw Markdown when the cursor enters the table. This allows for full Vim editing power within the table.
-- **Always raw**: Tables always display as plain Markdown.
-- **Off**: Restores Obsidian's default interactive table editor.
-
-The rendered table widget processes cell content through Obsidian's markdown renderer. Inline formatting (bold, italic, code), images, links, and math expressions display correctly in the rendered view.
+- **`native`** (default): Obsidian's native table widget renders in Live Preview. Moving the cursor into a table activates table navigation (same `h`/`j`/`k`/`l` nav, same structural commands). Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. All the same keybindings apply. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
+- **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview.
 
 > [!tip]
-> The **Embedded** mode provides the best vim editing experience for tables. The rendered table stays visible while editing, individual cells get their own vim editor, and structural commands let you add, delete, and move rows and columns without leaving the table. Notes with multiple tables are fully supported — each table is independently navigable.
+> The **native** mode provides the best vim editing experience for tables. Obsidian's native table widget handles rendering while vim is injected into cell editors. Structural commands let you add, delete, and move rows and columns without leaving the table. Notes with multiple tables are fully supported — each table is independently navigable.
 
-### Embedded mode keybindings
+### Native mode vim navigation
 
-**Table navigation** (active when the cursor enters a table):
+In **native** mode, `h`/`j`/`k`/`l` in normal mode cross cell boundaries automatically:
 
-| Key                             | Action                                                 |
-| ------------------------------- | ------------------------------------------------------ |
-| `h` / `l`                       | Move cell highlight left / right                       |
-| `j` / `k`                       | Move cell highlight down / up (exit table at boundary) |
-| `i` / `a` / `c` / `s` / `Enter` | Enter cell editing                                     |
-| `Escape`                        | Exit table                                             |
-| `o` / `O`                       | Add row below / above                                  |
-| `dd`                            | Delete row                                             |
-| `dc`                            | Delete column                                          |
-| `J` / `K`                       | Move row down / up                                     |
-| `H` / `L`                       | Move column left / right                               |
-| `I` / `A`                       | Add column left / right                                |
-| `=`                             | Realign table                                          |
+| Key             | In cell                | At boundary                                               |
+| --------------- | ---------------------- | --------------------------------------------------------- |
+| `l`             | Move right within cell | Move to next cell (same row)                              |
+| `h`             | Move left within cell  | Move to previous cell (same row)                          |
+| `j`             | Move down within cell  | Move to same column in next data row (skip separator)     |
+| `k`             | Move up within cell    | Move to same column in previous data row (skip separator) |
+| `j` at last row | —                      | Exit table downward                                       |
+| `k` at header   | —                      | Exit table upward                                         |
 
-**Cell editing** (active after entering a cell):
-
-| Key                         | Action                                                    |
-| --------------------------- | --------------------------------------------------------- |
-| All vim keys                | Normal vim editing within the cell                        |
-| `Tab` / `Shift-Tab`         | Save cell, move to next / previous cell                   |
-| `Tab` (at last cell)        | Save cell, return to table navigation (boundary behavior) |
-| `Shift-Tab` (at first cell) | Save cell, return to table navigation (boundary behavior) |
-| `Escape` (in normal mode)   | Save cell, return to table navigation                     |
+Operator-pending (`dj`, `yl`) and visual mode motions are confined to the current cell — they do not trigger cross-cell navigation.
 
 ### Vim modality in cell editors
 
-When using **Embedded** mode, cell editors support full Vim modality. This allows you to use Normal, Insert, and Visual modes within a single table cell.
+Cell editors are Obsidian's native editors with vim injected via `registerEditorExtension()`. Full Vim modality is supported: Normal, Insert, and Visual modes all work within a single table cell.
 
-- **Two-Escape pattern**: When editing a cell in Insert mode, the first `Escape` transitions to Vim Normal mode within the cell editor. A second `Escape` exits the cell editor and returns to table navigation mode.
-- **Entry semantics**: The key used to enter the cell determines the initial Vim state:
-    - `i` or `Enter`: Starts in Insert mode at the current position.
-    - `a`: Appends text (starts in Insert mode at the end of the cell).
-    - `c`: Clears the cell and enters Insert mode.
-    - `s`: Substitutes the cell content (clears and enters Insert mode).
-- **Register sharing**: Vim registers are shared between cell editors and the main document. You can yank text in one cell and paste it into another cell or elsewhere in your note.
-- **Visual mode**: Both charwise (`v`) and linewise (`V`) visual modes work in cell editors with full selection highlighting.
-- **Which-key**: [[which-key|Which-key]] popups work in cell editors. Partial chords (`d`, `g`, `z`, leader key) show completions in the parent note's viewport. All user keymaps are available.
+- `Tab` / `Shift-Tab` navigate between cells (handled by the native table editor).
+- `Escape` in normal mode stays in the cell (matches Obsidian's built-in vim behavior).
+- **Register sharing**: Vim registers are shared between cell editors and the main document.
+- **Which-key**: [[which-key|Which-key]] popups work in cell editors.
 
 > [!info] Cell editors use Live Preview
-> Cell editors use Obsidian's Live Preview rendering. Markdown syntax like wikilink brackets (`[[` `]]`) and formatting marks (`**`, `*`) is hidden during editing, but the underlying text is preserved. This matches the behavior of the main editor in Live Preview mode.
+> Cell editors use Obsidian's Live Preview rendering. Markdown syntax like wikilink brackets (`[[` `]]`) and formatting marks are hidden during editing, but the underlying text is preserved.
+
+> [!info] Animated cursor in cells
+> When the [[animated-cursor|animated cursor]] is enabled, table cell editors use the native vim cursor as the steady-state renderer. The canvas-based animated cursor cannot reliably render above table cell content due to CSS stacking contexts. Cross-cell navigation (`h`/`j`/`k`/`l`) snaps the cursor to the destination cell. Within a single cell, the native cursor renders normally.
 
 > [!tip] Multi-line cell content
-> Pressing `Enter` inside a cell editor creates a line break. When the cell is saved, newlines are converted to `<br>` tags so the table structure stays valid. Re-opening the cell converts `<br>` back to real line breaks for natural editing. Existing `<br>` content in cells is preserved through round-trips.
+> Pressing `Enter` inside a cell editor creates a line break. The native editor automatically handles `<br>` ↔ newline conversion so the table structure stays valid.
 
 ### Table row text objects
 
@@ -166,13 +120,7 @@ In raw Markdown mode, you can operate on entire table rows using the `ir` and `a
 These text objects are useful for quickly deleting, changing, or yanking whole rows while editing the Markdown source.
 
 > [!info]
-> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**.
-
-> [!note]
-> **First-render learning lag**: On the very first load after plugin installation, the suppressor needs to observe one table widget render to learn its internal structure. A table may briefly flash as a widget before being suppressed; this is cached for the session.
-
-> [!warning]
-> **Third-party plugin compatibility**: Plugins that apply text decorations globally (e.g., dynamic highlighters) may conflict with the table widget if they mark text inside replaced table ranges. The table widget uses elevated CM6 decoration precedence to prevent duplication, but plugins that also escalate their decoration precedence could override this. If you see duplicated table content, try disabling the conflicting plugin's highlighting or switching to **Always raw** mode.
+> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=native` / `set tablewidget=raw` in your vimrc.
 
 ## Ex commands
 

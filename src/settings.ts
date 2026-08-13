@@ -158,7 +158,7 @@ export interface VimMotionsSettings {
     enableDial: boolean;
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
-    tableWidgetMode: 'off' | 'cursor' | 'always' | 'embedded';
+    tableWidgetMode: 'native' | 'raw';
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
 
@@ -294,7 +294,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableDial: false,
     listContinuationOnOpen: true,
     enableTableNav: true,
-    tableWidgetMode: 'cursor',
+    tableWidgetMode: 'native',
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,
 
@@ -769,10 +769,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 desc: this.describeOverride(
                                     'tableWidgetMode',
                                     'Controls how tables display in Live Preview. ' +
-                                        '"Embedded" opens a vim-enabled editor overlay when editing a table. ' +
-                                        '"Always raw" keeps tables as plain text. ' +
-                                        '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
-                                        '"Off" uses the default interactive table editor.',
+                                        '"Native" uses Obsidian\'s built-in table editor with vim support (recommended). ' +
+                                        '"Raw" always shows raw Markdown table syntax.',
                                 ),
                                 aliases: [
                                     'table rendering',
@@ -783,10 +781,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     type: 'dropdown' as const,
                                     key: 'tableWidgetMode',
                                     options: {
-                                        embedded: 'Embedded',
-                                        always: 'Always raw',
-                                        cursor: 'Cursor-aware',
-                                        off: 'Off',
+                                        native: "Use Obsidian's built-in table editor with vim support (recommended)",
+                                        raw: 'Always show raw markdown table syntax',
                                     },
                                     disabled: () =>
                                         this.isOverridden('tableWidgetMode'),
@@ -3253,18 +3249,17 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 describeOverride(
                     'tableWidgetMode',
                     'Controls how tables display in Live Preview. ' +
-                        '"Embedded" opens a vim-enabled editor overlay when editing a table. ' +
-                        '"Always raw" keeps tables as plain text. ' +
-                        '"Cursor-aware" shows a rendered table when the cursor is outside and raw Markdown when editing. ' +
-                        '"Off" uses the default interactive table editor.',
+                        '"Native" uses Obsidian\'s built-in table editor with vim support (recommended). ' +
+                        '"Raw" always shows raw Markdown table syntax.',
                 ),
             )
             .addDropdown((dropdown) =>
                 dropdown
-                    .addOption('embedded', 'Embedded')
-                    .addOption('always', 'Always raw')
-                    .addOption('cursor', 'Cursor-aware')
-                    .addOption('off', 'Off')
+                    .addOption(
+                        'native',
+                        "Use Obsidian's built-in table editor with Vim support (recommended)",
+                    )
+                    .addOption('raw', 'Always show raw Markdown table syntax')
                     .setValue(this.plugin.settings.tableWidgetMode)
                     .setDisabled(isOverridden('tableWidgetMode'))
                     .onChange(async (value) => {

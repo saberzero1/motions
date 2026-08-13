@@ -85,24 +85,8 @@ import {
 } from './vim/undo-tree-view';
 import { JumpList } from './vim/jumplist';
 import { VimInfoModal } from './ui/vim-info-modal';
-import { installTableWidgetSuppressor } from './vim/table-widget-suppressor';
-import {
-    tableRenderField,
-    setTableRenderEnabled,
-} from './vim/table-render-widget';
-import { createTableFormatOnExitExtension } from './vim/table-format-on-exit';
-import {
-    tableEmbeddedField,
-    setEmbeddedModeEnabled,
-    setTableEmbeddedMode,
-    setTableNavWhichKeyConfig,
-} from './vim/table-embedded-editor';
-import {
-    setCellEditorCursorShapes,
-    setCellEditorWhichKeyConfig,
-    destroyCellEditorCursorSheet,
-} from './vim/table-cell-editor';
-import { EditorView } from '@codemirror/view';
+
+import { EditorView, tooltips } from '@codemirror/view';
 import { ChangeSet, Transaction } from '@codemirror/state';
 import {
     yankHighlightExtension,
@@ -236,6 +220,9 @@ import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
 import { isBuiltinVimEnabled, getVaultConfig } from './util/vault';
 import { invariant, devAssert } from './util/invariant';
+import { skipInTableCells } from './util/cell-editor-guard';
+import { applyTableCellMotions } from './vim/table-cell-motions';
+import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -266,8 +253,9 @@ export default class VimMotionsPlugin extends Plugin {
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
     private flashSearchCleanup: (() => void) | null = null;
-    private uninstallTableSuppressor: (() => void) | null = null;
     private uninstallVisualLineFix: (() => void) | null = null;
+    private uninstallTableCellMotions: (() => void) | null = null;
+
     private yankHighlightCleanup: (() => void) | null = null;
     private markGutterCleanup: (() => void) | null = null;
     markStore: MarkStore = new MarkStore();
@@ -1885,6 +1873,20 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
+        if (
+            vim &&
+            this.settings.enableTableNav &&
+            this.settings.tableWidgetMode === 'native'
+        ) {
+            this.uninstallTableCellMotions = applyTableCellMotions(
+                this.app,
+                vim,
+            );
+        }
+        activeDocument.body.classList.toggle(
+            'vim-motions-raw-table',
+            this.settings.tableWidgetMode === 'raw',
+        );
         this.registration.beginLeaderScope();
         if (this.settings.enableEasyMotion && !Platform.isMobile) {
             registerEasyMotion(
@@ -2111,7 +2113,9 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.scrolloffManager = new ScrolloffManager(this);
         this.scrolloffManager.setup(this.settings.scrolloffLines);
-        this.registerEditorExtension(createScrolloffExtension());
+        this.registerEditorExtension(
+            skipInTableCells(createScrolloffExtension()),
+        );
 
         if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
             this.globalRegistry = new GlobalMappingRegistry();
@@ -2165,48 +2169,33 @@ export default class VimMotionsPlugin extends Plugin {
         // --- Which-key overlay ---
         this.rebuildWhichKey();
 
-        if (this.settings.tableWidgetMode !== 'off') {
-            this.uninstallTableSuppressor = installTableWidgetSuppressor(
-                this.app,
-                this.settings.tableWidgetMode,
-            );
-        }
-
-        const isEmbedded = this.settings.tableWidgetMode === 'embedded';
-        setTableRenderEnabled(
-            this.settings.tableWidgetMode === 'cursor' || isEmbedded,
-        );
-        this.registerEditorExtension(tableRenderField);
-
-        setEmbeddedModeEnabled(isEmbedded);
-        setTableEmbeddedMode(isEmbedded);
-        setCellEditorCursorShapes(this.settings.cursorShapes);
-        this.registerEditorExtension(tableEmbeddedField);
-
-        if (this.settings.enableTableNav) {
-            this.registerEditorExtension(
-                createTableFormatOnExitExtension(this.app),
-            );
-        }
-
         this.registerEditorExtension(yankHighlightExtension());
+        this.registerEditorExtension(createTableCellCursorGuard());
         this.registerEditorExtension(createCompositionTrackerExtension());
         this.registerEditorExtension(createImModeWatcherExtension());
         this.registerEditorExtension(createAutocmdModeWatcherExtension());
         this.registerEditorExtension(createAutocmdEventExtension());
-        this.registerEditorExtension(foldSyncExtension());
+        this.registerEditorExtension(skipInTableCells(foldSyncExtension()));
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
-        this.registerEditorExtension(foldLevelExtension());
-        this.registerEditorExtension(markdownFoldProvider());
-        this.registerEditorExtension(foldPlaceholderExtension());
-        this.registerEditorExtension(signColumnFieldExtension());
+        this.registerEditorExtension(skipInTableCells(foldLevelExtension()));
+        this.registerEditorExtension(skipInTableCells(markdownFoldProvider()));
         this.registerEditorExtension(
-            createMarkGutterExtension(this.settings.signcolumn),
+            skipInTableCells(foldPlaceholderExtension()),
         );
         this.registerEditorExtension(
-            createStatusColumnExtension(
-                this.settings.statuscolumn,
-                this.getStatusColumnSettings(),
+            skipInTableCells(signColumnFieldExtension()),
+        );
+        this.registerEditorExtension(
+            skipInTableCells(
+                createMarkGutterExtension(this.settings.signcolumn),
+            ),
+        );
+        this.registerEditorExtension(
+            skipInTableCells(
+                createStatusColumnExtension(
+                    this.settings.statuscolumn,
+                    this.getStatusColumnSettings(),
+                ),
             ),
         );
 
@@ -2224,6 +2213,9 @@ export default class VimMotionsPlugin extends Plugin {
                         activateOnTyping: true,
                         defaultKeymap: false,
                     }),
+                );
+                this.registerEditorExtension(
+                    tooltips({ parent: document.body }),
                 );
             }
             if (triggerMode === 'tab' || triggerMode === 'both') {
@@ -2263,17 +2255,21 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.registerEditorExtension(
-            createLineNumberExtension(
-                this.settings.number,
-                this.settings.relativenumber,
-                this.settings.linenumbermode,
+            skipInTableCells(
+                createLineNumberExtension(
+                    this.settings.number,
+                    this.settings.relativenumber,
+                    this.settings.linenumbermode,
+                ),
             ),
         );
         this.registerEditorExtension(
-            createLineNumberSecondaryExtension(
-                this.settings.number,
-                this.settings.relativenumber,
-                this.settings.linenumbermode,
+            skipInTableCells(
+                createLineNumberSecondaryExtension(
+                    this.settings.number,
+                    this.settings.relativenumber,
+                    this.settings.linenumbermode,
+                ),
             ),
         );
         if (this.settings.number || this.settings.relativenumber) {
@@ -2283,9 +2279,11 @@ export default class VimMotionsPlugin extends Plugin {
         }
         setNumberwidth(this.settings.numberwidth);
         this.registerEditorExtension(
-            createCursorlineExtension(
-                this.settings.cursorline,
-                this.settings.cursorlineopt,
+            skipInTableCells(
+                createCursorlineExtension(
+                    this.settings.cursorline,
+                    this.settings.cursorlineopt,
+                ),
             ),
         );
         setCursorShapes(
@@ -2303,12 +2301,16 @@ export default class VimMotionsPlugin extends Plugin {
                 damping: this.settings.smearDamping,
                 maxLength: this.settings.smearMaxLength,
             });
-            this.registerEditorExtension(createAnimatedCursorExtension());
+            this.registerEditorExtension(
+                skipInTableCells(createAnimatedCursorExtension()),
+            );
         } else {
             setAnimatedCursorConfig({ enabled: false });
         }
         this.registerEditorExtension(
-            createFoldColumnExtension(this.settings.foldcolumn),
+            skipInTableCells(
+                createFoldColumnExtension(this.settings.foldcolumn),
+            ),
         );
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
@@ -2389,6 +2391,9 @@ export default class VimMotionsPlugin extends Plugin {
 
         const vim = getVimApi();
         if (!vim) return;
+
+        this.uninstallTableCellMotions?.();
+        this.uninstallTableCellMotions = null;
 
         if (typeof vim.resetKeymap === 'function') {
             vim.resetKeymap();
@@ -2504,6 +2509,19 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
+        if (
+            this.settings.enableTableNav &&
+            this.settings.tableWidgetMode === 'native'
+        ) {
+            this.uninstallTableCellMotions = applyTableCellMotions(
+                this.app,
+                vim,
+            );
+        }
+        activeDocument.body.classList.toggle(
+            'vim-motions-raw-table',
+            this.settings.tableWidgetMode === 'raw',
+        );
         this.registration.beginLeaderScope();
         if (
             this.settings.enableEasyMotion &&
@@ -2642,21 +2660,6 @@ export default class VimMotionsPlugin extends Plugin {
         this.rebuildExSuggest();
         this.rebuildWhichKey();
 
-        this.uninstallTableSuppressor?.();
-        this.uninstallTableSuppressor = null;
-        if (this.settings.tableWidgetMode !== 'off') {
-            this.uninstallTableSuppressor = installTableWidgetSuppressor(
-                this.app,
-                this.settings.tableWidgetMode,
-            );
-        }
-        const isEmbedded = this.settings.tableWidgetMode === 'embedded';
-        setTableRenderEnabled(
-            this.settings.tableWidgetMode === 'cursor' || isEmbedded,
-        );
-        setEmbeddedModeEnabled(isEmbedded);
-        setTableEmbeddedMode(isEmbedded);
-        setCellEditorCursorShapes(this.settings.cursorShapes);
         if (this.pickerAPI) {
             this.registerBundledIntegrations();
         }
@@ -2815,8 +2818,6 @@ export default class VimMotionsPlugin extends Plugin {
             showDelay: this.settings.whichKeyDelay,
             sortOrder: this.settings.whichKeySortOrder,
         };
-        setCellEditorWhichKeyConfig(embeddedWhichKeyConfig);
-        setTableNavWhichKeyConfig(embeddedWhichKeyConfig);
         this.textareaVimManager?.updateOptions(
             undefined,
             embeddedWhichKeyConfig,
@@ -4153,9 +4154,9 @@ export default class VimMotionsPlugin extends Plugin {
 
     onunload() {
         destroyAnimatedCursorManager();
-        destroyCellEditorCursorSheet();
         setActiveDynamicContext(null);
         activeDocument.body.classList.remove('vim-motions-line-numbers-active');
+        activeDocument.body.classList.remove('vim-motions-raw-table');
         this.markGutterCleanup?.();
         this.markGutterCleanup = null;
         this.yankHighlightCleanup?.();
@@ -4207,10 +4208,11 @@ export default class VimMotionsPlugin extends Plugin {
         this.globalKeyHandler = null;
         this.globalRegistry = null;
         this.cleanupHintModeWindows();
-        this.uninstallTableSuppressor?.();
-        this.uninstallTableSuppressor = null;
         this.uninstallVisualLineFix?.();
         this.uninstallVisualLineFix = null;
+        this.uninstallTableCellMotions?.();
+        this.uninstallTableCellMotions = null;
+
         this.exSuggest?.destroy();
         this.exSuggest = null;
         this.whichKeyOverlay?.destroy();
@@ -4362,8 +4364,17 @@ export default class VimMotionsPlugin extends Plugin {
             typeof raw.suppressTableWidget === 'boolean'
         ) {
             this.settings.tableWidgetMode = raw.suppressTableWidget
-                ? 'always'
-                : 'off';
+                ? 'raw'
+                : 'native';
+        }
+        // Migrate old tableWidgetMode values to new scheme
+        const twm = raw.tableWidgetMode;
+        if (typeof twm === 'string') {
+            if (twm === 'off' || twm === 'cursor' || twm === 'embedded') {
+                this.settings.tableWidgetMode = 'native';
+            } else if (twm === 'always') {
+                this.settings.tableWidgetMode = 'raw';
+            }
         }
         delete (this.settings as unknown as Record<string, unknown>)
             .formattingMarkMode;

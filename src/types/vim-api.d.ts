@@ -42,6 +42,8 @@ export interface MotionArgs {
     selectedCharacter?: string;
     toJumplist?: boolean;
     explicitRepeat?: boolean;
+    toFirstChar?: boolean;
+    repeatOffset?: number;
 }
 
 /** Arguments passed to operator functions. */

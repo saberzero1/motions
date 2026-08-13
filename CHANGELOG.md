@@ -7,8 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Animated cursor: cross-cell position handoff** — when navigating between table cells via `h`/`j`/`k`/`l`, a token-based handoff seeds the new cell's `CursorController` with the previous cell's screen position via the `AnimatedCursorManager` singleton. The handoff infrastructure is in place but the canvas transition animation is not visible due to CSS stacking contexts (the canvas at `position: fixed` on `.app-container` renders behind table cell content). The native vim cursor (`BlockCursorPlugin`) serves as the steady-state renderer inside cells. See KNOWN_LIMITATIONS.md for details.
+    - Plugin: `src/vim/animated-cursor/manager.ts` (`CellCrossingHandoff` interface, `createCrossingToken`/`storeCrossingHandoff`/`consumeCrossingHandoff` methods, `signalCellCrossing`/`getPendingCrossingToken`/`clearPendingCrossingToken` module-level functions)
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`cellTransitionActive` flag, crossing token consumption in constructor, position handoff in destroy, cell-aware tick/update that skips canvas drawing when no transition is active)
+    - Plugin: `src/vim/table-cell-motions.ts` (`signalCellCrossing()` call in `scheduleCrossing`)
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (table cell override documented in DIFFERENCES.md)
+    - Styles: `styles.css` (animated cursor canvas z-index bumped from 5 to 15)
+
+### Changed
+
+- **Table editing: migrated to native Obsidian table editor** — the plugin no longer suppresses Obsidian's `cm-table-widget` or provides custom cell editors. In Live Preview, Obsidian's native table editor handles cell editing, pipe escaping, wikilinks, cursor positioning, and `<br>` conversion. Vim is injected into native cell editors via `registerEditorExtension()`. The `tableWidgetMode` setting is simplified from 4 values (`off`/`cursor`/`always`/`embedded`) to 2 (`native`/`raw`). Old values are automatically migrated.
+    - Removed: `src/vim/table-widget-suppressor.ts` (`RangeSetBuilder` monkey-patch)
+    - Removed: `src/vim/table-render-widget.ts` (custom widget)
+    - Removed: `src/vim/table-nav-controller.ts` (custom nav state machine)
+    - Removed: `src/vim/table-cell-editor.ts` (custom cell editors)
+    - Removed: `src/vim/table-embedded-editor.ts` (configuration bridge)
+    - Added: `src/vim/table-nav-overlay.ts` (native `TableEditor` API overlay)
+    - Added: `src/vim/native-table-adapter.ts` (typed abstraction layer)
+    - Added: `src/types/table-editor.d.ts` (runtime-discovered typings for 55 native methods)
+
 ### Fixed
 
+- **Wikilinks in table cells work correctly** — cursor displacement when typing `[[` in table cells is fixed. The native editor handles wikilink rendering at the decoration layer, eliminating the sub-CM6 cursor displacement that affected the old custom widget.
+- **Pipe character (`|`) no longer swallowed in table cells** — the native editor automatically escapes `|` as `\|` in the document source. Previously, Obsidian's DOM-level table editor intercepted `|` before CM6's input pipeline.
+- **`<br>` conversion handled natively** — newlines in table cells are automatically converted to/from `<br>` by the native editor. The `cellBrToNewline`/`cellNewlineToBr` utilities are removed.
 - **Embedded table: Obsidian shortcuts (Ctrl+P, Cmd+O) now work in cell selection mode** — modifier key combos in table-nav mode now call `e.stopPropagation()` to prevent vim's `eventObservers.keydown` from consuming them as cursor movement, then manually feed the event to Obsidian's keymap system via `app.keymap.onKeyEvent(e)`. This two-step approach blocks vim (which would process `<C-p>` as cursor-up) while still triggering Obsidian's hotkey bindings (command palette, file switcher, custom hotkeys). Uses the unofficial `Keymap.onKeyEvent` API from `obsidian-typings`. ([#120](https://github.com/saberzero1/motions/issues/120))
     - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `stopPropagation` + `app.keymap.onKeyEvent` for modifier combos)
 - **Embedded table: ex command dialog keys no longer consumed by table-nav** — when vim's ex command dialog is open (after pressing `:`), table-nav keys like `h`, `j`, `k`, `l`, `a`, `i`, `c` are no longer intercepted by the table-nav handler. The handler now checks `adapter.state.dialog` and returns early when a dialog is active. ([#120](https://github.com/saberzero1/motions/issues/120))
@@ -18,6 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 1 regression test for modifier combo in `test/specs/table-cell-vim-mode.e2e.ts`: modifier combo does not move cursor during cell selection
 - 1 regression test for ex dialog in `test/specs/table-cell-vim-mode.e2e.ts`: keys with table-nav meaning do not change active cell when ex dialog is open (verified to fail without dialog check)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added animated cursor cross-cell transition as known limitation in table cell vim modality section
+- `CONTRIBUTING.md`: Added `table-cell-motions.ts` and `table-cell-cursor-guard.ts` to codebase structure; updated `manager.ts` with cross-cell handoff API; updated `controller.ts` with cell transition architecture
+- `AGENTS.md`: Updated animated cursor page ownership (unchanged — `features/animated-cursor.md`)
+- `docs/features/animated-cursor.md`: Updated embeddable editors section with cross-cell transition details and known limitation
+- `docs/features/tables.md`: Added animated cursor note to cell editor section
+- Fork `DIFFERENCES.md`: Added table cell override section documenting BlockCursorPlugin's unsuppress behavior for `.cm-table-widget` editors
 
 ## [0.109.1] - 2026-08-13
 

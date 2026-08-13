@@ -176,7 +176,7 @@ describe('Vimrc settings parity', function () {
     });
 
     it('should override enum option', async function () {
-        await applyVimrcOverrides({ tableWidgetMode: 'always' });
+        await applyVimrcOverrides({ tableWidgetMode: 'raw' });
 
         const result = await browser.executeObsidian(({ app }) => {
             const plugin = (
@@ -189,7 +189,7 @@ describe('Vimrc settings parity', function () {
             return plugin?.settings?.tableWidgetMode;
         });
 
-        expect(result).toBe('always');
+        expect(result).toBe('raw');
     });
 
     it('should apply mode prompts', async function () {
