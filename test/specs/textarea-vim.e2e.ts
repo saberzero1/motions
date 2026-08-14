@@ -441,4 +441,68 @@ describe('Textarea vim replacement', function () {
         });
         await browser.pause(200);
     });
+
+    it('Escape in hint mode does not exit the overlay (#126)', async function () {
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const modal = new obsidian.Modal(app);
+            modal.contentEl.createEl('textarea', {
+                attr: { id: 'test-ta' },
+            });
+            const ta = modal.contentEl.querySelector(
+                '#test-ta',
+            ) as HTMLTextAreaElement;
+            ta.value = 'hello world';
+            ta.style.width = '300px';
+            ta.style.height = '100px';
+            modal.open();
+        });
+        await browser.pause(400);
+
+        await focusElement('test-ta');
+        await browser.pause(500);
+        expect(await hasOverlay()).toBe(true);
+
+        // insert → normal
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+        expect(await hasOverlay()).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            (
+                app as unknown as {
+                    commands: {
+                        executeCommandById: (id: string) => boolean;
+                    };
+                }
+            ).commands.executeCommandById('vim-motions:show-hint-labels');
+        });
+        await browser.pause(500);
+
+        const hintVisible = (await browser.executeObsidian(() => {
+            return !!document.querySelector('.vim-motions-hint-overlay');
+        })) as boolean;
+        expect(hintVisible).toBe(true);
+
+        // Escape should dismiss hint overlay but NOT the textarea overlay
+        await browser.keys(['Escape']);
+        await browser.pause(500);
+
+        const state = (await browser.executeObsidian(() => {
+            return {
+                hintGone: !document.querySelector('.vim-motions-hint-overlay'),
+                overlayAlive: !!document.querySelector(
+                    '.vim-motions-textarea-overlay',
+                ),
+            };
+        })) as { hintGone: boolean; overlayAlive: boolean };
+        expect(state.hintGone).toBe(true);
+        expect(state.overlayAlive).toBe(true);
+
+        await browser.executeObsidian(() => {
+            document
+                .querySelectorAll('.modal-container')
+                .forEach((el) => el.remove());
+        });
+        await browser.pause(200);
+    });
 });

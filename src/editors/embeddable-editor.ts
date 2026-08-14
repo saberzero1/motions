@@ -29,6 +29,9 @@ import {
     isBundledVimActive,
 } from '../vim/bundled-vim';
 import { isBuiltinVimEnabled } from '../util/vault';
+import { isHintModeActive } from '../ui/hint-mode';
+import { isEasyMotionActive } from '../easymotion/register';
+import { isFlashActive } from '../flash/state';
 import type { CursorShapes } from '../settings';
 
 // -- Obsidian internal types (undocumented, used by embedRegistry) --
@@ -311,6 +314,18 @@ function buildEditorClass(
             this._scope.register(['Mod'], 'Enter', () => true);
 
             this._scope.register([], 'Escape', () => {
+                // Modal key-interception overlays (hint mode, EasyMotion,
+                // flash) handle Escape via their own capture-phase DOM
+                // listeners.  Scope handlers fire independently of DOM
+                // propagation, so we must guard here to avoid exiting the
+                // embedded editor while an overlay is still active.
+                if (
+                    isHintModeActive() ||
+                    isEasyMotionActive() ||
+                    isFlashActive()
+                ) {
+                    return true;
+                }
                 const cm = getCM(this.editor.cm);
                 const vim = (cm as unknown as Record<string, unknown>)
                     ?.state as { vim?: VimIdleState } | undefined;

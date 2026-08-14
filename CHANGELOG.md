@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Escape in hint mode exits embedded vim editor** — pressing Escape to dismiss hint mode while inside an embedded vim editor (textarea vim overlay, Oil explorer, table cell editor) also exited the embedded editor. Root cause: Obsidian's `Scope` keymap handlers fire independently of DOM event propagation — `stopPropagation()` in hint mode's capture-phase listener does not prevent the Scope handler from receiving the event. The embedded editor's Scope handler checked `isVimIdle()` (which returns `true` during hint mode, since hint mode is a plugin-level overlay, not a vim state) and called `onEscape()`. Fixed by adding a guard in the embedded editor's Escape handler that checks `isHintModeActive()`, `isEasyMotionActive()`, and `isFlashActive()` before evaluating `isVimIdle()`. ([#126](https://github.com/saberzero1/motions/issues/126))
+    - Plugin: `src/editors/embeddable-editor.ts` (Scope Escape handler — modal overlay active guard before `isVimIdle()` check)
 - **Wikilinks in table cells work correctly** — cursor displacement when typing `[[` in table cells is fixed. The native editor handles wikilink rendering at the decoration layer, eliminating the sub-CM6 cursor displacement that affected the old custom widget.
 - **Pipe character (`|`) no longer swallowed in table cells** — the native editor automatically escapes `|` as `\|` in the document source. Previously, Obsidian's DOM-level table editor intercepted `|` before CM6's input pipeline.
 - **`<br>` conversion handled natively** — newlines in table cells are automatically converted to/from `<br>` by the native editor. The `cellBrToNewline`/`cellNewlineToBr` utilities are removed.
@@ -43,12 +45,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 1 regression test for hint mode Escape in `test/specs/textarea-vim.e2e.ts` (issue #126): Escape in hint mode dismisses hint overlay but does not exit the textarea vim overlay — verified to fail without the modal overlay guard
 - 1 regression test for modifier combo in `test/specs/table-cell-vim-mode.e2e.ts`: modifier combo does not move cursor during cell selection
 - 1 regression test for ex dialog in `test/specs/table-cell-vim-mode.e2e.ts`: keys with table-nav meaning do not change active cell when ex dialog is open (verified to fail without dialog check)
 
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Added hint mode Escape fix to textarea vim Escape behavior section (#126)
+- `AGENTS.md`: Updated embeddable-editor description with modal overlay active guard
+- `CONTRIBUTING.md`: Updated embeddable-editor description with modal overlay active guard
+- `docs/features/hint-mode.md`: Added note about embedded editor Escape isolation
 - `KNOWN_LIMITATIONS.md`: Updated vim engine settings section — all 9 settings now synced at init (was 3); added declarative settings forwarding fix for Obsidian 1.13+ (#125)
 - `KNOWN_LIMITATIONS.md`: Added animated cursor cross-cell transition as known limitation in table cell vim modality section
 - `CONTRIBUTING.md`: Added `table-cell-motions.ts` and `table-cell-cursor-guard.ts` to codebase structure; updated `manager.ts` with cross-cell handoff API; updated `controller.ts` with cell transition architecture

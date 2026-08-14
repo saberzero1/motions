@@ -52,7 +52,7 @@ Smart label assignment prioritizes the home row. Single-character labels are use
 
 - **Filtering**: Only visible elements within the current scroll container are labeled.
 - **Correction**: Press `Backspace` to reset the first character of a two-character label if you mistype.
-- **Cancellation**: Press `Escape` to exit hint mode without taking action.
+- **Cancellation**: Press `Escape` to exit hint mode without taking action. In embedded editors (textarea vim overlays, Oil explorer, table cell editors), Escape only dismisses the hint overlay — it does not exit the embedded editor.
 - **Modifier keys**: Pressing `Ctrl`, `Shift`, `Alt`, or `Meta` alone does not dismiss the overlay. These keys are ignored until a label character is typed. Hold `Ctrl`/`Cmd` while typing the final label character to open in a new tab. Hold `Shift` to open the context menu instead.
 - **Modal interaction**: Hint mode remains active in modals, allowing you to navigate settings or the command palette.
 
