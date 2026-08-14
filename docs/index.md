@@ -31,10 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.109.0
+## What's new in 0.110.0
 
-- **Embedded table: click-to-select cell** — clicking a cell in the embedded table widget now selects that cell in table-nav mode, both when table-nav is already active and when clicking from outside the table. ([#120](https://github.com/saberzero1/motions/issues/120))
-- **Embedded table: modal interaction no longer exits table-nav** — opening a modal (command palette, picker, settings) while in table-nav mode no longer triggers the click-outside handler, preventing accidental exit to raw markdown. ([#120](https://github.com/saberzero1/motions/issues/120))
-- **Embedded table: header-only tables skipped** — tables with only a header and separator row (no data rows) no longer enter table-nav mode. ([#121](https://github.com/saberzero1/motions/issues/121))
+- **Table editing: migrated to native Obsidian table editor** — the plugin no longer provides custom cell editors. In Live Preview, Obsidian's native table editor handles cell editing, pipe escaping, wikilinks, and `<br>` conversion. Vim is injected into native cell editors via `registerEditorExtension()`. The `tableWidgetMode` setting is simplified from 4 values to 2 (`native`/`raw`), with old values automatically migrated.
+- **Escape in hint mode no longer exits embedded vim editor** — pressing Escape to dismiss hint mode while inside an embedded vim editor (textarea overlay, Oil explorer, table cell editor) no longer also exits the embedded editor. ([#126](https://github.com/saberzero1/motions/issues/126))
+- **Vim engine settings applied after restart** — six vim engine settings (insert mode escape, operator shadow timeout, tabstop, shiftwidth, expandtab) configured via the Settings UI were not synced to the vim engine on plugin load. Now all 9 vim engine settings are properly initialized on startup, including on Obsidian 1.13+ declarative settings. ([#125](https://github.com/saberzero1/motions/issues/125))
+- **Embedded table: Obsidian shortcuts work in cell selection mode** — modifier key combos (Ctrl+P, Cmd+O, etc.) in table-nav mode now correctly trigger Obsidian hotkeys instead of being consumed as vim cursor movement. ([#120](https://github.com/saberzero1/motions/issues/120))
 
 See the [[changelog|full changelog]] for details.

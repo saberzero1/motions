@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.110.0] - 2026-08-14
+
 ### Added
 
 - **Animated cursor: cross-cell position handoff** — when navigating between table cells via `h`/`j`/`k`/`l`, a token-based handoff seeds the new cell's `CursorController` with the previous cell's screen position via the `AnimatedCursorManager` singleton. The handoff infrastructure is in place but the canvas transition animation is not visible due to CSS stacking contexts (the canvas at `position: fixed` on `.app-container` renders behind table cell content). The native vim cursor (`BlockCursorPlugin`) serves as the steady-state renderer inside cells. See KNOWN_LIMITATIONS.md for details.
