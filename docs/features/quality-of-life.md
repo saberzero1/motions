@@ -132,6 +132,6 @@ Tab-complete ex commands as you type in the `:` command line.
 
 ## Settings hot-reload
 
-All feature toggles and vim engine settings take effect immediately when changed — no Obsidian restart required. This includes clipboard, tabstop, shiftwidth, expandtab, insertmodeescape, insertmodeescapetimeout, and textwidth.
+All feature toggles and vim engine settings take effect immediately when changed — no Obsidian restart required. This includes clipboard, tabstop, shiftwidth, expandtab, pcre, insertmodeescape, insertmodeescapetimeout, operatorshadowtimeout, and textwidth. All nine settings also persist across restarts — the plugin syncs saved values to the vim engine on every plugin load.
 
 See [[known-limitations#UI & display]] for known display-related limitations and [[known-limitations#Vimrc]] for vimrc timing issues.

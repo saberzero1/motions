@@ -447,6 +447,20 @@ export class VimMotionsSettingTab extends PluginSettingTab {
     }
 
     /** Settings keys that require reloadFeatures() after change. */
+    /** Settings keys whose values must be forwarded to a vim option of the
+     *  same name via `vim.setOption()` whenever they change. */
+    private static readonly VIM_OPTION_KEYS = new Set([
+        'clipboard',
+        'tabstop',
+        'shiftwidth',
+        'expandtab',
+        'pcre',
+        'insertmodeescape',
+        'insertmodeescapetimeout',
+        'operatorshadowtimeout',
+        'textwidth',
+    ]);
+
     private static readonly RELOAD_KEYS = new Set([
         'pickerMatcherEngine',
         'enableTextObjects',
@@ -2852,6 +2866,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             this.plugin.reconfigureFoldColumnGutter();
         } else if (VimMotionsSettingTab.RELOAD_KEYS.has(key)) {
             this.plugin.reloadFeatures();
+        }
+
+        if (VimMotionsSettingTab.VIM_OPTION_KEYS.has(key)) {
+            const vim = getVimApi();
+            if (vim) {
+                try {
+                    vim.setOption(key, value);
+                } catch {
+                    /* option may not be registered in fork */
+                }
+            }
+            if (key === 'clipboard') {
+                setClipboardOption(value as string);
+            } else if (key === 'textwidth') {
+                const n = value as number;
+                if (n > 0) setTextwidth(n);
+            }
         }
 
         (this as unknown as { refreshDomState?(): void }).refreshDomState?.();

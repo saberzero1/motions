@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `stopPropagation` + `app.keymap.onKeyEvent` for modifier combos)
 - **Embedded table: ex command dialog keys no longer consumed by table-nav** — when vim's ex command dialog is open (after pressing `:`), table-nav keys like `h`, `j`, `k`, `l`, `a`, `i`, `c` are no longer intercepted by the table-nav handler. The handler now checks `adapter.state.dialog` and returns early when a dialog is active. ([#120](https://github.com/saberzero1/motions/issues/120))
     - Plugin: `src/vim/table-nav-controller.ts` (`handleTableNavKey` — `adapter.state.dialog` check)
+- **Insert mode escape sequence and other vim engine settings not applied after restart** — six vim engine settings (insertmodeescape, insertmodeescapetimeout, operatorshadowtimeout, tabstop, shiftwidth, expandtab) configured via the Settings UI were not synced to the vim engine on plugin load. Only clipboard, textwidth, and pcre were synced at startup. The remaining settings were stored in `data.json` but never pushed to `vim.setOption()` during initialization, so they silently reverted to defaults on every Obsidian restart. The vimrc/Lua code path was unaffected because it calls `vim.setOption()` directly. Additionally, on Obsidian 1.13+, the declarative settings system (`setControlValue`) did not forward any of the 9 vim engine settings to `vim.setOption()` — only the pre-1.13 imperative `onChange` handlers did. ([#125](https://github.com/saberzero1/motions/issues/125))
+    - Plugin: `src/main.ts` (added init sync for insertmodeescape, insertmodeescapetimeout, operatorshadowtimeout, tabstop, shiftwidth, expandtab after `registerVimOptions()`)
+    - Plugin: `src/settings.ts` (`VIM_OPTION_KEYS` static set; `setControlValue` forwards vim engine settings to `vim.setOption()` with `setClipboardOption`/`setTextwidth` side effects)
 
 ### Tests
 
@@ -46,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated vim engine settings section — all 9 settings now synced at init (was 3); added declarative settings forwarding fix for Obsidian 1.13+ (#125)
 - `KNOWN_LIMITATIONS.md`: Added animated cursor cross-cell transition as known limitation in table cell vim modality section
 - `CONTRIBUTING.md`: Added `table-cell-motions.ts` and `table-cell-cursor-guard.ts` to codebase structure; updated `manager.ts` with cross-cell handoff API; updated `controller.ts` with cell transition architecture
 - `AGENTS.md`: Updated animated cursor page ownership (unchanged — `features/animated-cursor.md`)

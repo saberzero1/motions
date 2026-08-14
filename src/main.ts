@@ -958,6 +958,57 @@ export default class VimMotionsPlugin extends Plugin {
                 /* option may not be registered in fork */
             }
         }
+        if (this.settings.insertmodeescape) {
+            try {
+                vim.setOption(
+                    'insertmodeescape',
+                    this.settings.insertmodeescape,
+                );
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
+        if (this.settings.insertmodeescapetimeout !== 1000) {
+            try {
+                vim.setOption(
+                    'insertmodeescapetimeout',
+                    this.settings.insertmodeescapetimeout,
+                );
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
+        if (this.settings.operatorshadowtimeout !== 1000) {
+            try {
+                vim.setOption(
+                    'operatorshadowtimeout',
+                    this.settings.operatorshadowtimeout,
+                );
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
+        if (this.settings.tabstop !== 4) {
+            try {
+                vim.setOption('tabstop', this.settings.tabstop);
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
+        if (this.settings.shiftwidth !== 4) {
+            try {
+                vim.setOption('shiftwidth', this.settings.shiftwidth);
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
+        if (!this.settings.expandtab) {
+            try {
+                vim.setOption('expandtab', false);
+            } catch {
+                /* option may not be registered in fork */
+            }
+        }
         this.registration = new VimRegistration(vim);
 
         this.matcher?.dispose();
