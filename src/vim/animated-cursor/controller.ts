@@ -21,7 +21,10 @@ import {
     isAnimatedCursorPausedForView,
 } from './config';
 import { getCmAdapterFromEditorView } from '../vim-api';
-import { setCursorSuppressedForView } from '@replit/codemirror-vim';
+import {
+    setCursorSuppressedForView,
+    clearCursorSuppressedForView,
+} from '@replit/codemirror-vim';
 import { invariant, devAssert } from '../../util/invariant';
 
 const STALE_THRESHOLD_MS = 100;
@@ -142,14 +145,8 @@ class CursorController implements Tickable {
             ) {
                 this.view.dom.classList.add('vim-motions-animated-cursor');
             }
-            if (!this.isCell) {
-                setCursorSuppressedForView(this.view, true);
-            }
         } else {
             this.view.dom.classList.remove('vim-motions-animated-cursor');
-            if (!this.isCell) {
-                setCursorSuppressedForView(this.view, false);
-            }
             return;
         }
 
@@ -511,7 +508,7 @@ class CursorController implements Tickable {
             mgr.storeCrossingHandoff(token, this.cachedShapeRect);
         }
 
-        setCursorSuppressedForView(this.view, false);
+        clearCursorSuppressedForView(this.view);
         mgr.deregister(this);
         this.view.scrollDOM.removeEventListener(
             'compositionstart',
