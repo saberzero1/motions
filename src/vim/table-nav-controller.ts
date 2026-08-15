@@ -8,6 +8,7 @@ import { type Extension } from '@codemirror/state';
 import { type App, Scope, editorInfoField } from 'obsidian';
 import {
     setCursorSuppressedForView,
+    clearCursorSuppressedForView,
     setKeyInterceptActive,
 } from '@replit/codemirror-vim';
 import { pushKeymapScope, popKeymapScope } from '../util/keymap';
@@ -303,7 +304,7 @@ export class TableNavController implements PluginValue {
         this.removeNavScope();
 
         setKeyInterceptActive(false);
-        setCursorSuppressedForView(this.view, false);
+        clearCursorSuppressedForView(this.view);
         resumeAnimatedCursorForView(this.view);
 
         const currentCell = editMode.tableCell?.cell;
@@ -418,7 +419,7 @@ export class TableNavController implements PluginValue {
         s.widgetEl?.classList.remove(NAV_MODE_CLASS);
 
         setKeyInterceptActive(false);
-        setCursorSuppressedForView(this.view, false);
+        clearCursorSuppressedForView(this.view);
         resumeAnimatedCursorForView(this.view);
 
         const editMode = getEditModeForView(this.view);
@@ -797,7 +798,7 @@ export class TableNavController implements PluginValue {
             s.widgetEl?.classList.remove(NAV_MODE_CLASS);
             this.showCellEditor();
             setKeyInterceptActive(false);
-            setCursorSuppressedForView(this.view, false);
+            clearCursorSuppressedForView(this.view);
             resumeAnimatedCursorForView(this.view);
         }
         this.cancelEntry();

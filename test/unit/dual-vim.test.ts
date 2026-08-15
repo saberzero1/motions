@@ -5,6 +5,7 @@ vi.mock('@replit/codemirror-vim', () => ({
     Vim: { defineEx: vi.fn() },
     getCM: () => null,
     setLivePreviewField: vi.fn(),
+    isCursorSuppressedForView: vi.fn(() => false),
 }));
 
 vi.mock('@codemirror/state', () => ({

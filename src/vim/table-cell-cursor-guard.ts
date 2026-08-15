@@ -6,7 +6,10 @@ import {
 } from '@codemirror/view';
 import { type Extension } from '@codemirror/state';
 import { MarkdownView, editorInfoField } from 'obsidian';
-import { setCursorSuppressedForView } from '@replit/codemirror-vim';
+import {
+    setCursorSuppressedForView,
+    clearCursorSuppressedForView,
+} from '@replit/codemirror-vim';
 import { findTableRanges, cursorInRange } from './table-utils';
 import { isTableNavActive } from './table-nav-state';
 import {
@@ -34,6 +37,8 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
     class implements PluginValue {
         private cursorInTable = false;
 
+        constructor(private view: EditorView) {}
+
         update(update: ViewUpdate): void {
             if (isTableCellEditor(update.view)) return;
             if (isTableNavActive(update.state)) return;
@@ -52,13 +57,20 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
                 if (vimLayer) vimLayer.textContent = '';
             } else if (!inTable && this.cursorInTable) {
                 this.cursorInTable = false;
-                setCursorSuppressedForView(update.view, false);
+                clearCursorSuppressedForView(update.view);
                 resumeAnimatedCursorForView(update.view);
             }
         }
 
         destroy(): void {
-            this.cursorInTable = false;
+            if (this.cursorInTable) {
+                this.cursorInTable = false;
+                // Clear per-view override so global state takes effect.
+                // Without this, a stale `true` override persists through
+                // plugin recreation, leaving the cursor permanently hidden.
+                clearCursorSuppressedForView(this.view);
+                resumeAnimatedCursorForView(this.view);
+            }
         }
     },
 );
@@ -90,7 +102,6 @@ const cellEditorCursorGuard = ViewPlugin.fromClass(
 
         update(_update: ViewUpdate): void {
             if (!this.cellView) return;
-            setCursorSuppressedForView(this.cellView, false);
             const cv = this.cellView;
             queueMicrotask(() => {
                 const vimLayer =
@@ -107,7 +118,7 @@ const cellEditorCursorGuard = ViewPlugin.fromClass(
 
         destroy(): void {
             if (this.parentView) {
-                setCursorSuppressedForView(this.parentView, false);
+                clearCursorSuppressedForView(this.parentView);
                 resumeAnimatedCursorForView(this.parentView);
                 const pv = this.parentView;
                 this.parentView = null;

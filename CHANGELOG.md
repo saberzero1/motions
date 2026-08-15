@@ -22,8 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Cursor flashing in Normal mode when animated cursor disabled** — removed per-update `setCursorSuppressedForView` toggling from the animated cursor controller. Restored `clearCursorSuppressedForView` in `destroy()` to ensure correct cursor visibility state. Also fixes invisible cursor in textarea vim when animated cursor is enabled. ([#127](https://github.com/saberzero1/motions/issues/127))
-    - Plugin: `src/vim/animated-cursor/controller.ts` (removed per-update suppression toggling, restored `clearCursorSuppressedForView` in `destroy`)
+- **Cursor flashing in Normal mode after table interaction** — the table cursor guard and table-nav controller used `setCursorSuppressedForView(view, false)` to unsuppress the cursor when leaving a table. This sets an explicit per-view override that conflicts with the animated cursor controller's global suppression (`setCursorSuppressed(true)`), causing the native CM6 cursor to become visible and flash alongside the canvas cursor. Additionally, `mainEditorTableCursorGuard.destroy()` did not restore suppression state when the cursor was inside a table at destruction time, leaving a stale `true` override through plugin recreation. `cellEditorCursorGuard.update()` force-unsuppressed the cell cursor on every update cycle (same anti-pattern removed from `CursorController` in commit 62444df). All unsuppress paths now use `clearCursorSuppressedForView()` (which removes the per-view override, falling back to global state) instead of `setCursorSuppressedForView(view, false)`. ([#127](https://github.com/saberzero1/motions/issues/127))
+    - Plugin: `src/vim/table-cell-cursor-guard.ts` (`mainEditorTableCursorGuard` — added constructor to store view reference; `destroy()` now clears per-view override and resumes animated cursor when `cursorInTable` is true; `update()` uses `clearCursorSuppressedForView` when leaving table; `cellEditorCursorGuard` — removed per-update `setCursorSuppressedForView(cellView, false)` force-unsuppress; `destroy()` uses `clearCursorSuppressedForView` for parent)
+    - Plugin: `src/vim/table-nav-controller.ts` (`enterCellEdit`, `exitTable`, `destroy` — all use `clearCursorSuppressedForView` instead of `setCursorSuppressedForView(view, false)`)
+    - Plugin: `src/vim/bundled-vim.ts` (exposed `isCursorSuppressedForView` on `CodeMirrorAdapter` bridge for test access)
+
+### Tests
+
+- 6 regression tests for cursor suppression after table interaction in `test/specs/table-cursor-suppression.e2e.ts` (issue #127): baseline suppression state with animated cursor enabled, suppression preserved after navigating through and out of table, suppression preserved after moving above table, suppression stable after repeated entry/exit cycles, suppression preserved in insert mode after table interaction, textarea vim overlay cursor not suppressed with animated cursor enabled — all verified to fail without the fix and pass with it
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated cursor flashing fix (#127) — root cause was in table cursor guard and table-nav controller, not just animated cursor controller
+- `AGENTS.md`: Updated `table-cell-cursor-guard.ts` description with `clearCursorSuppressedForView` pattern; updated `bundled-vim.ts` description with `isCursorSuppressedForView` bridge export
+- `CONTRIBUTING.md`: Updated `table-cell-cursor-guard.ts` and `table-nav-controller.ts` descriptions
 
 ## [0.110.0] - 2026-08-14
 

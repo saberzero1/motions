@@ -64,7 +64,7 @@ src/
   vim/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations
-    bundled-vim.ts         # Bundled vim fork registration as CM6 extension + editorLivePreviewField wiring + propertiesInDocument source-mode detection via setPropertiesSource
+    bundled-vim.ts         # Bundled vim fork registration as CM6 extension + editorLivePreviewField wiring + propertiesInDocument source-mode detection via setPropertiesSource + CodeMirrorAdapter bridge (Vim API + isCursorSuppressedForView for test access)
     mode-tracker.ts        # Status bar mode indicator + macro recording + search match counter + native highlight clearing (is-flashing) on Escape via vim-keypress handler
     search-counter.ts      # Search match counter (hlslens-style [3/15])
     scrolloff.ts           # CSS scroll-padding based scrolloff
@@ -88,13 +88,13 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
-    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation)
+    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides)
     table-nav-state.ts      # Table navigation overlay state tracking
     table-nav-keymap.ts     # Table navigation and structural command mappings
     native-table-adapter.ts  # Typed abstraction for Obsidian's native TableEditor API access
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
-    table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range, pauses animated cursor, checks isTableNavActive() to skip suppression during table-nav) and cellEditorCursorGuard (ensures native cursor in cell editors, restores parent on close)
+    table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range via setCursorSuppressedForView(true), pauses animated cursor, checks isTableNavActive() to skip suppression during table-nav, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides) and cellEditorCursorGuard (ensures native cursor in cell editors via constructor unsuppress, uses clearCursorSuppressedForView for parent on destroy)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list

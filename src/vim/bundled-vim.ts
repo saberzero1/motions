@@ -15,6 +15,7 @@ import {
     getCM,
     setLivePreviewField,
     setPropertiesSource,
+    isCursorSuppressedForView,
 } from '@replit/codemirror-vim';
 import type { CursorShapeConfig } from '@replit/codemirror-vim';
 import { Prec, type Extension } from '@codemirror/state';
@@ -83,6 +84,8 @@ export function installVimBridge(): void {
         configurable: true, // allow uninstallVimBridge() to remove it
         enumerable: true,
     });
+
+    win.CodeMirrorAdapter.isCursorSuppressedForView = isCursorSuppressedForView;
 }
 
 /**
@@ -98,6 +101,7 @@ export function uninstallVimBridge(): void {
     const win = window as unknown as Record<string, Record<string, unknown>>;
     if (win.CodeMirrorAdapter) {
         delete win.CodeMirrorAdapter.Vim;
+        delete win.CodeMirrorAdapter.isCursorSuppressedForView;
     }
 }
 
