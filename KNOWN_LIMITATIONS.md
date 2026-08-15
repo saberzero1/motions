@@ -80,6 +80,8 @@ New settings: `set jumplist` / `set nojumplist` (boolean, default true), `set ju
 
 The plugin uses Obsidian's native table editor for cell editing. `set tablewidget=native` (default) uses the native `cm-table-widget`. Cell editing uses native `TableCellEditor` instances created by Obsidian's `editTableCell()` method. Vim is injected into native cell editors via `registerEditorExtension()` propagation.
 
+A **table-nav overlay** activates when the cursor enters a table in Live Preview. This mode allows cell navigation with `h`/`j`/`k`/`l` without entering the cell editor. Structural commands (`o`/`O`, `dd`, `dc`, `J`/`K`, `H`/`L`, `I`/`A`, `=`) are supported directly from the overlay. Pressing `i`/`a`/`c`/`s` or `Enter` enters the native cell editor. `Escape` exits table-nav.
+
 - **Escape stays in cell**: Escape in normal mode stays in the cell (matches Obsidian's built-in vim behavior). Tab/Shift-Tab navigate between cells.
 - **`h`/`j`/`k`/`l` cross-cell navigation**: In normal mode, `h`/`l` at cell boundaries move to the adjacent cell (same row). `j`/`k` at row boundaries move to the same column in the next/previous data row (separator rows are skipped). `j` at the last data row or `k` at the header row exits the table. Operator-pending (`dj`, `yl`) and visual mode motions stay within the cell.
 - **Register sharing**: Vim registers are shared between cell editors and the main editor via the fork's `vimGlobalState` singleton. Yank in one cell, paste in another.
@@ -88,6 +90,10 @@ The plugin uses Obsidian's native table editor for cell editing. `set tablewidge
 
 **Remaining limitations**:
 
+- **Cross-cell editing exits table-nav**: Entering a cell editor and then navigating to another cell (e.g., via `Tab`) exits the table-nav overlay. The user re-enters table-nav naturally when the cursor returns to the table after editing.
+- **Count prefixes not supported**: `3j` in table-nav mode performs a single crossing, not three.
+- **Visual-cell selection not supported**: Selecting multiple cells via visual mode is not implemented.
+- **Dot-repeat for structural commands not supported**: Structural commands (`dd`, `o`, etc.) cannot be repeated with `.`.
 - **Cross-cell word motions**: `w`/`b`/`e` at cell boundaries do not jump to the next cell. Only `h`/`j`/`k`/`l` cross cell boundaries.
 - **Count prefix on cross-cell motions**: `3j` in a cell performs a single crossing, not three. The count is consumed but only one cell boundary is crossed per keystroke.
 - **Visual block mode across cells**: `<C-v>` operates within a single cell editor only.
@@ -1648,6 +1654,7 @@ Canvas-based animated cursor with smooth movement and spring-damper smear trail.
 - ~~**No cursor blink**~~: Fixed. The canvas cursor now blinks matching CM6's default behavior (1200ms cycle, 600ms reset delay after movement). Blink only when focused.
 - ~~**No `vim.opt` / vimrc configuration**~~: Fixed. All 8 animated cursor settings are available via `set smoothcursor` / `vim.opt.smoothcursor` and related options.
 - **Textarea and table cell editor fallback**: The animated cursor does not render inside textarea vim overlays or embedded table cell editors. These contexts now have the native cursor restored via per-view un-suppression (`setCursorSuppressedForView(view, false)`), ensuring a visible cursor is always present.
+- ~~**Cursor flashing in Normal mode when animated cursor disabled**~~: Fixed. Removed per-update `setCursorSuppressedForView` toggling from the animated cursor controller. Restored `clearCursorSuppressedForView` in `destroy()` to ensure correct cursor visibility state. Also fixes invisible cursor in textarea vim when animated cursor is enabled. ([#127](https://github.com/saberzero1/motions/issues/127))
 - ~~**Count-prefixed and multi-key motions not animated**~~: Fixed. Movements like `4j` and `g$` caused the cursor to teleport because `resolveVimMode()` used `vim.status` (the chord display string set on every keystroke) to detect operator-pending mode. This triggered false cursor shape changes (block → underline → block), and each shape change called `snap()`. Fixed by gating operator-pending detection on `inputState.operator` only. ([#86](https://github.com/saberzero1/motions/issues/86))
 - **Table navigation cursor hiding**: Both native and animated cursors are hidden during embedded table navigation. Early suppression eliminates cursor flash on entry. The animated cursor snaps to the exit position (no interpolation) when resuming after table navigation.
 - **Multi-editor support**: The animated cursor now supports multiple editors (including the oil file explorer) via a single shared canvas architecture. `MAX_CONTROLLERS` is 16.

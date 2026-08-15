@@ -8,6 +8,7 @@ import { type Extension } from '@codemirror/state';
 import { MarkdownView, editorInfoField } from 'obsidian';
 import { setCursorSuppressedForView } from '@replit/codemirror-vim';
 import { findTableRanges, cursorInRange } from './table-utils';
+import { isTableNavActive } from './table-nav-state';
 import {
     pauseAnimatedCursorForView,
     resumeAnimatedCursorForView,
@@ -35,6 +36,7 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
 
         update(update: ViewUpdate): void {
             if (isTableCellEditor(update.view)) return;
+            if (isTableNavActive(update.state)) return;
             if (!(update.selectionSet || update.focusChanged)) return;
 
             const tables = findTableRanges(update.state);
@@ -70,6 +72,8 @@ const cellEditorCursorGuard = ViewPlugin.fromClass(
 
         constructor(view: EditorView) {
             if (!isTableCellEditor(view)) return;
+            const parentView = getParentEditorView(view);
+            if (parentView && isTableNavActive(parentView.state)) return;
             this.cellView = view;
             setCursorSuppressedForView(view, false);
             this.parentView = getParentEditorView(view);

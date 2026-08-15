@@ -1,9 +1,11 @@
-import { type App, MarkdownView } from 'obsidian';
+import { type App, MarkdownView, editorInfoField } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import type {
     ObsidianTableEditor,
     ObsidianTableCell,
 } from '../types/table-editor';
+
+export type { EditMode };
 
 type EditMode = Record<string, unknown> & {
     tableCell: {
@@ -62,16 +64,15 @@ export function isNativeTableEditorAvailable(app: App): boolean {
     return editMode !== null;
 }
 
-export function getTableEditorFromWidget(app: App): ObsidianTableEditor | null {
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) return null;
-    const container = (view as unknown as { contentEl: HTMLElement }).contentEl;
-    const widget = container?.querySelector('.cm-table-widget');
-    if (!widget) return null;
-
-    const editMode = getEditMode(app);
-    if (!editMode?.tableCell) return null;
-    return editMode.tableCell.table;
+export function getTableEditorFromWidgetEl(
+    widgetEl: HTMLElement,
+): ObsidianTableEditor | null {
+    const cmTile = (widgetEl as unknown as Record<string, unknown>).cmTile as
+        | Record<string, unknown>
+        | undefined;
+    const widget = cmTile?.widget as ObsidianTableEditor | undefined;
+    if (!widget || typeof widget.getCellAt !== 'function') return null;
+    return widget;
 }
 
 export function isInLivePreview(app: App): boolean {
@@ -79,4 +80,73 @@ export function isInLivePreview(app: App): boolean {
     if (!view) return false;
     const state = view.getState() as { mode: string; source?: boolean };
     return state.mode === 'source' && state.source !== true;
+}
+
+// -- View-local EditMode access (split-view safe) --
+
+export function getEditModeForView(view: EditorView): EditMode | null {
+    try {
+        const info = view.state.field(editorInfoField);
+        const mdView = info as unknown as Record<string, unknown>;
+        const editMode = mdView?.editMode as EditMode | undefined;
+        if (!editMode || typeof editMode.editTableCell !== 'function') {
+            return null;
+        }
+        return editMode;
+    } catch {
+        return null;
+    }
+}
+
+// -- TableEditor registry (WeakMap keyed by containerEl) --
+
+const tableEditorRegistry = new WeakMap<HTMLElement, ObsidianTableEditor>();
+
+export function registerTableEditor(
+    containerEl: HTMLElement,
+    table: ObsidianTableEditor,
+): void {
+    tableEditorRegistry.set(containerEl, table);
+}
+
+export function getTableEditorFromRegistry(
+    containerEl: HTMLElement,
+): ObsidianTableEditor | null {
+    if (!containerEl.isConnected) return null;
+    return tableEditorRegistry.get(containerEl) ?? null;
+}
+
+export function findTableWidgetElement(
+    view: EditorView,
+    tableFrom: number,
+): HTMLElement | null {
+    const widgets = view.dom.querySelectorAll('.cm-table-widget');
+    if (widgets.length === 0) return null;
+    if (widgets.length === 1) return widgets[0] as HTMLElement;
+
+    let bestEl: HTMLElement | null = null;
+    let bestDist = Infinity;
+    for (let i = 0; i < widgets.length; i++) {
+        const el = widgets[i] as HTMLElement;
+        try {
+            const pos = view.posAtDOM(el, 0);
+            const dist = Math.abs(pos - tableFrom);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestEl = el;
+            }
+        } catch {
+            // detached or offscreen
+        }
+    }
+    return bestEl;
+}
+
+export function getTableEditorForPosition(
+    view: EditorView,
+    tableFrom: number,
+): ObsidianTableEditor | null {
+    const widgetEl = findTableWidgetElement(view, tableFrom);
+    if (!widgetEl) return null;
+    return getTableEditorFromWidgetEl(widgetEl);
 }

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Table-nav overlay mode** — when the cursor enters a table in Live Preview, a navigation overlay activates, allowing cell navigation with `h`/`j`/`k`/`l` without entering the cell editor. Supports structural commands (`o`/`O`, `dd`, `dc`, `J`/`K`, `H`/`L`, `I`/`A`, `=`) and cell editing entry via `i`/`a`/`c`/`s`/`Enter`. Escape exits table-nav. Fork-only feature.
+    - Plugin: `src/vim/table-nav-controller.ts` (KeyScope-based interception, fresh `cmTile.widget` references, hidden cell editor during navigation)
+    - Plugin: `src/vim/table-nav-state.ts` (overlay state tracking)
+    - Plugin: `src/vim/table-nav-keymap.ts` (navigation and structural command mappings)
+    - Plugin: `src/vim/native-table-adapter.ts` (extended with overlay support)
+    - Styles: `styles.css` (overlay and hidden editor styling)
+
+### Changed
+
+- **`table-cell-cursor-guard.ts`** — now checks `isTableNavActive()` to avoid cursor suppression conflicts during table navigation.
+
+### Fixed
+
+- **Cursor flashing in Normal mode when animated cursor disabled** — removed per-update `setCursorSuppressedForView` toggling from the animated cursor controller. Restored `clearCursorSuppressedForView` in `destroy()` to ensure correct cursor visibility state. Also fixes invisible cursor in textarea vim when animated cursor is enabled. ([#127](https://github.com/saberzero1/motions/issues/127))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (removed per-update suppression toggling, restored `clearCursorSuppressedForView` in `destroy`)
+
 ## [0.110.0] - 2026-08-14
 
 ### Added

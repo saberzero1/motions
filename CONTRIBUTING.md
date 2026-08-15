@@ -88,11 +88,13 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
-    table-nav-overlay.ts   # Native table editor navigation overlay (uses Obsidian's TableEditor API for cell navigation, editing via setCellFocus, structural commands via insertRow/removeRow/etc.)
+    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation)
+    table-nav-state.ts      # Table navigation overlay state tracking
+    table-nav-keymap.ts     # Table navigation and structural command mappings
     native-table-adapter.ts  # Typed abstraction for Obsidian's native TableEditor API access
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
     table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
-    table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range, pauses animated cursor) and cellEditorCursorGuard (ensures native cursor in cell editors, restores parent on close)
+    table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range, pauses animated cursor, checks isTableNavActive() to skip suppression during table-nav) and cellEditorCursorGuard (ensures native cursor in cell editors, restores parent on close)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
@@ -104,7 +106,7 @@ src/
       physics.ts             # 4-corner spring-damper simulation (smear trail)
       renderer.ts            # Canvas cursor shape drawing + smear quad rendering + DOM-based baseline calculation (charTop/charHeight from BlockCharInfo)
       manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery + cross-cell handoff (CellCrossingHandoff token, storeCrossingHandoff/consumeCrossingHandoff with TTL, signalCellCrossing/getPendingCrossingToken/clearPendingCrossingToken)
-      controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only). Cell editors: native cursor steady-state renderer, canvas draws only during cross-cell transitions (cellTransitionActive flag). Non-cell editors: canvas renders, native cursor suppressed
+      controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only). Cell editors: native cursor steady-state renderer, canvas draws only during cross-cell transitions (cellTransitionActive flag). Non-cell editors: canvas renders, native cursor suppressed (removed per-update toggling, restored clearCursorSuppressedForView in destroy)
       config.ts              # Module-level getters/setters + per-view pause/resume API
   text-objects/
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)

@@ -74,6 +74,32 @@ Vim Motions integrates with Obsidian's native table editor in Live Preview. Two 
 - **`native`** (default): Obsidian's native table widget renders in Live Preview. Moving the cursor into a table activates table navigation (same `h`/`j`/`k`/`l` nav, same structural commands). Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. All the same keybindings apply. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
 - **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview.
 
+## Table-nav mode
+
+When the cursor enters a table in Live Preview, a navigation overlay activates. This mode allows you to navigate between cells and perform structural changes without entering the cell editor.
+
+### Keybindings
+
+| Key                             | Action                                       |
+| ------------------------------- | -------------------------------------------- |
+| `h` / `j` / `k` / `l`           | Navigate between cells                       |
+| `i` / `a` / `c` / `s` / `Enter` | Start editing the active cell                |
+| `Escape`                        | Exit table-nav and return to the main editor |
+| `o`                             | Add a row below                              |
+| `O`                             | Add a row above                              |
+| `dd`                            | Delete the current row                       |
+| `dc`                            | Delete the current column                    |
+| `J`                             | Move the current row down                    |
+| `K`                             | Move the current row up                      |
+| `H`                             | Move the current column to the left          |
+| `L`                             | Move the current column to the right         |
+| `I`                             | Add a column to the left                     |
+| `A`                             | Add a column to the right                    |
+| `=`                             | Realign the table                            |
+
+> [!info] Fork-only feature
+> Table-nav mode requires the bundled vim engine (fork mode). If you are using Obsidian's built-in vim mode, the plugin falls back to standard cell editing.
+
 > [!tip]
 > The **native** mode provides the best vim editing experience for tables. Obsidian's native table widget handles rendering while vim is injected into cell editors. Structural commands let you add, delete, and move rows and columns without leaving the table. Notes with multiple tables are fully supported — each table is independently navigable.
 

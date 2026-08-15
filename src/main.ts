@@ -223,6 +223,7 @@ import { invariant, devAssert } from './util/invariant';
 import { skipInTableCells } from './util/cell-editor-guard';
 import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
+import { createTableNavExtension } from './vim/table-nav-controller';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -2222,6 +2223,9 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.registerEditorExtension(yankHighlightExtension());
         this.registerEditorExtension(createTableCellCursorGuard());
+        this.registerEditorExtension(
+            createTableNavExtension(this.app, this.settings, getVimApi),
+        );
         this.registerEditorExtension(createCompositionTrackerExtension());
         this.registerEditorExtension(createImModeWatcherExtension());
         this.registerEditorExtension(createAutocmdModeWatcherExtension());
