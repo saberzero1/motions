@@ -31,11 +31,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.111.0
+## What's new in 0.112.0
 
-- **Table-nav overlay mode** — when the cursor enters a table in Live Preview, a navigation overlay activates, allowing cell navigation with `h`/`j`/`k`/`l` without entering the cell editor. Supports structural commands (`o`/`O`, `dd`, `dc`, `J`/`K`, `H`/`L`, `I`/`A`, `=`) and cell editing entry via `i`/`a`/`c`/`s`/`Enter`. Fork-only feature.
-- **Cross-cell motions decoupled from table-nav** — `h`/`j`/`k`/`l` cross-cell navigation in native cell editors now works independently of the table-nav overlay, enabling a third usage mode: native table editor with vim cell editing and cross-cell navigation, without the overlay.
-- **Cursor no longer snaps back after exiting table-nav** — exiting table-nav mode no longer causes the cursor to jump back to the last table cell position. ([#127](https://github.com/saberzero1/motions/issues/127))
-- **Cursor no longer flashes in Normal mode after table interaction** — fixed cursor suppression conflicts between the table cursor guard and animated cursor controller that caused the native CM6 cursor to flash alongside the canvas cursor. ([#127](https://github.com/saberzero1/motions/issues/127))
+- **Cursor shape settings no longer stuck disabled** — the 5 cursor shape dropdowns on the Appearance settings page now correctly enable/disable based on the active vim engine. ([#128](https://github.com/saberzero1/motions/issues/128))
+- **No more doubled cursors** — fixed several cases where the native CM6 caret appeared alongside the vim block cursor: after leaving insert mode with animated cursor disabled ([#129](https://github.com/saberzero1/motions/issues/129)), in embedded editors like textarea vim overlays ([#130](https://github.com/saberzero1/motions/issues/130)), and after toggling animated cursor at runtime ([#127](https://github.com/saberzero1/motions/issues/127)).
+- **Escape closes footnote popovers** — pressing Escape in idle normal mode inside a footnote popover now dismisses it instead of being silently consumed. ([#130](https://github.com/saberzero1/motions/issues/130))
+- **Cursor visible in popovers and modals** — the animated cursor canvas renders behind popover/modal z-index layers, so the fork's vim cursor is now un-suppressed for those editors automatically. ([#130](https://github.com/saberzero1/motions/issues/130))
+- **Internal type safety improvements** — eliminated 23 `as unknown as` casts across 16 files via obsidian-typings migration (90 → 67 remaining).
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.112.0] - 2026-08-16
+
 ### Fixed
 
 - **Cursor shape dropdowns always disabled in Settings UI** — the 5 cursor shape dropdowns (Normal, Insert, Visual, Replace, Operator-pending) on the Appearance page were permanently disabled even when Obsidian's built-in Vim mode was off. Root cause: Obsidian's `addSettingTab()` immediately calls `getSettingDefinitions()` and caches the result for rendering and search indexing. In `onload()`, `addSettingTab()` ran before `createBundledVimExtension()`, so the `disabled` callbacks closed over `forkActive = false` (a `const` captured at the top of `getSettingDefinitions()`). The callbacks always returned `true` (disabled) regardless of the actual fork activation state. Fixed by replacing the captured `forkActive` const in all 5 `disabled` callbacks with a direct `isBundledVimActive()` call, so Obsidian's `refreshDomState()` always evaluates the current state. Additionally, `this.declarativeSettingTab.update()` is now called after `createBundledVimExtension()` to refresh the cached `getSettingDefinitions()` result — this updates the static description text which cannot use a callback. ([#128](https://github.com/saberzero1/motions/issues/128))
