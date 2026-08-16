@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.111.0] - 2026-08-16
+
 ### Added
 
 - **Table-nav overlay mode** — when the cursor enters a table in Live Preview, a navigation overlay activates, allowing cell navigation with `h`/`j`/`k`/`l` without entering the cell editor. Supports structural commands (`o`/`O`, `dd`, `dc`, `J`/`K`, `H`/`L`, `I`/`A`, `=`) and cell editing entry via `i`/`a`/`c`/`s`/`Enter`. Escape exits table-nav. Fork-only feature.

@@ -31,11 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.110.0
+## What's new in 0.111.0
 
-- **Table editing: migrated to native Obsidian table editor** — the plugin no longer provides custom cell editors. In Live Preview, Obsidian's native table editor handles cell editing, pipe escaping, wikilinks, and `<br>` conversion. Vim is injected into native cell editors via `registerEditorExtension()`. The `tableWidgetMode` setting is simplified from 4 values to 2 (`native`/`raw`), with old values automatically migrated.
-- **Escape in hint mode no longer exits embedded vim editor** — pressing Escape to dismiss hint mode while inside an embedded vim editor (textarea overlay, Oil explorer, table cell editor) no longer also exits the embedded editor. ([#126](https://github.com/saberzero1/motions/issues/126))
-- **Vim engine settings applied after restart** — six vim engine settings (insert mode escape, operator shadow timeout, tabstop, shiftwidth, expandtab) configured via the Settings UI were not synced to the vim engine on plugin load. Now all 9 vim engine settings are properly initialized on startup, including on Obsidian 1.13+ declarative settings. ([#125](https://github.com/saberzero1/motions/issues/125))
-- **Embedded table: Obsidian shortcuts work in cell selection mode** — modifier key combos (Ctrl+P, Cmd+O, etc.) in table-nav mode now correctly trigger Obsidian hotkeys instead of being consumed as vim cursor movement. ([#120](https://github.com/saberzero1/motions/issues/120))
+- **Table-nav overlay mode** — when the cursor enters a table in Live Preview, a navigation overlay activates, allowing cell navigation with `h`/`j`/`k`/`l` without entering the cell editor. Supports structural commands (`o`/`O`, `dd`, `dc`, `J`/`K`, `H`/`L`, `I`/`A`, `=`) and cell editing entry via `i`/`a`/`c`/`s`/`Enter`. Fork-only feature.
+- **Cross-cell motions decoupled from table-nav** — `h`/`j`/`k`/`l` cross-cell navigation in native cell editors now works independently of the table-nav overlay, enabling a third usage mode: native table editor with vim cell editing and cross-cell navigation, without the overlay.
+- **Cursor no longer snaps back after exiting table-nav** — exiting table-nav mode no longer causes the cursor to jump back to the last table cell position. ([#127](https://github.com/saberzero1/motions/issues/127))
+- **Cursor no longer flashes in Normal mode after table interaction** — fixed cursor suppression conflicts between the table cursor guard and animated cursor controller that caused the native CM6 cursor to flash alongside the canvas cursor. ([#127](https://github.com/saberzero1/motions/issues/127))
 
 See the [[changelog|full changelog]] for details.

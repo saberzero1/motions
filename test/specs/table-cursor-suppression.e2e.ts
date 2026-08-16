@@ -127,11 +127,55 @@ describe('Cursor suppression after table interaction (#127)', function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
         await ensureLivePreview();
+        await browser.executeObsidian(({ app }) => {
+            const p = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (p) {
+                p.settings.enableTableNav = false;
+                p.saveSettings();
+                p.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
         await enableAnimatedCursor();
     });
 
     after(async function () {
         await disableAnimatedCursor();
+        await browser.executeObsidian(({ app }) => {
+            const p = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (p) {
+                p.settings.enableTableNav = true;
+                p.saveSettings();
+                p.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
     });
 
     beforeEach(async function () {
