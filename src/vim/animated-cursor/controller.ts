@@ -84,6 +84,7 @@ class CursorController implements Tickable {
     private destroyed = false;
 
     private readonly isCell: boolean;
+    private readonly isAboveCanvas: boolean;
 
     private crossingToken: number | null = null;
 
@@ -91,7 +92,17 @@ class CursorController implements Tickable {
 
     constructor(private view: EditorView) {
         this.isCell = view.dom.closest('.cm-table-widget') !== null;
-        setCursorSuppressedForView(view, this.isCell ? false : true);
+        this.isAboveCanvas =
+            view.dom.closest('.popover') !== null ||
+            view.dom.closest('.modal-container') !== null;
+        const config = getAnimatedCursorConfig();
+        if (config.enabled) {
+            if (this.isAboveCanvas) {
+                setCursorSuppressedForView(view, false);
+            } else if (!this.isCell) {
+                setCursorSuppressedForView(view, true);
+            }
+        }
 
         view.scrollDOM.addEventListener(
             'compositionstart',
@@ -145,8 +156,14 @@ class CursorController implements Tickable {
             ) {
                 this.view.dom.classList.add('vim-motions-animated-cursor');
             }
+            if (this.isAboveCanvas) {
+                setCursorSuppressedForView(this.view, false);
+            } else if (!this.isCell) {
+                setCursorSuppressedForView(this.view, true);
+            }
         } else {
             this.view.dom.classList.remove('vim-motions-animated-cursor');
+            clearCursorSuppressedForView(this.view);
             return;
         }
 
@@ -197,6 +214,10 @@ class CursorController implements Tickable {
     private wasPaused = false;
 
     tick(dt: number, ctx: CanvasRenderingContext2D): void {
+        if (this.isAboveCanvas) {
+            this.active = false;
+            return;
+        }
         const paused = isAnimatedCursorPausedForView(this.view);
         if (this.destroyed || this.composing || !this.view.hasFocus || paused) {
             this.wasPaused = paused;

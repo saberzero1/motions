@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doubled cursors when animated cursor is disabled** — when animated cursor was disabled, the native CM6 text caret (thin blinking bar) appeared alongside the fork's vim cursor (block/hollow) in normal, operator-pending, and replace modes after entering and leaving insert mode. Root cause: the fork's `BlockCursorPlugin.update()` relied on a CSS `baseTheme` rule to hide native cursor layers, but mode transitions (insert removes `.cm-vimMode`, normal re-adds it) and CM6's `drawSelection` extension left native layers visible due to CSS specificity conflicts. Fixed in the fork by unconditionally hiding native CM6 cursor layers and setting `caretColor` to match the vim cursor color (`var(--interactive-accent)`) in insert mode. ([#129](https://github.com/saberzero1/motions/issues/129))
     - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (`BlockCursorPlugin.update()` — unconditional native layer hiding, mode-aware `caretColor`)
     - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated `setCursorSuppressed` API section)
+- **Doubled cursors in embedded editors (textarea vim overlay)** — in the textarea vim overlay, `caretColor` was the accent color instead of transparent in normal mode, causing the native text caret to appear alongside the fork's block cursor. Root cause: `BlockCursorPlugin.update()` checked the `.cm-vimMode` DOM class to determine insert/normal mode, but CM6 ViewPlugin update ordering meant the class wasn't yet present when the block cursor plugin ran. Fixed in the fork by checking `this.cm.state.vim.insertMode` directly instead of the DOM class. Also uses `setProperty("caret-color", ..., "important")` for CSS specificity robustness. ([#130](https://github.com/saberzero1/motions/issues/130))
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (`BlockCursorPlugin.update()` — vim-state-based `caretColor` instead of DOM class check)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Vim-state-based caretColor" subsection)
+- **Escape does not close footnote popover** — pressing Escape twice (insert→normal, then idle normal) in the footnote popover editor did not close the popover. The user had to click outside to dismiss it. Root cause: the fork's `findKey` consumed `<Esc>` unconditionally in idle normal mode, preventing the event from reaching Obsidian's popover close handler. Fixed with a two-part approach: (1) the fork now exposes `setIdleEscapeCallback(fn)` which fires when Escape is pressed in idle normal mode, and (2) the plugin registers a callback (`installEscapeGuard`) that dismisses the popover via `HoverPopover.hide()` for non-workspace-leaf editors while silently consuming Escape in workspace-leaf editors (preventing Obsidian hotkey interference). ([#130](https://github.com/saberzero1/motions/issues/130))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`setIdleEscapeCallback` API, `wasIdleNormal` pre-capture in `findKey`)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added `setIdleEscapeCallback` API section)
+    - Plugin: `src/vim/escape-guard.ts` (NEW — `installEscapeGuard` with `HoverPopover.hide()` dismissal)
+    - Plugin: `src/main.ts` (`installEscapeGuard(this.app)` call in feature registration)
+- **Invisible cursor in footnote popover with animated cursor enabled** — the animated cursor canvas (`z-index: 15`) renders behind Obsidian's popover (`z-index: 30`). The fork's vim cursor was also suppressed (global `setCursorSuppressed(true)`), resulting in no visible cursor. Fixed by detecting editors inside `.popover` or `.modal-container` in the `CursorController` and un-suppressing the fork's vim cursor for those views (`setCursorSuppressedForView(view, false)`). The animated cursor `tick()` skips rendering for above-canvas editors. ([#130](https://github.com/saberzero1/motions/issues/130))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`isAboveCanvas` flag, per-view un-suppression for popover/modal editors, `tick()` early return)
+- **Stale cursor suppression after animated cursor toggle** — when animated cursor was disabled at runtime, `CursorController.update()` returned early without clearing the per-view suppression override set in the constructor, leaving the fork's vim cursor hidden. Also, the constructor unconditionally suppressed the cursor regardless of `config.enabled`. Fixed by gating constructor suppression on `config.enabled` and calling `clearCursorSuppressedForView()` in the disabled early-return path. ([#130](https://github.com/saberzero1/motions/issues/130))
+    - Plugin: `src/vim/animated-cursor/controller.ts` (constructor gates on `config.enabled`, `update()` clears per-view override when disabled)
 
 ### Changed
 
@@ -39,9 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated cursor shapes section with `addSettingTab()` caching fix (#128); added doubled cursors fix (#129)
-- `AGENTS.md`: Updated codemirror-vim fork cursor suppression description (unconditional native layer hiding)
-- `docs/features/animated-cursor.md`: Updated suppression description to reflect fork-side native cursor hiding
+- `KNOWN_LIMITATIONS.md`: Updated cursor shapes section with `addSettingTab()` caching fix (#128); added doubled cursors fix (#129); added #130 fixes (doubled cursors in embedded editors, Escape popover dismiss, invisible cursor in popovers, stale cursor suppression)
+- `AGENTS.md`: Updated codemirror-vim fork cursor suppression description (vim-state-based `caretColor`, `setIdleEscapeCallback` API)
+- `CONTRIBUTING.md`: Added `escape-guard.ts` to codebase structure; updated `controller.ts` description with `isAboveCanvas` flag and popover/modal fallback
+- `docs/features/animated-cursor.md`: Updated embeddable editors section with popover/modal fallback and z-index explanation
+- Fork `DIFFERENCES.md`: Added `setIdleEscapeCallback` API section; added "Vim-state-based caretColor" subsection; updated `findKey` Escape handling description
 
 ## [0.111.0] - 2026-08-16
 

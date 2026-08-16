@@ -133,6 +133,7 @@ import type { VimYankEvent, CmAdapter } from './types/vim-api';
 import { installVisualLineCommandFix } from './vim/visual-line-command-fix';
 import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
 import { createAnimatedCursorExtension } from './vim/animated-cursor/controller';
+import { installEscapeGuard } from './vim/escape-guard';
 import {
     setAnimatedCursorConfig,
     setCursorShapes,
@@ -2374,6 +2375,8 @@ export default class VimMotionsPlugin extends Plugin {
                 createFoldColumnExtension(this.settings.foldcolumn),
             ),
         );
+
+        installEscapeGuard(this.app);
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
         this.registerEditorExtension(linewiseWidgetHighlightExtension());

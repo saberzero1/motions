@@ -99,6 +99,7 @@ src/
     jumplist.ts            # Cross-note jump list data structure
     jumplist-bridge.ts     # CM6 ViewPlugin bridging fork jump list to plugin list
     textarea-vim-manager.ts    # Vim-enabled textarea replacement (focusin detection, CM6 overlay) — handleEscapeAndRedispatch defers teardown via requestAnimationFrame so the Scope handler returns true while the editor's scope is still on the keymap stack; which-key overlay lifecycle (whichKeyConfig field, deferred creation with .view-content → .modal-container fallback, cleanup in teardownActive)
+    escape-guard.ts            # Idle Escape handler via fork's setIdleEscapeCallback — workspace-leaf editors: silent consumption (prevents Obsidian hotkeys); non-workspace editors (popovers, modals): dismisses via HoverPopover.hide() or blur fallback
     autocmd-mode-watcher.ts  # Per-view autocmd mode events (CM6 ViewPlugin — fires InsertEnter/InsertLeave/ModeChanged across all editors)
     animated-cursor/         # Canvas-based animated cursor (smear + smooth movement)
       types.ts               # Shared interfaces (CursorRect, SmearQuad, AnimatedCursorConfig)
@@ -106,7 +107,7 @@ src/
       physics.ts             # 4-corner spring-damper simulation (smear trail)
       renderer.ts            # Canvas cursor shape drawing + smear quad rendering + DOM-based baseline calculation (charTop/charHeight from BlockCharInfo)
       manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery + cross-cell handoff (CellCrossingHandoff token, storeCrossingHandoff/consumeCrossingHandoff with TTL, signalCellCrossing/getPendingCrossingToken/clearPendingCrossingToken)
-      controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only). Cell editors: native cursor steady-state renderer, canvas draws only during cross-cell transitions (cellTransitionActive flag). Non-cell editors: canvas renders, native cursor suppressed (removed per-update toggling, restored clearCursorSuppressedForView in destroy)
+      controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only). Cell editors: native cursor steady-state renderer, canvas draws only during cross-cell transitions (cellTransitionActive flag). Non-cell editors: canvas renders, native cursor suppressed (removed per-update toggling, restored clearCursorSuppressedForView in destroy). Above-canvas editors (isAboveCanvas: .popover, .modal-container): fork's vim cursor un-suppressed via setCursorSuppressedForView(view, false), tick() skips canvas rendering — canvas z-index:15 renders behind popover z-index:30. Constructor gates suppression on config.enabled; update() clears per-view override when disabled
       config.ts              # Module-level getters/setters + per-view pause/resume API
   text-objects/
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)
