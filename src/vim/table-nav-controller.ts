@@ -123,7 +123,7 @@ export class TableNavController implements PluginValue {
 
         this.isEmbedded =
             view.dom.closest(
-                '.vim-table-embedded-editor, .vim-table-cell-editor, .vim-motions-textarea-overlay',
+                '.vim-table-embedded-editor, .vim-table-cell-editor, .vim-motions-textarea-overlay, .cm-table-widget',
             ) !== null;
         this.forkAvailable = app ? !isBuiltinVimEnabled(app) : false;
 
@@ -419,17 +419,17 @@ export class TableNavController implements PluginValue {
         s.widgetEl?.classList.remove(NAV_MODE_CLASS);
 
         setKeyInterceptActive(false);
-        clearCursorSuppressedForView(this.view);
-        resumeAnimatedCursorForView(this.view);
 
+        // Destroy cell editor BEFORE cursor placement so Obsidian's
+        // internal blur/focus/selection side-effects resolve first.
         const editMode = getEditModeForView(this.view);
-        this.showCellEditor(editMode);
-
-        const table = this.getFreshTable();
-        table?.placeCursorAround(placement);
-
         if (editMode?.tableCell) {
             editMode.destroyTableCell();
+        }
+        // Clear the hidden-cell CSS class after destruction.
+        if (s.hiddenEl) {
+            s.hiddenEl.classList.remove(CELL_HIDDEN_CLASS);
+            s.hiddenEl = null;
         }
 
         if (s.dirty) {
@@ -438,12 +438,22 @@ export class TableNavController implements PluginValue {
         }
 
         s.widgetEl = null;
-        s.hiddenEl = null;
         s.dirty = false;
         resetPendingState();
 
         this.view.dispatch({ effects: exitTableNav.of(null) });
-        this.view.focus();
+
+        // Defer cursor placement to the next frame so Obsidian's
+        // cell-editor teardown handlers finish before we set the
+        // final authoritative cursor position.
+        const table = this.getFreshTable();
+        const view = this.view;
+        window.requestAnimationFrame(() => {
+            table?.placeCursorAround(placement);
+            clearCursorSuppressedForView(view);
+            resumeAnimatedCursorForView(view);
+            view.focus();
+        });
     }
 
     addRowAfter(): void {
@@ -758,6 +768,30 @@ export class TableNavController implements PluginValue {
             this.exitCellEditToNav();
             return false;
         });
+
+        const navKeys: Record<string, 'h' | 'j' | 'k' | 'l'> = {
+            h: 'h',
+            j: 'j',
+            k: 'k',
+            l: 'l',
+        };
+        for (const [key, direction] of Object.entries(navKeys)) {
+            scope.register(null, key, () => {
+                if (s.state !== 'edit') return undefined;
+                const editMode = getEditModeForView(this.view);
+                const cellView = editMode?.tableCell?.cm as
+                    | EditorView
+                    | null
+                    | undefined;
+                if (!cellView) return undefined;
+                const adapter = getCmAdapterFromEditorView(cellView);
+                const vimState = adapter?.state?.vim ?? null;
+                if (!vimState || !isVimIdle(vimState)) return undefined;
+                this.exitCellEditToNav();
+                this.navigate(direction);
+                return false;
+            });
+        }
 
         s.cellEditScope = scope;
         pushKeymapScope(this.app, scope);

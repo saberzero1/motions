@@ -762,7 +762,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Table navigation',
                                 desc: this.describeOverride(
                                     'enableTableNav',
-                                    'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
+                                    'Enable table-nav overlay mode and table motions (]|/[|, ]c/[c). When disabled, the native table editor still supports vim cell editing with cross-cell j/k/h/l navigation.',
                                 ),
                                 aliases: [
                                     'table',
@@ -3259,7 +3259,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             .setDesc(
                 describeOverride(
                     'enableTableNav',
-                    'Enable table cell navigation motions (]|/[| or ]c/[c to move between cells).',
+                    'Enable table-nav overlay mode and table motions (]|/[|, ]c/[c). When disabled, the native table editor still supports vim cell editing with cross-cell j/k/h/l navigation.',
                 ),
             )
             .addToggle((toggle) =>

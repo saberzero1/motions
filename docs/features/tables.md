@@ -69,14 +69,22 @@ Vim Motions includes built-in auto-formatting for tables:
 
 ## Table widget in Live Preview
 
-Vim Motions integrates with Obsidian's native table editor in Live Preview. Two modes are available via `set tablewidget`:
+Vim Motions integrates with Obsidian's native table editor in Live Preview. Two rendering modes are available via `set tablewidget`:
 
-- **`native`** (default): Obsidian's native table widget renders in Live Preview. Moving the cursor into a table activates table navigation (same `h`/`j`/`k`/`l` nav, same structural commands). Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. All the same keybindings apply. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
+- **`native`** (default): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
 - **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview.
+
+The `tablenav` setting (on by default) controls whether the **table-nav overlay** activates on top of the native editor. With `tablenav` off, the native table editor still provides full vim cell editing with cross-cell `h`/`j`/`k`/`l` navigation — just without the overlay UI.
+
+| Configuration                   | Experience                                                            |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `native` + `tablenav` (default) | Full table-nav overlay with cell highlighting and structural commands |
+| `native` + `notablenav`         | Native table editor with vim cell editing and cross-cell navigation   |
+| `raw`                           | Raw markdown tables                                                   |
 
 ## Table-nav mode
 
-When the cursor enters a table in Live Preview, a navigation overlay activates. This mode allows you to navigate between cells and perform structural changes without entering the cell editor.
+When the cursor enters a table in Live Preview with `tablenav` enabled, a navigation overlay activates. This mode allows you to navigate between cells and perform structural changes without entering the cell editor.
 
 ### Keybindings
 

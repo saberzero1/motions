@@ -23,6 +23,28 @@ describe('Spike: cell editor introspection', function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
         await ensureLivePreview();
+        await browser.executeObsidian(({ app }) => {
+            const p = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (p) {
+                p.settings.enableTableNav = false;
+                p.saveSettings();
+                p.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.SETTLE);
     });
 
     it('should dump tableCell.cell properties and test navigation APIs', async function () {

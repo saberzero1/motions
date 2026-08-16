@@ -88,12 +88,12 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
-    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides)
+    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides, deferred cursor placement in exitTable via window.requestAnimationFrame — destroys cell editor before placing cursor to prevent Obsidian's teardown from overriding cursor position, cellEditScope registers h/j/k/l handlers that exit to nav mode when vim is idle in normal mode — prevents cross-cell motion overrides from bypassing table-nav)
     table-nav-state.ts      # Table navigation overlay state tracking
     table-nav-keymap.ts     # Table navigation and structural command mappings
     native-table-adapter.ts  # Typed abstraction for Obsidian's native TableEditor API access
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
-    table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
+    table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — gated on tableWidgetMode=native only (independent of enableTableNav), scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
     table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range via setCursorSuppressedForView(true), pauses animated cursor, checks isTableNavActive() to skip suppression during table-nav, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides) and cellEditorCursorGuard (ensures native cursor in cell editors via constructor unsuppress, uses clearCursorSuppressedForView for parent on destroy)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure

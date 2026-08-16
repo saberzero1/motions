@@ -19,9 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`table-cell-cursor-guard.ts`** — now checks `isTableNavActive()` to avoid cursor suppression conflicts during table navigation.
+- **Cross-cell motions decoupled from table-nav** — `applyTableCellMotions()` (h/j/k/l cross-cell navigation in native cell editors) is now gated on `tableWidgetMode === 'native'` only, independent of `enableTableNav`. Previously required both `enableTableNav` and `tableWidgetMode === 'native'`. This enables a third usage mode: native table editor with vim cell editing and cross-cell navigation, without the table-nav overlay. The `enableTableNav` setting now controls only the nav overlay and structural motions (`]|`/`[|`, `]c`/`[c`).
+    - Plugin: `src/main.ts` (both `onload` and `reloadFeatures` paths — removed `enableTableNav` from `applyTableCellMotions` gate)
+    - Plugin: `src/settings.ts` (updated `enableTableNav` description in both declarative and imperative settings UI)
 
 ### Fixed
 
+- **Cursor snaps back to table after exiting table-nav** — after navigating/editing in table-nav mode and exiting, the cursor could snap back to the last table cell position. Root cause: `exitTable()` called `placeCursorAround()` before `destroyTableCell()`, and Obsidian's cell editor destruction triggers internal blur/focus/selection side-effects that overrode the cursor position. Fixed by reordering: destroy the cell editor first, then defer `placeCursorAround()` to `requestAnimationFrame` so Obsidian's teardown handlers finish before the final cursor placement.
+    - Plugin: `src/vim/table-nav-controller.ts` (`exitTable` — destroy-before-place, deferred cursor placement via `window.requestAnimationFrame`)
+- **Cell-editor normal-mode navigation bypasses table-nav** — when in a cell editor in normal mode (Escape pressed once to exit insert, but not again to exit cell edit), `j`/`k`/`h`/`l` at cell boundaries crossed to adjacent cells via the motion overrides, bypassing the table-nav controller. This left table-nav in an inconsistent state. Fixed by registering `h`/`j`/`k`/`l` key handlers on the `cellEditScope` (Obsidian `Scope`). When vim is idle in the cell editor, these handlers exit to nav mode and navigate within the overlay. The Scope fires before vim's key observer, so the keys are intercepted before the motion overrides run.
+    - Plugin: `src/vim/table-nav-controller.ts` (`installCellEditScope` — added `h`/`j`/`k`/`l` handlers that check `isVimIdle` and call `exitCellEditToNav` + `navigate`)
 - **Cursor flashing in Normal mode after table interaction** — the table cursor guard and table-nav controller used `setCursorSuppressedForView(view, false)` to unsuppress the cursor when leaving a table. This sets an explicit per-view override that conflicts with the animated cursor controller's global suppression (`setCursorSuppressed(true)`), causing the native CM6 cursor to become visible and flash alongside the canvas cursor. Additionally, `mainEditorTableCursorGuard.destroy()` did not restore suppression state when the cursor was inside a table at destruction time, leaving a stale `true` override through plugin recreation. `cellEditorCursorGuard.update()` force-unsuppressed the cell cursor on every update cycle (same anti-pattern removed from `CursorController` in commit 62444df). All unsuppress paths now use `clearCursorSuppressedForView()` (which removes the per-view override, falling back to global state) instead of `setCursorSuppressedForView(view, false)`. ([#127](https://github.com/saberzero1/motions/issues/127))
     - Plugin: `src/vim/table-cell-cursor-guard.ts` (`mainEditorTableCursorGuard` — added constructor to store view reference; `destroy()` now clears per-view override and resumes animated cursor when `cursorInTable` is true; `update()` uses `clearCursorSuppressedForView` when leaving table; `cellEditorCursorGuard` — removed per-update `setCursorSuppressedForView(cellView, false)` force-unsuppress; `destroy()` uses `clearCursorSuppressedForView` for parent)
     - Plugin: `src/vim/table-nav-controller.ts` (`enterCellEdit`, `exitTable`, `destroy` — all use `clearCursorSuppressedForView` instead of `setCursorSuppressedForView(view, false)`)
@@ -29,14 +36,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- 6 regression tests for cursor suppression after table interaction in `test/specs/table-cursor-suppression.e2e.ts` (issue #127): baseline suppression state with animated cursor enabled, suppression preserved after navigating through and out of table, suppression preserved after moving above table, suppression stable after repeated entry/exit cycles, suppression preserved in insert mode after table interaction, textarea vim overlay cursor not suppressed with animated cursor enabled — all verified to fail without the fix and pass with it
+- 6 regression tests for cursor suppression after table interaction in `test/specs/table-cursor-suppression.e2e.ts` (issue #127)
+- Rewrote `test/specs/table-cell-vim-mode.e2e.ts` "Native table cell navigation" suite for table-nav architecture: nav-mode highlight position checks (j/k/h/l), entry/exit tests (Escape, i→cell edit→Escape→nav), dd row deletion in nav mode, re-entry test (j back into table re-activates table-nav), cursor stability test (exit + insert mode round-trip doesn't snap cursor back). Replaced "Settings gating" suite with "Table mode combinations" covering all 3 modes: native+tablenav (overlay activates), native+notablenav (cross-cell j/k/h/l works without overlay), raw (widget hidden)
+- Fixed 3 spike test files (`spike-table-fresh-ref`, `spike-cell-introspect`, `spike-table-nav-overlay`) by disabling table-nav in `before` hooks so cell editor introspection tests can access `editMode.tableCell` directly
+- Fixed `spike-table-nav-overlay` editorInfoField test: use `obsidian.editorInfoField` from `executeObsidian` callback instead of `window.require('obsidian')`
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated cursor flashing fix (#127) — root cause was in table cursor guard and table-nav controller, not just animated cursor controller
-- `AGENTS.md`: Updated `table-cell-cursor-guard.ts` description with `clearCursorSuppressedForView` pattern; updated `bundled-vim.ts` description with `isCursorSuppressedForView` bridge export
-- `CONTRIBUTING.md`: Updated `table-cell-cursor-guard.ts` and `table-nav-controller.ts` descriptions
+- `KNOWN_LIMITATIONS.md`: Added cursor-snap fix; updated table widget section with 3-mode table; updated cross-cell motion decoupling
+- `AGENTS.md`: Updated `table-nav-controller.ts` description with deferred exit flow; updated table-cell-motions gating
+- `CONTRIBUTING.md`: Updated `table-nav-controller.ts` and `table-cell-motions.ts` descriptions
+- `README.md`: Updated table editing feature description with 3 mode combinations
+- `docs/features/tables.md`: Updated table widget section with 3-mode architecture; clarified enableTableNav vs cross-cell motions
+- `docs/configuration/settings.md`: Updated `enableTableNav` description
 
 ## [0.110.0] - 2026-08-14
 

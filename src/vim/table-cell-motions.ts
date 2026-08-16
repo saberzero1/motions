@@ -78,7 +78,6 @@ function createMoveByLines(app: App): MotionFn {
                 inputState,
             );
         }
-        // +/-/_ set toFirstChar — keep those within the cell
         if (motionArgs.toFirstChar) {
             return origMoveByLines!.call(
                 this,
@@ -95,7 +94,6 @@ function createMoveByLines(app: App): MotionFn {
         const firstLine = cm.firstLine();
         const lastLine = cm.lastLine();
 
-        // Multi-line cells: only cross when target line exceeds cell bounds
         if (firstLine !== lastLine) {
             const targetLine = forward
                 ? head.line + (motionArgs.repeat ?? 1)
@@ -231,8 +229,8 @@ function createMoveByDisplayLines(app: App): MotionFn {
         }
 
         // Single-line cell — identical to moveByLines
-        const te = cell.table;
         const forward = motionArgs.forward ?? true;
+        const te = cell.table;
         const dest = forward ? te.getCellBelow(cell) : te.getCellAbove(cell);
 
         if (dest) {

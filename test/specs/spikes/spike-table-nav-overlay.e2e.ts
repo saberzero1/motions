@@ -55,6 +55,28 @@ describe('Spike: table-nav overlay architectural validation', function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
         await ensureLivePreview();
+        await browser.executeObsidian(({ app }) => {
+            const p = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (p) {
+                p.settings.enableTableNav = false;
+                p.saveSettings();
+                p.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.SETTLE);
     });
 
     it('should validate editTableCell is patchable via around()', async function () {
@@ -449,14 +471,12 @@ describe('Spike: table-nav overlay architectural validation', function () {
             );
             if (!view) return { error: 'no view' };
 
-            // Method 1: existing getEditMode via getActiveViewOfType
             const editMode1 = (view as unknown as Record<string, unknown>)
                 .editMode as Record<string, unknown> | undefined;
             const has1 =
                 editMode1 !== undefined &&
                 typeof editMode1.editTableCell === 'function';
 
-            // Method 2: via editorInfoField from EditorView
             const editorView = (
                 view.editor as unknown as { cm?: Record<string, unknown> }
             ).cm as Record<string, unknown> | undefined;
@@ -465,55 +485,31 @@ describe('Spike: table-nav overlay architectural validation', function () {
 
             if (editorView) {
                 try {
-                    // Access the editorInfoField from the EditorView's state
-                    const req = (
-                        window as unknown as {
-                            require?: (m: string) => unknown;
-                        }
-                    ).require;
-                    if (req) {
-                        const obsModule = req('obsidian') as Record<
+                    const infoField = obsidian.editorInfoField as unknown;
+                    if (infoField) {
+                        const state = editorView.state as Record<
                             string,
                             unknown
                         >;
-                        const infoField = obsModule.editorInfoField as unknown;
-                        if (infoField) {
-                            const state = editorView.state as Record<
-                                string,
-                                unknown
-                            >;
-                            if (
-                                state &&
-                                typeof (state as { field?: unknown }).field ===
-                                    'function'
-                            ) {
-                                const info = (
-                                    state as {
-                                        field: (f: unknown) => unknown;
-                                    }
-                                ).field(infoField) as Record<string, unknown>;
-                                // info should have .app or lead to the MarkdownView
-                                const infoApp = info?.app;
-                                const hasApp = infoApp !== undefined;
+                        if (
+                            state &&
+                            typeof (state as { field?: unknown }).field ===
+                                'function'
+                        ) {
+                            const info = (
+                                state as {
+                                    field: (f: unknown) => unknown;
+                                }
+                            ).field(infoField) as Record<string, unknown>;
 
-                                // Get the MarkdownView from the info
-                                // The editorInfoField returns the MarkdownView itself
-                                // or an object with an editor property
-                                const infoEditor = info?.editor;
-                                const infoView = info;
-
-                                // Try to get editMode from the resolved view
-                                const resolvedEditMode = (
-                                    infoView as Record<string, unknown>
-                                )?.editMode as
-                                    | Record<string, unknown>
-                                    | undefined;
-                                has2 =
-                                    resolvedEditMode !== undefined &&
-                                    typeof resolvedEditMode.editTableCell ===
-                                        'function';
-                                sameInstance = resolvedEditMode === editMode1;
-                            }
+                            const resolvedEditMode = (
+                                info as Record<string, unknown>
+                            )?.editMode as Record<string, unknown> | undefined;
+                            has2 =
+                                resolvedEditMode !== undefined &&
+                                typeof resolvedEditMode.editTableCell ===
+                                    'function';
+                            sameInstance = resolvedEditMode === editMode1;
                         }
                     }
                 } catch (e) {
