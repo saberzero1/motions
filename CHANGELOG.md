@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/main.ts` (store setting tab reference as `declarativeSettingTab`; call `declarativeSettingTab.update()` after `createBundledVimExtension()`)
 - **Animated cursor suppression not synced on `reloadFeatures()`** — `setCursorSuppressed(this.settings.animatedCursor)` was only called during initial plugin load (`onload()`), not during `reloadFeatures()`. Any runtime setting change that called `reloadFeatures()` (settings UI toggle, vimrc `set smoothcursor`, Lua `vim.opt.smoothcursor`) did not update the global cursor suppression flag in the codemirror-vim fork. The animated cursor canvas would draw but the native CM6 block cursor was not suppressed, causing both cursors to render simultaneously. Also fixed the born-broken `table-cursor-suppression.e2e.ts` test (5 of 6 failures since commit `99e5fea`) whose `enableAnimatedCursor()` helper set the setting and called `reloadFeatures()` but never triggered the global suppression. ([#127](https://github.com/saberzero1/motions/issues/127))
     - Plugin: `src/main.ts` (`reloadFeatures()` — added `setCursorSuppressed(this.settings.animatedCursor)` call)
+- **Doubled cursors when animated cursor is disabled** — when animated cursor was disabled, the native CM6 text caret (thin blinking bar) appeared alongside the fork's vim cursor (block/hollow) in normal, operator-pending, and replace modes after entering and leaving insert mode. Root cause: the fork's `BlockCursorPlugin.update()` relied on a CSS `baseTheme` rule to hide native cursor layers, but mode transitions (insert removes `.cm-vimMode`, normal re-adds it) and CM6's `drawSelection` extension left native layers visible due to CSS specificity conflicts. Fixed in the fork by unconditionally hiding native CM6 cursor layers and setting `caretColor` to match the vim cursor color (`var(--interactive-accent)`) in insert mode. ([#129](https://github.com/saberzero1/motions/issues/129))
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (`BlockCursorPlugin.update()` — unconditional native layer hiding, mode-aware `caretColor`)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated `setCursorSuppressed` API section)
 
 ### Changed
 
@@ -36,7 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated cursor shapes section with `addSettingTab()` caching fix (#128)
+- `KNOWN_LIMITATIONS.md`: Updated cursor shapes section with `addSettingTab()` caching fix (#128); added doubled cursors fix (#129)
+- `AGENTS.md`: Updated codemirror-vim fork cursor suppression description (unconditional native layer hiding)
+- `docs/features/animated-cursor.md`: Updated suppression description to reflect fork-side native cursor hiding
 
 ## [0.111.0] - 2026-08-16
 

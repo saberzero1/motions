@@ -16,7 +16,7 @@ Canvas-based cursor rendering with smooth movement and spring-damper smear trail
 
 **Settings → Vim Motions → Animated cursor → Enable animated cursor**
 
-The animated cursor is disabled by default. When enabled, the plugin renders its own cursor on a `<canvas>` overlay and suppresses the native cursor.
+The animated cursor is disabled by default. When enabled, the plugin renders its own cursor on a `<canvas>` overlay and suppresses the fork's vim cursor via the `setCursorSuppressed` API. Native CM6 cursor layers are always hidden by the fork regardless of animated cursor state — the fork renders its own cursor for every vim mode.
 
 ## Smooth movement
 
