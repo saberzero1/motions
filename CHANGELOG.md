@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Animated cursor suppression not synced on `reloadFeatures()`** — `setCursorSuppressed(this.settings.animatedCursor)` was only called during initial plugin load (`onload()`), not during `reloadFeatures()`. Any runtime setting change that called `reloadFeatures()` (settings UI toggle, vimrc `set smoothcursor`, Lua `vim.opt.smoothcursor`) did not update the global cursor suppression flag in the codemirror-vim fork. The animated cursor canvas would draw but the native CM6 block cursor was not suppressed, causing both cursors to render simultaneously. Also fixed the born-broken `table-cursor-suppression.e2e.ts` test (5 of 6 failures since commit `99e5fea`) whose `enableAnimatedCursor()` helper set the setting and called `reloadFeatures()` but never triggered the global suppression. ([#127](https://github.com/saberzero1/motions/issues/127))
+    - Plugin: `src/main.ts` (`reloadFeatures()` — added `setCursorSuppressed(this.settings.animatedCursor)` call)
+
 ### Changed
 
 - **Internal API type safety — obsidian-typings migration (round 2)** — eliminated 23 additional `as unknown as` casts across 16 source files by leveraging `@obsidian-typings/obsidian-public-latest` v6.32.0 typed APIs. Total `as unknown as` count reduced from 90 → 67. The remaining 67 casts are inherent to plugin architecture (dynamic settings indexing, codemirror-vim fork adapter access, external plugin window globals, fengari Lua bridge, minAppVersion compatibility guards).

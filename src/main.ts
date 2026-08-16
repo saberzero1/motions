@@ -2434,6 +2434,7 @@ export default class VimMotionsPlugin extends Plugin {
             return;
         }
         this.attachYankHighlight();
+        setCursorSuppressed(this.settings.animatedCursor);
         this.modeTracker?.destroy();
         this.modeTracker = null;
         this.hintActions = null;
