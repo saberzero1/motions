@@ -266,11 +266,11 @@ src/
     global-ex-command.ts   # Ex command input outside editor context
     vimrc-file-suggest.ts  # File suggestion for vimrc/Lua config path settings
   util/
-    commands.ts            # executeCommand() and getCommandRegistry() — typed access to Obsidian's internal commands API
-    editor.ts              # getEditorView() — extract CM6 EditorView from MarkdownView
-    leaf.ts                # getLeafId(), isLeafPinned(), getViewFilePath(), getViewFileBasename() — typed access to internal leaf/view properties
+    commands.ts            # executeCommand() and getCommandRegistry() — null-safe wrappers for app.commands (typed via obsidian-typings Commands interface, no casts)
+    editor.ts              # getEditorView() — extract CM6 EditorView from MarkdownView (editor.cm typed via obsidian-typings)
+    leaf.ts                # getLeafId(), isLeafPinned(), getViewFilePath(), getViewFileBasename() — null-safe wrappers; id/pinned typed via obsidian-typings WorkspaceItem/WorkspaceLeaf; file access via instanceof FileView guard
     metadata.ts            # getResolvedLinks() — typed access to app.metadataCache.resolvedLinks
-    vault.ts               # getVaultConfig(), isBuiltinVimEnabled() — typed access to app.vault.getConfig
+    vault.ts               # getVaultConfig(key: ConfigItem), isBuiltinVimEnabled() — typed via obsidian-typings ConfigItem union (51 valid keys)
     invariant.ts           # Runtime invariant system — invariant() (always-on, type-narrowing), devAssert() (dev-only), violation tracking + :violations ex command
     keymap.ts              # pushKeymapScope(), popKeymapScope() — typed access to app.keymap scope management
     around.ts              # Monkey-patching utility (around pattern)
@@ -632,11 +632,9 @@ npm run test:unit
 - The CM5-compat adapter (used by codemirror-vim) is at `editorView.cm` where `editorView` is the CM6 EditorView above. Use `getCmAdapter(view)` from `src/vim/vim-api.ts`.
 - From the CM5 adapter, access the underlying CM6 EditorView via `adapter.cm6`.
 - Obsidian uses HyperMD node names, not standard Lezer Markdown names (e.g., `header_header-1` not `ATXHeading1`).
-- `app.commands.executeCommandById()` is internal API — works but not in the type definitions. Use `executeCommand(app, id)` and `getCommandRegistry(app)` from `src/util/commands.ts` instead of inline casts.
+- Most Obsidian internal APIs are typed via `@obsidian-typings/obsidian-public-latest` — use them directly. Key typed APIs: `app.commands` (`Commands` interface with `executeCommandById`, `commands`, `listCommands`), `app.embedRegistry` (`EmbedRegistry`), `app.internalPlugins` (`InternalPlugins` with `getEnabledPluginById()`), `app.plugins` (`Plugins` with typed `plugins` record), `app.openWithDefaultApp()`, `app.scope`, `workspace.activeEditor`, `view.editMode` (`MarkdownEditView`), `view.getMode()` (`MarkdownViewModeType`), `leaf.updateHeader()`, `SuggestModal.inputEl`, `PluginSettingTab.refreshDomState()`.
+- For null-safe access, use utility wrappers: `executeCommand(app, id)` and `getCommandRegistry(app)` from `src/util/commands.ts`, `getEditorView(view)` from `src/util/editor.ts`, `getLeafId(leaf)`, `isLeafPinned(leaf)`, `getViewFilePath(view)` from `src/util/leaf.ts`, `getVaultConfig(app, key)` from `src/util/vault.ts`, `pushKeymapScope()`/`popKeymapScope()` from `src/util/keymap.ts`.
 - `app.metadataCache.resolvedLinks` is typed via obsidian-typings — use `getResolvedLinks(app)` from `src/util/metadata.ts` for a clean wrapper.
-- `app.vault.getConfig(key)` is typed via obsidian-typings — use `getVaultConfig(app, key)` or `isBuiltinVimEnabled(app)` from `src/util/vault.ts` for typed key access.
-- `app.keymap.pushScope()`/`popScope()` are typed via obsidian-typings — use `pushKeymapScope(app, scope)` / `popKeymapScope(app, scope)` from `src/util/keymap.ts`.
-- Leaf properties (`id`, `pinned`) are typed via obsidian-typings — use `getLeafId(leaf)`, `isLeafPinned(leaf)`, `getViewFilePath(view)` from `src/util/leaf.ts`.
 - `editor.addHighlights()`/`removeHighlights()`/`hasHighlight()` are typed via obsidian-typings — these are unofficial APIs for managing `is-flashing` and `obsidian-search-match-highlight` decorations.
 - `prepareSimpleSearch()` is Obsidian's public fuzzy search utility (used by picker filter, not `:grep`). `:grep` uses `RegExp` matching with substring fallback.
 - There is no public navigation history API — the plugin provides its own cross-note jump list (`src/vim/jumplist.ts`) that intercepts the fork's `jumpListWalk` action via `defineActionOverride`. Use `navigateWithJump()`/`navigateWithJumpFile()`/`navigateWithJumpSetActive()` from `src/workspace/navigate.ts` for all user-initiated navigation to ensure jumps are recorded. Obsidian's native `app:go-back`/`app:go-forward` are still available via `:back`/`:forward` ex commands.

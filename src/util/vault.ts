@@ -1,8 +1,7 @@
-import type { App, Vault } from 'obsidian';
+import type { App } from 'obsidian';
+import type { ConfigItem } from '@obsidian-typings/obsidian-public-latest';
 
-type VaultConfigKey = Parameters<Vault['getConfig']>[0];
-
-export function getVaultConfig(app: App, key: VaultConfigKey): unknown {
+export function getVaultConfig(app: App, key: ConfigItem): unknown {
     return app.vault.getConfig(key);
 }
 

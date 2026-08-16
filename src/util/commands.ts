@@ -1,24 +1,11 @@
-import type { App } from 'obsidian';
+import type { App, Command } from 'obsidian';
 
-export interface ObsidianCommand {
-    id: string;
-    name: string;
-}
+export type ObsidianCommand = Pick<Command, 'id' | 'name'>;
 
 export function executeCommand(app: App, commandId: string): void {
-    (
-        app as unknown as {
-            commands: { executeCommandById: (id: string) => void };
-        }
-    ).commands.executeCommandById(commandId);
+    app.commands.executeCommandById(commandId);
 }
 
 export function getCommandRegistry(app: App): Record<string, ObsidianCommand> {
-    return (
-        app as unknown as {
-            commands: {
-                commands: Record<string, ObsidianCommand>;
-            };
-        }
-    ).commands.commands;
+    return app.commands.commands;
 }

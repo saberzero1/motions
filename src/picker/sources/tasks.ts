@@ -21,10 +21,7 @@ interface TasksPluginLike {
 }
 
 function getTasksPlugin(app: App): TasksPluginLike | undefined {
-    const plugin = (app as unknown as Record<string, unknown>).plugins as
-        | { plugins: Record<string, unknown> }
-        | undefined;
-    const tasks = plugin?.plugins?.['obsidian-tasks-plugin'] as
+    const tasks = app.plugins.plugins['obsidian-tasks-plugin'] as
         | TasksPluginLike
         | undefined;
     if (tasks && typeof tasks.getTasks === 'function') {

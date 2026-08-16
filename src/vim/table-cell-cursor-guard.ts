@@ -26,7 +26,7 @@ function getParentEditorView(cellView: EditorView): EditorView | null {
         const info = cellView.state.field(editorInfoField);
         const mdView = info.app?.workspace?.getActiveViewOfType(MarkdownView);
         if (!mdView) return null;
-        return (mdView.editor as unknown as { cm?: EditorView }).cm ?? null;
+        return mdView.editor.cm ?? null;
     } catch {
         return null;
     }

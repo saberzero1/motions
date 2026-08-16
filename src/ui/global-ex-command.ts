@@ -687,8 +687,7 @@ export class GlobalExCommandModal extends SuggestModal<ExSuggestion> {
     }
 
     onNoSuggestion(): void {
-        const input = (this as unknown as { inputEl: HTMLInputElement })
-            .inputEl;
+        const input = this.inputEl;
         if (input?.value) {
             this.executeInput(input.value.trim());
             this.close();

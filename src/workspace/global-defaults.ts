@@ -26,11 +26,7 @@ function closeAllTabs(app: App): void {
 function getScrollContainer(app: App): HTMLElement | null {
     const mdView = app.workspace.getActiveViewOfType(MarkdownView);
     if (mdView) {
-        if (
-            (mdView as unknown as { getMode: () => string }).getMode() ===
-            'source'
-        )
-            return null;
+        if (mdView.getMode() === 'source') return null;
         const preview = mdView.containerEl.querySelector(
             '.markdown-preview-view',
         );

@@ -9,7 +9,7 @@
  * EmbeddableMarkdownEditor generalization.
  */
 
-import { App, Scope } from 'obsidian';
+import { App, type MarkdownFileInfo, Scope } from 'obsidian';
 import {
     EditorSelection,
     StateEffect,
@@ -83,10 +83,7 @@ let resolvedCtor: ScrollableMarkdownEditorCtor | null = null;
 export function resolveEditorPrototype(app: App): ScrollableMarkdownEditorCtor {
     if (resolvedCtor) return resolvedCtor;
 
-    const registry = (app as unknown as Record<string, unknown>)
-        .embedRegistry as
-        | { embedByExtension: { md: (...args: unknown[]) => WidgetEditorView } }
-        | undefined;
+    const registry = app.embedRegistry;
 
     if (!registry?.embedByExtension?.md) {
         throw new Error(
@@ -96,11 +93,11 @@ export function resolveEditorPrototype(app: App): ScrollableMarkdownEditorCtor {
         );
     }
 
-    const widgetEditorView = registry.embedByExtension.md(
-        { app, containerEl: createDiv() },
-        null,
-        '',
-    );
+    const widgetEditorView = (
+        registry.embedByExtension.md as unknown as (
+            ...args: unknown[]
+        ) => WidgetEditorView
+    )({ app, containerEl: createDiv() }, null, '');
 
     widgetEditorView.editable = true;
     widgetEditorView.showEditor();
@@ -307,9 +304,7 @@ function buildEditorClass(
             this._app = editorApp;
             this._opts = opts;
             this.initialValue = opts.value;
-            this._scope = new Scope(
-                (editorApp as unknown as { scope: Scope }).scope,
-            );
+            this._scope = new Scope(editorApp.scope);
 
             this._scope.register(['Mod'], 'Enter', () => true);
 
@@ -368,11 +363,8 @@ function buildEditorClass(
             this.editor.cm.contentDOM.addEventListener('focusin', () => {
                 pushKeymapScope(editorApp, self._scope);
                 if (!opts.skipActiveEditor) {
-                    (
-                        editorApp.workspace as unknown as {
-                            activeEditor: unknown;
-                        }
-                    ).activeEditor = self.owner;
+                    editorApp.workspace.activeEditor =
+                        self.owner as unknown as MarkdownFileInfo;
                 }
             });
 
@@ -475,9 +467,7 @@ function buildEditorClass(
             if (this._loaded) this.unload();
             popKeymapScope(this._app, this._scope);
             if (!this._opts.skipActiveEditor) {
-                (
-                    this._app.workspace as unknown as { activeEditor: unknown }
-                ).activeEditor = null;
+                this._app.workspace.activeEditor = null;
             }
             this.containerEl.empty();
             super.destroy();

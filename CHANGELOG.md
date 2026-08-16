@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Internal API type safety — obsidian-typings migration (round 2)** — eliminated 23 additional `as unknown as` casts across 16 source files by leveraging `@obsidian-typings/obsidian-public-latest` v6.32.0 typed APIs. Total `as unknown as` count reduced from 90 → 67. The remaining 67 casts are inherent to plugin architecture (dynamic settings indexing, codemirror-vim fork adapter access, external plugin window globals, fengari Lua bridge, minAppVersion compatibility guards).
+    - `src/util/commands.ts`: `app.commands.executeCommandById()` and `app.commands.commands` accessed directly via typed `Commands` interface; custom `ObsidianCommand` narrowed to `Pick<Command, 'id' | 'name'>`
+    - `src/util/leaf.ts`: `leaf.id` and `leaf.pinned` used directly (required properties via `WorkspaceItem`/`WorkspaceLeaf` augmentation); `getViewFilePath()`/`getViewFileBasename()` use `instanceof FileView` guard instead of `as unknown as { file? }` cast
+    - `src/util/vault.ts`: `ConfigItem` imported from `@obsidian-typings/obsidian-public-latest` replacing custom `VaultConfigKey` type inference
+    - `src/workspace/global-defaults.ts`: `mdView.getMode()` called directly (typed as `MarkdownViewModeType`)
+    - `src/editors/embeddable-editor.ts`: `app.embedRegistry` accessed directly; `editorApp.scope` accessed directly (official API); `workspace.activeEditor` assignment typed via `MarkdownFileInfo`
+    - `src/oil/keybindings.ts`, `src/oil/manager.ts`: `app.internalPlugins.getEnabledPluginById('file-explorer')` returns typed `FileExplorerPluginInstance` with `revealInFolder(item: TAbstractFile)`
+    - `src/oil/oil-view.ts`: `this.leaf.updateHeader()` called directly (typed on `WorkspaceLeaf` augmentation)
+    - `src/oil/manager.ts`: `app.openWithDefaultApp(path)` called directly (typed on `App` augmentation)
+    - `src/vim/native-table-adapter.ts`: `EditMode` type extends `MarkdownEditView` instead of `Record<string, unknown>`; `view.editMode` accessed directly; `isInLivePreview()` uses `view.getMode()` + `editMode.sourceMode` instead of `getState()` cast; `getEditModeForView()` uses `instanceof MarkdownView` guard
+    - `src/vim/table-cell-cursor-guard.ts`: `mdView.editor.cm` accessed directly (typed as `EditorView` via `Editor` augmentation)
+    - `src/ui/global-ex-command.ts`: `this.inputEl` accessed directly (official `SuggestModal.inputEl`)
+    - `src/lua/loader.ts`: `view.getViewType()` called directly (official `View` API) — 3 instances
+    - `src/settings.ts`: `this.display()` and `this.refreshDomState()` — reverted, casts retained to bypass `obsidianmd/no-unsupported-api` and `@typescript-eslint/no-deprecated` lint rules (plugin `minAppVersion` is 1.7.2; these APIs require/deprecate at 1.13.0)
+    - `src/picker/sources/tasks.ts`: `app.plugins.plugins['obsidian-tasks-plugin']` accessed directly via typed `Plugins` interface
+
 ## [0.111.0] - 2026-08-16
 
 ### Added

@@ -307,21 +307,9 @@ export class OilKeybindingManager {
                 if (!entry) return;
                 const target = app.vault.getAbstractFileByPath(entry.path);
                 if (!target) return;
-                const fileExplorer = (
-                    app as unknown as {
-                        internalPlugins?: {
-                            plugins?: Record<
-                                string,
-                                {
-                                    instance?: {
-                                        revealInFolder?: (f: unknown) => void;
-                                    };
-                                }
-                            >;
-                        };
-                    }
-                ).internalPlugins?.plugins?.['file-explorer']?.instance;
-                if (fileExplorer?.revealInFolder) {
+                const fileExplorer =
+                    app.internalPlugins.getEnabledPluginById('file-explorer');
+                if (fileExplorer) {
                     fileExplorer.revealInFolder(target);
                 } else {
                     executeCommand(app, 'file-explorer:reveal-active-file');

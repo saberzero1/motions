@@ -250,17 +250,9 @@ export class OilManager {
         if (!entry) return;
         const target = this.app.vault.getAbstractFileByPath(entry.path);
         if (!target) return;
-        const fileExplorer = (
-            this.app as unknown as {
-                internalPlugins?: {
-                    plugins?: Record<
-                        string,
-                        { instance?: { revealInFolder?: (f: unknown) => void } }
-                    >;
-                };
-            }
-        ).internalPlugins?.plugins?.['file-explorer']?.instance;
-        if (fileExplorer?.revealInFolder) {
+        const fileExplorer =
+            this.app.internalPlugins.getEnabledPluginById('file-explorer');
+        if (fileExplorer) {
             fileExplorer.revealInFolder(target);
         } else {
             executeCommand(this.app, 'file-explorer:reveal-active-file');
@@ -313,14 +305,7 @@ export class OilManager {
         if (!view) return;
         const entry = this.getEntryAtCursor(view);
         if (!entry) return;
-        const opener = (
-            this.app as unknown as {
-                openWithDefaultApp?: (path: string) => void;
-            }
-        ).openWithDefaultApp;
-        if (opener) {
-            opener.call(this.app, entry.path);
-        }
+        this.app.openWithDefaultApp(entry.path);
     }
 
     private openFileInLeaf(

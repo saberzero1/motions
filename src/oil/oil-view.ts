@@ -110,9 +110,7 @@ export class OilView extends View {
     }
 
     private notifyHeaderChanged(): void {
-        (
-            this.leaf as unknown as { updateHeader?: () => void }
-        ).updateHeader?.();
+        this.leaf.updateHeader();
     }
 
     protected async onClose(): Promise<void> {

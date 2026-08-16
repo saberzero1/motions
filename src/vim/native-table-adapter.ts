@@ -1,4 +1,9 @@
-import { type App, MarkdownView, editorInfoField } from 'obsidian';
+import {
+    type App,
+    type MarkdownEditView,
+    MarkdownView,
+    editorInfoField,
+} from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import type {
     ObsidianTableEditor,
@@ -7,24 +12,26 @@ import type {
 
 export type { EditMode };
 
-type EditMode = Record<string, unknown> & {
+/**
+ * Extended MarkdownEditView shape that narrows table cell properties
+ * to the plugin's discovered API types.
+ *
+ * MarkdownEditView.tableCell is typed as `TableCellEditor | null` by
+ * obsidian-typings, but the plugin needs the richer ObsidianTableEditor
+ * and ObsidianTableCell interfaces discovered via runtime introspection.
+ */
+type EditMode = MarkdownEditView & {
     tableCell: {
         table: ObsidianTableEditor;
         cell: ObsidianTableCell;
         cm: unknown;
     } | null;
-    editTableCell: (te: unknown, cell: unknown) => unknown;
-    destroyTableCell: (cell?: unknown) => void;
-    cm: unknown;
-    activeCM: unknown;
 };
 
 function getEditMode(app: App): EditMode | null {
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return null;
-    const editMode = (view as unknown as Record<string, unknown>).editMode as
-        | EditMode
-        | undefined;
+    const editMode = view.editMode as EditMode | undefined;
     if (!editMode || typeof editMode.editTableCell !== 'function') return null;
     return editMode;
 }
@@ -78,8 +85,7 @@ export function getTableEditorFromWidgetEl(
 export function isInLivePreview(app: App): boolean {
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return false;
-    const state = view.getState() as { mode: string; source?: boolean };
-    return state.mode === 'source' && state.source !== true;
+    return view.getMode() === 'source' && !view.editMode.sourceMode;
 }
 
 // -- View-local EditMode access (split-view safe) --
@@ -87,8 +93,8 @@ export function isInLivePreview(app: App): boolean {
 export function getEditModeForView(view: EditorView): EditMode | null {
     try {
         const info = view.state.field(editorInfoField);
-        const mdView = info as unknown as Record<string, unknown>;
-        const editMode = mdView?.editMode as EditMode | undefined;
+        if (!(info instanceof MarkdownView)) return null;
+        const editMode = info.editMode as EditMode | undefined;
         if (!editMode || typeof editMode.editTableCell !== 'function') {
             return null;
         }

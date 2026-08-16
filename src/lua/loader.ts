@@ -353,10 +353,7 @@ export async function loadInitLua(
             if (!leaf?.view) return null;
             return {
                 id: getLeafId(leaf),
-                type:
-                    (
-                        leaf.view as unknown as { getViewType?: () => string }
-                    ).getViewType?.() ?? 'empty',
+                type: leaf.view.getViewType(),
                 pinned: isLeafPinned(leaf),
                 filePath: app.workspace.getActiveFile()?.path ?? null,
             };
@@ -374,12 +371,7 @@ export async function loadInitLua(
                     const view = leaf.view;
                     result.push({
                         id: getLeafId(leaf),
-                        type:
-                            (
-                                view as unknown as {
-                                    getViewType?: () => string;
-                                }
-                            ).getViewType?.() ?? 'empty',
+                        type: view.getViewType(),
                         pinned: isLeafPinned(leaf),
                         filePath: getViewFilePath(view),
                     });
@@ -682,12 +674,7 @@ export async function loadInitLua(
                 if (viewFile === path) {
                     found = {
                         id: getLeafId(leaf),
-                        type:
-                            (
-                                view as unknown as {
-                                    getViewType?: () => string;
-                                }
-                            ).getViewType?.() ?? 'empty',
+                        type: view.getViewType(),
                         pinned: isLeafPinned(leaf),
                         filePath: viewFile,
                     };
