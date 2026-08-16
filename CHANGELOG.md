@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor shape dropdowns always disabled in Settings UI** — the 5 cursor shape dropdowns (Normal, Insert, Visual, Replace, Operator-pending) on the Appearance page were permanently disabled even when Obsidian's built-in Vim mode was off. Root cause: Obsidian's `addSettingTab()` immediately calls `getSettingDefinitions()` and caches the result for rendering and search indexing. In `onload()`, `addSettingTab()` ran before `createBundledVimExtension()`, so the `disabled` callbacks closed over `forkActive = false` (a `const` captured at the top of `getSettingDefinitions()`). The callbacks always returned `true` (disabled) regardless of the actual fork activation state. Fixed by replacing the captured `forkActive` const in all 5 `disabled` callbacks with a direct `isBundledVimActive()` call, so Obsidian's `refreshDomState()` always evaluates the current state. Additionally, `this.declarativeSettingTab.update()` is now called after `createBundledVimExtension()` to refresh the cached `getSettingDefinitions()` result — this updates the static description text which cannot use a callback. ([#128](https://github.com/saberzero1/motions/issues/128))
+    - Plugin: `src/settings.ts` (5 cursor shape `disabled` callbacks — `!forkActive` → `!isBundledVimActive()`)
+    - Plugin: `src/main.ts` (store setting tab reference as `declarativeSettingTab`; call `declarativeSettingTab.update()` after `createBundledVimExtension()`)
 - **Animated cursor suppression not synced on `reloadFeatures()`** — `setCursorSuppressed(this.settings.animatedCursor)` was only called during initial plugin load (`onload()`), not during `reloadFeatures()`. Any runtime setting change that called `reloadFeatures()` (settings UI toggle, vimrc `set smoothcursor`, Lua `vim.opt.smoothcursor`) did not update the global cursor suppression flag in the codemirror-vim fork. The animated cursor canvas would draw but the native CM6 block cursor was not suppressed, causing both cursors to render simultaneously. Also fixed the born-broken `table-cursor-suppression.e2e.ts` test (5 of 6 failures since commit `99e5fea`) whose `enableAnimatedCursor()` helper set the setting and called `reloadFeatures()` but never triggered the global suppression. ([#127](https://github.com/saberzero1/motions/issues/127))
     - Plugin: `src/main.ts` (`reloadFeatures()` — added `setCursorSuppressed(this.settings.animatedCursor)` call)
 
@@ -29,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `src/lua/loader.ts`: `view.getViewType()` called directly (official `View` API) — 3 instances
     - `src/settings.ts`: `this.display()` and `this.refreshDomState()` — reverted, casts retained to bypass `obsidianmd/no-unsupported-api` and `@typescript-eslint/no-deprecated` lint rules (plugin `minAppVersion` is 1.7.2; these APIs require/deprecate at 1.13.0)
     - `src/picker/sources/tasks.ts`: `app.plugins.plugins['obsidian-tasks-plugin']` accessed directly via typed `Plugins` interface
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated cursor shapes section with `addSettingTab()` caching fix (#128)
 
 ## [0.111.0] - 2026-08-16
 

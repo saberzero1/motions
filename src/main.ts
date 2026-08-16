@@ -368,6 +368,7 @@ export default class VimMotionsPlugin extends Plugin {
         };
     }> = [];
     private imSwitcher: ImSwitcher | null = null;
+    private declarativeSettingTab: VimMotionsSettingTab | null = null;
     private _clipboardCache = '';
 
     private async refreshClipboardCache(): Promise<void> {
@@ -663,7 +664,8 @@ export default class VimMotionsPlugin extends Plugin {
         // --- Mobile gate ---
         // Always register settings tab and toggle command so users can
         // enable/disable the plugin on mobile without a desktop round-trip.
-        this.addSettingTab(new VimMotionsSettingTab(this.app, this));
+        this.declarativeSettingTab = new VimMotionsSettingTab(this.app, this);
+        this.addSettingTab(this.declarativeSettingTab);
         this.addCommand({
             id: 'toggle-enable-on-mobile',
             name: 'Toggle enable on mobile',
@@ -712,6 +714,15 @@ export default class VimMotionsPlugin extends Plugin {
                         'source',
                 ),
             );
+            // Re-evaluate declarative settings now that the fork is active.
+            // addSettingTab() caches getSettingDefinitions() — the initial
+            // call captured forkActive=false, so static fields (like the
+            // cursor-shapes description) need a refresh.
+            (
+                this.declarativeSettingTab as unknown as {
+                    update?(): void;
+                }
+            )?.update?.();
         }
 
         devAssert(

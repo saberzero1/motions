@@ -958,6 +958,10 @@ This is inherent to CM6's coordinate-based `moveVertically` and cannot be fixed 
 
 The per-mode cursor shape settings (block, bar, underline, hollow) only take effect when Obsidian's built-in Vim mode is disabled. With built-in Vim enabled, Obsidian renders its own block cursor and the plugin has no control over its shape. The `set guicursor=...` vimrc command is also only effective in bundled fork mode.
 
+### ~~Cursor shape dropdowns always disabled in Settings UI~~ (Fixed)
+
+**Status**: Fixed. The 5 cursor shape dropdowns on the Appearance settings page were permanently disabled even when the bundled fork was active. Root cause: Obsidian's `addSettingTab()` calls `getSettingDefinitions()` immediately and caches the result. In the plugin's `onload()`, `addSettingTab()` ran before `createBundledVimExtension()`, so the `disabled` callbacks captured `forkActive = false` via closure and always returned disabled. Fixed by calling `isBundledVimActive()` directly inside each `disabled` callback (evaluated fresh on every `refreshDomState()`) and calling `settingTab.update()` after fork activation to refresh the cached definitions. ([#128](https://github.com/saberzero1/motions/issues/128))
+
 ## Surround operator scope
 
 **Status**: Complete. All vim-surround features implemented.

@@ -1514,7 +1514,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     key: 'cursorShapes.normal',
                                     options: cursorShapeOptions,
                                     disabled: () =>
-                                        !forkActive ||
+                                        !isBundledVimActive() ||
                                         this.isOverridden('cursorShapes'),
                                 },
                             },
@@ -1525,7 +1525,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     key: 'cursorShapes.insert',
                                     options: cursorShapeOptions,
                                     disabled: () =>
-                                        !forkActive ||
+                                        !isBundledVimActive() ||
                                         this.isOverridden('cursorShapes'),
                                 },
                             },
@@ -1536,7 +1536,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     key: 'cursorShapes.visual',
                                     options: cursorShapeOptions,
                                     disabled: () =>
-                                        !forkActive ||
+                                        !isBundledVimActive() ||
                                         this.isOverridden('cursorShapes'),
                                 },
                             },
@@ -1547,7 +1547,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     key: 'cursorShapes.replace',
                                     options: cursorShapeOptions,
                                     disabled: () =>
-                                        !forkActive ||
+                                        !isBundledVimActive() ||
                                         this.isOverridden('cursorShapes'),
                                 },
                             },
@@ -1558,7 +1558,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     key: 'cursorShapes.operatorPending',
                                     options: cursorShapeOptions,
                                     disabled: () =>
-                                        !forkActive ||
+                                        !isBundledVimActive() ||
                                         this.isOverridden('cursorShapes'),
                                 },
                             },
