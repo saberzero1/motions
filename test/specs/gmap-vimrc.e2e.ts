@@ -164,7 +164,7 @@ describe('gmap vimrc integration', function () {
         expect(await getActiveViewType()).toBe('markdown');
     });
 
-    it(',s should toggle sidebar (gnoremap with ex command)', async function () {
+    it('[crash-guard] ,s should not error (gnoremap with ex command)', async function () {
         await loadTwoTabs();
 
         await browser.keys([',']);

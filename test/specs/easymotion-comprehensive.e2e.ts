@@ -661,10 +661,9 @@ describe('EasyMotion comprehensive', function () {
                 { line: 0, ch: 0 },
                 ['\\', '\\', 'w'],
             );
-            if (result.labels.length > 0) {
-                await browser.keys([result.labels[0]!]);
-                await browser.pause(200);
-            }
+            expect(result.labels.length).toBe(0);
+            const value = await getEditorValue();
+            expect(value).toBe('hello');
         });
 
         it('should handle document with only empty lines', async function () {

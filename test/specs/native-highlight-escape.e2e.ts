@@ -1,6 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, sendVimEscape, PAUSE } from '../helpers';
+import { setupEditor, sendVimEscape, getEditorValue, PAUSE } from '../helpers';
 
 async function hasFlashingHighlight(): Promise<boolean> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
@@ -90,10 +90,12 @@ describe('Native highlight clearing on Escape — #122', function () {
         await setupEditor('plain text without highlights', { line: 0, ch: 0 });
 
         expect(await hasFlashingHighlight()).toBe(false);
+        const valueBefore = await getEditorValue();
 
         await browser.keys(['Escape']);
         await browser.pause(PAUSE.MODE_SWITCH);
 
         expect(await hasFlashingHighlight()).toBe(false);
+        expect(await getEditorValue()).toBe(valueBefore);
     });
 });

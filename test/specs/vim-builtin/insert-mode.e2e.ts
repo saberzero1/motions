@@ -5,6 +5,7 @@ import {
     vimKeys,
     getEditorValue,
     getCursorPos,
+    getVimMode,
     sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
@@ -211,6 +212,8 @@ describe('Insert mode commands (Tier 1)', function () {
             });
             await browser.pause(300);
             expect((await getCursorPos()).line).toBe(0);
+            const mode = await getVimMode();
+            expect(mode).toBe('insert');
         });
     });
 });

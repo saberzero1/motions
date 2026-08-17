@@ -31,13 +31,13 @@ describe('Formatting mark cursor behavior', function () {
             expect(pos.ch).toBeGreaterThan(0);
         });
 
-        it('di* inside bold should delete content correctly', async function () {
+        it('di* inside bold should delete content correctly (Live Preview)', async function () {
             await setupEditor('Hello **bold text** world', { line: 0, ch: 10 });
             await vimKeys('d', 'i', '*');
             expect(await getEditorValue()).toBe('Hello **** world');
         });
 
-        it('da* inside bold should delete content and delimiters', async function () {
+        it('da* inside bold should delete content and delimiters (Live Preview)', async function () {
             await setupEditor('Hello **bold text** world', { line: 0, ch: 10 });
             await vimKeys('d', 'a', '*');
             expect(await getEditorValue()).toBe('Hello  world');

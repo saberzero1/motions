@@ -166,35 +166,40 @@ export function testWithNeovim(
             }
         } else if (!isKnownDeviation(name)) {
             const golden = findGoldenCase(suiteName, name);
-            if (golden) {
-                const obsState = await getObsidianState();
-                if (obsState.content !== golden.result.content) {
-                    throw new Error(
-                        `Golden mismatch (content):\n` +
-                            `  Obsidian: ${JSON.stringify(obsState.content)}\n` +
-                            `  Golden:   ${JSON.stringify(golden.result.content)}`,
-                    );
-                }
-                if (
-                    obsState.cursor.line !== golden.result.cursor.line ||
-                    obsState.cursor.ch !== golden.result.cursor.ch
-                ) {
-                    throw new Error(
-                        `Golden mismatch (cursor):\n` +
-                            `  Obsidian: ${JSON.stringify(obsState.cursor)}\n` +
-                            `  Golden:   ${JSON.stringify(golden.result.cursor)}`,
-                    );
-                }
-                if (
-                    golden.result.mode &&
-                    obsState.mode !== golden.result.mode
-                ) {
-                    throw new Error(
-                        `Golden mismatch (mode):\n` +
-                            `  Obsidian: ${obsState.mode}\n` +
-                            `  Golden:   ${golden.result.mode}`,
-                    );
-                }
+            if (!golden) {
+                throw new Error(
+                    `Missing golden case for "${suiteName}" / "${name}". ` +
+                        `Run 'npm run test:neovim-record' to generate it, ` +
+                        `or register a deviation in test/neovim/deviations.ts.`,
+                );
+            }
+            const obsState = await getObsidianState();
+            if (obsState.content !== golden.result.content) {
+                throw new Error(
+                    `Golden mismatch (content):\n` +
+                        `  Keys:     ${JSON.stringify(config.keys)}\n` +
+                        `  Obsidian: ${JSON.stringify(obsState.content)}\n` +
+                        `  Golden:   ${JSON.stringify(golden.result.content)}`,
+                );
+            }
+            if (
+                obsState.cursor.line !== golden.result.cursor.line ||
+                obsState.cursor.ch !== golden.result.cursor.ch
+            ) {
+                throw new Error(
+                    `Golden mismatch (cursor):\n` +
+                        `  Keys:     ${JSON.stringify(config.keys)}\n` +
+                        `  Obsidian: ${JSON.stringify(obsState.cursor)}\n` +
+                        `  Golden:   ${JSON.stringify(golden.result.cursor)}`,
+                );
+            }
+            if (golden.result.mode && obsState.mode !== golden.result.mode) {
+                throw new Error(
+                    `Golden mismatch (mode):\n` +
+                        `  Keys:     ${JSON.stringify(config.keys)}\n` +
+                        `  Obsidian: ${obsState.mode}\n` +
+                        `  Golden:   ${golden.result.mode}`,
+                );
             }
         } else {
             // Known deviation in golden path — log infra-limitations

@@ -390,8 +390,18 @@ describe('Replace-with-register operator (gr)', function () {
                 view.editor.focus();
             });
             await browser.pause(300);
-            await vimKeys('y', 'y', 'j', 'g', 'r', 'r');
+            await vimKeys('y', 'y');
+            const regBefore = await getRegisterContent('"');
+            expect(regBefore).not.toBeNull();
+            await vimKeys('j', 'g', 'r', 'r');
+            const regAfterFirst = await getRegisterContent('"');
+            expect(regAfterFirst).not.toBeNull();
+            expect(regAfterFirst!.text).toBe(regBefore!.text);
+            expect(regAfterFirst!.linewise).toBe(regBefore!.linewise);
             await vimKeys('g', 'r', 'r');
+            const regAfterSecond = await getRegisterContent('"');
+            expect(regAfterSecond).not.toBeNull();
+            expect(regAfterSecond!.text).toBe(regBefore!.text);
             const value = await getEditorValue();
             expect(value.trimEnd()).toBe('source\nsource');
         });
@@ -428,21 +438,17 @@ describe('Replace-with-register operator (gr)', function () {
             });
             await browser.pause(300);
             // Yank 'new', replace first 'old', then replace second 'old'
-            await vimKeys(
-                'y',
-                'i',
-                'w',
-                'w',
-                'g',
-                'r',
-                'i',
-                'w',
-                'w',
-                'g',
-                'r',
-                'i',
-                'w',
-            );
+            await vimKeys('y', 'i', 'w');
+            const regBefore = await getRegisterContent('"');
+            expect(regBefore).not.toBeNull();
+            await vimKeys('w', 'g', 'r', 'i', 'w');
+            const regAfterFirst = await getRegisterContent('"');
+            expect(regAfterFirst).not.toBeNull();
+            expect(regAfterFirst!.text).toBe(regBefore!.text);
+            await vimKeys('w', 'g', 'r', 'i', 'w');
+            const regAfterSecond = await getRegisterContent('"');
+            expect(regAfterSecond).not.toBeNull();
+            expect(regAfterSecond!.text).toBe(regBefore!.text);
             const value = await getEditorValue();
             expect(value).toBe('new new new');
         });
@@ -570,19 +576,10 @@ describe('Replace-with-register operator (gr)', function () {
         });
 
         it('charwise register in linewise context should append newline', async function () {
-            await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return;
-                view.editor.setValue('src target');
-                view.editor.setCursor(0, 0);
-                view.editor.focus();
-            });
-            await browser.pause(300);
+            await setupEditor('src\ntarget', { line: 0, ch: 0 });
             await vimKeys('y', 'i', 'w', 'j', 'g', 'r', 'r');
             const value = await getEditorValue();
-            expect(value).toContain('src');
+            expect(value.trimEnd()).toBe('src\nsrc');
         });
     });
 
@@ -616,7 +613,7 @@ describe('Replace-with-register operator (gr)', function () {
             await setupEditor('foo bar baz', { line: 0, ch: 4 });
             await vimKeys('g', 'r', '$');
             const value = await getEditorValue();
-            expect(value).toContain('foo ');
+            expect(value).toBe('foo world');
         });
 
         it('grl should replace single character', async function () {
@@ -626,25 +623,28 @@ describe('Replace-with-register operator (gr)', function () {
             expect(value.charAt(2)).toBe('a');
         });
 
-        it("gri' should replace empty text object content", async function () {
-            await setupEditor("test '' end", { line: 0, ch: 6 });
+        it("gri' should replace inside quotes with register contents", async function () {
+            await setupEditor('replacement target', { line: 0, ch: 0 });
             await vimKeys('y', 'i', 'w');
-            await setupEditor("foo '' bar", { line: 0, ch: 5 });
+            await setupEditor("foo 'old' bar", { line: 0, ch: 6 });
             await vimKeys('g', 'r', 'i', "'");
             const value = await getEditorValue();
-            expect(value).toContain("'");
+            expect(value).toBe("foo 'replacement' bar");
         });
     });
 
     describe('multi-line register expansion', function () {
-        it('"mgrr should expand single line to multi-line register', async function () {
+        it('grr should expand single target line to multi-line register', async function () {
             await setupEditor('line1\nline2\nline3\nline4', { line: 0, ch: 0 });
             await vimKeys('V', 'j', 'j', 'y');
             await setupEditor('line1\nline2\nline3\nline4', { line: 3, ch: 0 });
             await vimKeys('g', 'r', 'r');
             const value = await getEditorValue();
-            const lines = value.split('\n');
-            expect(lines.length).toBeGreaterThan(4);
+            const lines = value.split('\n').filter((l) => l.length > 0);
+            expect(lines.length).toBe(6);
+            expect(value).toContain('line1');
+            expect(value).toContain('line2');
+            expect(value).toContain('line3');
         });
     });
 
@@ -679,6 +679,9 @@ describe('Replace-with-register operator (gr)', function () {
             });
             await vimKeys('g', 'r', '}');
             const value = await getEditorValue();
+            expect(value).not.toContain('word2');
+            expect(value).not.toContain('word3');
+            expect(value).toContain('word1');
             expect(value).toContain('untouched');
         });
     });
@@ -702,7 +705,7 @@ describe('Replace-with-register operator (gr)', function () {
             await vimKeys('y', 'i', 'w', '$');
             await vimKeys('g', 'r', 'i', 'w');
             const value = await getEditorValue();
-            expect(value).toContain('hello');
+            expect(value).toBe('hello hello\nfoo bar');
         });
     });
 

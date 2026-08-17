@@ -248,7 +248,7 @@ describe('Snippet variable integration', function () {
             const value = await getEditorValue();
             expect(value).toContain('WORD:');
             const word = value.split('WORD:')[1]?.trim() ?? '';
-            expect(['foo', 'bar', '']).toContain(word);
+            expect(['foo', 'bar']).toContain(word);
         });
     });
 

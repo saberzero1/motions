@@ -493,28 +493,34 @@ Vimrc/Lua setting overrides are persisted in a `configOverrides` block in `data.
 
 ```
 test/
-  helpers.ts                 # Shared WDIO helpers (setupEditor, vimKeys, getCursorPos, etc.)
+  helpers.ts                 # Shared WDIO helpers — strict (throws on missing MarkdownView),
+                             # waitUntil-based synchronization, setPluginSettingAndReload
   neovim-command-index.yaml  # Command coverage tracking
   coverage-report.ts         # Coverage report generator
   tsconfig.json              # Test-specific TypeScript config
   specs/                     # E2E tests (Tier 2 — plugin features)
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared)
+    snippets/                # Snippet expansion/tabstop/variable tests
     spikes/                  # Exploratory/discovery tests
   neovim/                    # Neovim golden comparison infrastructure
     test-definitions.ts      # Test case definitions (shared by golden recording + e2e)
     golden-data/             # Recorded Neovim output (committed, CI compares against these)
-    deviations.ts            # Known differences from Neovim (categorized: intentional, infra-limitation, upstream-bug, upstream-unsupported, recording-issue)
+    deviations.ts            # Known differences from Neovim (categorized)
     client.ts                # Headless Neovim client
     compare.ts               # Comparison logic
-    test-wrapper.ts          # testWithNeovim() helper
+    test-wrapper.ts          # testWithNeovim() helper — enforces golden case exists
     record-golden.ts         # Golden file recording script
     smoke.ts                 # Quick Neovim smoke test
   unit/                      # Unit tests (Vitest)
     lua/                     # Lua engine unit tests
     picker/                  # Picker unit tests
+    snippets/                # Snippet unit tests
     __mocks__/               # Mock modules
   bench/                     # Performance benchmarks
     matcher.bench.ts         # Fuzzy matcher benchmarks
+test-vault/
+  fixtures/                  # Vault fixtures for e2e tests needing full rendering
+    hint-mode/               # Fixture files for hint-mode link navigation tests
 ```
 
 ### Test tiers
@@ -592,21 +598,23 @@ describe('My feature', function () {
 
 `test/helpers.ts` provides commonly used utilities. Import them instead of writing inline `executeObsidian` boilerplate:
 
-- `setupEditor(content, cursor?)` — Set editor content and cursor position.
+- `setupEditor(content, cursor?)` — Set editor content and cursor position. Throws if no MarkdownView. Uses `waitUntil` to verify content was applied.
 - `vimKeys(...keys)` — Send Vim key sequence with proper pauses.
 - `vimRawKeys(keys)` — Send raw key string character-by-character via DOM events (with `Vim.handleKey` for control chars).
 - `vimHandleKeys(keys)` — Send all keys synchronously through `Vim.handleKey()` in a single `executeObsidian` callback. No DOM event timing gaps. Use for visual-mode compound operations that fail with `vimRawKeys` (e.g., `vt.d`, `vawd`, `V3jJ`).
-- `getCursorPos()` — Get `{ line, ch }` cursor position.
-- `getEditorValue()` — Get editor text content.
-- `getSelection()` — Get selected text.
+- `getCursorPos()` — Get `{ line, ch }` cursor position. Throws if no MarkdownView.
+- `getEditorValue()` — Get editor text content. Throws if no MarkdownView.
+- `getSelection()` — Get selected text. Throws if no MarkdownView.
 - `getVimMode()` — Get current Vim mode string.
 - `getRegisterContent(register)` — Get register contents.
-- `sendVimEscape()` — Send Escape and wait for normal mode.
-- `loadSingleFileWorkspace(content)` — Load a workspace with a single file.
-- `ensureLivePreview()` — Switch active editor to Live Preview mode.
-- `ensureSourceMode()` — Switch active editor to Source mode.
+- `sendVimEscape()` — Send Escape via Vim API. Throws if no MarkdownView or Vim adapter.
+- `loadSingleFileWorkspace(filePath)` — Load a workspace with a single file. Waits for MarkdownView to become active.
+- `ensureLivePreview()` — Switch active editor to Live Preview mode. Waits for mode change.
+- `ensureSourceMode()` — Switch active editor to Source mode. Waits for mode change.
 - `isLivePreview()` — Check if active editor is in Live Preview.
 - `isSourceMode()` — Check if active editor is in Source mode.
+- `setPluginSetting(key, value)` — Set a plugin setting and await `saveSettings()`.
+- `setPluginSettingAndReload(key, value)` — Set, save, call `reloadFeatures()`, and wait for settle.
 - `unsupported(name, fn)` — Mark a test as unsupported (skip with label).
 - `deviation(name, fn)` — Mark a test as a known Neovim deviation.
 
@@ -626,6 +634,9 @@ npm run test:unit
 - For Vim key sequences that may conflict with browser keys, use `Vim.handleKey(adapter, key)` inside `executeObsidian` instead of `browser.keys`.
 - Special characters `<` and `>` cannot be reliably dispatched through `browser.keys` or `Vim.handleKey` in WDIO — they conflict with vim's angle-bracket notation parser. The fork's own test suite (`test/vim_test.js`) sends these as DOM `keydown` events with proper `keyCode`/`key` properties via its `typeKey` helper. For features requiring `<`/`>` (e.g., surround tag operations), verify behavior via fork tests and skip the plugin e2e test with a reference to the fork test name.
 - Spike/discovery tests go in `test/specs/spikes/`.
+- The global `afterTest` hook in `wdio.conf.mts` cleans up overlays, modals, notices, and Vim state between every test. Individual tests should not need manual cleanup unless they test cleanup behavior itself.
+- For tests requiring Obsidian's full rendering pipeline (link decorations, metadata cache), use vault fixture files under `test-vault/fixtures/` instead of `setupEditor`. Open each fixture file once in a `before()` hook to warm the link cache. Use `obsidianPage.openFile()` instead of `setupEditor` to ensure CM6 decorations render.
+- When querying the active editor's DOM, use `.workspace-leaf.mod-active .cm-editor` instead of `.cm-editor` — multiple `.cm-editor` elements may exist on the page (sidebar, modals).
 
 ## Obsidian API notes
 

@@ -288,7 +288,7 @@ describe('Normal mode — marks and jumps (Tier 1)', function () {
             expect((await getCursorPos()).ch).toBe(4);
         });
 
-        it('% should not match bracket inside string', async function () {
+        it('% on non-bracket char should not move cursor', async function () {
             await setupEditor('x = ")" + foo()', { line: 0, ch: 0 });
             await vimKeys('%');
             const pos = await getCursorPos();

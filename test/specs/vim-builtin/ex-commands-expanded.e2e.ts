@@ -212,7 +212,7 @@ describe('Expanded Ex commands', function () {
     });
 
     describe('Phase 4: Utility commands', function () {
-        it(':delmarks with no arg should show usage', async function () {
+        it(':delmarks a should delete mark a', async function () {
             await setupEditor('hello', { line: 0, ch: 0 });
             await vimKeys('m', 'a');
             await browser.pause(100);

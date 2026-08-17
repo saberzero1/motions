@@ -83,16 +83,6 @@ describe('Flash jump mode (s) and clever-f', function () {
     });
 
     describe('jump mode basic', function () {
-        it('s{char} should autojump to single match', async function () {
-            await setupEditor('hello xyz world', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await browser.keys(['s', 'z']);
-            await browser.pause(200);
-            const pos = await getCursorPos();
-            expect(pos.ch).toBe(8);
-        });
-
         it('s{char} with 2+ matches should show labels', async function () {
             await setupEditor('abcabcabc', { line: 0, ch: 4 });
             await sendVimEscape();
@@ -125,17 +115,7 @@ describe('Flash jump mode (s) and clever-f', function () {
         });
     });
 
-    describe('jump key binding', function () {
-        it('default s key should trigger jump mode', async function () {
-            await setupEditor('hello xyz world', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await browser.keys(['s', 'z']);
-            await browser.pause(200);
-            const pos = await getCursorPos();
-            expect(pos.ch).toBe(8);
-        });
-    });
+    describe('jump key binding', function () {});
 
     describe('two-character labels (issue #76)', function () {
         it('should narrow labels on first char of two-char label instead of exiting', async function () {

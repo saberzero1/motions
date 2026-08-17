@@ -12,7 +12,7 @@ describe('Workspace navigation (Phase 2)', function () {
         await loadSingleFileWorkspace('Welcome.md');
     });
 
-    it('gt should switch to next tab', async function () {
+    it('[crash-guard] gt should not error with single tab', async function () {
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,

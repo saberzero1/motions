@@ -7,6 +7,17 @@ import {
     sendVimEscape,
 } from '../../helpers';
 
+async function getScrollTop(): Promise<number> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return -1;
+        const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
+            | { scrollDOM: HTMLElement }
+            | undefined;
+        return cm6?.scrollDOM.scrollTop ?? -1;
+    })) as number;
+}
+
 describe('Normal mode — z-prefix commands (Tier 1)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -19,34 +30,30 @@ describe('Normal mode — z-prefix commands (Tier 1)', function () {
     });
 
     describe('zz / zt / zb (scroll cursor to screen position)', function () {
-        it('zz should not change cursor line', async function () {
+        it('zz/zt/zb should produce distinct scroll positions in correct order', async function () {
             const lines = Array.from(
-                { length: 50 },
+                { length: 200 },
                 (_, i) => `line ${i + 1}`,
             ).join('\n');
-            await setupEditor(lines, { line: 25, ch: 0 });
-            await vimKeys('z', 'z');
-            expect((await getCursorPos()).line).toBe(25);
-        });
+            await setupEditor(lines, { line: 100, ch: 0 });
 
-        it('zt should not change cursor line', async function () {
-            const lines = Array.from(
-                { length: 50 },
-                (_, i) => `line ${i + 1}`,
-            ).join('\n');
-            await setupEditor(lines, { line: 25, ch: 0 });
-            await vimKeys('z', 't');
-            expect((await getCursorPos()).line).toBe(25);
-        });
-
-        it('zb should not change cursor line', async function () {
-            const lines = Array.from(
-                { length: 50 },
-                (_, i) => `line ${i + 1}`,
-            ).join('\n');
-            await setupEditor(lines, { line: 25, ch: 0 });
             await vimKeys('z', 'b');
-            expect((await getCursorPos()).line).toBe(25);
+            await browser.pause(100);
+            const scrollZb = await getScrollTop();
+            expect((await getCursorPos()).line).toBe(100);
+
+            await vimKeys('z', 'z');
+            await browser.pause(100);
+            const scrollZz = await getScrollTop();
+            expect((await getCursorPos()).line).toBe(100);
+
+            await vimKeys('z', 't');
+            await browser.pause(100);
+            const scrollZt = await getScrollTop();
+            expect((await getCursorPos()).line).toBe(100);
+
+            expect(scrollZb).toBeLessThan(scrollZz);
+            expect(scrollZz).toBeLessThan(scrollZt);
         });
     });
 

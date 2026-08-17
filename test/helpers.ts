@@ -8,33 +8,75 @@ export const PAUSE = {
     OBSIDIAN_LOAD: 500,
 } as const;
 
+type EditorResult<T> = { ok: true; value: T } | { ok: false; error: string };
+
+function unwrap<T>(result: EditorResult<T>): T {
+    if (!result.ok) throw new Error(result.error);
+    return result.value;
+}
+
 export async function getEditorValue(): Promise<string> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
+    const result = (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getValue() ?? '';
-    })) as string;
+        if (!view) {
+            const activeType =
+                app.workspace
+                    .getActiveViewOfType(
+                        (obsidian as Record<string, unknown>)
+                            .View as typeof obsidian.MarkdownView,
+                    )
+                    ?.getViewType() ?? 'none';
+            return {
+                ok: false as const,
+                error: `getEditorValue: no MarkdownView (active: ${activeType})`,
+            };
+        }
+        return { ok: true as const, value: view.editor.getValue() };
+    })) as EditorResult<string>;
+    return unwrap(result);
 }
 
 export async function getSelection(): Promise<string> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
+    const result = (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getSelection() ?? '';
-    })) as string;
+        if (!view)
+            return {
+                ok: false as const,
+                error: 'getSelection: no MarkdownView',
+            };
+        return { ok: true as const, value: view.editor.getSelection() };
+    })) as EditorResult<string>;
+    return unwrap(result);
 }
 
 export async function getCursorLine(): Promise<number> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
+    const result = (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        return view?.editor.getCursor().line ?? -1;
-    })) as number;
+        if (!view)
+            return {
+                ok: false as const,
+                error: 'getCursorLine: no MarkdownView',
+            };
+        return { ok: true as const, value: view.editor.getCursor().line };
+    })) as EditorResult<number>;
+    return unwrap(result);
 }
 
 export async function getCursorPos(): Promise<{ line: number; ch: number }> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
+    const result = (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        const cursor = view?.editor.getCursor();
-        return { line: cursor?.line ?? -1, ch: cursor?.ch ?? -1 };
-    })) as { line: number; ch: number };
+        if (!view)
+            return {
+                ok: false as const,
+                error: 'getCursorPos: no MarkdownView',
+            };
+        const cursor = view.editor.getCursor();
+        return {
+            ok: true as const,
+            value: { line: cursor.line, ch: cursor.ch },
+        };
+    })) as EditorResult<{ line: number; ch: number }>;
+    return unwrap(result);
 }
 
 export async function getVimMode(): Promise<string> {
@@ -130,20 +172,55 @@ export async function setupEditor(
     content: string,
     cursor: { line: number; ch: number },
 ): Promise<void> {
-    await browser.executeObsidian(
+    const result = (await browser.executeObsidian(
         ({ app, obsidian }, text: string, line: number, ch: number) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return;
+            let view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+            if (!view) {
+                const leaf = app.workspace
+                    .getLeavesOfType('markdown')
+                    .find((l) => l.view instanceof obsidian.MarkdownView);
+                if (leaf) {
+                    app.workspace.setActiveLeaf(leaf, { focus: true });
+                    view = leaf.view as InstanceType<
+                        typeof obsidian.MarkdownView
+                    >;
+                }
+            }
+            if (!view) {
+                const activeType =
+                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ??
+                    'none';
+                return {
+                    ok: false as const,
+                    error: `setupEditor: no MarkdownView (active leaf type: ${activeType})`,
+                };
+            }
             view.editor.setValue(text);
             view.editor.setCursor(line, ch);
             view.editor.focus();
+            return { ok: true as const };
         },
         content,
         cursor.line,
         cursor.ch,
-    );
+    )) as { ok: boolean; error?: string };
+    if (!result.ok) throw new Error(result.error);
+    await browser
+        .waitUntil(
+            async () => {
+                const val = (await browser.executeObsidian(
+                    ({ app, obsidian }) => {
+                        const v = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        return v?.editor.getValue() ?? null;
+                    },
+                )) as string | null;
+                return val === content;
+            },
+            { timeout: 2000, interval: 50 },
+        )
+        .catch(() => {});
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
@@ -152,9 +229,7 @@ export async function sendVimEscape(): Promise<void> {
         const Vim = (
             window as unknown as {
                 CodeMirrorAdapter?: {
-                    Vim?: {
-                        handleKey: (cm: unknown, key: string) => boolean;
-                    };
+                    Vim?: {};
                 };
             }
         ).CodeMirrorAdapter?.Vim;
@@ -293,7 +368,19 @@ export async function loadSingleFileWorkspace(
         active: 'test-leaf',
         lastOpenFiles: [],
     });
-    await browser.pause(PAUSE.EDITOR_SETTLE);
+    await browser
+        .waitUntil(
+            async () =>
+                (await browser.executeObsidian(({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return !!view;
+                })) as boolean,
+            { timeout: 5000, interval: 100 },
+        )
+        .catch(() => {});
+    await browser.pause(PAUSE.MODE_SWITCH);
 }
 
 export function unsupported(
@@ -384,14 +471,19 @@ export async function loadLuaConfig(content: string): Promise<void> {
 }
 
 export async function focusEditor(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    const result = (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        if (view) {
-            view.editor.setValue('Hello world\nSecond line\nThird line');
-            view.editor.setCursor(0, 0);
-            view.editor.focus();
-        }
-    });
+        if (!view)
+            return {
+                ok: false as const,
+                error: 'focusEditor: no MarkdownView',
+            };
+        view.editor.setValue('Hello world\nSecond line\nThird line');
+        view.editor.setCursor(0, 0);
+        view.editor.focus();
+        return { ok: true as const };
+    })) as { ok: boolean; error?: string };
+    if (!result.ok) throw new Error(result.error);
     await browser.pause(PAUSE.EDITOR_SETTLE);
     await sendVimEscape();
     await browser.pause(PAUSE.MODE_SWITCH * 2);
@@ -513,7 +605,7 @@ export async function setPluginSetting(
     value: unknown,
 ): Promise<void> {
     await browser.executeObsidian(
-        ({ app }, k: string, v: unknown) => {
+        async ({ app }, k: string, v: unknown) => {
             const plugin = (
                 app as unknown as {
                     plugins: {
@@ -522,18 +614,51 @@ export async function setPluginSetting(
                             {
                                 settings: Record<string, unknown>;
                                 saveSettings: () => Promise<void>;
+                                reloadFeatures?: () => void;
                             }
                         >;
                     };
                 }
             ).plugins.plugins['vim-motions'];
-            if (!plugin) return;
+            if (!plugin) throw new Error('setPluginSetting: plugin not found');
             plugin.settings[k] = v;
-            plugin.saveSettings();
+            await plugin.saveSettings();
         },
         key,
         value,
     );
+}
+
+export async function setPluginSettingAndReload(
+    key: string,
+    value: unknown,
+): Promise<void> {
+    await browser.executeObsidian(
+        async ({ app }, k: string, v: unknown) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin)
+                throw new Error('setPluginSettingAndReload: plugin not found');
+            plugin.settings[k] = v;
+            await plugin.saveSettings();
+            plugin.reloadFeatures();
+        },
+        key,
+        value,
+    );
+    await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
 export async function getNotices(): Promise<string[]> {
@@ -568,17 +693,29 @@ export async function isLivePreview(): Promise<boolean> {
 export async function ensureLivePreview(): Promise<void> {
     const isLP = await isLivePreview();
     if (!isLP) {
-        await browser.executeObsidian(({ app, obsidian }) => {
+        const result = (await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
             );
-            if (!view) return;
+            if (!view)
+                return {
+                    ok: false as const,
+                    error: 'ensureLivePreview: no MarkdownView',
+                };
             const state = view.getState();
             state.mode = 'source';
             state.source = false;
             view.setState(state, { history: false });
-        });
-        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+            return { ok: true as const };
+        })) as { ok: boolean; error?: string };
+        if (!result.ok) throw new Error(result.error);
+        await browser
+            .waitUntil(async () => isLivePreview(), {
+                timeout: 3000,
+                interval: 100,
+            })
+            .catch(() => {});
+        await browser.pause(PAUSE.MODE_SWITCH);
     }
 }
 
@@ -592,13 +729,25 @@ export async function isSourceMode(): Promise<boolean> {
 }
 
 export async function ensureSourceMode(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    const result = (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        if (!view) return;
+        if (!view)
+            return {
+                ok: false as const,
+                error: 'ensureSourceMode: no MarkdownView',
+            };
         const state = view.getState();
         state.mode = 'source';
         state.source = true;
         view.setState(state, { history: false });
-    });
-    await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+        return { ok: true as const };
+    })) as { ok: boolean; error?: string };
+    if (!result.ok) throw new Error(result.error);
+    await browser
+        .waitUntil(async () => isSourceMode(), {
+            timeout: 3000,
+            interval: 100,
+        })
+        .catch(() => {});
+    await browser.pause(PAUSE.MODE_SWITCH);
 }

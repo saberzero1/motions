@@ -63,6 +63,7 @@ describe('Buffer navigation (]b/[b)', function () {
             return app.workspace.getActiveFile()?.path ?? '';
         })) as string;
         expect(typeof afterPath).toBe('string');
+        expect(afterPath.length).toBeGreaterThan(0);
     });
 
     it('[b should switch to previous buffer', async function () {
@@ -113,7 +114,7 @@ describe('Buffer navigation (]b/[b)', function () {
         const afterPath = (await browser.executeObsidian(({ app }) => {
             return app.workspace.getActiveFile()?.path ?? '';
         })) as string;
-        expect(afterPath).not.toBe('TestNote.md');
+        expect(afterPath).toBe('Welcome.md');
     });
 
     it(']b with single buffer should not error', async function () {

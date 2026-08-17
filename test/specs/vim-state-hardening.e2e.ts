@@ -312,6 +312,8 @@ describe('Vim state hardening (issue #18)', function () {
             await vimKeys('j');
             const content = await getEditorValue();
             expect(content).toBe('hello world');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
         });
     });
 });

@@ -44,7 +44,7 @@ describe('Indentation text objects (ii/ai)', function () {
             expect(value).not.toContain('child b');
         });
 
-        it('should return no match on zero-indent line', async function () {
+        it('should not select a block on zero-indent line', async function () {
             await setupEditor('no indent here\nanother line', {
                 line: 0,
                 ch: 0,
@@ -52,13 +52,16 @@ describe('Indentation text objects (ii/ai)', function () {
             await vimKeys('v', 'i', 'i');
             const sel = await getSelection();
             expect(sel.length).toBeLessThanOrEqual(1);
+            expect(sel).not.toContain('no indent here');
         });
 
-        it('should return no match on blank line', async function () {
+        it('should not select a block on blank line', async function () {
             await setupEditor('above\n\nbelow', { line: 1, ch: 0 });
             await vimKeys('v', 'i', 'i');
             const sel = await getSelection();
             expect(sel.length).toBeLessThanOrEqual(1);
+            expect(sel).not.toContain('above');
+            expect(sel).not.toContain('below');
         });
 
         it('should select single-line indented block', async function () {
@@ -177,6 +180,11 @@ describe('Indentation text objects (ii/ai)', function () {
                 ch: 4,
             });
             await vimKeys('d', 'i', 'i');
+            const value = await getEditorValue();
+            expect(value).not.toContain('child a');
+            expect(value).not.toContain('child b');
+            expect(value).toContain('parent');
+            expect(value).toContain('sibling');
             const pos = await getCursorPos();
             expect(pos.line).toBeLessThanOrEqual(1);
         });

@@ -21,6 +21,7 @@ describe('Static snippet regression (Phase 3b)', function () {
         await typePrefixAndTab('cb');
         const value = await getEditorValue();
         expect(value).toContain('```');
+        expect(value.split('```').length).toBeGreaterThanOrEqual(3);
     });
 
     it('should navigate tabstops in static snippet', async function () {

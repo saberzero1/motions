@@ -235,9 +235,11 @@ describe('Vimrc settings parity', function () {
         });
 
         expect(groupLabels.length).toBeGreaterThanOrEqual(1);
-        const last = groupLabels[groupLabels.length - 1];
-        expect(last?.key).toContain('t');
-        expect(last?.label).toBe('Table');
+        const match = (
+            groupLabels as Array<{ key: string; label: string }>
+        ).find((g) => g.label === 'Table');
+        expect(match).toBeDefined();
+        expect(match?.key).toContain('t');
     });
 
     it('should store which-key command labels', async function () {
@@ -257,8 +259,10 @@ describe('Vimrc settings parity', function () {
         });
 
         expect(commandLabels.length).toBeGreaterThanOrEqual(1);
-        const last = commandLabels[commandLabels.length - 1];
-        expect(last?.label).toBe('Save file');
+        const match = (
+            commandLabels as Array<{ key: string; label: string }>
+        ).find((c) => c.label === 'Save file');
+        expect(match).toBeDefined();
     });
 
     it('should track override count', async function () {

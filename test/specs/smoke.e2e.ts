@@ -20,14 +20,19 @@ describe('Vim Motions plugin', function () {
     });
 
     it('should have Vim API available (built-in or bundled)', async function () {
-        const hasVimApi = await browser.executeObsidian(() => {
-            return !!(
+        const vimApiCheck = (await browser.executeObsidian(() => {
+            const Vim = (
                 window as unknown as {
-                    CodeMirrorAdapter?: { Vim?: unknown };
+                    CodeMirrorAdapter?: { Vim?: Record<string, unknown> };
                 }
             ).CodeMirrorAdapter?.Vim;
-        });
-        expect(hasVimApi).toBe(true);
+            return {
+                exists: !!Vim,
+                hasHandleKey: typeof Vim?.handleKey === 'function',
+            };
+        })) as { exists: boolean; hasHandleKey: boolean };
+        expect(vimApiCheck.exists).toBe(true);
+        expect(vimApiCheck.hasHandleKey).toBe(true);
     });
 
     it('should open a file in the vault', async function () {

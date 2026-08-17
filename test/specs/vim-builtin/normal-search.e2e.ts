@@ -84,7 +84,8 @@ describe('Normal mode — search and find (Tier 1)', function () {
         it(', should reverse T direction', async function () {
             await setupEditor('aXbXcXd', { line: 0, ch: 6 });
             await vimKeys('T', 'X');
-            expect((await getCursorPos()).ch).toBe(6);
+            const posAfterT = await getCursorPos();
+            expect(posAfterT.ch).toBe(6);
             await vimKeys(',');
             const pos = await getCursorPos();
             expect(pos.ch).toBeLessThanOrEqual(6);
@@ -106,15 +107,34 @@ describe('Normal mode — search and find (Tier 1)', function () {
         });
 
         it('n should repeat search forward', async function () {
+            await setupEditor('aaa bbb ccc bbb ddd', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['/']);
+            await browser.pause(100);
+            await browser.keys(['b', 'b', 'b']);
+            await browser.keys(['Enter']);
+            await browser.pause(300);
+            expect((await getCursorPos()).ch).toBe(4);
             await vimKeys('n');
             const pos = await getCursorPos();
             expect(pos.ch).toBe(12);
         });
 
         it('N should repeat search backward', async function () {
+            await setupEditor('aaa bbb ccc bbb ddd', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['/']);
+            await browser.pause(100);
+            await browser.keys(['b', 'b', 'b']);
+            await browser.keys(['Enter']);
+            await browser.pause(300);
+            const posAfterSearch = await getCursorPos();
+            expect(posAfterSearch.ch).toBe(4);
             await vimKeys('N');
-            const pos = await getCursorPos();
-            expect(pos.ch).toBe(4);
+            const posAfterN = await getCursorPos();
+            expect(posAfterN.ch).toBe(12);
         });
     });
 
@@ -137,11 +157,20 @@ describe('Normal mode — search and find (Tier 1)', function () {
     describe('n/N wrap around', function () {
         it('n should wrap to start when reaching end', async function () {
             await setupEditor('foo bar foo baz', { line: 0, ch: 0 });
-            await vimRawKeys('/foo\nn');
-            const pos1 = await getCursorPos();
-            await vimRawKeys('n');
-            const pos2 = await getCursorPos();
-            expect(pos2.ch).toBeLessThanOrEqual(pos1.ch);
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['/']);
+            await browser.pause(100);
+            await browser.keys(['f', 'o', 'o']);
+            await browser.keys(['Enter']);
+            await browser.pause(300);
+            const posFirst = await getCursorPos();
+            await vimKeys('n');
+            const posSecond = await getCursorPos();
+            expect(posSecond.ch).not.toBe(posFirst.ch);
+            await vimKeys('n');
+            const posWrapped = await getCursorPos();
+            expect(posWrapped.ch).toBe(posFirst.ch);
         });
     });
 

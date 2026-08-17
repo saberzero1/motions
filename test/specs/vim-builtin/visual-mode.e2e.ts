@@ -122,7 +122,7 @@ describe('Visual mode (Tier 1)', function () {
     });
 
     describe('visual + indent', function () {
-        it('v + > should indent selection', async function () {
+        it('V + > should indent selection in visual line mode', async function () {
             await setupEditor('hello\nworld', { line: 0, ch: 0 });
             await sendVimEscape();
             await browser.pause(50);

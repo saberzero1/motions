@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
+    getCursorPos,
     getEditorValue,
     getVimMode,
     PAUSE,
@@ -28,6 +29,9 @@ describe('Snippet tabstop navigation', function () {
         expect(await getVimMode()).toBe('insert');
         const value = await getEditorValue();
         expect(value).toContain('[text](url)');
+        const pos = await getCursorPos();
+        expect(pos.line).toBe(0);
+        expect(pos.ch).toBeGreaterThanOrEqual(1);
     });
 
     it('should navigate to next tabstop on Tab', async function () {

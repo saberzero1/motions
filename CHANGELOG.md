@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+
+- **Systematic e2e test audit** — audited all 126 non-spike e2e test files across 8 parallel analysis passes. Fixed ~60 individual test assertions across 40 files: replaced vacuous `toContain(already-present-substring)` assertions with exact buffer equality, added register preservation checks, converted conditional early-returns to mandatory assertions or visible `this.skip()` calls, removed 2 exact duplicate tests, and fixed 10 test name/behavior mismatches.
+- **Test infrastructure hardening** — 6 structural improvements to the test infrastructure:
+    - Global `afterTest` hook in `wdio.conf.mts`: cleans up overlays (hint, easymotion, which-key, ex-suggest), picker modals (via Escape dispatch), generic modals (via close-button click), notices, and Vim state (double `<Esc>`) between every test. Includes verification pass that force-removes surviving elements.
+    - Strict helpers in `test/helpers.ts`: `setupEditor`, `sendVimEscape`, `getEditorValue`, `getCursorPos`, `getCursorLine`, `getSelection`, `focusEditor`, `ensureLivePreview`, `ensureSourceMode` now throw with context (e.g., `"setupEditor: no MarkdownView (active leaf type: graph)"`) instead of silently returning defaults.
+    - `waitUntil`-based synchronization: `setupEditor` waits for content match, `loadSingleFileWorkspace` waits for MarkdownView, `ensureLivePreview`/`ensureSourceMode` wait for mode change — replacing fixed `browser.pause()` delays.
+    - Settings mutation reliability: `setPluginSetting` now awaits `saveSettings()`. New `setPluginSettingAndReload` helper sets + saves + calls `reloadFeatures()` + waits for settle.
+    - Golden enforcement: `testWithNeovim` now throws `"Missing golden case"` when no golden data exists (unless the test is a known deviation), preventing silent passes.
+    - Hint-mode link navigation: `findHintLabelForLink` updated to use `getBoundingClientRect()` with CSS var fallback, wider CM6 selectors (`.cm-link`, `.cm-url`, `[data-href]`), and active-leaf scoping (`.workspace-leaf.mod-active .cm-editor`).
+- **Hint-mode-links fully unblocked** — 15 previously-skipped hint-mode link navigation tests now pass. Root causes fixed: (1) vault fixture files created under `test-vault/fixtures/hint-mode/` to trigger Obsidian's full rendering pipeline (CM6 link decorations, metadata cache), (2) `before()` hook warms link cache by opening all fixtures, (3) `findHintLabelForLink` scoped to active leaf's `.cm-editor`.
+- **New unit tests** — 6 new unit test files (96 tests total):
+    - `oil-parser.test.ts` (15 tests): buffer line parsing, id/type/name extraction, `.md` auto-append, Windows line endings, names with spaces
+    - `oil-diff.test.ts` (11 tests): rename/delete/create detection, foreign ids, move resolution across multi-buffer diffs
+    - `vimrc-parser.test.ts` (35 tests): all 13 command types, noremap detection, context inference, icon/color extraction, comments, multi-line parsing
+    - `flash-labeler.test.ts` (10 tests): label assignment, distance sorting, 2-char labels, reuse, skipChars
+    - `fold-persistence.test.ts` (7 tests): load/save round-trip, removePath, renamePath, TTL eviction, max entries eviction
+    - `pair-util.test.ts` (12 tests): symmetric/asymmetric delimiters, nesting, multiline, scan limits, empty pairs
+- **New e2e tests** — 3 new e2e test files (11 tests total):
+    - `insert-escape.e2e.ts` (6 tests): `jk`/`jj` escape sequences, character cleanup, timeout behavior, non-matching sequences, empty config
+    - `scrolloff-cursorline-smoke.e2e.ts` (4 tests): scrolloff setting persistence + cursor positioning, cursorline enable/disable cycle
+    - `context-actions-smoke.e2e.ts` (1 test): `:contextactions` command opens a modal
+
+### Documentation
+
+- `AGENTS.md`: Updated test helpers description (strict behavior, `waitUntil` synchronization, `setPluginSettingAndReload`); added `afterTest` hook and vault fixtures documentation; added golden enforcement description; updated unit test list
+- `CONTRIBUTING.md`: Updated test infrastructure tree (vault fixtures, snippets subdirs, `test-wrapper.ts` golden enforcement); updated shared helper descriptions (strict behavior, `waitUntil`); added vault fixture and afterTest cleanup guidance to key testing rules
+
 ## [0.112.0] - 2026-08-16
 
 ### Fixed

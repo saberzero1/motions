@@ -366,19 +366,19 @@ describe('gmap / gnoremap / gunmap', function () {
             await browser.pause(PAUSE.KEY_GAP);
 
             const exInput = await browser.$('.cm-vim-panel input');
-            if (await exInput.isExisting()) {
-                await exInput.setValue('gmaps');
-                await browser.keys(['Enter']);
-                await browser.pause(PAUSE.EDITOR_SETTLE);
+            expect(await exInput.isExisting()).toBe(true);
 
-                const modalOpen = (await browser.executeObsidian(() => {
-                    return !!document.querySelector('.modal-container');
-                })) as boolean;
-                expect(modalOpen).toBe(true);
+            await exInput.setValue('gmaps');
+            await browser.keys(['Enter']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
 
-                await browser.keys(['Escape']);
-                await browser.pause(PAUSE.EDITOR_SETTLE);
-            }
+            const modalOpen = (await browser.executeObsidian(() => {
+                return !!document.querySelector('.modal-container');
+            })) as boolean;
+            expect(modalOpen).toBe(true);
+
+            await browser.keys(['Escape']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
         });
     });
 });

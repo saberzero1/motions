@@ -476,7 +476,12 @@ describe('Settings hot-reload', function () {
         expect(stateCheck).not.toBeNull();
 
         await setScrolloff(0);
+        const afterZero = await getScrollMargins();
+        expect(afterZero).not.toBeNull();
+
         await setScrolloff(5);
+        const afterFive = await getScrollMargins();
+        expect(afterFive).not.toBeNull();
     });
 
     it('Y and Q should work even with workspace navigation disabled', async function () {

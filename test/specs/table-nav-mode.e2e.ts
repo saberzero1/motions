@@ -241,14 +241,14 @@ async function setPluginSettings(
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
-describe('Table-nav diagnostics', function () {
+describe.skip('Table-nav diagnostics (debug aids, not CI tests)', function () {
     before(async function () {
         this.timeout(30000);
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
     });
 
-    it('should dump cell.el DOM info and focus state during table-nav', async function () {
+    it.skip('[DIAGNOSTIC] should dump cell.el DOM info and focus state during table-nav', async function () {
         this.timeout(20000);
         await ensureLivePreview();
         await setPluginSettings({
@@ -345,7 +345,7 @@ describe('Table-nav diagnostics', function () {
         console.log('[TABLE-NAV DIAG]', JSON.stringify(diag, null, 2));
     });
 
-    it('should check if cell editor survives effect dispatch', async function () {
+    it.skip('[DIAGNOSTIC] should check if cell editor survives effect dispatch', async function () {
         this.timeout(20000);
         await ensureLivePreview();
         await setPluginSettings({ enableTableNav: false });
@@ -382,7 +382,7 @@ describe('Table-nav diagnostics', function () {
         console.log('[CELL SURVIVAL]', JSON.stringify(result));
     });
 
-    it('should verify key handler intercepts real browser keys', async function () {
+    it.skip('[DIAGNOSTIC] should verify key handler intercepts real browser keys', async function () {
         this.timeout(20000);
         await ensureLivePreview();
         await setupTableDoc();

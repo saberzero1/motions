@@ -73,6 +73,7 @@ describe('Blockquote and callout text objects', function () {
             await vimKeys('d', 'i', 'B');
             const val = await getEditorValue();
             expect(val).toContain('outer');
+            expect(val).not.toContain('nested inner');
         });
 
         it('diB with spaced nested blockquote should delete inner content', async function () {
@@ -90,6 +91,7 @@ describe('Blockquote and callout text objects', function () {
             const val = await getEditorValue();
             expect(val).toContain('outer');
             expect(val).toContain('more outer');
+            expect(val).not.toContain('nested inner');
         });
 
         it('diB should not change content when cursor is outside blockquote', async function () {
@@ -159,6 +161,9 @@ describe('Blockquote and callout text objects', function () {
             await vimKeys('d', 'i', 'o');
             const val = await getEditorValue();
             expect(val).toContain('[!warning]');
+            expect(val).not.toContain('Line one');
+            expect(val).not.toContain('Line two');
+            expect(val).not.toContain('Line three');
         });
 
         it('dio should not change content when cursor is outside callout', async function () {

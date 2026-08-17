@@ -263,14 +263,15 @@ describe('Oil explorer', function () {
             expect(viewType).toBe('oil-explorer');
         });
 
-        it('oil view uses the oil explorer view type', async function () {
+        it('oil view should be focusable after opening', async function () {
             await openOilAndWait();
-            const viewType = (await browser.executeObsidian(({ app }) => {
-                return (
-                    app.workspace.getMostRecentLeaf()?.view?.getViewType() ?? ''
-                );
-            })) as string;
-            expect(viewType).toBe('oil-explorer');
+            const result = (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                const viewType = leaf?.view?.getViewType() ?? '';
+                return { viewType, hasLeaf: !!leaf };
+            })) as { viewType: string; hasLeaf: boolean };
+            expect(result.viewType).toBe('oil-explorer');
+            expect(result.hasLeaf).toBe(true);
         });
 
         it('oil buffer lists vault files with entry IDs', async function () {
@@ -1127,6 +1128,27 @@ describe('Oil explorer', function () {
     describe('select opens in same leaf', function () {
         it('opening a file from oil replaces the oil view in the same leaf', async function () {
             await openOilAndWait('');
+
+            const bufferText = (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                if (!leaf?.view) return '';
+                const cm = (leaf.view as unknown as Record<string, unknown>)
+                    .editor as Record<string, unknown> | undefined;
+                const editorView = (cm?.cm ?? cm) as
+                    | { state?: { doc?: { toString: () => string } } }
+                    | undefined;
+                return editorView?.state?.doc?.toString() ?? '';
+            })) as string;
+            const lines = bufferText.split('\n');
+            const fileLineIdx = lines.findIndex((l) => l.match(/\/\d+\s+f\s/));
+            if (fileLineIdx > 0) {
+                for (let i = 0; i < fileLineIdx; i++) {
+                    await browser.keys(['j']);
+                    await browser.pause(30);
+                }
+                await browser.pause(200);
+            }
+
             const oilLeafId = (await browser.executeObsidian(({ app }) => {
                 const leaf = app.workspace.getMostRecentLeaf();
                 return (leaf as unknown as { id?: string }).id ?? '';

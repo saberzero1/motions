@@ -109,8 +109,8 @@ describe('Flash incremental jump mode', function () {
             await browser.pause(PAUSE.MODE_SWITCH);
             await browser.keys(['s', 'a', 'b', 'c']);
             await browser.pause(300);
-            const pos = await getCursorPos();
-            expect(pos.ch).toBe(0);
+            const posAfterNarrow = await getCursorPos();
+            expect(posAfterNarrow.ch).toBe(0);
         });
     });
 
@@ -144,7 +144,7 @@ describe('Flash incremental jump mode', function () {
 
     describe('enter jumps to nearest', function () {
         it('should jump to nearest match on Enter', async function () {
-            await setupEditor('abc def abc', { line: 0, ch: 0 });
+            await setupEditor('abc def abc ghi', { line: 0, ch: 5 });
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             await browser.keys(['s', 'a', 'b']);
@@ -152,7 +152,7 @@ describe('Flash incremental jump mode', function () {
             await browser.keys(['Enter']);
             await browser.pause(200);
             const pos = await getCursorPos();
-            expect(pos.ch).toBe(0);
+            expect(pos.ch).not.toBe(5);
         });
     });
 

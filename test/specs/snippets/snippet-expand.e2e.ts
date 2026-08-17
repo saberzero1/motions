@@ -21,6 +21,7 @@ describe('Snippet expansion', function () {
         await typePrefixAndTab('cb');
         const value = await getEditorValue();
         expect(value).toContain('```');
+        expect(value.split('```').length).toBeGreaterThanOrEqual(3);
     });
 
     it('should not expand when prefix does not match any snippet', async function () {

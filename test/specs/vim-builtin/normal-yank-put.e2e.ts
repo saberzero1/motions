@@ -47,22 +47,28 @@ describe('Normal mode — yank and put (Tier 1)', function () {
     });
 
     describe('p / P', function () {
-        it('p should paste after cursor', async function () {
-            await setupEditor('hello world', { line: 0, ch: 4 });
+        it('p should paste yanked text after cursor', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('y', 'w');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('hello');
             await vimKeys('$');
             await vimKeys('p');
             const val = await getEditorValue();
-            expect(val).toContain('world');
+            expect(val.length).toBeGreaterThan('hello world'.length);
+            expect((val.match(/hello/g) ?? []).length).toBe(2);
         });
 
-        it('P should paste before cursor', async function () {
+        it('P should paste yanked text before cursor', async function () {
             await setupEditor('world', { line: 0, ch: 0 });
             await vimKeys('y', 'w');
-            await vimKeys('0');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('world');
             await vimKeys('P');
             const val = await getEditorValue();
-            expect(val.startsWith('world')).toBe(true);
+            expect((val.match(/world/g) ?? []).length).toBe(2);
         });
 
         it('dd then p should paste deleted line below', async function () {
@@ -135,7 +141,7 @@ describe('Normal mode — yank and put (Tier 1)', function () {
             await vimKeys('$');
             await vimKeys('g', 'p');
             const val = await getEditorValue();
-            expect(val).toContain('hello');
+            expect(val).toBe('hello worldhello ');
             const pos = await getCursorPos();
             expect(pos.ch).toBeGreaterThan(10);
         });

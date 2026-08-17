@@ -128,5 +128,8 @@ describe('Animated cursor', function () {
             smoothCursor: true,
             smearTrail: true,
         });
+
+        expect(await getPluginSetting('smoothCursor')).toBe(true);
+        expect(await getPluginSetting('smearTrail')).toBe(true);
     });
 });

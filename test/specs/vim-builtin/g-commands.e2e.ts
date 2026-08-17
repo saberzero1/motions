@@ -224,16 +224,15 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
                 'short first line',
                 'second line',
             ].join('\n');
-            await setupEditor(content, { line: 3, ch: 0 });
+            await setupEditor(content, { line: 4, ch: 0 });
+            const before = await getCursorPos();
+            expect(before.line).toBe(4);
             await vimKeys('g', 'k');
             const pos = await getCursorPos();
-            // On a short (non-wrapping) first content line, gk from ch=0
-            // has nowhere to go within the line — it should enter properties
-            // (cursor stays or moves to line 3, same as k).
-            expect(pos.line).toBeGreaterThanOrEqual(3);
+            expect(pos.line).toBeLessThan(4);
         });
 
-        it('k on first content line after frontmatter should still enter properties (#25)', async function () {
+        it('k on first content line after frontmatter should enter properties or stay (#25)', async function () {
             const content = [
                 '---',
                 'title: test',
@@ -241,15 +240,12 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
                 'first line',
                 'second line',
             ].join('\n');
-            await setupEditor(content, { line: 3, ch: 0 });
+            await setupEditor(content, { line: 4, ch: 0 });
             const before = await getCursorPos();
-            expect(before.line).toBe(3);
+            expect(before.line).toBe(4);
             await vimKeys('k');
-            // k moves by document lines — from the first content line,
-            // it should NOT move the cursor into frontmatter text (line 0-2).
-            // Instead it either enters properties (cursor stays) or stays put.
             const after = await getCursorPos();
-            expect(after.line).toBeGreaterThanOrEqual(3);
+            expect(after.line).toBe(3);
         });
     });
 
@@ -474,10 +470,10 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             expect(posAfterEdits.line).toBe(3);
             await vimKeys('g', ';');
             const posAfterGSemicolon = await getCursorPos();
-            expect(posAfterGSemicolon.line).toBeLessThanOrEqual(3);
+            expect(posAfterGSemicolon.line).toBe(0);
         });
 
-        it('g, should not error after g;', async function () {
+        it('g, should navigate forward in changelist after g;', async function () {
             await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
             await vimKeys('i');
             await browser.keys(['X']);
@@ -488,24 +484,32 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             await browser.keys(['Y']);
             await sendVimEscape();
             await browser.pause(200);
+            const posBeforeNav = await getCursorPos();
+            expect(posBeforeNav.line).toBe(1);
             await vimKeys('g', ';');
+            const posAfterBack = await getCursorPos();
+            expect(posAfterBack.line).toBe(0);
             await vimKeys('g', ',');
-            const pos = await getCursorPos();
-            expect(pos.line).toBeGreaterThanOrEqual(0);
+            const posAfterForward = await getCursorPos();
+            expect(posAfterForward.line).toBe(1);
         });
     });
 
     describe('ga (character info)', function () {
-        it('ga should not error on a normal character', async function () {
-            await setupEditor('Hello', { line: 0, ch: 0 });
+        it('ga should not move cursor and not error', async function () {
+            await setupEditor('Hello', { line: 0, ch: 2 });
             await vimKeys('g', 'a');
-            expect((await getCursorPos()).ch).toBe(0);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(2);
+            expect(pos.line).toBe(0);
         });
 
         it('ga on empty line should not crash', async function () {
-            await setupEditor('', { line: 0, ch: 0 });
+            await setupEditor('\nHello', { line: 0, ch: 0 });
             await vimKeys('g', 'a');
-            expect((await getCursorPos()).line).toBe(0);
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+            expect(pos.ch).toBe(0);
         });
     });
 });

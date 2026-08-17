@@ -212,6 +212,7 @@ describe('Textarea vim replacement', function () {
         await browser.pause(300);
 
         expect(await hasOverlay()).toBe(false);
+        expect(await isElementHidden('test-ta')).toBe(false);
     });
 
     it('does not replace inputs (only textareas)', async function () {
@@ -230,6 +231,7 @@ describe('Textarea vim replacement', function () {
         await browser.pause(300);
 
         expect(await hasOverlay()).toBe(false);
+        expect(await isElementHidden('test-ta')).toBe(false);
     });
 
     it('Escape in operator-pending mode does not exit the overlay', async function () {

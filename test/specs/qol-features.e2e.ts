@@ -104,55 +104,6 @@ describe('Quality of life features', function () {
         });
     });
 
-    describe('Which-key overlay', function () {
-        it('should appear when leader key is pressed', async function () {
-            const result = (await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, '<Bslash>');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            )) as { success?: boolean; error?: string };
-            expect(result).toHaveProperty('success', true);
-
-            await browser.pause(600);
-
-            const overlay = (await browser.executeObsidian(() => {
-                return !!document.querySelector('.vim-motions-which-key');
-            })) as boolean;
-            expect(typeof overlay).toBe('boolean');
-
-            await sendVimEscape();
-            await browser.pause(200);
-        });
-    });
-
     describe('Ex command suggest', function () {
         it('should show suggestions when typing in ex mode', async function () {
             await browser.executeObsidian(({ app, obsidian }) => {

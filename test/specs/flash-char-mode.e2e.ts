@@ -73,19 +73,21 @@ describe('Flash char-mode: enhanced f/F/t/T', function () {
         });
 
         it('should jump to target when label is pressed', async function () {
-            await setupEditor('xax_xax_xax', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
+            await setupEditor('abcabcabc', { line: 0, ch: 0 });
             await browser.keys(['f', 'a']);
-            await browser.pause(300);
-
-            const labels = await getFlashLabelCount();
-            if (labels >= 2) {
-                await browser.keys(['a']);
-                await browser.pause(200);
-                const pos = await getCursorPos();
-                expect(pos.ch).toBeGreaterThan(0);
+            try {
+                await browser.waitUntil(
+                    async () => (await getFlashLabelCount()) >= 2,
+                    { timeout: 1000, interval: 50 },
+                );
+            } catch {
+                this.skip();
+                return;
             }
+            await browser.keys(['a']);
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBeGreaterThan(0);
         });
     });
 

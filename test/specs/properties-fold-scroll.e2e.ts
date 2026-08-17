@@ -108,6 +108,7 @@ describe('Properties fold observer scroll behavior (Issue #89)', function () {
         it('adding a non-fold class preserves scroll position', async function () {
             await prepareScrollTest();
             const before = await getScrollTop();
+            expect(before).toBeGreaterThanOrEqual(0);
 
             await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
@@ -149,6 +150,7 @@ describe('Properties fold observer scroll behavior (Issue #89)', function () {
         it('no-op class re-assignment preserves scroll position', async function () {
             await prepareScrollTest();
             const before = await getScrollTop();
+            expect(before).toBeGreaterThanOrEqual(0);
 
             await browser.executeObsidian(({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(

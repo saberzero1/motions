@@ -48,12 +48,11 @@ describe('Flash search mode: post-commit labels on /? search', function () {
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         const labels = await getFlashLabelCount();
-        if (labels >= 2) {
-            await browser.keys(['a']);
-            await browser.pause(200);
-            const pos = await getCursorPos();
-            expect(pos.ch).toBeGreaterThan(0);
-        }
+        expect(labels).toBeGreaterThanOrEqual(2);
+        await browser.keys(['a']);
+        await browser.pause(200);
+        const pos = await getCursorPos();
+        expect(pos.ch).toBeGreaterThan(0);
     });
 
     it('should clear labels on non-label key', async function () {

@@ -91,9 +91,11 @@ describe('Lua expr mappings', function () {
         await loadLuaConfig(
             'vim.keymap.set("n", "K", "v:count == 0 ? \'gk\' : \'k\'", { expr = true })\n',
         );
-        await setupEditor('hello world', { line: 0, ch: 0 });
-        await vimKeys('d', 'd');
-        expect(await getEditorValue()).toBe('');
+        await setupEditor('hello world\nsecond line', { line: 0, ch: 0 });
+        const valueBefore = await getEditorValue();
+        await vimKeys('K');
+        const valueAfter = await getEditorValue();
+        expect(valueAfter).toBe(valueBefore);
     });
 
     it('expr mapping with special keys works', async function () {

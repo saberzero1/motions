@@ -4,6 +4,7 @@ import {
     setupEditor,
     vimKeys,
     getEditorValue,
+    getRegisterContent,
     sendVimEscape,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
@@ -253,21 +254,27 @@ describe('Operator-pending combinations (Tier 1)', function () {
         it('yw should yank word', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('y', 'w');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toContain('hello');
             await vimKeys('$');
             await vimKeys('p');
             const val = await getEditorValue();
-            expect(val).toContain('hello');
+            expect(val).toBe('hello worldhello ');
         });
 
         it('y$ should yank to end of line', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('y', '$');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toBe('hello world');
             await vimKeys('o');
             await sendVimEscape();
             await browser.pause(100);
             await vimKeys('p');
             const val = await getEditorValue();
-            expect(val.split('\n').length).toBeGreaterThanOrEqual(2);
+            expect((val.match(/hello world/g) ?? []).length).toBe(2);
         });
     });
 
@@ -362,7 +369,21 @@ describe('Operator-pending combinations (Tier 1)', function () {
             await setupEditor('  hello', { line: 0, ch: 0 });
             await vimKeys('=', '=');
             const val = await getEditorValue();
-            expect(typeof val).toBe('string');
+            expect(val).toBeDefined();
+            const mode = (await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return 'unknown';
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm as Record<string, unknown> | undefined;
+                const vim = (
+                    adapter?.state as Record<string, unknown> | undefined
+                )?.vim as Record<string, unknown> | undefined;
+                return vim?.insertMode ? 'insert' : 'normal';
+            })) as string;
+            expect(mode).toBe('normal');
         });
     });
 
