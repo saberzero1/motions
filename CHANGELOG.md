@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.113.0] - 2026-08-17
+
 ### Fixed
 
 - **Cursor disappears when entering a table in source mode or raw mode** — when the cursor entered a table range in source mode or with `tableWidgetMode='raw'`, the vim cursor became invisible while editing still worked. Root cause: `mainEditorTableCursorGuard` suppressed the vim cursor whenever the cursor was in a text range matching table syntax (`findTableRanges()`), without checking whether a native table widget was actually visible. In source mode there are no `.cm-table-widget` elements; in raw mode they exist but are hidden via `display: none`. In both cases, the cursor was suppressed with no alternative cursor shown. Fixed by adding a `hasVisibleTableWidget()` check that requires at least one `.cm-table-widget` element with a non-null `offsetParent` before suppressing. The check also short-circuits the `findTableRanges()` document scan when no visible widgets exist. ([#132](https://github.com/saberzero1/motions/issues/132))
@@ -18,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 5 regression tests for cursor visibility in source mode and raw table mode in `test/specs/table-cursor-source-mode.e2e.ts` (issue #132): 3 source mode tests (cursor layer state unchanged on table line, after traversal, on data row) + 2 raw mode tests (widget hidden, cursor layer stable during repeated traversal)
 - 5 regression tests for cell-edit hjkl boundary behavior in `test/specs/table-nav-mode.e2e.ts` (issue #131): `l` mid-cell stays in cell, `h` mid-cell stays in cell, `l` at end exits to nav, `h` at start exits to nav, insert→Escape→`l` stays in cell
-
 - **Systematic e2e test audit** — audited all 126 non-spike e2e test files across 8 parallel analysis passes. Fixed ~60 individual test assertions across 40 files: replaced vacuous `toContain(already-present-substring)` assertions with exact buffer equality, added register preservation checks, converted conditional early-returns to mandatory assertions or visible `this.skip()` calls, removed 2 exact duplicate tests, and fixed 10 test name/behavior mismatches.
 - **Test infrastructure hardening** — 6 structural improvements to the test infrastructure:
     - Global `afterTest` hook in `wdio.conf.mts`: cleans up overlays (hint, easymotion, which-key, ex-suggest), picker modals (via Escape dispatch), generic modals (via close-button click), notices, and Vim state (double `<Esc>`) between every test. Includes verification pass that force-removes surviving elements.

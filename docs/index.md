@@ -31,12 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.112.0
+## What's new in 0.113.0
 
-- **Cursor shape settings no longer stuck disabled** — the 5 cursor shape dropdowns on the Appearance settings page now correctly enable/disable based on the active vim engine. ([#128](https://github.com/saberzero1/motions/issues/128))
-- **No more doubled cursors** — fixed several cases where the native CM6 caret appeared alongside the vim block cursor: after leaving insert mode with animated cursor disabled ([#129](https://github.com/saberzero1/motions/issues/129)), in embedded editors like textarea vim overlays ([#130](https://github.com/saberzero1/motions/issues/130)), and after toggling animated cursor at runtime ([#127](https://github.com/saberzero1/motions/issues/127)).
-- **Escape closes footnote popovers** — pressing Escape in idle normal mode inside a footnote popover now dismisses it instead of being silently consumed. ([#130](https://github.com/saberzero1/motions/issues/130))
-- **Cursor visible in popovers and modals** — the animated cursor canvas renders behind popover/modal z-index layers, so the fork's vim cursor is now un-suppressed for those editors automatically. ([#130](https://github.com/saberzero1/motions/issues/130))
-- **Internal type safety improvements** — eliminated 23 `as unknown as` casts across 16 files via obsidian-typings migration (90 → 67 remaining).
+- **Cursor no longer disappears in source/raw tables** — entering a table in source mode or with `tableWidgetMode='raw'` no longer hides the vim cursor. The cursor guard now checks for visible table widgets before suppressing. ([#132](https://github.com/saberzero1/motions/issues/132))
+- **Cell-edit `h`/`j`/`k`/`l` respects cursor position** — normal-mode movement inside a table cell now moves within the cell when the cursor isn't at a boundary, instead of unconditionally exiting to table-nav. ([#131](https://github.com/saberzero1/motions/issues/131))
+- **Test infrastructure overhaul** — systematic audit of 126 e2e test files (~60 assertion fixes across 40 files), strict helpers with `waitUntil` synchronization, global `afterTest` cleanup hook, golden enforcement for `testWithNeovim`, and 96 new unit tests across 6 files.
 
 See the [[changelog|full changelog]] for details.
