@@ -131,7 +131,7 @@ Operator-pending (`dj`, `yl`) and visual mode motions are confined to the curren
 Cell editors are Obsidian's native editors with vim injected via `registerEditorExtension()`. Full Vim modality is supported: Normal, Insert, and Visual modes all work within a single table cell.
 
 - `Tab` / `Shift-Tab` navigate between cells (handled by the native table editor).
-- When table-nav is enabled: `Escape` in normal mode returns to table-nav; `h`/`j`/`k`/`l` in normal mode at cell boundaries also return to table-nav and navigate. This ensures cross-cell movement always goes through the nav overlay.
+- When table-nav is enabled: `Escape` in normal mode returns to table-nav. `h`/`j`/`k`/`l` in normal mode move the cursor within the cell; only when the cursor reaches a cell boundary do they exit to table-nav and navigate to the adjacent cell. This lets you use standard vim cursor movement inside cells after pressing Escape from insert mode.
 - When table-nav is disabled: `Escape` in normal mode stays in the cell; `h`/`j`/`k`/`l` cross cell boundaries directly via motion overrides.
 - **Register sharing**: Vim registers are shared between cell editors and the main document.
 - **Which-key**: [[which-key|Which-key]] popups work in cell editors.

@@ -876,6 +876,206 @@ describe('Table-nav structural commands', function () {
     });
 });
 
+/**
+ * Helper to read the cursor position inside the active cell editor.
+ * Returns { line, ch } (0-indexed) or null if no cell editor is open.
+ */
+async function getCellCursorPos(): Promise<{
+    line: number;
+    ch: number;
+} | null> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return null;
+        const editMode = (view as unknown as Record<string, unknown>)
+            .editMode as Record<string, unknown> | undefined;
+        const cellEditor = editMode?.tableCell as Record<
+            string,
+            unknown
+        > | null;
+        if (!cellEditor) return null;
+        const cellCm = cellEditor.cm as Record<string, unknown>;
+        const cellState = cellCm?.state as Record<string, unknown>;
+        const sel = (cellState?.selection as Record<string, unknown>)?.main as
+            | Record<string, unknown>
+            | undefined;
+        if (!sel || typeof sel.head !== 'number') return null;
+        const doc = cellState?.doc as
+            | { lineAt?: (pos: number) => { number: number; from: number } }
+            | undefined;
+        if (!doc?.lineAt) return null;
+        const lineInfo = doc.lineAt(sel.head as number);
+        return {
+            line: lineInfo.number - 1,
+            ch: (sel.head as number) - lineInfo.from,
+        };
+    })) as { line: number; ch: number } | null;
+}
+
+const TABLE_WIDE_CELLS =
+    'Above\n\n| Hello | World |\n|-------|-------|\n| abcde | fghij |\n\nBelow';
+
+describe('Cell-edit hjkl should stay in cell when cursor is not at boundary (issue #131)', function () {
+    before(async function () {
+        this.timeout(30000);
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await ensureLivePreview();
+        await setPluginSettings({
+            enableTableNav: true,
+            tableWidgetMode: 'native',
+        });
+    });
+
+    it('l in cell-edit normal mode should move cursor right when not at end of cell', async function () {
+        this.timeout(20000);
+        await setupTableDoc(TABLE_WIDE_CELLS);
+        await enterTableNav();
+
+        // Enter cell edit in normal mode (cursor at start of "Hello")
+        await browser.keys(['Enter']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await hasCellEditor()).toBe(true);
+
+        const cellInfo = await getTableCellInfo();
+        expect(cellInfo.cellContent.trim()).toBe('Hello');
+
+        // Cursor should be at position 0; pressing l should stay in cell
+        const before = await getCellCursorPos();
+        expect(before).not.toBeNull();
+        expect(before!.ch).toBe(0);
+
+        await browser.keys(['l']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        // Should still be in cell edit mode, cursor moved right
+        expect(await hasCellEditor()).toBe(true);
+        expect(await hasTableNavHighlight()).toBe(false);
+        const after = await getCellCursorPos();
+        expect(after).not.toBeNull();
+        expect(after!.ch).toBe(1);
+    });
+
+    it('h in cell-edit normal mode should move cursor left when not at start of cell', async function () {
+        this.timeout(20000);
+        await setupTableDoc(TABLE_WIDE_CELLS);
+        await enterTableNav();
+
+        // Enter cell edit in normal mode and move cursor to middle
+        await browser.keys(['Enter']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await hasCellEditor()).toBe(true);
+
+        // Move cursor to position 2 using ll
+        await browser.keys(['l', 'l']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        const mid = await getCellCursorPos();
+        expect(mid).not.toBeNull();
+        expect(mid!.ch).toBe(2);
+
+        // Now h should move left within cell, not exit
+        await browser.keys(['h']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        expect(await hasCellEditor()).toBe(true);
+        expect(await hasTableNavHighlight()).toBe(false);
+        const after = await getCellCursorPos();
+        expect(after).not.toBeNull();
+        expect(after!.ch).toBe(1);
+    });
+
+    it('l at end of cell should exit to table-nav', async function () {
+        this.timeout(20000);
+        await setupTableDoc(TABLE_WIDE_CELLS);
+        await enterTableNav();
+
+        // Enter cell edit via insert mode, then Escape to normal mode
+        await browser.keys(['i']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await hasCellEditor()).toBe(true);
+        await browser.keys(['Escape']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await getCellVimMode()).toBe('normal');
+
+        // Move cursor to end of cell content with $
+        await browser.keys(['$']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        const atEnd = await getCellCursorPos();
+        expect(atEnd).not.toBeNull();
+
+        // l at end should exit to nav and navigate right
+        await browser.keys(['l']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        expect(await hasTableNavHighlight()).toBe(true);
+        const cell = await getHighlightedCell();
+        expect(cell).not.toBeNull();
+        expect(cell!.col).toBe(1);
+    });
+
+    it('h at start of cell should exit to table-nav', async function () {
+        this.timeout(20000);
+        await setupTableDoc(TABLE_WIDE_CELLS);
+        await enterTableNav();
+
+        // Navigate to second column, enter via insert mode, Escape to normal
+        await browser.keys(['l']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        await browser.keys(['i']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await hasCellEditor()).toBe(true);
+        await browser.keys(['Escape']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await getCellVimMode()).toBe('normal');
+
+        // Move cursor to start of cell with 0
+        await browser.keys(['0']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        // Cursor is at start of cell (ch=0), h should exit to nav
+        const atStart = await getCellCursorPos();
+        expect(atStart).not.toBeNull();
+        expect(atStart!.ch).toBe(0);
+
+        await browser.keys(['h']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        expect(await hasTableNavHighlight()).toBe(true);
+        const cell = await getHighlightedCell();
+        expect(cell).not.toBeNull();
+        expect(cell!.col).toBe(0);
+    });
+
+    it('insert mode → Escape → l should move cursor within cell, not navigate', async function () {
+        this.timeout(20000);
+        await setupTableDoc(TABLE_WIDE_CELLS);
+        await enterTableNav();
+
+        // Enter cell edit in insert mode
+        await browser.keys(['i']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await hasCellEditor()).toBe(true);
+        expect(await getCellVimMode()).toBe('insert');
+
+        // Type something to move cursor into the middle of the cell
+        await browser.keys(['X']);
+        await browser.pause(100);
+
+        // Escape to normal mode
+        await browser.keys(['Escape']);
+        await browser.pause(CELL_EDIT_PAUSE);
+        expect(await getCellVimMode()).toBe('normal');
+
+        // l should move cursor right within cell, not exit
+        await browser.keys(['l']);
+        await browser.pause(CELL_EDIT_PAUSE);
+
+        expect(await hasCellEditor()).toBe(true);
+        expect(await hasTableNavHighlight()).toBe(false);
+    });
+});
+
 describe('Table-nav edge cases', function () {
     before(async function () {
         this.timeout(30000);

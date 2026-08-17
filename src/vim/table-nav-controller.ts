@@ -33,7 +33,7 @@ import {
     pauseAnimatedCursorForView,
     resumeAnimatedCursorForView,
 } from './animated-cursor/config';
-import type { VimApi } from '../types/vim-api';
+import type { VimApi, CmAdapter } from '../types/vim-api';
 import {
     createTableNavKeyHandler,
     resetPendingState,
@@ -787,6 +787,8 @@ export class TableNavController implements PluginValue {
                 const adapter = getCmAdapterFromEditorView(cellView);
                 const vimState = adapter?.state?.vim ?? null;
                 if (!vimState || !isVimIdle(vimState)) return undefined;
+                if (!adapter || !this.cursorAtCellBoundary(adapter, direction))
+                    return undefined;
                 this.exitCellEditToNav();
                 this.navigate(direction);
                 return false;
@@ -802,6 +804,24 @@ export class TableNavController implements PluginValue {
         if (!s.cellEditScope || !this.app) return;
         popKeymapScope(this.app, s.cellEditScope);
         s.cellEditScope = null;
+    }
+
+    private cursorAtCellBoundary(
+        adapter: CmAdapter,
+        direction: 'h' | 'j' | 'k' | 'l',
+    ): boolean {
+        const head = adapter.getCursor();
+        if (direction === 'h') {
+            return head.ch <= 0;
+        }
+        if (direction === 'l') {
+            const lineLen = adapter.getLine(head.line)?.length ?? 0;
+            return head.ch >= lineLen - 1;
+        }
+        if (direction === 'j') {
+            return head.line >= adapter.lastLine();
+        }
+        return head.line <= adapter.firstLine();
     }
 
     private hasDataRows(table: TableRange): boolean {

@@ -88,7 +88,7 @@ src/
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
     table-utils.ts         # Table parsing, cell utilities, escape-aware pipe splitting
-    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides, deferred cursor placement in exitTable via window.requestAnimationFrame — destroys cell editor before placing cursor to prevent Obsidian's teardown from overriding cursor position, cellEditScope registers h/j/k/l handlers that exit to nav mode when vim is idle in normal mode — prevents cross-cell motion overrides from bypassing table-nav)
+    table-nav-controller.ts # Native table editor navigation overlay (KeyScope-based interception, fresh cmTile.widget references, hidden cell editor during navigation, uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides, deferred cursor placement in exitTable via window.requestAnimationFrame — destroys cell editor before placing cursor to prevent Obsidian's teardown from overriding cursor position, cellEditScope registers h/j/k/l handlers that check cursorAtCellBoundary before exiting to nav mode — h/l only exit when cursor is at first/last column, j/k only exit on last/first line; non-boundary keys pass through to vim for in-cell cursor movement)
     table-nav-state.ts      # Table navigation overlay state tracking
     table-nav-keymap.ts     # Table navigation and structural command mappings
     native-table-adapter.ts  # Typed abstraction for Obsidian's native TableEditor API access
