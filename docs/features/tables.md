@@ -72,7 +72,9 @@ Vim Motions includes built-in auto-formatting for tables:
 Vim Motions integrates with Obsidian's native table editor in Live Preview. Two rendering modes are available via `set tablewidget`:
 
 - **`native`** (default): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
-- **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview.
+- **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview. The vim cursor remains fully visible in raw mode — cursor suppression only activates when a native table widget is visible.
+
+In **source mode**, tables are always rendered as raw markdown regardless of the `tablewidget` setting. The cursor behaves normally — no cursor suppression occurs.
 
 The `tablenav` setting (on by default) controls whether the **table-nav overlay** activates on top of the native editor. With `tablenav` off, the native table editor still provides full vim cell editing with cross-cell `h`/`j`/`k`/`l` navigation — just without the overlay UI.
 

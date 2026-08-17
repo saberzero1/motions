@@ -21,6 +21,14 @@ function isTableCellEditor(view: EditorView): boolean {
     return view.dom.closest('.cm-table-widget') !== null;
 }
 
+function hasVisibleTableWidget(view: EditorView): boolean {
+    const widgets = view.dom.querySelectorAll('.cm-table-widget');
+    for (let i = 0; i < widgets.length; i++) {
+        if ((widgets[i] as HTMLElement).offsetParent !== null) return true;
+    }
+    return false;
+}
+
 function getParentEditorView(cellView: EditorView): EditorView | null {
     try {
         const info = cellView.state.field(editorInfoField);
@@ -44,10 +52,11 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
             if (isTableNavActive(update.state)) return;
             if (!(update.selectionSet || update.focusChanged)) return;
 
-            const tables = findTableRanges(update.state);
-            const inTable = tables.some((t) =>
-                cursorInRange(update.state, t.from, t.to),
-            );
+            const inTable =
+                hasVisibleTableWidget(update.view) &&
+                findTableRanges(update.state).some((t) =>
+                    cursorInRange(update.state, t.from, t.to),
+                );
             if (inTable && !this.cursorInTable) {
                 this.cursorInTable = true;
                 setCursorSuppressedForView(update.view, true);

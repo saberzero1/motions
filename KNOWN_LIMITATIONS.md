@@ -293,6 +293,8 @@ The plugin uses Obsidian's native table editor in Live Preview. Two rendering mo
 
 Old values (`off`, `cursor`, `always`, `embedded`) are automatically migrated to `native` or `raw`.
 
+~~**Cursor disappears when entering a table in source mode or raw mode**~~: Fixed. The `mainEditorTableCursorGuard` suppressed the vim cursor whenever the cursor entered a text range matching table syntax (lines starting with `|`), regardless of whether a native table widget was actually visible. In source mode (no `.cm-table-widget` elements) and raw mode (widgets hidden via `display: none`), the cursor was suppressed with no alternative cursor shown. Fixed by adding a `hasVisibleTableWidget()` check that verifies at least one `.cm-table-widget` element with a non-null `offsetParent` exists before suppressing the cursor. This also short-circuits the `findTableRanges()` document scan when no visible widgets exist. ([#132](https://github.com/saberzero1/motions/issues/132))
+
 **Table manipulation commands** (`<Leader>t` prefix and ex commands like `:tablerowafter`) call Obsidian commands via `executeCommandById`. In `native` mode, the native table widget is present and these commands work as expected.
 
 ## Vimrc soft-reload

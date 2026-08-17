@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor disappears when entering a table in source mode or raw mode** — when the cursor entered a table range in source mode or with `tableWidgetMode='raw'`, the vim cursor became invisible while editing still worked. Root cause: `mainEditorTableCursorGuard` suppressed the vim cursor whenever the cursor was in a text range matching table syntax (`findTableRanges()`), without checking whether a native table widget was actually visible. In source mode there are no `.cm-table-widget` elements; in raw mode they exist but are hidden via `display: none`. In both cases, the cursor was suppressed with no alternative cursor shown. Fixed by adding a `hasVisibleTableWidget()` check that requires at least one `.cm-table-widget` element with a non-null `offsetParent` before suppressing. The check also short-circuits the `findTableRanges()` document scan when no visible widgets exist. ([#132](https://github.com/saberzero1/motions/issues/132))
+    - Plugin: `src/vim/table-cell-cursor-guard.ts` (`hasVisibleTableWidget()` function; `mainEditorTableCursorGuard.update()` — gates cursor suppression on visible widget presence)
 - **Cell-edit `h`/`j`/`k`/`l` unconditionally exits to table-nav in normal mode** — when editing a table cell with table-nav enabled, pressing `h`/`j`/`k`/`l` in normal mode (after Escape from insert mode) immediately exited to table-nav and navigated to the adjacent cell, even when the cursor had room to move within the cell. Root cause: the `cellEditScope` hjkl handlers only checked `isVimIdle()` — if idle, they unconditionally called `exitCellEditToNav()` + `navigate()` without checking whether the cursor was at a cell boundary. Fixed by adding a `cursorAtCellBoundary()` method that checks cursor position against cell content bounds: `h` exits only at `ch <= 0`, `l` at `ch >= lineLen - 1`, `j` at last line, `k` at first line. When the cursor is not at the boundary, the handler returns `undefined` to let vim process the key as normal in-cell movement. ([#131](https://github.com/saberzero1/motions/issues/131))
     - Plugin: `src/vim/table-nav-controller.ts` (`cursorAtCellBoundary` method; `installCellEditScope` hjkl handlers — boundary check before `exitCellEditToNav`)
 
 ### Tests
 
+- 5 regression tests for cursor visibility in source mode and raw table mode in `test/specs/table-cursor-source-mode.e2e.ts` (issue #132): 3 source mode tests (cursor layer state unchanged on table line, after traversal, on data row) + 2 raw mode tests (widget hidden, cursor layer stable during repeated traversal)
 - 5 regression tests for cell-edit hjkl boundary behavior in `test/specs/table-nav-mode.e2e.ts` (issue #131): `l` mid-cell stays in cell, `h` mid-cell stays in cell, `l` at end exits to nav, `h` at start exits to nav, insert→Escape→`l` stays in cell
 
 - **Systematic e2e test audit** — audited all 126 non-spike e2e test files across 8 parallel analysis passes. Fixed ~60 individual test assertions across 40 files: replaced vacuous `toContain(already-present-substring)` assertions with exact buffer equality, added register preservation checks, converted conditional early-returns to mandatory assertions or visible `this.skip()` calls, removed 2 exact duplicate tests, and fixed 10 test name/behavior mismatches.
@@ -40,9 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: Updated cross-cell navigation description — `h`/`j`/`k`/`l` now move within cell when cursor is not at boundary (#131)
-- `CONTRIBUTING.md`: Updated `table-nav-controller.ts` description with `cursorAtCellBoundary` boundary check
-- `docs/features/tables.md`: Updated cell-edit behavior description — `h`/`j`/`k`/`l` move within cell before boundary exit
+- `KNOWN_LIMITATIONS.md`: Added cursor disappears in source/raw mode as fixed (#132); updated cross-cell navigation description — `h`/`j`/`k`/`l` now move within cell when cursor is not at boundary (#131)
+- `CONTRIBUTING.md`: Updated `table-cell-cursor-guard.ts` description with `hasVisibleTableWidget()` check; updated `table-nav-controller.ts` description with `cursorAtCellBoundary` boundary check
+- `docs/features/tables.md`: Added note about cursor visibility fix in source/raw mode; updated cell-edit behavior description — `h`/`j`/`k`/`l` move within cell before boundary exit
 - `AGENTS.md`: Updated test helpers description (strict behavior, `waitUntil` synchronization, `setPluginSettingAndReload`); added `afterTest` hook and vault fixtures documentation; added golden enforcement description; updated unit test list
 - `CONTRIBUTING.md`: Updated test infrastructure tree (vault fixtures, snippets subdirs, `test-wrapper.ts` golden enforcement); updated shared helper descriptions (strict behavior, `waitUntil`); added vault fixture and afterTest cleanup guidance to key testing rules
 
