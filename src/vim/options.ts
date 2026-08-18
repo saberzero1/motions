@@ -353,6 +353,11 @@ export function registerVimOptions(
         if (value === undefined) return;
         notify('foldcolumn', !!value, `set ${value ? '' : 'no'}foldcolumn`);
     });
+    vim.defineOption('foldenable', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        // The option syncs with the StateField via the zn/zN/zi actions.
+        // This registration just enables `set foldenable` / `set nofoldenable` in vimrc.
+    });
 
     vim.defineOption('flash', true, 'boolean', [], (value) => {
         if (value === undefined) return;

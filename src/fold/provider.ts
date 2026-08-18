@@ -4,6 +4,7 @@ import type { Extension, EditorState } from '@codemirror/state';
 const FRONTMATTER_DELIM = /^---\s*$/;
 const CALLOUT_START = /^(\s*>)\s*\[!.+\]/;
 const QUOTE_LINE = /^\s*>/;
+const HEADING_RE = /^(#{1,6})\s/;
 
 function frontmatterFold(
     state: EditorState,
@@ -43,12 +44,37 @@ function calloutFold(
     return { from: lineEnd, to: endPos };
 }
 
+function headingFold(
+    state: EditorState,
+    lineStart: number,
+    lineEnd: number,
+): { from: number; to: number } | null {
+    const line = state.doc.lineAt(lineStart);
+    const match = HEADING_RE.exec(line.text);
+    if (!match?.[1]) return null;
+    const level = match[1].length;
+
+    let lastContentLine = -1;
+    for (let i = line.number + 1; i <= state.doc.lines; i++) {
+        const next = state.doc.line(i);
+        const nextMatch = HEADING_RE.exec(next.text);
+        if (nextMatch?.[1] && nextMatch[1].length <= level) break;
+        if (next.text.trim().length > 0) lastContentLine = i;
+    }
+
+    if (lastContentLine === -1) return null;
+    const endLine = state.doc.line(lastContentLine);
+    if (endLine.to <= lineEnd) return null;
+    return { from: lineEnd, to: endLine.to };
+}
+
 export function markdownFoldProvider(): Extension {
     return [
         foldService.of((state, lineStart, lineEnd) => {
             return (
                 frontmatterFold(state, lineStart, lineEnd) ??
-                calloutFold(state, lineStart, lineEnd)
+                calloutFold(state, lineStart, lineEnd) ??
+                headingFold(state, lineStart, lineEnd)
             );
         }),
     ];

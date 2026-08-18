@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Fold navigation motions (`zj`, `zk`, `[z`, `]z`)** — `zj` moves to the start of the next foldable region (skipping child folds within the current heading's range, matching Neovim's sibling-fold semantics). `zk` moves to the end of the previous foldable region. `[z`/`]z` navigate to the start/end of the enclosing foldable region. All four support counts (`3zj`), operator-pending mode (`dzj`), and record to the jump list. Ex command aliases: `:foldnext`, `:foldprev`, `:foldstart`, `:foldend`.
+    - Plugin: `src/fold/motions.ts` (NEW — `findNextFoldable`, `findPrevFoldable`, `findEnclosingFoldable`, `foldedRangesWithin`, `foldableRegionsWithin`, `foldNext`, `foldPrev`, `foldStart`, `foldEnd`)
+    - Plugin: `src/fold/commands.ts` (registered motions + ex commands)
+- **Fold state commands (`zn`, `zN`, `zi`, `zv`, `zF`, `zx`, `zX`)** — `zn` disables folding (opens all folds, prevents new folds). `zN` re-enables folding. `zi` toggles. `zv` opens folds to reveal cursor line. `zF` creates a fold for [count] lines. `zx`/`zX` reapply fold level (preserving manual folds). Configure via `set foldenable` / `set nofoldenable` in vimrc or `vim.opt.foldenable` in Lua.
+    - Plugin: `src/fold/fold-enable.ts` (NEW — `foldEnableField` StateField, `isFoldingEnabled` guard, `zn`/`zN`/`zi` actions)
+    - Plugin: `src/fold/commands.ts` (`zv`, `zF` actions)
+    - Plugin: `src/fold/fold-level.ts` (`zx`, `zX` actions)
+    - Plugin: `src/vim/options.ts` (`foldenable` vim option)
+- **Heading fold provider with trailing blank line trimming** — custom `foldService` provider for Markdown headings that trims trailing blank lines from fold ranges, matching Neovim's treesitter fold boundaries. Overrides Obsidian's built-in `foldNodeProp`-based heading folds.
+    - Plugin: `src/fold/provider.ts` (`headingFold` function added to `markdownFoldProvider`)
+
+### Changed
+
+- **Recursive fold operations (`zO`, `zC`, `zA`, `zD`)** — uppercase fold commands now operate recursively on all folds within the cursor's foldable region using range containment. Previously mapped identically to lowercase variants.
+    - Plugin: `src/workspace/navigation.ts` (`foldOpenRecursiveAction`, `foldCloseRecursiveAction`, `foldToggleRecursiveAction`)
+    - Plugin: `src/fold/commands.ts` (`foldDeleteRecursiveAction`)
+- **Fold-enable guards** — fold-creating/closing actions (`zc`, `za`, `zM`, `zm`, `zf`, `zF`) respect the `foldenable` state. Unfold operations (`zo`, `zR`, `zr`, `zv`) always work regardless of `foldenable`.
+    - Plugin: `src/fold/commands.ts`, `src/workspace/navigation.ts`, `src/fold/fold-level.ts`
+
+### Tests
+
+- 12 Neovim golden test definitions for fold motions in `test/neovim/test-definitions.ts` (`fold-motions` suite with treesitter fold setup)
+- 16 E2E tests in `test/specs/vim-builtin/fold-motions.e2e.ts`: 12 golden comparison tests + 4 plugin-specific tests (operator-pending `dzj`/`dzk`, no-op without foldable regions)
+- 3 known deviations registered in `test/neovim/deviations.ts`: `zk` count (treesitter fold hierarchy), `[z`/`]z` (fold body vs heading boundary)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: Updated `zO`/`zC`/`zA` and `zn`/`zN` rows as fixed; updated golden test coverage table with new fold commands
+- `CONTRIBUTING.md`: Updated `src/fold/` structure with new files
+- `README.md`: Updated Folding feature description
+- `docs/reference/keybindings.md`: Added Fold commands section
+- `docs/features/workspace-navigation.md`: Added Fold motions, Fold state, Recursive fold sections
+- `docs/configuration/settings.md`: Added `foldenable` option
+
 ## [0.114.0] - 2026-08-18
 
 ### Fixed

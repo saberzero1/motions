@@ -62,6 +62,7 @@ On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On
 | Workspace navigation view types | text     | `(empty)` | —                    | `vim.opt.workspacenavviewtypes` | `set workspacenavviewtypes` | Comma-separated view types where scroll and count keys are intercepted. Empty uses defaults (markdown, graph, pdf, canvas, empty, image, bases). |
 | Fold-aware navigation           | toggle   | `true`    | —                    | `vim.opt.foldawarenavigation`   | `set foldawarenavigation`   | Automatically unfold sections when navigating into them (e.g., `]h` into a folded heading). Matches Neovim's default `foldopen` behavior.        |
 | Fold persistence                | toggle   | `false`   | —                    | `vim.opt.foldpersistence`       | `set foldpersistence`       | Remember fold state across file switches and sessions. Capped at 500 files, 30-day TTL.                                                          |
+| Fold enable/disable             | toggle   | `true`    | —                    | `vim.opt.foldenable`            | `set foldenable`            | Enable or disable folding. When disabled (`zn`), all folds are opened and fold-creating commands become no-ops. Re-enable with `zN` or `zi`.     |
 
 > [!warning]
 > **Workspace navigation**: `<C-w>`, `Ctrl-d`, `Ctrl-f`, and `Ctrl-b` may conflict with Obsidian's default hotkeys. The plugin detects these conflicts on startup and shows a Notice. Use the **Check hotkey conflicts** button in this settings group to see active conflicts and unbinding instructions.

@@ -347,15 +347,36 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `<leader>rn`        | Rename current note                                           | —      |
 | `<leader>rb`        | Show backlinks to current note                                | —      |
 | `<leader>ra`        | Show context actions for current note                         | —      |
-| `g;` / `g,`         | Jump to older/newer change position                           | —      |
-| `za`                | Toggle fold at cursor                                         | —      |
-| `zc` / `zo`         | Fold / unfold at cursor                                       | —      |
-| `zO` / `zC` / `zA`  | Recursive fold open/close/toggle                              | —      |
-| `zM` / `zR`         | Fold all / unfold all                                         | —      |
-| `zf{motion}`        | Create fold over motion range                                 | —      |
-| `zd` / `zD`         | Delete fold at cursor                                         | —      |
-| `zE`                | Eliminate all folds                                           | —      |
-| `zm` / `zr`         | Fold more / fold less (by heading level)                      | —      |
+
+## Fold commands
+
+| Keybinding   | Description                                 |
+| ------------ | ------------------------------------------- |
+| `zo`         | Open fold at cursor                         |
+| `zO`         | Open fold at cursor recursively             |
+| `zc`         | Close fold at cursor                        |
+| `zC`         | Close fold at cursor recursively            |
+| `za`         | Toggle fold at cursor                       |
+| `zA`         | Toggle fold at cursor recursively           |
+| `zd`         | Delete fold at cursor                       |
+| `zD`         | Delete fold at cursor recursively           |
+| `zf{motion}` | Create fold for {motion} text               |
+| `zF`         | Create fold for [count] lines               |
+| `zE`         | Eliminate all folds                         |
+| `zm`         | Fold more (increment fold level)            |
+| `zM`         | Close all folds                             |
+| `zr`         | Fold less (decrement fold level)            |
+| `zR`         | Open all folds                              |
+| `zn`         | Fold none — disable folding, open all folds |
+| `zN`         | Fold normal — re-enable folding             |
+| `zi`         | Toggle fold enable                          |
+| `zv`         | Open enough folds to view cursor line       |
+| `zx`         | Reapply fold level and reveal cursor        |
+| `zX`         | Reapply fold level                          |
+| `zj`         | Move to start of next fold                  |
+| `zk`         | Move to end of previous fold                |
+| `[z`         | Move to start of current fold               |
+| `]z`         | Move to end of current fold                 |
 
 ## Select mode
 

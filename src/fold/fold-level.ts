@@ -9,6 +9,7 @@ import type { EditorView } from '@codemirror/view';
 import type { ActionFn, CmAdapter } from '../types/vim-api';
 import type { VimRegistration } from '../vim/registration';
 import { exCommandFromAction } from '../keybindings/action-registry';
+import { isFoldingEnabled } from './fold-enable';
 
 const HEADING_RE = /^(#{1,6})\s/;
 
@@ -90,6 +91,7 @@ function unfoldHeadingsAtLevel(view: EditorView, level: number): void {
 }
 
 const foldMoreAction: ActionFn = (cm: CmAdapter) => {
+    if (!isFoldingEnabled(cm)) return;
     const view = cm.cm6;
     if (!view) return;
     const currentLevel = view.state.field(foldLevelField, false) ?? 0;
@@ -108,6 +110,37 @@ const foldLessAction: ActionFn = (cm: CmAdapter) => {
     view.dispatch({ effects: setFoldLevel.of(currentLevel - 1) });
 };
 
+const reapplyFoldLevelAction: ActionFn = (cm: CmAdapter) => {
+    const view = cm.cm6;
+    if (!view) return;
+    const currentLevel = view.state.field(foldLevelField, false) ?? 0;
+    for (let level = 1; level <= 6; level++) {
+        unfoldHeadingsAtLevel(view, level);
+    }
+    for (let level = 1; level <= currentLevel; level++) {
+        foldHeadingsAtLevel(view, level);
+    }
+};
+
+const reapplyFoldLevelViewAction: ActionFn = (cm: CmAdapter) => {
+    reapplyFoldLevelAction(cm, { repeat: 1 }, cm.state.vim ?? {});
+    const view = cm.cm6;
+    if (!view) return;
+    const pos = view.state.selection.main.head;
+    const folded = foldedRanges(view.state);
+    const effects: StateEffect<{ from: number; to: number }>[] = [];
+    const iter = folded.iter();
+    while (iter.value) {
+        if (iter.from <= pos && iter.to >= pos) {
+            effects.push(unfoldEffect.of({ from: iter.from, to: iter.to }));
+        }
+        iter.next();
+    }
+    if (effects.length > 0) {
+        view.dispatch({ effects });
+    }
+};
+
 export function foldLevelExtension(): Extension {
     return foldLevelField;
 }
@@ -120,4 +153,10 @@ export function registerFoldLevelCommands(reg: VimRegistration): void {
     reg.defineAction('foldLess', foldLessAction);
     reg.mapCommand('zr', 'action', 'foldLess', {});
     exCommandFromAction(reg, 'foldless', 'foldl', foldLessAction);
+
+    reg.defineAction('reapplyFoldLevel', reapplyFoldLevelAction);
+    reg.mapCommand('zX', 'action', 'reapplyFoldLevel', {});
+
+    reg.defineAction('reapplyFoldLevelView', reapplyFoldLevelViewAction);
+    reg.mapCommand('zx', 'action', 'reapplyFoldLevelView', {});
 }

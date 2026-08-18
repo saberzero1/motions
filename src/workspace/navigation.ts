@@ -1,6 +1,21 @@
 import { MarkdownView, Notice } from 'obsidian';
 import type { App } from 'obsidian';
-import { foldCode, unfoldCode, toggleFold } from '@codemirror/language';
+import {
+    foldCode,
+    foldEffect,
+    foldable,
+    foldedRanges,
+    toggleFold,
+    unfoldCode,
+    unfoldEffect,
+} from '@codemirror/language';
+import type { StateEffect } from '@codemirror/state';
+import {
+    findEnclosingFoldable,
+    foldableRegionsWithin,
+    foldedRangesWithin,
+} from '../fold/motions';
+import { isFoldingEnabled } from '../fold/fold-enable';
 import { registerFoldLevelCommands } from '../fold/fold-level';
 import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
@@ -173,6 +188,7 @@ export function registerWorkspaceNavigation(
     leaderRegistry: LeaderRegistry,
     enableReplaceWithRegister = true,
 ): void {
+    void leaderRegistry;
     const focusLeft = createCommandAction(app, 'editor:focus-left');
     reg.defineAction('focusPaneLeft', focusLeft);
     reg.mapCommand('<C-w>h', 'action', 'focusPaneLeft', {});
@@ -279,6 +295,7 @@ export function registerWorkspaceNavigation(
     // heading level at a time across the whole document) rather than
     // cursor-based like Vim's zc/zo.
     const foldCloseAction: ActionFn = (cm: CmAdapter) => {
+        if (!isFoldingEnabled(cm)) return;
         const view = cm.cm6;
         if (view) foldCode(view);
     };
@@ -295,6 +312,7 @@ export function registerWorkspaceNavigation(
     exCommandFromAction(reg, 'foldopen', 'foldo', foldOpenAction);
 
     const foldToggleAction: ActionFn = (cm: CmAdapter) => {
+        if (!isFoldingEnabled(cm)) return;
         const view = cm.cm6;
         if (view) toggleFold(view);
     };
@@ -302,7 +320,101 @@ export function registerWorkspaceNavigation(
     reg.mapCommand('za', 'action', 'foldToggle', {});
     exCommandFromAction(reg, 'foldtoggle', 'foldt', foldToggleAction);
 
-    const foldAllAction = createCommandAction(app, 'editor:fold-all');
+    const foldOpenRecursiveAction: ActionFn = (cm: CmAdapter) => {
+        const view = cm.cm6;
+        if (!view) return;
+        const pos = view.state.selection.main.head;
+        const line = view.state.doc.lineAt(pos);
+        const outerRange = foldable(view.state, line.from, line.to);
+        const range = outerRange ?? findEnclosingFoldable(view.state, pos);
+        if (!range) {
+            unfoldCode(view);
+            return;
+        }
+        const allFolded = foldedRangesWithin(view.state, range.from, range.to);
+        if (allFolded.length === 0) {
+            unfoldCode(view);
+            return;
+        }
+        const effects = allFolded.map((r) => unfoldEffect.of(r));
+        view.dispatch({ effects });
+    };
+    reg.defineAction('foldOpenRecursive', foldOpenRecursiveAction);
+
+    const foldCloseRecursiveAction: ActionFn = (cm: CmAdapter) => {
+        if (!isFoldingEnabled(cm)) return;
+        const view = cm.cm6;
+        if (!view) return;
+        const pos = view.state.selection.main.head;
+        const line = view.state.doc.lineAt(pos);
+        const outerRange = foldable(view.state, line.from, line.to);
+        const range = outerRange ?? findEnclosingFoldable(view.state, pos);
+        if (!range) {
+            foldCode(view);
+            return;
+        }
+        const regions = foldableRegionsWithin(view.state, range.from, range.to);
+        regions.sort((a, b) => b.from - a.from);
+        if (
+            outerRange &&
+            !regions.some(
+                (current) =>
+                    current.from === outerRange.from &&
+                    current.to === outerRange.to,
+            )
+        ) {
+            regions.push(outerRange);
+        }
+        const folded = foldedRanges(view.state);
+        const effects: StateEffect<{ from: number; to: number }>[] = [];
+        for (const r of regions) {
+            let alreadyFolded = false;
+            const iter = folded.iter(r.from);
+            while (iter.value) {
+                if (iter.from === r.from && iter.to === r.to) {
+                    alreadyFolded = true;
+                    break;
+                }
+                if (iter.from > r.to) break;
+                iter.next();
+            }
+            if (!alreadyFolded) {
+                effects.push(foldEffect.of(r));
+            }
+        }
+        if (effects.length > 0) {
+            view.dispatch({ effects });
+        }
+    };
+    reg.defineAction('foldCloseRecursive', foldCloseRecursiveAction);
+
+    const foldToggleRecursiveAction: ActionFn = (cm: CmAdapter) => {
+        const view = cm.cm6;
+        if (!view) return;
+        const pos = view.state.selection.main.head;
+        const line = view.state.doc.lineAt(pos);
+        const folded = foldedRanges(view.state);
+        let isFolded = false;
+        const iter = folded.iter();
+        while (iter.value) {
+            if (iter.from <= line.to && iter.to >= line.from) {
+                isFolded = true;
+                break;
+            }
+            iter.next();
+        }
+        if (isFolded) {
+            foldOpenRecursiveAction(cm, { repeat: 1 }, cm.state.vim ?? {});
+        } else {
+            foldCloseRecursiveAction(cm, { repeat: 1 }, cm.state.vim ?? {});
+        }
+    };
+    reg.defineAction('foldToggleRecursive', foldToggleRecursiveAction);
+
+    const foldAllAction: ActionFn = (cm: CmAdapter) => {
+        if (!isFoldingEnabled(cm)) return;
+        executeCommand(app, 'editor:fold-all');
+    };
     reg.defineAction('foldAll', foldAllAction);
     reg.mapCommand('zM', 'action', 'foldAll', {});
     exCommandFromAction(reg, 'foldall', 'folda', foldAllAction);
@@ -378,9 +490,9 @@ export function registerWorkspaceNavigation(
     reg.defineAction('pasteBeforeMove', pasteBeforeMoveAction);
     reg.mapCommand('gP', 'action', 'pasteBeforeMove', {});
 
-    reg.mapCommand('zO', 'action', 'foldOpen', {});
-    reg.mapCommand('zC', 'action', 'foldClose', {});
-    reg.mapCommand('zA', 'action', 'foldToggle', {});
+    reg.mapCommand('zO', 'action', 'foldOpenRecursive', {});
+    reg.mapCommand('zC', 'action', 'foldCloseRecursive', {});
+    reg.mapCommand('zA', 'action', 'foldToggleRecursive', {});
 
     registerFoldLevelCommands(reg);
 

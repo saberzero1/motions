@@ -168,11 +168,13 @@ src/
     state.ts               # Flash active flag, clever-f state tracking
     search-mode.ts         # Post-commit search labels (/ and ? integration)
   fold/
-    commands.ts            # Fold commands (zf, zd, zE, zm, zr, etc.)
-    provider.ts            # Fold providers (frontmatter, callouts, custom)
+    commands.ts            # Fold commands (zf, zd, zD, zE, zv, zF) + fold motions (zj, zk, [z, ]z) registration
+    motions.ts             # Fold navigation motions + shared utilities (findNextFoldable, findEnclosingFoldable, foldedRangesWithin, foldableRegionsWithin)
+    fold-enable.ts         # Fold enable/disable state (foldEnableField, isFoldingEnabled, zn/zN/zi)
+    provider.ts            # Fold providers (frontmatter, callouts, headings — heading provider trims trailing blank lines)
     persistence.ts         # Cross-session fold persistence
     placeholder.ts         # Descriptive fold placeholder text
-    fold-level.ts          # Fold level tracking
+    fold-level.ts          # Fold level tracking + reapply (zx/zX)
   lua/
     engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)

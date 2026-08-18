@@ -3027,4 +3027,93 @@ export const SUITES: SuiteDefinition[] = [
             },
         ],
     },
+    {
+        name: 'fold-motions',
+        nvimSetup: [
+            'set foldmethod=expr',
+            'set foldexpr=v:lua.vim.treesitter.foldexpr()',
+            'set filetype=markdown',
+        ],
+        cases: [
+            {
+                name: 'zj moves to next foldable heading',
+                content:
+                    '# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text',
+                cursor: { line: 0, ch: 0 },
+                keys: 'zj',
+            },
+            {
+                name: 'zj with count skips folds',
+                content:
+                    '# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText',
+                cursor: { line: 0, ch: 0 },
+                keys: '2zj',
+            },
+            {
+                name: 'zj at last fold is no-op',
+                content: '# Heading 1\n\nText\n\n## Heading 2\n\nText',
+                cursor: { line: 4, ch: 0 },
+                keys: 'zj',
+            },
+            {
+                name: 'zj from non-fold line',
+                content:
+                    'Plain text\n\n# Heading 1\n\nSome content\n\n## Heading 2\n\nMore content',
+                cursor: { line: 0, ch: 0 },
+                keys: 'zj',
+            },
+            {
+                name: 'zk moves to end of previous fold',
+                content:
+                    '# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text',
+                cursor: { line: 8, ch: 0 },
+                keys: 'zk',
+            },
+            {
+                name: 'zk with count skips folds backward',
+                content:
+                    '# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText',
+                cursor: { line: 12, ch: 0 },
+                keys: '2zk',
+            },
+            {
+                name: 'zk at first fold is no-op',
+                content: '# Heading 1\n\nText\n\n## Heading 2\n\nText',
+                cursor: { line: 0, ch: 0 },
+                keys: 'zk',
+            },
+            {
+                name: '[z moves to start of enclosing fold',
+                content:
+                    '# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText',
+                cursor: { line: 2, ch: 0 },
+                keys: '[z',
+            },
+            {
+                name: '[z on fold start line is no-op',
+                content: '# Heading 1\n\nSome text\n\n## Heading 2\n\nText',
+                cursor: { line: 0, ch: 0 },
+                keys: '[z',
+            },
+            {
+                name: '[z when not inside fold is no-op',
+                content: 'Plain text\n\nMore plain text',
+                cursor: { line: 0, ch: 0 },
+                keys: '[z',
+            },
+            {
+                name: ']z moves to end of enclosing fold',
+                content:
+                    '# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText',
+                cursor: { line: 2, ch: 0 },
+                keys: ']z',
+            },
+            {
+                name: ']z at fold end is no-op',
+                content: '# Heading 1\n\nSome text',
+                cursor: { line: 2, ch: 0 },
+                keys: ']z',
+            },
+        ],
+    },
 ];

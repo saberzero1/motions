@@ -94,6 +94,7 @@ import {
 } from './vim/yank-highlight';
 import { foldSyncExtension, setFoldAwareNavigation } from './vim/fold-sync';
 import { foldLevelExtension } from './fold/fold-level';
+import { foldEnableExtension } from './fold/fold-enable';
 import { markdownFoldProvider } from './fold/provider';
 import { FoldPersistenceStore } from './fold/persistence';
 import { foldPlaceholderExtension } from './fold/placeholder';
@@ -2244,6 +2245,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerEditorExtension(createAutocmdEventExtension());
         this.registerEditorExtension(skipInTableCells(foldSyncExtension()));
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
+        this.registerEditorExtension(skipInTableCells(foldEnableExtension()));
         this.registerEditorExtension(skipInTableCells(foldLevelExtension()));
         this.registerEditorExtension(skipInTableCells(markdownFoldProvider()));
         this.registerEditorExtension(

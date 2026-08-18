@@ -1,0 +1,319 @@
+{
+    "suite": "fold-motions",
+    "neovim_version": "0.12.4",
+    "recorded_at": "2026-08-18T13:02:57.783Z",
+    "cases": [
+        {
+            "name": "zj moves to next foldable heading",
+            "initial": {
+                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "zj",
+            "result": {
+                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
+                "cursor": {
+                    "line": 8,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "zj with count skips folds",
+            "initial": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2zj",
+            "result": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
+                "cursor": {
+                    "line": 12,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "zj at last fold is no-op",
+            "initial": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                }
+            },
+            "keys": "zj",
+            "result": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 4,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "zj from non-fold line",
+            "initial": {
+                "content": "Plain text\n\n# Heading 1\n\nSome content\n\n## Heading 2\n\nMore content",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "zj",
+            "result": {
+                "content": "Plain text\n\n# Heading 1\n\nSome content\n\n## Heading 2\n\nMore content",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "zk moves to end of previous fold",
+            "initial": {
+                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
+                "cursor": {
+                    "line": 8,
+                    "ch": 0
+                }
+            },
+            "keys": "zk",
+            "result": {
+                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
+                "cursor": {
+                    "line": 6,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "zk with count skips folds backward",
+            "initial": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
+                "cursor": {
+                    "line": 12,
+                    "ch": 0
+                }
+            },
+            "keys": "2zk",
+            "result": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
+                "cursor": {
+                    "line": 10,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "zk at first fold is no-op",
+            "initial": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "zk",
+            "result": {
+                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[z moves to start of enclosing fold",
+            "initial": {
+                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "[z",
+            "result": {
+                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[z on fold start line is no-op",
+            "initial": {
+                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "[z",
+            "result": {
+                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[z when not inside fold is no-op",
+            "initial": {
+                "content": "Plain text\n\nMore plain text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "[z",
+            "result": {
+                "content": "Plain text\n\nMore plain text",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "]z moves to end of enclosing fold",
+            "initial": {
+                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "]z",
+            "result": {
+                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "]z at fold end is no-op",
+            "initial": {
+                "content": "# Heading 1\n\nSome text",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "]z",
+            "result": {
+                "content": "# Heading 1\n\nSome text",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "67891\nabcde\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        }
+    ]
+}

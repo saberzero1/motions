@@ -13,11 +13,28 @@ export interface Deviation {
 
 export const KNOWN_DEVIATIONS: Deviation[] = [
     {
-        testPattern: /zO|zC|zA/,
-        description: 'Recursive fold operations map to non-recursive',
-        reason: "Obsidian fold API doesn't distinguish recursive from non-recursive",
-        fields: ['content'],
-        category: 'upstream-unsupported',
+        testPattern: /zk with count skips folds backward/,
+        description:
+            '2zk fold traversal differs — Neovim treesitter markdown fold structure differs from heading-level fold provider',
+        reason: 'Neovim treesitter creates different fold hierarchy for nested headings than our heading fold provider',
+        fields: ['cursor'],
+        category: 'infra-limitation',
+    },
+    {
+        testPattern: /\[z moves to start of enclosing fold/,
+        description:
+            '[z enclosing fold boundary differs — CM6 foldable region starts at heading line vs Neovim fold body',
+        reason: 'CM6 foldable() range starts at the heading line; Neovim treesitter fold starts at first content line',
+        fields: ['cursor'],
+        category: 'infra-limitation',
+    },
+    {
+        testPattern: /\]z moves to end of enclosing fold/,
+        description:
+            ']z enclosing fold boundary differs — CM6 foldable region ends differently from Neovim treesitter',
+        reason: 'CM6 foldable() range boundaries differ from Neovim treesitter fold boundaries',
+        fields: ['cursor'],
+        category: 'infra-limitation',
     },
     {
         testPattern: /\bgf\b/,

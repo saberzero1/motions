@@ -81,6 +81,22 @@ Control Markdown folding with standard Vim fold commands:
 - `zm`: Fold one more heading level (incrementally folds h1, then h2, etc.).
 - `zr`: Fold one less heading level (unfolds the most recently folded level).
 
+### Fold motions
+
+`zj` and `zk` move between foldable regions in the document. `zj` moves to the start of the next foldable region below the cursor; `zk` moves to the end of the previous foldable region above the cursor. Both work with counts (e.g., `3zj` skips to the 3rd fold) and operators (e.g., `dzj` deletes to the next fold).
+
+`[z` and `]z` navigate within the current fold. `[z` jumps to the start of the enclosing foldable region; `]z` jumps to its end. If the cursor is not inside a foldable region, these are no-ops.
+
+### Fold state
+
+`zn` disables folding (opens all folds and prevents new folds from being created). `zN` re-enables folding. `zi` toggles between the two states. Configure via `set foldenable` / `set nofoldenable` in vimrc or `vim.opt.foldenable` in Lua.
+
+`zv` opens just enough folds to make the cursor line visible. `zx` reapplies the current fold level (from `zm`/`zr`) and then reveals the cursor line. `zX` reapplies the fold level without revealing the cursor.
+
+### Recursive fold operations
+
+The uppercase fold commands (`zO`, `zC`, `zA`, `zD`) operate recursively on all folds within the cursor's fold region, while the lowercase variants (`zo`, `zc`, `za`, `zd`) operate on a single fold level.
+
 In addition to heading-level folds, the plugin provides dedicated fold providers for **frontmatter** (`---` blocks) and **callouts** (`> [!type]`), making them foldable via `zc`/`zo`/`za`. Folded regions show descriptive placeholder text including the heading title, code language, or callout type.
 
 When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-aware navigation**), navigating into a folded section with `]h`, `[h`, `j`, `k`, or any motion will automatically unfold it. This is off by default for backwards compatibility.
