@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.115.1] - 2026-08-18
+
+### Fixed
+
+- CI issue with obsidian-workflows.
+
 ## [0.115.0] - 2026-08-18
 
 ### Added
