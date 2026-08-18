@@ -31,10 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.113.0
+## What's new in 0.114.0
 
-- **Cursor no longer disappears in source/raw tables** — entering a table in source mode or with `tableWidgetMode='raw'` no longer hides the vim cursor. The cursor guard now checks for visible table widgets before suppressing. ([#132](https://github.com/saberzero1/motions/issues/132))
-- **Cell-edit `h`/`j`/`k`/`l` respects cursor position** — normal-mode movement inside a table cell now moves within the cell when the cursor isn't at a boundary, instead of unconditionally exiting to table-nav. ([#131](https://github.com/saberzero1/motions/issues/131))
-- **Test infrastructure overhaul** — systematic audit of 126 e2e test files (~60 assertion fixes across 40 files), strict helpers with `waitUntil` synchronization, global `afterTest` cleanup hook, golden enforcement for `testWithNeovim`, and 96 new unit tests across 6 files.
+- **Vim engine settings no longer lock on iPad** — typing in the "Insert mode escape" field (and other vim engine settings like `timeoutlen`, `operatorshadowtimeout`) on iPad with Magic Keyboard no longer greys out the field. Two root causes fixed: `vim.setOption()` in `onChange` re-added the setting to `vimrcOverrides`, and the initial settings sync in `reloadFeatures()` marked non-default values as overridden. ([#125](https://github.com/saberzero1/motions/issues/125))
 
 See the [[changelog|full changelog]] for details.
