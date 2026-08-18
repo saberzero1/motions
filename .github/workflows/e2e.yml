@@ -26,12 +26,20 @@ jobs:
             image: ghcr.io/${{ github.repository }}/e2e-runner:latest
             env:
                 DISPLAY: ':99'
+            options: --shm-size=2g
         strategy:
             fail-fast: false
             matrix:
                 spec: ${{ fromJson(needs.discover.outputs.specs) }}
 
         steps:
+            - name: Start virtual display
+              run: |
+                  Xvfb "$DISPLAY" -screen 0 1280x1024x24 +extension GLX -noreset &
+                  for _ in $(seq 1 30); do xdpyinfo -display "$DISPLAY" >/dev/null 2>&1 && break; sleep 0.2; done
+                  herbstluftwm &
+                  for _ in $(seq 1 30); do herbstclient list_monitors >/dev/null 2>&1 && break; sleep 0.2; done
+
             - uses: actions/checkout@v6
 
             - name: Cache npm dependencies
