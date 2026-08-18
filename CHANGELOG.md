@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.115.0] - 2026-08-18
+
 ### Added
 
 - **Fold navigation motions (`zj`, `zk`, `[z`, `]z`)** — `zj` moves to the start of the next foldable region (skipping child folds within the current heading's range, matching Neovim's sibling-fold semantics). `zk` moves to the end of the previous foldable region. `[z`/`]z` navigate to the start/end of the enclosing foldable region. All four support counts (`3zj`), operator-pending mode (`dzj`), and record to the jump list. Ex command aliases: `:foldnext`, `:foldprev`, `:foldstart`, `:foldend`.

@@ -31,8 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.114.0
+## What's new in 0.115.0
 
-- **Vim engine settings no longer lock on iPad** — typing in the "Insert mode escape" field (and other vim engine settings like `timeoutlen`, `operatorshadowtimeout`) on iPad with Magic Keyboard no longer greys out the field. Two root causes fixed: `vim.setOption()` in `onChange` re-added the setting to `vimrcOverrides`, and the initial settings sync in `reloadFeatures()` marked non-default values as overridden. ([#125](https://github.com/saberzero1/motions/issues/125))
+- **Fold navigation motions (`zj`, `zk`, `[z`, `]z`)** — `zj`/`zk` jump to the next/previous foldable region (sibling-fold semantics matching Neovim), `[z`/`]z` navigate to the start/end of the enclosing fold. All support counts, operator-pending mode, and jump list recording.
+- **Fold state commands (`zn`, `zN`, `zi`, `zv`, `zF`, `zx`, `zX`)** — disable/enable/toggle folding, reveal cursor line, create folds, reapply fold level. Configure via `set foldenable` in vimrc or `vim.opt.foldenable` in Lua.
+- **Recursive fold operations (`zO`, `zC`, `zA`, `zD`)** — uppercase fold commands now operate recursively on all nested folds within the cursor's region (previously identical to lowercase variants).
+- **Heading fold provider** — custom fold provider for Markdown headings that trims trailing blank lines from fold ranges, matching Neovim's treesitter fold boundaries.
 
 See the [[changelog|full changelog]] for details.
