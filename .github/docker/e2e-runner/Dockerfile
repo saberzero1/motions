@@ -34,6 +34,7 @@ RUN apt-get update -q \
         git \
     && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -yq --no-install-recommends nodejs \
+    && corepack enable \
     && rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **E2E CI: custom Docker runner image** — the e2e workflow now runs each spec inside a custom container image (`ghcr.io/<repo>/e2e-runner:latest`) with Xvfb, herbstluftwm, Node.js 24, and Electron system dependencies pre-installed. The entrypoint starts the virtual display with readiness polling (polls `xdpyinfo` and `herbstclient` every 200ms, fails after 6s) instead of the previous `sleep 1` race condition. Eliminates per-runner `apt-get update` + `apt-get install` (~30s per shard × 79 shards). The image is built and pushed to GHCR by `.github/workflows/docker-e2e-runner.yml` on Dockerfile changes or manual dispatch.
+    - New: `.github/docker/e2e-runner/Dockerfile` (Ubuntu 24.04 base, Xvfb, herbstluftwm, dzen2, x11-xserver-utils, Electron deps, Node.js 24)
+    - New: `.github/docker/e2e-runner/entrypoint.sh` (Xvfb + herbstluftwm readiness polling, `exec "$@"` handoff)
+    - New: `.github/workflows/docker-e2e-runner.yml` (build + push to GHCR on Dockerfile changes)
+    - Changed: `.github/workflows/e2e.yml` (uses `container:` with the custom image, removed `Setup virtual display` step and `actions/setup-node`, added npm cache via `actions/cache`)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: Added CI container image documentation to Automated testing section
+- `CONTRIBUTING.md`: Added CI infrastructure note to Running E2E tests section
+
 ## [0.115.2] - 2026-08-18
 
 ## [0.115.1] - 2026-08-18

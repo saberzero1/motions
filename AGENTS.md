@@ -116,6 +116,7 @@ npm run build
 - **Framework**: WebDriverIO v9 + Mocha, running against a real Obsidian instance via `wdio-obsidian-service`.
 - **Run**: `npm run test:e2e` (requires Xvfb + herbstluftwm on Linux, or native display on macOS).
 - **Coverage**: `npm run test:coverage` — reports command-level coverage from `test/neovim-command-index.yaml`.
+- **CI container image**: The e2e workflow runs each spec file inside a custom Docker image (`ghcr.io/<repo>/e2e-runner:latest`) built from `.github/docker/e2e-runner/Dockerfile`. The image includes Xvfb, herbstluftwm, Node.js 24, and Electron system dependencies. The entrypoint starts the virtual display with readiness polling before handing off to job steps — no per-runner `apt-get install` or `sleep`-based setup. The image is built and pushed to GHCR by `.github/workflows/docker-e2e-runner.yml` on changes to the Dockerfile or manual dispatch.
 
 **IMPORTANT: ChromeDriver version mismatch**
 
