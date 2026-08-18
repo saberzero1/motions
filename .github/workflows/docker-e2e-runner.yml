@@ -1,0 +1,46 @@
+name: Build E2E Runner Image
+
+on:
+    push:
+        branches: ['main', 'master']
+        paths:
+            - '.github/docker/e2e-runner/**'
+    workflow_dispatch:
+
+env:
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}/e2e-runner
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Log in to Container registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Extract metadata
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+                  tags: |
+                      type=sha
+                      type=raw,value=latest
+
+            - name: Build and push
+              uses: docker/build-push-action@v6
+              with:
+                  context: .github/docker/e2e-runner
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
