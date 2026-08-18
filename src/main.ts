@@ -947,7 +947,10 @@ export default class VimMotionsPlugin extends Plugin {
         if (typeof vim.resetKeymap === 'function') {
             vim.resetKeymap();
         }
-        registerVimOptions(vim, onSettingOverride);
+        const activateOptionNotifications = registerVimOptions(
+            vim,
+            onSettingOverride,
+        );
         if (this.settings.clipboard) {
             setClipboardOption(this.settings.clipboard);
             try {
@@ -1022,6 +1025,7 @@ export default class VimMotionsPlugin extends Plugin {
                 /* option may not be registered in fork */
             }
         }
+        activateOptionNotifications();
         this.registration = new VimRegistration(vim);
 
         this.matcher?.dispose();

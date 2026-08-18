@@ -68,7 +68,7 @@ src/
     mode-tracker.ts        # Status bar mode indicator + macro recording + search match counter + native highlight clearing (is-flashing) on Escape via vim-keypress handler
     search-counter.ts      # Search match counter (hlslens-style [3/15])
     scrolloff.ts           # CSS scroll-padding based scrolloff
-    options.ts             # Vim option registration (clipboard, tabstop, etc.)
+    options.ts             # Vim option registration (clipboard, tabstop, etc.) — registerVimOptions() returns activation function to defer notify callbacks until after initial settings sync
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
     changelist.ts          # Change list tracking
     undo-tree.ts           # Undo tree data structure (shadow tree, branching, serialize/deserialize)
@@ -477,6 +477,8 @@ When adding a new setting toggle, wire it in both `onload()` and `reloadFeatures
 ### Settings override cleanup
 
 When a user changes a setting via the Settings UI, the override must be cleared from all three override stores. Use `this.plugin.clearSettingOverride(key)` — this deletes from `vimrcOverrides`, `luaOverrides`, and `configOverrides` in one call. Never call `this.plugin.vimrcOverrides?.delete(key)` directly.
+
+**Ordering requirement for `VIM_OPTION_KEYS` settings**: `clearSettingOverride(key)` must be called **after** `vim.setOption(key, value)`, not before. `vim.setOption()` fires a `notify` callback that adds the key to `vimrcOverrides`. If `clearSettingOverride` runs first, the override is re-added by `setOption` and `refreshDomState` disables the field. The correct order in both `setControlValue` and imperative `onChange` handlers is: update setting → save → `vim.setOption()` → `clearSettingOverride()` → `refreshDomState()`.
 
 ### Config overrides persistence
 

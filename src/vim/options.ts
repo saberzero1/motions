@@ -52,7 +52,7 @@ export function registerVimOptions(
         value: unknown,
         directive?: string,
     ) => void,
-): void {
+): () => void {
     let registered = false;
     const notify = (key: string, value: unknown, directive?: string) => {
         if (registered) onSettingOverride?.(key, value, directive);
@@ -754,7 +754,9 @@ export function registerVimOptions(
         const str = typeof value === 'string' ? value : '';
         notify('imDefaultInsertIm', str, `set imdefaultinsert=${str}`);
     });
-    registered = true;
+    return () => {
+        registered = true;
+    };
 }
 
 const VALID_SHAPES: ReadonlySet<string> = new Set([

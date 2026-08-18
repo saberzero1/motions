@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Vim engine settings fields lock after typing on iPad (and other mobile)** — the "Insert mode escape" field (and other vim engine settings like timeoutlen, operator shadow timeout) became greyed out and unresponsive after typing a single character on iPad with Magic Keyboard. Two root causes: (1) `vim.setOption()` in the `onChange` handler fired the option's `notify` callback, which called `onSettingOverride` and added the key to `vimrcOverrides` — making `isOverridden()` return `true` and `refreshDomState()` disable the field. The `clearSettingOverride()` call ran _before_ `vim.setOption()`, so the override was re-added immediately after clearing. Fixed by moving `clearSettingOverride()` to after `vim.setOption()` in both `setControlValue` (declarative/post-1.13 path) and all 9 imperative `onChange` handlers for `VIM_OPTION_KEYS` settings. (2) The initial settings sync in `reloadFeatures()` called `vim.setOption()` for non-default values (clipboard, textwidth, insertmodeescape, etc.) after `registerVimOptions()` had already set `registered = true`, causing `notify` to fire and mark these settings as overridden. Fixed by making `registerVimOptions()` return an activation function — `registered` is only set to `true` when the caller invokes it after the initial sync completes. ([#125](https://github.com/saberzero1/motions/issues/125))
+    - Plugin: `src/settings.ts` (`setControlValue` — `clearSettingOverride` moved after `vim.setOption` + `refreshDomState`; 9 imperative `onChange` handlers — same reorder)
+    - Plugin: `src/vim/options.ts` (`registerVimOptions` — returns `() => void` activation function instead of setting `registered = true` internally)
+    - Plugin: `src/main.ts` (captures activation function, calls it after initial settings sync block)
+
 ## [0.113.0] - 2026-08-17
 
 ### Fixed
