@@ -18,7 +18,7 @@ jobs:
               with:
                   node-version: 24
                   cache: npm
-            - uses: saberzero1/obsidian-workflows@v1
+            - uses: obsidianmd/obsidian-workflows@v1
               with:
                   mode: release
               env:
