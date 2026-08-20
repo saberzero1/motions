@@ -95,7 +95,7 @@ src/
     table-nav-keymap.ts     # Table navigation and structural command mappings
     native-table-adapter.ts  # Typed abstraction for Obsidian's native TableEditor API access
     table-operations.ts    # Table row/column manipulation (insert, delete, move)
-    table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — gated on tableWidgetMode=native only (independent of enableTableNav), scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
+    table-cell-motions.ts    # defineMotion overrides for h/j/k/l cross-cell navigation in native table cell editors — gated on both enableTableNav and tableWidgetMode=native, scheduleCrossing signals animated cursor handoff via signalCellCrossing() before cell focus change
     table-cell-cursor-guard.ts # Two ViewPlugins: mainEditorTableCursorGuard (suppresses main editor cursor in table range via setCursorSuppressedForView(true), pauses animated cursor, checks isTableNavActive() to skip suppression during table-nav, gates suppression on hasVisibleTableWidget() to skip when no native table widget is visible — handles source mode (no widgets) and raw mode (widgets hidden via display:none), uses clearCursorSuppressedForView on exit/destroy to avoid stale per-view overrides) and cellEditorCursorGuard (ensures native cursor in cell editors via constructor unsuppress, destroy() guards on isTableNavActive() to avoid clearing parent cursor suppression during table-nav, uses clearCursorSuppressedForView for parent on destroy when nav is inactive)
     table-format-on-exit.ts    # Format-on-exit ViewPlugin + || separator handler
     jumplist.ts            # Cross-note jump list data structure

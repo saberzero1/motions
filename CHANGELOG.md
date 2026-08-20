@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Table movement broken when `enableTableNav=false` (macOS)** — `applyTableCellMotions()` overrode `moveByLines`, `moveByCharacters`, and `moveByDisplayLines` globally whenever `tableWidgetMode` was `native`, regardless of `enableTableNav`. When table nav was disabled, these overrides still intercepted `j`/`k` (and `gj`/`gk`) inside native table cells, calling `scheduleCrossing()` with `setTimeout(0)` which raced with Obsidian's native cell focus management on macOS — producing cursor bounce-back. Users with `j→gj` / `k→gk` remappings (common vimrc/Lua pattern) were especially affected because the remapping routes through `moveByDisplayLines`. Fixed by gating `applyTableCellMotions()` on `enableTableNav` — when the user disables table nav, the motion overrides are not installed. Obsidian's native table cell editor handles cross-cell navigation on its own. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/main.ts` (added `enableTableNav` check to both `applyTableCellMotions` registration sites)
+
+### Changed
+
+- **Cross-cell motions now respect `enableTableNav`** — `h`/`j`/`k`/`l` crossing cell boundaries in native table mode was previously always active regardless of `enableTableNav`. Cross-cell motions now only activate when `enableTableNav` is `true`. When disabled, Obsidian's native table cell editor handles cell boundary navigation directly.
+
+### Tests
+
+- 5 regression tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): cursor movement with `j→gj`/`k→gk` remappings — 3 native mode tests (j monotonic, k monotonic, rapid j through large table) + 2 raw mode tests (j down, k up)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated cross-cell motions documentation to reflect `enableTableNav` gating; updated table modes matrix; updated `tablewidget` mode description
+- `CONTRIBUTING.md`: updated `table-cell-motions.ts` description to reflect `enableTableNav` gating
+- `docs/features/tables.md`: updated table modes matrix and cell editor behavior description for disabled table-nav
+- `docs/configuration/settings.md`: updated Table navigation setting description
+
 ## [0.117.0] - 2026-08-20
 
 ### Fixed

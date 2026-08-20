@@ -6,6 +6,7 @@ import {
     ensureLivePreview,
     setPluginSettingAndReload,
     sendVimEscape,
+    loadLuaConfig,
     PAUSE,
 } from '../helpers';
 
@@ -18,11 +19,18 @@ import {
  * 2. enableTableNav=false, tableWidgetMode='raw': j/k/arrow keys don't work
  *    at all inside the table.
  *
- * Root cause: mainEditorTableCursorGuard unconditionally suppresses the vim
- * cursor when the cursor is in a table text range, even when no native table
- * widget is visible (raw mode / source mode) or when enableTableNav is false.
- * Fixed by 395370d (hasVisibleTableWidget check) and e449f18 (nav-mode guard
- * in cellEditorCursorGuard destroy).
+ * Root cause (revised): applyTableCellMotions() overrides moveByLines,
+ * moveByCharacters, and moveByDisplayLines globally when tableWidgetMode
+ * is 'native', regardless of enableTableNav. When enableTableNav=false,
+ * the overridden motions still intercept j/k (and gj/gk) inside native
+ * table cells, calling scheduleCrossing() which races with Obsidian's
+ * native cell focus management — producing cursor bounce-back. Users
+ * with j→gj / k→gk remappings (common vimrc pattern) are especially
+ * affected because the remapping routes through moveByDisplayLines,
+ * which is also overridden.
+ *
+ * Fix: gate applyTableCellMotions on enableTableNav so the motion
+ * overrides are not installed when table nav is disabled.
  */
 
 const TABLE_CONTENT = [
@@ -273,6 +281,164 @@ describe('Table movement with enableTableNav=false (#136)', function () {
 
             const pos = await getCursorPos();
             expect(pos.line).toBeGreaterThanOrEqual(11);
+        });
+    });
+
+    describe('native table mode with j→gj remapping (#136)', function () {
+        before(async function () {
+            await loadLuaConfig(
+                'vim.keymap.set("n", "j", "gj")\n' +
+                    'vim.keymap.set("n", "gj", "j")\n' +
+                    'vim.keymap.set("n", "k", "gk")\n' +
+                    'vim.keymap.set("n", "gk", "k")\n',
+            );
+            await setPluginSettingAndReload('enableTableNav', false);
+            await setPluginSettingAndReload('tableWidgetMode', 'native');
+            await ensureLivePreview();
+        });
+
+        after(async function () {
+            await destroyTableCell();
+            await setPluginSettingAndReload('enableTableNav', true);
+            await setPluginSettingAndReload('tableWidgetMode', 'native');
+        });
+
+        it('j (remapped to gj) should not get stuck in native table (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await browser.keys(['j']);
+                await browser.pause(200);
+                const pos = await getCursorPos();
+                positions.push(pos.line);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const finalPos = await getCursorPos();
+            expect(finalPos.line).toBeGreaterThanOrEqual(7);
+
+            for (let i = 1; i < positions.length; i++) {
+                expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]);
+            }
+        });
+
+        it('k (remapped to gk) should not get stuck in native table (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 7, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const positions: number[] = [];
+            for (let i = 0; i < 7; i++) {
+                await browser.keys(['k']);
+                await browser.pause(200);
+                const pos = await getCursorPos();
+                positions.push(pos.line);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const finalPos = await getCursorPos();
+            expect(finalPos.line).toBeLessThanOrEqual(0);
+
+            for (let i = 1; i < positions.length; i++) {
+                expect(positions[i]).toBeLessThanOrEqual(positions[i - 1]);
+            }
+        });
+
+        it('rapid j with remapping should advance monotonically through large table (#136)', async function () {
+            this.timeout(30000);
+            await destroyTableCell();
+
+            const LARGE_TABLE = [
+                'Top',
+                '',
+                '| A | B |',
+                '|---|---|',
+                '| r1 | r1 |',
+                '| r2 | r2 |',
+                '| r3 | r3 |',
+                '| r4 | r4 |',
+                '| r5 | r5 |',
+                '| r6 | r6 |',
+                '',
+                'Bottom',
+            ].join('\n');
+
+            await setupEditor(LARGE_TABLE, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const positions: number[] = [];
+            for (let i = 0; i < 11; i++) {
+                await browser.keys(['j']);
+                await browser.pause(100);
+                const pos = await getCursorPos();
+                positions.push(pos.line);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const finalPos = await getCursorPos();
+            expect(finalPos.line).toBeGreaterThanOrEqual(11);
+
+            for (let i = 1; i < positions.length; i++) {
+                expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]);
+            }
+        });
+    });
+
+    describe('raw table mode with j→gj remapping (#136)', function () {
+        before(async function () {
+            await loadLuaConfig(
+                'vim.keymap.set("n", "j", "gj")\n' +
+                    'vim.keymap.set("n", "gj", "j")\n' +
+                    'vim.keymap.set("n", "k", "gk")\n' +
+                    'vim.keymap.set("n", "gk", "k")\n',
+            );
+            await setPluginSettingAndReload('enableTableNav', false);
+            await setPluginSettingAndReload('tableWidgetMode', 'raw');
+            await ensureLivePreview();
+        });
+
+        after(async function () {
+            await setPluginSettingAndReload('enableTableNav', true);
+            await setPluginSettingAndReload('tableWidgetMode', 'native');
+        });
+
+        it('j (remapped to gj) should move down in raw table (#136)', async function () {
+            await setupEditor(TABLE_CONTENT, TABLE_CURSOR);
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+
+            const before = await getCursorPos();
+            expect(before.line).toBe(4);
+
+            await browser.keys(['j']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getCursorPos();
+            expect(after.line).toBe(5);
+        });
+
+        it('k (remapped to gk) should move up in raw table (#136)', async function () {
+            await setupEditor(TABLE_CONTENT, { line: 5, ch: 3 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+
+            const before = await getCursorPos();
+            expect(before.line).toBe(5);
+
+            await browser.keys(['k']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getCursorPos();
+            expect(after.line).toBe(4);
         });
     });
 });
