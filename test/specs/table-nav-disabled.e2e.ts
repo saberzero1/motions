@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals';
+import { $, browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
@@ -167,6 +167,110 @@ describe('Table movement with enableTableNav=false (#136)', function () {
 
             const after = await getCursorPos();
             expect(after.line).toBe(7);
+        });
+    });
+
+    describe('native table mode (Live Preview)', function () {
+        before(async function () {
+            await setPluginSettingAndReload('enableTableNav', false);
+            await setPluginSettingAndReload('tableWidgetMode', 'native');
+            await ensureLivePreview();
+        });
+
+        after(async function () {
+            await destroyTableCell();
+            await setPluginSettingAndReload('enableTableNav', true);
+            await setPluginSettingAndReload('tableWidgetMode', 'native');
+        });
+
+        it('no table-nav overlay should activate when clicking into table (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cell = await $('.cm-table-widget td');
+            await cell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const hasHighlight = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return false;
+                    return (
+                        (
+                            view as unknown as { contentEl: HTMLElement }
+                        ).contentEl.querySelector(
+                            '.vim-motions-table-nav-active',
+                        ) !== null
+                    );
+                },
+            );
+            expect(hasHighlight).toBe(false);
+        });
+
+        it('clicking a cell should open native cell editor (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cell = await $('.cm-table-widget td');
+            await cell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const info = await getTableCellInfo();
+            expect(info.inTableCell).toBe(true);
+        });
+
+        it('Tab should navigate between cells without table-nav (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cell = await $('.cm-table-widget td');
+            await cell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getTableCellInfo();
+            expect(before.inTableCell).toBe(true);
+            const beforeCol = before.cellCol;
+
+            await browser.keys(['Tab']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getTableCellInfo();
+            expect(after.inTableCell).toBe(true);
+            expect(after.cellCol).not.toBe(beforeCol);
+        });
+
+        it('j inside cell should not cause cursor bounce-back (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cell = await $('.cm-table-widget td');
+            await cell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getTableCellInfo();
+            expect(before.inTableCell).toBe(true);
+            const beforeRow = before.cellRow;
+
+            await browser.keys(['j']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getTableCellInfo();
+            expect(after.inTableCell).toBe(true);
+            expect(after.cellRow).toBe(beforeRow);
         });
     });
 

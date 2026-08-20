@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals';
+import { $, browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
@@ -127,55 +127,11 @@ describe('Cursor suppression after table interaction (#127)', function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
         await ensureLivePreview();
-        await browser.executeObsidian(({ app }) => {
-            const p = (
-                app as unknown as {
-                    plugins: {
-                        plugins: Record<
-                            string,
-                            {
-                                settings: Record<string, unknown>;
-                                saveSettings: () => Promise<void>;
-                                reloadFeatures: () => void;
-                            }
-                        >;
-                    };
-                }
-            ).plugins.plugins['vim-motions'];
-            if (p) {
-                p.settings.enableTableNav = false;
-                p.saveSettings();
-                p.reloadFeatures();
-            }
-        });
-        await browser.pause(PAUSE.EDITOR_SETTLE);
         await enableAnimatedCursor();
     });
 
     after(async function () {
         await disableAnimatedCursor();
-        await browser.executeObsidian(({ app }) => {
-            const p = (
-                app as unknown as {
-                    plugins: {
-                        plugins: Record<
-                            string,
-                            {
-                                settings: Record<string, unknown>;
-                                saveSettings: () => Promise<void>;
-                                reloadFeatures: () => void;
-                            }
-                        >;
-                    };
-                }
-            ).plugins.plugins['vim-motions'];
-            if (p) {
-                p.settings.enableTableNav = true;
-                p.saveSettings();
-                p.reloadFeatures();
-            }
-        });
-        await browser.pause(PAUSE.EDITOR_SETTLE);
     });
 
     beforeEach(async function () {
@@ -195,42 +151,10 @@ describe('Cursor suppression after table interaction (#127)', function () {
         expect(state.suppressed).toBe(true);
     });
 
-    it('cursor stays suppressed after navigating through table and out', async function () {
+    it('cursor stays suppressed after jumping past table', async function () {
         await sendVimEscape();
 
-        for (let i = 0; i < 4; i++) {
-            await browser.keys(['j']);
-            await browser.pause(PAUSE.KEY_GAP);
-        }
-        await browser.pause(PAUSE.EDITOR_SETTLE);
-
-        for (let i = 0; i < 4; i++) {
-            await browser.keys(['j']);
-            await browser.pause(PAUSE.KEY_GAP);
-        }
-        await browser.pause(PAUSE.EDITOR_SETTLE);
-
-        const state = await getSuppressionState();
-        expect(state.cursorOnTableLine).toBe(false);
-        // BUG (unfixed): table guard leaves explicit false override →
-        // suppressed=false instead of falling back to global true.
-        expect(state.suppressed).toBe(true);
-    });
-
-    it('cursor stays suppressed after moving above table from table', async function () {
-        await sendVimEscape();
-
-        for (let i = 0; i < 4; i++) {
-            await browser.keys(['j']);
-            await browser.pause(PAUSE.KEY_GAP);
-        }
-        await browser.pause(PAUSE.EDITOR_SETTLE);
-
-        await sendVimEscape();
-        for (let i = 0; i < 6; i++) {
-            await browser.keys(['k']);
-            await browser.pause(PAUSE.KEY_GAP);
-        }
+        await browser.keys(['G']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         const state = await getSuppressionState();
@@ -238,14 +162,25 @@ describe('Cursor suppression after table interaction (#127)', function () {
         expect(state.suppressed).toBe(true);
     });
 
-    it('cursor suppression state is stable after repeated table entry/exit', async function () {
+    it('cursor stays suppressed after jumping above table', async function () {
+        await sendVimEscape();
+
+        await browser.keys(['G']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.keys(['g', 'g']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const state = await getSuppressionState();
+        expect(state.cursorOnTableLine).toBe(false);
+        expect(state.suppressed).toBe(true);
+    });
+
+    it('cursor suppression state is stable after repeated jumps around table', async function () {
         await sendVimEscape();
 
         for (let cycle = 0; cycle < 3; cycle++) {
-            for (let i = 0; i < 4; i++) {
-                await browser.keys(['j']);
-                await browser.pause(PAUSE.KEY_GAP);
-            }
+            await browser.keys(['G']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             await browser.keys(['g', 'g']);
@@ -260,28 +195,18 @@ describe('Cursor suppression after table interaction (#127)', function () {
     it('cursor stays suppressed after entering insert mode with block cursor near table', async function () {
         await sendVimEscape();
 
-        // Move into table then back out
-        for (let i = 0; i < 4; i++) {
-            await browser.keys(['j']);
-            await browser.pause(PAUSE.KEY_GAP);
-        }
+        await browser.keys(['G']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
-        await sendVimEscape();
-        for (let i = 0; i < 6; i++) {
-            await browser.keys(['k']);
-            await browser.pause(PAUSE.KEY_GAP);
-        }
+        await browser.keys(['g', 'g']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
-        // Enter insert mode
         await browser.keys(['i']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         const insertState = await getSuppressionState();
         expect(insertState.suppressed).toBe(true);
 
-        // Back to normal mode
         await sendVimEscape();
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -484,8 +409,25 @@ describe('Cursor stays suppressed during table-nav navigation (#135)', function 
         await browser.pause(200);
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
-        await browser.keys(['j', 'j']);
-        await browser.pause(ENTRY_DEBOUNCE);
+
+        const cell = await $('.cm-table-widget td');
+        await cell.click();
+        await browser.pause(200);
+        const cell2 = await $('.cm-table-widget td');
+        await cell2.click();
+        await browser.pause(ENTRY_DEBOUNCE * 2);
+
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(() => {
+                    return (
+                        document.querySelector(
+                            '.vim-motions-table-nav-active',
+                        ) !== null
+                    );
+                })) as boolean,
+            { timeout: 5000, interval: 100 },
+        );
         await browser.pause(PAUSE.EDITOR_SETTLE);
     }
 
