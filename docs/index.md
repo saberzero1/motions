@@ -31,11 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.115.0
+## What's new in 0.117.0
 
-- **Fold navigation motions (`zj`, `zk`, `[z`, `]z`)** — `zj`/`zk` jump to the next/previous foldable region (sibling-fold semantics matching Neovim), `[z`/`]z` navigate to the start/end of the enclosing fold. All support counts, operator-pending mode, and jump list recording.
-- **Fold state commands (`zn`, `zN`, `zi`, `zv`, `zF`, `zx`, `zX`)** — disable/enable/toggle folding, reveal cursor line, create folds, reapply fold level. Configure via `set foldenable` in vimrc or `vim.opt.foldenable` in Lua.
-- **Recursive fold operations (`zO`, `zC`, `zA`, `zD`)** — uppercase fold commands now operate recursively on all nested folds within the cursor's region (previously identical to lowercase variants).
-- **Heading fold provider** — custom fold provider for Markdown headings that trims trailing blank lines from fold ranges, matching Neovim's treesitter fold boundaries.
+- **Visual-line command passthrough fix** — commands invoked via the command palette (like Note Composer's "Extract current selection") now correctly detect visual-line selections. Previously, Obsidian's direct `checkCallback` invocation bypassed the selection expansion, causing commands to silently fail in V-LINE mode. ([#137](https://github.com/saberzero1/motions/issues/137))
+- **[[tables|Table navigation]] cursor fix** — resolved cursor flashing at previous cell positions during table-nav entry and `h`/`j`/`k`/`l` cell navigation. Three root causes addressed: missing state effect dispatch, stale cursor layer cleanup, and cell editor destroy/recreate lifecycle. ([#135](https://github.com/saberzero1/motions/issues/135))
 
 See the [[changelog|full changelog]] for details.

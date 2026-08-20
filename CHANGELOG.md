@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.117.0] - 2026-08-20
+
 ### Fixed
 
 - **Note Composer "Extract current selection" does nothing in V-LINE mode** — in visual-line mode, the codemirror-vim fork sets a cursor-only CM6 selection (to prevent Live Preview from uncollapsing hidden markup). This caused `editor.somethingSelected()` to return `false`, so commands that check for a selection silently failed. The existing `executeCommand` wrapper expanded the selection before command execution, but Obsidian's command palette invokes `checkCallback()` directly on the command object, bypassing `executeCommand` entirely. Fixed by wrapping every command's `checkCallback` to expand the visual-line selection before the callback runs, and wrapping `addCommand` to cover commands registered after plugin load. ([#137](https://github.com/saberzero1/motions/issues/137))
