@@ -16,11 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - 3 regression tests in `test/specs/table-cursor-suppression.e2e.ts` (#135): main editor cursor suppression during navigation, rapid multi-directional navigation, no visible cursor anywhere on initial entry
+- 7 regression tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): cursor movement through tables with `enableTableNav=false` — 3 raw mode tests (j down, k up, j exits table) + 3 native mode traversal tests (j through, j cross-cell, k through) + 1 rapid-fire stability test (10 j's at 100ms intervals through 6-row table)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: updated table navigation cursor hiding entry
+- `KNOWN_LIMITATIONS.md`: updated table navigation cursor hiding entry; added #136 cross-reference to #132 cursor disappearing fix
 - `CONTRIBUTING.md`: updated `table-nav-controller.ts` and `table-cell-cursor-guard.ts` descriptions
 
 ## [0.116.0] - 2026-08-18
