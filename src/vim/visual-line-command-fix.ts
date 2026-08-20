@@ -1,6 +1,13 @@
-import { type App, type Command, MarkdownView } from 'obsidian';
+import {
+    type App,
+    type Command,
+    MarkdownView,
+    editorInfoField,
+} from 'obsidian';
+import { type Extension } from '@codemirror/state';
+import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { around } from '../util/around';
-import { getCmAdapter } from './vim-api';
+import { getCmAdapter, getCmAdapterFromEditorView } from './vim-api';
 import { getEditorView } from '../util/editor';
 
 interface VimSel {
@@ -150,4 +157,85 @@ export function installVisualLineCommandFix(app: App): () => void {
         removeExecuteCommandPatch();
         removeAddCommandPatch();
     };
+}
+
+class VisualLineSomethingSelectedPatch {
+    private patched = false;
+    private original: (() => boolean) | null = null;
+    private origGetSelection: (() => string) | null = null;
+    private editorRef: {
+        somethingSelected: () => boolean;
+        getSelection: () => string;
+    } | null = null;
+
+    constructor(private view: import('@codemirror/view').EditorView) {
+        this.tryPatch();
+    }
+
+    update(_update: ViewUpdate): void {
+        if (!this.patched) this.tryPatch();
+    }
+
+    private tryPatch(): void {
+        let info: unknown = null;
+        try {
+            info = this.view.state.field(editorInfoField);
+        } catch {
+            return;
+        }
+        if (!info) return;
+
+        const editor = (info as { editor?: unknown }).editor as
+            | {
+                  somethingSelected: () => boolean;
+                  getSelection: () => string;
+              }
+            | undefined;
+        if (!editor || typeof editor.somethingSelected !== 'function') return;
+
+        const origSelected = editor.somethingSelected.bind(editor);
+        const origGetSel = editor.getSelection.bind(editor);
+        const editorView = this.view;
+        this.patched = true;
+        this.original = origSelected;
+        this.editorRef = editor;
+
+        const getVisualLineSel = (): VimState | null => {
+            const cm = getCmAdapterFromEditorView(editorView);
+            const vim = cm?.state?.vim as unknown as VimState | undefined;
+            if (vim?.visualMode && vim.visualLine && vim.sel) return vim;
+            return null;
+        };
+
+        editor.somethingSelected = function () {
+            if (origSelected()) return true;
+            return getVisualLineSel() !== null;
+        };
+
+        this.origGetSelection = origGetSel;
+        editor.getSelection = function () {
+            const nativeSel = origGetSel();
+            if (nativeSel) return nativeSel;
+            const vim = getVisualLineSel();
+            if (!vim?.sel) return '';
+            const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
+            const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+            const doc = editorView.state.doc;
+            const from = doc.line(startLine + 1).from;
+            const to = doc.line(endLine + 1).to;
+            return editorView.state.sliceDoc(from, to);
+        };
+    }
+
+    destroy(): void {
+        if (this.editorRef) {
+            if (this.original) this.editorRef.somethingSelected = this.original;
+            if (this.origGetSelection)
+                this.editorRef.getSelection = this.origGetSelection;
+        }
+    }
+}
+
+export function visualLineSelectionSyncExtension(): Extension {
+    return ViewPlugin.fromClass(VisualLineSomethingSelectedPatch);
 }
