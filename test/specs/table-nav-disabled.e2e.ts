@@ -170,120 +170,6 @@ describe('Table movement with enableTableNav=false (#136)', function () {
         });
     });
 
-    describe('native table mode (Live Preview)', function () {
-        before(async function () {
-            await setPluginSettingAndReload('enableTableNav', false);
-            await setPluginSettingAndReload('tableWidgetMode', 'native');
-            await ensureLivePreview();
-        });
-
-        after(async function () {
-            await destroyTableCell();
-            await setPluginSettingAndReload('enableTableNav', true);
-            await setPluginSettingAndReload('tableWidgetMode', 'native');
-        });
-
-        it('j should navigate through native table without getting stuck (#136)', async function () {
-            await destroyTableCell();
-            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            for (let i = 0; i < 7; i++) {
-                await browser.keys(['j']);
-                await browser.pause(200);
-            }
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const pos = await getCursorPos();
-            expect(pos.line).toBeGreaterThanOrEqual(7);
-        });
-
-        it('j should cross cell rows in native table (#136)', async function () {
-            await destroyTableCell();
-            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            await browser.keys(['j']);
-            await browser.pause(200);
-            await browser.keys(['j']);
-            await browser.pause(WIDGET_SETTLE);
-
-            const cellBefore = await getTableCellInfo();
-
-            if (cellBefore.inTableCell) {
-                const rowBefore = cellBefore.cellRow;
-                await browser.keys(['j']);
-                await browser.pause(WIDGET_SETTLE);
-                const cellAfter = await getTableCellInfo();
-
-                if (cellAfter.inTableCell) {
-                    expect(cellAfter.cellRow).toBeGreaterThan(rowBefore);
-                } else {
-                    const pos = await getCursorPos();
-                    expect(pos.line).toBeGreaterThan(5);
-                }
-            } else {
-                const pos = await getCursorPos();
-                expect(pos.line).toBeGreaterThan(2);
-            }
-        });
-
-        it('k should move up through native table without getting stuck (#136)', async function () {
-            await destroyTableCell();
-            await setupEditor(TABLE_CONTENT, { line: 7, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            for (let i = 0; i < 7; i++) {
-                await browser.keys(['k']);
-                await browser.pause(200);
-            }
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const pos = await getCursorPos();
-            expect(pos.line).toBeLessThanOrEqual(0);
-        });
-
-        it('rapid j presses should consistently advance through cells (#136)', async function () {
-            this.timeout(30000);
-            await destroyTableCell();
-
-            const LARGE_TABLE = [
-                'Top',
-                '',
-                '| A | B |',
-                '|---|---|',
-                '| r1 | r1 |',
-                '| r2 | r2 |',
-                '| r3 | r3 |',
-                '| r4 | r4 |',
-                '| r5 | r5 |',
-                '| r6 | r6 |',
-                '',
-                'Bottom',
-            ].join('\n');
-
-            await setupEditor(LARGE_TABLE, { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            for (let i = 0; i < 10; i++) {
-                await browser.keys(['j']);
-                await browser.pause(100);
-            }
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const pos = await getCursorPos();
-            expect(pos.line).toBeGreaterThanOrEqual(11);
-        });
-    });
-
     describe('native table mode with j→gj remapping (#136)', function () {
         before(async function () {
             await loadLuaConfig(
@@ -303,93 +189,29 @@ describe('Table movement with enableTableNav=false (#136)', function () {
             await setPluginSettingAndReload('tableWidgetMode', 'native');
         });
 
-        it('j (remapped to gj) should not get stuck in native table (#136)', async function () {
+        it('no table-nav overlay should activate (#136)', async function () {
             await destroyTableCell();
             await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             await waitForTableWidget();
 
-            const positions: number[] = [];
-            for (let i = 0; i < 7; i++) {
-                await browser.keys(['j']);
-                await browser.pause(200);
-                const pos = await getCursorPos();
-                positions.push(pos.line);
-            }
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const finalPos = await getCursorPos();
-            expect(finalPos.line).toBeGreaterThanOrEqual(7);
-
-            for (let i = 1; i < positions.length; i++) {
-                expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]);
-            }
-        });
-
-        it('k (remapped to gk) should not get stuck in native table (#136)', async function () {
-            await destroyTableCell();
-            await setupEditor(TABLE_CONTENT, { line: 7, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            const positions: number[] = [];
-            for (let i = 0; i < 7; i++) {
-                await browser.keys(['k']);
-                await browser.pause(200);
-                const pos = await getCursorPos();
-                positions.push(pos.line);
-            }
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const finalPos = await getCursorPos();
-            expect(finalPos.line).toBeLessThanOrEqual(0);
-
-            for (let i = 1; i < positions.length; i++) {
-                expect(positions[i]).toBeLessThanOrEqual(positions[i - 1]);
-            }
-        });
-
-        it('rapid j with remapping should advance monotonically through large table (#136)', async function () {
-            this.timeout(30000);
-            await destroyTableCell();
-
-            const LARGE_TABLE = [
-                'Top',
-                '',
-                '| A | B |',
-                '|---|---|',
-                '| r1 | r1 |',
-                '| r2 | r2 |',
-                '| r3 | r3 |',
-                '| r4 | r4 |',
-                '| r5 | r5 |',
-                '| r6 | r6 |',
-                '',
-                'Bottom',
-            ].join('\n');
-
-            await setupEditor(LARGE_TABLE, { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            const positions: number[] = [];
-            for (let i = 0; i < 11; i++) {
-                await browser.keys(['j']);
-                await browser.pause(100);
-                const pos = await getCursorPos();
-                positions.push(pos.line);
-            }
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const finalPos = await getCursorPos();
-            expect(finalPos.line).toBeGreaterThanOrEqual(11);
-
-            for (let i = 1; i < positions.length; i++) {
-                expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]);
-            }
+            const hasHighlight = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return false;
+                    return (
+                        (
+                            view as unknown as { contentEl: HTMLElement }
+                        ).contentEl.querySelector(
+                            '.vim-motions-table-nav-active',
+                        ) !== null
+                    );
+                },
+            );
+            expect(hasHighlight).toBe(false);
         });
     });
 

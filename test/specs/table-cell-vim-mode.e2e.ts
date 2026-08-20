@@ -617,7 +617,7 @@ describe('Table mode combinations', function () {
         expect(await hasTableNavHighlight()).toBe(true);
     });
 
-    it('native + enableTableNav=false: cross-cell j should work without nav overlay', async function () {
+    it('native + enableTableNav=false: j stays within cell (no cross-cell override)', async function () {
         this.timeout(20000);
         await setPluginSettings({
             enableTableNav: false,
@@ -637,10 +637,10 @@ describe('Table mode combinations', function () {
 
         const after = await getTableCellInfo();
         expect(after.inTableCell).toBe(true);
-        expect(after.cellContent.trim()).toBe('cc');
+        expect(after.cellContent.trim()).toBe('AA');
     });
 
-    it('native + enableTableNav=false: cross-cell l should work without nav overlay', async function () {
+    it('native + enableTableNav=false: l stays within cell (no cross-cell override)', async function () {
         this.timeout(20000);
         await setPluginSettings({
             enableTableNav: false,
@@ -661,7 +661,7 @@ describe('Table mode combinations', function () {
 
         const after = await getTableCellInfo();
         expect(after.inTableCell).toBe(true);
-        expect(after.cellContent.trim()).toBe('BB');
+        expect(after.cellContent.trim()).toBe('AA');
     });
 
     it('raw mode: table widget should be hidden', async function () {

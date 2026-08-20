@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- 5 regression tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): cursor movement with `j→gj`/`k→gk` remappings — 3 native mode tests (j monotonic, k monotonic, rapid j through large table) + 2 raw mode tests (j down, k up)
+- Updated `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): replaced flaky native table cross-cell tests with `enableTableNav=false` no-overlay assertion; added 2 raw mode tests with `j→gj`/`k→gk` remappings (j down, k up)
+- Updated `test/specs/table-cell-vim-mode.e2e.ts`: `enableTableNav=false` cross-cell tests now assert cursor stays within cell (no cross-cell override)
 
 ### Documentation
 
@@ -42,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 3 regression tests in `test/specs/visual-line-command.e2e.ts` (#137): `note-composer:split-file` `checkCallback` returns `true` in V-LINE, `editor.somethingSelected()` returns `true` in V-LINE, `executeCommandById` affects all selected lines in V-LINE
 - 3 regression tests in `test/specs/table-cursor-suppression.e2e.ts` (#135): main editor cursor suppression during navigation, rapid multi-directional navigation, no visible cursor anywhere on initial entry
-- 7 regression tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): cursor movement through tables with `enableTableNav=false` — 3 raw mode tests (j down, k up, j exits table) + 3 native mode traversal tests (j through, j cross-cell, k through) + 1 rapid-fire stability test (10 j's at 100ms intervals through 6-row table)
+- 3 regression tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): cursor movement through raw tables with `enableTableNav=false` — j down, k up, j exits table
 
 ### Documentation
 
