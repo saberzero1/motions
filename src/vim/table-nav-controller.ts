@@ -25,6 +25,7 @@ import { tableRealign } from './table-operations';
 import { getCmAdapterFromEditorView } from './vim-api';
 import { isVimIdle } from '../editors/embeddable-editor';
 import {
+    enterTableNav,
     exitTableNav,
     isTableNavActive,
     tableNavStateField,
@@ -41,6 +42,7 @@ import {
 } from './table-nav-keymap';
 
 const CELL_HIDDEN_CLASS = 'vim-motions-table-nav-cell-hidden';
+const CURSOR_LAYER_HIDDEN_CLASS = 'vim-motions-cursor-layer-hidden';
 const NAV_HIGHLIGHT_CLASS = 'vim-motions-table-nav-active';
 const NAV_MODE_CLASS = 'vim-motions-table-nav-mode';
 const ENTRY_DEBOUNCE_MS = 80;
@@ -144,6 +146,7 @@ export class TableNavController implements PluginValue {
         if (s.state === 'nav') {
             if (update.docChanged) this.refreshAfterDocChange();
             else this.ensureHighlight();
+            this.suppressWidgetCursorLayers();
             return;
         }
 
@@ -219,10 +222,61 @@ export class TableNavController implements PluginValue {
         setCursorSuppressedForView(this.view, true);
         pauseAnimatedCursorForView(this.view);
 
+        this.view.dispatch({
+            effects: enterTableNav.of({
+                row,
+                col,
+                tableFrom: table.from,
+                tableTo: table.to,
+            }),
+        });
+
+        this.clearVimCursorLayer();
+
         this.installNavScope();
         widgetEl.classList.add(NAV_MODE_CLASS);
         this.highlightCell();
         this.view.focus();
+        this.suppressWidgetCursorLayers();
+        const session = this.session;
+        window.requestAnimationFrame(() => {
+            if (session.state === 'nav') this.suppressWidgetCursorLayers();
+        });
+    }
+
+    private clearVimCursorLayer(): void {
+        const vimLayer =
+            this.view.scrollDOM.querySelector('.cm-vimCursorLayer');
+        if (vimLayer) {
+            vimLayer.textContent = '';
+            vimLayer.classList.add(CURSOR_LAYER_HIDDEN_CLASS);
+        }
+    }
+
+    private restoreCursorLayers(): void {
+        this.view.scrollDOM
+            .querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
+            .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
+        this.session.widgetEl
+            ?.querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
+            .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
+    }
+
+    private suppressWidgetCursorLayers(): void {
+        const el = this.session.widgetEl;
+        if (!el) return;
+        const layers = el.querySelectorAll<HTMLElement>('.cm-vimCursorLayer');
+        for (let i = 0; i < layers.length; i++) {
+            const layer = layers.item(i);
+            if (!layer) continue;
+            if (
+                !layer.classList.contains(CURSOR_LAYER_HIDDEN_CLASS) ||
+                layer.children.length > 0
+            ) {
+                layer.textContent = '';
+                layer.classList.add(CURSOR_LAYER_HIDDEN_CLASS);
+            }
+        }
     }
 
     private resumeNav(): void {
@@ -232,6 +286,7 @@ export class TableNavController implements PluginValue {
         setKeyInterceptActive(true);
         setCursorSuppressedForView(this.view, true);
         pauseAnimatedCursorForView(this.view);
+        this.clearVimCursorLayer();
 
         const widgetEl = findTableWidgetElement(this.view, s.tableFrom);
         if (widgetEl) {
@@ -285,6 +340,7 @@ export class TableNavController implements PluginValue {
         }
 
         this.highlightCell();
+        this.clearVimCursorLayer();
     }
 
     enterCellEdit(
@@ -306,6 +362,7 @@ export class TableNavController implements PluginValue {
         setKeyInterceptActive(false);
         clearCursorSuppressedForView(this.view);
         resumeAnimatedCursorForView(this.view);
+        this.restoreCursorLayers();
 
         const currentCell = editMode.tableCell?.cell;
         const needsCellSwitch =
@@ -388,6 +445,7 @@ export class TableNavController implements PluginValue {
         setKeyInterceptActive(true);
         setCursorSuppressedForView(this.view, true);
         pauseAnimatedCursorForView(this.view);
+        this.clearVimCursorLayer();
 
         s.state = 'nav';
         this.installNavScope();
@@ -452,6 +510,7 @@ export class TableNavController implements PluginValue {
             table?.placeCursorAround(placement);
             clearCursorSuppressedForView(view);
             resumeAnimatedCursorForView(view);
+            this.restoreCursorLayers();
             view.focus();
         });
     }
@@ -854,6 +913,7 @@ export class TableNavController implements PluginValue {
             setKeyInterceptActive(false);
             clearCursorSuppressedForView(this.view);
             resumeAnimatedCursorForView(this.view);
+            this.restoreCursorLayers();
         }
         this.cancelEntry();
         this.clearRefreshTimer();

@@ -402,3 +402,282 @@ describe('Cursor suppression after table interaction (#127)', function () {
         await browser.pause(PAUSE.EDITOR_SETTLE);
     });
 });
+
+/**
+ * Regression test for cursor flash at previous cell during table-nav.
+ *
+ * Issue #135: when table navigation is enabled, the vim cursor layer on the
+ * main editor flashes at the previous cell position after navigating to a
+ * new cell with h/j/k/l. The cursor should stay suppressed for the entire
+ * duration of table-nav mode.
+ *
+ * Root cause: the mainEditorTableCursorGuard in table-cell-cursor-guard.ts
+ * does not know that table-nav has taken control, because the enterTableNav
+ * state effect is never dispatched. The guard can then clear the per-view
+ * cursor suppression override that the table-nav-controller set, causing
+ * the vim cursor layer to become visible at the old document position.
+ */
+describe('Cursor stays suppressed during table-nav navigation (#135)', function () {
+    const TABLE_DOC =
+        'Line above\n\n| AA | BB |\n|-----|-----|\n| cc | dd |\n\nLine below';
+    const ENTRY_DEBOUNCE = 300;
+
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await ensureLivePreview();
+        // Enable table-nav (the feature under test)
+        await browser.executeObsidian(({ app }) => {
+            const p = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (p) {
+                p.settings.enableTableNav = true;
+                p.settings.tableWidgetMode = 'native';
+                p.saveSettings();
+                p.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+    });
+
+    after(async function () {
+        // Restore default table-nav setting
+        await browser.executeObsidian(({ app }) => {
+            const p = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (p) {
+                p.settings.enableTableNav = true;
+                p.saveSettings();
+                p.reloadFeatures();
+            }
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+    });
+
+    async function setupAndEnterTableNav(): Promise<void> {
+        await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
+        await waitForTableWidget();
+        await browser.pause(200);
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['j', 'j']);
+        await browser.pause(ENTRY_DEBOUNCE);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+    }
+
+    async function getMainEditorCursorState(): Promise<{
+        suppressed: boolean | null;
+        vimCursorLayerVisible: boolean;
+        vimCursorLayerHasContent: boolean;
+    }> {
+        return (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view)
+                return {
+                    suppressed: null,
+                    vimCursorLayerVisible: false,
+                    vimCursorLayerHasContent: false,
+                };
+
+            const editMode = (view as unknown as Record<string, unknown>)
+                .editMode as Record<string, unknown>;
+            const editorView = editMode?.cm as
+                | (Record<string, unknown> & { scrollDOM?: HTMLElement })
+                | undefined;
+            if (!editorView)
+                return {
+                    suppressed: null,
+                    vimCursorLayerVisible: false,
+                    vimCursorLayerHasContent: false,
+                };
+
+            const cma = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        isCursorSuppressedForView?: (v: unknown) => boolean;
+                    };
+                }
+            ).CodeMirrorAdapter;
+
+            const suppressed = cma?.isCursorSuppressedForView
+                ? cma.isCursorSuppressedForView(editorView)
+                : null;
+
+            const allLayers =
+                editorView.scrollDOM?.querySelectorAll('.cm-vimCursorLayer');
+            let vimLayer: HTMLElement | null = null;
+            if (allLayers) {
+                for (let i = 0; i < allLayers.length; i++) {
+                    const layer = allLayers[i] as HTMLElement;
+                    if (!layer.closest('.cm-table-widget')) {
+                        vimLayer = layer;
+                        break;
+                    }
+                }
+            }
+
+            const vimCursorLayerVisible = vimLayer
+                ? vimLayer.style.display !== 'none'
+                : false;
+            const vimCursorLayerHasContent = vimLayer
+                ? vimLayer.children.length > 0
+                : false;
+
+            return {
+                suppressed,
+                vimCursorLayerVisible,
+                vimCursorLayerHasContent,
+            };
+        })) as {
+            suppressed: boolean | null;
+            vimCursorLayerVisible: boolean;
+            vimCursorLayerHasContent: boolean;
+        };
+    }
+
+    it('main editor cursor stays suppressed after navigating between cells', async function () {
+        this.timeout(20000);
+        await setupAndEnterTableNav();
+
+        // Verify table-nav is active (highlight present)
+        const hasHighlight = (await browser.executeObsidian(() => {
+            return (
+                document.querySelector('.vim-motions-table-nav-active') !== null
+            );
+        })) as boolean;
+        expect(hasHighlight).toBe(true);
+
+        const stateOnEntry = await getMainEditorCursorState();
+        expect(stateOnEntry.suppressed).toBe(true);
+        expect(
+            !stateOnEntry.vimCursorLayerVisible ||
+                !stateOnEntry.vimCursorLayerHasContent,
+        ).toBe(true);
+
+        // Navigate to the right cell (l)
+        await browser.keys(['l']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        // After navigating, cursor must still be suppressed
+        const stateAfterL = await getMainEditorCursorState();
+        expect(stateAfterL.suppressed).toBe(true);
+        // The vim cursor layer should be hidden (display:none) or empty
+        expect(
+            !stateAfterL.vimCursorLayerVisible ||
+                !stateAfterL.vimCursorLayerHasContent,
+        ).toBe(true);
+
+        // Navigate down (j) then back up (k)
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await browser.keys(['k']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        // Still suppressed after multiple navigations
+        const stateAfterJK = await getMainEditorCursorState();
+        expect(stateAfterJK.suppressed).toBe(true);
+        expect(
+            !stateAfterJK.vimCursorLayerVisible ||
+                !stateAfterJK.vimCursorLayerHasContent,
+        ).toBe(true);
+    });
+
+    it('main editor cursor stays suppressed during rapid cell navigation', async function () {
+        this.timeout(20000);
+        await setupAndEnterTableNav();
+
+        // Rapid navigation: l, j, h, k (full circle)
+        await browser.keys(['l']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['h']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['k']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const state = await getMainEditorCursorState();
+        expect(state.suppressed).toBe(true);
+        expect(
+            !state.vimCursorLayerVisible || !state.vimCursorLayerHasContent,
+        ).toBe(true);
+    });
+
+    it('no visible cursor anywhere in the editor on initial table-nav entry (#135)', async function () {
+        this.timeout(20000);
+        await setupAndEnterTableNav();
+
+        const hasHighlight = (await browser.executeObsidian(() => {
+            return (
+                document.querySelector('.vim-motions-table-nav-active') !== null
+            );
+        })) as boolean;
+        expect(hasHighlight).toBe(true);
+
+        const cursorState = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return { error: 'no view' };
+                const container = (
+                    view as unknown as { contentEl: HTMLElement }
+                ).contentEl;
+
+                const allLayers =
+                    container.querySelectorAll('.cm-vimCursorLayer');
+                const visibleCursors: string[] = [];
+                for (let i = 0; i < allLayers.length; i++) {
+                    const layer = allLayers[i] as HTMLElement;
+                    const computed = window.getComputedStyle(layer);
+                    const isHidden =
+                        computed.display === 'none' ||
+                        computed.visibility === 'hidden';
+                    if (!isHidden && layer.children.length > 0) {
+                        const inWidget =
+                            layer.closest('.cm-table-widget') !== null;
+                        const hidden =
+                            layer.closest(
+                                '.vim-motions-table-nav-cell-hidden',
+                            ) !== null;
+                        if (!hidden) {
+                            visibleCursors.push(
+                                inWidget ? 'cell-editor' : 'main-editor',
+                            );
+                        }
+                    }
+                }
+
+                return { visibleCursors };
+            },
+        )) as { visibleCursors: string[] };
+
+        expect(cursorState.visibleCursors).toEqual([]);
+    });
+});

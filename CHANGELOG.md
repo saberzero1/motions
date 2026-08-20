@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cursor flashing at previous cell during table navigation** — when table navigation was enabled, the vim cursor layer remained visible at the previous cell position after entering the table and after navigating between cells with `h`/`j`/`k`/`l`. Three root causes: (1) `tryEnter()` never dispatched the `enterTableNav` state effect, so `isTableNavActive()` always returned `false` — the `mainEditorTableCursorGuard` continued running during table-nav and could clear cursor suppression. (2) The vim cursor layer (`.cm-vimCursorLayer`) on the main editor was not proactively cleared during navigation, allowing stale cursor elements to remain visible. (3) `cellEditorCursorGuard.destroy()` unconditionally called `clearCursorSuppressedForView()` on the parent editor, undoing the controller's suppression even while table-nav was active. Additionally, cell editors inside the table widget are destroyed and recreated during entry, each creating a fresh `BlockCursorPlugin` with a visible cursor layer — the controller now suppresses these on every ViewUpdate via `suppressWidgetCursorLayers()`. ([#135](https://github.com/saberzero1/motions/issues/135))
+    - Plugin: `src/vim/table-nav-controller.ts` (dispatch `enterTableNav` effect, `clearVimCursorLayer()` helper, `suppressWidgetCursorLayers()` on every update + entry + rAF safety net)
+    - Plugin: `src/vim/table-cell-cursor-guard.ts` (`cellEditorCursorGuard.destroy()` guards on `isTableNavActive()`)
+
+### Tests
+
+- 3 regression tests in `test/specs/table-cursor-suppression.e2e.ts` (#135): main editor cursor suppression during navigation, rapid multi-directional navigation, no visible cursor anywhere on initial entry
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated table navigation cursor hiding entry
+- `CONTRIBUTING.md`: updated `table-nav-controller.ts` and `table-cell-cursor-guard.ts` descriptions
+
 ## [0.116.0] - 2026-08-18
 
 ### Changed

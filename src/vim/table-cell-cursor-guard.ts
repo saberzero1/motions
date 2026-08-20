@@ -127,17 +127,22 @@ const cellEditorCursorGuard = ViewPlugin.fromClass(
 
         destroy(): void {
             if (this.parentView) {
-                clearCursorSuppressedForView(this.parentView);
-                resumeAnimatedCursorForView(this.parentView);
+                const navActive = isTableNavActive(this.parentView.state);
+                if (!navActive) {
+                    clearCursorSuppressedForView(this.parentView);
+                    resumeAnimatedCursorForView(this.parentView);
+                }
                 const pv = this.parentView;
                 this.parentView = null;
-                queueMicrotask(() => {
-                    try {
-                        pv.requestMeasure();
-                    } catch {
-                        void 0;
-                    }
-                });
+                if (!navActive) {
+                    queueMicrotask(() => {
+                        try {
+                            pv.requestMeasure();
+                        } catch {
+                            void 0;
+                        }
+                    });
+                }
             }
         }
     },
