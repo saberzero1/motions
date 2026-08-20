@@ -9,19 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Note Composer "Extract current selection" does nothing in V-LINE mode** — in visual-line mode, the codemirror-vim fork sets a cursor-only CM6 selection (to prevent Live Preview from uncollapsing hidden markup). This caused `editor.somethingSelected()` to return `false`, so commands that check for a selection silently failed. The existing `executeCommand` wrapper expanded the selection before command execution, but Obsidian's command palette invokes `checkCallback()` directly on the command object, bypassing `executeCommand` entirely. Fixed by wrapping every command's `checkCallback` to expand the visual-line selection before the callback runs, and wrapping `addCommand` to cover commands registered after plugin load. ([#137](https://github.com/saberzero1/motions/issues/137))
+    - Plugin: `src/vim/visual-line-command-fix.ts` (wrap `checkCallback` on all commands + `addCommand` hook; extract shared `withExpandedSelection` helper)
 - **Cursor flashing at previous cell during table navigation** — when table navigation was enabled, the vim cursor layer remained visible at the previous cell position after entering the table and after navigating between cells with `h`/`j`/`k`/`l`. Three root causes: (1) `tryEnter()` never dispatched the `enterTableNav` state effect, so `isTableNavActive()` always returned `false` — the `mainEditorTableCursorGuard` continued running during table-nav and could clear cursor suppression. (2) The vim cursor layer (`.cm-vimCursorLayer`) on the main editor was not proactively cleared during navigation, allowing stale cursor elements to remain visible. (3) `cellEditorCursorGuard.destroy()` unconditionally called `clearCursorSuppressedForView()` on the parent editor, undoing the controller's suppression even while table-nav was active. Additionally, cell editors inside the table widget are destroyed and recreated during entry, each creating a fresh `BlockCursorPlugin` with a visible cursor layer — the controller now suppresses these on every ViewUpdate via `suppressWidgetCursorLayers()`. ([#135](https://github.com/saberzero1/motions/issues/135))
     - Plugin: `src/vim/table-nav-controller.ts` (dispatch `enterTableNav` effect, `clearVimCursorLayer()` helper, `suppressWidgetCursorLayers()` on every update + entry + rAF safety net)
     - Plugin: `src/vim/table-cell-cursor-guard.ts` (`cellEditorCursorGuard.destroy()` guards on `isTableNavActive()`)
 
 ### Tests
 
+- 3 regression tests in `test/specs/visual-line-command.e2e.ts` (#137): `note-composer:split-file` `checkCallback` returns `true` in V-LINE, `editor.somethingSelected()` returns `true` in V-LINE, `executeCommandById` affects all selected lines in V-LINE
 - 3 regression tests in `test/specs/table-cursor-suppression.e2e.ts` (#135): main editor cursor suppression during navigation, rapid multi-directional navigation, no visible cursor anywhere on initial entry
 - 7 regression tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): cursor movement through tables with `enableTableNav=false` — 3 raw mode tests (j down, k up, j exits table) + 3 native mode traversal tests (j through, j cross-cell, k through) + 1 rapid-fire stability test (10 j's at 100ms intervals through 6-row table)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: updated table navigation cursor hiding entry; added #136 cross-reference to #132 cursor disappearing fix
+- `KNOWN_LIMITATIONS.md`: updated visual-line command passthrough description to reflect `checkCallback` wrapping for command palette path (#137); updated table navigation cursor hiding entry; added #136 cross-reference to #132 cursor disappearing fix
 - `CONTRIBUTING.md`: updated `table-nav-controller.ts` and `table-cell-cursor-guard.ts` descriptions
 
 ## [0.116.0] - 2026-08-18

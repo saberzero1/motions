@@ -1,4 +1,4 @@
-import { type App, MarkdownView } from 'obsidian';
+import { type App, type Command, MarkdownView } from 'obsidian';
 import { around } from '../util/around';
 import { getCmAdapter } from './vim-api';
 import { getEditorView } from '../util/editor';
@@ -69,31 +69,85 @@ function restoreCursorOnly(
     });
 }
 
+function withExpandedSelection(
+    app: App,
+    fn: (...args: unknown[]) => unknown,
+    thisArg: unknown,
+    args: unknown[],
+): unknown {
+    const state = getActiveVisualLineState(app);
+    if (!state) return fn.apply(thisArg, args);
+
+    expandSelection(state.editorView, state.vim.sel!);
+    try {
+        return fn.apply(thisArg, args);
+    } finally {
+        const currentVim = state.cm.state?.vim as VimState | undefined;
+        if (currentVim?.visualLine && currentVim.sel) {
+            restoreCursorOnly(state.cm, currentVim);
+        }
+    }
+}
+
+type CommandRecord = Record<
+    string,
+    Command & { checkCallback?: (checking: boolean) => boolean | void }
+>;
+const WRAPPED = Symbol('vl-wrapped');
+
+function wrapCheckCallback(app: App, cmd: Command): void {
+    const tagged = cmd as unknown as Record<symbol, boolean>;
+    if (tagged[WRAPPED]) return;
+    const original = (
+        cmd as { checkCallback?: (...args: unknown[]) => unknown }
+    ).checkCallback;
+    if (!original) return;
+
+    (
+        cmd as unknown as { checkCallback: (...args: unknown[]) => unknown }
+    ).checkCallback = function (this: unknown, ...args: unknown[]): unknown {
+        return withExpandedSelection(app, original, this, args);
+    };
+    tagged[WRAPPED] = true;
+}
+
 export function installVisualLineCommandFix(app: App): () => void {
-    const commands = (
+    const commandsObj = (
         app as unknown as {
-            commands: Record<string, (...args: unknown[]) => unknown>;
+            commands: Record<string, (...args: unknown[]) => unknown> & {
+                commands: CommandRecord;
+            };
         }
     ).commands;
 
-    return around(commands, {
+    for (const cmd of Object.values(commandsObj.commands)) {
+        wrapCheckCallback(app, cmd);
+    }
+
+    const removeExecuteCommandPatch = around(commandsObj, {
         executeCommand(next) {
             return function (this: unknown, ...args: unknown[]): unknown {
-                const state = getActiveVisualLineState(app);
-                if (!state) return next.apply(this, args);
-
-                expandSelection(state.editorView, state.vim.sel!);
-                try {
-                    return next.apply(this, args);
-                } finally {
-                    const currentVim = state.cm.state?.vim as
-                        | VimState
-                        | undefined;
-                    if (currentVim?.visualLine && currentVim.sel) {
-                        restoreCursorOnly(state.cm, currentVim);
-                    }
-                }
+                return withExpandedSelection(app, next, this, args);
             };
         },
     });
+
+    const removeAddCommandPatch = around(commandsObj, {
+        addCommand(next) {
+            return function (this: unknown, ...args: unknown[]): unknown {
+                const result = next.apply(this, args);
+                const cmd = args[0] as Command | undefined;
+                if (cmd?.id) {
+                    const registered = commandsObj.commands[cmd.id];
+                    if (registered) wrapCheckCallback(app, registered);
+                }
+                return result;
+            };
+        },
+    });
+
+    return () => {
+        removeExecuteCommandPatch();
+        removeAddCommandPatch();
+    };
 }
