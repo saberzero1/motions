@@ -146,6 +146,7 @@ export class TableNavController implements PluginValue {
         if (s.state === 'nav') {
             if (update.docChanged) this.refreshAfterDocChange();
             else this.ensureHighlight();
+            setCursorSuppressedForView(this.view, true);
             this.suppressWidgetCursorLayers();
             return;
         }
