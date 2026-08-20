@@ -31,8 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.118.0
+## What's new in 0.119.0
 
-- **[[tables|Table navigation]] macOS fix** — fixed `j`/`k` (and `gj`/`gk`) cursor bounce-back inside native table cells on macOS. The cross-cell `scheduleCrossing` mechanism used `setTimeout(0)` which was subject to macOS timer clamping, allowing Obsidian's native focus handlers to re-assert the original cell before the crossing completed. Replaced with `MessageChannel` port messaging for deterministic task scheduling. Users with `j→gj` / `k→gk` remappings were especially affected. Cross-cell motions remain independent of the `tablenav` setting. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **[[tables|Table cell]] macOS cursor bounce-back fix** — replaced `setTimeout(0)` with `MessageChannel` port messaging in cross-cell motions, eliminating macOS timer-clamping race conditions. Users with `j→gj` / `k→gk` remappings were especially affected. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **Cross-cell motions restored when `enableTableNav=false`** — reverted an incorrect gate that removed `h`/`j`/`k`/`l` cross-cell navigation in native table cell editors when table nav was disabled. Cross-cell motions are independent of the `tablenav` setting, as originally designed. ([#136](https://github.com/saberzero1/motions/issues/136))
 
 See the [[changelog|full changelog]] for details.

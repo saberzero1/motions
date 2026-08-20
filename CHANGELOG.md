@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.119.0] - 2026-08-20
+
 ### Fixed
 
 - **Table cell cursor bounce-back on macOS** — `scheduleCrossing()` in the cross-cell motion overrides used `setTimeout(0)` to defer cell focus changes after vim's motion return. On macOS Electron, `setTimeout(0)` is subject to timer clamping (1–4ms minimum delay), during which Obsidian's native table widget event handlers re-assert focus on the original cell — producing cursor bounce-back. Users with `j→gj` / `k→gk` remappings were especially affected because the remapping adds an extra key processing step. Fixed by replacing `setTimeout(0)` with `MessageChannel` port messaging, which dispatches a macrotask that fires before timers in the browser event loop. Token-based deduplication ensures rapid key repeats coalesce correctly. ([#136](https://github.com/saberzero1/motions/issues/136))
