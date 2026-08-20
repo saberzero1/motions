@@ -11,7 +11,17 @@ let origMoveByLines: MotionFn | null = null;
 let origMoveByCharacters: MotionFn | null = null;
 let origMoveByDisplayLines: MotionFn | null = null;
 
-let pendingCrossing: number | null = null;
+let crossingToken = 0;
+const crossingChannel = new MessageChannel();
+let pendingCrossingFn: (() => void) | null = null;
+let pendingCrossingToken = 0;
+
+crossingChannel.port1.onmessage = () => {
+    if (pendingCrossingToken !== crossingToken) return;
+    const fn = pendingCrossingFn;
+    pendingCrossingFn = null;
+    fn?.();
+};
 
 function suppressMainCursor(cm: CmAdapter): void {
     const view = cm.cm6;
@@ -21,13 +31,12 @@ function suppressMainCursor(cm: CmAdapter): void {
 }
 
 function scheduleCrossing(cm: CmAdapter, fn: () => void): void {
-    if (pendingCrossing !== null) window.clearTimeout(pendingCrossing);
+    const token = ++crossingToken;
     suppressMainCursor(cm);
     signalCellCrossing();
-    pendingCrossing = window.setTimeout(() => {
-        pendingCrossing = null;
-        fn();
-    }, 0);
+    pendingCrossingFn = fn;
+    pendingCrossingToken = token;
+    crossingChannel.port2.postMessage(null);
 }
 
 // The inputState parameter (5th motion arg) holds the pre-clearInputState

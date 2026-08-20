@@ -76,13 +76,13 @@ Vim Motions integrates with Obsidian's native table editor in Live Preview. Two 
 
 In **source mode**, tables are always rendered as raw markdown regardless of the `tablewidget` setting. The cursor behaves normally — no cursor suppression occurs.
 
-The `tablenav` setting (on by default) controls whether the **table-nav overlay** and **cross-cell motion overrides** activate on top of the native editor. With `tablenav` off, Obsidian's native table cell editor handles cell boundary navigation directly — the plugin does not override cursor movement motions.
+The `tablenav` setting (on by default) controls whether the **table-nav overlay** activates on top of the native editor. With `tablenav` off, the native table editor still provides full vim cell editing with cross-cell `h`/`j`/`k`/`l` navigation — just without the overlay UI.
 
-| Configuration                   | Experience                                                                                   |
-| ------------------------------- | -------------------------------------------------------------------------------------------- |
-| `native` + `tablenav` (default) | Full table-nav overlay with cell highlighting, structural commands, and cross-cell motions   |
-| `native` + `notablenav`         | Native table editor with Obsidian-managed cell editing, no nav overlay or cross-cell motions |
-| `raw`                           | Raw markdown tables                                                                          |
+| Configuration                   | Experience                                                            |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `native` + `tablenav` (default) | Full table-nav overlay with cell highlighting and structural commands |
+| `native` + `notablenav`         | Native table editor with vim cell editing and cross-cell navigation   |
+| `raw`                           | Raw markdown tables                                                   |
 
 ## Table-nav mode
 
@@ -134,7 +134,7 @@ Cell editors are Obsidian's native editors with vim injected via `registerEditor
 
 - `Tab` / `Shift-Tab` navigate between cells (handled by the native table editor).
 - When table-nav is enabled: `Escape` in normal mode returns to table-nav. `h`/`j`/`k`/`l` in normal mode move the cursor within the cell; only when the cursor reaches a cell boundary do they exit to table-nav and navigate to the adjacent cell. This lets you use standard vim cursor movement inside cells after pressing Escape from insert mode.
-- When table-nav is disabled: `Escape` in normal mode stays in the cell. Obsidian's native table cell editor handles cell boundary navigation directly — the plugin does not override cursor movement motions.
+- When table-nav is disabled: `Escape` in normal mode stays in the cell; `h`/`j`/`k`/`l` cross cell boundaries directly via motion overrides.
 - **Register sharing**: Vim registers are shared between cell editors and the main document.
 - **Which-key**: [[which-key|Which-key]] popups work in cell editors.
 

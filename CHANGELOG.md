@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Table cell cursor bounce-back on macOS** — `scheduleCrossing()` in the cross-cell motion overrides used `setTimeout(0)` to defer cell focus changes after vim's motion return. On macOS Electron, `setTimeout(0)` is subject to timer clamping (1–4ms minimum delay), during which Obsidian's native table widget event handlers re-assert focus on the original cell — producing cursor bounce-back. Users with `j→gj` / `k→gk` remappings were especially affected because the remapping adds an extra key processing step. Fixed by replacing `setTimeout(0)` with `MessageChannel` port messaging, which dispatches a macrotask that fires before timers in the browser event loop. Token-based deduplication ensures rapid key repeats coalesce correctly. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-cell-motions.ts` (`scheduleCrossing` now uses `MessageChannel` instead of `setTimeout(0)`)
+- **Cross-cell motions broken when `enableTableNav=false`** — the 0.118.0 fix for #136 incorrectly gated `applyTableCellMotions()` on `enableTableNav`, which removed the motion overrides entirely when table nav was disabled. This broke `j`/`k`/`h`/`l` cross-cell navigation in native table cell editors. Reverted the gate — cross-cell motions are independent of `enableTableNav`, as originally designed. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/main.ts` (removed `enableTableNav` check from both `applyTableCellMotions` registration sites)
+
+### Tests
+
+- Added native-mode cross-cell tests in `test/specs/table-nav-disabled.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): j cross row, k cross row, l cross cell, j exit table, no-overlay assertion, cell editor opens — using WebDriver `$().click()` for reliable cell entry and `waitUntil` for async assertions
+- Added raw-mode tests with `j→gj`/`k→gk` remappings (j down, k up)
+- Updated `test/specs/table-cell-vim-mode.e2e.ts`: cross-cell j/l tests use `waitUntil` for deterministic assertions
+- Updated `test/specs/table-cursor-suppression.e2e.ts`: #127 tests use `G`/`gg` jumps instead of j/k table traversal; #135 tests use WebDriver cell click + `waitUntil` for table-nav entry
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: reverted cross-cell motions documentation to reflect independence from `enableTableNav`
+- `CONTRIBUTING.md`: updated `table-cell-motions.ts` description
+- `docs/features/tables.md`: reverted table modes matrix and cell editor behavior description
+- `docs/configuration/settings.md`: reverted Table navigation setting description
+
 ## [0.118.0] - 2026-08-20
 
 ### Fixed

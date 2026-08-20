@@ -82,15 +82,15 @@ The plugin uses Obsidian's native table editor for cell editing. `set tablewidge
 
 Three table editing modes are supported:
 
-| `tableWidgetMode` | `enableTableNav` | Experience                                                                                   |
-| ----------------- | ---------------- | -------------------------------------------------------------------------------------------- |
-| `native`          | `true` (default) | Full table-nav overlay with cell highlighting and structural commands                        |
-| `native`          | `false`          | Native table editor with Obsidian-managed cell editing, no nav overlay or cross-cell motions |
-| `raw`             | either           | Raw markdown tables — no widget rendering                                                    |
+| `tableWidgetMode` | `enableTableNav` | Experience                                                                                  |
+| ----------------- | ---------------- | ------------------------------------------------------------------------------------------- |
+| `native`          | `true` (default) | Full table-nav overlay with cell highlighting and structural commands                       |
+| `native`          | `false`          | Native table editor with vim cell editing and cross-cell h/j/k/l navigation, no nav overlay |
+| `raw`             | either           | Raw markdown tables — no widget rendering                                                   |
 
 A **table-nav overlay** activates when `enableTableNav` is on and `tableWidgetMode` is `native`. This mode allows cell navigation with `h`/`j`/`k`/`l` without entering the cell editor. Structural commands (`o`/`O`, `dd`, `dc`, `J`/`K`, `H`/`L`, `I`/`A`, `=`) are supported directly from the overlay. Pressing `i`/`a`/`c`/`s` or `Enter` enters the native cell editor. `Escape` exits table-nav.
 
-**Cross-cell motions** (`h`/`j`/`k`/`l` crossing cell boundaries) activate when both `tableWidgetMode` is `native` and `enableTableNav` is `true`. When `enableTableNav` is `false`, Obsidian's native table cell editor handles cell boundary navigation directly — the plugin does not override `moveByLines`/`moveByCharacters`/`moveByDisplayLines`. This prevents timing races between the plugin's `scheduleCrossing()` and Obsidian's native cell focus management that caused cursor bounce-back on macOS. ([#136](https://github.com/saberzero1/motions/issues/136))
+**Cross-cell motions** (`h`/`j`/`k`/`l` crossing cell boundaries) are independent of the table-nav overlay. They activate whenever `tableWidgetMode` is `native`, regardless of `enableTableNav`. This allows using the native table editor with vim cell editing without the nav overlay intercepting every table entry.
 
 - **Escape stays in cell**: Escape in normal mode stays in the cell (matches Obsidian's built-in vim behavior). Tab/Shift-Tab navigate between cells.
 - **`h`/`j`/`k`/`l` cross-cell navigation**: In normal mode, `h`/`l` at cell boundaries move to the adjacent cell (same row). `j`/`k` at row boundaries move to the same column in the next/previous data row (separator rows are skipped). `j` at the last data row or `k` at the header row exits the table. When the cursor is not at a cell boundary, `h`/`j`/`k`/`l` move the cursor within the cell as normal vim motions. Operator-pending (`dj`, `yl`) and visual mode motions stay within the cell.
@@ -288,7 +288,7 @@ The following are intentionally not implemented:
 
 The plugin uses Obsidian's native table editor in Live Preview. Two rendering modes are available via `set tablewidget`:
 
-- **`native`** (default): Uses Obsidian's built-in `cm-table-widget`. Vim is injected into cell editors via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping, cursor positioning, and `<br>` conversion automatically. Cross-cell `h`/`j`/`k`/`l` navigation is active when `enableTableNav` is `true`; when disabled, Obsidian's native cell editor handles boundary navigation directly.
+- **`native`** (default): Uses Obsidian's built-in `cm-table-widget`. Vim is injected into cell editors via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping, cursor positioning, and `<br>` conversion automatically. Cross-cell `h`/`j`/`k`/`l` navigation is always active in native mode, independent of the `tablenav` setting.
 - **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview.
 
 Old values (`off`, `cursor`, `always`, `embedded`) are automatically migrated to `native` or `raw`.
