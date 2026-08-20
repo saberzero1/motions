@@ -333,7 +333,13 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `Ngt`               | Go to Nth tab (e.g., `3gt` goes to tab 3)                     | Yes    |
 | `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3)           | —      |
 | `H` / `L`           | Previous/next tab (non-editor views only)                     | Yes    |
+| `<C-w>w`            | Cycle to next pane                                            | Yes    |
+| `<C-w>W`            | Cycle to previous pane                                        | Yes    |
+| `<C-w>p`            | Focus previously accessed pane                                | Yes    |
 | `Ctrl-o` / `Ctrl-i` | Jump backward / forward through jump history (supports count) | Yes    |
+| `<C-^>` / `<C-6>`   | Switch to alternate (previously edited) file                  | Yes    |
+| `<C-]>`             | Follow link under cursor (alias for `gd`)                     | —      |
+| `<C-t>`             | Pop from link follow (jump list backward)                     | —      |
 | `gd`                | Go to definition — open the link under the cursor             | —      |
 | `gD`                | Open link under cursor in a new tab                           | —      |
 | `<C-w>gd`           | Open link under cursor in a horizontal split                  | —      |
@@ -344,6 +350,11 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `g<C-g>`            | Show document statistics (words, lines, characters)           | —      |
 | `gp` / `gP`         | Paste and move cursor past pasted text                        | —      |
 | `ga`                | Show character info under cursor (codepoint, hex)             | —      |
+| `gm`                | Go to middle of screen line                                   | —      |
+| `go`                | Go to character offset (byte N in buffer, with count)         | —      |
+| `g8`                | Show UTF-8 byte sequence for character under cursor           | —      |
+| `gF`                | Go to file with optional line number (`file.md:42`)           | —      |
+| `<C-g>`             | Show file info (name, lines, position, percentage)            | —      |
 | `<leader>rn`        | Rename current note                                           | —      |
 | `<leader>rb`        | Show backlinks to current note                                | —      |
 | `<leader>ra`        | Show context actions for current note                         | —      |
@@ -377,6 +388,15 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `zk`         | Move to end of previous fold                |
 | `[z`         | Move to start of current fold               |
 | `]z`         | Move to end of current fold                 |
+
+## Horizontal scroll
+
+| Keybinding | Description                                       |
+| ---------- | ------------------------------------------------- |
+| `zs`       | Scroll text so cursor column is at the left edge  |
+| `ze`       | Scroll text so cursor column is at the right edge |
+| `zH`       | Scroll half a screen width to the left            |
+| `zL`       | Scroll half a screen width to the right           |
 
 ## Select mode
 
@@ -445,6 +465,15 @@ Execute commands via the `:` command line, grouped by function.
 | `:qa`                          | Close all tabs                           |
 | `:wa` / `:wall`                | Save all open files                      |
 
+### Editing
+
+| Command                              | Description                             |
+| ------------------------------------ | --------------------------------------- |
+| `:[range]m {addr}` / `:move`         | Move lines in range to target address   |
+| `:[range]t {addr}` / `:copy` / `:co` | Copy lines in range to target address   |
+| `:[range]norm {keys}` / `:normal`    | Execute normal-mode keys from ex line   |
+| `:[range]normal! {keys}`             | Execute normal-mode keys without remaps |
+
 ### Window and tab
 
 | Command                    | Description                         |
@@ -458,6 +487,7 @@ Execute commands via the `:` command line, grouped by function.
 | `:tabonly` / `:tabo`       | Close all other tabs                |
 | `:tabfirst` / `:tabrewind` | Go to first tab                     |
 | `:tablast` / `:tabl`       | Go to last tab                      |
+| `:tabmove`                 | No-op (Obsidian has no tab reorder) |
 
 ### Table
 
@@ -579,12 +609,25 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 | `o` / `O`  | Smart list continuation (bullets, numbers, checkboxes) |
 | `Y`        | Yank to end of line (`y$`)                             |
 | `Q`        | Replay last recorded macro (`@@`)                      |
+| `@:`       | Repeat last ex command                                 |
+| `&`        | Repeat last `:s` substitution on current line          |
+| `ZZ`       | Write current file and close tab (`:wq`)               |
+| `ZQ`       | Close tab without saving (`:q`)                        |
 | `g;`       | Older change                                           |
 | `g,`       | Newer change                                           |
 | `g-`       | Older undo state                                       |
 | `g+`       | Newer undo state                                       |
 | `<C-p>`    | Cycle paste previous register (or `k` if not cycling)  |
 | `<C-n>`    | Cycle paste next register (or `j` if not cycling)      |
+
+## Insert mode
+
+| Keybinding | Description                                                 |
+| ---------- | ----------------------------------------------------------- |
+| `<C-a>`    | Re-insert previously inserted text                          |
+| `<C-e>`    | Copy character from line below (same column)                |
+| `<C-y>`    | Copy character from line above (same column)                |
+| `<C-G>s`   | Insert-mode surround (inserts both delimiters, type inside) |
 
 ## Increment/Decrement
 

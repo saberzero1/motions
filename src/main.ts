@@ -280,6 +280,8 @@ export default class VimMotionsPlugin extends Plugin {
     private activeUndoFilePath: string | null = null;
     private previousLeafId: string | null = null;
     private previousFoldFile: string | null = null;
+    private alternateFilePath: string | null = null;
+    private lastMarkdownFilePath: string | null = null;
     exSuggest: ExCommandSuggest | null = null;
     private globalKeyHandler: GlobalKeyHandler | null = null;
     private textareaVimManager: TextareaVimManager | null = null;
@@ -1305,6 +1307,22 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (newLeaf) => {
+                if (!this.settings.enableWorkspaceNav) return;
+                if (!(newLeaf?.view instanceof MarkdownView)) return;
+                const filePath = newLeaf.view.file?.path ?? null;
+                if (!filePath) return;
+                if (
+                    this.lastMarkdownFilePath &&
+                    this.lastMarkdownFilePath !== filePath
+                ) {
+                    this.alternateFilePath = this.lastMarkdownFilePath;
+                }
+                this.lastMarkdownFilePath = filePath;
+            }),
+        );
+
+        this.registerEvent(
             this.app.workspace.on('file-open', (file) => {
                 if (!this.settings.enableUndoTree) return;
                 const filePath = file?.path ?? null;
@@ -1356,30 +1374,30 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (newLeaf) => {
-                if (!this.settings.enableHarpoon) return;
-                if (this.previousLeafId) {
-                    this.app.workspace.iterateAllLeaves((leaf) => {
-                        const leafId = getLeafId(leaf);
-                        if (
-                            leafId === this.previousLeafId &&
-                            leaf.view instanceof MarkdownView &&
-                            leaf.view.file
-                        ) {
-                            const view = leaf.view;
-                            const filePath = view.file!.path;
-                            if (this.harpoonStore.getByPath(filePath)) {
-                                const cursor = view.editor.getCursor();
-                                this.harpoonStore.updateCursor(
-                                    filePath,
-                                    cursor.line,
-                                    cursor.ch,
-                                );
-                                this.harpoonSaveDirty = true;
-                            }
-                        }
-                    });
-                }
+                const oldLeafId = this.previousLeafId;
                 this.previousLeafId = newLeaf ? (newLeaf.id ?? null) : null;
+
+                if (!this.settings.enableHarpoon || !oldLeafId) return;
+                this.app.workspace.iterateAllLeaves((leaf) => {
+                    const leafId = getLeafId(leaf);
+                    if (
+                        leafId === oldLeafId &&
+                        leaf.view instanceof MarkdownView &&
+                        leaf.view.file
+                    ) {
+                        const view = leaf.view;
+                        const filePath = view.file!.path;
+                        if (this.harpoonStore.getByPath(filePath)) {
+                            const cursor = view.editor.getCursor();
+                            this.harpoonStore.updateCursor(
+                                filePath,
+                                cursor.line,
+                                cursor.ch,
+                            );
+                            this.harpoonSaveDirty = true;
+                        }
+                    }
+                });
             }),
         );
 
@@ -1701,6 +1719,8 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.leaderRegistry,
                 this.settings.enableReplaceWithRegister,
+                () => this.previousLeafId,
+                () => this.alternateFilePath,
             );
             registerExCommands(
                 this.registration,
@@ -2541,6 +2561,8 @@ export default class VimMotionsPlugin extends Plugin {
                 this.app,
                 this.leaderRegistry,
                 this.settings.enableReplaceWithRegister,
+                () => this.previousLeafId,
+                () => this.alternateFilePath,
             );
             registerExCommands(
                 this.registration,

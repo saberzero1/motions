@@ -82,6 +82,18 @@ function createOpenUrlAction(app: App): ActionFn {
     };
 }
 
+function createAlternateFileAction(
+    app: App,
+    getAlternateFilePath: () => string | null,
+): ActionFn {
+    return () => {
+        const target = getAlternateFilePath();
+        if (!target) return;
+        const sourcePath = app.workspace.getActiveFile()?.path ?? '';
+        void app.workspace.openLinkText(target, sourcePath, false);
+    };
+}
+
 function createDocStatsAction(app: App): ActionFn {
     return () => {
         const view = app.workspace.getActiveViewOfType(MarkdownView);
@@ -182,11 +194,187 @@ function createCharInfoAction(app: App): ActionFn {
     };
 }
 
+function createUtf8ByteInfoAction(app: App): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const adapter = getCmAdapter(view);
+        if (!adapter) return;
+        const cursor = adapter.getCursor();
+        const line = adapter.getLine(cursor.line);
+        const char = line.charAt(cursor.ch);
+        if (!char) return;
+        const encoded = new TextEncoder().encode(char);
+        const hex = Array.from(encoded)
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join(' ');
+        new Notice(`<${char}>  ${hex}`);
+    };
+}
+
+function createFileInfoAction(app: App): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view || !view.file) return;
+        const adapter = getCmAdapter(view);
+        if (!adapter) return;
+        const cursor = adapter.getCursor();
+        const totalLines = adapter.lineCount();
+        const pct =
+            totalLines > 0
+                ? Math.round(((cursor.line + 1) / totalLines) * 100)
+                : 0;
+        new Notice(
+            `"${view.file.name}"  line ${cursor.line + 1} of ${totalLines}  --${pct}%--  col ${cursor.ch + 1}`,
+        );
+    };
+}
+
+function createGotoMiddleOfLineAction(app: App): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const adapter = getCmAdapter(view);
+        if (!adapter) return;
+        const cm6 = adapter.cm6;
+        if (!cm6) return;
+        const cursor = adapter.getCursor();
+        const lineText = adapter.getLine(cursor.line);
+        const visibleCols = Math.floor(
+            cm6.dom.clientWidth / cm6.defaultCharacterWidth,
+        );
+        const mid = Math.floor(visibleCols / 2);
+        const targetCh = Math.min(mid, lineText.length - 1);
+        adapter.setCursor(cursor.line, Math.max(0, targetCh));
+    };
+}
+
+function createGotoCharOffsetAction(app: App): ActionFn {
+    return (_cm, actionArgs) => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const adapter = getCmAdapter(view);
+        if (!adapter) return;
+        const offset = (actionArgs.repeat ?? 1) - 1;
+        const cm6 = adapter.cm6;
+        if (!cm6) return;
+        const docLen = cm6.state.doc.length;
+        const clamped = Math.min(offset, docLen - 1);
+        if (clamped < 0) return;
+        const pos = cm6.state.doc.lineAt(clamped);
+        adapter.setCursor(pos.number - 1, clamped - pos.from);
+    };
+}
+
+function createGotoFileLineAction(app: App): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const adapter = getCmAdapter(view);
+        if (!adapter) return;
+        const cursor = adapter.getCursor();
+        const lineText = adapter.getLine(cursor.line);
+        const match = /[\w./\\-]+:\d+/.exec(lineText.slice(cursor.ch));
+        if (!match) {
+            executeCommand(app, 'switcher:open');
+            return;
+        }
+        const [full] = match;
+        const sepIdx = full.lastIndexOf(':');
+        const filePart = full.slice(0, sepIdx);
+        const linePart = parseInt(full.slice(sepIdx + 1), 10);
+        void app.workspace.openLinkText(filePart, '', false).then(() => {
+            const newView = app.workspace.getActiveViewOfType(MarkdownView);
+            if (newView) {
+                const targetLine = Math.max(0, linePart - 1);
+                newView.editor.setCursor(targetLine, 0);
+            }
+        });
+    };
+}
+
+function createHorizontalScrollAction(
+    mode: 'cursor-left' | 'cursor-right' | 'half-left' | 'half-right',
+): ActionFn {
+    return (cm) => {
+        const cm6 = cm.cm6;
+        if (!cm6) return;
+        const scrollDom = cm6.scrollDOM;
+        switch (mode) {
+            case 'cursor-left': {
+                const cursor = cm6.state.selection.main.head;
+                const coords = cm6.coordsAtPos(cursor);
+                if (coords) {
+                    const rect = scrollDom.getBoundingClientRect();
+                    scrollDom.scrollLeft += coords.left - rect.left;
+                }
+                break;
+            }
+            case 'cursor-right': {
+                const cursor = cm6.state.selection.main.head;
+                const coords = cm6.coordsAtPos(cursor);
+                if (coords) {
+                    const rect = scrollDom.getBoundingClientRect();
+                    scrollDom.scrollLeft +=
+                        coords.left - rect.right + cm6.defaultCharacterWidth;
+                }
+                break;
+            }
+            case 'half-left':
+                scrollDom.scrollLeft -= Math.floor(scrollDom.clientWidth / 2);
+                break;
+            case 'half-right':
+                scrollDom.scrollLeft += Math.floor(scrollDom.clientWidth / 2);
+                break;
+        }
+    };
+}
+
+function createCyclePaneAction(app: App, reverse: boolean): ActionFn {
+    return () => {
+        const rootSplit = app.workspace.rootSplit;
+        const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
+        app.workspace.iterateAllLeaves((leaf) => {
+            if (leaf.getRoot() === rootSplit) {
+                leaves.push(leaf);
+            }
+        });
+        if (leaves.length <= 1) return;
+        const active = app.workspace.getLeaf(false);
+        const idx = leaves.indexOf(active);
+        if (idx === -1) return;
+        const next = reverse
+            ? (idx - 1 + leaves.length) % leaves.length
+            : (idx + 1) % leaves.length;
+        const target = leaves[next];
+        if (target) {
+            app.workspace.setActiveLeaf(target, { focus: true });
+        }
+    };
+}
+
+function createFocusPreviousPaneAction(
+    app: App,
+    getPreviousLeafId: () => string | null,
+): ActionFn {
+    return () => {
+        const prevId = getPreviousLeafId();
+        if (!prevId) return;
+        app.workspace.iterateAllLeaves((leaf) => {
+            if ((leaf as { id?: string }).id === prevId) {
+                app.workspace.setActiveLeaf(leaf, { focus: true });
+            }
+        });
+    };
+}
+
 export function registerWorkspaceNavigation(
     reg: VimRegistration,
     app: App,
     leaderRegistry: LeaderRegistry,
     enableReplaceWithRegister = true,
+    getPreviousLeafId: () => string | null = () => null,
+    getAlternateFilePath: () => string | null = () => null,
 ): void {
     void leaderRegistry;
     const focusLeft = createCommandAction(app, 'editor:focus-left');
@@ -268,6 +456,7 @@ export function registerWorkspaceNavigation(
     const gotoDef = createGotoDefinitionAction(app);
     reg.defineAction('gotoDefinition', gotoDef);
     reg.mapCommand('gd', 'action', 'gotoDefinition', {});
+    reg.mapCommand('<C-]>', 'action', 'gotoDefinition', {});
     exCommandFromAction(reg, 'gotodefinition', '', gotoDef);
 
     const gotoDefNewTab = createGotoDefinitionNewTabAction(app);
@@ -289,6 +478,15 @@ export function registerWorkspaceNavigation(
     reg.defineAction('gotoDefinitionSplitV', gotoDefSplitV);
     reg.mapCommand('<C-w>gD', 'action', 'gotoDefinitionSplitV', {});
     exCommandFromAction(reg, 'gotodefinitionsplitv', '', gotoDefSplitV);
+
+    const alternateFileAction = createAlternateFileAction(
+        app,
+        getAlternateFilePath,
+    );
+    reg.defineAction('alternateFile', alternateFileAction);
+    reg.mapCommand('<C-^>', 'action', 'alternateFile', {});
+    reg.mapCommand('<C-6>', 'action', 'alternateFile', {});
+    reg.mapCommand('<C-t>', 'action', 'jumpListWalk', { forward: false });
 
     // Fold commands use CM6's fold API directly instead of Obsidian's
     // editor:fold-more/fold-less commands, which are incremental (fold one
@@ -500,4 +698,61 @@ export function registerWorkspaceNavigation(
     reg.defineAction('charInfo', charInfoAction);
     reg.mapCommand('ga', 'action', 'charInfo', {});
     exCommandFromAction(reg, 'charinfo', 'char', charInfoAction);
+
+    const cyclePaneNext = createCyclePaneAction(app, false);
+    reg.defineAction('cyclePaneNext', cyclePaneNext);
+    reg.mapCommand('<C-w>w', 'action', 'cyclePaneNext', {});
+
+    const cyclePanePrev = createCyclePaneAction(app, true);
+    reg.defineAction('cyclePanePrev', cyclePanePrev);
+    reg.mapCommand('<C-w>W', 'action', 'cyclePanePrev', {});
+
+    const focusPrevPane = createFocusPreviousPaneAction(app, getPreviousLeafId);
+    reg.defineAction('focusPreviousPane', focusPrevPane);
+    reg.mapCommand('<C-w>p', 'action', 'focusPreviousPane', {});
+
+    const utf8Info = createUtf8ByteInfoAction(app);
+    reg.defineAction('utf8ByteInfo', utf8Info);
+    reg.mapCommand('g8', 'action', 'utf8ByteInfo', {});
+
+    const fileInfo = createFileInfoAction(app);
+    reg.defineAction('fileInfo', fileInfo);
+    reg.mapCommand('<C-g>', 'action', 'fileInfo', {});
+
+    const gotoMiddle = createGotoMiddleOfLineAction(app);
+    reg.defineAction('gotoMiddleOfLine', gotoMiddle);
+    reg.mapCommand('gm', 'action', 'gotoMiddleOfLine', {});
+
+    const gotoOffset = createGotoCharOffsetAction(app);
+    reg.defineAction('gotoCharOffset', gotoOffset);
+    reg.mapCommand('go', 'action', 'gotoCharOffset', {});
+
+    const gotoFileLine = createGotoFileLineAction(app);
+    reg.defineAction('gotoFileLine', gotoFileLine);
+    reg.mapCommand('gF', 'action', 'gotoFileLine', {});
+
+    const scrollCursorLeft = createHorizontalScrollAction('cursor-left');
+    reg.defineAction('scrollCursorLeft', scrollCursorLeft);
+    reg.mapCommand('zs', 'action', 'scrollCursorLeft', {});
+
+    const scrollCursorRight = createHorizontalScrollAction('cursor-right');
+    reg.defineAction('scrollCursorRight', scrollCursorRight);
+    reg.mapCommand('ze', 'action', 'scrollCursorRight', {});
+
+    const scrollHalfLeft = createHorizontalScrollAction('half-left');
+    reg.defineAction('scrollHalfLeft', scrollHalfLeft);
+    reg.mapCommand('zH', 'action', 'scrollHalfLeft', {});
+
+    const scrollHalfRight = createHorizontalScrollAction('half-right');
+    reg.defineAction('scrollHalfRight', scrollHalfRight);
+    reg.mapCommand('zL', 'action', 'scrollHalfRight', {});
+
+    const noop: ActionFn = () => {};
+    reg.defineAction('noop', noop);
+    reg.mapCommand('<C-w>=', 'action', 'noop', {});
+    reg.mapCommand('<C-w>_', 'action', 'noop', {});
+    reg.mapCommand('<C-w>|', 'action', 'noop', {});
+    reg.mapCommand('<C-w>r', 'action', 'noop', {});
+    reg.mapCommand('<C-w>R', 'action', 'noop', {});
+    reg.mapCommand('<C-w>x', 'action', 'noop', {});
 }

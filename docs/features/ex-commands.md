@@ -12,6 +12,25 @@ Vim Motions provides 100+ ex commands accessible via `:` in Normal mode. Command
 
 ![[keybindings#Ex commands]]
 
+## Editing commands
+
+### `:m` / `:move` — move lines
+
+Move the current line or a range to a target address. The address can be an
+absolute line number (`42`), a relative offset (`+2`, `-1`), the start of the
+file (`0`), or the end of the file (`$`). Example: `:3,5move $` moves lines 3–5
+to the end of the file.
+
+### `:t` / `:copy` / `:co` — copy lines
+
+Copy the current line or a range to a target address. Address syntax matches
+`:move`, so `:10,12t 0` copies lines 10–12 to the top of the file.
+
+### `:norm` / `:normal` / `:normal!` — execute normal-mode keys
+
+Run a normal-mode key sequence from the ex command line. Use `:normal` to honor
+user mappings, or `:normal!` to ignore remaps. Example: `:g/TODO/normal A ✅`.
+
 ## Obsidian integration
 
 ### `:ob` / `:obcommand` — execute Obsidian commands

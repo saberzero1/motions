@@ -510,6 +510,27 @@ normal_mode:
             test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
             description: 'go to older entry in jump list',
         }
+    CTRL-^:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'alternate file switch (plugin)',
+        }
+    CTRL-]:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'follow link under cursor (plugin)',
+        }
+    CTRL-T:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'jump to older entry in jump list (plugin alias)',
+        }
     CTRL-D:
         {
             tier: 1,
@@ -593,6 +614,41 @@ normal_mode:
             status: tested,
             test_file: 'vim-builtin/normal-yank-put.e2e.ts',
             description: 'yank to end of line (plugin remap Y -> y$)',
+        }
+    CTRL-G:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'show file info (plugin)',
+        }
+    '@:':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'repeat last ex command (fork)',
+        }
+    '&':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-builtin.e2e.ts',
+            description: 'repeat last :s substitute on current line (fork)',
+        }
+    ZZ:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'write + quit (fork, maps to :wq)',
+        }
+    ZQ:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'quit without saving (fork, maps to :q)',
         }
     CTRL-Z:
         {
@@ -786,6 +842,34 @@ normal_mode_g_commands:
             test_file: 'vim-builtin/g-commands.e2e.ts',
             description: 'jump to newer change position (plugin)',
         }
+    gm:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'go to middle of screen line (plugin)',
+        }
+    go:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'go to character offset (plugin)',
+        }
+    g8:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'show UTF-8 byte sequence of character (plugin)',
+        }
+    gF:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'go to file with line number (plugin)',
+        }
 
 normal_mode_z_commands:
     zz:
@@ -920,6 +1004,34 @@ normal_mode_z_commands:
             status: tested,
             test_file: 'fold-commands.e2e.ts',
             description: 'fold less - one heading level (plugin)',
+        }
+    zs:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'scroll cursor to left screen edge (plugin)',
+        }
+    ze:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'scroll cursor to right screen edge (plugin)',
+        }
+    zH:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'scroll half-screen left (plugin)',
+        }
+    zL:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'scroll half-screen right (plugin)',
         }
 
 normal_mode_bracket_commands:
@@ -1358,6 +1470,62 @@ insert_mode:
             test_file: 'vim-builtin/insert-mode.e2e.ts',
             description: 'execute one normal command',
         }
+    CTRL-R:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'insert register contents',
+        }
+    CTRL-T:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'indent right (one shiftwidth)',
+        }
+    CTRL-D:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'indent left (one shiftwidth)',
+        }
+    CTRL-A:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 're-insert previously inserted text (fork)',
+        }
+    CTRL-E:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'copy character from line below at same column (fork)',
+        }
+    CTRL-Y:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'copy character from line above at same column (fork)',
+        }
+    CTRL-G_s:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'insert-mode surround (fork extension)',
+        }
+    CTRL-G_S:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'surround.e2e.ts',
+            description: 'insert-mode surround with newlines (fork extension)',
+        }
 
 ex_commands:
     ':s':
@@ -1380,6 +1548,27 @@ ex_commands:
             status: tested,
             test_file: 'vim-builtin/ex-commands-builtin.e2e.ts',
             description: 'delete lines',
+        }
+    ':move':
+        {
+            tier: 2,
+            status: pending,
+            test_file: '',
+            description: 'move lines to target address (plugin)',
+        }
+    ':copy':
+        {
+            tier: 2,
+            status: pending,
+            test_file: '',
+            description: 'copy lines to target address (plugin)',
+        }
+    ':normal':
+        {
+            tier: 2,
+            status: pending,
+            test_file: '',
+            description: 'execute normal-mode keys from ex (plugin)',
         }
     ':w':
         {
@@ -1670,6 +1859,27 @@ ex_commands:
         }
 
 window_commands:
+    CTRL-W_w:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'cycle to next pane (plugin)',
+        }
+    CTRL-W_W:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'cycle to previous pane (plugin)',
+        }
+    CTRL-W_p:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'focus previous (last accessed) pane (plugin)',
+        }
     CTRL-W_v:
         {
             tier: 2,
@@ -2038,4 +2248,167 @@ surround:
             status: tested,
             test_file: 'surround.e2e.ts',
             description: 'Markdown-specific pairs via count-prefix (2ysiw* → **word**)',
+        }
+
+# Intentional no-ops — built-in vim features not applicable in Obsidian
+no_ops:
+    CTRL-W_equals:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'equalize window sizes',
+            reason: 'Obsidian has no public pane-resize API',
+        }
+    CTRL-W_underscore:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'maximize window height',
+            reason: 'Obsidian has no public pane-resize API',
+        }
+    CTRL-W_pipe:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'maximize window width',
+            reason: 'Obsidian has no public pane-resize API',
+        }
+    CTRL-W_r:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'rotate windows downward',
+            reason: 'Obsidian has no pane rotation API',
+        }
+    CTRL-W_R:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'rotate windows upward',
+            reason: 'Obsidian has no pane rotation API',
+        }
+    CTRL-W_x:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'exchange current window with next',
+            reason: 'Obsidian has no pane exchange API',
+        }
+    ':tabmove':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'move tab to position',
+            reason: 'Obsidian has no tab reorder API',
+        }
+    U_normal:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'undo all changes on current line',
+            reason: 'Line-level undo not implemented (standard u available)',
+        }
+    CTRL-L:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'redraw screen',
+            reason: 'CM6 handles rendering; Oil uses <C-l> for refresh',
+        }
+    ']s':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'next misspelled word',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    '[s':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'previous misspelled word',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    'z=':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'suggest spelling corrections',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zg:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'mark word as correctly spelled',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zw:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'mark word as incorrectly spelled',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    g_CTRL-A:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'sequential increment in visual block',
+            reason: 'Not implemented (standard CTRL-A available)',
+        }
+    g_CTRL-X:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'sequential decrement in visual block',
+            reason: 'Not implemented (standard CTRL-X available)',
+        }
+    insert_CTRL-R_equals:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'insert expression register result',
+            reason: 'Expression register not supported (defer to Lua follow-up)',
+        }
+    insert_CTRL-K:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'insert digraph',
+            reason: 'Digraph entry not applicable in Obsidian',
+        }
+    insert_CTRL-V:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'insert literal character',
+            reason: 'Literal character insert not applicable',
+        }
+    insert_CTRL-X:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'completion submodes',
+            reason: 'Obsidian has native autocomplete',
         }

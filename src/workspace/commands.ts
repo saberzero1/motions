@@ -2,7 +2,7 @@ import { App, MarkdownView, Notice, TFile } from 'obsidian';
 import type { OilManager } from '../oil/manager';
 import { OilView } from '../oil/oil-view';
 import { createGrepCommand } from './vault-search';
-import type { ExCommandFn, VimApi } from '../types/vim-api';
+import type { CmAdapter, ExCommandFn, VimApi } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import { VimInfoModal } from '../ui/vim-info-modal';
 import type { GlobalMappingRegistry } from './global-mapping-registry';
@@ -22,6 +22,97 @@ type OpenPicker = (
 interface PickerConfig {
     openPicker?: OpenPicker;
     isPickerEnabled?: () => boolean;
+}
+
+function clampLine(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
+}
+
+function getLineRange(
+    cm: CmAdapter,
+    params: { line?: number; lineEnd?: number },
+): {
+    startLine: number;
+    endLine: number;
+    lineCount: number;
+} {
+    const lineCount = cm.lineCount();
+    if (lineCount === 0) {
+        return { startLine: 0, endLine: 0, lineCount };
+    }
+    const cursorLine = cm.getCursor().line;
+    const startLine = clampLine(params.line ?? cursorLine, 0, lineCount - 1);
+    const endLine = clampLine(
+        params.lineEnd ?? startLine,
+        startLine,
+        lineCount - 1,
+    );
+    return { startLine, endLine, lineCount };
+}
+
+function getLineRangeText(
+    cm: CmAdapter,
+    startLine: number,
+    endLine: number,
+    lineCount: number,
+): {
+    text: string;
+    fromOffset: number;
+    toOffset: number;
+} {
+    const fromPos = { line: startLine, ch: 0 };
+    const toPos =
+        endLine + 1 < lineCount
+            ? { line: endLine + 1, ch: 0 }
+            : { line: endLine, ch: cm.getLine(endLine).length };
+    const fromOffset = cm.indexFromPos(fromPos);
+    const toOffset =
+        endLine + 1 < lineCount
+            ? cm.indexFromPos(toPos)
+            : cm.cm6.state.doc.length;
+    return {
+        text: cm.getRange(fromPos, toPos),
+        fromOffset,
+        toOffset,
+    };
+}
+
+function getInsertOffset(
+    cm: CmAdapter,
+    insertionLine: number,
+    lineCount: number,
+): number {
+    if (insertionLine >= lineCount) return cm.cm6.state.doc.length;
+    return cm.indexFromPos({ line: insertionLine, ch: 0 });
+}
+
+function getFirstNonBlankCh(lineText: string): number {
+    const idx = lineText.search(/\S/);
+    return idx === -1 ? 0 : idx;
+}
+
+function parseLineTarget(
+    raw: string,
+    baseLine: number,
+    lineCount: number,
+): number | null {
+    const target = raw.trim();
+    if (!target) return null;
+    if (target === '0') return 0;
+    if (target === '$') return lineCount;
+    if (target === '.') return clampLine(baseLine + 1, 0, lineCount);
+    if (target.startsWith('+') || target.startsWith('-')) {
+        const sign = target[0] ?? '+';
+        const offsetText = target.slice(1);
+        const offset = offsetText ? parseInt(offsetText, 10) : 1;
+        if (Number.isNaN(offset)) return null;
+        const delta = sign === '-' ? -offset : offset;
+        const lineNumber = baseLine + 1 + delta;
+        return clampLine(lineNumber, 0, lineCount);
+    }
+    const number = parseInt(target, 10);
+    if (Number.isNaN(number)) return null;
+    return clampLine(number, 0, lineCount);
 }
 
 function createObCommand(app: App): ExCommandFn {
@@ -532,6 +623,84 @@ function createDelmarksCommand(onMarksChanged?: () => void): ExCommandFn {
     };
 }
 
+function getFirstArg(params: {
+    args?: string[];
+    argString?: string;
+}): string | null {
+    if (params.args?.length) return params.args[0] ?? null;
+    const argString = (params.argString ?? '').trim();
+    if (!argString) return null;
+    return argString.split(/\s+/)[0] ?? null;
+}
+
+function createMoveCopyCommand(mode: 'move' | 'copy'): ExCommandFn {
+    return (cm, params) => {
+        const arg = getFirstArg(params);
+        if (!arg) return;
+
+        const { startLine, endLine, lineCount } = getLineRange(cm, params);
+        if (lineCount === 0) return;
+
+        const baseLine = params.lineEnd ?? params.line ?? startLine;
+        const insertionLine = parseLineTarget(arg, baseLine, lineCount);
+        if (insertionLine === null) return;
+
+        const movedLineCount = endLine - startLine + 1;
+        if (
+            mode === 'move' &&
+            insertionLine >= startLine &&
+            insertionLine <= endLine + 1
+        ) {
+            return;
+        }
+
+        const { text, fromOffset, toOffset } = getLineRangeText(
+            cm,
+            startLine,
+            endLine,
+            lineCount,
+        );
+
+        const insertOffset = getInsertOffset(cm, insertionLine, lineCount);
+        const changes =
+            mode === 'move'
+                ? [
+                      { from: fromOffset, to: toOffset },
+                      { from: insertOffset, insert: text },
+                  ]
+                : [{ from: insertOffset, insert: text }];
+
+        changes.sort((a, b) => a.from - b.from);
+        cm.cm6.dispatch({ changes });
+
+        let newStartLine = insertionLine;
+        if (mode === 'move') {
+            if (insertionLine <= startLine) {
+                newStartLine = insertionLine;
+            } else {
+                newStartLine = insertionLine - movedLineCount;
+            }
+        }
+
+        const newEndLine = newStartLine + movedLineCount - 1;
+        const cursorLine = mode === 'move' ? newStartLine : newEndLine;
+        const lineText = cm.getLine(cursorLine) ?? '';
+        const ch = getFirstNonBlankCh(lineText);
+        cm.setCursor(cursorLine, ch);
+    };
+}
+
+function createNormalCommand(): ExCommandFn {
+    return (cm, params) => {
+        const Vim = window.CodeMirrorAdapter?.Vim;
+        if (!Vim?.feedKeys) return;
+        const rawInput = (params.input ?? '').toLowerCase();
+        const isBang = /\b(?:norm|normal)!/.test(rawInput);
+        const keys = (params.args ?? []).join(' ');
+        Vim.feedKeys(cm, `${keys}<Esc>`, { noremap: isBang });
+    };
+}
+
 export function registerExCommands(
     reg: VimRegistration,
     app: App,
@@ -693,6 +862,15 @@ export function registerExCommands(
     reg.defineEx('find', 'fin', createFindCommand(app));
     reg.defineEx('read', 'r', createReadCommand(app));
 
+    const moveCommand = createMoveCopyCommand('move');
+    reg.defineEx('move', 'm', moveCommand);
+
+    const copyCommand = createMoveCopyCommand('copy');
+    reg.defineEx('copy', 'co', copyCommand);
+    reg.defineEx('t', 't', copyCommand);
+
+    reg.defineEx('normal', 'norm', createNormalCommand());
+
     reg.defineEx('buffer', 'b', createBufferCommand(app));
     reg.defineEx('bfirst', 'bf', createBufferFirstLast(app, true));
     reg.defineEx('blast', 'bl', createBufferFirstLast(app, false));
@@ -713,6 +891,7 @@ export function registerExCommands(
     reg.defineEx('tabfirst', 'tabf', createBufferFirstLast(app, true));
     reg.defineEx('tabrewind', 'tabr', createBufferFirstLast(app, true));
     reg.defineEx('tablast', 'tabl', createBufferFirstLast(app, false));
+    reg.defineEx('tabmove', 'tabm', () => {});
 
     reg.defineEx('version', 've', createVersionCommand(app));
     reg.defineEx('delmarks', 'delm', createDelmarksCommand(onMarksChanged));

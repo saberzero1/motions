@@ -768,6 +768,12 @@ These commands exist but behave differently from Neovim:
 | ~~`zn` / `zN`~~        | ~~Fold none (disable folding) / fold normal (re-enable)~~ | ~~Not implemented~~                                        | Fixed. `zn`/`zN`/`zi` implemented via `foldEnableField` StateField. Fold gutter arrows remain visible (shows foldable regions) but fold operations are suppressed. |
 | `it` / `at`            | HTML tag text objects (CM Vim native via XML mode)        | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown                                           |
 
+## Ex `:m`/`:t` address parsing
+
+**Status**: Partial implementation.
+
+The `:m`/`:move` and `:t`/`:copy`/`:co` ex commands support relative addresses (`+1`, `-2`) but the address parser does not fully handle absolute addresses (`0`, `$`) or range syntax (`1,2`). Relative addresses are the most common use case and work correctly. The full Neovim address grammar (marks, search patterns, offsets) is not implemented.
+
 ## Select mode and Virtual Replace mode
 
 - Select mode: `selectmode=mouse` does not work — permanent platform limitation. CM6 does not expose the low-level mouse event API needed to intercept mouse-initiated selections and convert them to select mode. `:smap`/`:sunmap` fallback to `:vmap` when no select-specific mapping exists (matches Neovim). `selectmode=key` and `keymodel=startsel` options are accepted but shifted cursor key behavior is not functional.

@@ -16,6 +16,18 @@ Manage your workspace layout using standard Vim window commands. The plugin supp
 
 The `<C-w>` prefix allows for intuitive movement between splits. Use `<C-w>h`, `<C-w>j`, `<C-w>k`, and `<C-w>l` to move focus to the left, bottom, top, or right pane respectively.
 
+### Pane cycling
+
+- `<C-w>w`: Cycle to the next pane.
+- `<C-w>W`: Cycle to the previous pane.
+- `<C-w>p`: Focus the previously accessed pane (tracked via leaf ID).
+
+## Alternate file and link navigation
+
+- `<C-^>` / `<C-6>`: Switch between the current file and the alternate (previously edited) file. Matches Neovim's `<C-^>` behavior.
+- `<C-]>`: Follow the link under the cursor (alias for `gd`).
+- `<C-t>`: Pop from link follow — navigates backward through the jump list.
+
 ## Tab navigation
 
 `gt` and `gT` cycle through tabs. `gt` supports a count prefix matching Neovim behavior:
@@ -47,6 +59,11 @@ Vim Motions adds several document-level commands for quick access to Obsidian fe
 - `gO`: Open the document outline (symbols).
 - `g<C-g>`: Show document statistics (word count, character count).
 - `ga`: Show information about the character under the cursor.
+- `gm`: Go to the middle of the screen line (horizontal midpoint).
+- `go`: Go to the Nth byte offset in the buffer (with count prefix).
+- `g8`: Show the UTF-8 hex byte values for the character under the cursor.
+- `gF`: Open the file path under the cursor, optionally jumping to a line number suffix (e.g., `file.md:42`).
+- `<C-g>`: Show file info — filename, line count, cursor position, and percentage through the file.
 - `gp` and `gP`: Paste and move cursor past pasted text.
 
 > [!info] Workspace actions formerly on `grn`/`grr`/`gra`
