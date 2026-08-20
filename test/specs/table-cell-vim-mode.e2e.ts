@@ -617,7 +617,7 @@ describe('Table mode combinations', function () {
         expect(await hasTableNavHighlight()).toBe(true);
     });
 
-    it('native + enableTableNav=false: j stays within cell (no cross-cell override)', async function () {
+    it('native + enableTableNav=false: cross-cell j should work without nav overlay', async function () {
         this.timeout(20000);
         await setPluginSettings({
             enableTableNav: false,
@@ -633,14 +633,16 @@ describe('Table mode combinations', function () {
         expect(before.cellContent.trim()).toBe('AA');
 
         await browser.keys(['j']);
-        await browser.pause(500);
-
-        const after = await getTableCellInfo();
-        expect(after.inTableCell).toBe(true);
-        expect(after.cellContent.trim()).toBe('AA');
+        await browser.waitUntil(
+            async () => {
+                const info = await getTableCellInfo();
+                return info.inTableCell && info.cellContent.trim() === 'cc';
+            },
+            { timeout: 3000, interval: 100 },
+        );
     });
 
-    it('native + enableTableNav=false: l stays within cell (no cross-cell override)', async function () {
+    it('native + enableTableNav=false: cross-cell l should work without nav overlay', async function () {
         this.timeout(20000);
         await setPluginSettings({
             enableTableNav: false,
@@ -657,11 +659,13 @@ describe('Table mode combinations', function () {
         await browser.keys(['$']);
         await browser.pause(300);
         await browser.keys(['l']);
-        await browser.pause(500);
-
-        const after = await getTableCellInfo();
-        expect(after.inTableCell).toBe(true);
-        expect(after.cellContent.trim()).toBe('AA');
+        await browser.waitUntil(
+            async () => {
+                const info = await getTableCellInfo();
+                return info.inTableCell && info.cellContent.trim() === 'BB';
+            },
+            { timeout: 3000, interval: 100 },
+        );
     });
 
     it('raw mode: table widget should be hidden', async function () {

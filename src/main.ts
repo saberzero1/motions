@@ -1945,11 +1945,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
-        if (
-            vim &&
-            this.settings.enableTableNav &&
-            this.settings.tableWidgetMode === 'native'
-        ) {
+        if (vim && this.settings.tableWidgetMode === 'native') {
             this.uninstallTableCellMotions = applyTableCellMotions(
                 this.app,
                 vim,
@@ -2589,10 +2585,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
-        if (
-            this.settings.enableTableNav &&
-            this.settings.tableWidgetMode === 'native'
-        ) {
+        if (this.settings.tableWidgetMode === 'native') {
             this.uninstallTableCellMotions = applyTableCellMotions(
                 this.app,
                 vim,

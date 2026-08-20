@@ -1,4 +1,4 @@
-import { $, browser, expect } from '@wdio/globals';
+import { $, $$, browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
@@ -227,6 +227,110 @@ describe('Table movement with enableTableNav=false (#136)', function () {
             expect(info.inTableCell).toBe(true);
         });
 
+        it('j should cross to next row in native cell (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cell = await $('.cm-table-widget td');
+            await cell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getTableCellInfo();
+            expect(before.inTableCell).toBe(true);
+            const beforeRow = before.cellRow;
+
+            await browser.keys(['j']);
+            await browser.waitUntil(
+                async () => {
+                    const info = await getTableCellInfo();
+                    return info.inTableCell && info.cellRow > beforeRow;
+                },
+                { timeout: 3000, interval: 100 },
+            );
+        });
+
+        it('k should cross to previous row in native cell (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cells = await $$('.cm-table-widget td');
+            const lastCell = cells[cells.length - 1];
+            await lastCell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getTableCellInfo();
+            expect(before.inTableCell).toBe(true);
+            const beforeRow = before.cellRow;
+            expect(beforeRow).toBeGreaterThan(0);
+
+            await browser.keys(['k']);
+            await browser.waitUntil(
+                async () => {
+                    const info = await getTableCellInfo();
+                    return info.inTableCell && info.cellRow < beforeRow;
+                },
+                { timeout: 3000, interval: 100 },
+            );
+        });
+
+        it('l at cell boundary should cross to next cell (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cell = await $('.cm-table-widget td');
+            await cell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getTableCellInfo();
+            expect(before.inTableCell).toBe(true);
+            const beforeCol = before.cellCol;
+
+            await browser.keys(['$']);
+            await browser.pause(PAUSE.KEY_GAP);
+            await browser.keys(['l']);
+            await browser.waitUntil(
+                async () => {
+                    const info = await getTableCellInfo();
+                    return info.inTableCell && info.cellCol > beforeCol;
+                },
+                { timeout: 3000, interval: 100 },
+            );
+        });
+
+        it('j at last data row should exit table (#136)', async function () {
+            await destroyTableCell();
+            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await waitForTableWidget();
+
+            const cells = await $$('.cm-table-widget td');
+            const lastCell = cells[cells.length - 1];
+            await lastCell.click();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getTableCellInfo();
+            expect(before.inTableCell).toBe(true);
+
+            await browser.keys(['j']);
+            await browser.waitUntil(
+                async () => {
+                    const pos = await getCursorPos();
+                    return pos.line >= 6;
+                },
+                { timeout: 3000, interval: 100 },
+            );
+        });
+
         it('Tab should navigate between cells without table-nav (#136)', async function () {
             await destroyTableCell();
             await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
@@ -248,29 +352,6 @@ describe('Table movement with enableTableNav=false (#136)', function () {
             const after = await getTableCellInfo();
             expect(after.inTableCell).toBe(true);
             expect(after.cellCol).not.toBe(beforeCol);
-        });
-
-        it('j inside cell should not cause cursor bounce-back (#136)', async function () {
-            await destroyTableCell();
-            await setupEditor(TABLE_CONTENT, { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await waitForTableWidget();
-
-            const cell = await $('.cm-table-widget td');
-            await cell.click();
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const before = await getTableCellInfo();
-            expect(before.inTableCell).toBe(true);
-            const beforeRow = before.cellRow;
-
-            await browser.keys(['j']);
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const after = await getTableCellInfo();
-            expect(after.inTableCell).toBe(true);
-            expect(after.cellRow).toBe(beforeRow);
         });
     });
 
