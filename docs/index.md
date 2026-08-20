@@ -31,9 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.117.0
+## What's new in 0.118.0
 
-- **Visual-line command passthrough fix** — commands invoked via the command palette (like Note Composer's "Extract current selection") now correctly detect visual-line selections. Previously, Obsidian's direct `checkCallback` invocation bypassed the selection expansion, causing commands to silently fail in V-LINE mode. ([#137](https://github.com/saberzero1/motions/issues/137))
-- **[[tables|Table navigation]] cursor fix** — resolved cursor flashing at previous cell positions during table-nav entry and `h`/`j`/`k`/`l` cell navigation. Three root causes addressed: missing state effect dispatch, stale cursor layer cleanup, and cell editor destroy/recreate lifecycle. ([#135](https://github.com/saberzero1/motions/issues/135))
+- **[[tables|Table navigation]] macOS fix** — fixed `j`/`k` (and `gj`/`gk`) cursor bounce-back inside native table cells when `enableTableNav` was disabled. The motion overrides were installed regardless of the setting, racing with Obsidian's native cell focus management on macOS. Users with `j→gj` / `k→gk` remappings were especially affected. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **Cross-cell motions respect `enableTableNav`** — `h`/`j`/`k`/`l` crossing cell boundaries in native table mode now only activates when table navigation is enabled. When disabled, Obsidian's native table editor handles cell boundary navigation directly.
 
 See the [[changelog|full changelog]] for details.

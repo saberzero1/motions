@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.118.0] - 2026-08-20
+
 ### Fixed
 
 - **Table movement broken when `enableTableNav=false` (macOS)** — `applyTableCellMotions()` overrode `moveByLines`, `moveByCharacters`, and `moveByDisplayLines` globally whenever `tableWidgetMode` was `native`, regardless of `enableTableNav`. When table nav was disabled, these overrides still intercepted `j`/`k` (and `gj`/`gk`) inside native table cells, calling `scheduleCrossing()` with `setTimeout(0)` which raced with Obsidian's native cell focus management on macOS — producing cursor bounce-back. Users with `j→gj` / `k→gk` remappings (common vimrc/Lua pattern) were especially affected because the remapping routes through `moveByDisplayLines`. Fixed by gating `applyTableCellMotions()` on `enableTableNav` — when the user disables table nav, the motion overrides are not installed. Obsidian's native table cell editor handles cross-cell navigation on its own. ([#136](https://github.com/saberzero1/motions/issues/136))
