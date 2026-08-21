@@ -717,7 +717,7 @@ export function registerWorkspaceNavigation(
 
     const fileInfo = createFileInfoAction(app);
     reg.defineAction('fileInfo', fileInfo);
-    reg.mapCommand('<C-g>', 'action', 'fileInfo', {});
+    reg.mapCommand('<C-g>', 'action', 'fileInfo', {}, { context: 'normal' });
 
     const gotoMiddle = createGotoMiddleOfLineAction(app);
     reg.defineAction('gotoMiddleOfLine', gotoMiddle);
