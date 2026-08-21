@@ -31,9 +31,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.119.0
+## What's new in 0.120.0
 
-- **[[tables|Table cell]] macOS cursor bounce-back fix** — replaced `setTimeout(0)` with `MessageChannel` port messaging in cross-cell motions, eliminating macOS timer-clamping race conditions. Users with `j→gj` / `k→gk` remappings were especially affected. ([#136](https://github.com/saberzero1/motions/issues/136))
-- **Cross-cell motions restored when `enableTableNav=false`** — reverted an incorrect gate that removed `h`/`j`/`k`/`l` cross-cell navigation in native table cell editors when table nav was disabled. Cross-cell motions are independent of the `tablenav` setting, as originally designed. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **~50 vim/neovim built-in gaps closed** — systematic coverage effort adding `@:`, `&`, `ZZ`/`ZQ`, insert `<C-a>`/`<C-e>`/`<C-y>`, `<C-^>`, `<C-]>`, `<C-t>`, `<C-w>w`/`W`/`p`, `gm`, `go`, `g8`, `gF`, `<C-g>`, `zs`/`ze`/`zH`/`zL`, `:m`/`:t`/`:normal`, and 21 no-op crash guards
+- **[[tables|Table cell]] macOS cursor bounce-back final fix** — replaced `MessageChannel` with `requestAnimationFrame` in cross-cell motions, guaranteeing Obsidian's table widget handlers finish before the plugin changes cell focus. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **[[tables|Table-nav]] viewport scrolling** — tables taller than the viewport now scroll to keep the highlighted cell visible, using a CM6 `scrollHandler` facet for widget-aware scrolling. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **[[workspace-navigation|Pane cycling and alternate file]]** — `<C-w>w`/`W`/`p` cycle panes, `<C-^>` switches to the alternate file, `<C-]>`/`<C-t>` follow and pop links
+- **[[ex-commands|New ex commands]]** — `:m`/`:move` line moves, `:t`/`:copy` line copies, and `:normal`/`:normal!` key dispatch from the command line
+- **71 new e2e tests** across 6 new spec files covering all new commands, table-nav scrolling, and no-op crash guards
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.120.0] - 2026-08-21
+
 ### Fixed
 
 - **Table cell cursor bounce-back on macOS (continued)** — the `MessageChannel`-based `scheduleCrossing()` from 0.119.0 still raced with Obsidian's table widget focus handlers on macOS Electron. Replaced with `requestAnimationFrame`, which defers the cross-cell focus change until after the full event dispatch cycle and paint frame complete — guaranteeing Obsidian's table widget keydown handlers have finished before the plugin changes cell focus. ([#136](https://github.com/saberzero1/motions/issues/136))
@@ -18,65 +20,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Vim/Neovim built-in gap coverage** — systematic effort to close ~50 gaps in vim/neovim built-in command coverage across 8 implementation batches.
-
 - **Fork: `@:` repeat last ex command** — new `repeatLastExCommand` action replays the most recent ex command. Added to defaultKeymap.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`repeatLastExCommand` action + defaultKeymap entry)
-
 - **Fork: `&` repeat last `:s` on current line** — new `repeatLastSubstitute` action re-executes the last `:s` substitution. Added to defaultKeymap.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`repeatLastSubstitute` action + defaultKeymap entry)
-
 - **Fork: `ZZ` write+quit and `ZQ` quit without saving** — mapped in defaultKeymap via `exArgs: { input: 'wq' }` and `exArgs: { input: 'q' }` respectively.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (defaultKeymap entries)
-
 - **Fork: Insert `<C-a>` re-insert previously inserted text** — new `reinsertPreviousInsert` action replays the last insert-mode text at the cursor.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`reinsertPreviousInsert` action)
-
 - **Fork: Insert `<C-e>` copy character from line below** — new `copySameColumnBelow` action copies the character at the same column from the line below.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`copySameColumnBelow` action)
-
 - **Fork: Insert `<C-y>` copy character from line above** — new `copySameColumnAbove` action copies the character at the same column from the line above.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`copySameColumnAbove` action)
-
 - **`<C-w>w` / `<C-w>W` cycle panes** — cycle focus to the next or previous pane in the workspace.
     - Plugin: `src/workspace/navigation.ts`
-
 - **`<C-w>p` focus previous pane** — jump to the previously accessed pane using leaf ID tracking.
     - Plugin: `src/workspace/navigation.ts`
     - Plugin: `src/main.ts` (`previousLeafId` tracking extracted from Harpoon-gated handler into unconditional handler)
-
 - **`gm` go to middle of screen line** — positions cursor at the horizontal midpoint of the visible editor area.
     - Plugin: `src/workspace/navigation.ts`
-
 - **`go` go to character offset** — jumps to the Nth byte offset in the buffer (with count prefix).
     - Plugin: `src/workspace/navigation.ts`
-
 - **`g8` show UTF-8 byte sequence** — displays the UTF-8 hex byte values for the character under the cursor.
     - Plugin: `src/workspace/navigation.ts`
-
 - **`gF` go to file with line number** — opens the file path under the cursor, optionally jumping to a line number suffix (e.g., `file.md:42`).
     - Plugin: `src/workspace/navigation.ts`
-
 - **`<C-g>` show file info** — displays filename, line count, cursor position, and percentage through file in a notice.
     - Plugin: `src/workspace/navigation.ts`
-
 - **`<C-^>` / `<C-6>` alternate file switching** — switch between the current and alternate (previously edited) file, matching Neovim's `<C-^>` behavior.
     - Plugin: `src/main.ts` (`alternateFilePath` / `lastMarkdownFilePath` fields + `<C-^>` / `<C-6>` mapping)
-
 - **`<C-]>` follow link under cursor** — alias for `gd` (go to definition).
     - Plugin: `src/main.ts`
-
 - **`<C-t>` pop from link follow** — alias for jump list backward navigation.
     - Plugin: `src/main.ts`
-
 - **`zs` / `ze` / `zH` / `zL` horizontal scroll commands** — scroll the viewport horizontally without moving the cursor.
     - Plugin: `src/workspace/navigation.ts`
-
 - **Ex commands for `:move`, `:copy`, and `:normal`** — add `:m`/`:move` line moves, `:t`/`:copy`/`:co` line copies, and `:normal`/`:normal!` key dispatch from the ex line.
     - Plugin: `src/workspace/commands.ts` (line transfer helpers + `:normal` key feeding)
-
 - **`:tabmove` no-op registration** — registered as a no-op with a notice (Obsidian has no tab reorder API).
     - Plugin: `src/workspace/commands.ts`
-
 - **No-op crash guards** — 21 commands registered as no-ops to prevent crashes on unrecognized keys: window commands (`<C-w>=`, `<C-w>_`, `<C-w>|`, `<C-w>r`, `<C-w>R`, `<C-w>x`), spelling (`]s`, `[s`, `z=`, `zg`, `zw`), normal `U`, `<C-l>`, `g<C-a>`, `g<C-x>`, insert `<C-r>=`, `<C-k>`, `<C-v>`, `<C-x>` family.
     - Plugin: `src/workspace/navigation.ts`
 
