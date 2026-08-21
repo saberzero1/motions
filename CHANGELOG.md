@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.120.1] - 2026-08-21
+
 ### Changed
 
 - **Removed `!important` from table-nav CSS** — replaced `overflow: visible !important` on `.vim-motions-table-nav-mode .cm-table-widget` with higher-specificity selectors (`.cm-editor .vim-motions-table-nav-mode.cm-table-widget`). The added `.cm-editor` ancestor provides enough specificity to override Obsidian's built-in `overflow: hidden` without `!important`.
