@@ -13,8 +13,10 @@
     border-radius: var(--radius-s);
 }
 
+.vim-motions-table-nav-mode.cm-table-widget,
 .vim-motions-table-nav-mode .cm-table-widget {
     cursor: default;
+    overflow: visible !important;
 }
 
 .vim-motions-table-nav-cell-hidden {

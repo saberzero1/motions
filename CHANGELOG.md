@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Table cell cursor bounce-back on macOS (continued)** — the `MessageChannel`-based `scheduleCrossing()` from 0.119.0 still raced with Obsidian's table widget focus handlers on macOS Electron. Replaced with `requestAnimationFrame`, which defers the cross-cell focus change until after the full event dispatch cycle and paint frame complete — guaranteeing Obsidian's table widget keydown handlers have finished before the plugin changes cell focus. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-cell-motions.ts` (`scheduleCrossing` now uses `requestAnimationFrame` instead of `MessageChannel`)
+- **Table-nav viewport does not follow cursor in long tables** — when navigating down through a table taller than the viewport with `enableTableNav=true`, the highlighted cell went off-screen because `navigate()` only updated the CSS highlight class without scrolling. CM6 treats the native table widget as an opaque block decoration and cannot scroll to positions within it. Fixed by registering an `EditorView.scrollHandler` facet that intercepts scroll requests during table-nav mode, reads the highlighted cell's DOM bounding rect, and adjusts `scrollDOM.scrollTop` directly — the CM6-sanctioned mechanism for custom scroll behavior that is not overridden by viewport reconciliation. Added `overflow: visible` CSS override on the table widget during nav mode to prevent the widget's `overflow: auto hidden` from blocking `scrollIntoView` propagation. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (`syncCursorToActiveCell`, `tableNavScrollHandler` extension)
+    - Styles: `styles.css` (`overflow: visible` on `.vim-motions-table-nav-mode.cm-table-widget`)
+
 ### Added
 
 - **Vim/Neovim built-in gap coverage** — systematic effort to close ~50 gaps in vim/neovim built-in command coverage across 8 implementation batches.
@@ -74,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 1 new e2e spec file: `test/specs/table-nav-scroll.e2e.ts` (viewport scrolling in long tables with constrained scroller height, [#136](https://github.com/saberzero1/motions/issues/136))
+- 1 new fixture file: `test-vault/fixtures/table-nav/LongTable.md` (30-row table for scroll testing)
 - Updated `test/neovim-command-index.yaml` — 50 new entries (287→337 total, 313 tested + 21 skip + 3 pending).
 - 5 new e2e spec files:
     - `test/specs/vim-builtin/new-commands.e2e.ts` (11 tests: `@:`, `&`, `ZZ`, `ZQ`, insert `<C-a>`/`<C-e>`/`<C-y>`)
@@ -90,6 +100,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/reference/keybindings.md`: added new normal-mode, insert-mode, window, g-prefix, z-prefix, and ex command entries
 - `docs/features/ex-commands.md`: added `:m`/`:t`/`:normal` editing commands section
 - `docs/features/workspace-navigation.md`: added pane cycling, alternate file, link navigation, and document info sections
+- `CONTRIBUTING.md`: updated `table-cell-motions.ts` and `table-nav-controller.ts` descriptions
+- `KNOWN_LIMITATIONS.md`: documented table-nav viewport scrolling fix
 
 ## [0.119.0] - 2026-08-20
 

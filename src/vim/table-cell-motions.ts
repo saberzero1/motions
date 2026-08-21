@@ -12,16 +12,7 @@ let origMoveByCharacters: MotionFn | null = null;
 let origMoveByDisplayLines: MotionFn | null = null;
 
 let crossingToken = 0;
-const crossingChannel = new MessageChannel();
-let pendingCrossingFn: (() => void) | null = null;
-let pendingCrossingToken = 0;
-
-crossingChannel.port1.onmessage = () => {
-    if (pendingCrossingToken !== crossingToken) return;
-    const fn = pendingCrossingFn;
-    pendingCrossingFn = null;
-    fn?.();
-};
+let pendingCrossingRaf = 0;
 
 function suppressMainCursor(cm: CmAdapter): void {
     const view = cm.cm6;
@@ -30,13 +21,30 @@ function suppressMainCursor(cm: CmAdapter): void {
     if (vimLayer) vimLayer.textContent = '';
 }
 
+/**
+ * Schedule a cross-cell focus change using requestAnimationFrame.
+ *
+ * Previous implementation used MessageChannel (macrotask before timers),
+ * but on macOS Electron the table widget's own focus handlers could race
+ * with the deferred setCellFocus, causing cursor bounce-back (#136).
+ *
+ * requestAnimationFrame defers execution until the next paint frame,
+ * guaranteeing the full event dispatch cycle (including Obsidian's
+ * table widget keydown handlers) completes before we change focus.
+ * A monotonic token ensures rapid key repeats coalesce correctly.
+ */
 function scheduleCrossing(cm: CmAdapter, fn: () => void): void {
     const token = ++crossingToken;
     suppressMainCursor(cm);
     signalCellCrossing();
-    pendingCrossingFn = fn;
-    pendingCrossingToken = token;
-    crossingChannel.port2.postMessage(null);
+    if (pendingCrossingRaf) {
+        window.cancelAnimationFrame(pendingCrossingRaf);
+    }
+    pendingCrossingRaf = window.requestAnimationFrame(() => {
+        pendingCrossingRaf = 0;
+        if (token !== crossingToken) return;
+        fn();
+    });
 }
 
 // The inputState parameter (5th motion arg) holds the pre-clearInputState

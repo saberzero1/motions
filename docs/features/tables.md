@@ -113,6 +113,9 @@ When the cursor enters a table in Live Preview with `tablenav` enabled, a naviga
 > [!tip]
 > The **native** mode provides the best vim editing experience for tables. Obsidian's native table widget handles rendering while vim is injected into cell editors. Structural commands let you add, delete, and move rows and columns without leaving the table. Notes with multiple tables are fully supported — each table is independently navigable.
 
+> [!info] Viewport scrolling
+> When navigating through a table taller than the viewport, the editor scrolls to keep the highlighted cell visible. This works even with tables that extend well beyond the screen.
+
 ### Native mode vim navigation
 
 In **native** mode, `h`/`j`/`k`/`l` in normal mode cross cell boundaries automatically:

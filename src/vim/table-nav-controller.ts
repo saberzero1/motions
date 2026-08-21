@@ -341,6 +341,7 @@ export class TableNavController implements PluginValue {
         }
 
         this.highlightCell();
+        this.syncCursorToActiveCell();
         this.clearVimCursorLayer();
     }
 
@@ -694,6 +695,32 @@ export class TableNavController implements PluginValue {
         cell?.el?.classList.add(NAV_HIGHLIGHT_CLASS);
     }
 
+    private syncCursorToActiveCell(): void {
+        const table = this.getFreshTable();
+        if (!table) return;
+        const cell = table.getCellAt(
+            this.session.activeRow,
+            this.session.activeCol,
+        );
+        if (!cell?.el) return;
+        const scroller = this.view.scrollDOM;
+        const cellRect = cell.el.getBoundingClientRect();
+        const scrollerRect = scroller.getBoundingClientRect();
+        const needsScroll =
+            cellRect.bottom > scrollerRect.bottom ||
+            cellRect.top < scrollerRect.top;
+        if (!needsScroll) return;
+        const tableRange = this.resolveTableRange();
+        if (!tableRange) return;
+        const scrollPos =
+            cellRect.bottom > scrollerRect.bottom
+                ? Math.min(tableRange.to + 1, this.view.state.doc.length)
+                : Math.max(tableRange.from - 1, 0);
+        this.view.dispatch({
+            effects: EditorView.scrollIntoView(scrollPos, { y: 'nearest' }),
+        });
+    }
+
     private removeHighlight(): void {
         const s = this.session;
         const roots: HTMLElement[] = [];
@@ -921,6 +948,34 @@ export class TableNavController implements PluginValue {
     }
 }
 
+const tableNavScrollHandler = EditorView.scrollHandler.of(
+    (view, _range, options) => {
+        if (!isTableNavActive(view.state)) return false;
+
+        const widget = view.dom.querySelector('.' + NAV_MODE_CLASS);
+        if (!widget) return false;
+
+        const cell = widget.querySelector('.' + NAV_HIGHLIGHT_CLASS);
+        if (!(cell instanceof HTMLElement)) return false;
+
+        const scroller = view.scrollDOM;
+        const cellRect = cell.getBoundingClientRect();
+        const scrollerRect = scroller.getBoundingClientRect();
+        const margin = options.y === 'nearest' ? (options.yMargin ?? 5) : 5;
+
+        let dy = 0;
+        if (cellRect.top < scrollerRect.top + margin) {
+            dy = cellRect.top - (scrollerRect.top + margin);
+        } else if (cellRect.bottom > scrollerRect.bottom - margin) {
+            dy = cellRect.bottom - (scrollerRect.bottom - margin);
+        }
+
+        if (dy) scroller.scrollTop += dy;
+
+        return true;
+    },
+);
+
 export function createTableNavExtension(
     app: App,
     settings: TableNavSettings,
@@ -936,7 +991,7 @@ export function createTableNavExtension(
             }
         },
     );
-    return [tableNavStateField, plugin];
+    return [tableNavStateField, plugin, tableNavScrollHandler];
 }
 
 export { isTableNavActive };

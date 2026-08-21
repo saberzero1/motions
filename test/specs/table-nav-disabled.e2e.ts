@@ -19,18 +19,16 @@ import {
  * 2. enableTableNav=false, tableWidgetMode='raw': j/k/arrow keys don't work
  *    at all inside the table.
  *
- * Root cause (revised): applyTableCellMotions() overrides moveByLines,
- * moveByCharacters, and moveByDisplayLines globally when tableWidgetMode
- * is 'native', regardless of enableTableNav. When enableTableNav=false,
- * the overridden motions still intercept j/k (and gj/gk) inside native
- * table cells, calling scheduleCrossing() which races with Obsidian's
- * native cell focus management — producing cursor bounce-back. Users
- * with j→gj / k→gk remappings (common vimrc pattern) are especially
- * affected because the remapping routes through moveByDisplayLines,
- * which is also overridden.
+ * Root cause: applyTableCellMotions() overrides moveByLines,
+ * moveByCharacters, and moveByDisplayLines to add cross-cell navigation
+ * in native table cell editors. The overridden motions use
+ * scheduleCrossing() to defer setCellFocus() calls. On macOS Electron,
+ * the deferred focus change races with Obsidian's native table widget
+ * handlers, causing the cursor to bounce back to the original cell.
  *
- * Fix: gate applyTableCellMotions on enableTableNav so the motion
- * overrides are not installed when table nav is disabled.
+ * Fix: scheduleCrossing() uses requestAnimationFrame instead of
+ * MessageChannel to defer focus changes until after the full event
+ * dispatch cycle and paint frame complete.
  */
 
 const TABLE_CONTENT = [
