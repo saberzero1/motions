@@ -241,6 +241,7 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - Bundle everything into `main.js` (no unbundled runtime deps).
 - Avoid Node/Electron APIs if you want mobile compatibility; set `isDesktopOnly` accordingly.
 - Prefer `async/await` over promise chains; handle errors gracefully.
+- **Never use `!important` in CSS.** Obsidian plugins share the global stylesheet — `!important` is fragile and conflicts with themes. Instead, increase specificity by adding ancestor selectors (e.g., `.cm-editor .vim-motions-foo` instead of `.vim-motions-foo { prop: value !important }`). If an Obsidian core rule still wins, add more context to the selector chain rather than reaching for `!important`.
 
 ## Mobile
 

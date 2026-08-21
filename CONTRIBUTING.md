@@ -454,6 +454,7 @@ reg.mapCommand('gX', 'action', 'myAction', {});
 - Use `activeDocument` instead of `document` (Obsidian popout window compatibility).
 - Use `window.setTimeout`/`window.clearTimeout` instead of `setTimeout`/`clearTimeout`.
 - Use CSS classes and variables instead of inline styles.
+- Never use `!important` in CSS. Increase specificity with ancestor selectors (e.g., `.cm-editor .vim-motions-foo`) instead. Obsidian plugins share the global stylesheet — `!important` is fragile and conflicts with themes.
 - Sentence case for UI text.
 
 ### Runtime invariants
