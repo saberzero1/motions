@@ -463,9 +463,6 @@ export class TableNavController implements PluginValue {
             cellView.contentDOM?.click();
         }
 
-        clearCursorSuppressedForView(this.view);
-        resumeAnimatedCursorForView(this.view);
-
         this.installCellEditScope();
         this.installCellEscapeCapture();
 
