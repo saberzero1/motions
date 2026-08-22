@@ -8,6 +8,7 @@ import { type Extension } from '@codemirror/state';
 import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { around } from '../util/around';
 import { getCmAdapter, getCmAdapterFromEditorView } from './vim-api';
+import { getVimApi } from './vim-api';
 import { getEditorView } from '../util/editor';
 
 interface VimSel {
@@ -163,9 +164,13 @@ class VisualLineSomethingSelectedPatch {
     private patched = false;
     private original: (() => boolean) | null = null;
     private origGetSelection: (() => string) | null = null;
+    private origReplaceSelection:
+        | ((text: string, origin?: string) => void)
+        | null = null;
     private editorRef: {
         somethingSelected: () => boolean;
         getSelection: () => string;
+        replaceSelection: (text: string, origin?: string) => void;
     } | null = null;
 
     constructor(private view: import('@codemirror/view').EditorView) {
@@ -189,12 +194,14 @@ class VisualLineSomethingSelectedPatch {
             | {
                   somethingSelected: () => boolean;
                   getSelection: () => string;
+                  replaceSelection: (text: string, origin?: string) => void;
               }
             | undefined;
         if (!editor || typeof editor.somethingSelected !== 'function') return;
 
         const origSelected = editor.somethingSelected.bind(editor);
         const origGetSel = editor.getSelection.bind(editor);
+        const origReplaceSel = editor.replaceSelection.bind(editor);
         const editorView = this.view;
         this.patched = true;
         this.original = origSelected;
@@ -225,6 +232,37 @@ class VisualLineSomethingSelectedPatch {
             const to = doc.line(endLine + 1).to;
             return editorView.state.sliceDoc(from, to);
         };
+
+        this.origReplaceSelection = origReplaceSel;
+        editor.replaceSelection = function (text: string, origin?: string) {
+            const vim = getVisualLineSel();
+            if (!vim?.sel) {
+                origReplaceSel(text, origin);
+                return;
+            }
+            const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
+            const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+            const doc = editorView.state.doc;
+            const from = doc.line(startLine + 1).from;
+            const lineEnd = doc.line(endLine + 1).to;
+            const includeTrailingNewline = lineEnd < doc.length;
+            const to = includeTrailingNewline ? lineEnd + 1 : lineEnd;
+            editorView.dispatch({
+                changes: {
+                    from,
+                    to,
+                    insert: includeTrailingNewline ? text + '\n' : text,
+                },
+                selection: { anchor: from + text.length },
+            });
+            const cm = getCmAdapterFromEditorView(editorView);
+            if (cm) {
+                const vimApi = getVimApi();
+                if (vimApi) {
+                    vimApi.handleKey(cm, '<Esc>');
+                }
+            }
+        };
     }
 
     destroy(): void {
@@ -232,6 +270,8 @@ class VisualLineSomethingSelectedPatch {
             if (this.original) this.editorRef.somethingSelected = this.original;
             if (this.origGetSelection)
                 this.editorRef.getSelection = this.origGetSelection;
+            if (this.origReplaceSelection)
+                this.editorRef.replaceSelection = this.origReplaceSelection;
         }
     }
 }

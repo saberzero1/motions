@@ -11,16 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Escape does not return to table-nav after Enter cell entry** — when entering a cell via `Enter` in table-nav mode (normal-mode cell entry), pressing `Escape` did not return to table-nav mode. The cell editor's vim keydown observer consumed Escape before the Obsidian Scope handler could intercept it. Additionally, the cell editor's vim state had `mode: null` (pre-initialization) which caused `isVimIdle()` to return `false`. Fixed by installing a capture-phase `keydown` listener on `document` during cell-edit mode that intercepts Escape when vim is idle, and introducing `isCellVimIdle()` which treats `null`/`undefined` mode as idle (equivalent to normal mode during cell editor initialization). ([#136](https://github.com/saberzero1/motions/issues/136))
     - Plugin: `src/vim/table-nav-controller.ts` (`isCellVimIdle`, `installCellEscapeCapture`, `removeCellEscapeCapture`, `cellEscapeCleanup` session field)
+- **Community plugin `replaceSelection` fails in visual-line mode** — community plugins like Note Refactor that call `editor.replaceSelection()` after async operations (file creation, link generation) failed to replace the selected text in visual-line mode. The existing `withExpandedSelection` wrapper expanded the CM6 selection synchronously and restored cursor-only in its `finally` block, but async command callbacks executed `replaceSelection()` after the selection was already restored. Additionally, `editor.replaceSelection()` was not patched in the `VisualLineSomethingSelectedPatch` ViewPlugin (only `somethingSelected()` and `getSelection()` were). Fixed by patching `editor.replaceSelection()` to compute the linewise range from vim's selection state and dispatch a CM6 replacement transaction directly, with trailing newline handling for mid-document lines. The patch exits visual-line mode via `Vim.handleKey(cm, '<Esc>')` after replacement since the selection has been consumed. ([#138](https://github.com/saberzero1/motions/issues/138))
+    - Plugin: `src/vim/visual-line-command-fix.ts` (`replaceSelection` patch in `VisualLineSomethingSelectedPatch`, cleanup in `destroy()`)
 
 ### Tests
 
 - 4 new tests in `test/specs/table-cell-vim-mode.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): Escape after Enter returns to nav mode, single Escape from insert mode does NOT exit to nav (regression guard), j after Enter cell edit navigates to next row, cursor height in cell normal mode guard
 - New helper `getCellVimMode()` in `test/specs/table-cell-vim-mode.e2e.ts`
+- 5 new spike tests in `test/specs/spikes/spike-issue138-vline-async-replaceSelection.e2e.ts` ([#138](https://github.com/saberzero1/motions/issues/138)): V-LINE `getSelection()` baseline, sync `replaceSelection` via `executeCommandById`, async `replaceSelection` via fake command (Note Refactor pattern), direct async `replaceSelection` without `executeCommand`, sync direct `replaceSelection` without wrapper
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked Escape-from-cell-edit bug as fixed
+- `KNOWN_LIMITATIONS.md`: marked Escape-from-cell-edit bug as fixed; updated V-LINE passthrough section with `replaceSelection` patch details and updated trade-off/test coverage
 
 ## [0.120.1] - 2026-08-21
 
