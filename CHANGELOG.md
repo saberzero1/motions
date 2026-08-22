@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Visual/Visual Line put command not replacing selection** — `P`, `gp`, and `gP` in visual or visual-line mode inserted text at the cursor instead of replacing the selected text. Two root causes: (1) the plugin's `pasteFromRegister()` (used by `P`/`gp`/`gP`) had no visual mode handling — it always performed a cursor-relative insert; (2) the fork's `continuePaste()` (used by `p`) read the CM6 selection via `getSelectedAreaRange()` and `cm.getSelection()`, which return a collapsed range in visual-line mode due to the cursor-only CM6 selection design (see "Visual-line cursor-only CM6 selection" in KNOWN_LIMITATIONS.md). ([#139](https://github.com/saberzero1/motions/issues/139))
+    - Plugin: `src/workspace/navigation.ts` (new `pasteInVisualMode()` function; visual mode detection in `pasteFromRegister()` delegates to it; reads `vim.sel` for correct range, handles visual-char and visual-line, stores replaced text in unnamed register, calls `Vim.exitVisualMode()`)
+    - Plugin: `src/types/vim-api.d.ts` (added `exitVisualMode` to `VimApi` interface)
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`continuePaste` visual-line branch now derives `selectionStart`/`selectionEnd` from `vim.sel` instead of collapsed CM6 selection; `selectedText` uses `cm.getRange()` instead of `cm.getSelection()`; linewise text preparation preserves trailing newline in visual-line mode since the replacement range spans whole lines, with last-line edge case handling)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (new "Visual-line paste fix" subsection)
+
+### Tests
+
+- 7 new tests in `test/specs/vim-builtin/normal-yank-put.e2e.ts` ([#139](https://github.com/saberzero1/motions/issues/139)): `v + p`, `V + p`, `V + P`, `v + P`, visual paste unnamed register update, `v + gp`, normal mode return after visual paste
+- 4 new Neovim golden test definitions in `test/neovim/test-definitions.ts` ([#139](https://github.com/saberzero1/motions/issues/139)): `v + p`, `V + p`, `V + P`, `v + P` — all verified against Neovim
+- Recorded golden data in `test/neovim/golden-data/normal-yank-put.json`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: added `exitVisualMode` to fork API description
+- `KNOWN_LIMITATIONS.md`: updated yank-ring section (visual-mode `gp`/`gP` no longer bypass yank-ring); updated V-LINE cursor-only section (fork's `continuePaste` now handles cursor-only selection)
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: new "Visual-line paste fix" subsection
+
 ## [0.122.0] - 2026-08-22
 
 ### Fixed

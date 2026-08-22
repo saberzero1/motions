@@ -1,7 +1,7 @@
 {
     "suite": "normal-yank-put",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:32:37.167Z",
+    "recorded_at": "2026-08-22T17:15:04.156Z",
     "cases": [
         {
             "name": "yy then p should paste line below",
@@ -258,6 +258,110 @@
                     "\"": {
                         "text": "BBB\n",
                         "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "v + p should replace selection with yanked text (#139)",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ywwviwp",
+            "result": {
+                "content": "hello hello ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "world",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + p should replace selected line (#139)",
+            "initial": {
+                "content": "aaa\nbbb\nccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yyjVp",
+            "result": {
+                "content": "aaa\naaa\nccc",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "bbb\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + P should replace selected line (#139)",
+            "initial": {
+                "content": "aaa\nbbb\nccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yyjVP",
+            "result": {
+                "content": "aaa\naaa\nccc",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "aaa\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "v + P should replace selection (#139)",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ywwviwP",
+            "result": {
+                "content": "hello hello ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null

@@ -359,6 +359,7 @@ export interface VimApi {
         searchArgs?: Record<string, unknown>;
         operatorPending?: boolean;
     }>;
+    exitVisualMode(cm: CmAdapter, moveToHead?: boolean): void;
     registerSurroundPair?(trigger: string, open: string, close: string): void;
     unregisterSurroundPair?(trigger: string): void;
 }

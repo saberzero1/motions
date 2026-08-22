@@ -1140,6 +1140,30 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: '"ayyj"byyG"ap"bp',
             },
+            {
+                name: 'v + p should replace selection with yanked text (#139)',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'ywwviwp',
+            },
+            {
+                name: 'V + p should replace selected line (#139)',
+                content: 'aaa\nbbb\nccc',
+                cursor: { line: 0, ch: 0 },
+                keys: 'yyjVp',
+            },
+            {
+                name: 'V + P should replace selected line (#139)',
+                content: 'aaa\nbbb\nccc',
+                cursor: { line: 0, ch: 0 },
+                keys: 'yyjVP',
+            },
+            {
+                name: 'v + P should replace selection (#139)',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'ywwviwP',
+            },
         ],
     },
     {

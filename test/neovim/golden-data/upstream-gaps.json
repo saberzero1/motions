@@ -1,7 +1,7 @@
 {
     "suite": "upstream-gaps",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:32:37.284Z",
+    "recorded_at": "2026-08-22T17:15:04.272Z",
     "cases": [
         {
             "name": "dip inside empty lines deletes empty paragraph block",

@@ -3,10 +3,12 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     vimKeys,
+    vimHandleKeys,
     getEditorValue,
     getRegisterContent,
     getCursorPos,
     sendVimEscape,
+    getVimMode,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
@@ -223,6 +225,65 @@ describe('Normal mode — yank and put (Tier 1)', function () {
             expect(reg).not.toBeNull();
             expect(reg!.text).toBe('world');
             expect(reg!.linewise).toBe(false);
+        });
+    });
+
+    describe('visual mode paste (#139)', function () {
+        it('v + p should replace selection with yanked text', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'w');
+            await vimHandleKeys('wviwp');
+            const val = await getEditorValue();
+            expect(val).toBe('hello hello ');
+        });
+
+        it('V + p should replace selected line with yanked line (#139)', async function () {
+            await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
+            await vimKeys('y', 'y');
+            await vimHandleKeys('jVp');
+            const val = await getEditorValue();
+            expect(val).toBe('aaa\naaa\nccc');
+        });
+
+        it('V + P should replace selected line with yanked line (#139)', async function () {
+            await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
+            await vimKeys('y', 'y');
+            await vimHandleKeys('jVP');
+            const val = await getEditorValue();
+            expect(val).toBe('aaa\naaa\nccc');
+        });
+
+        it('v + P should replace selection with yanked word (#139)', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'w');
+            await vimHandleKeys('wviwP');
+            const val = await getEditorValue();
+            expect(val).toBe('hello hello ');
+        });
+
+        it('visual paste should put replaced text into unnamed register', async function () {
+            await setupEditor('aaa bbb', { line: 0, ch: 0 });
+            await vimKeys('y', 'i', 'w');
+            await vimHandleKeys('wviwp');
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.text).toBe('bbb');
+        });
+
+        it('v + gp should replace selection and move past (#139)', async function () {
+            await setupEditor('aaa bbb ccc', { line: 0, ch: 0 });
+            await vimKeys('y', 'i', 'w');
+            await vimHandleKeys('wviwgp');
+            const val = await getEditorValue();
+            expect(val).toBe('aaa aaa ccc');
+        });
+
+        it('should return to normal mode after visual paste', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 'w');
+            await vimHandleKeys('wviwp');
+            const mode = await getVimMode();
+            expect(mode).toBe('normal');
         });
     });
 

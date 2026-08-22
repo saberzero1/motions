@@ -17,7 +17,13 @@ import {
 } from '../fold/motions';
 import { isFoldingEnabled } from '../fold/fold-enable';
 import { registerFoldLevelCommands } from '../fold/fold-level';
-import type { ActionArgs, ActionFn, CmAdapter } from '../types/vim-api';
+import type {
+    ActionArgs,
+    ActionFn,
+    CmAdapter,
+    VimPos,
+    VimState,
+} from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
 import { exCommandFromAction } from '../keybindings/action-registry';
 import {
@@ -133,8 +139,25 @@ function pasteFromRegister(
     const rawText = reg.toString();
     if (!rawText) return;
     const text = rawText.repeat(repeat);
-    const cursor = cm.getCursor();
 
+    const vim = (cm as unknown as { state: { vim: VimState } }).state.vim;
+    if (vim?.visualMode) {
+        const unnamedReg = rc.registers['"'];
+        if (unnamedReg) {
+            pasteInVisualMode(
+                cm,
+                vim,
+                text,
+                reg.linewise,
+                movePast,
+                Vim,
+                unnamedReg,
+            );
+        }
+        return;
+    }
+
+    const cursor = cm.getCursor();
     if (reg.linewise) {
         const insertLine = before ? cursor.line : cursor.line + 1;
         const insertText = text.endsWith('\n') ? text : text + '\n';
@@ -175,6 +198,94 @@ function pasteFromRegister(
             }
         }
     }
+}
+
+/**
+ * Handle paste in visual mode: replace the visual selection with the
+ * register contents, store the replaced text in the unnamed register,
+ * and exit visual mode.  Uses `vim.sel` (the vim-level selection) rather
+ * than the CM6 selection, because visual-line mode collapses the CM6
+ * selection to a cursor to avoid Live-Preview markup uncollapsing.
+ */
+/**
+ * Uses `vim.sel` (the vim-level selection) rather than the CM6 selection,
+ * because visual-line mode collapses the CM6 selection to a cursor to
+ * avoid Live-Preview markup uncollapsing.
+ */
+function pasteInVisualMode(
+    cm: CmAdapter,
+    vim: VimState,
+    text: string,
+    linewise: boolean,
+    movePast: boolean,
+    Vim: NonNullable<typeof window.CodeMirrorAdapter>['Vim'],
+    unnamedReg: { setText(s: string, linewise?: boolean): void },
+): void {
+    const sel = (vim as unknown as { sel?: { anchor: VimPos; head: VimPos } })
+        .sel;
+    if (!sel) return;
+
+    const anchor = sel.anchor;
+    const head = sel.head;
+    const isForward =
+        anchor.line < head.line ||
+        (anchor.line === head.line && anchor.ch <= head.ch);
+
+    let selStart: VimPos;
+    let selEnd: VimPos;
+    let replacedText: string;
+    let pasteText = text;
+
+    if (vim.visualLine) {
+        const startLine = Math.min(anchor.line, head.line);
+        const endLine = Math.max(anchor.line, head.line);
+        if (endLine < cm.lastLine()) {
+            selStart = { line: startLine, ch: 0 };
+            selEnd = { line: endLine + 1, ch: 0 };
+            replacedText = cm.getRange(selStart, selEnd);
+            if (linewise && !pasteText.endsWith('\n')) pasteText += '\n';
+        } else {
+            const endLen = cm.getLine(endLine).length;
+            selStart = { line: startLine, ch: 0 };
+            selEnd = { line: endLine, ch: endLen };
+            replacedText = cm.getRange(selStart, selEnd);
+            if (linewise && pasteText.endsWith('\n'))
+                pasteText = pasteText.slice(0, -1);
+        }
+    } else {
+        selStart = isForward ? anchor : head;
+        selEnd = isForward
+            ? { line: head.line, ch: head.ch + 1 }
+            : { line: anchor.line, ch: anchor.ch + 1 };
+        const lineLen = cm.getLine(selEnd.line).length;
+        if (selEnd.ch > lineLen) selEnd.ch = lineLen;
+        replacedText = cm.getRange(selStart, selEnd);
+    }
+
+    unnamedReg.setText(replacedText);
+    cm.replaceRange(pasteText, selStart, selEnd);
+
+    let finalPos: VimPos;
+    if (movePast) {
+        const pasteEnd = cm.posFromIndex(
+            cm.indexFromPos(selStart) + pasteText.length,
+        );
+        finalPos = pasteEnd;
+    } else if (linewise || vim.visualLine) {
+        const lineText = cm.getLine(selStart.line);
+        const firstNonWs = lineText.search(/\S/);
+        finalPos = {
+            line: selStart.line,
+            ch: firstNonWs >= 0 ? firstNonWs : 0,
+        };
+    } else {
+        finalPos = cm.posFromIndex(
+            cm.indexFromPos(selStart) + pasteText.length - 1,
+        );
+    }
+
+    Vim.exitVisualMode(cm, false);
+    cm.setCursor(finalPos.line, finalPos.ch);
 }
 
 function createCharInfoAction(app: App): ActionFn {

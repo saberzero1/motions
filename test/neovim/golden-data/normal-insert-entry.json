@@ -1,7 +1,7 @@
 {
     "suite": "normal-insert-entry",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:32:37.173Z",
+    "recorded_at": "2026-08-22T17:15:04.161Z",
     "cases": [
         {
             "name": "i should insert text before cursor",
@@ -22,8 +22,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "BBB\n",
-                        "linewise": true
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -48,8 +48,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "BBB\n",
-                        "linewise": true
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -74,8 +74,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "BBB\n",
-                        "linewise": true
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -100,8 +100,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "BBB\n",
-                        "linewise": true
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -126,8 +126,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "BBB\n",
-                        "linewise": true
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -152,8 +152,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "BBB\n",
-                        "linewise": true
+                        "text": "hello ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
