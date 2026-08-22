@@ -9,18 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Viewport snaps to top of table when entering table-nav** — when navigating into a long table from above, the viewport jumped to the top of the table instead of staying in place. During the 80ms entry debounce, Obsidian's native cell editor opens and scrolls the table into view. The plugin now captures `scrollTop` before the debounce and restores it after table-nav activates, preserving the user's viewport position. ([#136](https://github.com/saberzero1/motions/issues/136))
-    - Plugin: `src/vim/table-nav-controller.ts` (`preEntryScrollTop` session field, `focusWithoutScroll`, scroll restore in `tryEnter` + rAF safety net)
+- **Viewport snaps to top of table when entering table-nav** — when navigating into a long table from above, the viewport jumped to the top of the table instead of staying in place. During the 80ms entry debounce, Obsidian's native cell editor opens and scrolls the table into view. The plugin now locks `scrollTop` via a scroll event listener during the debounce window to prevent the visual snap entirely, then restores the saved position after table-nav activates. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (`preEntryScrollTop` session field, scroll-lock listener in `scheduleEntry`, `focusWithoutScroll`, scroll restore in `tryEnter` + rAF safety net)
+- **Table-nav ignores scrolloff setting** — table-nav cell scrolling used hardcoded 5px margins instead of the user's `scrolloff` setting. With `scrolloff=999` (typewriter/centered cursor), the highlighted cell stayed at the viewport edge instead of staying centered. Replaced dispatch-based `syncCursorToActiveCell` with DOM-level `scrollHighlightedCellIntoView` (avoids CM6 update cycle side effects) and updated `tableNavScrollHandler` — both now read the scrolloff margin via `getScrolloffMargin()` with the same half-viewport clamping as the main editor. Structural commands (`o`, `O`, `dd`, `J`, `K`, etc.) now scroll the viewport to follow the highlighted cell after row insertion/deletion. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (`scrollHighlightedCellIntoView`, replaced `syncCursorToActiveCell`, `tableNavScrollHandler` uses `getScrolloffMargin`, `refreshAfterDocChange` scrolls after structural ops)
+    - Plugin: `src/vim/scrolloff.ts` (new `getScrolloffMargin()` export)
 
 ### Tests
 
-- 1 new test in `test/specs/table-nav-scroll.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): entering table-nav should not snap viewport to top of table
+- 2 new tests in `test/specs/table-nav-scroll.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): entering table-nav should not snap viewport to top of table, scrolloff should keep highlighted cell away from viewport edge
 - Updated `test-vault/fixtures/table-nav/LongTable.md` to 100 rows with 30 lines of leading content
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked viewport snap bug as fixed
+- `KNOWN_LIMITATIONS.md`: marked viewport snap and scrolloff bugs as fixed
 
 ## [0.121.0] - 2026-08-22
 

@@ -35,6 +35,7 @@ import {
     resumeAnimatedCursorForView,
 } from './animated-cursor/config';
 import type { VimApi, CmAdapter } from '../types/vim-api';
+import { getScrolloffMargin } from './scrolloff';
 import {
     createTableNavKeyHandler,
     resetPendingState,
@@ -399,7 +400,7 @@ export class TableNavController implements PluginValue {
         }
 
         this.highlightCell();
-        this.syncCursorToActiveCell();
+        this.scrollHighlightedCellIntoView();
         this.clearVimCursorLayer();
     }
 
@@ -731,6 +732,28 @@ export class TableNavController implements PluginValue {
         if (s.activeCol >= colCount) s.activeCol = Math.max(0, colCount - 1);
 
         this.highlightCell();
+        this.scrollHighlightedCellIntoView();
+    }
+
+    private scrollHighlightedCellIntoView(): void {
+        const s = this.session;
+        if (s.state !== 'nav') return;
+        const table = this.getFreshTable();
+        if (!table) return;
+        const cell = table.getCellAt(s.activeRow, s.activeCol);
+        if (!cell?.el) return;
+        const scroller = this.view.scrollDOM;
+        const cellRect = cell.el.getBoundingClientRect();
+        const scrollerRect = scroller.getBoundingClientRect();
+        const margin = getScrolloffMargin(this.view);
+        const effectiveMargin = margin > 0 ? margin : 5;
+        let dy = 0;
+        if (cellRect.top < scrollerRect.top + effectiveMargin) {
+            dy = cellRect.top - (scrollerRect.top + effectiveMargin);
+        } else if (cellRect.bottom > scrollerRect.bottom - effectiveMargin) {
+            dy = cellRect.bottom - (scrollerRect.bottom - effectiveMargin);
+        }
+        if (dy) scroller.scrollTop += dy;
     }
 
     private ensureHighlight(): void {
@@ -756,32 +779,6 @@ export class TableNavController implements PluginValue {
             this.session.activeCol,
         );
         cell?.el?.classList.add(NAV_HIGHLIGHT_CLASS);
-    }
-
-    private syncCursorToActiveCell(): void {
-        const table = this.getFreshTable();
-        if (!table) return;
-        const cell = table.getCellAt(
-            this.session.activeRow,
-            this.session.activeCol,
-        );
-        if (!cell?.el) return;
-        const scroller = this.view.scrollDOM;
-        const cellRect = cell.el.getBoundingClientRect();
-        const scrollerRect = scroller.getBoundingClientRect();
-        const needsScroll =
-            cellRect.bottom > scrollerRect.bottom ||
-            cellRect.top < scrollerRect.top;
-        if (!needsScroll) return;
-        const tableRange = this.resolveTableRange();
-        if (!tableRange) return;
-        const scrollPos =
-            cellRect.bottom > scrollerRect.bottom
-                ? Math.min(tableRange.to + 1, this.view.state.doc.length)
-                : Math.max(tableRange.from - 1, 0);
-        this.view.dispatch({
-            effects: EditorView.scrollIntoView(scrollPos, { y: 'nearest' }),
-        });
     }
 
     private removeHighlight(): void {
@@ -1061,7 +1058,13 @@ const tableNavScrollHandler = EditorView.scrollHandler.of(
         const scroller = view.scrollDOM;
         const cellRect = cell.getBoundingClientRect();
         const scrollerRect = scroller.getBoundingClientRect();
-        const margin = options.y === 'nearest' ? (options.yMargin ?? 5) : 5;
+        const scrolloff = getScrolloffMargin(view);
+        const margin =
+            scrolloff > 0
+                ? scrolloff
+                : options.y === 'nearest'
+                  ? (options.yMargin ?? 5)
+                  : 5;
 
         let dy = 0;
         if (cellRect.top < scrollerRect.top + margin) {

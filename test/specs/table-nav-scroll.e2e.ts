@@ -164,8 +164,81 @@ describe('Table nav scrolling in long tables (#136)', function () {
         expect(drift).toBeLessThan(100);
     });
 
+    it('scrolloff should keep highlighted cell away from viewport edge (#136)', async function () {
+        this.timeout(30000);
+        await setPluginSettingAndReload('scrolloffLines', 999);
+        await destroyTableCell();
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await waitForTableWidget();
+        await browser.pause(WIDGET_REBUILD_PAUSE);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            view.editor.setCursor(31, 0);
+            view.editor.focus();
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await browser.keys(['j']);
+        await browser.pause(ENTRY_DEBOUNCE + PAUSE.EDITOR_SETTLE);
+
+        await browser.waitUntil(
+            async () => (await getHighlightedCellRow()) !== null,
+            { timeout: 5000, interval: 100 },
+        );
+
+        for (let i = 0; i < 30; i++) {
+            await browser.keys(['j']);
+            await browser.pause(PAUSE.KEY_GAP);
+        }
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const pos = (await browser.executeObsidian(() => {
+            const cell = document.querySelector(
+                '.vim-motions-table-nav-active',
+            ) as HTMLElement | null;
+            if (!cell) return null;
+            const scroller = cell.closest('.cm-scroller') as HTMLElement | null;
+            if (!scroller) return null;
+            const cellRect = cell.getBoundingClientRect();
+            const scrollerRect = scroller.getBoundingClientRect();
+            const viewportHeight = scrollerRect.height;
+            const cellCenter =
+                (cellRect.top + cellRect.bottom) / 2 - scrollerRect.top;
+            const viewportCenter = viewportHeight / 2;
+            return {
+                cellCenter: Math.round(cellCenter),
+                viewportCenter: Math.round(viewportCenter),
+                viewportHeight: Math.round(viewportHeight),
+                distFromEdge: Math.round(
+                    Math.min(
+                        cellRect.top - scrollerRect.top,
+                        scrollerRect.bottom - cellRect.bottom,
+                    ),
+                ),
+            };
+        })) as {
+            cellCenter: number;
+            viewportCenter: number;
+            viewportHeight: number;
+            distFromEdge: number;
+        } | null;
+
+        expect(pos).not.toBeNull();
+        if (pos) {
+            expect(pos.distFromEdge).toBeGreaterThan(50);
+        }
+
+        await setPluginSettingAndReload('scrolloffLines', 5);
+    });
+
     it('highlighted cell should remain visible after navigating to bottom of long table (#136)', async function () {
         this.timeout(60000);
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.MODE_SWITCH);
         await destroyTableCell();
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);

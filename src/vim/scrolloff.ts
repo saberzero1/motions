@@ -19,6 +19,14 @@ export function createScrolloffExtension(): Extension {
     });
 }
 
+export function getScrolloffMargin(view: EditorView): number {
+    if (scrolloffLines <= 0) return 0;
+    const lineHeight = view.defaultLineHeight || 22;
+    const margin = scrolloffLines * lineHeight;
+    const halfViewport = Math.floor(view.scrollDOM.clientHeight / 2);
+    return Math.min(margin, halfViewport);
+}
+
 export class ScrolloffManager {
     constructor(private plugin: Plugin) {}
 
