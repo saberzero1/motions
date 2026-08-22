@@ -713,9 +713,27 @@ describe('No parent cursor visible during cell editing (#136)', function () {
 
         const doc =
             'Line above\n\n| AA | BB |\n|-----|-----|\n| cc | dd |\n\nLine below';
-        await setupEditor(doc, { line: 2, ch: 0 });
+        await setupEditor(doc, { line: 0, ch: 0 });
         await waitForTableWidget();
         await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.keys(['j']);
+        await browser.pause(200);
+        await browser.keys(['j']);
+        await browser.pause(600);
+
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(() => {
+                    return (
+                        document.querySelector(
+                            '.vim-motions-table-nav-active',
+                        ) !== null
+                    );
+                })) as boolean,
+            { timeout: 5000, interval: 100 },
+        );
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         await browser.keys(['i']);
