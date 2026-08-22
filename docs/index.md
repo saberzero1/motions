@@ -31,9 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.122.0
+## What's new in 0.123.0
 
-- **[[tables|Table-nav]] viewport stability** — entering a long table no longer snaps the viewport to the top; scroll position is locked during the entry debounce and restored after activation. ([#136](https://github.com/saberzero1/motions/issues/136))
-- **[[tables|Table-nav]] scrolloff support** — table-nav cell scrolling now respects your `scrolloff` setting (including `scrolloff=999` for centered cursor), and structural commands (`o`, `dd`, `J`/`K`, etc.) scroll the viewport to follow the highlighted cell. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **[[tables|Table cell]] cursor fix** — the parent editor's vim cursor no longer appears next to the table during cell editing; cursor suppression is deferred until the cell editor actually has focus. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **Visual/Visual Line paste** — `p`, `P`, `gp`, and `gP` in visual and visual-line mode now correctly replace the selected text instead of inserting at the cursor, with the replaced text stored in the unnamed register. ([#139](https://github.com/saberzero1/motions/issues/139))
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.123.0] - 2026-08-22
+
 ### Fixed
 
 - **Parent editor cursor visible next to table during cell editing** — when entering cell edit mode from table-nav (via `i`, `a`, `c`, `s`, or `Enter`), the parent editor's vim cursor layer became visible next to the table widget with an oversized height (spanning the full table widget). Root cause: `enterCellEdit()` called `clearCursorSuppressedForView()` and `resumeAnimatedCursorForView()` immediately, but cell editor focus was deferred by 150ms via `setTimeout` in `finishCellEditEntry()`. During the gap, the parent editor still had focus and its `BlockCursorPlugin` re-rendered the unsuppressed cursor at the table-range position where `coordsAtPos()` returns the full widget height. Fixed by moving both calls into `finishCellEditEntry()` after `cellView.focus()`, so suppression is only released once the cell editor actually has focus. ([#136](https://github.com/saberzero1/motions/issues/136))
