@@ -90,6 +90,7 @@ interface TableNavSession {
     exitTimestamp: number;
     dirty: boolean;
     pendingEntryMode: string | null;
+    preEntryScrollTop: number;
 }
 
 const sessions = new WeakMap<EditorView, TableNavSession>();
@@ -112,6 +113,7 @@ function getSession(view: EditorView): TableNavSession {
             exitTimestamp: 0,
             dirty: false,
             pendingEntryMode: null,
+            preEntryScrollTop: 0,
         };
         sessions.set(view, s);
     }
@@ -199,17 +201,38 @@ export class TableNavController implements PluginValue {
         );
     }
 
+    private scrollLockCleanup: (() => void) | null = null;
+
     private scheduleEntry(table: TableRange): void {
         const s = this.session;
         if (s.entryTimer !== null) return;
+        s.preEntryScrollTop = this.view.scrollDOM.scrollTop;
+        const scroller = this.view.scrollDOM;
+        const locked = s.preEntryScrollTop;
+        const scrollLock = () => {
+            scroller.scrollTop = locked;
+        };
+        scroller.addEventListener('scroll', scrollLock);
+        this.scrollLockCleanup = () => {
+            scroller.removeEventListener('scroll', scrollLock);
+        };
         s.entryTimer = window.setTimeout(() => {
+            this.releaseScrollLock();
             s.entryTimer = null;
             this.tryEnter(table);
         }, ENTRY_DEBOUNCE_MS);
     }
 
+    private releaseScrollLock(): void {
+        if (this.scrollLockCleanup) {
+            this.scrollLockCleanup();
+            this.scrollLockCleanup = null;
+        }
+    }
+
     private cancelEntry(): void {
         const s = this.session;
+        this.releaseScrollLock();
         if (s.entryTimer !== null) {
             window.clearTimeout(s.entryTimer);
             s.entryTimer = null;
@@ -260,12 +283,24 @@ export class TableNavController implements PluginValue {
         this.installNavScope();
         widgetEl.classList.add(NAV_MODE_CLASS);
         this.highlightCell();
-        this.view.focus();
+        this.focusWithoutScroll();
+        this.view.scrollDOM.scrollTop = s.preEntryScrollTop;
         this.suppressWidgetCursorLayers();
         const session = this.session;
+        const scroller = this.view.scrollDOM;
+        const savedScroll = s.preEntryScrollTop;
         window.requestAnimationFrame(() => {
-            if (session.state === 'nav') this.suppressWidgetCursorLayers();
+            if (session.state === 'nav') {
+                this.suppressWidgetCursorLayers();
+                scroller.scrollTop = savedScroll;
+            }
         });
+    }
+
+    private focusWithoutScroll(): void {
+        const scrollTop = this.view.scrollDOM.scrollTop;
+        this.view.contentDOM.focus({ preventScroll: true });
+        this.view.scrollDOM.scrollTop = scrollTop;
     }
 
     private clearVimCursorLayer(): void {
@@ -320,7 +355,7 @@ export class TableNavController implements PluginValue {
 
         this.installNavScope();
         this.highlightCell();
-        this.view.focus();
+        this.focusWithoutScroll();
     }
 
     private getFreshTable(): ObsidianTableEditor | null {

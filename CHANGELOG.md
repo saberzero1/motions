@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Viewport snaps to top of table when entering table-nav** — when navigating into a long table from above, the viewport jumped to the top of the table instead of staying in place. During the 80ms entry debounce, Obsidian's native cell editor opens and scrolls the table into view. The plugin now captures `scrollTop` before the debounce and restores it after table-nav activates, preserving the user's viewport position. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (`preEntryScrollTop` session field, `focusWithoutScroll`, scroll restore in `tryEnter` + rAF safety net)
+
+### Tests
+
+- 1 new test in `test/specs/table-nav-scroll.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): entering table-nav should not snap viewport to top of table
+- Updated `test-vault/fixtures/table-nav/LongTable.md` to 100 rows with 30 lines of leading content
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: marked viewport snap bug as fixed
+
 ## [0.121.0] - 2026-08-22
 
 ### Fixed
