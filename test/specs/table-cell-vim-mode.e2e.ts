@@ -109,6 +109,32 @@ async function getCellContent(): Promise<string> {
     })) as string;
 }
 
+async function getCellVimMode(): Promise<string> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return 'unknown';
+        const editMode = (view as unknown as Record<string, unknown>)
+            .editMode as Record<string, unknown> | undefined;
+        const cellEditor = editMode?.tableCell as Record<
+            string,
+            unknown
+        > | null;
+        if (!cellEditor) return 'unknown';
+        const cellEditorView = cellEditor.cm as
+            | Record<string, unknown>
+            | undefined;
+        const adapter = (
+            cellEditorView as { cm?: Record<string, unknown> } | undefined
+        )?.cm as Record<string, unknown> | undefined;
+        const vimState = (adapter?.state as Record<string, unknown> | undefined)
+            ?.vim as Record<string, unknown> | undefined;
+        if (!vimState) return 'unknown';
+        if (vimState.insertMode) return 'insert';
+        if (vimState.visualMode) return 'visual';
+        return 'normal';
+    })) as string;
+}
+
 async function setupTableDoc(): Promise<void> {
     await sendVimEscape();
     await browser.pause(PAUSE.MODE_SWITCH);
@@ -520,6 +546,145 @@ describe('Native table cell navigation', function () {
         await browser.pause(300);
 
         expect(await hasTableNavHighlight()).toBe(true);
+    });
+
+    it('single Escape from insert mode should NOT exit to nav (#136)', async function () {
+        this.timeout(20000);
+        await setupTableDoc();
+        await enterTableCell();
+        expect(await hasTableNavHighlight()).toBe(true);
+
+        await browser.keys(['i']);
+        await browser.pause(800);
+        expect(await hasCellEditor()).toBe(true);
+
+        const modeBefore = await getCellVimMode();
+        expect(modeBefore).toBe('insert');
+
+        await browser.keys(['Escape']);
+        await browser.pause(300);
+
+        const stillHasCell = await hasCellEditor();
+        const modeAfter = await getCellVimMode();
+        expect(stillHasCell).toBe(true);
+        expect(modeAfter).toBe('normal');
+        expect(await hasTableNavHighlight()).toBe(false);
+    });
+
+    it('Escape after Enter (normal-mode cell entry) should return to nav mode (#136)', async function () {
+        this.timeout(20000);
+        await setupTableDoc();
+        await enterTableCell();
+        expect(await hasTableNavHighlight()).toBe(true);
+
+        await browser.keys(['Enter']);
+        await browser.pause(800);
+        expect(await hasCellEditor()).toBe(true);
+
+        const cellMode = await getCellVimMode();
+        expect(cellMode).toBe('normal');
+
+        await browser.keys(['Escape']);
+        await browser.pause(500);
+
+        expect(await hasTableNavHighlight()).toBe(true);
+    });
+
+    it('cursor in cell normal mode should not span full cell height (#136)', async function () {
+        this.timeout(20000);
+        await setupTableDoc();
+        await enterTableCell();
+        expect(await hasTableNavHighlight()).toBe(true);
+
+        await browser.keys(['Enter']);
+        await browser.pause(800);
+        expect(await hasCellEditor()).toBe(true);
+
+        const dims = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return null;
+            const editMode = (view as unknown as Record<string, unknown>)
+                .editMode as Record<string, unknown> | undefined;
+            const cellEditor = editMode?.tableCell as Record<
+                string,
+                unknown
+            > | null;
+            if (!cellEditor) return null;
+            const cellCm = cellEditor.cm as {
+                scrollDOM?: HTMLElement;
+                dom?: HTMLElement;
+            } | null;
+            const scrollDOM = cellCm?.scrollDOM;
+            if (!scrollDOM) return null;
+            const cursorLayer = scrollDOM.querySelector(
+                '.cm-vimCursorLayer',
+            ) as HTMLElement | null;
+            const cursorEl = scrollDOM.querySelector(
+                '.cm-fat-cursor',
+            ) as HTMLElement | null;
+            const lineEl = scrollDOM.querySelector(
+                '.cm-line',
+            ) as HTMLElement | null;
+            const cellEl = cellEditor.cell as { el?: HTMLElement } | undefined;
+            return {
+                cursorHeight: cursorEl ? cursorEl.offsetHeight : -1,
+                lineHeight: lineEl ? lineEl.offsetHeight : -1,
+                cellHeight: cellEl?.el ? cellEl.el.offsetHeight : -1,
+                hasCursorLayer: !!cursorLayer,
+                cursorLayerDisplay: cursorLayer?.style.display ?? 'N/A',
+                cursorLayerChildCount: cursorLayer?.children.length ?? 0,
+                hasCursorEl: !!cursorEl,
+            };
+        })) as {
+            cursorHeight: number;
+            lineHeight: number;
+            cellHeight: number;
+            hasCursorLayer: boolean;
+            cursorLayerDisplay: string;
+            cursorLayerChildCount: number;
+            hasCursorEl: boolean;
+        } | null;
+
+        expect(dims).not.toBeNull();
+        if (dims && dims.hasCursorEl && dims.lineHeight > 0) {
+            expect(dims.cursorHeight).toBeLessThanOrEqual(
+                dims.lineHeight * 1.5,
+            );
+        }
+        if (
+            dims &&
+            dims.hasCursorEl &&
+            dims.cellHeight > 0 &&
+            dims.cellHeight > dims.lineHeight * 2
+        ) {
+            expect(dims.cursorHeight).toBeLessThan(dims.cellHeight);
+        }
+    });
+
+    it('j after Enter cell edit should navigate to next row (#136)', async function () {
+        this.timeout(25000);
+        await setupTableDoc();
+        await enterTableCell();
+        expect(await hasTableNavHighlight()).toBe(true);
+        const entryCell = await getHighlightedCell();
+        expect(entryCell).not.toBeNull();
+
+        await browser.keys(['Enter']);
+        await browser.pause(800);
+        expect(await hasCellEditor()).toBe(true);
+
+        await browser.keys(['Escape']);
+        await browser.pause(500);
+        expect(await hasTableNavHighlight()).toBe(true);
+
+        await browser.keys(['j']);
+        await browser.pause(300);
+
+        const afterJ = await getHighlightedCell();
+        expect(afterJ).not.toBeNull();
+        expect(afterJ!.row).toBeGreaterThan(entryCell!.row);
     });
 
     it('dd should delete row in nav mode', async function () {

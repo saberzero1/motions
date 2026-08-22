@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Escape does not return to table-nav after Enter cell entry** — when entering a cell via `Enter` in table-nav mode (normal-mode cell entry), pressing `Escape` did not return to table-nav mode. The cell editor's vim keydown observer consumed Escape before the Obsidian Scope handler could intercept it. Additionally, the cell editor's vim state had `mode: null` (pre-initialization) which caused `isVimIdle()` to return `false`. Fixed by installing a capture-phase `keydown` listener on `document` during cell-edit mode that intercepts Escape when vim is idle, and introducing `isCellVimIdle()` which treats `null`/`undefined` mode as idle (equivalent to normal mode during cell editor initialization). ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (`isCellVimIdle`, `installCellEscapeCapture`, `removeCellEscapeCapture`, `cellEscapeCleanup` session field)
+
+### Tests
+
+- 4 new tests in `test/specs/table-cell-vim-mode.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): Escape after Enter returns to nav mode, single Escape from insert mode does NOT exit to nav (regression guard), j after Enter cell edit navigates to next row, cursor height in cell normal mode guard
+- New helper `getCellVimMode()` in `test/specs/table-cell-vim-mode.e2e.ts`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: marked Escape-from-cell-edit bug as fixed
+
 ## [0.120.1] - 2026-08-21
 
 ### Changed

@@ -41,6 +41,27 @@ import {
     type TableNavActions,
 } from './table-nav-keymap';
 
+/**
+ * Like isVimIdle but treats null/undefined mode as idle.
+ * Cell editors opened in normal mode may have mode=null before vim
+ * finishes initialization — this is effectively idle.
+ */
+function isCellVimIdle(vim: Parameters<typeof isVimIdle>[0]): boolean {
+    if (!vim) return true;
+    const vs = vim as Record<string, unknown>;
+    if (vs.insertMode) return false;
+    if (vs.visualMode) return false;
+    if (vim.mode === 'normal' || vim.mode == null) {
+        if (vim.inputState?.operator) return false;
+        if (vim.surroundState) return false;
+        if (vim.inputState?.keyBuffer && vim.inputState.keyBuffer.length > 0)
+            return false;
+        if (vim.expectLiteralNext) return false;
+        return true;
+    }
+    return false;
+}
+
 const CELL_HIDDEN_CLASS = 'vim-motions-table-nav-cell-hidden';
 const CURSOR_LAYER_HIDDEN_CLASS = 'vim-motions-cursor-layer-hidden';
 const NAV_HIGHLIGHT_CLASS = 'vim-motions-table-nav-active';
@@ -63,6 +84,7 @@ interface TableNavSession {
     hiddenEl: HTMLElement | null;
     navScope: Scope | null;
     cellEditScope: Scope | null;
+    cellEscapeCleanup: (() => void) | null;
     entryTimer: number | null;
     refreshTimer: number | null;
     exitTimestamp: number;
@@ -84,6 +106,7 @@ function getSession(view: EditorView): TableNavSession {
             hiddenEl: null,
             navScope: null,
             cellEditScope: null,
+            cellEscapeCleanup: null,
             entryTimer: null,
             refreshTimer: null,
             exitTimestamp: 0,
@@ -407,6 +430,7 @@ export class TableNavController implements PluginValue {
         }
 
         this.installCellEditScope();
+        this.installCellEscapeCapture();
 
         const mode = s.pendingEntryMode;
         s.pendingEntryMode = null;
@@ -441,6 +465,7 @@ export class TableNavController implements PluginValue {
             s.activeCol = cell.col;
         }
 
+        this.removeCellEscapeCapture();
         this.removeCellEditScope();
         this.hideCellEditor(editMode);
 
@@ -474,7 +499,10 @@ export class TableNavController implements PluginValue {
         this.clearRefreshTimer();
         this.removeHighlight();
         this.removeNavScope();
-        if (wasEdit) this.removeCellEditScope();
+        if (wasEdit) {
+            this.removeCellEscapeCapture();
+            this.removeCellEditScope();
+        }
 
         s.widgetEl?.classList.remove(NAV_MODE_CLASS);
 
@@ -893,6 +921,42 @@ export class TableNavController implements PluginValue {
         s.cellEditScope = null;
     }
 
+    private installCellEscapeCapture(): void {
+        this.removeCellEscapeCapture();
+
+        const s = this.session;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (s.state !== 'edit') return;
+            const editMode = getEditModeForView(this.view);
+            const cv = editMode?.tableCell?.cm as EditorView | null | undefined;
+            if (cv) {
+                const adapter = getCmAdapterFromEditorView(cv);
+                const vimState = adapter?.state?.vim ?? null;
+                if (vimState && !isCellVimIdle(vimState)) return;
+            }
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.exitCellEditToNav();
+        };
+
+        this.view.dom.ownerDocument.addEventListener('keydown', handler, true);
+        s.cellEscapeCleanup = () =>
+            this.view.dom.ownerDocument.removeEventListener(
+                'keydown',
+                handler,
+                true,
+            );
+    }
+
+    private removeCellEscapeCapture(): void {
+        const s = this.session;
+        if (s.cellEscapeCleanup) {
+            s.cellEscapeCleanup();
+            s.cellEscapeCleanup = null;
+        }
+    }
+
     private cursorAtCellBoundary(
         adapter: CmAdapter,
         direction: 'h' | 'j' | 'k' | 'l',
@@ -935,6 +999,7 @@ export class TableNavController implements PluginValue {
         if (s.state !== 'inactive') {
             this.removeHighlight();
             this.removeNavScope();
+            this.removeCellEscapeCapture();
             this.removeCellEditScope();
             s.widgetEl?.classList.remove(NAV_MODE_CLASS);
             this.showCellEditor();
