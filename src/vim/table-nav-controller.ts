@@ -421,8 +421,6 @@ export class TableNavController implements PluginValue {
         this.removeNavScope();
 
         setKeyInterceptActive(false);
-        clearCursorSuppressedForView(this.view);
-        resumeAnimatedCursorForView(this.view);
         this.restoreCursorLayers();
 
         const currentCell = editMode.tableCell?.cell;
@@ -464,6 +462,9 @@ export class TableNavController implements PluginValue {
             cellView.focus();
             cellView.contentDOM?.click();
         }
+
+        clearCursorSuppressedForView(this.view);
+        resumeAnimatedCursorForView(this.view);
 
         this.installCellEditScope();
         this.installCellEscapeCapture();

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Parent editor cursor visible next to table during cell editing** — when entering cell edit mode from table-nav (via `i`, `a`, `c`, `s`, or `Enter`), the parent editor's vim cursor layer became visible next to the table widget with an oversized height (spanning the full table widget). Root cause: `enterCellEdit()` called `clearCursorSuppressedForView()` and `resumeAnimatedCursorForView()` immediately, but cell editor focus was deferred by 150ms via `setTimeout` in `finishCellEditEntry()`. During the gap, the parent editor still had focus and its `BlockCursorPlugin` re-rendered the unsuppressed cursor at the table-range position where `coordsAtPos()` returns the full widget height. Fixed by moving both calls into `finishCellEditEntry()` after `cellView.focus()`, so suppression is only released once the cell editor actually has focus. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (moved `clearCursorSuppressedForView` + `resumeAnimatedCursorForView` from `enterCellEdit` to `finishCellEditEntry`)
+
 - **Visual/Visual Line put command not replacing selection** — `P`, `gp`, and `gP` in visual or visual-line mode inserted text at the cursor instead of replacing the selected text. Two root causes: (1) the plugin's `pasteFromRegister()` (used by `P`/`gp`/`gP`) had no visual mode handling — it always performed a cursor-relative insert; (2) the fork's `continuePaste()` (used by `p`) read the CM6 selection via `getSelectedAreaRange()` and `cm.getSelection()`, which return a collapsed range in visual-line mode due to the cursor-only CM6 selection design (see "Visual-line cursor-only CM6 selection" in KNOWN_LIMITATIONS.md). ([#139](https://github.com/saberzero1/motions/issues/139))
     - Plugin: `src/workspace/navigation.ts` (new `pasteInVisualMode()` function; visual mode detection in `pasteFromRegister()` delegates to it; reads `vim.sel` for correct range, handles visual-char and visual-line, stores replaced text in unnamed register, calls `Vim.exitVisualMode()`)
     - Plugin: `src/types/vim-api.d.ts` (added `exitVisualMode` to `VimApi` interface)
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 1 new regression test in `test/specs/table-cursor-suppression.e2e.ts` ([#136](https://github.com/saberzero1/motions/issues/136)): parent cursor hidden after entering cell edit via `i`
 - 7 new tests in `test/specs/vim-builtin/normal-yank-put.e2e.ts` ([#139](https://github.com/saberzero1/motions/issues/139)): `v + p`, `V + p`, `V + P`, `v + P`, visual paste unnamed register update, `v + gp`, normal mode return after visual paste
 - 4 new Neovim golden test definitions in `test/neovim/test-definitions.ts` ([#139](https://github.com/saberzero1/motions/issues/139)): `v + p`, `V + p`, `V + P`, `v + P` — all verified against Neovim
 - Recorded golden data in `test/neovim/golden-data/normal-yank-put.json`
@@ -24,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: marked parent cursor visible during cell editing as fixed (#136); updated "Table navigation cursor hiding" section with deferred unsuppression in `enterCellEdit`
 - `AGENTS.md`: added `exitVisualMode` to fork API description
 - `KNOWN_LIMITATIONS.md`: updated yank-ring section (visual-mode `gp`/`gP` no longer bypass yank-ring); updated V-LINE cursor-only section (fork's `continuePaste` now handles cursor-only selection)
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: new "Visual-line paste fix" subsection

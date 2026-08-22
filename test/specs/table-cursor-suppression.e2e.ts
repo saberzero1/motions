@@ -626,3 +626,102 @@ describe('Cursor stays suppressed during table-nav navigation (#135)', function 
         expect(cursorState.visibleCursors).toEqual([]);
     });
 });
+
+/**
+ * Regression test: parent editor cursor must not be visible while editing
+ * a table cell.
+ *
+ * Issue #136: with animated cursor disabled, the parent (main) editor's
+ * BlockCursorPlugin cursor layer stays visible next to the table widget
+ * when a cell editor is active. The cursor's height comes from
+ * coordsAtPos() on the table-range position, so it spans the full widget.
+ */
+describe('No parent cursor visible during cell editing (#136)', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await ensureLivePreview();
+        await disableAnimatedCursor();
+    });
+
+    after(async function () {
+        await disableAnimatedCursor();
+    });
+
+    async function getParentCursorVisibility(): Promise<{
+        parentLayerDisplay: string;
+        parentLayerHasContent: boolean;
+        parentCursorVisible: boolean;
+    }> {
+        return (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view)
+                return {
+                    parentLayerDisplay: 'N/A',
+                    parentLayerHasContent: false,
+                    parentCursorVisible: false,
+                };
+
+            const editMode = (view as unknown as Record<string, unknown>)
+                .editMode as Record<string, unknown>;
+            const editorView = editMode?.cm as
+                | { scrollDOM?: HTMLElement }
+                | undefined;
+            if (!editorView)
+                return {
+                    parentLayerDisplay: 'N/A',
+                    parentLayerHasContent: false,
+                    parentCursorVisible: false,
+                };
+
+            const allLayers =
+                editorView.scrollDOM?.querySelectorAll('.cm-vimCursorLayer');
+            let parentLayer: HTMLElement | null = null;
+            if (allLayers) {
+                for (let i = 0; i < allLayers.length; i++) {
+                    const l = allLayers[i] as HTMLElement;
+                    if (!l.closest('.cm-table-widget')) {
+                        parentLayer = l;
+                        break;
+                    }
+                }
+            }
+
+            const display = parentLayer?.style.display ?? 'N/A';
+            const hasContent = (parentLayer?.children.length ?? 0) > 0;
+            const computedHidden = parentLayer
+                ? window.getComputedStyle(parentLayer).display === 'none'
+                : true;
+            const visible = hasContent && !computedHidden;
+
+            return {
+                parentLayerDisplay: display,
+                parentLayerHasContent: hasContent,
+                parentCursorVisible: visible,
+            };
+        })) as {
+            parentLayerDisplay: string;
+            parentLayerHasContent: boolean;
+            parentCursorVisible: boolean;
+        };
+    }
+
+    it('parent cursor hidden after entering cell edit via i (#136)', async function () {
+        this.timeout(20000);
+
+        const doc =
+            'Line above\n\n| AA | BB |\n|-----|-----|\n| cc | dd |\n\nLine below';
+        await setupEditor(doc, { line: 2, ch: 0 });
+        await waitForTableWidget();
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.keys(['i']);
+        await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+
+        const state = await getParentCursorVisibility();
+        expect(state.parentCursorVisible).toBe(false);
+    });
+});
