@@ -31,13 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.120.0
+## What's new in 0.121.0
 
-- **~50 vim/neovim built-in gaps closed** — systematic coverage effort adding `@:`, `&`, `ZZ`/`ZQ`, insert `<C-a>`/`<C-e>`/`<C-y>`, `<C-^>`, `<C-]>`, `<C-t>`, `<C-w>w`/`W`/`p`, `gm`, `go`, `g8`, `gF`, `<C-g>`, `zs`/`ze`/`zH`/`zL`, `:m`/`:t`/`:normal`, and 21 no-op crash guards
-- **[[tables|Table cell]] macOS cursor bounce-back final fix** — replaced `MessageChannel` with `requestAnimationFrame` in cross-cell motions, guaranteeing Obsidian's table widget handlers finish before the plugin changes cell focus. ([#136](https://github.com/saberzero1/motions/issues/136))
-- **[[tables|Table-nav]] viewport scrolling** — tables taller than the viewport now scroll to keep the highlighted cell visible, using a CM6 `scrollHandler` facet for widget-aware scrolling. ([#136](https://github.com/saberzero1/motions/issues/136))
-- **[[workspace-navigation|Pane cycling and alternate file]]** — `<C-w>w`/`W`/`p` cycle panes, `<C-^>` switches to the alternate file, `<C-]>`/`<C-t>` follow and pop links
-- **[[ex-commands|New ex commands]]** — `:m`/`:move` line moves, `:t`/`:copy` line copies, and `:normal`/`:normal!` key dispatch from the command line
-- **71 new e2e tests** across 6 new spec files covering all new commands, table-nav scrolling, and no-op crash guards
+- **[[tables|Table-nav]] Escape after cell entry** — pressing Escape after entering a cell via `Enter` in table-nav mode now correctly returns to table-nav mode, fixing a race between the cell editor's vim keydown observer and the Obsidian Scope handler. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **Visual-line `replaceSelection` fix** — community plugins like Note Refactor that call `editor.replaceSelection()` after async operations now work correctly in visual-line mode. The `replaceSelection` method is patched to compute the linewise range from vim's selection state. ([#138](https://github.com/saberzero1/motions/issues/138))
+- **9 new e2e tests** — 4 table-cell Escape/navigation tests and 5 spike tests covering async `replaceSelection` in visual-line mode
 
 See the [[changelog|full changelog]] for details.

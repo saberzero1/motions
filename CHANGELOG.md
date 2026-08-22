@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.121.0] - 2026-08-22
+
 ### Fixed
 
 - **Escape does not return to table-nav after Enter cell entry** — when entering a cell via `Enter` in table-nav mode (normal-mode cell entry), pressing `Escape` did not return to table-nav mode. The cell editor's vim keydown observer consumed Escape before the Obsidian Scope handler could intercept it. Additionally, the cell editor's vim state had `mode: null` (pre-initialization) which caused `isVimIdle()` to return `false`. Fixed by installing a capture-phase `keydown` listener on `document` during cell-edit mode that intercepts Escape when vim is idle, and introducing `isCellVimIdle()` which treats `null`/`undefined` mode as idle (equivalent to normal mode during cell editor initialization). ([#136](https://github.com/saberzero1/motions/issues/136))
