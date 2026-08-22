@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.122.0] - 2026-08-22
+
 ### Fixed
 
 - **Viewport snaps to top of table when entering table-nav** — when navigating into a long table from above, the viewport jumped to the top of the table instead of staying in place. During the 80ms entry debounce, Obsidian's native cell editor opens and scrolls the table into view. The plugin now locks `scrollTop` via a scroll event listener during the debounce window to prevent the visual snap entirely, then restores the saved position after table-nav activates. ([#136](https://github.com/saberzero1/motions/issues/136))

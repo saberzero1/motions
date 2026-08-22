@@ -31,10 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.121.0
+## What's new in 0.122.0
 
-- **[[tables|Table-nav]] Escape after cell entry** — pressing Escape after entering a cell via `Enter` in table-nav mode now correctly returns to table-nav mode, fixing a race between the cell editor's vim keydown observer and the Obsidian Scope handler. ([#136](https://github.com/saberzero1/motions/issues/136))
-- **Visual-line `replaceSelection` fix** — community plugins like Note Refactor that call `editor.replaceSelection()` after async operations now work correctly in visual-line mode. The `replaceSelection` method is patched to compute the linewise range from vim's selection state. ([#138](https://github.com/saberzero1/motions/issues/138))
-- **9 new e2e tests** — 4 table-cell Escape/navigation tests and 5 spike tests covering async `replaceSelection` in visual-line mode
+- **[[tables|Table-nav]] viewport stability** — entering a long table no longer snaps the viewport to the top; scroll position is locked during the entry debounce and restored after activation. ([#136](https://github.com/saberzero1/motions/issues/136))
+- **[[tables|Table-nav]] scrolloff support** — table-nav cell scrolling now respects your `scrolloff` setting (including `scrolloff=999` for centered cursor), and structural commands (`o`, `dd`, `J`/`K`, etc.) scroll the viewport to follow the highlighted cell. ([#136](https://github.com/saberzero1/motions/issues/136))
 
 See the [[changelog|full changelog]] for details.
