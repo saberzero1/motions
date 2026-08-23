@@ -62,7 +62,6 @@ src/
     vim-api.d.ts           # Type declarations for the Vim API (CmAdapter, VimApi, etc.)
     codemirror-vim.d.ts    # CodeMirror Vim type declarations
     globals.ts             # __DEV__ build-time constant type declaration
-    table-editor.d.ts      # Runtime-discovered typings for Obsidian's native TableEditor API
   vim/
     vim-api.ts             # getVimApi(), getCmAdapter(), isVimEnabled()
     registration.ts        # VimRegistration — tracks and cleans up all Vim API registrations

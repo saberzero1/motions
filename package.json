@@ -30,7 +30,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.39.4",
-        "@obsidian-typings/obsidian-public-latest": "^6.32.0",
+        "@obsidian-typings/obsidian-public-latest": "^6.33.0",
         "@types/mocha": "^10.0.10",
         "@types/node": "^22.15.17",
         "@wdio/cli": "^9.28.0",

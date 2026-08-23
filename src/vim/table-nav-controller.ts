@@ -20,7 +20,7 @@ import {
     getTableEditorFromWidgetEl,
     type EditMode,
 } from './native-table-adapter';
-import type { ObsidianTableEditor } from '../types/table-editor';
+import type { TableEditor } from '@obsidian-typings/obsidian-public-latest';
 import { tableRealign } from './table-operations';
 import { getCmAdapterFromEditorView } from './vim-api';
 import { isVimIdle } from '../editors/embeddable-editor';
@@ -359,7 +359,7 @@ export class TableNavController implements PluginValue {
         this.focusWithoutScroll();
     }
 
-    private getFreshTable(): ObsidianTableEditor | null {
+    private getFreshTable(): TableEditor | null {
         const widgetEl = this.session.widgetEl?.isConnected
             ? this.session.widgetEl
             : findTableWidgetElement(this.view, this.session.tableFrom);

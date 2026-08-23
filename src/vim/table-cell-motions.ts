@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import type { MotionFn, VimApi, VimState, CmAdapter } from '../types/vim-api';
-import type { ObsidianTableCell } from '../types/table-editor';
+import type { TableCell } from '@obsidian-typings/obsidian-public-latest';
 import { getActiveTableCell } from './native-table-adapter';
 import { setCursorSuppressedForView } from '@replit/codemirror-vim';
 import { signalCellCrossing } from './animated-cursor/manager';
@@ -54,7 +54,7 @@ interface InputStateSnapshot {
     [key: string]: unknown;
 }
 
-function isCellValid(cell: ObsidianTableCell): boolean {
+function isCellValid(cell: TableCell): boolean {
     return cell.el?.isConnected === true;
 }
 

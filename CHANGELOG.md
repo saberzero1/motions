@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Upgraded `@obsidian-typings/obsidian-public-latest` from `^6.32.0` to `^6.33.0`** — pulls in `@obsidian-typings/obsidian-public-1.13.7@1.6.0` which includes full `TableEditor`, `TableCell`, `TableRow`, `TableSelectionBounds`, `CellDirection`, `CellPosition`, `CursorPlacement`, and `TableAlignment` type definitions. Replaced local runtime-discovered typings (`ObsidianTableEditor`, `ObsidianTableCell`, `ObsidianTableRow`) with the upstream types. Deleted `src/types/table-editor.d.ts` (247 lines).
+    - Plugin: `package.json` (dependency version bump)
+    - Plugin: `src/types/table-editor.d.ts` (deleted — replaced by upstream)
+    - Plugin: `src/vim/native-table-adapter.ts` (imports from `@obsidian-typings/obsidian-public-latest` instead of local file)
+    - Plugin: `src/vim/table-nav-controller.ts` (imports from `@obsidian-typings/obsidian-public-latest` instead of local file)
+    - Plugin: `src/vim/table-cell-motions.ts` (imports from `@obsidian-typings/obsidian-public-latest` instead of local file)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: added `TableEditor`/`TableCell` to key typed APIs list
+- `CONTRIBUTING.md`: removed deleted `table-editor.d.ts` from `src/types/` file tree
+
 ## [0.123.0] - 2026-08-22
 
 ### Fixed

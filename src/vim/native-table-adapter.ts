@@ -4,26 +4,22 @@ import {
     MarkdownView,
     editorInfoField,
 } from 'obsidian';
-import type { EditorView } from '@codemirror/view';
 import type {
-    ObsidianTableEditor,
-    ObsidianTableCell,
-} from '../types/table-editor';
+    TableCell,
+    TableEditor,
+} from '@obsidian-typings/obsidian-public-latest';
+import type { EditorView } from '@codemirror/view';
 
 export type { EditMode };
 
 /**
  * Extended MarkdownEditView shape that narrows table cell properties
- * to the plugin's discovered API types.
- *
- * MarkdownEditView.tableCell is typed as `TableCellEditor | null` by
- * obsidian-typings, but the plugin needs the richer ObsidianTableEditor
- * and ObsidianTableCell interfaces discovered via runtime introspection.
+ * to the upstream obsidian-typings TableEditor / TableCell interfaces.
  */
 type EditMode = MarkdownEditView & {
     tableCell: {
-        table: ObsidianTableEditor;
-        cell: ObsidianTableCell;
+        table: TableEditor;
+        cell: TableCell;
         cm: unknown;
     } | null;
 };
@@ -36,13 +32,13 @@ function getEditMode(app: App): EditMode | null {
     return editMode;
 }
 
-export function getActiveTableEditor(app: App): ObsidianTableEditor | null {
+export function getActiveTableEditor(app: App): TableEditor | null {
     const editMode = getEditMode(app);
     if (!editMode?.tableCell) return null;
     return editMode.tableCell.table;
 }
 
-export function getActiveTableCell(app: App): ObsidianTableCell | null {
+export function getActiveTableCell(app: App): TableCell | null {
     const editMode = getEditMode(app);
     if (!editMode?.tableCell) return null;
     return editMode.tableCell.cell;
@@ -73,11 +69,11 @@ export function isNativeTableEditorAvailable(app: App): boolean {
 
 export function getTableEditorFromWidgetEl(
     widgetEl: HTMLElement,
-): ObsidianTableEditor | null {
+): TableEditor | null {
     const cmTile = (widgetEl as unknown as Record<string, unknown>).cmTile as
         | Record<string, unknown>
         | undefined;
-    const widget = cmTile?.widget as ObsidianTableEditor | undefined;
+    const widget = cmTile?.widget as TableEditor | undefined;
     if (!widget || typeof widget.getCellAt !== 'function') return null;
     return widget;
 }
@@ -106,18 +102,18 @@ export function getEditModeForView(view: EditorView): EditMode | null {
 
 // -- TableEditor registry (WeakMap keyed by containerEl) --
 
-const tableEditorRegistry = new WeakMap<HTMLElement, ObsidianTableEditor>();
+const tableEditorRegistry = new WeakMap<HTMLElement, TableEditor>();
 
 export function registerTableEditor(
     containerEl: HTMLElement,
-    table: ObsidianTableEditor,
+    table: TableEditor,
 ): void {
     tableEditorRegistry.set(containerEl, table);
 }
 
 export function getTableEditorFromRegistry(
     containerEl: HTMLElement,
-): ObsidianTableEditor | null {
+): TableEditor | null {
     if (!containerEl.isConnected) return null;
     return tableEditorRegistry.get(containerEl) ?? null;
 }
@@ -151,7 +147,7 @@ export function findTableWidgetElement(
 export function getTableEditorForPosition(
     view: EditorView,
     tableFrom: number,
-): ObsidianTableEditor | null {
+): TableEditor | null {
     const widgetEl = findTableWidgetElement(view, tableFrom);
     if (!widgetEl) return null;
     return getTableEditorFromWidgetEl(widgetEl);
