@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI e2e sharding** — the e2e workflow now distributes spec files into 36 shards (matching the GitHub Actions concurrent job limit) instead of creating one matrix job per spec file. The discover job distributes specs round-robin into shards; each runner executes 5–6 specs sequentially. This keeps the matrix well under the 256-job GitHub Actions cap as the test suite grows, while maintaining full parallelism across all available runners.
     - CI: `.github/workflows/e2e.yml` (discover job shards specs into 36 groups, e2e job iterates shard matrix)
 
+- **Cross-platform e2e CI** — the e2e workflow now runs the full sharded test suite on macOS (`macos-latest`, ARM) and Windows (`windows-latest`) in addition to Linux. No virtual display setup needed on macOS/Windows — GitHub runners provide native GUI sessions. `wdio-obsidian-service` handles Obsidian download, ChromeDriver version matching, and platform-specific launch per OS. `CSC_IDENTITY_AUTO_DISCOVERY=false` prevents macOS keychain prompts. 40-minute timeout per job accommodates slower runners.
+    - CI: `.github/workflows/e2e.yml` (new `e2e-cross-platform` job with `os: [macos-latest, windows-latest]` matrix)
+
 - **Upgraded `@obsidian-typings/obsidian-public-latest` from `^6.32.0` to `^6.33.0`** — pulls in `@obsidian-typings/obsidian-public-1.13.7@1.6.0` which includes full `TableEditor`, `TableCell`, `TableRow`, `TableSelectionBounds`, `CellDirection`, `CellPosition`, `CursorPlacement`, and `TableAlignment` type definitions. Replaced local runtime-discovered typings (`ObsidianTableEditor`, `ObsidianTableCell`, `ObsidianTableRow`) with the upstream types. Deleted `src/types/table-editor.d.ts` (247 lines).
     - Plugin: `package.json` (dependency version bump)
     - Plugin: `src/types/table-editor.d.ts` (deleted — replaced by upstream)
@@ -22,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: added `TableEditor`/`TableCell` to key typed APIs list; updated CI container image description to reflect sharding strategy
-- `CONTRIBUTING.md`: removed deleted `table-editor.d.ts` from `src/types/` file tree; updated CI infrastructure paragraph to reflect sharding strategy
+- `AGENTS.md`: added `TableEditor`/`TableCell` to key typed APIs list; updated CI container image description to reflect sharding strategy; added cross-platform e2e CI description
+- `CONTRIBUTING.md`: removed deleted `table-editor.d.ts` from `src/types/` file tree; updated CI infrastructure paragraph to reflect sharding strategy and cross-platform runners
 
 ## [0.123.0] - 2026-08-22
 
