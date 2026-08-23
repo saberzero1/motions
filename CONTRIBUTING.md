@@ -49,7 +49,7 @@ npm run test:e2e
 
 The tests run in a headless Obsidian instance with Xvfb. The test vault is in `test-vault/`.
 
-**CI infrastructure**: In CI, each e2e spec runs inside a custom Docker image (`ghcr.io/<repo>/e2e-runner:latest`) that includes Xvfb, herbstluftwm, Node.js 24, and Electron system dependencies. The entrypoint starts the virtual display with readiness polling — no manual `apt-get install` or `sleep`-based setup needed per runner. The image is defined in `.github/docker/e2e-runner/Dockerfile` and built by `.github/workflows/docker-e2e-runner.yml` on Dockerfile changes or manual dispatch.
+**CI infrastructure**: In CI, the e2e workflow shards spec files into 40 groups (matching the GitHub Actions concurrent job limit) and runs each shard inside a custom Docker image (`ghcr.io/<repo>/e2e-runner:latest`) that includes Xvfb, herbstluftwm, Node.js 24, and Electron system dependencies. The discover job distributes specs round-robin; each runner executes 5–6 specs sequentially. This keeps the matrix under the 256-job GitHub Actions cap. The entrypoint starts the virtual display with readiness polling — no manual `apt-get install` or `sleep`-based setup needed per runner. The image is defined in `.github/docker/e2e-runner/Dockerfile` and built by `.github/workflows/docker-e2e-runner.yml` on Dockerfile changes or manual dispatch.
 
 ## Codebase structure
 

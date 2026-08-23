@@ -11,13 +11,34 @@ jobs:
     discover:
         runs-on: ubuntu-latest
         outputs:
-            specs: ${{ steps.find.outputs.specs }}
+            shards: ${{ steps.shard.outputs.shards }}
         steps:
             - uses: actions/checkout@v6
-            - id: find
+            - id: shard
               run: |
-                  specs=$(find test/specs -name '*.e2e.ts' | sort | jq -R -s -c 'split("\n") | map(select(. != ""))')
-                  echo "specs=$specs" >> "$GITHUB_OUTPUT"
+                  MAX_SHARDS=36
+                  specs=$(find test/specs -name '*.e2e.ts' | sort)
+                  total=$(echo "$specs" | wc -l)
+                  # Use fewer shards when spec count is below MAX_SHARDS
+                  if [ "$total" -lt "$MAX_SHARDS" ]; then
+                    num_shards=$total
+                  else
+                    num_shards=$MAX_SHARDS
+                  fi
+                  # Distribute specs round-robin into shards as a JSON array of arrays
+                  shards=$(echo "$specs" | awk -v n="$num_shards" '
+                    BEGIN { for (i=0; i<n; i++) a[i]="" }
+                    { idx = (NR-1) % n; a[idx] = a[idx] (a[idx]=="" ? "" : ",") $0 }
+                    END {
+                      printf "["
+                      for (i=0; i<n; i++) {
+                        if (i>0) printf ","
+                        printf "\"%s\"", a[i]
+                      }
+                      printf "]"
+                    }
+                  ')
+                  echo "shards=$shards" >> "$GITHUB_OUTPUT"
 
     e2e:
         needs: discover
@@ -30,7 +51,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                spec: ${{ fromJson(needs.discover.outputs.specs) }}
+                shard: ${{ fromJson(needs.discover.outputs.shards) }}
 
         steps:
             - name: Start virtual display
@@ -61,5 +82,8 @@ jobs:
                   path: .obsidian-cache
                   key: obsidian-cache-${{ runner.os }}-${{ hashFiles('manifest.json') }}
 
-            - name: Run E2E test
-              run: npx wdio run ./wdio.conf.mts --spec '${{ matrix.spec }}'
+            - name: Run E2E tests
+              run: |
+                  SHARD='${{ matrix.shard }}'
+                  SPEC_ARGS=$(echo "$SHARD" | tr ',' '\n' | while read -r spec; do printf ' --spec %s' "$spec"; done)
+                  npx wdio run ./wdio.conf.mts $SPEC_ARGS
