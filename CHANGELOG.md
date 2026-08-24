@@ -7,14 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.124.0] - 2026-08-24
+
 ### Changed
 
 - **CI e2e sharding** — the e2e workflow now distributes spec files into 36 shards (matching the GitHub Actions concurrent job limit) instead of creating one matrix job per spec file. The discover job distributes specs round-robin into shards; each runner executes 5–6 specs sequentially. This keeps the matrix well under the 256-job GitHub Actions cap as the test suite grows, while maintaining full parallelism across all available runners.
     - CI: `.github/workflows/e2e.yml` (discover job shards specs into 36 groups, e2e job iterates shard matrix)
+- **Cross-platform e2e CI** — the e2e workflow now runs the full sharded test suite on macOS (`macos-latest`, ARM) and Windows (`windows-latest`) in addition to Linux. No virtual display setup needed on macOS/Windows — GitHub runners provide native GUI sessions. `wdio-obsidian-service` handles Obsidian download, ChromeDriver version matching, and platform-specific launch per OS. `CSC_IDENTITY_AUTO_DISCOVERY=false` prevents macOS keychain prompts. 40-minute timeout per job accommodates slower runners. Windows shards retry up to 3 times on `EPERM` errors from `obsidian-launcher`'s atomic file rename (Windows NTFS file locking during `onPrepare` download).
+    - CI: `.github/workflows/e2e.yml` (new `e2e-cross-platform` job with `os: [macos-latest, windows-latest]` matrix, EPERM retry logic)
 
-- **Cross-platform e2e CI** — the e2e workflow now runs the full sharded test suite on macOS (`macos-latest`, ARM) and Windows (`windows-latest`) in addition to Linux. No virtual display setup needed on macOS/Windows — GitHub runners provide native GUI sessions. `wdio-obsidian-service` handles Obsidian download, ChromeDriver version matching, and platform-specific launch per OS. `CSC_IDENTITY_AUTO_DISCOVERY=false` prevents macOS keychain prompts. 40-minute timeout per job accommodates slower runners.
-    - CI: `.github/workflows/e2e.yml` (new `e2e-cross-platform` job with `os: [macos-latest, windows-latest]` matrix)
+### Fixed
 
+- **E2e tests using `Key.Ctrl` send `Cmd` on macOS instead of `Ctrl`** — WebDriverIO's `Key.Ctrl` is a cross-platform abstraction that maps to `Cmd` on macOS and `Ctrl` on Linux/Windows. Vim keybindings like `<C-w>` and `<C-t>` require the physical Control key. Changed all vim-related test key dispatches from `Key.Ctrl` to `Key.Control` (the actual Control key on all platforms). This fixed 8 `<C-w>` workspace navigation test failures, 2 which-key overlay test failures, and 1 Oil `C-t` test failure — all macOS-only.
+    - Test: `test/specs/global-nav.e2e.ts` (`Key.Ctrl` → `Key.Control` for `<C-w>h/l/q/s/d`)
+    - Test: `test/specs/global-nav-plugin-leaf.e2e.ts` (`Key.Ctrl` → `Key.Control` for `<C-w>h`)
+    - Test: `test/specs/gmap.e2e.ts` (`Key.Ctrl` → `Key.Control` for `<C-w>h` and which-key tests)
+    - Test: `test/specs/gmap-vimrc.e2e.ts` (`Key.Ctrl` → `Key.Control` for `<C-w>` bindings)
+    - Test: `test/specs/oil-poc.e2e.ts` (`Key.Ctrl` → `Key.Control` for `C-t` open-in-new-tab)
+- **Table nav scroll tests fail on macOS/Windows due to CM6 lazy widget rendering** — `waitForTableWidget()` was called before scrolling the cursor near the table. On platforms with smaller viewports, the table at line 33 of the fixture file was offscreen and CM6 didn't create `.cm-table-widget` (lazy rendering). Fixed by scrolling the cursor to line 31 (near the table) before waiting for the widget. Also removed overly strict `scrollBefore > 0` assertion that assumed the viewport couldn't display 31 lines (varies by platform/window size).
+    - Test: `test/specs/table-nav-scroll.e2e.ts` (reordered cursor positioning before `waitForTableWidget`, removed viewport size assumption)
 - **Upgraded `@obsidian-typings/obsidian-public-latest` from `^6.32.0` to `^6.33.0`** — pulls in `@obsidian-typings/obsidian-public-1.13.7@1.6.0` which includes full `TableEditor`, `TableCell`, `TableRow`, `TableSelectionBounds`, `CellDirection`, `CellPosition`, `CursorPlacement`, and `TableAlignment` type definitions. Replaced local runtime-discovered typings (`ObsidianTableEditor`, `ObsidianTableCell`, `ObsidianTableRow`) with the upstream types. Deleted `src/types/table-editor.d.ts` (247 lines).
     - Plugin: `package.json` (dependency version bump)
     - Plugin: `src/types/table-editor.d.ts` (deleted — replaced by upstream)
@@ -25,8 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: added `TableEditor`/`TableCell` to key typed APIs list; updated CI container image description to reflect sharding strategy; added cross-platform e2e CI description
-- `CONTRIBUTING.md`: removed deleted `table-editor.d.ts` from `src/types/` file tree; updated CI infrastructure paragraph to reflect sharding strategy and cross-platform runners
+- `AGENTS.md`: added `TableEditor`/`TableCell` to key typed APIs list; updated CI container image description to reflect sharding strategy; added cross-platform e2e CI description with EPERM retry
+- `CONTRIBUTING.md`: removed deleted `table-editor.d.ts` from `src/types/` file tree; updated CI infrastructure paragraph to reflect sharding strategy, cross-platform runners, and Windows EPERM retry
 
 ## [0.123.0] - 2026-08-22
 
