@@ -133,7 +133,7 @@ describe('Plugin leaf key passthrough (#47)', function () {
             const before = await getActiveViewType();
             expect(before).toBe('graph');
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['h']);
             await browser.pause(PAUSE.EDITOR_SETTLE);

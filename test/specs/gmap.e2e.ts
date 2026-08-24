@@ -173,7 +173,7 @@ describe('gmap / gnoremap / gunmap', function () {
             });
             await browser.pause(PAUSE.OBSIDIAN_LOAD);
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['h']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -300,7 +300,7 @@ describe('gmap / gnoremap / gunmap', function () {
         it('should show overlay after 500ms on partial match', async function () {
             await loadTwoTabs();
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(800);
 
             const visible = (await browser.executeObsidian(() => {
@@ -315,7 +315,7 @@ describe('gmap / gnoremap / gunmap', function () {
         it('should NOT show overlay if sequence completes within 500ms', async function () {
             await loadTwoTabs();
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['q']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -329,7 +329,7 @@ describe('gmap / gnoremap / gunmap', function () {
         it('should dismiss overlay on sequence completion', async function () {
             await loadTwoTabs();
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(800);
 
             const showed = (await browser.executeObsidian(() => {

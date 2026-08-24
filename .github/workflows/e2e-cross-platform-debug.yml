@@ -1,0 +1,56 @@
+name: E2E Cross-Platform Debug
+
+on:
+    workflow_dispatch:
+
+jobs:
+    e2e-debug:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: macos-latest
+                      specs: >-
+                          test/specs/global-nav.e2e.ts
+                          test/specs/global-nav-plugin-leaf.e2e.ts
+                          test/specs/gmap.e2e.ts
+                          test/specs/gmap-vimrc.e2e.ts
+                          test/specs/table-nav-scroll.e2e.ts
+                          test/specs/oil-poc.e2e.ts
+                    - os: windows-latest
+                      specs: >-
+                          test/specs/table-nav-scroll.e2e.ts
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 40
+        env:
+            CSC_IDENTITY_AUTO_DISCOVERY: false
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm install --include=dev
+
+            - name: Build
+              run: npm run build:ci-test
+
+            - name: Cache Obsidian
+              uses: actions/cache@v5
+              with:
+                  path: .obsidian-cache
+                  key: obsidian-cache-${{ runner.os }}-${{ hashFiles('manifest.json') }}
+
+            - name: Run E2E tests
+              shell: bash
+              run: |
+                  SPEC_ARGS=""
+                  for spec in ${{ matrix.specs }}; do
+                    SPEC_ARGS="$SPEC_ARGS --spec $spec"
+                  done
+                  npx wdio run ./wdio.conf.mts $SPEC_ARGS

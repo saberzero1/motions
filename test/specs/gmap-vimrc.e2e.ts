@@ -232,7 +232,7 @@ describe('gmap vimrc integration', function () {
         });
         await browser.pause(PAUSE.OBSIDIAN_LOAD);
 
-        await browser.keys([Key.Ctrl, 'w']);
+        await browser.keys([Key.Control, 'w']);
         await browser.pause(PAUSE.KEY_GAP);
         await browser.keys(['h']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -264,7 +264,7 @@ describe('gmap vimrc integration', function () {
 
         await loadTwoTabs();
 
-        await browser.keys([Key.Ctrl, 'w']);
+        await browser.keys([Key.Control, 'w']);
         await browser.pause(800);
 
         const visible = (await browser.executeObsidian(() => {

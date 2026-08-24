@@ -400,7 +400,7 @@ describe('Global workspace navigation', function () {
             const before = await getActiveViewType();
             expect(before).toBe('graph');
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['h']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -420,7 +420,7 @@ describe('Global workspace navigation', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['l']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -436,7 +436,7 @@ describe('Global workspace navigation', function () {
             const before = await getActiveViewType();
             expect(before).toBe('graph');
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['q']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -450,7 +450,7 @@ describe('Global workspace navigation', function () {
             const before = await getActiveViewType();
             expect(before).toBe('graph');
 
-            await browser.keys([Key.Ctrl, 'w']);
+            await browser.keys([Key.Control, 'w']);
             await browser.pause(PAUSE.KEY_GAP);
             await browser.keys(['s']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -597,7 +597,7 @@ describe('Global workspace navigation', function () {
                 return el?.scrollTop ?? -1;
             })) as number;
 
-            await browser.keys([Key.Ctrl, 'd']);
+            await browser.keys([Key.Control, 'd']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
             const after = (await browser.executeObsidian(() => {

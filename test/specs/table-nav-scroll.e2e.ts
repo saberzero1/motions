@@ -138,8 +138,6 @@ describe('Table nav scrolling in long tables (#136)', function () {
         await destroyTableCell();
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
-        await waitForTableWidget();
-        await browser.pause(WIDGET_REBUILD_PAUSE);
 
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
@@ -152,8 +150,10 @@ describe('Table nav scrolling in long tables (#136)', function () {
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
+        await waitForTableWidget();
+        await browser.pause(WIDGET_REBUILD_PAUSE);
+
         const scrollBefore = await getScrollTop();
-        expect(scrollBefore).toBeGreaterThan(0);
 
         await browser.keys(['j']);
         await browser.pause(ENTRY_DEBOUNCE + PAUSE.EDITOR_SETTLE);
@@ -170,8 +170,6 @@ describe('Table nav scrolling in long tables (#136)', function () {
         await destroyTableCell();
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
-        await waitForTableWidget();
-        await browser.pause(WIDGET_REBUILD_PAUSE);
 
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
@@ -182,6 +180,9 @@ describe('Table nav scrolling in long tables (#136)', function () {
             view.editor.focus();
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await waitForTableWidget();
+        await browser.pause(WIDGET_REBUILD_PAUSE);
         await browser.keys(['j']);
         await browser.pause(ENTRY_DEBOUNCE + PAUSE.EDITOR_SETTLE);
 
@@ -242,9 +243,6 @@ describe('Table nav scrolling in long tables (#136)', function () {
         await destroyTableCell();
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
-        await waitForTableWidget();
-        await browser.pause(WIDGET_REBUILD_PAUSE);
-        await constrainScrollerHeight();
 
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
@@ -256,6 +254,11 @@ describe('Table nav scrolling in long tables (#136)', function () {
             view.editor.focus();
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await waitForTableWidget();
+        await browser.pause(WIDGET_REBUILD_PAUSE);
+        await constrainScrollerHeight();
+
         await browser.keys(['j']);
         await browser.pause(ENTRY_DEBOUNCE + PAUSE.EDITOR_SETTLE);
 

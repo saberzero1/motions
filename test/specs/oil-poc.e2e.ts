@@ -1260,7 +1260,7 @@ describe('Oil explorer', function () {
                 },
             )) as number;
 
-            await browser.keys([Key.Ctrl, 't']);
+            await browser.keys([Key.Control, 't']);
             await browser.pause(1000);
 
             const after = (await browser.executeObsidian(({ app }) => {
