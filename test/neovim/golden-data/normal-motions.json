@@ -1,7 +1,7 @@
 {
     "suite": "normal-motions",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-22T17:15:04.022Z",
+    "recorded_at": "2026-08-24T22:33:44.395Z",
     "cases": [
         {
             "name": "h should move cursor left",
@@ -22,8 +22,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -48,8 +48,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -74,8 +74,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -100,8 +100,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -126,8 +126,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -152,8 +152,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -178,8 +178,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -204,8 +204,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -230,8 +230,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -256,8 +256,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -282,8 +282,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -308,8 +308,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -334,8 +334,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -360,8 +360,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -386,8 +386,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -412,8 +412,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -438,8 +438,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -464,8 +464,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -490,8 +490,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -516,8 +516,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -542,8 +542,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -568,8 +568,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -594,8 +594,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -620,8 +620,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -646,8 +646,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -672,8 +672,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -698,8 +698,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -724,8 +724,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -750,8 +750,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -776,8 +776,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -802,8 +802,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -828,8 +828,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -854,8 +854,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -880,8 +880,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -906,8 +906,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -932,8 +932,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null
@@ -958,8 +958,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "vim.opt.scrolloff = 999\n",
-                        "linewise": true
+                        "text": " world",
+                        "linewise": false
                     }
                 },
                 "visualMode": null

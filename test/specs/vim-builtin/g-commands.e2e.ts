@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     vimKeys,
+    vimHandleKeys,
     getCursorPos,
     getEditorValue,
     sendVimEscape,
@@ -343,10 +344,74 @@ describe('Normal mode — g-prefix commands (Tier 1)', function () {
             expect((await getCursorPos()).ch).toBe(0);
         });
 
+        it('g0 should always move to column 0, not first non-blank (#141)', async function () {
+            await setupEditor('    hello world', { line: 0, ch: 8 });
+            await vimHandleKeys('g0');
+            expect((await getCursorPos()).ch).toBe(0);
+        });
+
         it('g$ should move to end of display line', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });
             await vimKeys('g', '$');
             expect((await getCursorPos()).ch).toBe(10);
+        });
+
+        it('g^ should move to first non-blank of display line (#141)', async function () {
+            await setupEditor('    hello world', { line: 0, ch: 8 });
+            await vimHandleKeys('g^');
+            expect((await getCursorPos()).ch).toBe(4);
+        });
+
+        it('g^ from column 0 should move to first non-blank (#141)', async function () {
+            await setupEditor('    hello world', { line: 0, ch: 0 });
+            await vimHandleKeys('g^');
+            expect((await getCursorPos()).ch).toBe(4);
+        });
+
+        it('g^ from first non-blank should stay at first non-blank (#141)', async function () {
+            await setupEditor('    hello world', { line: 0, ch: 4 });
+            await vimHandleKeys('g^');
+            expect((await getCursorPos()).ch).toBe(4);
+        });
+
+        it('g^ on line without leading whitespace should go to column 0 (#141)', async function () {
+            await setupEditor('hello world', { line: 0, ch: 5 });
+            await vimHandleKeys('g^');
+            expect((await getCursorPos()).ch).toBe(0);
+        });
+    });
+
+    describe('g_', function () {
+        it('g_ should move to last non-blank character', async function () {
+            await setupEditor('hello   ', { line: 0, ch: 0 });
+            await vimHandleKeys('g_');
+            expect((await getCursorPos()).ch).toBe(4);
+        });
+
+        it('g_ on line without trailing whitespace', async function () {
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimHandleKeys('g_');
+            expect((await getCursorPos()).ch).toBe(10);
+        });
+
+        it('g_ on empty line should stay at column 0', async function () {
+            await setupEditor('\nsecond', { line: 0, ch: 0 });
+            await vimHandleKeys('g_');
+            expect((await getCursorPos()).ch).toBe(0);
+        });
+
+        it('2g_ should move to last non-blank of next line', async function () {
+            await setupEditor('hello\nworld  ', { line: 0, ch: 0 });
+            await vimHandleKeys('2g_');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+            expect(pos.ch).toBe(4);
+        });
+
+        it('dg_ should delete to last non-blank inclusive', async function () {
+            await setupEditor('hello world   ', { line: 0, ch: 5 });
+            await vimHandleKeys('dg_');
+            expect(await getEditorValue()).toBe('hello   ');
         });
     });
 

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`g_` motion** — moves to the last non-blank character of the current line (or count-1 lines forward). Inclusive motion matching Neovim's `g_`. `dg_` deletes through the last non-blank character, preserving trailing whitespace.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `moveToLastNonWhiteSpaceCharacter` motion handler and `g_` keybinding)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (type definition)
+
+### Fixed
+
+- **`g^` and `g0` display-line motions behaved identically** — both called `cursorLineBoundaryBackward`, which implements Home-key toggle behavior (first non-blank ↔ column 0). `g0` incorrectly went to first non-blank instead of column 0, and `g^` toggled instead of always going to first non-blank. Now `g0` unconditionally moves to column 0 of the visual line, and `g^` unconditionally moves to the first non-blank character of the visual line, matching Neovim. ([#141](https://github.com/saberzero1/motions/issues/141))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `moveToFirstNonBlankOfDisplayLine` handler for `g^`; `moveToStartOfDisplayLine` now uses `goDisplayLineStart`)
+    - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (new `goDisplayLineStart` exec command using `view.moveToLineBoundary`)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (type definition for `moveToFirstNonBlankOfDisplayLine`)
+
+### Tests
+
+- 7 new e2e tests in `test/specs/vim-builtin/g-commands.e2e.ts`: `g0` always column 0, `g^` from mid-line, `g^` from column 0, `g^` idempotent at first non-blank, `g_` trailing spaces, `g_` no trailing spaces, `g_` empty line, `2g_` count, `dg_` operator-pending ([#141](https://github.com/saberzero1/motions/issues/141))
+- 7 new Neovim golden test definitions in `test/neovim/test-definitions.ts` (`g0` indented, `g^` indented, `g^` no whitespace, `g^` idempotent, `g_` trailing spaces, `g_` no trailing, `2g_` count)
+- Golden data recorded in `test/neovim/golden-data/g-commands.json`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: added `g0`/`g^`/`g_` fork motion descriptions
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: added `g0`/`g^` fix under "Behavioral fixes (Neovim parity)" and `g_` under "New default keymap entries"
+
 ## [0.125.0] - 2026-08-24
 
 ### Fixed

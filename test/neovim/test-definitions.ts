@@ -700,10 +700,28 @@ export const SUITES: SuiteDefinition[] = [
                 keys: 'gUiw',
             },
             {
-                name: 'guiw should lowercase inner word',
+                name: 'g_ should move to last non-blank character',
+                content: 'hello   ',
+                cursor: { line: 0, ch: 0 },
+                keys: 'g_',
+            },
+            {
+                name: 'g_ on line without trailing whitespace',
+                content: 'hello world',
+                cursor: { line: 0, ch: 0 },
+                keys: 'g_',
+            },
+            {
+                name: '2g_ should move to last non-blank of next line',
+                content: 'hello\nworld  ',
+                cursor: { line: 0, ch: 0 },
+                keys: '2g_',
+            },
+            {
+                name: 'guu should lowercase entire line',
                 content: 'HELLO WORLD',
                 cursor: { line: 0, ch: 0 },
-                keys: 'guiw',
+                keys: 'guu',
             },
             {
                 name: 'g~iw should toggle case inner word',
@@ -1480,10 +1498,34 @@ export const SUITES: SuiteDefinition[] = [
                 keys: 'g0',
             },
             {
+                name: 'g0 on indented line should move to column 0 not first non-blank',
+                content: '    hello world',
+                cursor: { line: 0, ch: 8 },
+                keys: 'g0',
+            },
+            {
                 name: 'g$ should move to end of display line',
                 content: 'hello world',
                 cursor: { line: 0, ch: 0 },
                 keys: 'g$',
+            },
+            {
+                name: 'g^ should move to first non-blank of display line',
+                content: '    hello world',
+                cursor: { line: 0, ch: 8 },
+                keys: 'g^',
+            },
+            {
+                name: 'g^ on line without leading whitespace should move to column 0',
+                content: 'hello world',
+                cursor: { line: 0, ch: 5 },
+                keys: 'g^',
+            },
+            {
+                name: 'g^ from first non-blank should stay at first non-blank',
+                content: '    hello world',
+                cursor: { line: 0, ch: 4 },
+                keys: 'g^',
             },
             {
                 name: 'guu should lowercase entire line',
