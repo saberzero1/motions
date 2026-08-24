@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.126.0] - 2026-08-24
+
 ### Added
 
 - **`g_` motion** — moves to the last non-blank character of the current line (or count-1 lines forward). Inclusive motion matching Neovim's `g_`. `dg_` deletes through the last non-blank character, preserving trailing whitespace.

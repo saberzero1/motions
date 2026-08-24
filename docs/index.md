@@ -31,8 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.125.0
+## What's new in 0.126.0
 
-- **Vim mode indicator sync on tab switch** — switching between editors in different vim modes (e.g., Insert in one tab, Normal in another) now immediately updates the status bar indicator instead of staying stale until the next mode change. ([#140](https://github.com/saberzero1/motions/issues/140))
+- **`g_` motion** — new inclusive motion that moves to the last non-blank character of the current line (or count-1 lines forward), matching Neovim's `g_`. Works with operators (`dg_`, `cg_`, etc.).
+- **`g0` and `g^` display-line fixes** — `g0` now unconditionally moves to column 0 of the visual line, and `g^` unconditionally moves to the first non-blank character, matching Neovim behavior. Previously both used Home-key toggle logic. ([#141](https://github.com/saberzero1/motions/issues/141))
 
 See the [[changelog|full changelog]] for details.
