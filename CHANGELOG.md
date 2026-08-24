@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Vim mode indicator desynchronized when switching tabs** — switching between editors in different vim modes (e.g., Insert in Tab A, Normal in Tab B) left the status bar showing the previous editor's mode. Root cause: `VimModeTracker`'s `active-leaf-change` handler attached event listeners to the new adapter but never read the new adapter's current vim mode — the display only updated when a subsequent `vim-mode-change` event fired. If the destination editor was already in Normal mode, no event fired and the indicator stayed stale. Fixed by adding `syncModeFromAdapter()` which reads the vim state's boolean flags (`insertMode`, `visualMode`, `visualLine`, `visualBlock`, `selectMode`, `virtualReplace`, `insertModeReturn`) directly from the adapter and updates the display immediately after attaching to the new adapter on leaf change. ([#140](https://github.com/saberzero1/motions/issues/140))
+    - Plugin: `src/vim/mode-tracker.ts` (new `syncModeFromAdapter` method; called after `attachToAdapter` in `active-leaf-change` handler)
+
+### Tests
+
+- 2 new regression tests in `test/specs/vim-builtin/mode-indicators.e2e.ts` ([#140](https://github.com/saberzero1/motions/issues/140)): Insert→Normal tab switch syncs indicator, Normal→Insert tab switch syncs indicator
+
+### Documentation
+
+- `CHANGELOG.md`
+
 ## [0.124.0] - 2026-08-24
 
 ### Changed

@@ -171,6 +171,7 @@ export class VimModeTracker {
             const adapter = getCmAdapter(view);
             if (!adapter) return;
             attachToAdapter(adapter);
+            this.syncModeFromAdapter(adapter);
         });
 
         const view = app.workspace.getActiveViewOfType(MarkdownView);
@@ -241,6 +242,33 @@ export class VimModeTracker {
                 this.updateDisplay();
             }
         }, 50);
+    }
+
+    private syncModeFromAdapter(adapter: CmAdapter): void {
+        const vim = adapter.state?.vim;
+        if (!vim) return;
+        const vimAny = vim as Record<string, unknown>;
+        let resolved: string;
+        if (vim.selectMode) {
+            resolved = 'select';
+        } else if (vim.insertMode && vim.virtualReplace) {
+            resolved = 'vreplace';
+        } else if (vim.insertMode) {
+            resolved = 'insert';
+        } else if (vim.visualLine) {
+            resolved = 'visualLine';
+        } else if (vim.visualBlock) {
+            resolved = 'visualBlock';
+        } else if (vim.visualMode) {
+            resolved = 'visual';
+        } else if (vimAny['insertModeReturn']) {
+            resolved = 'insertNormal';
+        } else {
+            resolved = 'normal';
+        }
+        this.currentMode = resolved;
+        this.preDialogMode = null;
+        this.updateDisplay();
     }
 
     private resolveMode(mode: string, subMode?: string | null): string {
