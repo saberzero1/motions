@@ -115,14 +115,9 @@ jobs:
             - name: Warm Obsidian cache
               shell: bash
               run: |
-                  npx obsidian-launcher download --cache .obsidian-cache
-                  npx obsidian-launcher install test-vault \
-                    --plugin . \
-                    --plugin id:omnisearch \
-                    --plugin id:obsidian-tasks-plugin \
-                    --plugin id:dataview \
-                    --plugin id:obsidian-meta-bind-plugin \
-                    --cache .obsidian-cache
+                  echo 'describe("cache-warm", function() { it("noop", function() {}); });' > __cache-warm.e2e.ts
+                  npx wdio run ./wdio.conf.mts --spec __cache-warm.e2e.ts
+                  rm -f __cache-warm.e2e.ts
 
             - name: Upload Obsidian cache
               uses: actions/upload-artifact@v4
