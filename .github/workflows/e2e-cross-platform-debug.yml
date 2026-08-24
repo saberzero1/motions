@@ -17,6 +17,7 @@ jobs:
                           test/specs/gmap-vimrc.e2e.ts
                           test/specs/table-nav-scroll.e2e.ts
                           test/specs/oil-poc.e2e.ts
+                          test/specs/fold-providers.e2e.ts
                     - os: windows-latest
                       specs: >-
                           test/specs/table-nav-scroll.e2e.ts
@@ -27,11 +28,6 @@ jobs:
 
         steps:
             - uses: actions/checkout@v6
-
-            - name: Disable Windows Defender real-time monitoring
-              if: runner.os == 'Windows'
-              shell: powershell
-              run: Set-MpPreference -DisableRealtimeMonitoring $true
 
             - name: Setup Node.js
               uses: actions/setup-node@v6
