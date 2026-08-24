@@ -103,10 +103,10 @@ jobs:
         steps:
             - uses: actions/checkout@v6
 
-            - name: Exclude workspace from Windows Defender
+            - name: Disable Windows Defender real-time monitoring
               if: runner.os == 'Windows'
               shell: powershell
-              run: Add-MpPreference -ExclusionPath "${{ github.workspace }}"
+              run: Set-MpPreference -DisableRealtimeMonitoring $true
 
             - name: Setup Node.js
               uses: actions/setup-node@v6
