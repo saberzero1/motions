@@ -103,6 +103,11 @@ jobs:
         steps:
             - uses: actions/checkout@v6
 
+            - name: Exclude workspace from Windows Defender
+              if: runner.os == 'Windows'
+              shell: powershell
+              run: Add-MpPreference -ExclusionPath "${{ github.workspace }}"
+
             - name: Setup Node.js
               uses: actions/setup-node@v6
               with:
@@ -120,6 +125,7 @@ jobs:
               with:
                   path: .obsidian-cache
                   key: obsidian-cache-${{ runner.os }}-${{ hashFiles('manifest.json') }}
+                  restore-keys: obsidian-cache-${{ runner.os }}-
 
             - name: Run E2E tests
               shell: bash
