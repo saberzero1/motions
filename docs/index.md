@@ -31,11 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.124.0
+## What's new in 0.125.0
 
-- **Cross-platform e2e CI** — the end-to-end test suite now runs on macOS (ARM) and Windows in addition to Linux, catching platform-specific regressions before they ship.
-- **macOS test key fix** — fixed 11 test failures on macOS where `Key.Ctrl` sent `Cmd` instead of the physical Control key for vim keybindings like `<C-w>` and `<C-t>`.
-- **Upstream table typings** — replaced 247 lines of local table editor type definitions with upstream `@obsidian-typings` (`TableEditor`, `TableCell`, `TableRow`, and related types).
-- **CI sharding** — e2e workflow distributes spec files into 36 shards for parallel execution, keeping the matrix under GitHub Actions' 256-job cap as the test suite grows.
+- **Vim mode indicator sync on tab switch** — switching between editors in different vim modes (e.g., Insert in one tab, Normal in another) now immediately updates the status bar indicator instead of staying stale until the next mode change. ([#140](https://github.com/saberzero1/motions/issues/140))
 
 See the [[changelog|full changelog]] for details.
