@@ -2,7 +2,6 @@ import type { App } from 'obsidian';
 import { MarkdownView } from 'obsidian';
 import { setKeyInterceptActive } from '@replit/codemirror-vim';
 import type { CmAdapter } from '../types/vim-api';
-import { getCmAdapter } from '../vim/vim-api';
 import { getVimApi } from '../vim/vim-api';
 import { getJumpListInstance } from '../workspace/navigate';
 import { VimRegistration } from '../vim/registration';
@@ -174,6 +173,8 @@ function searchTrigger(direction: Direction): MotionTriggerFactory {
 let lastMotionFactory:
     | ((cm: CmAdapter) => Promise<{ line: number; ch: number } | null>)
     | null = null;
+
+let lastMotionArgs: Record<string, unknown> = {};
 
 const EASYMOTION_DEFS: EasyMotionDef[] = [
     {
@@ -366,12 +367,14 @@ export function registerEasyMotion(
 
     for (const def of EASYMOTION_DEFS) {
         const motionFactory = def.createTrigger(app, chars, opts);
+        const defArgs = def.motionArgs ?? {};
         reg.defineMotion(def.name, (cm) => {
             lastMotionFactory = motionFactory;
+            lastMotionArgs = { ...defArgs };
             return recordJumpOnResolve(app, cm, motionFactory);
         });
         const keys = leader + leader + def.keySuffix;
-        reg.mapCommand(keys, 'motion', def.name, def.motionArgs ?? {});
+        reg.mapCommand(keys, 'motion', def.name, defArgs);
         leaderRegistry.addBinding(keys, def.description, 'builtin');
     }
 
@@ -385,14 +388,14 @@ export function registerEasyMotion(
         });
     }
 
-    reg.defineAction('easyMotionRepeat', () => {
-        if (!lastMotionFactory) return;
-        const view = app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view) return;
-        const cm = getCmAdapter(view);
-        if (!cm) return;
-        void lastMotionFactory(cm).then((pos) => {
-            if (pos) cm.setCursor(pos.line, pos.ch);
-        });
+    reg.defineMotion('easyMotionRepeat', (cm, _head, motionArgs) => {
+        if (!lastMotionFactory) return null;
+        if (motionArgs) {
+            Object.assign(motionArgs, lastMotionArgs);
+        }
+        return recordJumpOnResolve(app, cm, lastMotionFactory);
     });
+    const repeatKeys = leader + leader + '.';
+    reg.mapCommand(repeatKeys, 'motion', 'easyMotionRepeat', {});
+    leaderRegistry.addBinding(repeatKeys, 'EasyMotion: repeat last', 'builtin');
 }

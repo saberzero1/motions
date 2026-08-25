@@ -976,4 +976,62 @@ describe('EasyMotion comprehensive', function () {
             expect(text).toContain('aaa');
         });
     });
+
+    describe('operator-pending easyMotionRepeat', function () {
+        it('d + easyMotionRepeat should delete to the repeated target', async function () {
+            const result = await triggerEasyMotion(
+                'alpha beta gamma delta epsilon',
+                { line: 0, ch: 0 },
+                ['\\', '\\', 'w'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(300);
+
+            const posAfterJump = await getCursorPos();
+            expect(posAfterJump.ch).toBeGreaterThan(0);
+
+            const repeatResult = await triggerEasyMotion(
+                'alpha beta gamma delta epsilon',
+                posAfterJump,
+                ['d', '\\', '\\', '.'],
+            );
+            expect(repeatResult.labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([repeatResult.labels[0]!]);
+            await browser.pause(500);
+
+            const text = await getEditorValue();
+            expect(text.length).toBeLessThan(
+                'alpha beta gamma delta epsilon'.length,
+            );
+        });
+
+        it('d + easyMotionRepeat after line motion should delete linewise', async function () {
+            const result = await triggerEasyMotion(
+                'aaa\nbbb\nccc\nddd\neee',
+                { line: 0, ch: 0 },
+                ['\\', '\\', 'j'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(300);
+
+            const repeatResult = await triggerEasyMotion(
+                'aaa\nbbb\nccc\nddd\neee',
+                { line: 1, ch: 0 },
+                ['d', '\\', '\\', '.'],
+            );
+            expect(repeatResult.labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([repeatResult.labels[0]!]);
+            await browser.pause(500);
+
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.linewise).toBe(true);
+        });
+    });
 });

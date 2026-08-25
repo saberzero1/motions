@@ -239,9 +239,9 @@ Visual mode (`v` + easymotion) also works — the fork updates the visual select
 - ~~EasyMotion line motions (`j`/`k`) operate characterwise instead of linewise in operator-pending mode~~ — Fixed. Added `motionArgs: { linewise: true }` to both `easyMotionLine` and `easyMotionLineBack` definitions. `d<leader><leader>j{label}` now deletes full lines (linewise), matching native Vim `dj` semantics.
 - ~~EasyMotion forward motions do not set `motionArgs.forward`~~ — Fixed. All directional EasyMotion motions now set `motionArgs.forward` (`true` for forward, `false` for backward), enabling the fork's `clipToLine` function for forward cross-line operations.
 - `EXTRA_DEFS` bidirectional motions (`easyMotionBdWord`, `easyMotionBdEndWord`, etc.) are registered via `defineMotion` only, without `mapCommand`. They cannot receive `motionArgs` and therefore have no `inclusive` flag. When invoked in operator-pending mode via Lua `vim.keymap.set` remapping, they always behave exclusively
-- `easyMotionRepeat` uses `cm.setCursor()` directly instead of going through the codemirror-vim operator infrastructure. Repeating an EasyMotion motion works for normal-mode jumping but does not support operator-pending repeat (the `inclusive` flag from the original motion is not preserved)
+- ~~`easyMotionRepeat` uses `cm.setCursor()` directly~~ — Fixed. `easyMotionRepeat` is now registered as a `defineMotion` (was `defineAction`) with a `mapCommand` binding at `<leader><leader>.`. The motion function inherits `motionArgs` from the last executed EasyMotion motion via `Object.assign`, so operators like `d`, `c`, `y` apply correctly with the proper `linewise`/`inclusive`/`forward` flags.
 
-**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows, capital letter char search, linewise line motions (`d+j`, `y+j`, `d+k`), and inclusive/exclusive motion behavior.
+**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows, capital letter char search, linewise line motions (`d+j`, `y+j`, `d+k`), inclusive/exclusive motion behavior, and operator-pending repeat (`d+<leader><leader>.` with motionArgs inheritance).
 
 ## EasyMotion labels in Live Preview
 
@@ -774,11 +774,11 @@ These commands exist but behave differently from Neovim:
 | ~~`zn` / `zN`~~        | ~~Fold none (disable folding) / fold normal (re-enable)~~ | ~~Not implemented~~                                        | Fixed. `zn`/`zN`/`zi` implemented via `foldEnableField` StateField. Fold gutter arrows remain visible (shows foldable regions) but fold operations are suppressed. |
 | `it` / `at`            | HTML tag text objects (CM Vim native via XML mode)        | Plugin-implemented via raw text scanning                   | CM Vim's `expandToTag` requires `findMatchingTag`/`findEnclosingTag` functions from a parser mode not active in Markdown                                           |
 
-## Ex `:m`/`:t` address parsing
+## ~~Ex `:m`/`:t` address parsing~~ (Fixed)
 
-**Status**: Partial implementation.
+**Status**: Fixed. The `:m`/`:move` and `:t`/`:copy`/`:co` ex commands now fully support absolute addresses (`0`, `$`, `.`, line numbers), relative addresses (`+N`, `-N`), range syntax (`1,2m$`), and mark addresses (`'a`). The fork's `parseLineSpec_` handles the source range parsing; the plugin's `parseLineTarget` handles the destination address. Newline handling at document boundaries (inserting at position 0 or after the last line, moving the last line) is now correct.
 
-The `:m`/`:move` and `:t`/`:copy`/`:co` ex commands support relative addresses (`+1`, `-2`) but the address parser does not fully handle absolute addresses (`0`, `$`) or range syntax (`1,2`). Relative addresses are the most common use case and work correctly. The full Neovim address grammar (marks, search patterns, offsets) is not implemented.
+**Test coverage**: `test/specs/vim-builtin/ex-move-copy-normal.e2e.ts` — strengthened from crash-guard-only tests to behavioral assertions: `:m0`, `:m$`, `:m-2`, `:m3`, `:1,2m$`, `:t0`, `:t$`, `:1,2t$`.
 
 ## Select mode and Virtual Replace mode
 

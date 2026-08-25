@@ -15,16 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/easymotion/register.ts` (added `forward` flag to all `EASYMOTION_DEFS` entries)
 - **Insert-mode surround macro recording** — `<C-g>s{char}` keys typed during insert mode were not logged to the macro key buffer. The fork's `handleKeyInsertMode` now calls `logKey` when a full insert-mode command is matched, recording the complete key sequence to the macro register.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`handleKeyInsertMode` — `logKey` on `match.type == 'full'`)
+- **`easyMotionRepeat` operator-pending mode** — `easyMotionRepeat` was registered as an action (`defineAction`) which cannot participate in operator-pending mode. Changed to a motion (`defineMotion`) with `mapCommand` binding at `<leader><leader>.`. The motion inherits `motionArgs` from the last executed EasyMotion motion, so operators apply with correct `linewise`/`inclusive`/`forward` flags.
+    - Plugin: `src/easymotion/register.ts` (changed from `defineAction` to `defineMotion` + `mapCommand`, added `lastMotionArgs` storage)
+- **`:m`/`:t` newline handling at document boundaries** — moving or copying lines to position 0 (top of file) or after the last line produced concatenated text without newline separation. Fixed `getLineRangeText` to include the preceding newline separator when extracting the last line, and `createMoveCopyCommand` to insert with correct newline placement at boundaries.
+    - Plugin: `src/workspace/commands.ts` (`getLineRangeText` boundary handling, `createMoveCopyCommand` insert text normalization)
 
 ### Tests
 
 - 3 new e2e tests in `test/specs/easymotion-comprehensive.e2e.ts`: `d+easymotion j` linewise delete, `y+easymotion j` linewise yank with register flag, `d+easymotion k` linewise delete upward
+- 2 new e2e tests in `test/specs/easymotion-comprehensive.e2e.ts`: `d+easyMotionRepeat` operator-pending delete, `d+easyMotionRepeat` after line motion preserves linewise
 - 1 new e2e test in `test/specs/surround.e2e.ts`: macro register contains `<C-g>s` keys after recording
+- 6 crash-guard tests in `test/specs/vim-builtin/ex-move-copy-normal.e2e.ts` strengthened to behavioral assertions (`:m0`, `:m$`, `:m-2`, `:1,2m$`, `:t$`, `:1,2t$`) + 2 new tests (`:m3`, `:t0`)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, and insert-mode surround macro recording as fixed
+- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, and `:m`/`:t` address parsing as fixed
+- `CONTRIBUTING.md`: updated `easymotion/register.ts` description
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated insert-mode surround macro recording section)
 
 ## [0.127.0] - 2026-08-25

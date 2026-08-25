@@ -56,32 +56,39 @@ describe('Ex commands — :move, :copy, :normal', function () {
             expect(await getEditorValue()).toBe('bbb\naaa\nccc');
         });
 
-        it('[crash-guard] :m0 should not error', async function () {
+        it(':m0 moves current line to top of file', async function () {
             await setupEditor('aaa\nbbb\nccc', { line: 2, ch: 0 });
             await handleEx('m0');
             await browser.pause(100);
-            expect((await getEditorValue()).length).toBeGreaterThan(0);
+            expect(await getEditorValue()).toBe('ccc\naaa\nbbb');
         });
 
-        it('[crash-guard] :m$ should not error', async function () {
+        it(':m$ moves current line to end of file', async function () {
             await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
             await handleEx('m$');
             await browser.pause(100);
-            expect((await getEditorValue()).length).toBeGreaterThan(0);
+            expect(await getEditorValue()).toBe('bbb\nccc\naaa');
         });
 
-        it('[crash-guard] :m-2 should not error', async function () {
+        it(':m-2 moves current line up by 1', async function () {
             await setupEditor('aaa\nbbb\nccc', { line: 2, ch: 0 });
             await handleEx('m-2');
             await browser.pause(100);
-            expect((await getEditorValue()).length).toBeGreaterThan(0);
+            expect(await getEditorValue()).toBe('aaa\nccc\nbbb');
         });
 
-        it('[crash-guard] :1,2m$ should not error', async function () {
+        it(':1,2m$ moves lines 1-2 to end of file', async function () {
             await setupEditor('aaa\nbbb\nccc\nddd', { line: 0, ch: 0 });
             await handleEx('1,2m$');
             await browser.pause(100);
-            expect((await getEditorValue()).length).toBeGreaterThan(0);
+            expect(await getEditorValue()).toBe('ccc\nddd\naaa\nbbb');
+        });
+
+        it(':m3 moves current line after line 3', async function () {
+            await setupEditor('aaa\nbbb\nccc\nddd', { line: 0, ch: 0 });
+            await handleEx('m3');
+            await browser.pause(100);
+            expect(await getEditorValue()).toBe('bbb\nccc\naaa\nddd');
         });
 
         it(':move is an alias for :m', async function () {
@@ -116,18 +123,25 @@ describe('Ex commands — :move, :copy, :normal', function () {
             expect(await getEditorValue()).toBe('aaa\naaa\nbbb');
         });
 
-        it('[crash-guard] :t$ should not error', async function () {
+        it(':t$ copies current line to end of file', async function () {
             await setupEditor('aaa\nbbb', { line: 0, ch: 0 });
             await handleEx('t$');
             await browser.pause(100);
-            expect((await getEditorValue()).length).toBeGreaterThan(0);
+            expect(await getEditorValue()).toBe('aaa\nbbb\naaa');
         });
 
-        it('[crash-guard] :1,2t$ should not error', async function () {
+        it(':1,2t$ copies lines 1-2 to end of file', async function () {
             await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
             await handleEx('1,2t$');
             await browser.pause(100);
-            expect((await getEditorValue()).length).toBeGreaterThan(0);
+            expect(await getEditorValue()).toBe('aaa\nbbb\nccc\naaa\nbbb');
+        });
+
+        it(':t0 copies current line to top of file', async function () {
+            await setupEditor('aaa\nbbb\nccc', { line: 2, ch: 0 });
+            await handleEx('t0');
+            await browser.pause(100);
+            expect(await getEditorValue()).toBe('ccc\naaa\nbbb\nccc');
         });
 
         it(':co is an alias for :t', async function () {

@@ -61,29 +61,28 @@ function getLineRangeText(
     toOffset: number;
 } {
     const fromPos = { line: startLine, ch: 0 };
-    const toPos =
-        endLine + 1 < lineCount
-            ? { line: endLine + 1, ch: 0 }
-            : { line: endLine, ch: cm.getLine(endLine).length };
-    const fromOffset = cm.indexFromPos(fromPos);
-    const toOffset =
-        endLine + 1 < lineCount
-            ? cm.indexFromPos(toPos)
-            : cm.cm6.state.doc.length;
-    return {
-        text: cm.getRange(fromPos, toPos),
-        fromOffset,
-        toOffset,
-    };
-}
+    let fromOffset = cm.indexFromPos(fromPos);
+    let toOffset: number;
 
-function getInsertOffset(
-    cm: CmAdapter,
-    insertionLine: number,
-    lineCount: number,
-): number {
-    if (insertionLine >= lineCount) return cm.cm6.state.doc.length;
-    return cm.indexFromPos({ line: insertionLine, ch: 0 });
+    if (endLine + 1 < lineCount) {
+        toOffset = cm.indexFromPos({ line: endLine + 1, ch: 0 });
+    } else if (startLine > 0) {
+        fromOffset = cm.indexFromPos({
+            line: startLine - 1,
+            ch: cm.getLine(startLine - 1).length,
+        });
+        toOffset = cm.cm6.state.doc.length;
+    } else {
+        toOffset = cm.cm6.state.doc.length;
+    }
+
+    const lines: string[] = [];
+    for (let i = startLine; i <= endLine; i++) {
+        lines.push(cm.getLine(i));
+    }
+    const text = lines.join('\n');
+
+    return { text, fromOffset, toOffset };
 }
 
 function getFirstNonBlankCh(lineText: string): number {
@@ -661,14 +660,25 @@ function createMoveCopyCommand(mode: 'move' | 'copy'): ExCommandFn {
             lineCount,
         );
 
-        const insertOffset = getInsertOffset(cm, insertionLine, lineCount);
+        const atEnd = insertionLine >= lineCount;
+        let insertText: string;
+        let insertOffset: number;
+
+        if (atEnd) {
+            insertOffset = cm.cm6.state.doc.length;
+            insertText = '\n' + text;
+        } else {
+            insertOffset = cm.indexFromPos({ line: insertionLine, ch: 0 });
+            insertText = text + '\n';
+        }
+
         const changes =
             mode === 'move'
                 ? [
                       { from: fromOffset, to: toOffset },
-                      { from: insertOffset, insert: text },
+                      { from: insertOffset, insert: insertText },
                   ]
-                : [{ from: insertOffset, insert: text }];
+                : [{ from: insertOffset, insert: insertText }];
 
         changes.sort((a, b) => a.from - b.from);
         cm.cm6.dispatch({ changes });
