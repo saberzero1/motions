@@ -301,6 +301,7 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
 interface ExtraEasyMotionDef {
     name: string;
     createTrigger: MotionTriggerFactory;
+    motionArgs?: Record<string, unknown>;
 }
 
 const EXTRA_DEFS: ExtraEasyMotionDef[] = [
@@ -311,6 +312,7 @@ const EXTRA_DEFS: ExtraEasyMotionDef[] = [
     {
         name: 'easyMotionBdEndWord',
         createTrigger: wordEndTrigger('bidirectional', false),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionBdWORD',
@@ -319,14 +321,17 @@ const EXTRA_DEFS: ExtraEasyMotionDef[] = [
     {
         name: 'easyMotionBdEndWORD',
         createTrigger: wordEndTrigger('bidirectional', true),
+        motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionBdLine',
         createTrigger: lineTrigger('bidirectional'),
+        motionArgs: { linewise: true },
     },
     {
         name: 'easyMotionBdTill',
         createTrigger: tillTrigger('bidirectional'),
+        motionArgs: { inclusive: true },
     },
 ];
 
@@ -382,8 +387,13 @@ export function registerEasyMotion(
 
     for (const def of EXTRA_DEFS) {
         const motionFactory = def.createTrigger(app, chars, opts);
-        reg.defineMotion(def.name, (cm) => {
+        const defArgs = def.motionArgs ?? {};
+        reg.defineMotion(def.name, (cm, _head, motionArgs) => {
             lastMotionFactory = motionFactory;
+            lastMotionArgs = { ...defArgs };
+            if (motionArgs) {
+                Object.assign(motionArgs, defArgs);
+            }
             return recordJumpOnResolve(app, cm, motionFactory);
         });
     }

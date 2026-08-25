@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Table-nav dot-repeat for structural commands** — `.` in table-nav mode now repeats the last structural command (`o`, `O`, `dd`, `dc`, `J`, `K`, `H`, `L`, `I`, `A`). Count prefix works (`3.` repeats 3 times). Cleared on cell edit entry so vim's native `.` handles text edits.
     - Plugin: `src/vim/table-nav-keymap.ts` (`lastStructuralAction` tracking, `.` handler with count)
     - Plugin: `src/vim/table-nav-controller.ts` (`clearLastStructuralAction` on cell edit entry)
+- **Multi-line `t` column 0 exclusion** — forward `t{char}` targets at column 0 were excluded entirely instead of wrapping to the previous line's last character. Fixed in both flash (`applyTillOffset` in `char-mode.ts`) and EasyMotion (`findTillTargets` in `targets.ts`). Targets at column 0 of line 0 (no previous line) are still excluded.
+    - Plugin: `src/flash/char-mode.ts` (`applyTillOffset` — wrap to previous line)
+    - Plugin: `src/easymotion/targets.ts` (`findTillTargets` — same fix)
+- **EXTRA_DEFS bidirectional motions lack motionArgs** — `easyMotionBdEndWord`, `easyMotionBdEndWORD`, `easyMotionBdTill` now have `inclusive: true`, and `easyMotionBdLine` has `linewise: true`. Applied via `Object.assign(motionArgs, defArgs)` inside the motion function body, bypassing the `defineMotion`-only limitation.
+    - Plugin: `src/easymotion/register.ts` (`EXTRA_DEFS` motionArgs + motion function mutation)
+- **Tab/Shift+Tab in table-nav** — Tab in cell edit mode now exits the cell and returns to table-nav on the next cell. Tab/Shift+Tab also work directly in table-nav mode as cell navigation (equivalent to `l`/`h`). Count prefix works (`3Tab` moves 3 cells forward).
+    - Plugin: `src/vim/table-nav-keymap.ts` (Tab/Shift+Tab case in nav handler)
+    - Plugin: `src/vim/table-nav-controller.ts` (Tab/Shift+Tab Scope handlers in cell edit)
 
 ### Tests
 
@@ -38,11 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 2 new e2e tests in `test/specs/table-nav-mode.e2e.ts`: `3j` moves 3 rows in table-nav, `2l` moves 2 columns
 - 2 new e2e tests in `test/specs/table-cell-vim-mode.e2e.ts`: cross-cell `w` at end of cell, cross-cell `b` at start of cell
 - 3 new e2e tests in `test/specs/table-nav-mode.e2e.ts`: `.` repeats `o`, `2.` repeats twice, `.` cleared after cell edit
+- 3 new unit tests in `test/unit/flash-targets.test.ts`: `findTillTargets` column 0 wrap, column 0 line 0 exclusion, non-zero column
+- 2 new e2e tests in `test/specs/table-nav-mode.e2e.ts`: Tab in cell edit returns to nav, Shift+Tab navigates backward
+- 1 new e2e test in `test/specs/flash-char-mode.e2e.ts`: multi-line `t` wraps to previous line end at column 0
+- 1 new e2e test in `test/specs/easymotion-comprehensive.e2e.ts`: `y + easyMotionBdLine` via `mapCommand` yanks linewise (EXTRA_DEFS motionArgs)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, `:m`/`:t` address parsing, table count prefixes, cross-cell word motions, and table-nav dot-repeat as fixed
+- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, `:m`/`:t` address parsing, table count prefixes, cross-cell word motions, table-nav dot-repeat, multi-line `t` column 0, EXTRA_DEFS motionArgs, and Tab/Shift+Tab in table-nav as fixed
 - `CONTRIBUTING.md`: updated `easymotion/register.ts` description
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated insert-mode surround macro recording section)
 

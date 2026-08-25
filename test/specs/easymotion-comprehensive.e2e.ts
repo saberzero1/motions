@@ -1034,4 +1034,42 @@ describe('EasyMotion comprehensive', function () {
             expect(reg!.linewise).toBe(true);
         });
     });
+
+    describe('EXTRA_DEFS operator-pending motionArgs', function () {
+        it('y + easyMotionBdLine should yank linewise via motionArgs mutation', async function () {
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                mapCommand: (
+                                    keys: string,
+                                    type: string,
+                                    name: string,
+                                    args: Record<string, unknown>,
+                                ) => void;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return;
+                Vim.mapCommand('g<Space>', 'motion', 'easyMotionBdLine', {});
+            });
+            await browser.pause(100);
+
+            const result = await triggerEasyMotion(
+                'aaa\nbbb\nccc\nddd',
+                { line: 0, ch: 0 },
+                ['y', 'g', '<Space>'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(500);
+
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            expect(reg!.linewise).toBe(true);
+        });
+    });
 });

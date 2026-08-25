@@ -1227,4 +1227,48 @@ describe('Table-nav edge cases', function () {
             expect(afterDotLines.length).toBe(5);
         });
     });
+
+    describe('Tab cell navigation in table-nav', function () {
+        it('Tab in cell edit should return to table-nav on the next cell', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_DOC);
+            await enterTableNav();
+
+            const initial = await getHighlightedCell();
+            expect(initial).not.toBeNull();
+            expect(initial!.col).toBe(0);
+
+            await browser.keys(['i']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            expect(await hasCellEditor()).toBe(true);
+
+            await browser.keys(['Tab']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            expect(await hasTableNavHighlight()).toBe(true);
+            const after = await getHighlightedCell();
+            expect(after).not.toBeNull();
+            expect(after!.col).toBe(1);
+        });
+
+        it('Shift+Tab in table-nav should navigate to previous cell', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_DOC);
+            await enterTableNav();
+
+            await browser.keys(['l']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            const moved = await getHighlightedCell();
+            expect(moved).not.toBeNull();
+            expect(moved!.col).toBe(1);
+
+            await browser.keys(['Shift', 'Tab', 'NULL']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            expect(await hasTableNavHighlight()).toBe(true);
+            const after = await getHighlightedCell();
+            expect(after).not.toBeNull();
+            expect(after!.col).toBe(0);
+        });
+    });
 });

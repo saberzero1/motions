@@ -141,6 +141,27 @@ describe('Flash char-mode: enhanced f/F/t/T', function () {
         });
     });
 
+    describe('multi-line t column 0', function () {
+        it('t should wrap to previous line end when match is at column 0', async function () {
+            await setupEditor('hello\nxworld', { line: 0, ch: 0 });
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (app as unknown as Record<string, unknown>)
+                    .plugins as Record<string, unknown> | undefined;
+                const internal = (plugin?.plugins as Record<string, unknown>)?.[
+                    'vim-motions'
+                ] as { settings: Record<string, unknown> } | undefined;
+                if (internal?.settings) {
+                    internal.settings.flashMultiLine = true;
+                }
+            });
+
+            await vimKeys('t', 'x');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+            expect(pos.ch).toBe(4);
+        });
+    });
+
     describe('operator-pending with flash', function () {
         it('dfa should delete to single-match target', async function () {
             await setupEditor('hello xyz world', { line: 0, ch: 0 });

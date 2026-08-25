@@ -144,6 +144,13 @@ export function createTableNavKeyHandler(
                     }
                 }
                 return true;
+            case 'Tab':
+                if (e.shiftKey) {
+                    actions.navigate('h', count);
+                } else {
+                    actions.navigate('l', count);
+                }
+                return true;
             case 'd':
                 pendingD = true;
                 return true;

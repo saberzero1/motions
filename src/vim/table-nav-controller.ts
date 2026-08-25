@@ -944,6 +944,19 @@ export class TableNavController implements PluginValue {
             });
         }
 
+        scope.register(null, 'Tab', () => {
+            if (s.state !== 'edit') return undefined;
+            this.exitCellEditToNav();
+            this.navigate('l');
+            return false;
+        });
+        scope.register(['Shift'], 'Tab', () => {
+            if (s.state !== 'edit') return undefined;
+            this.exitCellEditToNav();
+            this.navigate('h');
+            return false;
+        });
+
         s.cellEditScope = scope;
         pushKeymapScope(this.app, scope);
     }

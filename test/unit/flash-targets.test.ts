@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     findSubstringTargets,
     findCharTargets,
+    findTillTargets,
 } from '../../src/easymotion/targets';
 
 function stubCm(lines: string[]) {
@@ -65,5 +66,32 @@ describe('findCharTargets matchLength', () => {
         for (const t of targets) {
             expect(t.matchLength).toBeUndefined();
         }
+    });
+});
+
+describe('findTillTargets forward column 0', () => {
+    it('wraps to previous line end when match is at column 0', () => {
+        const cm = stubCm(['hello', 'xworld']);
+        cm.getCursor = () => ({ line: 0, ch: 0 });
+        const targets = findTillTargets(cm, 'x', 'forward');
+        expect(targets.length).toBe(1);
+        expect(targets[0]!.line).toBe(0);
+        expect(targets[0]!.ch).toBe(4);
+    });
+
+    it('excludes match at column 0 of first line', () => {
+        const cm = stubCm(['xhello']);
+        cm.getCursor = () => ({ line: 0, ch: 0 });
+        const targets = findTillTargets(cm, 'x', 'forward');
+        expect(targets.length).toBe(0);
+    });
+
+    it('returns ch-1 for non-zero column match', () => {
+        const cm = stubCm(['abxcd']);
+        cm.getCursor = () => ({ line: 0, ch: 0 });
+        const targets = findTillTargets(cm, 'x', 'forward');
+        expect(targets.length).toBe(1);
+        expect(targets[0]!.line).toBe(0);
+        expect(targets[0]!.ch).toBe(1);
     });
 });

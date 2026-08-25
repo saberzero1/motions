@@ -65,11 +65,23 @@ function findTargetsForFlash(
     return findCharTargets(cm, char, direction);
 }
 
-function applyTillOffset(targets: Target[], forward: boolean): Target[] {
+function applyTillOffset(
+    targets: Target[],
+    forward: boolean,
+    cm: CmAdapter,
+): Target[] {
     return targets
         .map((t) => {
             if (forward) {
-                return t.ch > 0 ? { line: t.line, ch: t.ch - 1 } : null;
+                if (t.ch > 0) return { line: t.line, ch: t.ch - 1 };
+                if (t.line > 0) {
+                    const prevLen = cm.getLine(t.line - 1)?.length ?? 0;
+                    return {
+                        line: t.line - 1,
+                        ch: Math.max(0, prevLen - 1),
+                    };
+                }
+                return null;
             }
             return { line: t.line, ch: t.ch + 1 };
         })
@@ -139,7 +151,7 @@ export function createFlashCharMotion(
             opts.multiLine(),
         );
         if (isTill) {
-            rawTargets = applyTillOffset(rawTargets, forward);
+            rawTargets = applyTillOffset(rawTargets, forward, cm);
         }
 
         const targets = filterVisibleTargets(cm, rawTargets);

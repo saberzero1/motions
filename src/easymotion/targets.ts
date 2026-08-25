@@ -194,7 +194,15 @@ export function findTillTargets(
                 return { line: t.line, ch: t.ch + 1 };
             }
             if (direction === 'forward') {
-                return t.ch > 0 ? { line: t.line, ch: t.ch - 1 } : null;
+                if (t.ch > 0) return { line: t.line, ch: t.ch - 1 };
+                if (t.line > 0) {
+                    const prevLineLen = cm.getLine(t.line - 1)?.length ?? 0;
+                    return {
+                        line: t.line - 1,
+                        ch: Math.max(0, prevLineLen - 1),
+                    };
+                }
+                return null;
             }
             return t;
         })
