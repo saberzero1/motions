@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **EasyMotion line motions (`j`/`k`) operate characterwise instead of linewise in operator-pending mode** — `d<leader><leader>j{label}` deleted from cursor column to the target position (characterwise) instead of deleting full lines (linewise). Native Vim `j`/`k` have `motionArgs: { linewise: true }`. Added `linewise: true` to both `easyMotionLine` and `easyMotionLineBack` definitions.
+    - Plugin: `src/easymotion/register.ts` (added `motionArgs: { linewise: true, forward: true/false }` to line motion entries)
+- **EasyMotion forward motions do not set `motionArgs.forward`** — the fork's `clipToLine` function (which clips trailing newline+whitespace for multi-line forward operations) never fired for EasyMotion motions. Added `forward: true` or `forward: false` to all 17 directional EasyMotion motion definitions.
+    - Plugin: `src/easymotion/register.ts` (added `forward` flag to all `EASYMOTION_DEFS` entries)
+- **Insert-mode surround macro recording** — `<C-g>s{char}` keys typed during insert mode were not logged to the macro key buffer. The fork's `handleKeyInsertMode` now calls `logKey` when a full insert-mode command is matched, recording the complete key sequence to the macro register.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`handleKeyInsertMode` — `logKey` on `match.type == 'full'`)
+
+### Tests
+
+- 3 new e2e tests in `test/specs/easymotion-comprehensive.e2e.ts`: `d+easymotion j` linewise delete, `y+easymotion j` linewise yank with register flag, `d+easymotion k` linewise delete upward
+- 1 new e2e test in `test/specs/surround.e2e.ts`: macro register contains `<C-g>s` keys after recording
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, and insert-mode surround macro recording as fixed
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated insert-mode surround macro recording section)
+
 ## [0.127.0] - 2026-08-25
 
 ### Added

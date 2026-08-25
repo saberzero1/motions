@@ -208,11 +208,11 @@ Settings: `set operatorshadowtimeout=1000` (vimrc), `vim.opt.operatorshadowtimeo
 
 The fork stores `_surroundInsertChar` and `_surroundInsertNewline` on `lastInsertModeChanges` during `surroundInsert`/`surroundInsertNewline`. During replay, `replaySurroundAwareInsert` (inside `repeatLastEdit`) strips the delimiter entry from `changes[0]`, inserts `pair.open`, replays typed text, then inserts `pair.close`. Wrapped in `cm.operation()` for undo atomicity. Counted dot-repeat (`2.`) repeats the text inside one set of delimiters. Surround metadata is cleared in `recordLastEdit` (new session), `onCursorActivity` (cursor movement), and `createInsertModeChanges` (default init) to prevent cross-session leakage. Text typed before `<C-G>s` in the same insert session is not preserved in dot-repeat, matching canonical behavior.
 
-## Insert-mode surround macro recording
+## ~~Insert-mode surround macro recording~~ (Fixed)
 
-**Status**: Known limitation.
+**Status**: Fixed. `<C-g>s{char}` keys typed during insert mode are now logged to the macro key buffer. The fork's `handleKeyInsertMode` now calls `logKey` when a full insert-mode command is matched (`match.type == 'full'`), recording the complete key sequence (e.g., `<C-g>s)`) to the macro register. Previously, `logKey` was only called from `handleKeyNonInsertMode`.
 
-`<C-g>s{char}` keys typed during insert mode are not logged to the macro key buffer. This is a pre-existing limitation of the fork's insert-mode macro key logging (`logKey` is only called from `handleKeyNonInsertMode`, not from `handleKeyInsertMode`).
+**Test coverage**: `test/specs/surround.e2e.ts` — "macro register should contain `<C-g>s` keys after recording".
 
 ## ~~Surround does nothing on doubled symmetric delimiters~~ (Fixed)
 
@@ -236,12 +236,12 @@ Visual mode (`v` + easymotion) also works — the fork updates the visual select
 - Char-based easymotions (`f`, `F`, `s`, `t`, `T`) in operator-pending mode require an intermediate search-character keypress which adds complexity to the async flow
 - ~~Capital letter (Shift+key) search not working~~ — Fixed. `waitForKey()` resolved on the `Shift` keydown event before the actual character arrived. The modifier-key guard (`e.key.length !== 1`) now suppresses modifier-only keys, matching `waitForLabel()`'s existing pattern. ([#84](https://github.com/saberzero1/motions/issues/84))
 - ~~Inclusive motions (`f`, `t`, `e`) exclude the target character in operator-pending mode~~ — Fixed. EasyMotion motions were registered with empty `motionArgs`, so the fork treated all motions as exclusive. Added per-motion `motionArgs: { inclusive: true }` matching native Vim semantics. ([#109](https://github.com/saberzero1/motions/issues/109))
-- EasyMotion line motions (`j`/`k`) operate characterwise instead of linewise in operator-pending mode. Native Vim `j`/`k` have `motionArgs: { linewise: true }`, but EasyMotion line motions do not set this flag. `d<leader><leader>j{label}` deletes from cursor to the beginning of the target line (characterwise), not two full lines (linewise)
-- EasyMotion forward motions do not set `motionArgs.forward`, so the fork's `clipToLine` function (which clips trailing newline+whitespace for multi-line forward operations) does not fire. For typical single-line EasyMotion jumps this has no effect; for cross-line `f`/`w`/`e` jumps, trailing whitespace may be included in the operation range where native Vim would clip it
+- ~~EasyMotion line motions (`j`/`k`) operate characterwise instead of linewise in operator-pending mode~~ — Fixed. Added `motionArgs: { linewise: true }` to both `easyMotionLine` and `easyMotionLineBack` definitions. `d<leader><leader>j{label}` now deletes full lines (linewise), matching native Vim `dj` semantics.
+- ~~EasyMotion forward motions do not set `motionArgs.forward`~~ — Fixed. All directional EasyMotion motions now set `motionArgs.forward` (`true` for forward, `false` for backward), enabling the fork's `clipToLine` function for forward cross-line operations.
 - `EXTRA_DEFS` bidirectional motions (`easyMotionBdWord`, `easyMotionBdEndWord`, etc.) are registered via `defineMotion` only, without `mapCommand`. They cannot receive `motionArgs` and therefore have no `inclusive` flag. When invoked in operator-pending mode via Lua `vim.keymap.set` remapping, they always behave exclusively
 - `easyMotionRepeat` uses `cm.setCursor()` directly instead of going through the codemirror-vim operator infrastructure. Repeating an EasyMotion motion works for normal-mode jumping but does not support operator-pending repeat (the `inclusive` flag from the original motion is not preserved)
 
-**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows and capital letter char search.
+**Test coverage**: `test/specs/easymotion-comprehensive.e2e.ts` validates d/c/y + easymotion flows, capital letter char search, linewise line motions (`d+j`, `y+j`, `d+k`), and inclusive/exclusive motion behavior.
 
 ## EasyMotion labels in Live Preview
 

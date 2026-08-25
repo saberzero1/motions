@@ -6,6 +6,7 @@ import {
     vimRawKeys,
     getCursorPos,
     getEditorValue,
+    getRegisterContent,
     sendVimEscape,
     ensureLivePreview,
     PAUSE,
@@ -820,6 +821,64 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
             await setupEditor('$hello$ $world$', { line: 0, ch: 9 });
             await vimKeys('d', 's', '$');
             expect(await getEditorValue()).toBe('$hello$ world');
+        });
+    });
+
+    describe('insert-mode surround macro recording', function () {
+        it('macro register should contain <C-g>s keys after recording', async function () {
+            await setupEditor('hello', { line: 0, ch: 0 });
+
+            const regContent = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const Vim = (
+                        window as unknown as {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleKey: (
+                                        cm: unknown,
+                                        key: string,
+                                    ) => boolean;
+                                    getRegisterController: () => {
+                                        registers: Record<
+                                            string,
+                                            { keyBuffer: string[] }
+                                        >;
+                                    };
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    if (!Vim) return { keys: [] as string[] };
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return { keys: [] as string[] };
+                    const cm = (
+                        view.editor as unknown as Record<string, unknown>
+                    ).cm as Record<string, unknown>;
+                    const adapter = cm?.cm;
+                    if (!adapter) return { keys: [] as string[] };
+
+                    Vim.handleKey(adapter, 'q');
+                    Vim.handleKey(adapter, 'a');
+                    Vim.handleKey(adapter, 'i');
+                    Vim.handleKey(adapter, '<C-g>');
+                    Vim.handleKey(adapter, 's');
+                    Vim.handleKey(adapter, ')');
+                    Vim.handleKey(adapter, '<Esc>');
+                    Vim.handleKey(adapter, 'q');
+
+                    const rc = Vim.getRegisterController();
+                    const reg = rc.registers['a'];
+                    return { keys: reg ? [...reg.keyBuffer] : [] };
+                },
+            );
+
+            const keys = (regContent as { keys: string[] }).keys;
+            const joined = keys.join('');
+            expect(joined).toContain('i');
+            expect(joined).toContain('<C-g>');
+            expect(joined).toContain('s');
         });
     });
 });

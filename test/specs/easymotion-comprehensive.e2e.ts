@@ -917,5 +917,63 @@ describe('EasyMotion comprehensive', function () {
             expect(state.insertMode).toBe(true);
             await sendVimEscape();
         });
+
+        it('d + easymotion j should delete linewise (not characterwise)', async function () {
+            // Issue: EasyMotion line motions (j/k) lack motionArgs.linewise,
+            // causing d+easymotion j to delete characterwise instead of linewise.
+            // Native vim `dj` deletes two full lines; easymotion j should match.
+            const result = await triggerEasyMotion(
+                'line one\nline two\nline three\nline four',
+                { line: 0, ch: 3 },
+                ['d', '\\', '\\', 'j'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(1);
+
+            // Select the first label (line two = line 1)
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(500);
+
+            const text = await getEditorValue();
+            // Linewise delete from line 0 to line 1 should remove both full lines,
+            // leaving only 'line three\nline four'
+            expect(text).toBe('line three\nline four');
+        });
+
+        it('y + easymotion j should yank linewise with register linewise flag', async function () {
+            // Issue: EasyMotion line motions lack motionArgs.linewise.
+            // Native vim `yj` yanks two full lines with linewise register flag.
+            const result = await triggerEasyMotion(
+                'line one\nline two\nline three\nline four',
+                { line: 0, ch: 3 },
+                ['y', '\\', '\\', 'j'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(500);
+
+            const reg = await getRegisterContent('"');
+            expect(reg).not.toBeNull();
+            // Linewise yank should include full lines with trailing newlines
+            expect(reg!.text).toBe('line one\nline two\n');
+            expect(reg!.linewise).toBe(true);
+        });
+
+        it('d + easymotion k should delete linewise upward', async function () {
+            const result = await triggerEasyMotion(
+                'aaa\nbbb\nccc\nddd\neee',
+                { line: 4, ch: 0 },
+                ['d', '\\', '\\', 'k'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+
+            await browser.keys([result.labels[1]!]);
+            await browser.pause(500);
+
+            const text = await getEditorValue();
+            expect(text).not.toContain('eee');
+            expect(text).not.toContain('ddd');
+            expect(text).toContain('aaa');
+        });
     });
 });
