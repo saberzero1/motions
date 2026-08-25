@@ -1,5 +1,5 @@
 export interface TableNavActions {
-    navigate(direction: 'h' | 'j' | 'k' | 'l'): void;
+    navigate(direction: 'h' | 'j' | 'k' | 'l', count?: number): void;
     enterCellEdit(
         mode: 'insert' | 'insert-append' | 'change' | 'substitute' | 'normal',
     ): void;
@@ -18,9 +18,18 @@ export interface TableNavActions {
 }
 
 let pendingD = false;
+let countBuffer = '';
 
 export function resetPendingState(): void {
     pendingD = false;
+    countBuffer = '';
+}
+
+function consumeCount(): number {
+    if (!countBuffer) return 1;
+    const n = parseInt(countBuffer, 10);
+    countBuffer = '';
+    return Number.isNaN(n) || n < 1 ? 1 : n;
 }
 
 export function createTableNavKeyHandler(
@@ -32,6 +41,7 @@ export function createTableNavKeyHandler(
 
         if (pendingD) {
             pendingD = false;
+            countBuffer = '';
             switch (e.key) {
                 case 'd':
                     actions.deleteRow();
@@ -46,22 +56,29 @@ export function createTableNavKeyHandler(
             }
         }
 
+        if (/^[1-9]$/.test(e.key) || (countBuffer && e.key === '0')) {
+            countBuffer += e.key;
+            return true;
+        }
+
+        const count = consumeCount();
+
         switch (e.key) {
             case 'h':
             case 'ArrowLeft':
-                actions.navigate('h');
+                actions.navigate('h', count);
                 return true;
             case 'j':
             case 'ArrowDown':
-                actions.navigate('j');
+                actions.navigate('j', count);
                 return true;
             case 'k':
             case 'ArrowUp':
-                actions.navigate('k');
+                actions.navigate('k', count);
                 return true;
             case 'l':
             case 'ArrowRight':
-                actions.navigate('l');
+                actions.navigate('l', count);
                 return true;
             case 'i':
                 actions.enterCellEdit('insert');

@@ -19,6 +19,8 @@ const TABLE_HEADER_ONLY = '| H1 | H2 |\n|----|----|\n';
 const TWO_TABLES =
     'Top\n\n| T1A | T1B |\n|-----|-----|\n| t1  | t1  |\n\nMiddle\n\n| T2A | T2B |\n|-----|-----|\n| t2  | t2  |';
 const TABLE_AT_END = 'Some text\n\n| A | B |\n|---|---|\n| 1 | 2 |';
+const TABLE_4ROW =
+    'Top\n\n| H1 | H2 |\n|-----|-----|\n| r1 | r1b |\n| r2 | r2b |\n| r3 | r3b |\n| r4 | r4b |\n\nBottom';
 
 const ENTRY_DEBOUNCE = 300;
 const CELL_EDIT_PAUSE = 800;
@@ -1117,5 +1119,43 @@ describe('Table-nav edge cases', function () {
         await browser.keys(['j']);
         await browser.pause(CELL_EDIT_PAUSE);
         expect(await hasTableNavHighlight()).toBe(true);
+    });
+
+    describe('count prefix navigation', function () {
+        it('3j should move down 3 rows in table-nav', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_4ROW);
+            await enterTableNav();
+            const initial = await getHighlightedCell();
+            expect(initial).not.toBeNull();
+            expect(initial!.row).toBe(0);
+
+            await browser.keys(['3']);
+            await browser.pause(200);
+            await browser.keys(['j']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            const after = await getHighlightedCell();
+            expect(after).not.toBeNull();
+            expect(after!.row).toBe(3);
+        });
+
+        it('2l should move right 2 columns in table-nav', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+            const initial = await getHighlightedCell();
+            expect(initial).not.toBeNull();
+            expect(initial!.col).toBe(0);
+
+            await browser.keys(['2']);
+            await browser.pause(50);
+            await browser.keys(['l']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            const after = await getHighlightedCell();
+            expect(after).not.toBeNull();
+            expect(after!.col).toBe(2);
+        });
     });
 });

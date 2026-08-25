@@ -101,11 +101,11 @@ A **table-nav overlay** activates when `enableTableNav` is on and `tableWidgetMo
 **Remaining limitations**:
 
 - **Cross-cell editing via Tab exits table-nav**: Pressing `Tab` in a cell editor navigates to the next cell via Obsidian's native handler, which bypasses the table-nav controller. `h`/`j`/`k`/`l` in normal mode within a cell editor correctly return to table-nav.
-- **Count prefixes not supported**: `3j` in table-nav mode performs a single crossing, not three.
+- ~~**Count prefixes not supported**~~: Fixed. `3j` in table-nav mode now moves 3 rows. Digit keys are accumulated as a count prefix and consumed by the next navigation key. Count also works for `h`/`l` column navigation (`2l` moves 2 columns right).
 - **Visual-cell selection not supported**: Selecting multiple cells via visual mode is not implemented.
 - **Dot-repeat for structural commands not supported**: Structural commands (`dd`, `o`, etc.) cannot be repeated with `.`.
 - **Cross-cell word motions**: `w`/`b`/`e` at cell boundaries do not jump to the next cell. Only `h`/`j`/`k`/`l` cross cell boundaries.
-- **Count prefix on cross-cell motions**: `3j` in a cell performs a single crossing, not three. The count is consumed but only one cell boundary is crossed per keystroke.
+- ~~**Count prefix on cross-cell motions**~~: Fixed. `3j` in a cell editor now crosses 3 cell boundaries. The `moveByLines` and `moveByDisplayLines` overrides loop `repeat` times through `getCellBelow`/`getCellAbove`, stopping at table boundaries.
 - **Visual block mode across cells**: `<C-v>` operates within a single cell editor only.
 - **Ex commands from cell editors**: `:w` saves the main document (expected). `:q` closes the main tab (documented as expected behavior for v1).
 - **Fine-grained undo**: Cell edits are atomic in the main document's undo stack. Individual keystrokes within a cell editor are not separately undoable in the main editor.

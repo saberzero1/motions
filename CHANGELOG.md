@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/easymotion/register.ts` (changed from `defineAction` to `defineMotion` + `mapCommand`, added `lastMotionArgs` storage)
 - **`:m`/`:t` newline handling at document boundaries** — moving or copying lines to position 0 (top of file) or after the last line produced concatenated text without newline separation. Fixed `getLineRangeText` to include the preceding newline separator when extracting the last line, and `createMoveCopyCommand` to insert with correct newline placement at boundaries.
     - Plugin: `src/workspace/commands.ts` (`getLineRangeText` boundary handling, `createMoveCopyCommand` insert text normalization)
+- **Table cell count prefixes** — `3j` in both table-nav overlay mode and cell editor mode performed a single cell crossing instead of three. Three changes: (1) table-nav keymap now accumulates digit keys as a count prefix and passes the count to `navigate()`. (2) `navigate()` loops `count` times for directional movement. (3) Cross-cell motion overrides (`moveByLines`, `moveByDisplayLines`) now loop `repeat` times through `getCellBelow`/`getCellAbove`, stopping at table boundaries.
+    - Plugin: `src/vim/table-nav-keymap.ts` (digit accumulation, `consumeCount()`, count parameter on navigation keys)
+    - Plugin: `src/vim/table-nav-controller.ts` (`navigate()` count parameter, loop)
+    - Plugin: `src/vim/table-cell-motions.ts` (`createMoveByLines`, `createMoveByDisplayLines` repeat loop)
 
 ### Tests
 
@@ -26,11 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 2 new e2e tests in `test/specs/easymotion-comprehensive.e2e.ts`: `d+easyMotionRepeat` operator-pending delete, `d+easyMotionRepeat` after line motion preserves linewise
 - 1 new e2e test in `test/specs/surround.e2e.ts`: macro register contains `<C-g>s` keys after recording
 - 6 crash-guard tests in `test/specs/vim-builtin/ex-move-copy-normal.e2e.ts` strengthened to behavioral assertions (`:m0`, `:m$`, `:m-2`, `:1,2m$`, `:t$`, `:1,2t$`) + 2 new tests (`:m3`, `:t0`)
+- 2 new e2e tests in `test/specs/table-nav-mode.e2e.ts`: `3j` moves 3 rows in table-nav, `2l` moves 2 columns
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, and `:m`/`:t` address parsing as fixed
+- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, `:m`/`:t` address parsing, and table count prefixes as fixed
 - `CONTRIBUTING.md`: updated `easymotion/register.ts` description
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated insert-mode surround macro recording section)
 

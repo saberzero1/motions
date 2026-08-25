@@ -127,10 +127,20 @@ function createMoveByLines(app: App): MotionFn {
             }
         }
 
-        const dest = forward ? te.getCellBelow(cell) : te.getCellAbove(cell);
+        const repeat = motionArgs.repeat ?? 1;
+        const getNext = forward
+            ? (c: TableCell) => te.getCellBelow(c)
+            : (c: TableCell) => te.getCellAbove(c);
+        let dest = getNext(cell);
 
         if (dest) {
-            scheduleCrossing(cm, () => te.setCellFocus(dest.row, dest.col));
+            for (let i = 1; i < repeat; i++) {
+                const next = getNext(dest);
+                if (!next) break;
+                dest = next;
+            }
+            const target = dest;
+            scheduleCrossing(cm, () => te.setCellFocus(target.row, target.col));
         } else {
             const placement = forward ? 'after' : 'before';
             scheduleCrossing(cm, () => te.placeCursorAround(placement));
@@ -189,7 +199,8 @@ function createMoveByCharacters(app: App): MotionFn {
         }
 
         const te = cell.table;
-        const dest = te.getNextCell(cell, forward ? 'end' : 'start');
+        const direction = forward ? 'end' : 'start';
+        const dest = te.getNextCell(cell, direction);
 
         if (dest) {
             scheduleCrossing(cm, () => te.setCellFocus(dest.row, dest.col));
@@ -247,11 +258,21 @@ function createMoveByDisplayLines(app: App): MotionFn {
 
         // Single-line cell — identical to moveByLines
         const forward = motionArgs.forward ?? true;
+        const repeat = motionArgs.repeat ?? 1;
         const te = cell.table;
-        const dest = forward ? te.getCellBelow(cell) : te.getCellAbove(cell);
+        const getNext = forward
+            ? (c: TableCell) => te.getCellBelow(c)
+            : (c: TableCell) => te.getCellAbove(c);
+        let dest = getNext(cell);
 
         if (dest) {
-            scheduleCrossing(cm, () => te.setCellFocus(dest.row, dest.col));
+            for (let i = 1; i < repeat; i++) {
+                const next = getNext(dest);
+                if (!next) break;
+                dest = next;
+            }
+            const target = dest;
+            scheduleCrossing(cm, () => te.setCellFocus(target.row, target.col));
         } else {
             const placement = forward ? 'after' : 'before';
             scheduleCrossing(cm, () => te.placeCursorAround(placement));

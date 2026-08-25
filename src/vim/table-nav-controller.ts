@@ -369,7 +369,7 @@ export class TableNavController implements PluginValue {
         return getTableEditorFromWidgetEl(widgetEl);
     }
 
-    navigate(direction: 'h' | 'j' | 'k' | 'l'): void {
+    navigate(direction: 'h' | 'j' | 'k' | 'l', count = 1): void {
         const s = this.session;
         if (s.state !== 'nav') return;
 
@@ -379,24 +379,26 @@ export class TableNavController implements PluginValue {
         const rowCount = table.rows?.length ?? 0;
         const colCount = table.rows?.[0]?.length ?? 0;
 
-        if (direction === 'h') {
-            if (s.activeCol <= 0) return;
-            s.activeCol--;
-        } else if (direction === 'l') {
-            if (s.activeCol >= colCount - 1) return;
-            s.activeCol++;
-        } else if (direction === 'j') {
-            if (s.activeRow >= rowCount - 1) {
-                this.exitTable('after');
-                return;
+        for (let i = 0; i < count; i++) {
+            if (direction === 'h') {
+                if (s.activeCol <= 0) break;
+                s.activeCol--;
+            } else if (direction === 'l') {
+                if (s.activeCol >= colCount - 1) break;
+                s.activeCol++;
+            } else if (direction === 'j') {
+                if (s.activeRow >= rowCount - 1) {
+                    this.exitTable('after');
+                    return;
+                }
+                s.activeRow++;
+            } else if (direction === 'k') {
+                if (s.activeRow <= 0) {
+                    this.exitTable('before');
+                    return;
+                }
+                s.activeRow--;
             }
-            s.activeRow++;
-        } else if (direction === 'k') {
-            if (s.activeRow <= 0) {
-                this.exitTable('before');
-                return;
-            }
-            s.activeRow--;
         }
 
         this.highlightCell();
@@ -848,7 +850,7 @@ export class TableNavController implements PluginValue {
         if (s.navScope || !this.app) return;
 
         const actions: TableNavActions = {
-            navigate: (d) => this.navigate(d),
+            navigate: (d, c) => this.navigate(d, c),
             enterCellEdit: (m) => {
                 resetPendingState();
                 this.enterCellEdit(m);
