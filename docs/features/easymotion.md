@@ -50,6 +50,12 @@ Motions follow native Vim inclusivity semantics — `f`, `t`, `e`, `s` are inclu
 
 Dot-repeat (`.`) works with operator-pending EasyMotion — the fork stores the resolved position and replays the operator to the same relative offset without re-showing the label overlay.
 
+## Repeat last motion
+
+![[keybindings#EasyMotion repeat]]
+
+`<leader><leader>.` repeats the most recent EasyMotion motion, showing a fresh label overlay. This works in operator-pending mode — for example, after using `<leader><leader>j` to jump to a line, `d<leader><leader>.` deletes to a new line target chosen from the same motion type. The repeat inherits the original motion's `motionArgs` (linewise, inclusive, forward), so operators behave correctly.
+
 ## Label positioning
 
 EasyMotion labels appear **after** the target character (one character to the right), matching the label positioning used by [[flash|Flash motions]]. This prevents labels from obscuring the character they target. Match highlights also render behind each label for visual consistency.

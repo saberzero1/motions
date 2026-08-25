@@ -93,6 +93,8 @@ When the cursor enters a table in Live Preview with `tablenav` enabled, a naviga
 | Key                             | Action                                       |
 | ------------------------------- | -------------------------------------------- |
 | `h` / `j` / `k` / `l`           | Navigate between cells                       |
+| `Tab` / `Shift+Tab`             | Navigate to next / previous cell             |
+| `{count}j`, `{count}l`, etc.    | Navigate with count prefix (e.g., `3j`)      |
 | `i` / `a` / `c` / `s` / `Enter` | Start editing the active cell                |
 | `Escape`                        | Exit table-nav and return to the main editor |
 | `o`                             | Add a row below                              |
@@ -106,6 +108,7 @@ When the cursor enters a table in Live Preview with `tablenav` enabled, a naviga
 | `I`                             | Add a column to the left                     |
 | `A`                             | Add a column to the right                    |
 | `=`                             | Realign the table                            |
+| `.`                             | Repeat the last structural command           |
 
 > [!info] Fork-only feature
 > Table-nav mode requires the bundled vim engine (fork mode). If you are using Obsidian's built-in vim mode, the plugin falls back to standard cell editing.
@@ -118,16 +121,22 @@ When the cursor enters a table in Live Preview with `tablenav` enabled, a naviga
 
 ### Native mode vim navigation
 
-In **native** mode, `h`/`j`/`k`/`l` in normal mode cross cell boundaries automatically:
+In **native** mode, motions in normal mode cross cell boundaries automatically:
 
-| Key             | In cell                | At boundary                                               |
-| --------------- | ---------------------- | --------------------------------------------------------- |
-| `l`             | Move right within cell | Move to next cell (same row)                              |
-| `h`             | Move left within cell  | Move to previous cell (same row)                          |
-| `j`             | Move down within cell  | Move to same column in next data row (skip separator)     |
-| `k`             | Move up within cell    | Move to same column in previous data row (skip separator) |
-| `j` at last row | —                      | Exit table downward                                       |
-| `k` at header   | —                      | Exit table upward                                         |
+| Key             | In cell                       | At boundary                                               |
+| --------------- | ----------------------------- | --------------------------------------------------------- |
+| `l`             | Move right within cell        | Move to next cell (same row)                              |
+| `h`             | Move left within cell         | Move to previous cell (same row)                          |
+| `j`             | Move down within cell         | Move to same column in next data row (skip separator)     |
+| `k`             | Move up within cell           | Move to same column in previous data row (skip separator) |
+| `w` / `W`       | Move to next word within cell | Move to next cell                                         |
+| `b` / `B`       | Move to previous word         | Move to previous cell                                     |
+| `e` / `E`       | Move to end of word           | Move to next cell                                         |
+| `ge` / `gE`     | Move to end of previous word  | Move to previous cell                                     |
+| `j` at last row | —                             | Exit table downward                                       |
+| `k` at header   | —                             | Exit table upward                                         |
+
+Count prefixes work for cross-cell `j`/`k` motions: `3j` crosses 3 rows.
 
 Operator-pending (`dj`, `yl`) and visual mode motions are confined to the current cell — they do not trigger cross-cell navigation.
 
@@ -135,9 +144,9 @@ Operator-pending (`dj`, `yl`) and visual mode motions are confined to the curren
 
 Cell editors are Obsidian's native editors with vim injected via `registerEditorExtension()`. Full Vim modality is supported: Normal, Insert, and Visual modes all work within a single table cell.
 
-- `Tab` / `Shift-Tab` navigate between cells (handled by the native table editor).
-- When table-nav is enabled: `Escape` in normal mode returns to table-nav. `h`/`j`/`k`/`l` in normal mode move the cursor within the cell; only when the cursor reaches a cell boundary do they exit to table-nav and navigate to the adjacent cell. This lets you use standard vim cursor movement inside cells after pressing Escape from insert mode.
-- When table-nav is disabled: `Escape` in normal mode stays in the cell; `h`/`j`/`k`/`l` cross cell boundaries directly via motion overrides.
+- `Tab` / `Shift+Tab` navigate between cells. When table-nav is enabled, Tab exits the cell editor and returns to table-nav on the next cell; Shift+Tab returns to table-nav on the previous cell.
+- When table-nav is enabled: `Escape` in normal mode returns to table-nav. `h`/`j`/`k`/`l` and `w`/`b`/`e` in normal mode move the cursor within the cell; only when the cursor reaches a cell boundary do they exit to table-nav and navigate to the adjacent cell. This lets you use standard vim cursor movement inside cells after pressing Escape from insert mode.
+- When table-nav is disabled: `Escape` in normal mode stays in the cell; `h`/`j`/`k`/`l` and `w`/`b`/`e` cross cell boundaries directly via motion overrides.
 - **Register sharing**: Vim registers are shared between cell editors and the main document.
 - **Which-key**: [[which-key|Which-key]] popups work in cell editors.
 

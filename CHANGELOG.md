@@ -55,8 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `CHANGELOG.md`
 - `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, `:m`/`:t` address parsing, table count prefixes, cross-cell word motions, table-nav dot-repeat, multi-line `t` column 0, EXTRA_DEFS motionArgs, and Tab/Shift+Tab in table-nav as fixed
-- `CONTRIBUTING.md`: updated `easymotion/register.ts` description
+- `CONTRIBUTING.md`: updated `easymotion/register.ts` and `table-cell-motions.ts` descriptions, `table-nav-keymap.ts` description
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated insert-mode surround macro recording section)
+- `docs/features/tables.md`: added count prefix, cross-cell word motions (`w`/`b`/`e`), dot-repeat (`.`), Tab/Shift+Tab to keybindings table and native mode navigation table
+- `docs/features/easymotion.md`: added "Repeat last motion" section with `<leader><leader>.` binding
+- `docs/reference/keybindings.md`: added "EasyMotion repeat" section with `<leader><leader>.` binding
 
 ## [0.127.0] - 2026-08-25
 

@@ -292,6 +292,14 @@ Jump to search matches forward or backward.
 | `<leader><leader>n` | Next search match forward  |
 | `<leader><leader>N` | Next search match backward |
 
+## EasyMotion repeat
+
+| Keybinding          | Description                   |
+| ------------------- | ----------------------------- |
+| `<leader><leader>.` | Repeat last EasyMotion motion |
+
+Repeats the most recent EasyMotion motion with a fresh label overlay. Works in operator-pending mode (`d<leader><leader>.` deletes to the repeated target) and inherits `motionArgs` from the original motion (linewise, inclusive, forward flags are preserved).
+
 ## Surround
 
 Add, change, or delete surrounding delimiters like brackets, quotes, and tags.
