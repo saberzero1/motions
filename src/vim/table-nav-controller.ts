@@ -39,6 +39,7 @@ import { getScrolloffMargin } from './scrolloff';
 import {
     createTableNavKeyHandler,
     resetPendingState,
+    clearLastStructuralAction,
     type TableNavActions,
 } from './table-nav-keymap';
 
@@ -853,6 +854,7 @@ export class TableNavController implements PluginValue {
             navigate: (d, c) => this.navigate(d, c),
             enterCellEdit: (m) => {
                 resetPendingState();
+                clearLastStructuralAction();
                 this.enterCellEdit(m);
             },
             exitTableNav: (p) => {

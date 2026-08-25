@@ -19,10 +19,15 @@ export interface TableNavActions {
 
 let pendingD = false;
 let countBuffer = '';
+let lastStructuralAction: (() => void) | null = null;
 
 export function resetPendingState(): void {
     pendingD = false;
     countBuffer = '';
+}
+
+export function clearLastStructuralAction(): void {
+    lastStructuralAction = null;
 }
 
 function consumeCount(): number {
@@ -44,9 +49,11 @@ export function createTableNavKeyHandler(
             countBuffer = '';
             switch (e.key) {
                 case 'd':
+                    lastStructuralAction = () => actions.deleteRow();
                     actions.deleteRow();
                     return true;
                 case 'c':
+                    lastStructuralAction = () => actions.deleteCol();
                     actions.deleteCol();
                     return true;
                 case 'Escape':
@@ -96,31 +103,46 @@ export function createTableNavKeyHandler(
                 actions.enterCellEdit('normal');
                 return true;
             case 'o':
+                lastStructuralAction = () => actions.addRowAfter();
                 actions.addRowAfter();
                 return true;
             case 'O':
+                lastStructuralAction = () => actions.addRowBefore();
                 actions.addRowBefore();
                 return true;
             case 'J':
+                lastStructuralAction = () => actions.moveRowDown();
                 actions.moveRowDown();
                 return true;
             case 'K':
+                lastStructuralAction = () => actions.moveRowUp();
                 actions.moveRowUp();
                 return true;
             case 'H':
+                lastStructuralAction = () => actions.moveColLeft();
                 actions.moveColLeft();
                 return true;
             case 'L':
+                lastStructuralAction = () => actions.moveColRight();
                 actions.moveColRight();
                 return true;
             case 'I':
+                lastStructuralAction = () => actions.addColBefore();
                 actions.addColBefore();
                 return true;
             case 'A':
+                lastStructuralAction = () => actions.addColAfter();
                 actions.addColAfter();
                 return true;
             case '=':
                 actions.realign();
+                return true;
+            case '.':
+                if (lastStructuralAction) {
+                    for (let i = 0; i < count; i++) {
+                        lastStructuralAction();
+                    }
+                }
                 return true;
             case 'd':
                 pendingD = true;

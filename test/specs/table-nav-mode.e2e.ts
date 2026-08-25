@@ -1158,4 +1158,73 @@ describe('Table-nav edge cases', function () {
             expect(after!.col).toBe(2);
         });
     });
+
+    describe('dot-repeat structural commands', function () {
+        it('. should repeat o (add row after)', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            await browser.keys(['o']);
+            await browser.pause(STRUCTURAL_PAUSE);
+
+            await browser.keys(['.']);
+            await browser.pause(STRUCTURAL_PAUSE);
+
+            const value = await getEditorValue();
+            const pipeLines = value
+                .split('\n')
+                .filter((line) => line.trimStart().startsWith('|'));
+            expect(pipeLines.length).toBe(6);
+        });
+
+        it('2. should repeat o twice', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            await browser.keys(['o']);
+            await browser.pause(STRUCTURAL_PAUSE);
+
+            await browser.keys(['2']);
+            await browser.pause(50);
+            await browser.keys(['.']);
+            await browser.pause(STRUCTURAL_PAUSE);
+
+            const value = await getEditorValue();
+            const pipeLines = value
+                .split('\n')
+                .filter((line) => line.trimStart().startsWith('|'));
+            expect(pipeLines.length).toBe(7);
+        });
+
+        it('. should not repeat after cell edit', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            await browser.keys(['o']);
+            await browser.pause(STRUCTURAL_PAUSE);
+
+            const afterO = await getEditorValue();
+            const afterOLines = afterO
+                .split('\n')
+                .filter((line) => line.trimStart().startsWith('|'));
+            expect(afterOLines.length).toBe(5);
+
+            await browser.keys(['i']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            await browser.keys(['Escape']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            await browser.keys(['.']);
+            await browser.pause(STRUCTURAL_PAUSE);
+
+            const afterDot = await getEditorValue();
+            const afterDotLines = afterDot
+                .split('\n')
+                .filter((line) => line.trimStart().startsWith('|'));
+            expect(afterDotLines.length).toBe(5);
+        });
+    });
 });
