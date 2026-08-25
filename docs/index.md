@@ -31,9 +31,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.126.0
+## What's new in 0.127.0
 
-- **`g_` motion** — new inclusive motion that moves to the last non-blank character of the current line (or count-1 lines forward), matching Neovim's `g_`. Works with operators (`dg_`, `cg_`, etc.).
-- **`g0` and `g^` display-line fixes** — `g0` now unconditionally moves to column 0 of the visual line, and `g^` unconditionally moves to the first non-blank character, matching Neovim behavior. Previously both used Home-key toggle logic. ([#141](https://github.com/saberzero1/motions/issues/141))
+- **Neovim default mappings** — comprehensive audit adding 20+ missing Neovim defaults: `gM` (middle of text line), `g&` (repeat substitute on all lines), `]<Space>`/`[<Space>` (add blank lines), `v_*`/`v_#` (visual search), `K` (keyword lookup adapted for Obsidian), `g<C-A>`/`g<C-X>` (sequential increment in visual mode), `<C-W>T`/`<C-W>^`/`<C-W>n`/`g<Tab>`/`]f`/`[f` workspace mappings
+- **`:center` / `:left` / `:right` ex commands** — text alignment commands with optional width argument
+- **`:retab` ex command** — replaces tab characters with spaces using the current `tabSize`
+- **`<C-U>` insert-mode fix** — now deletes back to the insert-start position instead of the start of line, matching Neovim
+- **Ex command parser fix** — `:d3`, `:m0`, and `:g/pattern/m0` style commands with trailing digits now parse correctly
 
 See the [[changelog|full changelog]] for details.

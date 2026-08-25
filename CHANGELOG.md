@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.127.0] - 2026-08-25
+
 ### Added
 
 - **Neovim default mapping audit** — comprehensive audit of all Neovim default mappings against the plugin implementation, with 20+ mappings added or fixed. Full results documented in `NEOVIM_MAPPING_DIFFERENCES.md`.
