@@ -1,7 +1,7 @@
 {
     "suite": "visual-block",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-24T22:33:44.650Z",
+    "recorded_at": "2026-08-25T09:10:32.622Z",
     "cases": [
         {
             "name": "CTRL-V block insert at left column",

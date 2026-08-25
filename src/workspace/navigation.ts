@@ -88,6 +88,37 @@ function createOpenUrlAction(app: App): ActionFn {
     };
 }
 
+function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
+    return () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return;
+        const cm = getCmAdapter(view);
+        if (!cm) return;
+        const cursor = cm.getCursor();
+        const lineText = cm.getLine(cursor.line);
+        const link = findLinkAtCursor(lineText, cursor.ch);
+        if (link) {
+            if (link.isExternal) {
+                window.open(link.target);
+            } else {
+                const sourcePath = view.file?.path ?? '';
+                app.workspace.trigger('hover-link', {
+                    event: new MouseEvent('mouseover'),
+                    source: 'preview',
+                    hoverParent: view,
+                    targetEl: view.contentEl,
+                    linktext: link.target,
+                    sourcePath,
+                });
+            }
+        } else {
+            if (cm.state.vim) {
+                charInfoFn(cm, {} as ActionArgs, cm.state.vim);
+            }
+        }
+    };
+}
+
 function createAlternateFileAction(
     app: App,
     getAlternateFilePath: () => string | null,
@@ -516,6 +547,7 @@ export function registerWorkspaceNavigation(
     const splitH = createCommandAction(app, 'workspace:split-horizontal');
     reg.defineAction('splitHorizontal', splitH);
     reg.mapCommand('<C-w>s', 'action', 'splitHorizontal', {});
+    reg.mapCommand('<C-w>n', 'action', 'splitHorizontal', {});
     exCommandFromAction(reg, 'splithorizontal', 'splith', splitH);
 
     const closeTabAction = createCommandAction(app, 'workspace:close');
@@ -775,6 +807,8 @@ export function registerWorkspaceNavigation(
     const openGotoFileAction = createCommandAction(app, 'switcher:open');
     reg.defineAction('openGotoFile', openGotoFileAction);
     reg.mapCommand('gf', 'action', 'openGotoFile', {});
+    reg.mapCommand(']f', 'action', 'openGotoFile', {});
+    reg.mapCommand('[f', 'action', 'openGotoFile', {});
     exCommandFromAction(reg, 'opengotofile', 'openg', openGotoFileAction);
 
     const contextActionsAction = createContextActionsAction(app);
@@ -810,6 +844,10 @@ export function registerWorkspaceNavigation(
     reg.mapCommand('ga', 'action', 'charInfo', {});
     exCommandFromAction(reg, 'charinfo', 'char', charInfoAction);
 
+    const keywordLookup = createKeywordLookupAction(app, charInfoAction);
+    reg.defineAction('keywordLookup', keywordLookup);
+    reg.mapCommand('K', 'action', 'keywordLookup', {});
+
     const cyclePaneNext = createCyclePaneAction(app, false);
     reg.defineAction('cyclePaneNext', cyclePaneNext);
     reg.mapCommand('<C-w>w', 'action', 'cyclePaneNext', {});
@@ -821,6 +859,7 @@ export function registerWorkspaceNavigation(
     const focusPrevPane = createFocusPreviousPaneAction(app, getPreviousLeafId);
     reg.defineAction('focusPreviousPane', focusPrevPane);
     reg.mapCommand('<C-w>p', 'action', 'focusPreviousPane', {});
+    reg.mapCommand('g<Tab>', 'action', 'focusPreviousPane', {});
 
     const utf8Info = createUtf8ByteInfoAction(app);
     reg.defineAction('utf8ByteInfo', utf8Info);
@@ -857,6 +896,72 @@ export function registerWorkspaceNavigation(
     const scrollHalfRight = createHorizontalScrollAction('half-right');
     reg.defineAction('scrollHalfRight', scrollHalfRight);
     reg.mapCommand('zL', 'action', 'scrollHalfRight', {});
+
+    // ]<Space> / [<Space> — add blank lines below/above (Neovim default)
+    const addBlankLineBelow: ActionFn = (
+        cm: CmAdapter,
+        actionArgs: ActionArgs,
+    ) => {
+        const repeat = actionArgs.repeat ?? 1;
+        const cursor = cm.getCursor();
+        const line = cursor.line;
+        const lineText = cm.getLine(line);
+        const endOfLine = lineText.length;
+        const blanks = '\n'.repeat(repeat);
+        cm.replaceRange(
+            blanks,
+            { line, ch: endOfLine },
+            { line, ch: endOfLine },
+        );
+        cm.setCursor(cursor.line, cursor.ch);
+    };
+    reg.defineAction('addBlankLineBelow', addBlankLineBelow);
+    reg.mapCommand(']<Space>', 'action', 'addBlankLineBelow', {
+        isEdit: true,
+    });
+
+    const addBlankLineAbove: ActionFn = (
+        cm: CmAdapter,
+        actionArgs: ActionArgs,
+    ) => {
+        const repeat = actionArgs.repeat ?? 1;
+        const cursor = cm.getCursor();
+        const line = cursor.line;
+        const blanks = '\n'.repeat(repeat);
+        cm.replaceRange(blanks, { line, ch: 0 }, { line, ch: 0 });
+        cm.setCursor(cursor.line + repeat, cursor.ch);
+    };
+    reg.defineAction('addBlankLineAbove', addBlankLineAbove);
+    reg.mapCommand('[<Space>', 'action', 'addBlankLineAbove', {
+        isEdit: true,
+    });
+
+    // <C-W>^ — split + alternate file (Neovim default)
+    const splitAlternateFile: ActionFn = () => {
+        executeCommand(app, 'workspace:split-horizontal');
+        const target = getAlternateFilePath();
+        if (!target) return;
+        const sourcePath = app.workspace.getActiveFile()?.path ?? '';
+        void app.workspace.openLinkText(target, sourcePath, false);
+    };
+    reg.defineAction('splitAlternateFile', splitAlternateFile);
+    reg.mapCommand('<C-w><C-^>', 'action', 'splitAlternateFile', {});
+
+    // <C-W>T — move current pane to a new tab
+    const moveToNewTab: ActionFn = () => {
+        const leaf = app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+        if (!leaf) return;
+        const file = app.workspace.getActiveFile();
+        if (!file) return;
+        const state = leaf.getViewState();
+        const newLeaf = app.workspace.getLeaf('tab');
+        void newLeaf.setViewState(state).then(() => {
+            app.workspace.setActiveLeaf(newLeaf, { focus: true });
+            leaf.detach();
+        });
+    };
+    reg.defineAction('moveToNewTab', moveToNewTab);
+    reg.mapCommand('<C-w>T', 'action', 'moveToNewTab', {});
 
     const noop: ActionFn = () => {};
     reg.defineAction('noop', noop);

@@ -327,6 +327,7 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `<C-w>h/j/k/l`      | Focus pane left/down/up/right                                 | Yes    |
 | `<C-w>v`            | Split vertical                                                | Yes    |
 | `<C-w>s`            | Split horizontal                                              | Yes    |
+| `<C-w>n`            | New horizontal split (alias for `<C-w>s`)                     | Yes    |
 | `<C-w>c` / `<C-w>q` | Close current tab                                             | Yes    |
 | `<C-w>o`            | Close all other tabs                                          | Yes    |
 | `gt` / `gT`         | Next/previous tab                                             | Yes    |
@@ -336,6 +337,9 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `<C-w>w`            | Cycle to next pane                                            | Yes    |
 | `<C-w>W`            | Cycle to previous pane                                        | Yes    |
 | `<C-w>p`            | Focus previously accessed pane                                | Yes    |
+| `<C-w>T`            | Move current pane to a new tab                                | —      |
+| `<C-w>^`            | Split + open alternate file                                   | —      |
+| `g<Tab>`            | Go to last accessed tab (alias for `<C-w>p`)                  | —      |
 | `Ctrl-o` / `Ctrl-i` | Jump backward / forward through jump history (supports count) | Yes    |
 | `<C-^>` / `<C-6>`   | Switch to alternate (previously edited) file                  | Yes    |
 | `<C-]>`             | Follow link under cursor (alias for `gd`)                     | —      |
@@ -345,7 +349,9 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `<C-w>gd`           | Open link under cursor in a horizontal split                  | —      |
 | `<C-w>gD`           | Open link under cursor in a vertical split                    | —      |
 | `gx`                | Open URL under cursor in browser                              | —      |
+| `K`                 | Keyword lookup — hover preview on links, char info on text    | —      |
 | `gf`                | Open file switcher (quick open)                               | —      |
+| `]f` / `[f`         | Alias for `gf` (go to file)                                   | —      |
 | `gO`                | Open document outline (searchable heading list)               | —      |
 | `g<C-g>`            | Show document statistics (words, lines, characters)           | —      |
 | `gp` / `gP`         | Paste and move cursor past pasted text                        | —      |
@@ -473,6 +479,10 @@ Execute commands via the `:` command line, grouped by function.
 | `:[range]t {addr}` / `:copy` / `:co` | Copy lines in range to target address   |
 | `:[range]norm {keys}` / `:normal`    | Execute normal-mode keys from ex line   |
 | `:[range]normal! {keys}`             | Execute normal-mode keys without remaps |
+| `:[range]ce [width]` / `:center`     | Center-align lines (default width: 80)  |
+| `:[range]le` / `:left`               | Left-align lines (trim leading spaces)  |
+| `:[range]ri [width]` / `:right`      | Right-align lines (default width: 80)   |
+| `:retab [tabstop]` / `:ret`          | Replace tabs with spaces                |
 
 ### Window and tab
 
@@ -611,6 +621,11 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 | `Q`        | Replay last recorded macro (`@@`)                      |
 | `@:`       | Repeat last ex command                                 |
 | `&`        | Repeat last `:s` substitution on current line          |
+| `g&`       | Repeat last `:s` substitution on all lines             |
+| `gM`       | Go to middle character of text line                    |
+| `K`        | Keyword lookup (hover preview on links, char info)     |
+| `]<Space>` | Add N blank lines below cursor                         |
+| `[<Space>` | Add N blank lines above cursor                         |
 | `ZZ`       | Write current file and close tab (`:wq`)               |
 | `ZQ`       | Close tab without saving (`:q`)                        |
 | `g;`       | Older change                                           |
@@ -624,6 +639,7 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 
 | Keybinding | Description                                                 |
 | ---------- | ----------------------------------------------------------- |
+| `<C-u>`    | Delete back to insert-start position (or line start)        |
 | `<C-a>`    | Re-insert previously inserted text                          |
 | `<C-e>`    | Copy character from line below (same column)                |
 | `<C-y>`    | Copy character from line above (same column)                |
@@ -631,10 +647,12 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 
 ## Increment/Decrement
 
-| Key     | Action    | Notes                                                                                               |
-| ------- | --------- | --------------------------------------------------------------------------------------------------- |
-| `<C-a>` | Increment | Enhanced: cycles hex colors, booleans, dates, CSS values, checkboxes. Requires `enableDial` setting |
-| `<C-x>` | Decrement | Same                                                                                                |
+| Key      | Action               | Notes                                                                                               |
+| -------- | -------------------- | --------------------------------------------------------------------------------------------------- |
+| `<C-a>`  | Increment            | Enhanced: cycles hex colors, booleans, dates, CSS values, checkboxes. Requires `enableDial` setting |
+| `<C-x>`  | Decrement            | Same                                                                                                |
+| `g<C-a>` | Sequential increment | Visual mode: increments numbers across selection (+1, +2, +3...). E.g., `0\n0\n0` → `1\n2\n3`       |
+| `g<C-x>` | Sequential decrement | Visual mode: decrements numbers across selection (-1, -2, -3...)                                    |
 
 ## Remapping
 

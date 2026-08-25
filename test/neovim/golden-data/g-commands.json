@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-24T22:33:44.598Z",
+    "recorded_at": "2026-08-25T09:10:32.574Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -485,6 +485,162 @@
                 "content": "short line one short line two",
                 "cursor": {
                     "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "g& should repeat last :s on all lines",
+            "initial": {
+                "content": "old\nold\nold",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":s/old/new/\ng&",
+            "result": {
+                "content": "new\nnew\nnew",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gM should move to middle of text line",
+            "initial": {
+                "content": "abcdefghij",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gM",
+            "result": {
+                "content": "abcdefghij",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gM on short line should move to middle character",
+            "initial": {
+                "content": "abc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gM",
+            "result": {
+                "content": "abc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gM on second line",
+            "initial": {
+                "content": "first\nabcdefghijklmnop",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "gM",
+            "result": {
+                "content": "first\nabcdefghijklmnop",
+                "cursor": {
+                    "line": 1,
+                    "ch": 8
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "]m should jump to next method start",
+            "initial": {
+                "content": "int main()\n{\n  return 0;\n}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "]m",
+            "result": {
+                "content": "int main()\n{\n  return 0;\n}",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[m should jump to previous method start",
+            "initial": {
+                "content": "int main()\n{\n  return 0;\n}",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                }
+            },
+            "keys": "[m",
+            "result": {
+                "content": "int main()\n{\n  return 0;\n}",
+                "cursor": {
+                    "line": 1,
                     "ch": 0
                 },
                 "mode": "normal",

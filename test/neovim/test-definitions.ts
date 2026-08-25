@@ -1594,6 +1594,42 @@ export const SUITES: SuiteDefinition[] = [
                 keys: 'gqj',
             },
             {
+                name: 'g& should repeat last :s on all lines',
+                content: 'old\nold\nold',
+                cursor: { line: 0, ch: 0 },
+                keys: ':s/old/new/\ng&',
+            },
+            {
+                name: 'gM should move to middle of text line',
+                content: 'abcdefghij',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gM',
+            },
+            {
+                name: 'gM on short line should move to middle character',
+                content: 'abc',
+                cursor: { line: 0, ch: 0 },
+                keys: 'gM',
+            },
+            {
+                name: 'gM on second line',
+                content: 'first\nabcdefghijklmnop',
+                cursor: { line: 1, ch: 0 },
+                keys: 'gM',
+            },
+            {
+                name: ']m should jump to next method start',
+                content: 'int main()\n{\n  return 0;\n}',
+                cursor: { line: 0, ch: 0 },
+                keys: ']m',
+            },
+            {
+                name: '[m should jump to previous method start',
+                content: 'int main()\n{\n  return 0;\n}',
+                cursor: { line: 3, ch: 0 },
+                keys: '[m',
+            },
+            {
                 name: 'gk over heading preserves column',
                 content:
                     'abcdefghijklmnopqrstuvwxyz\n### Heading Three\nabcdefghijklmnopqrstuvwxyz',

@@ -31,6 +31,26 @@ Copy the current line or a range to a target address. Address syntax matches
 Run a normal-mode key sequence from the ex command line. Use `:normal` to honor
 user mappings, or `:normal!` to ignore remaps. Example: `:g/TODO/normal A ✅`.
 
+### `:ce` / `:center` — center-align text
+
+Center-align lines within a specified width (default: `textwidth` or 80).
+`:center 60` centers at width 60. Applies to current line or a range
+(`:1,5center`).
+
+### `:le` / `:left` — left-align text
+
+Trim leading whitespace from lines. Applies to current line or a range.
+
+### `:ri` / `:right` — right-align text
+
+Right-align lines by padding with spaces to the specified width (default:
+`textwidth` or 80). `:right 60` right-aligns at width 60.
+
+### `:ret` / `:retab` — replace tabs with spaces
+
+Replace all tab characters with spaces using the current `tabSize` setting.
+`:retab 2` replaces tabs with 2 spaces regardless of the `tabSize` setting.
+
 ## Obsidian integration
 
 ### `:ob` / `:obcommand` — execute Obsidian commands

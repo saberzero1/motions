@@ -701,6 +701,36 @@ function createNormalCommand(): ExCommandFn {
     };
 }
 
+function createAlignCommand(align: 'left' | 'center' | 'right'): ExCommandFn {
+    return (cm, params) => {
+        const width = params.args?.[0]
+            ? parseInt(params.args[0], 10)
+            : (cm as unknown as { getOption: (k: string) => number }).getOption(
+                  'textwidth',
+              ) || 80;
+        const { startLine, endLine } = getLineRange(cm, params);
+        for (let i = startLine; i <= endLine; i++) {
+            const text = cm.getLine(i).trim();
+            let padded: string;
+            if (align === 'center') {
+                const pad = Math.max(0, Math.floor((width - text.length) / 2));
+                padded = ' '.repeat(pad) + text;
+            } else if (align === 'right') {
+                const pad = Math.max(0, width - text.length);
+                padded = ' '.repeat(pad) + text;
+            } else {
+                padded = text;
+            }
+            const lineLen = cm.getLine(i).length;
+            cm.replaceRange(
+                padded,
+                { line: i, ch: 0 },
+                { line: i, ch: lineLen },
+            );
+        }
+    };
+}
+
 export function registerExCommands(
     reg: VimRegistration,
     app: App,
@@ -870,6 +900,34 @@ export function registerExCommands(
     reg.defineEx('t', 't', copyCommand);
 
     reg.defineEx('normal', 'norm', createNormalCommand());
+
+    reg.defineEx('retab', 'ret', (cm, params) => {
+        const newTabstop = params.args?.[0]
+            ? parseInt(params.args[0], 10)
+            : undefined;
+        const tabSize =
+            newTabstop ||
+            (cm as unknown as { getOption: (k: string) => number }).getOption(
+                'tabSize',
+            ) ||
+            4;
+        const lineCount = cm.lineCount();
+        for (let i = 0; i < lineCount; i++) {
+            const line = cm.getLine(i);
+            const replaced = line.replace(/\t/g, ' '.repeat(tabSize));
+            if (replaced !== line) {
+                cm.replaceRange(
+                    replaced,
+                    { line: i, ch: 0 },
+                    { line: i, ch: line.length },
+                );
+            }
+        }
+    });
+
+    reg.defineEx('center', 'ce', createAlignCommand('center'));
+    reg.defineEx('left', 'le', createAlignCommand('left'));
+    reg.defineEx('right', 'ri', createAlignCommand('right'));
 
     reg.defineEx('buffer', 'b', createBufferCommand(app));
     reg.defineEx('bfirst', 'bf', createBufferFirstLast(app, true));

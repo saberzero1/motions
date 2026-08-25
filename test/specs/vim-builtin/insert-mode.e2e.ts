@@ -178,6 +178,42 @@ describe('Insert mode commands (Tier 1)', function () {
             await browser.pause(200);
             expect(await getEditorValue()).toBe('');
         });
+
+        it('CTRL-U should delete only inserted text, preserving prefix', async function () {
+            await setupEditor('prefix', { line: 0, ch: 6 });
+            await vimKeys('A');
+            await browser.keys([' ', 's', 'u', 'f', 'f', 'i', 'x']);
+            await browser.pause(100);
+
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm as Record<string, unknown> | undefined;
+                if (!adapter) return;
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return;
+                Vim.handleKey(adapter, '<C-u>');
+            });
+            await browser.pause(300);
+            await sendVimEscape();
+            await browser.pause(200);
+            expect(await getEditorValue()).toBe('prefix');
+        });
     });
 
     describe('CTRL-O (single normal command)', function () {

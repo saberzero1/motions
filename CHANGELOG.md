@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Neovim default mapping audit** — comprehensive audit of all Neovim default mappings against the plugin implementation, with 20+ mappings added or fixed. Full results documented in `NEOVIM_MAPPING_DIFFERENCES.md`.
+- **`gM` motion** — go to middle character of the text line (by character count). Distinct from `gm` (middle of screen line).
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `moveToMiddleOfTextLine` motion + defaultKeymap entry)
+- **`g&` action** — repeat last `:s` substitution on all lines in the buffer (equivalent to `:%s//~/&`).
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `repeatLastSubstituteGlobal` action + defaultKeymap entry)
+- **`]<Space>` / `[<Space>` actions** — add N blank lines below/above cursor. Supports count prefix (`3]<Space>` adds 3 blank lines). Neovim default since 0.10.
+    - Plugin: `src/workspace/navigation.ts` (`addBlankLineBelow`/`addBlankLineAbove` actions)
+- **`<C-W>T` action** — move current pane to a new tab. Transfers the leaf's view state to a new tab leaf, then detaches the old leaf.
+    - Plugin: `src/workspace/navigation.ts` (`moveToNewTab` action)
+- **`<C-W>^` action** — split current window and edit the alternate file. Combines horizontal split + alternate file navigation.
+    - Plugin: `src/workspace/navigation.ts` (`splitAlternateFile` action)
+- **`<C-W>n` mapping** — alias for `<C-W>s` (new horizontal split). Matches Neovim's `:new` equivalent.
+    - Plugin: `src/workspace/navigation.ts` (additional `mapCommand` call)
+- **`g<Tab>` mapping** — go to last accessed tab page. Aliases the existing `focusPreviousPane` action.
+    - Plugin: `src/workspace/navigation.ts` (additional `mapCommand` call)
+- **`]f` / `[f` mappings** — alias for `gf` (go to file). Matches Neovim bracket file navigation.
+    - Plugin: `src/workspace/navigation.ts` (additional `mapCommand` calls)
+- **`v_*` / `v_#` visual search** — in visual mode, `*` and `#` search for the selected text instead of the word under cursor. Neovim default since 0.10.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `selectedText` querySrc + visual-context keymap entries)
+- **`K` keyword lookup** — adapted for Obsidian: triggers hover page preview on wikilinks, opens external URLs in browser, falls back to `ga` character info on plain text.
+    - Plugin: `src/workspace/navigation.ts` (`createKeywordLookupAction`)
+- **`g<C-A>` / `g<C-X>` sequential increment** — in visual mode, increments/decrements numbers sequentially across selected lines (+1, +2, +3...). Useful for numbered lists: select `0\n0\n0`, press `g<C-A>` → `1\n2\n3`.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (sequential path in `incrementNumberToken`)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (`sequential` added to `ActionArgsPartial`)
+- **`:center` / `:left` / `:right` ex commands** — text alignment. `:ce` centers lines, `:le` left-aligns (trims), `:ri` right-aligns. Optional width argument (default: `textwidth` or 80).
+    - Plugin: `src/workspace/commands.ts` (`createAlignCommand`)
+- **`:retab` ex command** — replaces all tab characters with spaces using the current `tabSize` (or an explicit argument).
+    - Plugin: `src/workspace/commands.ts`
+- **`]m` / `[m` / `]M` / `[M` method navigation** — verified working via the fork's generic `moveToSymbol` motion with `method` mode. Golden test definitions added.
+
+### Fixed
+
+- **`<C-U>` in insert mode deleted to start of line instead of insert-start position** — fork now tracks `_insertStartPos` (the cursor position when insert mode was entered). `<C-U>` deletes back to that position instead of line start. Falls back to line start when cursor is already at or before the insert-start position. Position is preserved across `<C-O>` single normal commands, matching Neovim behavior.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `moveToInsertStart` motion, `_insertStartPos` tracking in `enterInsertMode`/`exitInsertMode`)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (`_insertStartPos` added to `vimState`)
+- **`:d3` / `:m0` style ex commands didn't work** — the ex command parser treated trailing digits as part of the command name (e.g., `d3` → unknown command `d3`). Fixed `matchCommand_` to have a fallback pass matching commands by progressively shorter alpha prefixes, and `_processCommand` to extract the trailing suffix into arguments. Also fixes `:g/pattern/m0` subcommand routing.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`matchCommand_` fallback pass, `_processCommand` arg extraction)
+- **`:$d` cursor position differed from Neovim** — after deleting lines with `:d`, cursor is now positioned at the first non-blank of `min(startLine, lastLine())`, matching Neovim.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`exCommands.delete` cursor positioning)
+- **`:move` / `:m` and `:copy` / `:co` / `:t` deviations were stale** — the plugin already implements these via `createMoveCopyCommand` in `src/workspace/commands.ts`, overriding the fork's cursor-only stub. Deviation entries in `deviations.ts` should be removed.
+
+### Tests
+
+- 3 new golden test definitions for `gM` (middle of text line, short line, second line)
+- 1 new golden test definition for `g&` (repeat substitute on all lines)
+- 2 new golden test definitions for `]m`/`[m` (method start forward/backward)
+- 3 new manual tests for `]<Space>`/`[<Space>` (add blank line below, above, with count)
+- 2 new manual tests for `gM` (middle of 10-char line, 3-char line)
+- 1 new manual test for `g&` (repeat substitute on all lines)
+- 2 new manual tests for `v_*`/`v_#` (visual search forward/backward)
+- 1 new manual test for `<C-U>` insert-start (preserves prefix text)
+- Golden data re-recorded for g-commands suite
+
+### Documentation
+
+- `CHANGELOG.md`
+- `NEOVIM_MAPPING_DIFFERENCES.md` (new file — full audit document, updated after each round)
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added `gM`, `g&`, `:d count`, `<C-U>` insert-start, `v_*`/`v_#`, ex command name parsing, `:$d` cursor, `g<C-A>`/`g<C-X>`)
+- `docs/reference/keybindings.md` (added new keybindings)
+- `docs/features/ex-commands.md` (added alignment and retab commands)
+- `docs/features/quality-of-life.md` (added new Neovim defaults)
+
 ## [0.126.0] - 2026-08-24
 
 ### Added

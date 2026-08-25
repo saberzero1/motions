@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     vimKeys,
+    getCursorPos,
     getEditorValue,
     sendVimEscape,
 } from '../../helpers';
@@ -452,6 +453,72 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                 },
             );
             expect(result).toHaveProperty('success', true);
+        });
+    });
+
+    describe('gM (go to middle of text line)', function () {
+        it('gM should move to middle character of line', async function () {
+            await setupEditor('abcdefghij', { line: 0, ch: 0 });
+            await vimKeys('g', 'M');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+            expect(pos.ch).toBe(5);
+        });
+
+        it('gM on 3-char line should move to ch 1', async function () {
+            await setupEditor('abc', { line: 0, ch: 0 });
+            await vimKeys('g', 'M');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+            expect(pos.ch).toBe(1);
+        });
+    });
+
+    describe('g& (repeat last :s on all lines)', function () {
+        it('g& should repeat last substitute on all lines', async function () {
+            await setupEditor('old\nold\nold', { line: 0, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys([':']);
+            await browser.pause(100);
+            await browser.keys([
+                's',
+                '/',
+                'o',
+                'l',
+                'd',
+                '/',
+                'n',
+                'e',
+                'w',
+                '/',
+            ]);
+            await browser.keys(['Enter']);
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('new\nold\nold');
+            await vimKeys('g', '&');
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('new\nnew\nnew');
+        });
+    });
+
+    describe(']<Space> / [<Space> (add blank lines)', function () {
+        it(']<Space> should add a blank line below', async function () {
+            await setupEditor('one\ntwo\nthree', { line: 1, ch: 0 });
+            await vimKeys(']', ' ');
+            expect(await getEditorValue()).toBe('one\ntwo\n\nthree');
+        });
+
+        it('[<Space> should add a blank line above', async function () {
+            await setupEditor('one\ntwo\nthree', { line: 1, ch: 0 });
+            await vimKeys('[', ' ');
+            expect(await getEditorValue()).toBe('one\n\ntwo\nthree');
+        });
+
+        it('3]<Space> should add 3 blank lines below', async function () {
+            await setupEditor('one\ntwo', { line: 0, ch: 0 });
+            await vimKeys('3', ']', ' ');
+            expect(await getEditorValue()).toBe('one\n\n\n\ntwo');
         });
     });
 });

@@ -37,7 +37,7 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **Enhanced increment/decrement** — dial.nvim-style `<C-a>`/`<C-x>` cycling hex colors, booleans, dates, CSS values, and checkboxes
 - **Custom text objects** — define delimiter-pair text objects from Lua via `vim.textobject.add()` + `vim.gen_spec.pair()`
 - **External grep** — optional ripgrep or GNU grep binary for native-speed vault search in the picker. Desktop only with in-memory fallback.
-- **Quality of life**: Neovim defaults (`Y`/`Q`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
+- **Quality of life**: Neovim defaults (`Y`/`Q`/`g&`/`gM`/`K`/`]<Space>`/`[<Space>`/`v_*`/`v_#`/`g<C-A>`/`g<C-X>`), yank highlight, smart list continuation, scrolloff, insert escape sequences, chord display, powerline status bar, and settings hot-reload
 
 ## Installation
 

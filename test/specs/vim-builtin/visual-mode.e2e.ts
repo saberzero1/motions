@@ -430,4 +430,28 @@ describe('Visual mode (Tier 1)', function () {
             });
         }
     });
+
+    describe('v_* / v_# (visual search from selection)', function () {
+        it('v_* should search for selected text forward', async function () {
+            await setupEditor('hello world hello again', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('v', 'e', '*');
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(12);
+        });
+
+        it('v_# should search for selected text backward', async function () {
+            await setupEditor('hello world hello again', {
+                line: 0,
+                ch: 12,
+            });
+            await vimKeys('v', 'e', '#');
+            await browser.pause(200);
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(0);
+        });
+    });
 });

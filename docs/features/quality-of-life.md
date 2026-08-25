@@ -72,8 +72,16 @@ Saved states can be navigated by count with `:earlier Nf` / `:later Nf` (where `
 
 ## Neovim defaults
 
-- `Y` yanks to end of line (`y$`) instead of the entire line — matching Neovim's default
-- `Q` replays the last recorded macro (`@@`) instead of entering Ex mode — matching Neovim's default
+- `Y` yanks to end of line (`y$`) instead of the entire line
+- `Q` replays the last recorded macro (`@@`) instead of entering Ex mode
+- `&` repeats last `:s` substitution on current line; `g&` repeats on all lines
+- `gM` goes to middle character of text line (distinct from `gm` — middle of screen line)
+- `K` triggers keyword lookup — hover page preview on wikilinks, opens external URLs, char info on plain text
+- `]<Space>` / `[<Space>` adds blank lines below/above cursor (supports count)
+- `v_*` / `v_#` searches for selected text from visual mode
+- `g<C-A>` / `g<C-X>` increments/decrements numbers sequentially in visual selection
+- `g<Tab>` goes to last accessed tab page
+- `<C-U>` in insert mode deletes to insert-start position (not line start)
 
 ## Vim mode status bar
 
