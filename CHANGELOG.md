@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.128.0] - 2026-08-25
+
 ### Fixed
 
 - **EasyMotion line motions (`j`/`k`) operate characterwise instead of linewise in operator-pending mode** — `d<leader><leader>j{label}` deleted from cursor column to the target position (characterwise) instead of deleting full lines (linewise). Native Vim `j`/`k` have `motionArgs: { linewise: true }`. Added `linewise: true` to both `easyMotionLine` and `easyMotionLineBack` definitions.
