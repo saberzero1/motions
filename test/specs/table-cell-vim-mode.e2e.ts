@@ -858,4 +858,65 @@ describe('Table mode combinations', function () {
 
         expect(hasVisibleWidget).toBe(false);
     });
+
+    it('native + enableTableNav=false: cross-cell w at end of cell should move to next cell', async function () {
+        this.timeout(20000);
+        await setPluginSettings({
+            enableTableNav: false,
+            tableWidgetMode: 'native',
+        });
+        await setupTableDoc();
+        await enterTableCell();
+
+        expect(await hasTableNavHighlight()).toBe(false);
+
+        const before = await getTableCellInfo();
+        expect(before.inTableCell).toBe(true);
+        expect(before.cellContent.trim()).toBe('AA');
+
+        await browser.keys(['$']);
+        await browser.pause(100);
+        await browser.keys(['w']);
+        await browser.waitUntil(
+            async () => {
+                const info = await getTableCellInfo();
+                return info.inTableCell && info.cellContent.trim() === 'BB';
+            },
+            { timeout: 3000, interval: 100 },
+        );
+    });
+
+    it('native + enableTableNav=false: cross-cell b at start of cell should move to previous cell', async function () {
+        this.timeout(20000);
+        await setPluginSettings({
+            enableTableNav: false,
+            tableWidgetMode: 'native',
+        });
+        await setupTableDoc();
+        await enterTableCell();
+
+        const before = await getTableCellInfo();
+        expect(before.inTableCell).toBe(true);
+        expect(before.cellContent.trim()).toBe('AA');
+
+        await browser.keys(['$']);
+        await browser.pause(100);
+        await browser.keys(['l']);
+        await browser.waitUntil(
+            async () => {
+                const info = await getTableCellInfo();
+                return info.inTableCell && info.cellContent.trim() === 'BB';
+            },
+            { timeout: 3000, interval: 100 },
+        );
+
+        await browser.keys(['b']);
+        await browser.waitUntil(
+            async () => {
+                const info = await getTableCellInfo();
+                return info.inTableCell && info.cellContent.trim() === 'AA';
+            },
+            { timeout: 3000, interval: 100 },
+        );
+    });
 });

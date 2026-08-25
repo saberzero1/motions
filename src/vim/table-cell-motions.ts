@@ -5,11 +5,10 @@ import { getActiveTableCell } from './native-table-adapter';
 import { setCursorSuppressedForView } from '@replit/codemirror-vim';
 import { signalCellCrossing } from './animated-cursor/manager';
 
-// Captured once on first applyTableCellMotions() call, never overwritten.
-// Survives teardown+reapply cycles (reloadFeatures).
 let origMoveByLines: MotionFn | null = null;
 let origMoveByCharacters: MotionFn | null = null;
 let origMoveByDisplayLines: MotionFn | null = null;
+let origMoveByWords: MotionFn | null = null;
 
 let crossingToken = 0;
 let pendingCrossingRaf = 0;
@@ -282,9 +281,95 @@ function createMoveByDisplayLines(app: App): MotionFn {
     };
 }
 
+function createMoveByWords(app: App): MotionFn {
+    return function tableMoveByWords(
+        this: unknown,
+        cm,
+        head,
+        motionArgs,
+        vim,
+        inputState,
+    ) {
+        const cell = getActiveTableCell(app);
+        if (!cell || !isCellValid(cell)) {
+            return origMoveByWords!.call(
+                this,
+                cm,
+                head,
+                motionArgs,
+                vim,
+                inputState,
+            );
+        }
+        if (!shouldCrossCellBoundary(vim, inputState)) {
+            return origMoveByWords!.call(
+                this,
+                cm,
+                head,
+                motionArgs,
+                vim,
+                inputState,
+            );
+        }
+
+        const result = origMoveByWords!.call(
+            this,
+            cm,
+            head,
+            motionArgs,
+            vim,
+            inputState,
+        );
+
+        const pos = result as { line: number; ch: number } | null | undefined;
+        if (!pos) {
+            const forward = motionArgs.forward ?? true;
+            const te = cell.table;
+            const dest = te.getNextCell(cell, forward ? 'end' : 'start');
+            if (dest) {
+                scheduleCrossing(cm, () => te.setCellFocus(dest.row, dest.col));
+            } else {
+                const placement = forward ? 'after' : 'before';
+                scheduleCrossing(cm, () => te.placeCursorAround(placement));
+            }
+            return head;
+        }
+
+        const forward = motionArgs.forward ?? true;
+        const lastLine = cm.lastLine();
+        const lastLineLen = cm.getLine(lastLine)?.length ?? 0;
+        const atEnd =
+            forward &&
+            pos.line === lastLine &&
+            pos.ch >= lastLineLen - 1 &&
+            head.line === lastLine &&
+            head.ch >= lastLineLen - 1;
+        const atStart =
+            !forward &&
+            pos.line === 0 &&
+            pos.ch === 0 &&
+            head.line === 0 &&
+            head.ch === 0;
+
+        if (atEnd || atStart) {
+            const te = cell.table;
+            const dest = te.getNextCell(cell, forward ? 'end' : 'start');
+            if (dest) {
+                scheduleCrossing(cm, () => te.setCellFocus(dest.row, dest.col));
+            } else {
+                const placement = forward ? 'after' : 'before';
+                scheduleCrossing(cm, () => te.placeCursorAround(placement));
+            }
+            return head;
+        }
+
+        return pos;
+    };
+}
+
 /**
- * Override moveByLines, moveByCharacters, and moveByDisplayLines to add
- * cross-cell navigation in native table cell editors.
+ * Override moveByLines, moveByCharacters, moveByDisplayLines, and moveByWords
+ * to add cross-cell navigation in native table cell editors.
  *
  * Returns a teardown function that restores the original motions.
  */
@@ -306,12 +391,19 @@ export function applyTableCellMotions(
             (vim.getMotion('moveByDisplayLines') as MotionFn) ?? null;
     }
 
+    if (!origMoveByWords) {
+        origMoveByWords = (vim.getMotion('moveByWords') as MotionFn) ?? null;
+    }
+
     if (!origMoveByLines || !origMoveByCharacters) return null;
 
     vim.defineMotion('moveByLines', createMoveByLines(app));
     vim.defineMotion('moveByCharacters', createMoveByCharacters(app));
     if (origMoveByDisplayLines !== null) {
         vim.defineMotion('moveByDisplayLines', createMoveByDisplayLines(app));
+    }
+    if (origMoveByWords !== null) {
+        vim.defineMotion('moveByWords', createMoveByWords(app));
     }
 
     return () => {
@@ -321,5 +413,7 @@ export function applyTableCellMotions(
             vim.defineMotion('moveByCharacters', origMoveByCharacters);
         if (origMoveByDisplayLines !== null)
             vim.defineMotion('moveByDisplayLines', origMoveByDisplayLines);
+        if (origMoveByWords !== null)
+            vim.defineMotion('moveByWords', origMoveByWords);
     };
 }

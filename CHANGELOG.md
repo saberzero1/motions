@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/table-nav-keymap.ts` (digit accumulation, `consumeCount()`, count parameter on navigation keys)
     - Plugin: `src/vim/table-nav-controller.ts` (`navigate()` count parameter, loop)
     - Plugin: `src/vim/table-cell-motions.ts` (`createMoveByLines`, `createMoveByDisplayLines` repeat loop)
+- **Cross-cell word motions** — `w`/`b`/`e`/`W`/`B`/`E`/`ge`/`gE` at cell boundaries did not jump to the adjacent cell. Added a `moveByWords` override in `table-cell-motions.ts` that detects when the word motion result is `null` or stuck at a boundary, and crosses to the next/previous cell via `getNextCell`.
+    - Plugin: `src/vim/table-cell-motions.ts` (new `createMoveByWords` override, registered in `applyTableCellMotions`)
 
 ### Tests
 
@@ -31,11 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1 new e2e test in `test/specs/surround.e2e.ts`: macro register contains `<C-g>s` keys after recording
 - 6 crash-guard tests in `test/specs/vim-builtin/ex-move-copy-normal.e2e.ts` strengthened to behavioral assertions (`:m0`, `:m$`, `:m-2`, `:1,2m$`, `:t$`, `:1,2t$`) + 2 new tests (`:m3`, `:t0`)
 - 2 new e2e tests in `test/specs/table-nav-mode.e2e.ts`: `3j` moves 3 rows in table-nav, `2l` moves 2 columns
+- 2 new e2e tests in `test/specs/table-cell-vim-mode.e2e.ts`: cross-cell `w` at end of cell, cross-cell `b` at start of cell
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, `:m`/`:t` address parsing, and table count prefixes as fixed
+- `KNOWN_LIMITATIONS.md`: marked EasyMotion linewise, forward motionArgs, insert-mode surround macro recording, `easyMotionRepeat` operator-pending, `:m`/`:t` address parsing, table count prefixes, and cross-cell word motions as fixed
 - `CONTRIBUTING.md`: updated `easymotion/register.ts` description
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (updated insert-mode surround macro recording section)
 
