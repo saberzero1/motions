@@ -149,7 +149,7 @@ On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On
 | Hint mode                   | toggle | `true`                       | —             | `vim.opt.hintmode`              | `set hintmode`              | Enable vimium-style link hints to click UI elements.          |
 | Hint mode label characters  | text   | `asdfghjkl`                  | —             | `vim.opt.hintlabels`            | `set hintlabels`            | Characters used for hint labels.                              |
 | Hint mode global hotkey     | hotkey | `(off)`                      | —             | —                               | —                           | Key combination to trigger hint mode from anywhere.           |
-| Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`         | `set labelfontsize`         | Font size for EasyMotion and hint mode labels.                |
+| Label font size             | slider | `14`                         | 10–20         | `vim.opt.labelfontsize`         | `set labelfontsize`         | Font size for EasyMotion, flash, and hint mode labels.        |
 | Scale labels to line height | toggle | `false`                      | —             | `vim.opt.labelmatchfontsize`    | `set labelmatchfontsize`    | Scale label font to match the target line's font size.        |
 | Harpoon file pinning        | toggle | `true`                       | —             | `vim.opt.harpoon`               | `set harpoon`               | Pin files to numbered slots for instant switching.            |
 

@@ -127,9 +127,17 @@
 .vim-motions-settings-content:not(.vim-motions-hint-mode-on)
     .vim-motions-when-hint-mode,
 .vim-motions-settings-content:not(.vim-motions-easymotion-on):not(
+        .vim-motions-flash-on
+    )
+    .vim-motions-when-easymotion-or-flash,
+.vim-motions-settings-content:not(.vim-motions-easymotion-on):not(
         .vim-motions-hint-mode-on
     )
     .vim-motions-when-easymotion-or-hint,
+.vim-motions-settings-content:not(.vim-motions-easymotion-on):not(
+        .vim-motions-hint-mode-on
+    ):not(.vim-motions-flash-on)
+    .vim-motions-when-easymotion-or-hint-or-flash,
 .vim-motions-settings-content:not(.vim-motions-snippets-on)
     .vim-motions-when-snippets,
 .vim-motions-settings-content:not(.vim-motions-oil-on) .vim-motions-when-oil,

@@ -1899,7 +1899,6 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'flashSearch',
                                     'Show labels on search matches after committing a / or ? search.',
                                 ),
-                                visible: () => this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'flashSearch',
@@ -1915,7 +1914,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'Dim non-target text when EasyMotion or flash is active.',
                                 ),
                                 visible: () =>
-                                    this.plugin.settings.enableEasyMotion,
+                                    this.plugin.settings.enableEasyMotion ||
+                                    this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'easyMotionDimming',
@@ -1928,10 +1928,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'EasyMotion label characters',
                                 desc: this.describeOverride(
                                     'easyMotionLabels',
-                                    'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
+                                    'Characters used for EasyMotion and flash labels (home-row recommended). More characters = shorter labels.',
                                 ),
                                 visible: () =>
-                                    this.plugin.settings.enableEasyMotion,
+                                    this.plugin.settings.enableEasyMotion ||
+                                    this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'text' as const,
                                     key: 'easyMotionLabels',
@@ -1989,12 +1990,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Label font size',
                                 desc: this.describeOverride(
                                     'labelFontSize',
-                                    'Font size for EasyMotion and hint mode labels (10–20px). ' +
+                                    'Font size for EasyMotion, flash, and hint mode labels (10–20px). ' +
                                         'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
                                 ),
                                 visible: () =>
                                     this.plugin.settings.enableEasyMotion ||
-                                    this.plugin.settings.enableHintMode,
+                                    this.plugin.settings.enableHintMode ||
+                                    this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'slider' as const,
                                     key: 'labelFontSize',
@@ -2013,7 +2015,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 ),
                                 visible: () =>
                                     this.plugin.settings.enableEasyMotion ||
-                                    this.plugin.settings.enableHintMode,
+                                    this.plugin.settings.enableHintMode ||
+                                    this.plugin.settings.enableFlash,
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'labelMatchFontSize',
@@ -4590,15 +4593,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        const easyMotionChildrenGate = containerEl.createDiv({
-            cls: 'vim-motions-when-easymotion',
+        const easyMotionOrFlashGate = containerEl.createDiv({
+            cls: 'vim-motions-when-easymotion-or-flash',
         });
-        new Setting(easyMotionChildrenGate)
+        new Setting(easyMotionOrFlashGate)
             .setName('EasyMotion dimming')
             .setDesc(
                 describeOverride(
                     'easyMotionDimming',
-                    'Dim non-target text when EasyMotion is active.',
+                    'Dim non-target text when EasyMotion or flash is active.',
                 ),
             )
             .addToggle((toggle) =>
@@ -4612,12 +4615,12 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(easyMotionChildrenGate)
+        new Setting(easyMotionOrFlashGate)
             .setName('EasyMotion label characters')
             .setDesc(
                 describeOverride(
                     'easyMotionLabels',
-                    'Characters used for EasyMotion labels (home-row recommended). More characters = shorter labels.',
+                    'Characters used for EasyMotion and flash labels (home-row recommended). More characters = shorter labels.',
                 ),
             )
             .addText((text) =>
@@ -4776,7 +4779,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 });
             });
 
-        new Setting(flashChildrenGate)
+        new Setting(containerEl)
             .setName('Flash search labels')
             .setDesc(
                 describeOverride(
@@ -4960,14 +4963,14 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         }
 
         const labelSettingsGate = containerEl.createDiv({
-            cls: 'vim-motions-when-easymotion-or-hint',
+            cls: 'vim-motions-when-easymotion-or-hint-or-flash',
         });
         new Setting(labelSettingsGate)
             .setName('Label font size')
             .setDesc(
                 describeOverride(
                     'labelFontSize',
-                    'Font size for EasyMotion and hint mode labels (10\u201320px). ' +
+                    'Font size for EasyMotion, flash, and hint mode labels (10\u201320px). ' +
                         'Override colors via CSS: --vim-motions-em-bg/fg (EasyMotion), --vim-motions-hint-bg/fg (hint mode).',
                 ),
             )
