@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.129.0] - 2026-08-26
+
 ### Fixed
 
 - **Shared label settings hidden when parent toggle is off** — Flash search labels, EasyMotion dimming, EasyMotion label characters, label font size, and scale-to-line-height were only visible when their original parent feature (EasyMotion or Flash f/F/t/T) was enabled, even though they are shared across multiple features (EasyMotion, Flash, Hint mode). Users who disabled Flash f/F/t/T could not configure or even see the Flash search labels toggle. Settings are now visible whenever any feature that uses them is enabled. ([#142](https://github.com/saberzero1/motions/issues/142))

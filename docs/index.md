@@ -31,10 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.128.0
+## What's new in 0.129.0
 
-- **[[easymotion|EasyMotion]] operator-pending fixes** — line motions (`j`/`k`) now operate linewise, forward motions set the `forward` flag for correct `clipToLine` behavior, bidirectional motions carry proper `inclusive`/`linewise` flags, and `easyMotionRepeat` (`<leader><leader>.`) works in operator-pending mode
-- **[[tables|Table editing]] improvements** — count prefixes work in table-nav and cell editor (`3j` moves 3 rows), cross-cell word motions (`w`/`b`/`e`/`W`/`B`/`E`/`ge`/`gE`), dot-repeat for structural commands (`.` repeats `o`, `dd`, `J`, `K`, etc.), and Tab/Shift+Tab navigation in both nav and cell edit modes
+- **Shared label settings visibility** — Flash search labels, [[easymotion|EasyMotion]] dimming, label characters, and font size settings are now visible whenever _any_ feature that uses them is enabled, not just the original parent toggle ([#142](https://github.com/saberzero1/motions/issues/142))
+- **[[easymotion|EasyMotion]] operator-pending fixes** — line motions (`j`/`k`) now operate linewise, forward motions set the `forward` flag correctly, bidirectional motions carry proper `inclusive`/`linewise` flags, and `easyMotionRepeat` (`<leader><leader>.`) works in operator-pending mode
+- **[[tables|Table editing]] improvements** — count prefixes work in table-nav and cell editor (`3j` moves 3 rows), cross-cell word motions (`w`/`b`/`e`/`W`/`B`/`E`/`ge`/`gE`), dot-repeat for structural commands (`.`), and Tab/Shift+Tab navigation in both nav and cell edit modes
 - **`:m`/`:t` boundary fix** — moving or copying lines to position 0 or after the last line no longer concatenates text without newline separation
 - **Multi-line `t` column 0 fix** — forward `t{char}` targets at column 0 now wrap to the previous line's last character instead of being excluded
 - **Insert-mode surround macro recording** — `<C-g>s{char}` keys are now logged to the macro register during recording
