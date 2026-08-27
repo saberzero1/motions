@@ -158,7 +158,7 @@ export function createTableNavKeyHandler(
                 actions.exitTableNav('before');
                 return true;
             default:
-                return true;
+                return false;
         }
     };
 }

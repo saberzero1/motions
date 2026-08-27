@@ -875,13 +875,12 @@ export class TableNavController implements PluginValue {
         };
         const handler = createTableNavKeyHandler(actions);
 
-        const scope = new Scope();
+        const scope = new Scope(this.app.scope);
         scope.register(null, null, (evt: KeyboardEvent) => {
             if (s.state !== 'nav') return undefined;
             const handled = handler(evt);
             if (handled) {
                 evt.preventDefault();
-                evt.stopImmediatePropagation();
             }
             return handled ? false : undefined;
         });
@@ -901,7 +900,7 @@ export class TableNavController implements PluginValue {
         const s = this.session;
         if (s.cellEditScope || !this.app) return;
 
-        const scope = new Scope();
+        const scope = new Scope(this.app.scope);
         scope.register(null, 'Escape', () => {
             if (s.state !== 'edit') return undefined;
             const editMode = getEditModeForView(this.view);

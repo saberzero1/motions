@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Obsidian hotkeys blocked inside table-nav mode** — Ctrl+P (command palette), Ctrl+S (save), and all other Obsidian hotkeys were silently swallowed while the table-nav overlay was active. Three compounding issues: (1) both the nav scope and cell-edit scope were created with `new Scope()` (no parent), disconnecting Obsidian's global hotkey bindings from the keymap resolution chain — unhandled keys were dropped instead of falling through to global hotkeys. (2) The keymap handler's `default` case returned `true`, telling the scope handler that every non-table-nav key was consumed. (3) The scope handler called `stopImmediatePropagation()` on all consumed keys, preventing other DOM listeners from seeing them. Fixed by parenting both scopes to `app.scope`, returning `false` for unhandled keys, and removing `stopImmediatePropagation`. ([#146](https://github.com/saberzero1/motions/issues/146))
+    - Plugin: `src/vim/table-nav-controller.ts` (parent both `Scope` instances to `this.app.scope`, remove `stopImmediatePropagation`)
+    - Plugin: `src/vim/table-nav-keymap.ts` (`default: return true` → `return false`)
 - **`Vc` (visual-line change) deletes extra line and mispositions cursor** — `V` to select a line then `c` deleted the trailing newline along with the line content, merging the current line with the next. When the next line was empty, it was deleted entirely. The cursor ended up on the start of the next line instead of staying on the current (now-empty) line. Root cause: the fork's `change` operator had no dedicated linewise visual branch — the catch-all visual path called `cm.replaceSelections([''])` with the CM6 selection that had been expanded to include the start of the next line (`head = Pos(line+1, 0)`), deleting through the newline. Fixed by adding a dedicated `args.linewise` branch that uses `cm.replaceRange('', from, to)` to clear line content only (col 0 to end of last selected line), preserving newlines, and positions the cursor at `(startLine, 0)`. ([#145](https://github.com/saberzero1/motions/issues/145))
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (`operators.change` — new `args.linewise` branch for visual-line change)
 - **`zz`, `zt`, `zb` scroll to wrong positions with visible frontmatter properties** — In Live Preview mode, when YAML frontmatter was rendered as a properties widget, `zt` scrolled to center instead of top, `zz` overshot center, and `zb` was similarly mispositioned. Root cause: the codemirror-vim fork's `charCoords(pos, 'local')` method used `contentDOM.getBoundingClientRect()` as the vertical coordinate reference, but `scrollTo()` operates on `scrollDOM`. In Obsidian, the `.metadata-container` widget sits inside `scrollDOM` but outside `contentDOM`, creating a vertical offset between the two reference points. Fixed by splitting the coordinate reference: `contentDOM` for horizontal (goalColumn tracking for `gj`/`gk`), `scrollDOM` + `scrollTop` for vertical (scroll-content-space matching CM5 `local` mode). The inverse method `coordsChar` was updated to match. ([#143](https://github.com/saberzero1/motions/issues/143))
@@ -16,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 1 new e2e test in `test/specs/table-nav-hotkeys.e2e.ts`: Ctrl+P opens command palette while in table-nav mode (#146)
 - 4 new e2e tests in `test/specs/vim-builtin/visual-mode.e2e.ts`: `Vc` on middle line, `Vc` before empty line preserves it, `Vc` on last line, `Vjc` multi-line change (#145)
 - 4 new Neovim golden test definitions in `test/neovim/test-definitions.ts` + golden data recorded in `test/neovim/golden-data/visual-mode.json` (#145)
 - 3 new e2e tests in `test/specs/vim-builtin/z-commands.e2e.ts`: `zz`/`zt`/`zb` ordering with frontmatter visible, `zt` vs `zz` separation with frontmatter, `zt` places cursor within top 15% of viewport with frontmatter (#143)
@@ -23,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: marked table-nav hotkey passthrough as fixed (#146)
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual-line change operator (`Vc`)" section, added "Scroll-space `charCoords` / `coordsChar`" section)
 
 ## [0.129.0] - 2026-08-26
