@@ -150,7 +150,9 @@ describe('Table-nav hotkey passthrough (#146)', function () {
 
         expect(await hasTableNavHighlight()).toBe(true);
 
-        await browser.keys([Key.Control, 'p']);
+        const { isMacOS } = await obsidianPage.getPlatform();
+        const mod = isMacOS ? Key.Command : Key.Control;
+        await browser.keys([mod, 'p']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         expect(await hasModalOpen()).toBe(true);

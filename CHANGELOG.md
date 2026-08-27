@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+
+- **Table-nav hotkey test uses platform-correct modifier on macOS** — the `Ctrl+P` regression test for table-nav hotkey passthrough (#146) hardcoded `Key.Control`, which does not open the command palette on macOS (where the shortcut is `Cmd+P`). The test now uses `obsidianPage.getPlatform()` and sends `Key.Command` on macOS, `Key.Control` elsewhere.
+    - Test: `test/specs/table-nav-hotkeys.e2e.ts` (platform-aware modifier key via `obsidianPage.getPlatform()`)
+
+### Documentation
+
+- `CHANGELOG.md`
+
 ## [0.130.0] - 2026-08-27
 
 ### Fixed
