@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`zz`, `zt`, `zb` scroll to wrong positions with visible frontmatter properties** — In Live Preview mode, when YAML frontmatter was rendered as a properties widget, `zt` scrolled to center instead of top, `zz` overshot center, and `zb` was similarly mispositioned. Root cause: the codemirror-vim fork's `charCoords(pos, 'local')` method used `contentDOM.getBoundingClientRect()` as the coordinate reference, but `scrollTo()` operates on `scrollDOM`. In Obsidian, the `.metadata-container` widget sits inside `scrollDOM` but outside `contentDOM`, creating a vertical offset between the two reference points. Fixed by changing the reference to `scrollDOM` and including `scrollTop` for scroll-independent coordinates. The inverse method `coordsChar` was updated to match. ([#143](https://github.com/saberzero1/motions/issues/143))
+    - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`charCoords` and `coordsChar` coordinate reference changed from `contentDOM` to `scrollDOM`)
+
+### Tests
+
+- 3 new e2e tests in `test/specs/vim-builtin/z-commands.e2e.ts`: `zz`/`zt`/`zb` ordering with frontmatter visible, `zt` vs `zz` separation with frontmatter, `zt` places cursor within top 15% of viewport with frontmatter (#143)
+
+### Documentation
+
+- `CHANGELOG.md`
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Scroll-space `charCoords` / `coordsChar`" section)
+
 ## [0.129.0] - 2026-08-26
 
 ### Fixed
