@@ -9,17 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`Vc` (visual-line change) deletes extra line and mispositions cursor** — `V` to select a line then `c` deleted the trailing newline along with the line content, merging the current line with the next. When the next line was empty, it was deleted entirely. The cursor ended up on the start of the next line instead of staying on the current (now-empty) line. Root cause: the fork's `change` operator had no dedicated linewise visual branch — the catch-all visual path called `cm.replaceSelections([''])` with the CM6 selection that had been expanded to include the start of the next line (`head = Pos(line+1, 0)`), deleting through the newline. Fixed by adding a dedicated `args.linewise` branch that uses `cm.replaceRange('', from, to)` to clear line content only (col 0 to end of last selected line), preserving newlines, and positions the cursor at `(startLine, 0)`. ([#145](https://github.com/saberzero1/motions/issues/145))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`operators.change` — new `args.linewise` branch for visual-line change)
 - **`zz`, `zt`, `zb` scroll to wrong positions with visible frontmatter properties** — In Live Preview mode, when YAML frontmatter was rendered as a properties widget, `zt` scrolled to center instead of top, `zz` overshot center, and `zb` was similarly mispositioned. Root cause: the codemirror-vim fork's `charCoords(pos, 'local')` method used `contentDOM.getBoundingClientRect()` as the coordinate reference, but `scrollTo()` operates on `scrollDOM`. In Obsidian, the `.metadata-container` widget sits inside `scrollDOM` but outside `contentDOM`, creating a vertical offset between the two reference points. Fixed by changing the reference to `scrollDOM` and including `scrollTop` for scroll-independent coordinates. The inverse method `coordsChar` was updated to match. ([#143](https://github.com/saberzero1/motions/issues/143))
     - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`charCoords` and `coordsChar` coordinate reference changed from `contentDOM` to `scrollDOM`)
 
 ### Tests
 
+- 4 new e2e tests in `test/specs/vim-builtin/visual-mode.e2e.ts`: `Vc` on middle line, `Vc` before empty line preserves it, `Vc` on last line, `Vjc` multi-line change (#145)
+- 4 new Neovim golden test definitions in `test/neovim/test-definitions.ts` + golden data recorded in `test/neovim/golden-data/visual-mode.json` (#145)
 - 3 new e2e tests in `test/specs/vim-builtin/z-commands.e2e.ts`: `zz`/`zt`/`zb` ordering with frontmatter visible, `zt` vs `zz` separation with frontmatter, `zt` places cursor within top 15% of viewport with frontmatter (#143)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Scroll-space `charCoords` / `coordsChar`" section)
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual-line change operator (`Vc`)" section, added "Scroll-space `charCoords` / `coordsChar`" section)
 
 ## [0.129.0] - 2026-08-26
 

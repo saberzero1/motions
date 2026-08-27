@@ -1,7 +1,7 @@
 {
     "suite": "visual-mode",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-25T09:10:32.554Z",
+    "recorded_at": "2026-08-27T09:55:31.296Z",
     "cases": [
         {
             "name": "v + e + d should delete selection",
@@ -1038,6 +1038,110 @@
                     "\"": {
                         "text": "two ",
                         "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + c should change entire line (#145)",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "VcX\u001b",
+            "result": {
+                "content": "line1\nX\nline3",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "line2\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + c on line before empty line should not delete empty line (#145)",
+            "initial": {
+                "content": "line1\nline2\n\nline4",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "VcX\u001b",
+            "result": {
+                "content": "line1\nX\n\nline4",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "line2\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + c on last line should change last line (#145)",
+            "initial": {
+                "content": "line1\nline2\nline3",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                }
+            },
+            "keys": "VcX\u001b",
+            "result": {
+                "content": "line1\nline2\nX",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "line3\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + j + c should change multiple lines (#145)",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "VjcX\u001b",
+            "result": {
+                "content": "one\nX\nfour",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

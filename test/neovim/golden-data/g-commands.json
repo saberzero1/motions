@@ -1,7 +1,7 @@
 {
     "suite": "g-commands",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-25T09:10:32.574Z",
+    "recorded_at": "2026-08-27T09:55:31.319Z",
     "cases": [
         {
             "name": "gj should move one display line down",
@@ -22,8 +22,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -48,8 +48,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -74,8 +74,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -100,8 +100,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -126,8 +126,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -152,8 +152,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -178,8 +178,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -204,8 +204,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -230,8 +230,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -256,8 +256,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -282,8 +282,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -308,8 +308,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -334,8 +334,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -360,8 +360,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -386,8 +386,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -412,8 +412,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -438,8 +438,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -464,8 +464,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -490,8 +490,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -516,8 +516,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -542,8 +542,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -568,8 +568,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -594,8 +594,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -620,8 +620,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -646,8 +646,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -672,8 +672,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -698,8 +698,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -724,8 +724,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

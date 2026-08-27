@@ -1,7 +1,7 @@
 {
     "suite": "bracket-commands",
     "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-25T09:10:32.577Z",
+    "recorded_at": "2026-08-27T09:55:31.322Z",
     "cases": [
         {
             "name": "[( should jump to previous unmatched (",
@@ -22,8 +22,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -48,8 +48,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -74,8 +74,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -100,8 +100,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "two ",
-                        "linewise": false
+                        "text": "two\nthree\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

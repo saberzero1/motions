@@ -1474,6 +1474,30 @@ export const SUITES: SuiteDefinition[] = [
                 keys: 'vawd',
                 useHandleKey: true,
             },
+            {
+                name: 'V + c should change entire line (#145)',
+                content: 'line1\nline2\nline3',
+                cursor: { line: 1, ch: 0 },
+                keys: 'VcX\x1b',
+            },
+            {
+                name: 'V + c on line before empty line should not delete empty line (#145)',
+                content: 'line1\nline2\n\nline4',
+                cursor: { line: 1, ch: 0 },
+                keys: 'VcX\x1b',
+            },
+            {
+                name: 'V + c on last line should change last line (#145)',
+                content: 'line1\nline2\nline3',
+                cursor: { line: 2, ch: 0 },
+                keys: 'VcX\x1b',
+            },
+            {
+                name: 'V + j + c should change multiple lines (#145)',
+                content: 'one\ntwo\nthree\nfour',
+                cursor: { line: 1, ch: 0 },
+                keys: 'VjcX\x1b',
+            },
         ],
     },
     {

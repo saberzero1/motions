@@ -102,6 +102,70 @@ describe('Visual mode (Tier 1)', function () {
             expect(await getEditorValue()).toBe('one\nfour');
         });
 
+        it('V + c should change entire line (#145)', async function () {
+            await setupEditor('line1\nline2\nline3', { line: 1, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['c']);
+            await browser.pause(30);
+            await browser.keys(['X']);
+            await browser.pause(30);
+            await sendVimEscape();
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('line1\nX\nline3');
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(1);
+        });
+
+        it('V + c on line before empty line should not delete empty line (#145)', async function () {
+            await setupEditor('line1\nline2\n\nline4', { line: 1, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['c']);
+            await browser.pause(30);
+            await browser.keys(['X']);
+            await browser.pause(30);
+            await sendVimEscape();
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('line1\nX\n\nline4');
+        });
+
+        it('V + c on last line should change last line (#145)', async function () {
+            await setupEditor('line1\nline2\nline3', { line: 2, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['c']);
+            await browser.pause(30);
+            await browser.keys(['X']);
+            await browser.pause(30);
+            await sendVimEscape();
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('line1\nline2\nX');
+        });
+
+        it('V + j + c should change multiple lines (#145)', async function () {
+            await setupEditor('one\ntwo\nthree\nfour', { line: 1, ch: 0 });
+            await sendVimEscape();
+            await browser.pause(50);
+            await browser.keys(['V']);
+            await browser.pause(30);
+            await browser.keys(['j']);
+            await browser.pause(30);
+            await browser.keys(['c']);
+            await browser.pause(30);
+            await browser.keys(['X']);
+            await browser.pause(30);
+            await sendVimEscape();
+            await browser.pause(300);
+            expect(await getEditorValue()).toBe('one\nX\nfour');
+        });
+
         it('V + J should join selected lines', async function () {
             await setupEditor('line one\nline two\nline three', {
                 line: 0,
