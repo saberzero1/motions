@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CHANGELOG.md`
 - `KNOWN_LIMITATIONS.md`: marked table-nav hotkey passthrough as fixed (#146)
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual-line change operator (`Vc`)" section, added "Scroll-space `charCoords` / `coordsChar`" section)
+- New `docs/guides/plugin-integration.md`: community plugin integration guide with Better Paste recipes and generic `vim.obsidian.run_command` pattern ([#147](https://github.com/saberzero1/motions/issues/147))
+- New `docs/guides/lua-recipes.md`: copy-paste Lua snippets for common workflows (display-line `j`/`k`, clipboard sync, leader bindings, auto-save, per-vault config, mobile overrides, picker, and more)
+- `docs/guides/index.md`: added links to both new guide pages
 
 ## [0.129.0] - 2026-08-26
 
