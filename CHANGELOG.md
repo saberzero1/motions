@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.130.0] - 2026-08-27
+
 ### Fixed
 
 - **Vimium-style hint labels overlap on adjacent elements** — When two clickable elements were positioned close together (e.g., a link and a collapse icon in the backlinks sidebar), their hint labels rendered at nearly identical coordinates, making the first label inaccessible behind the second. Root cause: `showHints()` positioned each label at the target element's top-left corner with no collision detection. Added `resolveOverlaps()` — an AABB collision detection pass (same pattern used by EasyMotion's overlay) that tracks placed label bounding boxes and nudges overlapping labels downward. ([#144](https://github.com/saberzero1/motions/issues/144))
