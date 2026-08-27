@@ -148,8 +148,10 @@ function getHintPosition(element: Element): { left: number; top: number } {
 }
 
 function showHints(targets: HintTarget[], container: HTMLElement): void {
+    const positions: { left: number; top: number }[] = [];
     for (const target of targets) {
         const pos = getHintPosition(target.element);
+        positions.push(pos);
         const el = container.createSpan({
             cls: 'vim-motions-hint-label',
             text: target.label,
@@ -157,6 +159,58 @@ function showHints(targets: HintTarget[], container: HTMLElement): void {
         el.style.setProperty('--vim-motions-hint-left', `${pos.left}px`);
         el.style.setProperty('--vim-motions-hint-top', `${pos.top}px`);
         target.labelEl = el;
+    }
+
+    resolveOverlaps(targets, positions);
+}
+
+export function resolveOverlaps(
+    targets: HintTarget[],
+    positions: { left: number; top: number }[],
+): void {
+    if (targets.length < 2) return;
+
+    const placed: {
+        left: number;
+        top: number;
+        right: number;
+        bottom: number;
+    }[] = [];
+
+    for (let i = 0; i < targets.length; i++) {
+        const target = targets[i];
+        const pos = positions[i];
+        if (!target || !pos) continue;
+
+        const el = target.labelEl;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+
+        let labelLeft = pos.left;
+        let labelTop = pos.top;
+        const width = rect.width;
+        const height = rect.height;
+        let right = labelLeft + width;
+        let bottom = labelTop + height;
+
+        for (const prev of placed) {
+            if (
+                labelLeft < prev.right &&
+                right > prev.left &&
+                labelTop < prev.bottom &&
+                bottom > prev.top
+            ) {
+                labelTop = prev.bottom;
+                bottom = labelTop + height;
+            }
+        }
+
+        placed.push({ left: labelLeft, top: labelTop, right, bottom });
+
+        if (labelTop !== pos.top || labelLeft !== pos.left) {
+            el.style.setProperty('--vim-motions-hint-left', `${labelLeft}px`);
+            el.style.setProperty('--vim-motions-hint-top', `${labelTop}px`);
+        }
     }
 }
 

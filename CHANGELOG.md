@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vimium-style hint labels overlap on adjacent elements** — When two clickable elements were positioned close together (e.g., a link and a collapse icon in the backlinks sidebar), their hint labels rendered at nearly identical coordinates, making the first label inaccessible behind the second. Root cause: `showHints()` positioned each label at the target element's top-left corner with no collision detection. Added `resolveOverlaps()` — an AABB collision detection pass (same pattern used by EasyMotion's overlay) that tracks placed label bounding boxes and nudges overlapping labels downward. ([#144](https://github.com/saberzero1/motions/issues/144))
+    - Plugin: `src/ui/hint-mode.ts` (added `resolveOverlaps()` function, called after initial label creation in `showHints()`)
 - **Obsidian hotkeys blocked inside table-nav mode** — Ctrl+P (command palette), Ctrl+S (save), and all other Obsidian hotkeys were silently swallowed while the table-nav overlay was active. Three compounding issues: (1) both the nav scope and cell-edit scope were created with `new Scope()` (no parent), disconnecting Obsidian's global hotkey bindings from the keymap resolution chain — unhandled keys were dropped instead of falling through to global hotkeys. (2) The keymap handler's `default` case returned `true`, telling the scope handler that every non-table-nav key was consumed. (3) The scope handler called `stopImmediatePropagation()` on all consumed keys, preventing other DOM listeners from seeing them. Fixed by parenting both scopes to `app.scope`, returning `false` for unhandled keys, and removing `stopImmediatePropagation`. ([#146](https://github.com/saberzero1/motions/issues/146))
     - Plugin: `src/vim/table-nav-controller.ts` (parent both `Scope` instances to `this.app.scope`, remove `stopImmediatePropagation`)
     - Plugin: `src/vim/table-nav-keymap.ts` (`default: return true` → `return false`)
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 2 new e2e tests in `test/specs/hint-mode.e2e.ts`: labels for adjacent elements at the same position should not overlap, labels for elements stacked vertically with small gap should not overlap (#144)
 - 1 new e2e test in `test/specs/table-nav-hotkeys.e2e.ts`: Ctrl+P opens command palette while in table-nav mode (#146)
 - 4 new e2e tests in `test/specs/vim-builtin/visual-mode.e2e.ts`: `Vc` on middle line, `Vc` before empty line preserves it, `Vc` on last line, `Vjc` multi-line change (#145)
 - 4 new Neovim golden test definitions in `test/neovim/test-definitions.ts` + golden data recorded in `test/neovim/golden-data/visual-mode.json` (#145)

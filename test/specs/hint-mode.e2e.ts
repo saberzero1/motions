@@ -1438,4 +1438,265 @@ describe('Hint mode', function () {
             expect(hasCommand).toBe(true);
         });
     });
+
+    describe('Overlap avoidance (#144)', function () {
+        afterEach(async function () {
+            await browser.executeObsidian(() => {
+                activeDocument.getElementById('hint-overlap-test')?.remove();
+            });
+        });
+
+        it('labels for adjacent elements at the same position should not overlap', async function () {
+            // Create two buttons at the exact same position to guarantee overlap
+            await browser.executeObsidian(() => {
+                const container = activeDocument.createElement('div');
+                container.id = 'hint-overlap-test';
+
+                const btn1 = activeDocument.createElement('button');
+                btn1.textContent = 'Overlap A';
+                btn1.style.position = 'fixed';
+                btn1.style.top = '200px';
+                btn1.style.left = '200px';
+                btn1.style.width = '80px';
+                btn1.style.height = '24px';
+                btn1.style.zIndex = '9999';
+                container.appendChild(btn1);
+
+                const btn2 = activeDocument.createElement('button');
+                btn2.textContent = 'Overlap B';
+                btn2.style.position = 'fixed';
+                btn2.style.top = '200px';
+                btn2.style.left = '200px';
+                btn2.style.width = '80px';
+                btn2.style.height = '24px';
+                btn2.style.zIndex = '9999';
+                container.appendChild(btn2);
+
+                activeDocument.body.appendChild(container);
+            });
+
+            const hintResult = await triggerHintMode();
+            expect(hintResult).toHaveProperty('hasOverlay', true);
+
+            // Find the labels corresponding to our two test buttons and
+            // check their bounding rectangles do not intersect
+            const overlapData = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return { error: 'no overlay' };
+
+                const testContainer =
+                    activeDocument.getElementById('hint-overlap-test');
+                if (!testContainer) return { error: 'no test container' };
+
+                const testButtons = Array.from(
+                    testContainer.querySelectorAll('button'),
+                );
+                if (testButtons.length < 2)
+                    return { error: 'not enough buttons' };
+
+                const allLabels = Array.from(
+                    overlay.querySelectorAll('.vim-motions-hint-label'),
+                ) as HTMLElement[];
+
+                // Find labels nearest to each test button
+                const labelsForButtons: HTMLElement[] = [];
+                for (const btn of testButtons) {
+                    const btnRect = btn.getBoundingClientRect();
+                    const btnLeft = btnRect.left + activeWindow.scrollX;
+                    const btnTop = btnRect.top + activeWindow.scrollY;
+                    let closest: HTMLElement | null = null;
+                    let closestDist = Infinity;
+                    for (const label of allLabels) {
+                        const left = Number.parseFloat(
+                            label.style.getPropertyValue(
+                                '--vim-motions-hint-left',
+                            ),
+                        );
+                        const top = Number.parseFloat(
+                            label.style.getPropertyValue(
+                                '--vim-motions-hint-top',
+                            ),
+                        );
+                        if (Number.isNaN(left) || Number.isNaN(top)) continue;
+                        const dist = Math.hypot(left - btnLeft, top - btnTop);
+                        if (
+                            dist < closestDist &&
+                            !labelsForButtons.includes(label)
+                        ) {
+                            closestDist = dist;
+                            closest = label;
+                        }
+                    }
+                    if (closest && closestDist < 100) {
+                        labelsForButtons.push(closest);
+                    }
+                }
+
+                const first = labelsForButtons[0];
+                const second = labelsForButtons[1];
+                if (!first || !second)
+                    return {
+                        error: `only found ${labelsForButtons.length} labels near test buttons`,
+                    };
+
+                const rect1 = first.getBoundingClientRect();
+                const rect2 = second.getBoundingClientRect();
+
+                const overlaps =
+                    rect1.left < rect2.right &&
+                    rect1.right > rect2.left &&
+                    rect1.top < rect2.bottom &&
+                    rect1.bottom > rect2.top;
+
+                return {
+                    overlaps,
+                    label1: {
+                        text: first.textContent,
+                        left: rect1.left,
+                        top: rect1.top,
+                        right: rect1.right,
+                        bottom: rect1.bottom,
+                    },
+                    label2: {
+                        text: second.textContent,
+                        left: rect2.left,
+                        top: rect2.top,
+                        right: rect2.right,
+                        bottom: rect2.bottom,
+                    },
+                };
+            })) as {
+                error?: string;
+                overlaps?: boolean;
+                label1?: {
+                    text: string;
+                    left: number;
+                    top: number;
+                    right: number;
+                    bottom: number;
+                };
+                label2?: {
+                    text: string;
+                    left: number;
+                    top: number;
+                    right: number;
+                    bottom: number;
+                };
+            };
+
+            expect(overlapData).not.toHaveProperty('error');
+            expect(overlapData.overlaps).toBe(false);
+        });
+
+        it('labels for elements stacked vertically with small gap should not overlap', async function () {
+            // Simulate the backlinks sidebar scenario: elements are close but not identical
+            await browser.executeObsidian(() => {
+                const container = activeDocument.createElement('div');
+                container.id = 'hint-overlap-test';
+
+                const btn1 = activeDocument.createElement('button');
+                btn1.textContent = 'Close A';
+                btn1.style.position = 'fixed';
+                btn1.style.top = '300px';
+                btn1.style.left = '400px';
+                btn1.style.width = '20px';
+                btn1.style.height = '20px';
+                btn1.style.zIndex = '9999';
+                container.appendChild(btn1);
+
+                // Second button right next to the first (2px gap)
+                const btn2 = activeDocument.createElement('button');
+                btn2.textContent = 'Close B';
+                btn2.style.position = 'fixed';
+                btn2.style.top = '300px';
+                btn2.style.left = '422px';
+                btn2.style.width = '20px';
+                btn2.style.height = '20px';
+                btn2.style.zIndex = '9999';
+                container.appendChild(btn2);
+
+                activeDocument.body.appendChild(container);
+            });
+
+            const hintResult = await triggerHintMode();
+            expect(hintResult).toHaveProperty('hasOverlay', true);
+
+            const overlapData = (await browser.executeObsidian(() => {
+                const overlay = activeDocument.querySelector(
+                    '.vim-motions-hint-overlay',
+                );
+                if (!overlay) return { error: 'no overlay' };
+
+                const testContainer =
+                    activeDocument.getElementById('hint-overlap-test');
+                if (!testContainer) return { error: 'no test container' };
+
+                const testButtons = Array.from(
+                    testContainer.querySelectorAll('button'),
+                );
+                if (testButtons.length < 2)
+                    return { error: 'not enough buttons' };
+
+                const allLabels = Array.from(
+                    overlay.querySelectorAll('.vim-motions-hint-label'),
+                ) as HTMLElement[];
+
+                const labelsForButtons: HTMLElement[] = [];
+                for (const btn of testButtons) {
+                    const btnRect = btn.getBoundingClientRect();
+                    const btnLeft = btnRect.left + activeWindow.scrollX;
+                    const btnTop = btnRect.top + activeWindow.scrollY;
+                    let closest: HTMLElement | null = null;
+                    let closestDist = Infinity;
+                    for (const label of allLabels) {
+                        const left = Number.parseFloat(
+                            label.style.getPropertyValue(
+                                '--vim-motions-hint-left',
+                            ),
+                        );
+                        const top = Number.parseFloat(
+                            label.style.getPropertyValue(
+                                '--vim-motions-hint-top',
+                            ),
+                        );
+                        if (Number.isNaN(left) || Number.isNaN(top)) continue;
+                        const dist = Math.hypot(left - btnLeft, top - btnTop);
+                        if (
+                            dist < closestDist &&
+                            !labelsForButtons.includes(label)
+                        ) {
+                            closestDist = dist;
+                            closest = label;
+                        }
+                    }
+                    if (closest && closestDist < 100) {
+                        labelsForButtons.push(closest);
+                    }
+                }
+
+                const first = labelsForButtons[0];
+                const second = labelsForButtons[1];
+                if (!first || !second)
+                    return {
+                        error: `only found ${labelsForButtons.length} labels near test buttons`,
+                    };
+
+                const rect1 = first.getBoundingClientRect();
+                const rect2 = second.getBoundingClientRect();
+
+                const overlaps =
+                    rect1.left < rect2.right &&
+                    rect1.right > rect2.left &&
+                    rect1.top < rect2.bottom &&
+                    rect1.bottom > rect2.top;
+
+                return { overlaps };
+            })) as { error?: string; overlaps?: boolean };
+
+            expect(overlapData).not.toHaveProperty('error');
+            expect(overlapData.overlaps).toBe(false);
+        });
+    });
 });
