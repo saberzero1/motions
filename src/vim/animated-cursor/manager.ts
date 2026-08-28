@@ -164,7 +164,6 @@ export class AnimatedCursorManager {
         let anyActive = false;
         try {
             this.sizeCanvas();
-            this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
             for (const c of this.controllers) {
                 c.tick(dt, this.ctx);

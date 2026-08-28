@@ -82,6 +82,8 @@ class CursorController implements Tickable {
     private active = false;
     private composing = false;
     private destroyed = false;
+    private targetRefreshed = false;
+    private lastBlinkAlpha = -1;
 
     private readonly isCell: boolean;
     private readonly isAboveCanvas: boolean;
@@ -230,6 +232,8 @@ class CursorController implements Tickable {
             this.needsPositionUpdate = true;
         }
 
+        this.targetRefreshed = false;
+
         const config = getAnimatedCursorConfig();
         if (!config.enabled) {
             this.active = false;
@@ -310,7 +314,16 @@ class CursorController implements Tickable {
             return;
         }
 
-        this.draw(ctx, config, useSmear, useSmooth);
+        const blinkAlpha = this.computeBlinkAlpha();
+        const blinkAlphaChanged = blinkAlpha !== this.lastBlinkAlpha;
+        this.lastBlinkAlpha = blinkAlpha;
+
+        if (!animating && !blinkAlphaChanged && !this.targetRefreshed) {
+            this.active = this.view.hasFocus;
+            return;
+        }
+
+        this.draw(ctx, config, useSmear, useSmooth, blinkAlpha);
         this.active = animating || this.view.hasFocus;
     }
 
@@ -433,6 +446,7 @@ class CursorController implements Tickable {
 
     private refreshTarget(): void {
         try {
+            this.targetRefreshed = true;
             const sel = this.view.state.selection.main;
             let pos = sel.head;
             if (sel.anchor < sel.head) {
@@ -472,8 +486,10 @@ class CursorController implements Tickable {
         _config: unknown,
         useSmear: boolean,
         useSmooth: boolean,
+        blinkAlpha: number
     ): void {
         const paneRect = this.view.scrollDOM.getBoundingClientRect();
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         ctx.save();
         ctx.beginPath();
         ctx.rect(paneRect.left, paneRect.top, paneRect.width, paneRect.height);
@@ -484,7 +500,6 @@ class CursorController implements Tickable {
             return;
         }
 
-        const blinkAlpha = this.computeBlinkAlpha();
         if (blinkAlpha <= 0) {
             ctx.restore();
             return;
