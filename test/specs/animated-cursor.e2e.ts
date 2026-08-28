@@ -107,6 +107,74 @@ describe('Animated cursor', function () {
         expect(pos.line).toBe(3);
     });
 
+    it('idle rAF rate is dramatically lower than continuous 60fps', async function () {
+        this.timeout(30000);
+        await setAnimatedCursor(true);
+        await setupEditor('line one\nline two\nline three\nline four', {
+            line: 0,
+            ch: 0,
+        });
+
+        // Move cursor to trigger animation, then wait for convergence
+        await vimKeys('j');
+        await browser.pause(2000);
+
+        // Install rAF counter
+        await browser.execute(() => {
+            (window as unknown as Record<string, number>).__rafCount = 0;
+            const orig = window.requestAnimationFrame.bind(window);
+            (
+                window as unknown as Record<
+                    string,
+                    typeof window.requestAnimationFrame
+                >
+            ).__origRaf = orig;
+            window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+                (window as unknown as Record<string, number>).__rafCount++;
+                return orig(cb);
+            };
+        });
+
+        // Measure idle rAF calls over 5 seconds
+        await browser.pause(5000);
+
+        const rafCount = (await browser.execute(() => {
+            const count = (window as unknown as Record<string, number>)
+                .__rafCount;
+            // Restore original rAF
+            const orig = (
+                window as unknown as Record<
+                    string,
+                    typeof window.requestAnimationFrame
+                >
+            ).__origRaf;
+            if (orig) window.requestAnimationFrame = orig;
+            return count;
+        })) as number;
+
+        // Before optimization: 60fps × 5sec = ~300 rAF callbacks from cursor alone
+        // (plus other Obsidian rAF users — typically 300-600 total)
+        // After optimization: warm gear fires ~1.67/sec × 5sec = ~8 callbacks
+        // from the cursor, plus whatever Obsidian's own rAF usage is.
+        //
+        // We can't isolate cursor-only rAF from Obsidian's baseline, but we CAN
+        // verify the total is far below what continuous 60fps cursor would add.
+        // A continuous cursor loop would add ~300 to whatever baseline exists.
+        //
+        // Conservative threshold: total rAF count should be under 150
+        // (Obsidian's own baseline + ~8 cursor blink wakes).
+        // Before our fix this would be baseline + ~300 = easily over 300.
+        console.log(`[GPU AUDIT] Idle rAF callbacks in 5 seconds: ${rafCount}`);
+        console.log(
+            `[GPU AUDIT] Effective rAF rate: ${(rafCount / 5).toFixed(1)}/sec`,
+        );
+        console.log(`[GPU AUDIT] Before optimization: 165/sec`);
+
+        // The key assertion: with optimization, total rAF should be well under
+        // what a single continuous 60fps loop would produce
+        expect(rafCount).toBeLessThan(150);
+    });
+
     it('settings sub-toggles work', async function () {
         await setPluginSettings({
             animatedCursor: true,

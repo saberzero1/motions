@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **Animated cursor idle rAF rate measurement** — empirical e2e test that instruments `requestAnimationFrame` to count callbacks over a 5-second idle window with animated cursor enabled. Verifies rAF rate is well below continuous 60fps (before: 825 rAF/5sec = 165/sec; after: 8 rAF/5sec = 1.6/sec — 99% reduction). (#148)
+    - Test: `test/specs/animated-cursor.e2e.ts` (rAF counter via patched `window.requestAnimationFrame`, 5-second idle measurement, threshold assertion < 150)
 - **Table-nav hotkey test uses platform-correct modifier on macOS** — the `Ctrl+P` regression test for table-nav hotkey passthrough (#146) hardcoded `Key.Control`, which does not open the command palette on macOS (where the shortcut is `Cmd+P`). The test now uses `obsidianPage.getPlatform()` and sends `Key.Command` on macOS, `Key.Control` elsewhere.
     - Test: `test/specs/table-nav-hotkeys.e2e.ts` (platform-aware modifier key via `obsidianPage.getPlatform()`)
 
