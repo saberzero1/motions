@@ -31,12 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.130.0
+## What's new in 0.131.0
 
-- **[[hint-mode|Hint label]] overlap fix** — hint labels on adjacent elements no longer stack on top of each other, making all targets accessible ([#144](https://github.com/saberzero1/motions/issues/144))
-- **[[tables|Table-nav]] hotkey passthrough** — Obsidian hotkeys (Ctrl+P, Ctrl+S, etc.) now work while the table-nav overlay is active instead of being silently swallowed ([#146](https://github.com/saberzero1/motions/issues/146))
-- **Visual-line change (`Vc`) fix** — `Vc` no longer deletes the trailing newline or mispositions the cursor; the line is cleared in place as expected ([#145](https://github.com/saberzero1/motions/issues/145))
-- **Scroll commands with frontmatter** — `zz`, `zt`, `zb` now scroll to correct positions when YAML frontmatter properties are visible in Live Preview ([#143](https://github.com/saberzero1/motions/issues/143))
-- **New guides** — [[plugin-integration|community plugin integration guide]] with Better Paste recipes, and a [[lua-recipes|Lua recipes]] page with copy-paste snippets for common workflows
+- **[[animated-cursor|Animated cursor]] GPU optimization** — idle GPU usage reduced by 97–99% via a 3-gear frame governor (hot/warm/stopped), dirty-rect canvas clearing, and per-frame allocation elimination. The rAF loop no longer runs continuously at 60–120fps when the editor is idle ([#148](https://github.com/saberzero1/motions/issues/148))
 
 See the [[changelog|full changelog]] for details.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.131.0] - 2026-08-28
+
 ### Fixed
 
 - **Animated cursor consumes 50-60% GPU at idle** — the rAF animation loop ran at 60-120fps continuously whenever the editor had focus because `this.active = animating || this.view.hasFocus` always evaluated to `true`. The heartbeat timer (500ms setInterval) also re-woke the loop every 500ms if it stopped, defeating any idle-stop optimization. Implemented a 4-phase GPU optimization: (1) fixed the `active` flag to only reflect animation state (`active = animating`), (2) added a 3-gear frame governor (hot: rAF at ~60fps during animation, warm: setTimeout 600ms for blink toggle, stopped: no scheduling), (3) dirty-rect canvas clearing (only clear the cursor's bounding box instead of full viewport), (4) per-frame overhead reduction (cached `getComputedStyle`, `matchMedia`, accent color; mutable physics quad to eliminate 20 object allocations per tick). Idle GPU usage drops from 60-120 rAF/sec to ~1.67 rAF/sec (97-99% reduction). ([#148](https://github.com/saberzero1/motions/issues/148))
