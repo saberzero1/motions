@@ -22,6 +22,25 @@ function quadFromRect(r: CursorRect): SmearQuad {
     };
 }
 
+function updateQuadFromRect(q: SmearQuad, r: CursorRect): void {
+    q.tl.x = r.left;
+    q.tl.y = r.top;
+    q.tl.vx = 0;
+    q.tl.vy = 0;
+    q.tr.x = r.left + r.width;
+    q.tr.y = r.top;
+    q.tr.vx = 0;
+    q.tr.vy = 0;
+    q.br.x = r.left + r.width;
+    q.br.y = r.top + r.height;
+    q.br.vx = 0;
+    q.br.vy = 0;
+    q.bl.x = r.left;
+    q.bl.y = r.top + r.height;
+    q.bl.vx = 0;
+    q.bl.vy = 0;
+}
+
 function copyQuad(q: SmearQuad): SmearQuad {
     return {
         tl: { ...q.tl },
@@ -40,14 +59,17 @@ function dist(ax: number, ay: number, bx: number, by: number): number {
 export class SmearPhysics {
     private quad: SmearQuad;
     private targetRect: CursorRect = { left: 0, top: 0, width: 0, height: 0 };
+    private targetQuad: SmearQuad;
     private initialized = false;
 
     constructor() {
         this.quad = quadFromRect(this.targetRect);
+        this.targetQuad = quadFromRect(this.targetRect);
     }
 
     setTarget(rect: CursorRect): void {
         this.targetRect = rect;
+        updateQuadFromRect(this.targetQuad, rect);
         if (!this.initialized) {
             this.quad = quadFromRect(rect);
             this.initialized = true;
@@ -61,7 +83,7 @@ export class SmearPhysics {
         damping: number,
         maxLength: number,
     ): void {
-        const target = quadFromRect(this.targetRect);
+        const target = this.targetQuad;
         const centerX =
             (target.tl.x + target.tr.x + target.br.x + target.bl.x) / 4;
         const centerY =
@@ -125,7 +147,7 @@ export class SmearPhysics {
 
     private clampLength(maxLength: number): void {
         // Find head corner (closest to target center)
-        const target = quadFromRect(this.targetRect);
+        const target = this.targetQuad;
         const cx = (target.tl.x + target.tr.x + target.br.x + target.bl.x) / 4;
         const cy = (target.tl.y + target.tr.y + target.br.y + target.bl.y) / 4;
 
@@ -163,7 +185,7 @@ export class SmearPhysics {
         const cx = (q.tl.x + q.tr.x + q.br.x + q.bl.x) / 4;
         const cy = (q.tl.y + q.tr.y + q.br.y + q.bl.y) / 4;
 
-        const target = quadFromRect(this.targetRect);
+        const target = this.targetQuad;
         const tcx = (target.tl.x + target.tr.x + target.br.x + target.bl.x) / 4;
         const tcy = (target.tl.y + target.tr.y + target.br.y + target.bl.y) / 4;
 
@@ -192,7 +214,7 @@ export class SmearPhysics {
     }
 
     isConverged(): boolean {
-        const target = quadFromRect(this.targetRect);
+        const target = this.targetQuad;
         for (const key of CORNER_KEYS) {
             const c = this.quad[key];
             const t = target[key];
@@ -222,6 +244,7 @@ export class SmearPhysics {
 
     reset(): void {
         this.targetRect = { left: 0, top: 0, width: 0, height: 0 };
+        updateQuadFromRect(this.targetQuad, this.targetRect);
         this.quad = quadFromRect(this.targetRect);
         this.initialized = false;
     }

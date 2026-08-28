@@ -107,14 +107,25 @@ When navigating between table cells via `h`/`j`/`k`/`l`, a token-based position 
 > [!bug] Known limitation
 > Cross-cell cursor movement snaps instead of animating. See [[known-limitations#Table cell vim modality]] for details.
 
+## Performance
+
+The animation loop uses a 3-gear frame governor to minimize GPU usage:
+
+- **Hot gear** (~60fps) — active during cursor movement and animation. Capped at ~62.5fps on 120Hz+ displays to avoid unnecessary work.
+- **Warm gear** (~1.67fps) — active when the cursor is idle but focused. A `setTimeout(600ms)` schedules a single frame for each blink toggle. The loop is fully stopped between frames.
+- **Stopped** — no scheduling when the editor is unfocused or `prefers-reduced-motion` is active.
+
+Canvas clearing uses dirty-rect tracking — only the cursor's bounding region (plus 2px anti-aliasing padding) is cleared each frame, not the full viewport.
+
 ## Cross-platform resilience
 
 The animation loop includes several defenses against platform-specific issues that can silently stop the cursor from rendering:
 
 - **Error recovery**: A single bad frame (e.g., a transient null during window refocus) cannot kill the animation loop. Errors are caught and logged; the loop continues on the next frame.
-- **Heartbeat safety net**: A background timer detects when the animation loop has stalled — due to OS-level throttling, Windows 11 Efficiency Mode, or sleep/wake transitions — and restarts it automatically.
+- **Heartbeat safety net**: During active animation (hot gear), a background timer detects when the rAF loop has stalled — due to OS-level throttling, Windows 11 Efficiency Mode, or sleep/wake transitions — and restarts it automatically. The heartbeat is inactive during warm and stopped gears.
 - **Visibility recovery**: When the Obsidian window is hidden and restored (e.g., switching apps), the animation loop re-wakes immediately.
 - **Fractional DPI handling**: Canvas dimensions are rounded to avoid sub-pixel artifacts on Windows displays with 125%/150% scaling.
+- **DPR change detection**: A `matchMedia` listener detects display DPI changes (e.g., moving between monitors) and resizes the canvas.
 
 ## Incompatibilities
 

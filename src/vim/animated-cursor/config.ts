@@ -62,3 +62,25 @@ const MODE_TO_SHAPE_KEY: Record<string, string> = {
     replace: 'replace',
     'operator-pending': 'operatorPending',
 };
+
+// Cached prefers-reduced-motion media query — avoids per-frame
+// window.matchMedia() evaluation in the animation tick loop.
+const reducedMotionQuery =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)')
+        : null;
+let reducedMotionCached = reducedMotionQuery?.matches ?? false;
+
+function onReducedMotionChange(e: MediaQueryListEvent): void {
+    reducedMotionCached = e.matches;
+}
+
+reducedMotionQuery?.addEventListener('change', onReducedMotionChange);
+
+export function isReducedMotion(): boolean {
+    return reducedMotionCached;
+}
+
+export function cleanupReducedMotionListener(): void {
+    reducedMotionQuery?.removeEventListener('change', onReducedMotionChange);
+}

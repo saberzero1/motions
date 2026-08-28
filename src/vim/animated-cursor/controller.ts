@@ -12,13 +12,15 @@ import {
     getAnimatedCursorManager,
     getPendingCrossingToken,
     clearPendingCrossingToken,
-    type Tickable,
+    isThemeDirty,
+    clearThemeDirty,
 } from './manager';
-import type { CursorRect, CursorShape } from './types';
+import type { CursorRect, CursorShape, Tickable } from './types';
 import {
     getAnimatedCursorConfig,
     getCursorShapeForMode,
     isAnimatedCursorPausedForView,
+    isReducedMotion,
 } from './config';
 import { getCmAdapterFromEditorView } from '../vim-api';
 import {
@@ -27,7 +29,7 @@ import {
 } from '@replit/codemirror-vim';
 import { invariant, devAssert } from '../../util/invariant';
 
-const STALE_THRESHOLD_MS = 100;
+const STALE_THRESHOLD_MS = 500;
 
 function coordsToRect(view: EditorView, pos: number): CursorRect | null {
     const coords = view.coordsAtPos(pos, 1);
@@ -82,6 +84,8 @@ class CursorController implements Tickable {
     private active = false;
     private composing = false;
     private destroyed = false;
+    private cachedBlockChar: BlockCharInfo | undefined;
+    private cachedBlockCharPos: number = -1;
 
     private readonly isCell: boolean;
     private readonly isAboveCanvas: boolean;
@@ -195,10 +199,6 @@ class CursorController implements Tickable {
         this.cachedScrollTop = scrollTop;
         this.cachedScrollLeft = scrollLeft;
 
-        if (vu.selectionSet) {
-            this.accentColor = resolveAccentColor(this.view.dom);
-        }
-
         if (vu.focusChanged) {
             this.active = this.view.hasFocus;
             if (this.view.hasFocus) {
@@ -236,6 +236,12 @@ class CursorController implements Tickable {
             return;
         }
 
+        if (isThemeDirty()) {
+            this.accentColor = resolveAccentColor(this.view.dom);
+            this.cachedBlockCharPos = -1;
+            clearThemeDirty();
+        }
+
         if (this.needsPositionUpdate) {
             this.refreshTarget();
             this.needsPositionUpdate = false;
@@ -244,6 +250,7 @@ class CursorController implements Tickable {
         if (!this.cachedRect) {
             this.refreshTarget();
             if (!this.cachedRect) {
+                this.active = false;
                 return;
             }
         }
@@ -267,9 +274,7 @@ class CursorController implements Tickable {
             this.smear.snap();
         }
 
-        const reducedMotion = window.matchMedia(
-            '(prefers-reduced-motion: reduce)',
-        ).matches;
+        const reducedMotion = isReducedMotion();
 
         const useSmear = config.smearTrail && !reducedMotion;
         const useSmooth = config.smoothCursor && !reducedMotion && !useSmear;
@@ -311,11 +316,24 @@ class CursorController implements Tickable {
         }
 
         this.draw(ctx, config, useSmear, useSmooth);
-        this.active = animating || this.view.hasFocus;
+        this.active = animating;
     }
 
     isActive(): boolean {
         return this.active;
+    }
+
+    didDraw(): boolean {
+        return true;
+    }
+
+    needsBlink(): boolean {
+        return (
+            this.view.hasFocus &&
+            !isReducedMotion() &&
+            !this.composing &&
+            !this.destroyed
+        );
     }
 
     private shapeAdjustedRect(
@@ -357,6 +375,9 @@ class CursorController implements Tickable {
     }
 
     private resolveBlockChar(pos: number): BlockCharInfo | undefined {
+        if (pos === this.cachedBlockCharPos && !isThemeDirty()) {
+            return this.cachedBlockChar;
+        }
         try {
             const doc = this.view.state.doc;
             if (pos >= doc.length) return undefined;
@@ -401,7 +422,10 @@ class CursorController implements Tickable {
                 // Falls back to coordsAtPos rect via undefined fields
             }
 
-            return { char, font, textColor, charTop, charHeight };
+            const result = { char, font, textColor, charTop, charHeight };
+            this.cachedBlockChar = result;
+            this.cachedBlockCharPos = pos;
+            return result;
         } catch {
             return undefined;
         }
@@ -486,6 +510,12 @@ class CursorController implements Tickable {
 
         const blinkAlpha = this.computeBlinkAlpha();
         if (blinkAlpha <= 0) {
+            getAnimatedCursorManager().markDirty(
+                this.cachedRect.left,
+                this.cachedRect.top,
+                this.cachedRect.width,
+                this.cachedRect.height,
+            );
             ctx.restore();
             return;
         }
@@ -494,15 +524,22 @@ class CursorController implements Tickable {
         const charInfo =
             this.currentShape === 'block' ? this.blockChar : undefined;
 
+        const mgr = getAnimatedCursorManager();
         if (useSmear) {
+            const quad = this.smear.getQuad();
             drawSmearCursor(
                 ctx,
-                this.smear.getQuad(),
+                quad,
                 this.cachedRect,
                 this.currentShape,
                 this.accentColor,
                 charInfo,
             );
+            const minX = Math.min(quad.tl.x, quad.tr.x, quad.br.x, quad.bl.x);
+            const minY = Math.min(quad.tl.y, quad.tr.y, quad.br.y, quad.bl.y);
+            const maxX = Math.max(quad.tl.x, quad.tr.x, quad.br.x, quad.bl.x);
+            const maxY = Math.max(quad.tl.y, quad.tr.y, quad.br.y, quad.bl.y);
+            mgr.markDirty(minX, minY, maxX - minX, maxY - minY);
         } else {
             const rect = useSmooth ? this.smooth.current() : this.cachedRect;
             drawCursorShape(
@@ -512,6 +549,7 @@ class CursorController implements Tickable {
                 this.accentColor,
                 charInfo,
             );
+            mgr.markDirty(rect.left, rect.top, rect.width, rect.height);
         }
         ctx.restore();
     }

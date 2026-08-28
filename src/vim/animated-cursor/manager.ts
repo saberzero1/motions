@@ -1,10 +1,6 @@
 import { devAssert } from '../../util/invariant';
-import type { CursorRect } from './types';
-
-export interface Tickable {
-    tick(dt: number, ctx: CanvasRenderingContext2D): void;
-    isActive(): boolean;
-}
+import type { CursorRect, Tickable } from './types';
+import { cleanupReducedMotionListener } from './config';
 
 /** Token-keyed position handoff for cross-cell cursor animation. */
 export interface CellCrossingHandoff {
@@ -27,19 +23,52 @@ const MAX_CONTROLLERS = 16;
  */
 const HEARTBEAT_INTERVAL_MS = 500;
 
+let themeDirty = false;
+
+export function isThemeDirty(): boolean {
+    return themeDirty;
+}
+
+export function clearThemeDirty(): void {
+    themeDirty = false;
+}
+
+const BLINK_HALF_CYCLE = 600;
+const HOT_FRAME_MIN_MS = 16;
+
+type Gear = 'hot' | 'warm' | 'stopped';
+
+interface DirtyRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
 export class AnimatedCursorManager {
     private controllers = new Set<Tickable>();
     private rafId: number | null = null;
     private lastTime = 0;
+    private lastLoopTime = 0;
+    private lastFrameTime = 0;
     private running = false;
+    private gear: Gear = 'stopped';
+    private warmTimerId: number | null = null;
     private canvas: HTMLCanvasElement | null = null;
     private ctx: CanvasRenderingContext2D | null = null;
     private resizeObserver: ResizeObserver | null = null;
+    private themeObserver: MutationObserver | null = null;
+    private dprQuery: MediaQueryList | null = null;
+    private onDprChange: (() => void) | null = null;
     private heartbeatId: number | null = null;
     private tickErrorLogged = false;
     private onVisibilityChange: (() => void) | null = null;
     private crossingHandoff: CellCrossingHandoff | null = null;
     private crossingTokenCounter = 0;
+    private cachedViewportWidth = 0;
+    private cachedViewportHeight = 0;
+    private dirtyRegion: DirtyRect | null = null;
+    private prevDirtyRegion: DirtyRect | null = null;
 
     register(controller: Tickable): void {
         if (this.controllers.size >= MAX_CONTROLLERS) {
@@ -67,7 +96,9 @@ export class AnimatedCursorManager {
     }
 
     wake(): void {
+        this.cancelWarmTimer();
         if (this.running) return;
+        this.gear = 'hot';
         this.running = true;
         this.tickErrorLogged = false;
         this.lastTime = performance.now();
@@ -97,6 +128,20 @@ export class AnimatedCursorManager {
         this.resizeObserver = new ResizeObserver(() => this.sizeCanvas());
         this.resizeObserver.observe(doc.documentElement);
 
+        this.themeObserver = new MutationObserver(() => {
+            themeDirty = true;
+        });
+        this.themeObserver.observe(doc.body, {
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+
+        this.onDprChange = () => this.sizeCanvas();
+        this.dprQuery = window.matchMedia(
+            `(resolution: ${window.devicePixelRatio}dppx)`,
+        );
+        this.dprQuery.addEventListener('change', this.onDprChange);
+
         // Re-wake the rAF loop when the page becomes visible again.
         // Chromium pauses rAF for hidden/occluded tabs; on Windows 11 the
         // occlusion tracker is more aggressive than on Linux, so re-waking
@@ -120,6 +165,13 @@ export class AnimatedCursorManager {
         }
         this.resizeObserver?.disconnect();
         this.resizeObserver = null;
+        this.themeObserver?.disconnect();
+        this.themeObserver = null;
+        if (this.dprQuery && this.onDprChange) {
+            this.dprQuery.removeEventListener('change', this.onDprChange);
+            this.dprQuery = null;
+            this.onDprChange = null;
+        }
         this.canvas?.remove();
         this.canvas = null;
         this.ctx = null;
@@ -130,6 +182,8 @@ export class AnimatedCursorManager {
         const dpr = window.devicePixelRatio || 1;
         const w = window.innerWidth;
         const h = window.innerHeight;
+        this.cachedViewportWidth = w;
+        this.cachedViewportHeight = h;
         // Round to avoid fractional backing-store sizes on Windows displays
         // with 125 %/150 % scaling (devicePixelRatio 1.25/1.5).  Without
         // rounding, the non-integer canvas dimensions cause sub-pixel
@@ -142,11 +196,24 @@ export class AnimatedCursorManager {
             this.canvas.style.width = w + 'px';
             this.canvas.style.height = h + 'px';
             this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            this.prevDirtyRegion = null;
         }
     }
 
     private loop(timestamp: number): void {
         if (!this.running) return;
+        this.lastLoopTime = performance.now();
+
+        // Frame-rate cap: on 120Hz+ displays, skip frame if < 16ms since
+        // last draw — cursor animation gains nothing above ~62.5fps.
+        if (this.gear === 'hot') {
+            const now = performance.now();
+            if (now - this.lastFrameTime < HOT_FRAME_MIN_MS) {
+                this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+                return;
+            }
+            this.lastFrameTime = now;
+        }
 
         const dt = (timestamp - this.lastTime) / 1000;
         this.lastTime = timestamp;
@@ -162,14 +229,30 @@ export class AnimatedCursorManager {
         // kill the rAF loop permanently — that is the "cursor disappears
         // until plugin reload" failure mode cursor-smith documented.
         let anyActive = false;
+        let anyNeedsBlink = false;
         try {
-            this.sizeCanvas();
-            this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            this.checkCanvasSize();
+
+            if (this.prevDirtyRegion) {
+                const p = this.prevDirtyRegion;
+                this.ctx.clearRect(p.x, p.y, p.w, p.h);
+            } else {
+                this.ctx.clearRect(
+                    0,
+                    0,
+                    this.cachedViewportWidth,
+                    this.cachedViewportHeight,
+                );
+            }
+            this.dirtyRegion = null;
 
             for (const c of this.controllers) {
                 c.tick(dt, this.ctx);
                 if (c.isActive()) anyActive = true;
+                if (c.needsBlink()) anyNeedsBlink = true;
             }
+
+            this.snapshotDirtyRegion();
         } catch (e: unknown) {
             if (!this.tickErrorLogged) {
                 this.tickErrorLogged = true;
@@ -183,11 +266,75 @@ export class AnimatedCursorManager {
             anyActive = true;
         }
 
-        if (anyActive) {
-            this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+        this.scheduleNext(anyActive, anyNeedsBlink);
+    }
+
+    private checkCanvasSize(): void {
+        if (!this.canvas) return;
+        const dpr = window.devicePixelRatio || 1;
+        const pw = Math.round(this.cachedViewportWidth * dpr);
+        const ph = Math.round(this.cachedViewportHeight * dpr);
+        if (this.canvas.width !== pw || this.canvas.height !== ph) {
+            this.sizeCanvas();
+        }
+    }
+
+    private snapshotDirtyRegion(): void {
+        const d = this.dirtyRegion;
+        if (d) {
+            this.prevDirtyRegion = { x: d.x, y: d.y, w: d.w, h: d.h };
         } else {
+            this.prevDirtyRegion = null;
+        }
+    }
+
+    markDirty(x: number, y: number, w: number, h: number): void {
+        const PAD = 2;
+        const px = x - PAD;
+        const py = y - PAD;
+        const pw = w + PAD * 2;
+        const ph = h + PAD * 2;
+        if (!this.dirtyRegion) {
+            this.dirtyRegion = { x: px, y: py, w: pw, h: ph };
+            return;
+        }
+        const d = this.dirtyRegion;
+        const nx = Math.min(d.x, px);
+        const ny = Math.min(d.y, py);
+        d.w = Math.max(d.x + d.w, px + pw) - nx;
+        d.h = Math.max(d.y + d.h, py + ph) - ny;
+        d.x = nx;
+        d.y = ny;
+    }
+
+    private scheduleNext(anyActive: boolean, anyNeedsBlink: boolean): void {
+        if (anyActive) {
+            this.gear = 'hot';
+            this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+        } else if (anyNeedsBlink) {
+            this.gear = 'warm';
             this.running = false;
             this.rafId = null;
+            this.stopHeartbeat();
+            this.warmTimerId = window.setTimeout(() => {
+                this.warmTimerId = null;
+                this.running = true;
+                this.gear = 'warm';
+                this.lastTime = performance.now();
+                this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+            }, BLINK_HALF_CYCLE);
+        } else {
+            this.gear = 'stopped';
+            this.running = false;
+            this.rafId = null;
+            this.stopHeartbeat();
+        }
+    }
+
+    private cancelWarmTimer(): void {
+        if (this.warmTimerId !== null) {
+            window.clearTimeout(this.warmTimerId);
+            this.warmTimerId = null;
         }
     }
 
@@ -204,13 +351,14 @@ export class AnimatedCursorManager {
                 this.stopHeartbeat();
                 return;
             }
-            // If the loop is supposed to be running but rAF hasn't fired
-            // recently, something external killed it — restart.
-            const stale =
-                !this.running &&
-                this.controllers.size > 0 &&
-                this.canvas !== null;
-            if (stale) {
+            // Detect OS-level rAF suppression: loop says it's running
+            // but hasn't actually fired for 2× the heartbeat interval.
+            if (
+                this.running &&
+                performance.now() - this.lastLoopTime >
+                    HEARTBEAT_INTERVAL_MS * 2
+            ) {
+                this.running = false;
                 this.wake();
             }
         }, HEARTBEAT_INTERVAL_MS);
@@ -225,10 +373,12 @@ export class AnimatedCursorManager {
 
     private stop(): void {
         this.running = false;
+        this.gear = 'stopped';
         if (this.rafId !== null) {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
         }
+        this.cancelWarmTimer();
         this.stopHeartbeat();
     }
 
@@ -270,6 +420,7 @@ export function getAnimatedCursorManager(): AnimatedCursorManager {
 export function destroyAnimatedCursorManager(): void {
     managerInstance?.destroy();
     managerInstance = null;
+    cleanupReducedMotionListener();
 }
 
 let pendingCrossingToken: number | null = null;

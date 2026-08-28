@@ -6,6 +6,13 @@ export interface CursorRect {
     height: number;
 }
 
+export interface Tickable {
+    tick(dt: number, ctx: CanvasRenderingContext2D): void;
+    isActive(): boolean;
+    didDraw(): boolean;
+    needsBlink(): boolean;
+}
+
 /** Cursor shape types matching the plugin's CursorShape type. */
 export type CursorShape = 'block' | 'bar' | 'underline' | 'hollow';
 

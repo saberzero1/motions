@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Animated cursor consumes 50-60% GPU at idle** — the rAF animation loop ran at 60-120fps continuously whenever the editor had focus because `this.active = animating || this.view.hasFocus` always evaluated to `true`. The heartbeat timer (500ms setInterval) also re-woke the loop every 500ms if it stopped, defeating any idle-stop optimization. Implemented a 4-phase GPU optimization: (1) fixed the `active` flag to only reflect animation state (`active = animating`), (2) added a 3-gear frame governor (hot: rAF at ~60fps during animation, warm: setTimeout 600ms for blink toggle, stopped: no scheduling), (3) dirty-rect canvas clearing (only clear the cursor's bounding box instead of full viewport), (4) per-frame overhead reduction (cached `getComputedStyle`, `matchMedia`, accent color; mutable physics quad to eliminate 20 object allocations per tick). Idle GPU usage drops from 60-120 rAF/sec to ~1.67 rAF/sec (97-99% reduction). ([#148](https://github.com/saberzero1/motions/issues/148))
+    - Plugin: `src/vim/animated-cursor/manager.ts` (3-gear frame governor with hot/warm/stopped states, heartbeat stall detection via `lastLoopTime`, dirty-rect tracking via `markDirty()`/`snapshotDirtyRegion()`, DPR change listener, MutationObserver for theme detection, `sizeCanvas()` moved to ResizeObserver)
+    - Plugin: `src/vim/animated-cursor/controller.ts` (`active = animating`, cached block char info per position, accent color refresh on theme change only, `needsBlink()` for warm gear scheduling)
+    - Plugin: `src/vim/animated-cursor/physics.ts` (mutable `targetQuad` via `updateQuadFromRect()`, eliminates per-frame allocations)
+    - Plugin: `src/vim/animated-cursor/config.ts` (cached `prefers-reduced-motion` media query with change listener)
+    - Plugin: `src/vim/animated-cursor/types.ts` (`needsBlink()` and `didDraw()` added to `Tickable` interface)
+
 ### Tests
 
 - **Table-nav hotkey test uses platform-correct modifier on macOS** — the `Ctrl+P` regression test for table-nav hotkey passthrough (#146) hardcoded `Key.Control`, which does not open the command palette on macOS (where the shortcut is `Cmd+P`). The test now uses `obsidianPage.getPlatform()` and sends `Key.Command` on macOS, `Key.Control` elsewhere.
@@ -15,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated animated cursor section — marked rAF loop death as enhanced with gear system, added GPU optimization details
+- `docs/features/animated-cursor.md`: updated cross-platform resilience section with gear system details
 
 ## [0.130.0] - 2026-08-27
 
