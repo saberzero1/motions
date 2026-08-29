@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Snippet completion menu not appearing on line 1** — the autocompletion popup did not show when typing snippet triggers on the first line of a newly created note in Live Preview. Root cause: CM6's tooltip layer never completed its measure/write pass when the editor was freshly mounted (e.g., opening a new file) — the tooltip DOM element was created but stayed at the pre-measurement sentinel position (`top: -10000px`). The bundled autocomplete fork's tooltip, provided via the shared `showTooltip` facet, was not repositioned because the tooltip layer's initial geometry measurement was skipped during the editor mount/layout settling phase. Additionally, a standalone `tooltips({ parent: document.body })` extension conflicted with Obsidian's own tooltip configuration. Fixed by: (1) removing the redundant `hasFocus` guard in the completion source, (2) removing the conflicting `tooltips({ parent: document.body })` extension, and (3) adding a MutationObserver-based ViewPlugin that detects stuck tooltips at `-10000px` and force-positions them using `coordsAtPos`. ([#151](https://github.com/saberzero1/motions/issues/151))
+    - Plugin: `src/snippets/completion-source.ts` (removed `hasFocus` guard)
+    - Plugin: `src/main.ts` (removed `tooltips({ parent: document.body })`, added tooltip positioning nudge ViewPlugin)
+
+### Tests
+
+- 1 new e2e spec file `test/specs/snippets/snippet-completion-menu.e2e.ts` — creates a new file via `app.vault.create()`, opens it in Live Preview, types a snippet prefix on line 1, and verifies the completion menu is visually positioned on screen (not stuck at `-10000px`). (#151)
+
+### Documentation
+
+- `CHANGELOG.md`
+
 ## [0.132.0] - 2026-08-29
 
 ### Added

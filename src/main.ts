@@ -86,7 +86,7 @@ import {
 import { JumpList } from './vim/jumplist';
 import { VimInfoModal } from './ui/vim-info-modal';
 
-import { EditorView, tooltips } from '@codemirror/view';
+import { EditorView, ViewPlugin } from '@codemirror/view';
 import { ChangeSet, Transaction } from '@codemirror/state';
 import {
     yankHighlightExtension,
@@ -2312,7 +2312,46 @@ export default class VimMotionsPlugin extends Plugin {
                     }),
                 );
                 this.registerEditorExtension(
-                    tooltips({ parent: document.body }),
+                    ViewPlugin.define((view) => {
+                        let observer: MutationObserver | null = null;
+
+                        function nudgeTooltip(editorView: EditorView): void {
+                            const el =
+                                editorView.dom.ownerDocument.querySelector(
+                                    '.cm-tooltip-autocomplete',
+                                );
+                            if (
+                                !(el instanceof HTMLElement) ||
+                                el.style.top !== '-10000px'
+                            )
+                                return;
+                            const pos = editorView.state.selection.main.head;
+                            const coords = editorView.coordsAtPos(pos);
+                            if (!coords) return;
+                            const parent = el.offsetParent ?? el.parentElement;
+                            if (!parent) return;
+                            const parentRect = parent.getBoundingClientRect();
+                            el.style.top = `${coords.bottom - parentRect.top}px`;
+                            el.style.left = `${coords.left - parentRect.left}px`;
+                        }
+
+                        observer = new MutationObserver(() =>
+                            nudgeTooltip(view),
+                        );
+                        observer.observe(view.dom.parentElement ?? view.dom, {
+                            childList: true,
+                            subtree: true,
+                            attributes: true,
+                            attributeFilter: ['style'],
+                        });
+
+                        return {
+                            destroy() {
+                                observer?.disconnect();
+                                observer = null;
+                            },
+                        };
+                    }),
                 );
             }
             if (triggerMode === 'tab' || triggerMode === 'both') {

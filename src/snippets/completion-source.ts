@@ -14,8 +14,6 @@ export function createSnippetCompletionSource(
     getContext: () => PreprocessContext,
 ): CompletionSource {
     return (context: CompletionContext): CompletionResult | null => {
-        if (context.view && !context.view.hasFocus) return null;
-
         const registry = getRegistry();
         if (!registry) return null;
 
