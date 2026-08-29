@@ -1,7 +1,7 @@
 {
     "suite": "visual-mode",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.296Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:21.530Z",
     "cases": [
         {
             "name": "v + e + d should delete selection",
@@ -1135,6 +1135,214 @@
                 "content": "one\nX\nfour",
                 "cursor": {
                     "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + ~ should toggle case of entire line",
+            "initial": {
+                "content": "Hello World",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "V~",
+            "result": {
+                "content": "hELLO wORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + U should uppercase entire line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "VU",
+            "result": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + u should lowercase entire line",
+            "initial": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vu",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Vj + ~ should toggle case of two lines",
+            "initial": {
+                "content": "Hello World\nFoo Bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vj~",
+            "result": {
+                "content": "hELLO wORLD\nfOO bAR",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Vj + U should uppercase two lines",
+            "initial": {
+                "content": "hello world\nfoo bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "VjU",
+            "result": {
+                "content": "HELLO WORLD\nFOO BAR",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Vj + u should lowercase two lines",
+            "initial": {
+                "content": "HELLO WORLD\nFOO BAR",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vju",
+            "result": {
+                "content": "hello world\nfoo bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + gU should uppercase entire line",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "VgU",
+            "result": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "V + gu should lowercase entire line",
+            "initial": {
+                "content": "HELLO WORLD",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "Vgu",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
                     "ch": 0
                 },
                 "mode": "normal",

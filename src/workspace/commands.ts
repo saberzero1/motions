@@ -693,7 +693,7 @@ function createMoveCopyCommand(mode: 'move' | 'copy'): ExCommandFn {
         }
 
         const newEndLine = newStartLine + movedLineCount - 1;
-        const cursorLine = mode === 'move' ? newStartLine : newEndLine;
+        const cursorLine = newEndLine;
         const lineText = cm.getLine(cursorLine) ?? '';
         const ch = getFirstNonBlankCh(lineText);
         cm.setCursor(cursorLine, ch);

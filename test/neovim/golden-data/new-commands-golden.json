@@ -1,22 +1,22 @@
 {
-    "suite": "fold-motions",
+    "suite": "new-commands-golden",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:27.150Z",
+    "recorded_at": "2026-08-29T01:58:26.841Z",
     "cases": [
         {
-            "name": "zj moves to next foldable heading",
+            "name": "@: after :s should repeat substitute on next line",
             "initial": {
-                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
+                "content": "foo baz\nfoo qux",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "zj",
+            "keys": ":s/foo/bar/\nj@:",
             "result": {
-                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
+                "content": "bar baz\nbar qux",
                 "cursor": {
-                    "line": 8,
+                    "line": 1,
                     "ch": 0
                 },
                 "mode": "normal",
@@ -30,19 +30,19 @@
             }
         },
         {
-            "name": "zj with count skips folds",
+            "name": "& should repeat last :s on current line",
             "initial": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
+                "content": "old there\nold again",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "2zj",
+            "keys": ":s/old/new/\nj&",
             "result": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
+                "content": "new there\nnew again",
                 "cursor": {
-                    "line": 12,
+                    "line": 1,
                     "ch": 0
                 },
                 "mode": "normal",
@@ -56,19 +56,19 @@
             }
         },
         {
-            "name": "zj at last fold is no-op",
+            "name": "& with g flag should not carry flags",
             "initial": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "content": "old old old\nold old old",
                 "cursor": {
-                    "line": 4,
+                    "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "zj",
+            "keys": ":s/old/new/g\nj&",
             "result": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "content": "new new new\nnew new new",
                 "cursor": {
-                    "line": 4,
+                    "line": 1,
                     "ch": 0
                 },
                 "mode": "normal",
@@ -82,17 +82,43 @@
             }
         },
         {
-            "name": "zj from non-fold line",
+            "name": "]<Space> should add blank line below",
             "initial": {
-                "content": "Plain text\n\n# Heading 1\n\nSome content\n\n## Heading 2\n\nMore content",
+                "content": "one\ntwo\nthree",
                 "cursor": {
-                    "line": 0,
+                    "line": 1,
                     "ch": 0
                 }
             },
-            "keys": "zj",
+            "keys": "] ",
             "result": {
-                "content": "Plain text\n\n# Heading 1\n\nSome content\n\n## Heading 2\n\nMore content",
+                "content": "one\ntwo\n\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "orl",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[<Space> should add blank line above",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "[ ",
+            "result": {
+                "content": "one\n\ntwo\nthree",
                 "cursor": {
                     "line": 2,
                     "ch": 0
@@ -108,69 +134,17 @@
             }
         },
         {
-            "name": "zk moves to end of previous fold",
+            "name": "3]<Space> should add 3 blank lines below",
             "initial": {
-                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
-                "cursor": {
-                    "line": 8,
-                    "ch": 0
-                }
-            },
-            "keys": "zk",
-            "result": {
-                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
-                "cursor": {
-                    "line": 6,
-                    "ch": 0
-                },
-                "mode": "normal",
-                "registers": {
-                    "\"": {
-                        "text": "orl",
-                        "linewise": false
-                    }
-                },
-                "visualMode": null
-            }
-        },
-        {
-            "name": "zk with count skips folds backward",
-            "initial": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
-                "cursor": {
-                    "line": 12,
-                    "ch": 0
-                }
-            },
-            "keys": "2zk",
-            "result": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
-                "cursor": {
-                    "line": 10,
-                    "ch": 0
-                },
-                "mode": "normal",
-                "registers": {
-                    "\"": {
-                        "text": "orl",
-                        "linewise": false
-                    }
-                },
-                "visualMode": null
-            }
-        },
-        {
-            "name": "zk at first fold is no-op",
-            "initial": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "content": "one\ntwo",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "zk",
+            "keys": "3] ",
             "result": {
-                "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText",
+                "content": "one\n\n\n\ntwo",
                 "cursor": {
                     "line": 0,
                     "ch": 0
@@ -186,19 +160,19 @@
             }
         },
         {
-            "name": "[z moves to start of enclosing fold",
+            "name": "2[<Space> should add 2 blank lines above",
             "initial": {
-                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "content": "one\ntwo",
                 "cursor": {
-                    "line": 2,
+                    "line": 1,
                     "ch": 0
                 }
             },
-            "keys": "[z",
+            "keys": "2[ ",
             "result": {
-                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "content": "one\n\n\ntwo",
                 "cursor": {
-                    "line": 2,
+                    "line": 3,
                     "ch": 0
                 },
                 "mode": "normal",
@@ -212,17 +186,43 @@
             }
         },
         {
-            "name": "[z on fold start line is no-op",
+            "name": "insert Ctrl-Y should copy char from line above",
             "initial": {
-                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nText",
+                "content": "abc\nxyz",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "i\u0019\u001b",
+            "result": {
+                "content": "abc\naxyz",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "orl",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "insert Ctrl-E should copy char from line below",
+            "initial": {
+                "content": "abc\nxyz",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "[z",
+            "keys": "i\u0005\u001b",
             "result": {
-                "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nText",
+                "content": "xabc\nxyz",
                 "cursor": {
                     "line": 0,
                     "ch": 0
@@ -238,20 +238,20 @@
             }
         },
         {
-            "name": "[z when not inside fold is no-op",
+            "name": "insert Ctrl-A should re-insert previously inserted text",
             "initial": {
-                "content": "Plain text\n\nMore plain text",
+                "content": "",
                 "cursor": {
                     "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "[z",
+            "keys": "ihello\u001bo\u0001\u001b",
             "result": {
-                "content": "Plain text\n\nMore plain text",
+                "content": "hello\nhello",
                 "cursor": {
-                    "line": 0,
-                    "ch": 0
+                    "line": 1,
+                    "ch": 4
                 },
                 "mode": "normal",
                 "registers": {
@@ -264,20 +264,20 @@
             }
         },
         {
-            "name": "]z moves to end of enclosing fold",
+            "name": "insert Ctrl-Y at column 2",
             "initial": {
-                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "content": "abcdef\nxyz",
                 "cursor": {
-                    "line": 2,
+                    "line": 1,
                     "ch": 0
                 }
             },
-            "keys": "]z",
+            "keys": "lli\u0019\u001b",
             "result": {
-                "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
+                "content": "abcdef\nxycz",
                 "cursor": {
-                    "line": 2,
-                    "ch": 0
+                    "line": 1,
+                    "ch": 2
                 },
                 "mode": "normal",
                 "registers": {
@@ -290,20 +290,20 @@
             }
         },
         {
-            "name": "]z at fold end is no-op",
+            "name": "insert Ctrl-E at column 2",
             "initial": {
-                "content": "# Heading 1\n\nSome text",
+                "content": "abc\nxyzdef",
                 "cursor": {
-                    "line": 2,
+                    "line": 0,
                     "ch": 0
                 }
             },
-            "keys": "]z",
+            "keys": "lli\u0005\u001b",
             "result": {
-                "content": "# Heading 1\n\nSome text",
+                "content": "abzc\nxyzdef",
                 "cursor": {
-                    "line": 2,
-                    "ch": 0
+                    "line": 0,
+                    "ch": 2
                 },
                 "mode": "normal",
                 "registers": {

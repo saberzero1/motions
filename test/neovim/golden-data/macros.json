@@ -1,7 +1,7 @@
 {
     "suite": "macros",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:32:59.166Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:25.290Z",
     "cases": [
         {
             "name": "qa dd q @a should delete two lines",
@@ -128,6 +128,32 @@
                     "\"": {
                         "text": "d",
                         "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Q should replay last macro (Neovim default)",
+            "initial": {
+                "content": "aaa\nbbb\nccc\nddd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "qaddq@aQ",
+            "result": {
+                "content": "ddd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

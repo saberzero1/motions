@@ -109,6 +109,7 @@ print("init.lua loaded for vault:", vim.vault_name())
 | ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------ |
 | `vim.opt.<name> = value`                             | Set a plugin option (string options accept tables) | `vim.opt.scrolloff = 8`              |
 | `vim.o.<name> = value`                               | Alias for `vim.opt`                                | `vim.o.scrolloff = 8`                |
+| `vim.o.operatorfunc`                                 | Function called by the `g@` operator               | see Custom operators                 |
 | `vim.g.mapleader`                                    | Set the leader key                                 | `vim.g.mapleader = " "`              |
 | `vim.g.<name> = value`                               | Set a user variable                                | `vim.g.my_var = true`                |
 | `vim.cmd(string)`                                    | Execute an ex command                              | `vim.cmd("set nohlsearch")`          |
@@ -146,6 +147,23 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.obsidian.im.save()`                             | Save current IM for active editor view             | see Obsidian namespace               |
 | `vim.obsidian.im.restore()`                          | Restore saved IM for active editor view            | see Obsidian namespace               |
 | `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
+
+## Custom operators
+
+The `g@` operator calls a function stored in `vim.o.operatorfunc`. The function receives a string argument indicating the motion type: `'line'`, `'char'`, or `'block'`.
+
+The range covered by the motion is marked by the `'[` and `']` marks.
+
+```lua
+vim.o.operatorfunc = function(type)
+    local start_pos = vim.fn.getpos("'[")
+    local end_pos = vim.fn.getpos("']")
+    print("Operator called with type:", type)
+    print("Range:", start_pos[2], start_pos[3], "to", end_pos[2], end_pos[3])
+end
+
+vim.keymap.set("n", "gz", "g@", { desc = "Custom operator" })
+```
 
 ## vim.textobject
 

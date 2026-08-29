@@ -1,7 +1,7 @@
 {
     "suite": "normal-yank-put",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.259Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:20.952Z",
     "cases": [
         {
             "name": "yy then p should paste line below",
@@ -361,6 +361,110 @@
                 "registers": {
                     "\"": {
                         "text": "hello ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gp should paste and move cursor past",
+            "initial": {
+                "content": "aaa\nbbb\nccc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yygp",
+            "result": {
+                "content": "aaa\naaa\nbbb\nccc",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "aaa\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gP should paste before and move cursor past",
+            "initial": {
+                "content": "aaa\nbbb\nccc",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "yygP",
+            "result": {
+                "content": "aaa\nbbb\nbbb\nccc",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "bbb\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gp with charwise yank",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ywwgp",
+            "result": {
+                "content": "hello whello orld",
+                "cursor": {
+                    "line": 0,
+                    "ch": 13
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Y should yank to end of line (Neovim default)",
+            "initial": {
+                "content": "hello world\nsecond",
+                "cursor": {
+                    "line": 0,
+                    "ch": 6
+                }
+            },
+            "keys": "Yjp",
+            "result": {
+                "content": "hello world\nsecondworld",
+                "cursor": {
+                    "line": 1,
+                    "ch": 10
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "world",
                         "linewise": false
                     }
                 },

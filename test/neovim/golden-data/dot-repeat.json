@@ -1,7 +1,7 @@
 {
     "suite": "dot-repeat",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:33:08.443Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:23.978Z",
     "cases": [
         {
             "name": "2dw then . repeats",

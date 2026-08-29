@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`g@{motion}` operatorfunc support** — new operator that calls a stored callback with the motion type (`'line'`, `'char'`, or `'block'`). Sets `'[` and `']` marks to the range covered by the motion. Public API includes `setOperatorfunc(fn)` and `getOperatorfunc()`.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `operatorfunc` operator, `setOperatorfunc`/`getOperatorfunc` API)
+- **`:move` and `:copy` ex commands** — proper implementation of line-move and line-copy commands. `:move` (`:m`) moves a range of lines to a destination address; `:copy` (`:co`, `:t`) copies them. Supports absolute, relative, and boundary addresses (`0`, `$`).
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `:move` and `:copy` ex command implementations)
+    - Plugin: `src/workspace/commands.ts` (cursor positioning fix for `:move`)
+- **Insert mode undo control** — added `<C-G>u` to manually insert an undo break and `<C-G>U` to suppress the next automatic undo break on cursor movement.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `<C-G>u` and `<C-G>U` actions)
+- **Insert mode line navigation** — added `<C-G>j`, `<C-G>k`, `<C-G><C-J>`, and `<C-G><C-K>` to navigate lines while preserving the insert-start column.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new insert-mode navigation actions)
+- **Insert mode indent deletion** — added `0<C-D>` and `^<C-D>` to delete all indentation on the current line.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (new insert-mode indent actions)
+- **Lua `vim.o.operatorfunc` bridge** — wired `operatorfunc` through the Lua API. Users can assign a Lua function to `vim.o.operatorfunc` which will be called when `g@` is used.
+    - Plugin: `src/lua/api.ts` (Lua bridge for `operatorfunc`)
+    - Plugin: `src/types/vim-api.d.ts` (updated `VimApi` type definition)
+
+### Changed
+
+- **`@:` repeat last ex command** — now pushes the command to history before execution and supports count prefixes (e.g., `2@:` replays twice).
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (history push in `handleEx`, count support)
+- **`<C-y>` and `<C-e>` cursor behavior** — cursor now advances after copying a character from above or below, matching Neovim.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (cursor advancement fix)
+- **`gR` virtual replace at EOL** — fixed boundary check to allow replacing the last character of a line.
+    - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (boundary check fix)
+- **`<C-a>` re-insert previous insert** — now correctly saves changes to `previousInsertModeChanges` before resetting, ensuring the previous insert is always available.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (recording fix in `recordLastEdit`)
+- **Command index overhaul** — expanded coverage tracking from 337 to 427 commands. 90 new entries added, 15 commands reclassified as tested, and 4 deviations removed.
+    - Test: `test/neovim-command-index.yaml` (90 new entries)
+    - Test: `test/neovim/deviations.ts` (4 removed, 8 added)
+
+### Fixed
+
+- **`:move` cursor positioning** — cursor now correctly lands on the last moved line instead of the first.
+    - Plugin: `src/workspace/commands.ts` (positioning fix)
+- **`@:` e2e test assertion** — strengthened assertion from `toContain` to `toBe` for more reliable verification.
+    - Test: `test/specs/vim-builtin/new-commands.e2e.ts` (assertion fix)
+
+### Tests
+
+- **68 new Neovim golden test cases** — expanded coverage for `gE`, `go`, `*`, `#`, `(`, `)`, `]]`, `[[`, `][`, `[]`, `dgn`, `cgn`, visual mode operators, `<C-r>` redo, `gR`, `gp`, `gP`, `Y`, insert mode `<C-r>`, `<C-c>`, `<C-G>u`, `<C-G>j/k`, `0<C-D>`, `^<C-D>`, and `Q`.
+    - Test: `test/neovim/test-definitions.ts` (68 new cases)
+- **New golden spec file** — `test/specs/vim-builtin/new-commands-golden.e2e.ts` adds 12 golden tests for `@:`, `&`, `]<Space>`, `[<Space>`, and insert mode `<C-y>`, `<C-e>`, `<C-a>`.
+    - Test: `test/specs/vim-builtin/new-commands-golden.e2e.ts` (new file)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: updated fork API and test infrastructure descriptions
+- `CONTRIBUTING.md`: updated file tree for new test file
+- `KNOWN_LIMITATIONS.md`: marked `:move` and `:copy` as implemented, updated infra-limitation deviations
+- `README.md`: added `g@` and new ex commands to features list
+- `docs/reference/keybindings.md`: added new insert mode and editing commands
+- `docs/features/ex-commands.md`: added `:move` and `:copy` details
+- `docs/configuration/lua-config.md`: added `vim.o.operatorfunc` documentation
+
 ## [0.131.0] - 2026-08-28
 
 ### Fixed

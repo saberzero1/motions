@@ -662,6 +662,29 @@ export function injectVimApi(
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const key = readLuaString(state, 2);
         if (!key) return 0;
+        if (key === 'operatorfunc') {
+            const vimApi = callbacks.getVimApi?.();
+            if (lua.lua_isfunction(state, 3)) {
+                lua.lua_pushvalue(state, 3);
+                const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+                const wrapper = (cm: unknown, type: string) => {
+                    lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                    lua.lua_pushstring(state, to_luastring(type));
+                    const status = lua.lua_pcall(state, 1, 0, 0);
+                    if (status !== lua.LUA_OK) {
+                        const msg = lua.lua_tolstring(state, -1);
+                        console.error(
+                            `operatorfunc error: ${msg ? to_jsstring(msg) : 'unknown'}`,
+                        );
+                        lua.lua_pop(state, 1);
+                    }
+                };
+                vimApi?.setOperatorfunc?.(wrapper);
+            } else if (lua.lua_isnil(state, 3)) {
+                vimApi?.setOperatorfunc?.(null);
+            }
+            return 0;
+        }
         const spec = KNOWN_SET_OPTIONS[key];
         if (!spec) {
             console.warn(`Vim Motions: unknown vim.opt option ${key}`);

@@ -1,7 +1,7 @@
 {
     "suite": "insert-mode",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.336Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T09:08:44.143Z",
     "cases": [
         {
             "name": "Escape from insert should allow x to delete",
@@ -414,6 +414,240 @@
                     "\"": {
                         "text": "hello world\n",
                         "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-R in insert should paste register contents",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "yw$a \u0012\"\u001b",
+            "result": {
+                "content": "hello world hello ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 17
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-R with named register",
+            "initial": {
+                "content": "alpha\nbeta",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "\"aywjA \u0012a\u001b",
+            "result": {
+                "content": "alpha\nbeta alpha",
+                "cursor": {
+                    "line": 1,
+                    "ch": 9
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "alpha",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-C should exit insert mode like Escape",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "iX\u0003",
+            "result": {
+                "content": "Xhello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "alpha",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-C from insert should allow normal command",
+            "initial": {
+                "content": "abcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "i\u0003x",
+            "result": {
+                "content": "bcde",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "a",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-G u should create undo break",
+            "initial": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "iabc\u0007udef\u001bu",
+            "result": {
+                "content": "abc",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "a",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-G j should move down preserving insert column",
+            "initial": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "llli\u0007j\u001b",
+            "result": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "a",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-G k should move up preserving insert column",
+            "initial": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "llli\u0007k\u001b",
+            "result": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 0,
+                    "ch": 2
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "a",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "0 Ctrl-D should delete all indent",
+            "initial": {
+                "content": "    hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "A0\u0004\u001b",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "a",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "caret Ctrl-D should delete all indent",
+            "initial": {
+                "content": "    hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "A^\u0004\u001b",
+            "result": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "a",
+                        "linewise": false
                     }
                 },
                 "visualMode": null

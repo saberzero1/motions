@@ -1,7 +1,7 @@
 {
     "suite": "flash-golden",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:33:03.146Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:26.574Z",
     "cases": [
         {
             "name": "f should find char forward",
@@ -22,8 +22,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -48,8 +48,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -74,8 +74,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -100,8 +100,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -126,8 +126,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -152,8 +152,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -178,8 +178,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "h",
-                        "linewise": false
+                        "text": "hello world\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

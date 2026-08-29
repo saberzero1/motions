@@ -505,7 +505,7 @@ test/
   coverage-report.ts         # Coverage report generator
   tsconfig.json              # Test-specific TypeScript config
   specs/                     # E2E tests (Tier 2 — plugin features)
-    vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared)
+    vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests
     spikes/                  # Exploratory/discovery tests
   neovim/                    # Neovim golden comparison infrastructure

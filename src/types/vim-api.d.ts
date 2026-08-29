@@ -252,6 +252,9 @@ export interface VimApi {
     setOption(name: string, value: unknown): void;
     getOption(name: string): unknown;
 
+    setOperatorfunc?(fn: ((cm: CmAdapter, type: string) => void) | null): void;
+    getOperatorfunc?(): ((cm: CmAdapter, type: string) => void) | null;
+
     getVimGlobalState_(): Record<string, unknown>;
 
     getInputState(cm: CmAdapter): {

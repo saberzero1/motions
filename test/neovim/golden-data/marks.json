@@ -1,7 +1,7 @@
 {
     "suite": "marks",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-10T08:33:00.500Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:25.030Z",
     "cases": [
         {
             "name": "ma then 'a should jump to marked line",
@@ -22,8 +22,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "d",
-                        "linewise": false
+                        "text": "remove\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -48,8 +48,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "d",
-                        "linewise": false
+                        "text": "remove\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

@@ -1,7 +1,7 @@
 {
     "suite": "normal-marks-jumps",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.159Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:19.755Z",
     "cases": [
         {
             "name": "} should move to next empty line",
@@ -22,7 +22,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -48,7 +48,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -74,7 +74,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -100,7 +100,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -126,7 +126,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -152,7 +152,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -178,7 +178,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -204,7 +204,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -230,7 +230,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -256,7 +256,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -282,7 +282,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -308,7 +308,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -334,7 +334,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -360,8 +360,294 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ") should move to next sentence",
+            "initial": {
+                "content": "Hello world.  This is next.  And third.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ")",
+            "result": {
+                "content": "Hello world.  This is next.  And third.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 14
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "( should move to previous sentence",
+            "initial": {
+                "content": "Hello world.  This is next.  And third.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 29
+                }
+            },
+            "keys": "(",
+            "result": {
+                "content": "Hello world.  This is next.  And third.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 14
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "2) should move 2 sentences forward",
+            "initial": {
+                "content": "First.  Second.  Third.  Fourth.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2)",
+            "result": {
+                "content": "First.  Second.  Third.  Fourth.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 17
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ") across lines",
+            "initial": {
+                "content": "Hello world.\nThis is next.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ")",
+            "result": {
+                "content": "Hello world.\nThis is next.",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "( at start should not move",
+            "initial": {
+                "content": "Hello world.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "(",
+            "result": {
+                "content": "Hello world.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "d) should delete to next sentence",
+            "initial": {
+                "content": "Hello world.  This is next.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "d)",
+            "result": {
+                "content": "This is next.",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "Hello world.  ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "]] should move to next section start",
+            "initial": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "]]",
+            "result": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "Hello world.  ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[[ should move to previous section start",
+            "initial": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd",
+                "cursor": {
+                    "line": 6,
+                    "ch": 0
+                }
+            },
+            "keys": "[[",
+            "result": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd",
+                "cursor": {
+                    "line": 5,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "Hello world.  ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "][ should move to next section end",
+            "initial": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd\n}",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "][",
+            "result": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd\n}",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "Hello world.  ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "[] should move to previous section end",
+            "initial": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd\n}",
+                "cursor": {
+                    "line": 7,
+                    "ch": 0
+                }
+            },
+            "keys": "[]",
+            "result": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd\n}",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "Hello world.  ",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "2]] should move 2 sections forward",
+            "initial": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "2]]",
+            "result": {
+                "content": "aaa\n{\nbbb\n}\nccc\n{\nddd",
+                "cursor": {
+                    "line": 5,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "Hello world.  ",
+                        "linewise": false
                     }
                 },
                 "visualMode": null

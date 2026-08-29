@@ -185,6 +185,12 @@ Reformat paragraphs with Markdown-aware line wrapping.
 | `:UndoTreeShow`        | Open undo tree sidebar                       |
 | `:UndoTreeHide`        | Close undo tree sidebar                      |
 
+## Custom operators
+
+| Keybinding   | Description                                                              |
+| ------------ | ------------------------------------------------------------------------ |
+| `g@{motion}` | Call the function stored in `operatorfunc` over the range of `{motion}`. |
+
 ## Replace-with-register operator
 
 Replace text covered by a motion with the contents of a register, discarding
@@ -645,13 +651,18 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 
 ## Insert mode
 
-| Keybinding | Description                                                 |
-| ---------- | ----------------------------------------------------------- |
-| `<C-u>`    | Delete back to insert-start position (or line start)        |
-| `<C-a>`    | Re-insert previously inserted text                          |
-| `<C-e>`    | Copy character from line below (same column)                |
-| `<C-y>`    | Copy character from line above (same column)                |
-| `<C-G>s`   | Insert-mode surround (inserts both delimiters, type inside) |
+| Keybinding     | Description                                                 |
+| -------------- | ----------------------------------------------------------- |
+| `<C-u>`        | Delete back to insert-start position (or line start)        |
+| `<C-a>`        | Re-insert previously inserted text                          |
+| `<C-e>`        | Copy character from line below (same column)                |
+| `<C-y>`        | Copy character from line above (same column)                |
+| `<C-G>s`       | Insert-mode surround (inserts both delimiters, type inside) |
+| `<C-G>u`       | Insert undo break                                           |
+| `<C-G>U`       | Suppress undo break on next cursor movement                 |
+| `<C-G>j` / `k` | Navigate lines while preserving insert-start column         |
+| `0<C-D>`       | Delete all indentation on current line                      |
+| `^<C-D>`       | Delete all indentation on current line                      |
 
 ## Increment/Decrement
 

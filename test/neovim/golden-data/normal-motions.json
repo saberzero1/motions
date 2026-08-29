@@ -1,7 +1,7 @@
 {
     "suite": "normal-motions",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.135Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:19.194Z",
     "cases": [
         {
             "name": "h should move cursor left",
@@ -22,7 +22,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -48,7 +48,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -74,7 +74,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -100,7 +100,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -126,7 +126,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -152,7 +152,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -178,7 +178,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -204,7 +204,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -230,7 +230,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -256,7 +256,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -282,7 +282,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -308,7 +308,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -334,7 +334,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -360,7 +360,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -386,7 +386,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -412,7 +412,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -438,7 +438,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -464,7 +464,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -490,7 +490,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -516,7 +516,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -542,7 +542,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -568,7 +568,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -594,7 +594,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -620,7 +620,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -646,7 +646,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -672,7 +672,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -698,7 +698,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -724,7 +724,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -750,7 +750,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -776,7 +776,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -802,7 +802,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -828,7 +828,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -854,7 +854,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -880,7 +880,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -906,7 +906,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -932,7 +932,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -958,7 +958,189 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gE should move to end of previous WORD",
+            "initial": {
+                "content": "foo hello-world bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 16
+                }
+            },
+            "keys": "gE",
+            "result": {
+                "content": "foo hello-world bar",
+                "cursor": {
+                    "line": 0,
+                    "ch": 14
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gE across line boundary",
+            "initial": {
+                "content": "hello-world\nfoo",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                }
+            },
+            "keys": "gE",
+            "result": {
+                "content": "hello-world\nfoo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 10
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gE at start should not move",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gE",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "2gE should move 2 WORDs backward",
+            "initial": {
+                "content": "one two-three four-five six",
+                "cursor": {
+                    "line": 0,
+                    "ch": 24
+                }
+            },
+            "keys": "2gE",
+            "result": {
+                "content": "one two-three four-five six",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "go should move to byte offset",
+            "initial": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "10go",
+            "result": {
+                "content": "abcdef\nghijkl",
+                "cursor": {
+                    "line": 1,
+                    "ch": 2
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "go to first byte",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 5
+                }
+            },
+            "keys": "1go",
+            "result": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "go past end should go to last char",
+            "initial": {
+                "content": "short",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "999go",
+            "result": {
+                "content": "short",
+                "cursor": {
+                    "line": 0,
+                    "ch": 4
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },

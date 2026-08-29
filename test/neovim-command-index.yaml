@@ -83,6 +83,13 @@ normal_mode:
             test_file: 'vim-builtin/normal-motions.e2e.ts',
             description: 'cursor to end of previous word',
         }
+    gE:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-motions.e2e.ts',
+            description: 'cursor to end of previous WORD',
+        }
     '0':
         {
             tier: 1,
@@ -510,6 +517,55 @@ normal_mode:
             test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
             description: 'go to older entry in jump list',
         }
+    CTRL-I:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'go to newer entry in jump list',
+        }
+    CTRL-R:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'redo last undone change',
+        }
+    CTRL-C:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'interrupt / exit insert mode (like Escape)',
+        }
+    ']]':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N sections forward (to next {)',
+        }
+    '[[':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N sections backward (to previous {)',
+        }
+    '][':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N sections forward (to next })',
+        }
+    '[]':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-marks-jumps.e2e.ts',
+            description: 'cursor N sections backward (to previous })',
+        }
     CTRL-^:
         {
             tier: 2,
@@ -650,6 +706,20 @@ normal_mode:
             test_file: 'workspace.e2e.ts',
             description: 'quit without saving (fork, maps to :q)',
         }
+    CTRL-Y:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-scroll.e2e.ts',
+            description: 'scroll N lines downwards',
+        }
+    K:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'look up keyword under cursor (plugin)',
+        }
     CTRL-Z:
         {
             tier: 3,
@@ -657,6 +727,38 @@ normal_mode:
             test_file: '',
             description: 'suspend program',
             reason: 'No suspend concept in Obsidian',
+        }
+    CTRL-L:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'redraw screen',
+            reason: 'CM6 handles rendering; Oil uses <C-l> for refresh',
+        }
+    '!':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'filter through external command',
+            reason: 'No shell access in Obsidian',
+        }
+    do:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'same as :diffget',
+            reason: 'No diff concept in Obsidian',
+        }
+    dp:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'same as :diffput',
+            reason: 'No diff concept in Obsidian',
         }
 
 normal_mode_g_commands:
@@ -870,6 +972,157 @@ normal_mode_g_commands:
             test_file: 'workspace.e2e.ts',
             description: 'go to file with line number (plugin)',
         }
+    gR:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'enter virtual replace mode (CM Vim native)',
+        }
+    g_:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: 'cursor to last non-blank char (CM Vim native)',
+        }
+    gh:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/select-mode-golden.e2e.ts',
+            description: 'enter charwise select mode (CM Vim native)',
+        }
+    gH:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/select-mode-golden.e2e.ts',
+            description: 'enter linewise select mode (CM Vim native)',
+        }
+    gP:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'paste before and move cursor past (plugin)',
+        }
+    'g<C-g>':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/minor-motions-scroll.e2e.ts',
+            description: 'show cursor position info (word, line, byte counts)',
+        }
+    'g#':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'like # but without word boundaries (CM Vim native)',
+        }
+    'g*':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-search.e2e.ts',
+            description: 'like * but without word boundaries (CM Vim native)',
+        }
+    gi:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'insert at last insert position (CM Vim native)',
+        }
+    gr:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-editing.e2e.ts',
+            description: 'virtual replace N chars with {char} (CM Vim native)',
+        }
+    'g+':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'undo-tree.e2e.ts',
+            description: 'go to newer text state (plugin undo tree)',
+        }
+    'g-':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'undo-tree.e2e.ts',
+            description: 'go to older text state (plugin undo tree)',
+        }
+    'g<C-H>':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'start select block mode',
+            reason: 'Block select mode not applicable (CTRL-V covers block visual)',
+        }
+    'g<C-]>':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: ':tjump to tag under cursor',
+            reason: 'No tag system in Obsidian',
+        }
+    'g?':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'rot13 encoding operator (CM Vim native)',
+        }
+    'g<':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'display previous command output',
+            reason: 'No :messages equivalent in Obsidian',
+        }
+    gD:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace.e2e.ts',
+            description: 'go to definition in new tab (plugin)',
+        }
+    gV:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/select-mode-golden.e2e.ts',
+            description: 'prevent reselect in select mode (CM Vim native)',
+        }
+    'g]':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: ':tselect on tag under cursor',
+            reason: 'No tag system in Obsidian',
+        }
+    'g@':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/operator-combos.e2e.ts',
+            description: "call 'operatorfunc' (fork)",
+        }
+    'g<Tab>':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'go to last accessed pane (plugin)',
+        }
 
 normal_mode_z_commands:
     zz:
@@ -1033,6 +1286,178 @@ normal_mode_z_commands:
             test_file: 'workspace-extended.e2e.ts',
             description: 'scroll half-screen right (plugin)',
         }
+    zF:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'create fold for N lines (plugin)',
+        }
+    zN:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'set foldenable (plugin)',
+        }
+    zX:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 're-apply foldlevel (plugin)',
+        }
+    zi:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'toggle foldenable (plugin)',
+        }
+    zj:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/fold-motions.e2e.ts',
+            description: 'move to start of next fold (plugin)',
+        }
+    zk:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/fold-motions.e2e.ts',
+            description: 'move to end of previous fold (plugin)',
+        }
+    zn:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'reset foldenable (plugin)',
+        }
+    zv:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 'open enough folds to view cursor (plugin)',
+        }
+    zx:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'fold-commands.e2e.ts',
+            description: 're-apply foldlevel and view cursor (plugin)',
+        }
+    'z<CR>':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'cursor line to top + first non-blank (CM Vim native)',
+        }
+    'z.':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'cursor line to center + first non-blank (CM Vim native)',
+        }
+    'z-':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/z-commands.e2e.ts',
+            description: 'cursor line to bottom + first non-blank (CM Vim native)',
+        }
+    'z+':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'cursor on line N below window',
+            reason: 'Rarely used scroll variant',
+        }
+    'z^':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'cursor on line N above window',
+            reason: 'Rarely used scroll variant',
+        }
+    zp:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'paste block-mode without trailing spaces',
+            reason: 'Niche block-paste variant not implemented',
+        }
+    zP:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'paste block-mode without trailing spaces',
+            reason: 'Niche block-paste variant not implemented',
+        }
+    zy:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'yank without trailing spaces',
+            reason: 'Neovim-only feature not in classic Vim',
+        }
+    zG:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'temporarily mark word correctly spelled',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zW:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'temporarily mark word incorrectly spelled',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zug:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'undo zg',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zuG:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'undo zG',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zuw:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'undo zw',
+            reason: 'Obsidian has its own spellcheck system',
+        }
+    zuW:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'undo zW',
+            reason: 'Obsidian has its own spellcheck system',
+        }
 
 normal_mode_bracket_commands:
     '[(':
@@ -1118,6 +1543,122 @@ normal_mode_bracket_commands:
             status: tested,
             test_file: 'buffer-navigation.e2e.ts',
             description: 'previous buffer (plugin)',
+        }
+    '[m':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'previous method/function start (CM Vim native)',
+        }
+    ']m':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/g-commands.e2e.ts',
+            description: 'next method/function end (CM Vim native)',
+        }
+    '[z':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/fold-motions.e2e.ts',
+            description: 'start of enclosing fold (plugin)',
+        }
+    ']z':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'vim-builtin/fold-motions.e2e.ts',
+            description: 'end of enclosing fold (plugin)',
+        }
+    "['":
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/marks-golden.e2e.ts',
+            description: 'cursor to previous lowercase mark, first non-blank (CM Vim native)',
+        }
+    "]'":
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/marks-golden.e2e.ts',
+            description: 'cursor to next lowercase mark, first non-blank (CM Vim native)',
+        }
+    '[`':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/marks-golden.e2e.ts',
+            description: 'cursor to previous lowercase mark (CM Vim native)',
+        }
+    ']`':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/marks-golden.e2e.ts',
+            description: 'cursor to next lowercase mark (CM Vim native)',
+        }
+    '[c':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'table-cell-vim-mode.e2e.ts',
+            description: 'previous table cell (plugin, repurposed from diff)',
+        }
+    ']c':
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'table-cell-vim-mode.e2e.ts',
+            description: 'next table cell (plugin, repurposed from diff)',
+        }
+    '[p':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'paste before with indent adjust (CM Vim native)',
+        }
+    ']p':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/normal-yank-put.e2e.ts',
+            description: 'paste after with indent adjust (CM Vim native)',
+        }
+    '[#':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'previous #if/#else/#ifdef',
+            reason: 'C preprocessor not applicable to Markdown',
+        }
+    ']#':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'next #endif/#else',
+            reason: 'C preprocessor not applicable to Markdown',
+        }
+    '[/':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'previous C comment start',
+            reason: 'C-specific, not applicable to Markdown',
+        }
+    ']/':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'next C comment end',
+            reason: 'C-specific, not applicable to Markdown',
         }
 
 text_objects:
@@ -1324,6 +1865,41 @@ text_objects:
             test_file: 'blockquote-callout.e2e.ts',
             description: 'inside callout (plugin)',
         }
+    as:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'a sentence',
+        }
+    "a'":
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around single quotes',
+        }
+    'a[':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around brackets',
+        }
+    'a<':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around angle brackets',
+        }
+    'a`':
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/text-objects-builtin.e2e.ts',
+            description: 'around backticks',
+        }
 
 operators:
     d:
@@ -1526,6 +2102,72 @@ insert_mode:
             test_file: 'surround.e2e.ts',
             description: 'insert-mode surround with newlines (fork extension)',
         }
+    'CTRL-@':
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'insert previously inserted text and stop insert',
+            reason: 'Not implemented in fork (<C-a> variant with auto-exit)',
+        }
+    CTRL-G_j:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'line down, to column where inserting started (fork)',
+        }
+    CTRL-G_k:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'line up, to column where inserting started (fork)',
+        }
+    CTRL-G_u:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'start new undoable edit (fork)',
+        }
+    CTRL-G_U:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'do not break undo with next cursor movement (fork)',
+        }
+    insert_0_CTRL-D:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'delete all indent in current line (fork)',
+        }
+    insert_caret_CTRL-D:
+        {
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/insert-mode.e2e.ts',
+            description: 'delete all indent in current line (fork, same as 0<C-D>)',
+        }
+    insert_CTRL-N:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'find next completion match',
+            reason: 'Obsidian has native autocomplete',
+        }
+    insert_CTRL-P:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'find previous completion match',
+            reason: 'Obsidian has native autocomplete',
+        }
 
 ex_commands:
     ':s':
@@ -1551,24 +2193,24 @@ ex_commands:
         }
     ':move':
         {
-            tier: 2,
-            status: pending,
-            test_file: '',
-            description: 'move lines to target address (plugin)',
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'move lines to target address (fork)',
         }
     ':copy':
         {
-            tier: 2,
-            status: pending,
-            test_file: '',
-            description: 'copy lines to target address (plugin)',
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-commands-expanded.e2e.ts',
+            description: 'copy lines to target address (fork)',
         }
     ':normal':
         {
-            tier: 2,
-            status: pending,
-            test_file: '',
-            description: 'execute normal-mode keys from ex (plugin)',
+            tier: 1,
+            status: tested,
+            test_file: 'vim-builtin/ex-move-copy-normal.e2e.ts',
+            description: 'execute normal-mode keys from ex (fork)',
         }
     ':w':
         {
@@ -1921,6 +2563,13 @@ window_commands:
             status: tested,
             test_file: 'workspace-extended.e2e.ts',
             description: 'focus right (plugin)',
+        }
+    CTRL-W_T:
+        {
+            tier: 2,
+            status: tested,
+            test_file: 'workspace-extended.e2e.ts',
+            description: 'move current window to new tab (plugin)',
         }
 
 # Surround operator (vim-surround) — requires bundled fork mode
@@ -2411,4 +3060,12 @@ no_ops:
             test_file: '',
             description: 'completion submodes',
             reason: 'Obsidian has native autocomplete',
+        }
+    gs:
+        {
+            tier: 3,
+            status: skip,
+            test_file: '',
+            description: 'sleep N seconds',
+            reason: 'No practical use in Obsidian (Oil uses gs for cycle sort)',
         }

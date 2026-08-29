@@ -92,7 +92,7 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
             await browser.pause(300);
 
             const val = await getEditorValue();
-            expect(val).toContain('bar baz');
+            expect(val).toBe('bar baz\nbar qux');
         });
     });
 

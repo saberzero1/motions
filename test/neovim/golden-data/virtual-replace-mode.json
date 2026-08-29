@@ -1,7 +1,7 @@
 {
     "suite": "virtual-replace-mode",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.650Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:25.801Z",
     "cases": [
         {
             "name": "gR replaces characters",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hel",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 3
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hel",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -57,7 +71,14 @@
                     "line": 0,
                     "ch": 0
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hel",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

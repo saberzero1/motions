@@ -1,7 +1,7 @@
 {
     "suite": "ctrl-o-return",
-    "neovim_version": "0.12.2",
-    "recorded_at": "2026-07-09T01:40:07.606Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:26.055Z",
     "cases": [
         {
             "name": "Ctrl-O from insert returns to insert after motion",
@@ -19,7 +19,14 @@
                     "line": 0,
                     "ch": 5
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hel",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         },
         {
@@ -38,7 +45,14 @@
                     "line": 0,
                     "ch": 1
                 },
-                "mode": "normal"
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hel",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
             }
         }
     ]

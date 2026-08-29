@@ -1,7 +1,7 @@
 {
     "suite": "normal-search",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.146Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:19.466Z",
     "cases": [
         {
             "name": "f should find char to the right",
@@ -22,7 +22,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -48,7 +48,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -74,7 +74,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -100,7 +100,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -126,7 +126,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -152,7 +152,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -178,7 +178,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -204,7 +204,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -230,7 +230,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -256,7 +256,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -282,7 +282,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },
@@ -308,7 +308,189 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "67891\nabcde\n",
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "* should search word under cursor forward",
+            "initial": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "*",
+            "result": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "* on last occurrence should wrap",
+            "initial": {
+                "content": "cat dog cat",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                }
+            },
+            "keys": "*",
+            "result": {
+                "content": "cat dog cat",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "# should search word under cursor backward",
+            "initial": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 16
+                }
+            },
+            "keys": "#",
+            "result": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "# on first occurrence should wrap to last",
+            "initial": {
+                "content": "cat dog cat",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "#",
+            "result": {
+                "content": "cat dog cat",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "* should match whole word only",
+            "initial": {
+                "content": "for format for",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "*",
+            "result": {
+                "content": "for format for",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "# should match whole word only",
+            "initial": {
+                "content": "for format for",
+                "cursor": {
+                    "line": 0,
+                    "ch": 11
+                }
+            },
+            "keys": "#",
+            "result": {
+                "content": "for format for",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "* across lines",
+            "initial": {
+                "content": "word\nother\nword",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "*",
+            "result": {
+                "content": "word\nother\nword",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "ccc\n",
                         "linewise": true
                     }
                 },

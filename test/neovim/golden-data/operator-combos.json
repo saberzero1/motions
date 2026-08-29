@@ -1,7 +1,7 @@
 {
     "suite": "operator-combos",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.217Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:20.090Z",
     "cases": [
         {
             "name": "dw should delete to next word",
@@ -1844,6 +1844,110 @@
                     "\"": {
                         "text": "one\ntwo\n\n",
                         "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "dgn should delete next search match",
+            "initial": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "/foo\ndgn",
+            "result": {
+                "content": "foo bar  baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "foo",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "cgn should change next search match",
+            "initial": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "/foo\ncgnX\u001b",
+            "result": {
+                "content": "foo bar X baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 8
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "foo",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "dgn then . should repeat on next match",
+            "initial": {
+                "content": "foo bar foo baz foo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "/foo\ndgn.",
+            "result": {
+                "content": "foo bar  baz ",
+                "cursor": {
+                    "line": 0,
+                    "ch": 12
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "foo",
+                        "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "cgn then . should repeat change on next match",
+            "initial": {
+                "content": "foo bar foo baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "/foo\ncgnX\u001b.",
+            "result": {
+                "content": "X bar X baz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "foo",
+                        "linewise": false
                     }
                 },
                 "visualMode": null

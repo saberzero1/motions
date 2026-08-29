@@ -1,7 +1,7 @@
 {
     "suite": "normal-editing",
-    "neovim_version": "0.12.4",
-    "recorded_at": "2026-08-27T09:55:31.249Z",
+    "neovim_version": "0.12.5",
+    "recorded_at": "2026-08-29T01:58:20.655Z",
     "cases": [
         {
             "name": "x should delete char under cursor",
@@ -544,6 +544,110 @@
                     "\"": {
                         "text": "old",
                         "linewise": false
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-R should redo after undo",
+            "initial": {
+                "content": "hello world",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "ddu\u0012",
+            "result": {
+                "content": "",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "hello world\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "Ctrl-R twice should redo two undos",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "dddduu\u0012\u0012",
+            "result": {
+                "content": "three",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gR should enter virtual replace mode",
+            "initial": {
+                "content": "hello",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": "gRxy\u001b",
+            "result": {
+                "content": "xyllo",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": "gR at end of line should append",
+            "initial": {
+                "content": "hi",
+                "cursor": {
+                    "line": 0,
+                    "ch": 1
+                }
+            },
+            "keys": "gRxyz\u001b",
+            "result": {
+                "content": "hxyz",
+                "cursor": {
+                    "line": 0,
+                    "ch": 3
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
