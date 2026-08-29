@@ -203,6 +203,7 @@ export interface VimMotionsSettings {
     vimrcPath: string;
     luaConfigPath: string;
     showConfigNotifications: boolean;
+    globalConfigSearch: boolean;
     leaderBindings: LeaderBinding[];
     foldAwareNavigation: boolean;
     foldPersistence: boolean;
@@ -337,6 +338,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     vimrcPath: '',
     luaConfigPath: '',
     showConfigNotifications: true,
+    globalConfigSearch: false,
     leaderBindings: [],
     foldAwareNavigation: true,
     foldPersistence: false,
@@ -512,6 +514,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'configMode',
         'vimrcPath',
         'luaConfigPath',
+        'globalConfigSearch',
         'whichKeyMode',
         'whichKeyGrouping',
         'whichKeyDelay',
@@ -2236,6 +2239,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                             value.endsWith('\\'))
                                             ? 'Path should point to a file, not a directory'
                                             : undefined,
+                                },
+                            },
+                            {
+                                name: 'Search global config directory (desktop only)',
+                                desc: 'After searching the vault root, also look for config files in the Obsidian user data folder (e.g. ~/.config/obsidian/ on Linux). Disabled on mobile.',
+                                visible: () => Platform.isDesktop,
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'globalConfigSearch',
                                 },
                             },
 
@@ -5720,6 +5732,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         void resolveLuaConfigPath(
             this.app,
             this.plugin.settings.luaConfigPath || undefined,
+            this.plugin.settings.globalConfigSearch,
         ).then(({ path, found }) => {
             const statusEl = luaSetting.descEl.createSpan();
             if (found) {
@@ -5755,6 +5768,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         void resolveVimrcPath(
             this.app,
             this.plugin.settings.vimrcPath || undefined,
+            this.plugin.settings.globalConfigSearch,
         ).then(({ path, found }) => {
             const statusEl = vimrcSetting.descEl.createSpan();
             if (found) {
@@ -5767,6 +5781,23 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 statusEl.addClass('vim-motions-config-path-error');
             }
         });
+
+        if (Platform.isDesktop) {
+            new Setting(container)
+                .setName('Search global config directory (desktop only)')
+                .setDesc(
+                    'After searching the vault root, also look for config files in the Obsidian user data folder (e.g. ~/.config/obsidian/ on Linux). Disabled on mobile.',
+                )
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(this.plugin.settings.globalConfigSearch)
+                        .onChange(async (value) => {
+                            this.plugin.settings.globalConfigSearch = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+        }
 
         new Setting(container)
             .setName('Show config load notifications')

@@ -1541,6 +1541,7 @@ export default class VimMotionsPlugin extends Plugin {
                                 this.leaderRegistry ?? undefined,
                                 onSettingOverride,
                                 customVimrcPath,
+                                this.settings.globalConfigSearch,
                             );
                             this.vimrcCommandCount = vimrcResult.commandCount;
                             this.pendingVimrcExCommands =
@@ -1633,7 +1634,11 @@ export default class VimMotionsPlugin extends Plugin {
                         file.path !== this.vimrcWatchPath
                     )
                         return;
-                    void this.softReloadVimrc(vim, onSettingOverride);
+                    void this.softReloadVimrc(
+                        vim,
+                        onSettingOverride,
+                        this.settings.globalConfigSearch,
+                    );
                 }),
             );
         }
@@ -3144,7 +3149,9 @@ export default class VimMotionsPlugin extends Plugin {
             value: unknown,
             directive?: string,
         ) => void,
+        globalConfigSearch?: boolean,
     ): Promise<void> {
+        void globalConfigSearch;
         const path = this.vimrcWatchPath;
         if (!path) return;
 
@@ -3648,6 +3655,7 @@ export default class VimMotionsPlugin extends Plugin {
             leaderRegistry: this.leaderRegistry ?? undefined,
             onSettingOverride: onLuaSettingOverride,
             customPath: customLuaPath,
+            globalConfigSearch: this.settings.globalConfigSearch,
             bufferKeymapManager: this.bufferKeymapManager,
             openPicker: this.openPicker ?? undefined,
             getUndoTree: this.settings.enableUndoTree

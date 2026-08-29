@@ -42,7 +42,7 @@ On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On
 | Table navigation               | toggle   | `true`   | —                           | `vim.opt.tablenav`              | `set tablenav`              | Enable table-nav overlay mode and table motions (`]\| `, `[\| `, `]c`, `[c`). When disabled, the native table editor still supports vim cell editing with cross-cell `h`/`j`/`k`/`l` navigation.                                                               |
 | Table widget in live preview   | dropdown | `native` | `native`, `raw`             | `vim.opt.tablewidget`           | `set tablewidget`           | Controls how tables display in Live Preview. `native` uses Obsidian's built-in table editor with vim injected into cell editors. `raw` always shows raw markdown.                                                                                              |
 | Yank highlight                 | dropdown | `solid`  | `off`, `solid`, `fade`      | `vim.opt.yankhighlightmode`     | `set yankhighlightmode`     | Highlight yanked text. "Solid" appears and disappears (Neovim-style). "Fade" gradually fades out.                                                                                                                                                              |
-| Yank highlight duration        | slider   | `200`    | 50–3000 ms                  | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                                                                                                                                                                                     |
+| Yank highlight duration        | slider   | `200`    | 0–5000 ms                   | `vim.opt.yankhighlightduration` | `set yankhighlightduration` | How long the yank highlight stays visible.                                                                                                                                                                                                                     |
 | Yank-ring paste cycling        | toggle   | `true`   | —                           | `vim.opt.yankring`              | `set yankring`              | Cycle through numbered registers after paste (`<C-p>`/`<C-n>`).                                                                                                                                                                                                |
 | Sign column                    | dropdown | `auto`   | `auto[:N]`, `yes[:N]`, `no` | `vim.opt.signcolumn`            | `set signcolumn`            | Show vim mark letters in a dedicated gutter column. Auto: show when marks exist. Always: always reserve space. Off: hide. Append `:N` (1–4) to set character width. Clickable — clicking a mark jumps to its line. Global marks (A–Z) shown in distinct color. |
 | Fold column                    | toggle   | `false`  | —                           | `vim.opt.foldcolumn`            | `set foldcolumn`            | Show fold indicators (▸/▾) in the gutter for foldable regions. Click to toggle. Default: off.                                                                                                                                                                  |
@@ -62,7 +62,6 @@ On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On
 | Workspace navigation view types | text     | `(empty)` | —                    | `vim.opt.workspacenavviewtypes` | `set workspacenavviewtypes` | Comma-separated view types where scroll and count keys are intercepted. Empty uses defaults (markdown, graph, pdf, canvas, empty, image, bases). |
 | Fold-aware navigation           | toggle   | `true`    | —                    | `vim.opt.foldawarenavigation`   | `set foldawarenavigation`   | Automatically unfold sections when navigating into them (e.g., `]h` into a folded heading). Matches Neovim's default `foldopen` behavior.        |
 | Fold persistence                | toggle   | `false`   | —                    | `vim.opt.foldpersistence`       | `set foldpersistence`       | Remember fold state across file switches and sessions. Capped at 500 files, 30-day TTL.                                                          |
-| Fold enable/disable             | toggle   | `true`    | —                    | `vim.opt.foldenable`            | `set foldenable`            | Enable or disable folding. When disabled (`zn`), all folds are opened and fold-creating commands become no-ops. Re-enable with `zN` or `zi`.     |
 
 > [!warning]
 > **Workspace navigation**: `<C-w>`, `Ctrl-d`, `Ctrl-f`, and `Ctrl-b` may conflict with Obsidian's default hotkeys. The plugin detects these conflicts on startup and shows a Notice. Use the **Check hotkey conflicts** button in this settings group to see active conflicts and unbinding instructions.
@@ -157,11 +156,12 @@ On Obsidian 1.13+, pages appear as navigable entries in the settings sidebar. On
 
 The following options are available via vimrc and Lua but do not appear in the Settings UI:
 
-| Name           | Type   | Default | Range/Options | Lua                    | Vimrc              | Description                                                            |
-| -------------- | ------ | ------- | ------------- | ---------------------- | ------------------ | ---------------------------------------------------------------------- |
-| Jump list      | toggle | `true`  | —             | `vim.opt.jumplist`     | `set jumplist`     | Use vim-style jump list for `<C-o>`/`<C-i>`.                           |
-| Jump list size | number | `200`   | 1–1000        | `vim.opt.jumplistsize` | `set jumplistsize` | Maximum number of entries in the jump list.                            |
-| Update time    | number | `4000`  | ms            | `vim.opt.updatetime`   | `set updatetime`   | Milliseconds before `CursorHold` fires. Matches Neovim's `updatetime`. |
+| Name           | Type   | Default | Range/Options | Lua                    | Vimrc              | Description                                                                                         |
+| -------------- | ------ | ------- | ------------- | ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
+| Jump list      | toggle | `true`  | —             | `vim.opt.jumplist`     | `set jumplist`     | Use vim-style jump list for `<C-o>`/`<C-i>`.                                                        |
+| Jump list size | number | `200`   | 1–1000        | `vim.opt.jumplistsize` | `set jumplistsize` | Maximum number of entries in the jump list.                                                         |
+| Update time    | number | `4000`  | ms            | `vim.opt.updatetime`   | `set updatetime`   | Milliseconds before `CursorHold` fires. Matches Neovim's `updatetime`.                              |
+| Fold enable    | toggle | `true`  | —             | `vim.opt.foldenable`   | `set foldenable`   | Enable or disable folding. When disabled (`zn`), all folds are opened. Re-enable with `zN` or `zi`. |
 
 ## Snippets
 
@@ -176,10 +176,10 @@ The following options are available via vimrc and Lua but do not appear in the S
 
 | Name                     | Type     | Default | Range/Options           | Lua                                 | Vimrc                           | Description                                              |
 | ------------------------ | -------- | ------- | ----------------------- | ----------------------------------- | ------------------------------- | -------------------------------------------------------- |
-| Oil explorer             | toggle   | `true`  | —                       | `vim.opt.oilexplorer`               | `set oilexplorer`               | Enable the oil-style file explorer (`:Oil` command).     |
-| Show hidden files        | toggle   | `false` | —                       | `vim.opt.oilshowhiddenfiles`        | `set oilshowhiddenfiles`        | Show dotfiles and hidden folders in oil views.           |
-| Confirm delete threshold | slider   | `1`     | 1–20                    | `vim.opt.oilconfirmdeletethreshold` | `set oilconfirmdeletethreshold` | Show confirmation when deleting this many files or more. |
-| Default sort order       | dropdown | `name`  | `name`, `mtime`, `size` | `vim.opt.oildefaultsort`            | `set oildefaultsort`            | Default sort order for oil directory listings.           |
+| Oil explorer             | toggle   | `true`  | —                       | `vim.opt.oil`                       | `set oil`                       | Enable the oil-style file explorer (`:Oil` command).     |
+| Show hidden files        | toggle   | `false` | —                       | `vim.opt.oilhiddenfiles`            | `set oilhiddenfiles`            | Show dotfiles and hidden folders in oil views.           |
+| Confirm delete threshold | slider   | `1`     | 0–100                   | `vim.opt.oilconfirmdeletethreshold` | `set oilconfirmdeletethreshold` | Show confirmation when deleting this many files or more. |
+| Default sort order       | dropdown | `name`  | `name`, `mtime`, `size` | `vim.opt.oilsort`                   | `set oilsort`                   | Default sort order for oil directory listings.           |
 
 ## Undo tree
 
@@ -248,6 +248,7 @@ The following options are available via vimrc and Lua but do not appear in the S
 | Configuration mode             | dropdown | `lua-vimrc` | `lua-vimrc`, `lua`, `vimrc`, `settings` | —   | —     | How the plugin loads config files. Lua + Vimrc loads both with Lua priority.                                                                                                                                                                        |
 | Custom vimrc path              | text     | `(empty)`   | —                                       | —   | —     | Override path to a vimrc file. Vault-relative or absolute (desktop only, e.g. `~/.config/obsidian/vimrc`). Leave empty to search: `vimrc`, `.vimrc`, `init.vim`, `.init.vim`, `obsidian.vimrc`, `obsidian.vim`, `.obsidian.vimrc`, `.obsidian.vim`. |
 | Custom init.lua path           | text     | `(empty)`   | —                                       | —   | —     | Override path to an init.lua file. Vault-relative or absolute (desktop only, e.g. `~/.config/obsidian/init.lua`). Leave empty to search: `init.lua`, `.init.lua`, `obsidian.init.lua`, `.obsidian.init.lua`, `obsidian.lua`.                        |
+| Search global config directory | toggle   | `false`     | —                                       | —   | —     | After searching the vault root, also look for config files in the Obsidian user data folder (e.g. `~/.config/obsidian/` on Linux). Desktop only.                                                                                                    |
 | Show config load notifications | toggle   | `on`        | —                                       | —   | —     | Show a notification when vimrc or init.lua is loaded on startup. Error notifications are always shown regardless of this setting.                                                                                                                   |
 
 ## Leader key bindings

@@ -27,13 +27,25 @@ The first file found is used. Override this with a custom path in **Settings →
 
 ### Shared config across vaults (desktop only)
 
-On desktop, the custom path can be an absolute filesystem path — useful for sharing one vimrc across multiple vaults:
+Two ways to share one vimrc across multiple vaults on desktop:
+
+**Option A — Global config search toggle**: Enable **Settings → Vim Motions → Vimrc & key bindings → Search global config directory**. The plugin will automatically search the Obsidian user data folder after exhausting vault-root candidates:
+
+- `~/.config/obsidian/` (Linux)
+- `~/Library/Application Support/obsidian/` (macOS)
+- `%APPDATA%\obsidian\` (Windows)
+
+Place your `vimrc` (or any file from the fallback chain) in the appropriate directory and it will be found automatically. Vault-root files always take priority.
+
+**Option B — Custom absolute path**: Set an absolute path in **Settings → Vim Motions → Vimrc & key bindings → Custom vimrc path**:
 
 - `~/.config/obsidian/vimrc` (Linux)
 - `~/Library/Application Support/obsidian/vimrc` (macOS)
 - `C:\Users\<you>\.config\obsidian\vimrc` (Windows)
 
-Any absolute path (starting with `/`, `~`, or a drive letter) is read directly from the filesystem instead of through the vault. This is not available on mobile.
+Any path starting with `/`, `~`, or a drive letter is read directly from the filesystem instead of through the vault.
+
+Neither option is available on mobile.
 
 > [!tip] Obsidian Sync
 > Obsidian Sync skips dotfiles. Use a non-dotfile name like `vimrc` (the first candidate in the fallback chain) to ensure your config syncs across devices.
@@ -197,7 +209,7 @@ Use `set <option>=<value>`.
 | `smoothcursortrailstiffness` | `scts` | Smear trail tail stiffness                      | 0.3     | 0.1-1    |
 | `smoothcursordamping`        | `scd`  | Smear trail velocity decay                      | 0.85    | 0.1-0.99 |
 | `smoothcursormaxlength`      | `scml` | Maximum smear trail length (px)                 | 400     | 50-800   |
-| `oilconfirmdeletethreshold`  | —      | Oil delete confirmation threshold               | 5       | 0-100    |
+| `oilconfirmdeletethreshold`  | —      | Oil delete confirmation threshold               | 1       | 0-100    |
 
 ## String options
 

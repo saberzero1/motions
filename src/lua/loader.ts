@@ -35,6 +35,7 @@ import {
     isAbsolutePath,
     readExternalFile,
     externalFileExists,
+    getObsidianUserDataDir,
 } from '../util/external-fs';
 import {
     executeCommand as execCmd,
@@ -124,6 +125,7 @@ async function fileExists(app: App, path: string): Promise<boolean> {
 async function resolveLuaConfigPath(
     app: App,
     customPath?: string,
+    globalConfigSearch?: boolean,
 ): Promise<{ path: string; found: boolean }> {
     if (customPath) {
         const exists = await fileExists(app, customPath);
@@ -132,6 +134,21 @@ async function resolveLuaConfigPath(
     for (const candidate of getLuaFallbackPaths(app)) {
         if (await fileExists(app, candidate)) {
             return { path: candidate, found: true };
+        }
+    }
+    if (globalConfigSearch) {
+        const userDataDir = getObsidianUserDataDir();
+        if (userDataDir) {
+            const candidates = [...LUA_FALLBACK_PATHS, 'obsidian.lua'];
+            for (const candidate of candidates) {
+                const fullPath =
+                    userDataDir.endsWith('/') || userDataDir.endsWith('\\')
+                        ? userDataDir + candidate
+                        : `${userDataDir}/${candidate}`;
+                if (await externalFileExists(fullPath)) {
+                    return { path: fullPath, found: true };
+                }
+            }
         }
     }
     return { path: LUA_FALLBACK_PATHS[0]!, found: false };
@@ -206,6 +223,7 @@ export interface LoadInitLuaOptions {
     onPickerKeymapChange?: (keymap: Record<string, string[]>) => void;
     onTextObjectAdd?: VimApiCallbacks['onTextObjectAdd'];
     onTextObjectDel?: VimApiCallbacks['onTextObjectDel'];
+    globalConfigSearch?: boolean;
     globalRegistry?: {
         addMapping: (
             keys: string,
@@ -241,11 +259,16 @@ export async function loadInitLua(
         onPickerKeymapChange,
         onTextObjectAdd,
         onTextObjectDel,
+        globalConfigSearch,
         globalRegistry,
         imSwitcher,
         getUndoTree,
     } = options;
-    const { path, found } = await resolveLuaConfigPath(app, customPath);
+    const { path, found } = await resolveLuaConfigPath(
+        app,
+        customPath,
+        globalConfigSearch,
+    );
     const doc = app.workspace.containerEl.ownerDocument;
     const highlightManager = new HighlightManager(doc);
 

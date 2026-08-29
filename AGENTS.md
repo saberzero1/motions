@@ -310,7 +310,7 @@ When making a change, update these docs pages:
 | Surround              | `features/surround.md`              | (no settings — fork feature)                                                                                                                       |
 | Ex commands           | `features/ex-commands.md`           | (no settings — always enabled)                                                                                                                     |
 | Quality of life       | `features/quality-of-life.md`       | Vim features (listcontinuation), Vim engine (clipboard, etc.)                                                                                      |
-| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath)                                                                                                   |
+| Lua configuration     | `configuration/lua-config.md`       | Vimrc & key bindings (configMode, luaConfigPath, globalConfigSearch)                                                                               |
 | Snippets              | `features/snippets.md`              | Snippets (enableSnippets, snippetBundled, snippetDirectory, snippetTriggerMode)                                                                    |
 | Vimrc                 | `configuration/vimrc.md`            | Vimrc & key bindings                                                                                                                               |
 | Which-key             | `configuration/which-key.md`        | Which-key hints, group labels, command labels                                                                                                      |

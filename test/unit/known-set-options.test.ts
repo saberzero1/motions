@@ -40,6 +40,7 @@ const EXCLUDED_SETTINGS_KEYS = new Set([
     'configMode',
     'vimrcPath',
     'luaConfigPath',
+    'globalConfigSearch',
     'showConfigNotifications',
 
     // Persisted binding/label arrays — configured via ex commands, not :set

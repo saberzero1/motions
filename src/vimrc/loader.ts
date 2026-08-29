@@ -18,6 +18,7 @@ import {
     isAbsolutePath,
     readExternalFile,
     externalFileExists,
+    getObsidianUserDataDir,
 } from '../util/external-fs';
 
 type SettingOverrideFn = (
@@ -641,6 +642,7 @@ function getVimrcFallbackPaths(app: App): readonly string[] {
 async function resolveVimrcPath(
     app: App,
     customPath?: string,
+    globalConfigSearch?: boolean,
 ): Promise<{ path: string; found: boolean }> {
     if (customPath) {
         const exists = await fileExists(app, customPath);
@@ -649,6 +651,20 @@ async function resolveVimrcPath(
     for (const candidate of getVimrcFallbackPaths(app)) {
         if (await fileExists(app, candidate)) {
             return { path: candidate, found: true };
+        }
+    }
+    if (globalConfigSearch) {
+        const userDataDir = getObsidianUserDataDir();
+        if (userDataDir) {
+            for (const candidate of VIMRC_FALLBACK_PATHS) {
+                const fullPath =
+                    userDataDir.endsWith('/') || userDataDir.endsWith('\\')
+                        ? userDataDir + candidate
+                        : `${userDataDir}/${candidate}`;
+                if (await externalFileExists(fullPath)) {
+                    return { path: fullPath, found: true };
+                }
+            }
         }
     }
     // No file found — return the first fallback as the canonical default
@@ -1206,8 +1222,13 @@ export async function loadVimrc(
         directive?: string,
     ) => void,
     customPath?: string,
+    globalConfigSearch?: boolean,
 ): Promise<VimrcLoadResult> {
-    const { path } = await resolveVimrcPath(app, customPath);
+    const { path } = await resolveVimrcPath(
+        app,
+        customPath,
+        globalConfigSearch,
+    );
 
     const parsed = await readAndParseVimrcFile(app, path);
     if (!parsed.found) {

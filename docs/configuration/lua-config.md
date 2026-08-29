@@ -21,13 +21,25 @@ The first file found is used. Override this with a custom path in **Settings →
 
 ### Shared config across vaults (desktop only)
 
-On desktop, the custom path can be an absolute filesystem path — useful for sharing one `init.lua` across multiple vaults:
+Two ways to share one `init.lua` across multiple vaults on desktop:
+
+**Option A — Global config search toggle**: Enable **Settings → Vim Motions → Vimrc & key bindings → Search global config directory**. The plugin will automatically search the Obsidian user data folder after exhausting vault-root candidates:
+
+- `~/.config/obsidian/` (Linux)
+- `~/Library/Application Support/obsidian/` (macOS)
+- `%APPDATA%\obsidian\` (Windows)
+
+Place your `init.lua` in the appropriate directory and it will be found automatically. Vault-root files always take priority.
+
+**Option B — Custom absolute path**: Set an absolute path in **Settings → Vim Motions → Vimrc & key bindings → Custom init.lua path**:
 
 - `~/.config/obsidian/init.lua` (Linux)
 - `~/Library/Application Support/obsidian/init.lua` (macOS)
 - `C:\Users\<you>\.config\obsidian\init.lua` (Windows)
 
-Any absolute path (starting with `/`, `~`, or a drive letter) is read directly from the filesystem instead of through the vault. This is not available on mobile.
+Any path starting with `/`, `~`, or a drive letter is read directly from the filesystem instead of through the vault.
+
+Neither option is available on mobile.
 
 > [!tip] Obsidian Sync
 > Obsidian Sync skips dotfiles. Use a non-dotfile name like `init.lua` (the first candidate in the fallback chain) to ensure your Lua config syncs across devices.
@@ -367,7 +379,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `easymotionlabels`           | string  | `"asdghklqwertyuiopzxcvbnmfj"`                    |                                                                                          | `vim.opt.easymotionlabels = "asdf"`                |
 | `hintlabels`                 | string  | `"asdfghjkl"`                                     |                                                                                          | `vim.opt.hintlabels = "asdf"`                      |
 | `yankhighlightmode`          | string  | `"solid"`                                         | `"off"`, `"solid"`, `"fade"`                                                             | `vim.opt.yankhighlightmode = "fade"`               |
-| `tablewidget`                | string  | `"cursor"`                                        | `"off"`, `"cursor"`, `"always"`, `"embedded"`                                            | `vim.opt.tablewidget = "cursor"`                   |
+| `tablewidget`                | string  | `"native"`                                        | `"native"`, `"raw"`                                                                      | `vim.opt.tablewidget = "native"`                   |
 | `whichkey`                   | string  | `"off"`                                           | `"off"`, `"leader"`, `"all"`                                                             | `vim.opt.whichkey = "leader"`                      |
 | `whichkeygrouping`           | string  | `"grouped"`                                       | `"flat"`, `"grouped"`                                                                    | `vim.opt.whichkeygrouping = "grouped"`             |
 | `whichkeysort`               | string  | `"which-key"`                                     | `"which-key"`, `"groups-first"`                                                          | `vim.opt.whichkeysort = "which-key"`               |
@@ -379,7 +391,7 @@ All plugin options are available via `vim.opt`. `vim.o` is an alias.
 | `signcolumn`                 | string  | `"auto"`                                          | `"auto[:N]"`, `"yes[:N]"`, `"no"`                                                        | `vim.opt.signcolumn = "auto:3"`                    |
 | `linenumbermode`             | string  | `"hybrid"`                                        | `"hybrid"`, `"dual"`, `"dual-rel-abs"`                                                   | `vim.opt.linenumbermode = "dual"`                  |
 | `statuscolumn`               | string  | `""`                                              | format string (`%l`, `%r`, `%s`, `%C`, `%=`)                                             | `vim.opt.statuscolumn = "%s %l %r %C"`             |
-| `oilconfirmdeletethreshold`  | number  | `5`                                               | 0–100                                                                                    | `vim.opt.oilconfirmdeletethreshold = 10`           |
+| `oilconfirmdeletethreshold`  | number  | `1`                                               | 0–100                                                                                    | `vim.opt.oilconfirmdeletethreshold = 10`           |
 | `updatetime`                 | number  | `4000`                                            | ms (CursorHold delay)                                                                    | `vim.opt.updatetime = 4000`                        |
 | `pickermatcher`              | string  | `"ufuzzy"`                                        | `"ufuzzy"`, `"obsidian"`                                                                 | `vim.opt.pickermatcher = "obsidian"`               |
 | `ripgreppath`                | string  | `""`                                              |                                                                                          | `vim.opt.ripgreppath = "/usr/bin/rg"`              |

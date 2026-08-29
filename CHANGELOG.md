@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Global config directory search** — new `globalConfigSearch` setting (default off, desktop only) that auto-searches the Obsidian user data folder (`~/.config/obsidian/` on Linux, `~/Library/Application Support/obsidian/` on macOS, `%APPDATA%\obsidian\` on Windows) for config files after exhausting vault-root candidates. Vault-root files always take priority. Uses `getObsidianUserDataDir()` (Electron `userData` path) for platform-correct resolution. ([#150](https://github.com/saberzero1/motions/issues/150))
+    - Plugin: `src/settings.ts` (new `globalConfigSearch` setting, declarative + imperative UI, `RELOAD_KEYS`)
+    - Plugin: `src/lua/loader.ts` (`resolveLuaConfigPath` global search step, `LoadInitLuaOptions` update)
+    - Plugin: `src/vimrc/loader.ts` (`resolveVimrcPath` global search step, `loadVimrc` signature update)
+    - Plugin: `src/main.ts` (passes `globalConfigSearch` to both loaders and `softReloadVimrc`)
 - **`g@{motion}` operatorfunc support** — new operator that calls a stored callback with the motion type (`'line'`, `'char'`, or `'block'`). Sets `'[` and `']` marks to the range covered by the motion. Public API includes `setOperatorfunc(fn)` and `getOperatorfunc()`.
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (new `operatorfunc` operator, `setOperatorfunc`/`getOperatorfunc` API)
 - **`:move` and `:copy` ex commands** — proper implementation of line-move and line-copy commands. `:move` (`:m`) moves a range of lines to a destination address; `:copy` (`:co`, `:t`) copies them. Supports absolute, relative, and boundary addresses (`0`, `$`).
@@ -44,6 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/workspace/commands.ts` (positioning fix)
 - **`@:` e2e test assertion** — strengthened assertion from `toContain` to `toBe` for more reliable verification.
     - Test: `test/specs/vim-builtin/new-commands.e2e.ts` (assertion fix)
+- **Documentation: incorrect shared config directory instructions** — the "Shared config across vaults" sections in `lua-config.md` and `vimrc.md` presented global paths like `~/.config/obsidian/init.lua` as if they were auto-searched, but they only work when explicitly set as a custom path. Rewritten to document both the new global search toggle (Option A) and the custom absolute path (Option B). ([#150](https://github.com/saberzero1/motions/issues/150))
+- **Documentation: `tablewidget` default wrong in Lua config reference** — documented default was `"cursor"`, actual default is `"native"`. Valid values corrected to `"native"`, `"raw"`.
+- **Documentation: `oilconfirmdeletethreshold` default wrong** — documented as `5` in `lua-config.md` and `vimrc.md`, actual default is `1` (from `DEFAULT_SETTINGS`).
+- **Documentation: Oil vimrc/Lua option names wrong in settings reference** — `oilexplorer` → `oil`, `oilshowhiddenfiles` → `oilhiddenfiles`, `oildefaultsort` → `oilsort`. Oil confirm delete threshold range corrected from `1–20` to `0–100`.
+- **Documentation: yank highlight duration range wrong** — documented as `50–3000 ms` in `settings.md`, actual range is `0–5000 ms`.
+- **Documentation: `foldenable` listed as Settings UI toggle** — `foldenable` is a CM Vim built-in option registered via `vim.defineOption`, not a `VimMotionsSettings` property. Moved from Vim features table to "Vimrc / Lua only" section.
 
 ### Tests
 
@@ -61,7 +72,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md`: added `g@` and new ex commands to features list
 - `docs/reference/keybindings.md`: added new insert mode and editing commands
 - `docs/features/ex-commands.md`: added `:move` and `:copy` details
-- `docs/configuration/lua-config.md`: added `vim.o.operatorfunc` documentation
+- `docs/configuration/lua-config.md`: added `vim.o.operatorfunc` documentation, fixed shared config section, `tablewidget` default, `oilconfirmdeletethreshold` default
+- `docs/configuration/vimrc.md`: fixed shared config section, `oilconfirmdeletethreshold` default
+- `docs/configuration/settings.md`: fixed oil vimrc/Lua names, yank highlight duration range, moved `foldenable` to vimrc/Lua-only section, added `globalConfigSearch` setting
+- `AGENTS.md`: updated Lua configuration page ownership with `globalConfigSearch`
 
 ## [0.131.0] - 2026-08-28
 
