@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.132.0] - 2026-08-29
+
 ### Added
 
 - **Global config directory search** — new `globalConfigSearch` setting (default off, desktop only) that auto-searches the Obsidian user data folder (`~/.config/obsidian/` on Linux, `~/Library/Application Support/obsidian/` on macOS, `%APPDATA%\obsidian\` on Windows) for config files after exhausting vault-root candidates. Vault-root files always take priority. Uses `getObsidianUserDataDir()` (Electron `userData` path) for platform-correct resolution. ([#150](https://github.com/saberzero1/motions/issues/150))
