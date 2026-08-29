@@ -31,12 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.132.0
+## What's new in 0.133.0
 
-- **Global config directory search** — new `globalConfigSearch` setting auto-searches the Obsidian user data folder for `.obsidian.vimrc` and `.obsidian.init.lua` after vault-root candidates are exhausted. Desktop only, off by default ([#150](https://github.com/saberzero1/motions/issues/150))
-- **`g@{motion}` operatorfunc** — new operator that calls a stored callback with the motion type, with full [[lua-config|Lua API]] support via `vim.o.operatorfunc`
-- **`:move` and `:copy` [[ex-commands|ex commands]]** — proper implementation of `:m` (move lines) and `:t`/`:co` (copy lines) with absolute, relative, and boundary addresses
-- **Insert mode control keys** — `<C-G>u`/`<C-G>U` (undo break control), `<C-G>j`/`<C-G>k` (line navigation), `0<C-D>`/`^<C-D>` (indent deletion)
-- **68 new Neovim golden tests** — expanded parity coverage for visual mode operators, `gE`, `go`, `*`, `#`, `(`, `)`, `gR`, insert mode keys, and more
+- **[[snippets|Snippet]] completion menu fix** — the autocompletion popup now correctly appears when typing snippet triggers on the first line of a newly created note in Live Preview ([#151](https://github.com/saberzero1/motions/issues/151))
 
 See the [[changelog|full changelog]] for details.
