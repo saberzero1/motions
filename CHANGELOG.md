@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.134.0] - 2026-08-30
+
 ### Changed
 
 - **Oil ex commands show guard notice outside Oil buffer** — Oil-specific ex commands (`:oilopen`, `:oilparent`, `:oilclose`, etc.) are now registered eagerly at plugin startup instead of lazily on first Oil focus. When invoked outside an Oil buffer, they show a descriptive notice (`Oil: :<command> only works inside an Oil buffer. Use :Oil to open the file explorer.`) instead of silently no-oping or producing the generic "not an editor command" error. ([#152](https://github.com/saberzero1/motions/issues/152))

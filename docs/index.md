@@ -31,8 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.133.0
+## What's new in 0.134.0
 
-- **[[snippets|Snippet]] completion menu fix** — the autocompletion popup now correctly appears when typing snippet triggers on the first line of a newly created note in Live Preview ([#151](https://github.com/saberzero1/motions/issues/151))
+- **[[oil-explorer|Oil]] ex command guard notices** — Oil-specific ex commands (`:oilopen`, `:oilparent`, `:oilclose`, etc.) now show a descriptive notice when invoked outside an Oil buffer instead of silently no-oping or producing a generic error ([#152](https://github.com/saberzero1/motions/issues/152))
 
 See the [[changelog|full changelog]] for details.
