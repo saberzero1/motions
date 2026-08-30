@@ -276,6 +276,8 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 
 ### Oil explorer
 
+Oil ex commands only operate inside an Oil buffer. If invoked from a regular editor, they show a notice directing you to use `:Oil` to open the file explorer.
+
 | Command            | Default key  | Description                   |
 | ------------------ | ------------ | ----------------------------- |
 | `:oilopen`         | `<CR>`       | Open file / enter directory   |

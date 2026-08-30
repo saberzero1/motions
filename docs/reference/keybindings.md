@@ -600,7 +600,7 @@ Snippet keybindings are active during snippet expansion (after a snippet has bee
 
 ## Oil explorer
 
-Oil keybindings are only active when an oil buffer is focused. All keybindings are user-remappable via Lua or vimrc — see [[oil-explorer#Remapping keybindings]] for details.
+Oil keybindings are only active when an oil buffer is focused. All keybindings are user-remappable via Lua or vimrc — see [[oil-explorer#Remapping keybindings]] for details. Oil ex commands (`:oilopen`, `:oilparent`, etc.) are always registered — invoking them outside an Oil buffer shows a notice instead of an error.
 
 | Keybinding | Ex command         | Description                                                                        |
 | ---------- | ------------------ | ---------------------------------------------------------------------------------- |

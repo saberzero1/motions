@@ -42,6 +42,8 @@ All oil keybindings can be remapped via Lua or vimrc. Each keybinding maps to an
 
 ### Oil ex commands
 
+Oil ex commands are always registered, even outside an Oil buffer. If you invoke an Oil ex command from a regular editor, it shows a notice: `Oil: :<command> only works inside an Oil buffer. Use :Oil to open the file explorer.`
+
 | Ex command         | Short        | Default key  | Description                      |
 | ------------------ | ------------ | ------------ | -------------------------------- |
 | `:oilopen`         | `:oilo`      | `<CR>`       | Open file / enter directory      |

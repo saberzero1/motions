@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Oil ex commands show guard notice outside Oil buffer** — Oil-specific ex commands (`:oilopen`, `:oilparent`, `:oilclose`, etc.) are now registered eagerly at plugin startup instead of lazily on first Oil focus. When invoked outside an Oil buffer, they show a descriptive notice (`Oil: :<command> only works inside an Oil buffer. Use :Oil to open the file explorer.`) instead of silently no-oping or producing the generic "not an editor command" error. ([#152](https://github.com/saberzero1/motions/issues/152))
+    - Plugin: `src/oil/keybindings.ts` (eager registration with guard wrapper, new `registerExCommands()` public method)
+    - Plugin: `src/main.ts` (call `registerExCommands()` at startup and settings reload)
+
+### Tests
+
+- 1 new e2e spec file `test/specs/oil-ex-guard.e2e.ts` — verifies all 11 unique Oil ex commands show a guard notice when invoked outside an Oil buffer, and that commands are recognized (no "not an editor command" error). (#152)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `docs/features/oil-explorer.md`: added note about guard notices for Oil ex commands outside Oil
+- `docs/features/ex-commands.md`: added note about Oil ex command scope
+- `docs/reference/keybindings.md`: updated Oil section note about ex command behavior outside Oil
+
 ## [0.133.0] - 2026-08-29
 
 ### Fixed

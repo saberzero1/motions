@@ -1750,6 +1750,9 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.registerHarpoonExCommands();
         this.registerImExCommands();
+        if (this.settings.oilExplorer) {
+            this.oilKeybindingManager?.registerExCommands();
+        }
 
         if (this.settings.enableSnippets) {
             if (this.registration) {
@@ -2634,6 +2637,9 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.registerHarpoonExCommands();
         this.registerImExCommands();
+        if (this.settings.oilExplorer) {
+            this.oilKeybindingManager?.registerExCommands();
+        }
         if (this.settings.enableSnippets && this.registration) {
             registerSnippetCommands(
                 this.registration,

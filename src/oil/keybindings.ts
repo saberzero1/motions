@@ -138,6 +138,10 @@ export class OilKeybindingManager {
         this.autocmdManager = manager;
     }
 
+    registerExCommands(): void {
+        this.ensureActionsRegistered();
+    }
+
     onActiveLeafChange(): void {
         const leaf = this.app.workspace.getMostRecentLeaf();
         const isOil = leaf?.view instanceof OilView;
@@ -190,6 +194,11 @@ export class OilKeybindingManager {
         this.applied = false;
     }
 
+    private isOilActive(): boolean {
+        const leaf = this.app.workspace.getMostRecentLeaf();
+        return leaf?.view instanceof OilView;
+    }
+
     private ensureActionsRegistered(): void {
         if (this.actionsRegistered) return;
         const vim = getVimApi();
@@ -204,8 +213,17 @@ export class OilKeybindingManager {
             const fn = actions[m.actionName];
             if (!fn) continue;
             if (!registered.has(m.actionName)) {
-                vim.defineAction(m.actionName, fn);
-                vim.defineEx(m.exName, m.exShort, fn);
+                const guarded = () => {
+                    if (!this.isOilActive()) {
+                        new Notice(
+                            `Oil: :${m.exName} only works inside an Oil buffer. Use :Oil to open the file explorer.`,
+                        );
+                        return;
+                    }
+                    fn();
+                };
+                vim.defineAction(m.actionName, guarded);
+                vim.defineEx(m.exName, m.exShort, guarded);
                 registered.add(m.actionName);
             }
         }
