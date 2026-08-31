@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.135.0] - 2026-08-31
+
 ### Added
 
 - **Vim toggle commands** — three new Obsidian commands to toggle the plugin's vim mode on/off at runtime without reload: `toggle-vim-mode`, `enable-vim-mode`, and `disable-vim-mode`. Uses a mutable extension array for zero-latency switching. ([#153](https://github.com/saberzero1/motions/discussions/153))

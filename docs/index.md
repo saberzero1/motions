@@ -31,8 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.134.0
+## What's new in 0.135.0
 
-- **[[oil-explorer|Oil]] ex command guard notices** — Oil-specific ex commands (`:oilopen`, `:oilparent`, `:oilclose`, etc.) now show a descriptive notice when invoked outside an Oil buffer instead of silently no-oping or producing a generic error ([#152](https://github.com/saberzero1/motions/issues/152))
+- **Vim toggle commands** — three new Obsidian commands (`toggle-vim-mode`, `enable-vim-mode`, `disable-vim-mode`) to switch the plugin's vim mode on/off at runtime without reloading the plugin ([#153](https://github.com/saberzero1/motions/discussions/153))
+- **Native cursor restoration** — disabling vim mode now correctly restores the native cursor instead of leaving it invisible
+- **Vim subsystem lifecycle** — extracted clean setup/teardown for all vim subsystems, enabling reliable runtime toggling of Lua, vimrc, gutters, and animated cursor
+- **Lua ex command cleanup** — Lua-defined ex commands are properly removed during vim toggle or config reload, preventing stale command accumulation
 
 See the [[changelog|full changelog]] for details.
