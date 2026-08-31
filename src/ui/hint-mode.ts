@@ -342,8 +342,7 @@ function getEditorViewFromElement(el: Element, app: App): EditorView | null {
     const cmEditor = el.closest('.cm-editor');
     if (!cmEditor) return null;
     const cmView = (cmEditor as unknown as Record<string, unknown>).cmView as
-        | { view?: EditorView }
-        | undefined;
+        { view?: EditorView } | undefined;
     if (cmView?.view) return cmView.view;
     const leaf = findLeafForElement(app, el as HTMLElement);
     if (leaf?.view instanceof MarkdownView) {

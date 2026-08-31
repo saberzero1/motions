@@ -44,15 +44,13 @@ export function createBacklinksSource(): PickerSource {
         priority: 6,
         items(app) {
             const backlinks = getBacklinks(app);
-            return backlinks.map(
-                (item): PickerItem => ({
-                    id: item.path,
-                    label: item.name,
-                    description: `${item.path} (${item.count})`,
-                    filterValue: `${item.name} ${item.path}`,
-                    data: { path: item.path },
-                }),
-            );
+            return backlinks.map((item): PickerItem => ({
+                id: item.path,
+                label: item.name,
+                description: `${item.path} (${item.count})`,
+                filterValue: `${item.name} ${item.path}`,
+                data: { path: item.path },
+            }));
         },
         onSelect(item, app) {
             const data = item.data as { path: string };

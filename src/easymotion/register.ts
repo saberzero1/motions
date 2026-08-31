@@ -171,8 +171,8 @@ function searchTrigger(direction: Direction): MotionTriggerFactory {
 }
 
 let lastMotionFactory:
-    | ((cm: CmAdapter) => Promise<{ line: number; ch: number } | null>)
-    | null = null;
+    ((cm: CmAdapter) => Promise<{ line: number; ch: number } | null>) | null =
+    null;
 
 let lastMotionArgs: Record<string, unknown> = {};
 

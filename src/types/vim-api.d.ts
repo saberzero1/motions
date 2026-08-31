@@ -112,11 +112,7 @@ export interface VimState {
 
 /** Keymap entry types used by Vim.mapCommand. */
 export type KeymapType =
-    | 'motion'
-    | 'action'
-    | 'operator'
-    | 'operatorMotion'
-    | 'keyToKey';
+    'motion' | 'action' | 'operator' | 'operatorMotion' | 'keyToKey';
 
 /** Context for key mappings. */
 export type MapContext = 'normal' | 'visual' | 'insert' | 'select';

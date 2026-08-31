@@ -584,12 +584,10 @@ describe('Spike: Popover editors and autocmd timing', function () {
                 const editor = (view as { editor?: unknown }).editor;
                 if (!editor) return 'no-editor';
                 const editorView = (editor as { cm?: unknown }).cm as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 if (!editorView) return 'no-cm';
                 const adapter = editorView.cm as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 if (!adapter) return 'no-adapter';
                 const vim = (
                     adapter.state as Record<string, unknown> | undefined
@@ -1079,8 +1077,7 @@ describe('Spike: Popover editors and autocmd timing', function () {
                 const editor = (view as { editor?: unknown }).editor;
                 if (!editor) return;
                 const editorView = (editor as { cm?: unknown }).cm as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 if (!editorView) return;
                 const VimApi = (
                     window as unknown as {

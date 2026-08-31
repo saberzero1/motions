@@ -100,8 +100,7 @@ export async function getVimMode(): Promise<string> {
         }
         // Bundled vim: editorView is the CM6 EditorView, .cm is the adapter
         const bundledAdapter = (editorView as Record<string, unknown>).cm as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         if (!bundledAdapter) return 'unknown';
         const bVim = (
             bundledAdapter.state as Record<string, unknown> | undefined
@@ -272,8 +271,7 @@ export async function vimRawKeys(keys: string): Promise<void> {
                         view.editor as unknown as Record<string, unknown>
                     ).cm as Record<string, unknown>;
                     const adapter = cm?.cm as
-                        | Record<string, unknown>
-                        | undefined;
+                        Record<string, unknown> | undefined;
                     if (!adapter) return;
                     const Vim = (
                         window as unknown as {

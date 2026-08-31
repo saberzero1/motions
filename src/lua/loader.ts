@@ -83,6 +83,7 @@ export interface LuaLoadResult {
         desc?: string;
     }>;
     commandCount: number;
+    exCommandNames: string[];
     activateRuntimeExHandler?: (handler: (command: string) => void) => void;
     deactivateRuntimeExHandler?: () => void;
     state: lua_State | null;
@@ -290,6 +291,7 @@ export async function loadInitLua(
             surroundPairs: [],
             leaderBindings: [],
             commandCount: 0,
+            exCommandNames: [],
             luaSnippets: [],
             state: null,
             autocmdManager: null,
@@ -300,6 +302,7 @@ export async function loadInitLua(
     }
 
     let commandCount = 0;
+    const exCommandNames: string[] = [];
     const maps: LuaKeymap[] = [];
     const unmaps: LuaKeymapDelete[] = [];
     const commandLabels: Array<{
@@ -483,6 +486,7 @@ export async function loadInitLua(
         },
         defineExCommand: (name, callback) => {
             commandCount++;
+            exCommandNames.push(name);
             vim.defineEx(name, '', (_cm, params) => {
                 callback(params.argString?.trim() ?? '');
             });
@@ -1215,6 +1219,7 @@ export async function loadInitLua(
             surroundPairs: [],
             leaderBindings: [],
             commandCount: 0,
+            exCommandNames: [],
             luaSnippets,
             state: L,
             autocmdManager,
@@ -1246,6 +1251,7 @@ export async function loadInitLua(
         surroundPairs,
         leaderBindings,
         commandCount,
+        exCommandNames,
         luaSnippets,
         state: L,
         autocmdManager,

@@ -70,8 +70,7 @@ async function runExCommand(
                 return { error: 'Unsupported ex command in oil view' };
             }
             const editor = (view as unknown as { editor?: unknown }).editor as
-                | { cm?: { cm?: unknown } }
-                | undefined;
+                { cm?: { cm?: unknown } } | undefined;
             const adapter = editor?.cm?.cm;
             if (!adapter) return { error: 'No adapter' };
             Vim.handleEx(adapter, cmd);

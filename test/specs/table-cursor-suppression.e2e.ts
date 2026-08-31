@@ -667,8 +667,7 @@ describe('No parent cursor visible during cell editing (#136)', function () {
             const editMode = (view as unknown as Record<string, unknown>)
                 .editMode as Record<string, unknown>;
             const editorView = editMode?.cm as
-                | { scrollDOM?: HTMLElement }
-                | undefined;
+                { scrollDOM?: HTMLElement } | undefined;
             if (!editorView)
                 return {
                     parentLayerDisplay: 'N/A',

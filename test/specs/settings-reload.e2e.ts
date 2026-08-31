@@ -441,8 +441,7 @@ describe('Settings hot-reload', function () {
                 const cmEditorView = (
                     view.editor as unknown as Record<string, unknown>
                 ).cm as
-                    | { cm?: { state?: Record<string, unknown> } }
-                    | undefined;
+                    { cm?: { state?: Record<string, unknown> } } | undefined;
                 const state = cmEditorView?.cm?.state;
                 if (!state || typeof state !== 'object') return null;
 

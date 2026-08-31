@@ -170,8 +170,7 @@ async function getVimModeForLeaf(leafId: string): Promise<string> {
         const editor = (view as { editor?: unknown }).editor;
         if (!editor) return 'no-editor';
         const editorView = (editor as { cm?: unknown }).cm as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         if (!editorView) return 'no-cm';
 
         const Vim = (
@@ -210,8 +209,7 @@ async function handleKeyOnLeaf(leafId: string, key: string): Promise<boolean> {
             const editor = (view as { editor?: unknown }).editor;
             if (!editor) return false;
             const editorView = (editor as { cm?: unknown }).cm as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             if (!editorView) return false;
 
             const Vim = (

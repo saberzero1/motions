@@ -12,8 +12,7 @@ import {
 function ensureFlashEnabled(enabled: boolean): Promise<void> {
     return browser.executeObsidian(({ app }, val: boolean) => {
         const plugin = (app as unknown as Record<string, unknown>).plugins as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         const internal = (plugin?.plugins as Record<string, unknown>)?.[
             'vim-motions'
         ] as { settings: Record<string, unknown> } | undefined;

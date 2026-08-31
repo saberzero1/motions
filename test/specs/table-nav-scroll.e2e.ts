@@ -112,8 +112,7 @@ async function getScrollTop(): Promise<number> {
         if (!view) return -1;
         const cm = (
             (view as unknown as Record<string, unknown>).editMode as
-                | Record<string, unknown>
-                | undefined
+                Record<string, unknown> | undefined
         )?.cm as { scrollDOM?: HTMLElement } | undefined;
         return cm?.scrollDOM?.scrollTop ?? -1;
     })) as number;

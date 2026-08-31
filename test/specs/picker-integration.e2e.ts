@@ -66,8 +66,7 @@ async function hasPickerSource(name: string): Promise<boolean> {
         const plugin = (
             app as unknown as Record<string, Record<string, unknown>>
         ).plugins?.plugins?.['vim-motions'] as
-            | { pickerAPI?: { hasSource: (n: string) => boolean } }
-            | undefined;
+            { pickerAPI?: { hasSource: (n: string) => boolean } } | undefined;
         return plugin?.pickerAPI?.hasSource(n) ?? false;
     }, name)) as boolean;
 }
@@ -211,8 +210,7 @@ describe('Picker integrations', function () {
                 const plugin = (
                     app as unknown as Record<string, Record<string, unknown>>
                 ).plugins?.plugins?.['vim-motions'] as
-                    | { registerBundledIntegrations?: () => void }
-                    | undefined;
+                    { registerBundledIntegrations?: () => void } | undefined;
                 plugin?.registerBundledIntegrations?.();
             });
             await browser.pause(300);
@@ -229,8 +227,7 @@ describe('Picker integrations', function () {
                 const plugin = (
                     app as unknown as Record<string, Record<string, unknown>>
                 ).plugins?.plugins?.['vim-motions'] as
-                    | { registerBundledIntegrations?: () => void }
-                    | undefined;
+                    { registerBundledIntegrations?: () => void } | undefined;
                 plugin?.registerBundledIntegrations?.();
             });
             await browser.pause(300);

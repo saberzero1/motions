@@ -109,8 +109,7 @@ async function getFullState(): Promise<CellState> {
             const cellCm = cellEditor.cm as Record<string, unknown>;
             const cellState = cellCm?.state as Record<string, unknown>;
             const doc = cellState?.doc as
-                | { toString: () => string }
-                | undefined;
+                { toString: () => string } | undefined;
             cellContent = doc?.toString() ?? 'no doc';
             cellRow = (cellEditor.row as number) ?? -1;
             cellCol = (cellEditor.col as number) ?? -1;

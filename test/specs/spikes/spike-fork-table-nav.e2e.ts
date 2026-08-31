@@ -45,8 +45,7 @@ async function getState(): Promise<Record<string, unknown>> {
             const cellCm = cellEditor.cm as Record<string, unknown>;
             const cellState = cellCm?.state as Record<string, unknown>;
             const doc = cellState?.doc as
-                | { toString: () => string }
-                | undefined;
+                { toString: () => string } | undefined;
             cellContent = doc?.toString() ?? 'no doc';
         }
 

@@ -302,8 +302,7 @@ describe('Spike: built-in vim table behavior (plugin DISABLED)', function () {
                     : 'no scope property';
 
                 const cellOwner = cell.owner as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 const ownerScope = cellOwner?.scope;
                 if (ownerScope) {
                     cellScopeInfo += ` | owner scope: ${Object.keys(ownerScope as Record<string, unknown>).length} keys`;

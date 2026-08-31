@@ -939,8 +939,7 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             await browser.executeObsidian(() => {
                 const w = window as unknown as Record<string, unknown>;
                 const cma = w.CodeMirrorAdapter as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 const vimApi = cma?.Vim as
                     | {
                           setOption?: (n: string, v: unknown) => void;
@@ -954,8 +953,7 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             await browser.executeObsidian(() => {
                 const w = window as unknown as Record<string, unknown>;
                 const cma = w.CodeMirrorAdapter as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 const vimApi = cma?.Vim as
                     | {
                           setOption?: (n: string, v: unknown) => void;
@@ -1004,8 +1002,7 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             await browser.executeObsidian(() => {
                 const w = window as unknown as Record<string, unknown>;
                 const cma = w.CodeMirrorAdapter as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 const vimApi = cma?.Vim as
                     | {
                           setOption?: (n: string, v: unknown) => void;
@@ -1027,8 +1024,7 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             await browser.executeObsidian(() => {
                 const w = window as unknown as Record<string, unknown>;
                 const cma = w.CodeMirrorAdapter as
-                    | Record<string, unknown>
-                    | undefined;
+                    Record<string, unknown> | undefined;
                 const vimApi = cma?.Vim as
                     | {
                           setOption?: (n: string, v: unknown) => void;

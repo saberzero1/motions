@@ -51,8 +51,9 @@ const EXCLUDED_SETTINGS_KEYS = new Set([
     // Internal UI state
     'conflictNoticeDismissedVersion',
 
-    // Platform toggle — not a vim option
+    // Platform/runtime toggles — not vim options
     'enableOnMobile',
+    'vimEnabled',
 
     // Nested objects — configured via dedicated commands or sub-options
     'modePrompts', // via `let g:mode_prompt_*`

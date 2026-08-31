@@ -51,8 +51,7 @@ describe('Spike 17: nmap override of built-in motions (L, H)', function () {
             if (!adapter) return { error: 'No adapter' };
 
             const vimState = (adapter.state as Record<string, unknown>)?.vim as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
 
             const props = Object.keys(Vim);
             const hasDefaultKeymap =

@@ -1287,8 +1287,7 @@ describe('Hint mode', function () {
                     }
                 ).plugins.plugins['vim-motions'];
                 const hintActions = plugin?.hintActions as
-                    | { openNew: (count?: number) => void }
-                    | undefined;
+                    { openNew: (count?: number) => void } | undefined;
                 if (hintActions) {
                     hintActions.openNew(2);
                 }

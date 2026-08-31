@@ -11,28 +11,28 @@ tags:
 
 Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 
-| Keybinding          | Description                                                          |
+| Keybinding | Description |
 | ------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`)             |
-| `i_` / `a_`         | Inside/around _italic_ (`_..._`)                                     |
-| `` i` `` / `` a` `` | Inside/around `inline code`                                          |
-| `i$` / `a$`         | Inside/around math (`$...$` or `$$...$$`), with smart disambiguation |
-| `i~` / `a~`         | Inside/around ~~strikethrough~~ (`~~...~~`)                          |
-| `i=` / `a=`         | Inside/around ==highlight== (`==...==`)                              |
-| `il` / `al`         | Inside/around links (`[[wikilink]]` or `[text](url)`)                |
-| `iC` / `aC`         | Inside/around fenced code blocks                                     |
-| `iB` / `aB`         | Inside/around blockquotes (`>`)                                      |
-| `io` / `ao`         | Inside/around callouts (`> [!type]`)                                 |
-| `it` / `at`         | Inside/around HTML/XML tags                                          |
-| `ir` / `ar`         | Inside/around table row (raw markdown only)                          |
-| `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                        |
-| `iS` / `aS`         | Subword                                                              | camelCase/snake_case segment. Around includes trailing separator                       |
-| `in` / `an`         | Number                                                               | Numeric literal (sign + decimal). Around includes surrounding space                    |
-| `iq` / `aq`         | Any quote                                                            | Nearest `"`/`'`/`` ` `` pair on same line                                              |
-| `iD` / `aD`         | Double brackets                                                      | Wikilink `[[...]]` content. Handles nesting                                            |
-| `gL`                | URL                                                                  | Forward-seeking URL selection (`https://...`)                                          |
-| `i,` / `a,`         | Argument                                                             | Comma-separated argument with nesting support                                          |
-| `ii` / `ai`         | Indentation                                                          | Lines with same-or-greater indentation level; around includes parent + trailing blanks |
+| `i*` / `a*` | Inside/around **bold** (`**...**`) or _italic_ (`*...*`) |
+| `i_` / `a_` | Inside/around _italic_ (`_..._`) |
+| `` i` `` / `` a` `` | Inside/around `inline code` |
+| `i$` / `a$` | Inside/around math (`$...$` or `$$...$$`), with smart disambiguation |
+| `i~` / `a~` | Inside/around ~~strikethrough~~ (`~~...~~`) |
+| `i=` / `a=` | Inside/around ==highlight== (`==...==`) |
+| `il` / `al` | Inside/around links (`[[wikilink]]` or `[text](url)`) |
+| `iC` / `aC` | Inside/around fenced code blocks |
+| `iB` / `aB` | Inside/around blockquotes (`>`) |
+| `io` / `ao` | Inside/around callouts (`> [!type]`) |
+| `it` / `at` | Inside/around HTML/XML tags |
+| `ir` / `ar` | Inside/around table row (raw markdown only) |
+| `i\|` / `a\|` | Inside/around table cell (between `\|` pipes) |
+| `iS` / `aS` | Subword | camelCase/snake_case segment. Around includes trailing separator |
+| `in` / `an` | Number | Numeric literal (sign + decimal). Around includes surrounding space |
+| `iq` / `aq` | Any quote | Nearest `"`/`'`/`` ` `` pair on same line |
+| `iD` / `aD` | Double brackets | Wikilink `[[...]]` content. Handles nesting |
+| `gL` | URL | Forward-seeking URL selection (`https://...`) |
+| `i,` / `a,` | Argument | Comma-separated argument with nesting support |
+| `ii` / `ai` | Indentation | Lines with same-or-greater indentation level; around includes parent + trailing blanks |
 
 ## Structural navigation
 
@@ -585,6 +585,18 @@ Execute commands via the `:` command line, grouped by function.
 | `:violations` / `:viol`            | Show runtime invariant violations      |
 | `:violations!` / `:viol!`          | Clear invariant violation log          |
 | `:gmap`                            | List all active global bindings        |
+
+### Obsidian commands
+
+The following commands are available in the Obsidian command palette (**Ctrl+P** or **Cmd+P**).
+
+| Command                         | Description                               |
+| ------------------------------- | ----------------------------------------- |
+| `Vim Motions: Toggle Vim mode`  | Toggle the plugin's vim mode on/off       |
+| `Vim Motions: Enable Vim mode`  | Enable the plugin's vim mode              |
+| `Vim Motions: Disable Vim mode` | Disable the plugin's vim mode             |
+| `Vim Motions: Toggle mobile`    | Toggle plugin activation on mobile        |
+| `Vim Motions: Check conflicts`  | Open the hotkey conflict resolution modal |
 
 ## Snippets
 

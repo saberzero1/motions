@@ -284,8 +284,7 @@ describe('executeImGet', () => {
         expect(secondResult).toBe('com.apple.keylayout.ABC');
 
         const firstCallback = mockExecFile.mock.calls[0]?.[3] as
-            | ((error: null, stdout: string, stderr: string) => void)
-            | undefined;
+            ((error: null, stdout: string, stderr: string) => void) | undefined;
         firstCallback?.(null, 'com.apple.keylayout.ABC\n', '');
 
         await expect(firstPromise).resolves.toBe('com.apple.keylayout.ABC');
@@ -412,8 +411,7 @@ describe('executeImSet', () => {
         expect(secondResult).toBe(true);
 
         const firstCallback = mockExecFile.mock.calls[0]?.[3] as
-            | ((error: null) => void)
-            | undefined;
+            ((error: null) => void) | undefined;
         firstCallback?.(null);
 
         await expect(firstPromise).resolves.toBe(true);

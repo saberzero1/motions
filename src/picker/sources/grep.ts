@@ -141,15 +141,13 @@ export function createGrepSource(
         priority: 11,
         async items(app) {
             const results = await searchVault(app, query, ripgrepConfig);
-            return results.map(
-                (result): PickerItem => ({
-                    id: `${result.path}:${result.lineNumber}`,
-                    label: result.basename,
-                    description: `L${result.lineNumber}: ${result.linePreview}`,
-                    filterValue: `${result.basename} ${result.linePreview}`,
-                    data: { path: result.path, line: result.lineNumber },
-                }),
-            );
+            return results.map((result): PickerItem => ({
+                id: `${result.path}:${result.lineNumber}`,
+                label: result.basename,
+                description: `L${result.lineNumber}: ${result.linePreview}`,
+                filterValue: `${result.basename} ${result.linePreview}`,
+                data: { path: result.path, line: result.lineNumber },
+            }));
         },
         onSelect(item, app) {
             const data = item.data as { path: string; line: number };

@@ -14,8 +14,7 @@ async function getScrollTop(): Promise<number> {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return -1;
         const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
-            | { scrollDOM: HTMLElement }
-            | undefined;
+            { scrollDOM: HTMLElement } | undefined;
         return cm6?.scrollDOM.scrollTop ?? -1;
     })) as number;
 }

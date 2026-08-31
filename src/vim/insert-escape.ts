@@ -16,8 +16,7 @@ export class InsertEscapeHandler {
 
     private get timeout(): number {
         const val = this.vim.getOption('insertmodeescapetimeout') as
-            | number
-            | undefined;
+            number | undefined;
         return typeof val === 'number' && val > 0 ? val : DEFAULT_TIMEOUT;
     }
 
@@ -91,8 +90,7 @@ export class InsertEscapeHandler {
         }
 
         const escapeSeq = this.vim.getOption('insertmodeescape') as
-            | string
-            | undefined;
+            string | undefined;
         if (!escapeSeq || escapeSeq.length < 2) return;
 
         const now = Date.now();

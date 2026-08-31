@@ -45,8 +45,7 @@ export async function getObsidianState(): Promise<EditorState> {
         const cm = (view.editor as unknown as Record<string, unknown>)
             .cm as Record<string, unknown>;
         const vim = (cm?.cm as Record<string, unknown> | undefined)?.state as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         const vimState = vim?.vim as Record<string, unknown> | undefined;
         if (!vimState) return null;
         if (vimState.visualBlock) return 'blockwise';

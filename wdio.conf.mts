@@ -48,6 +48,40 @@ export const config: WebdriverIO.Config = {
         }
     },
 
+    async beforeSuite(suite) {
+        if (suite.title?.includes('Spike:')) return;
+        try {
+            const hasToggle = await browser.executeObsidian(({ app }) => {
+                return !!(
+                    app as unknown as {
+                        commands: { commands: Record<string, unknown> };
+                    }
+                ).commands.commands['vim-motions:disable-vim-mode'];
+            });
+            if (!hasToggle) return;
+
+            await browser.executeObsidian(({ app }) => {
+                (
+                    app as unknown as {
+                        commands: { executeCommandById(id: string): void };
+                    }
+                ).commands.executeCommandById('vim-motions:disable-vim-mode');
+            });
+            await browser.pause(800);
+
+            await browser.executeObsidian(({ app }) => {
+                (
+                    app as unknown as {
+                        commands: { executeCommandById(id: string): void };
+                    }
+                ).commands.executeCommandById('vim-motions:enable-vim-mode');
+            });
+            await browser.pause(800);
+        } catch {
+            /* toggle commands may not be available in all test configurations */
+        }
+    },
+
     async afterTest() {
         try {
             await browser.executeObsidian(({ app, obsidian }) => {

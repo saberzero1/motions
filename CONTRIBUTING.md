@@ -55,7 +55,7 @@ The tests run in a headless Obsidian instance with Xvfb. The test vault is in `t
 
 ```
 src/
-  main.ts                  # Plugin lifecycle (onload, onunload, reloadFeatures)
+  main.ts                  # Plugin lifecycle (onload, onunload, reloadFeatures, setupVimSubsystems, teardownVimSubsystems)
   settings.ts              # Settings interface, defaults, and settings tab UI (7 pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, Advanced)
   settings-migration.ts    # Settings schema migration between versions
   types/
@@ -473,6 +473,10 @@ reg.mapCommand('gX', 'action', 'myAction', {});
 ### Registration and cleanup
 
 All Vim API registrations must go through `VimRegistration` so they're cleaned up on `onunload()` and `reloadFeatures()`. Never call `vim.defineMotion()` or `vim.map()` directly — always use `reg.defineMotion()` and `reg.map()`.
+
+### Vim subsystem lifecycle
+
+The plugin supports toggling vim mode at runtime without a reload. Feature registration is split into `setupVimSubsystems()` and `teardownVimSubsystems()`. All CM6 extensions are registered via a single mutable array that is emptied and repopulated during a toggle. When adding new events or intervals, ensure they are guarded by `this.settings.vimEnabled` or registered within the subsystem setup flow to ensure they are properly cleaned up when vim is disabled.
 
 ### Settings hot-reload
 

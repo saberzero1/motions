@@ -256,8 +256,7 @@ export function findSearchTargets(
 ): Target[] {
     const globalState = vim.getVimGlobalState_();
     const query = globalState.query as
-        | { source: string; flags: string }
-        | undefined;
+        { source: string; flags: string } | undefined;
     if (!query?.source) return [];
 
     const { fromLine, toLine } = getVisibleRange(cm);

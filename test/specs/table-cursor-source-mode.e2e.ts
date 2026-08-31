@@ -45,8 +45,7 @@ async function getCursorLayerState(): Promise<CursorLayerState> {
         const editMode = (view as unknown as Record<string, unknown>)
             .editMode as Record<string, unknown>;
         const editorView = editMode?.cm as
-            | { scrollDOM?: HTMLElement }
-            | undefined;
+            { scrollDOM?: HTMLElement } | undefined;
         if (!editorView?.scrollDOM)
             return {
                 display: 'no-scrolldom',

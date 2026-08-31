@@ -22,8 +22,7 @@ interface TasksPluginLike {
 
 function getTasksPlugin(app: App): TasksPluginLike | undefined {
     const tasks = app.plugins.plugins['obsidian-tasks-plugin'] as
-        | TasksPluginLike
-        | undefined;
+        TasksPluginLike | undefined;
     if (tasks && typeof tasks.getTasks === 'function') {
         return tasks;
     }

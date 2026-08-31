@@ -165,8 +165,7 @@ class VisualLineSomethingSelectedPatch {
     private original: (() => boolean) | null = null;
     private origGetSelection: (() => string) | null = null;
     private origReplaceSelection:
-        | ((text: string, origin?: string) => void)
-        | null = null;
+        ((text: string, origin?: string) => void) | null = null;
     private editorRef: {
         somethingSelected: () => boolean;
         getSelection: () => string;

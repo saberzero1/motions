@@ -88,8 +88,7 @@ export function getInsertModeChar(cm: unknown): string {
     const cmState = (cm as { state?: Record<string, unknown> } | undefined)
         ?.state;
     const vimState = cmState?.vim as
-        | { insertMode?: boolean; virtualReplace?: boolean }
-        | undefined;
+        { insertMode?: boolean; virtualReplace?: boolean } | undefined;
     if (!vimState?.insertMode) return '';
     if (vimState.virtualReplace) return 'v';
     if (cmState?.overwrite) return 'r';
@@ -1087,8 +1086,7 @@ export function injectVimApi(
         }
 
         let callback:
-            | ((cm?: unknown, actionArgs?: unknown) => void)
-            | undefined;
+            ((cm?: unknown, actionArgs?: unknown) => void) | undefined;
         let rhs = rhsRaw ?? undefined;
         if (rhsIsFn) {
             lua.lua_pushvalue(state, 3);

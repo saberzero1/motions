@@ -116,8 +116,7 @@ describe('Spike: Oil cold start (no prior MarkdownView)', function () {
             if (!editorView) return { error: 'no-editor-view' };
 
             const cm = (editorView as Record<string, unknown>).cm as
-                | { state?: { vim?: Record<string, unknown> } }
-                | undefined;
+                { state?: { vim?: Record<string, unknown> } } | undefined;
 
             return {
                 hasVimAdapter: !!cm,

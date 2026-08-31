@@ -69,8 +69,7 @@ describe('Spike: Block visual insert (CTRL-V)', function () {
                         view.editor as unknown as Record<string, unknown>
                     ).cm as Record<string, unknown>;
                     const adapter = cm?.cm as
-                        | Record<string, unknown>
-                        | undefined;
+                        Record<string, unknown> | undefined;
                     if (!adapter) return { error: 'no adapter' };
                     const Vim = (
                         window as unknown as {

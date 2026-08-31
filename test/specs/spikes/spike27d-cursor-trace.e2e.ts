@@ -130,8 +130,7 @@ describe('Spike 27d: ci* single-char root cause', function () {
             const cm = (view.editor as unknown as Record<string, unknown>)
                 .cm as Record<string, unknown>;
             const adapter = cm?.cm as
-                | { getLine?: (n: number) => string }
-                | undefined;
+                { getLine?: (n: number) => string } | undefined;
             if (!adapter) return { error: 'No adapter' };
 
             const line0 = adapter.getLine?.(0);

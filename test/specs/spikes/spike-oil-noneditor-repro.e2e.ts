@@ -103,8 +103,7 @@ async function getOilDiagnostics(): Promise<OilDiagnostics> {
         let vimMode: string | null = null;
         if (editorView) {
             const cm = (editorView as Record<string, unknown>).cm as
-                | { state?: { vim?: Record<string, unknown> } }
-                | undefined;
+                { state?: { vim?: Record<string, unknown> } } | undefined;
             hasVimAdapter = !!cm;
             if (cm?.state?.vim) {
                 vimMode = cm.state.vim.insertMode ? 'insert' : 'normal';

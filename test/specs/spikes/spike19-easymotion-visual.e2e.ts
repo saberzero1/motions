@@ -138,8 +138,7 @@ describe('Spike 19: EasyMotion visual + operator-pending feasibility', function 
             const selection = view.editor.getSelection();
             const cursorAfter = view.editor.getCursor();
             const vimState = (adapter as Record<string, unknown>).state as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             const vim = vimState?.vim as Record<string, unknown> | undefined;
 
             return {
@@ -334,8 +333,7 @@ describe('Spike 19: EasyMotion visual + operator-pending feasibility', function 
 
             const selection = view.editor.getSelection();
             const vimState = (adapter as Record<string, unknown>).state as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             const vim = vimState?.vim as Record<string, unknown> | undefined;
 
             return {

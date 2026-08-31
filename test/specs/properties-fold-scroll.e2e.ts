@@ -60,8 +60,7 @@ async function prepareScrollTest(content = LONG_CONTENT): Promise<void> {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return;
         const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
-            | { scrollDOM: HTMLElement }
-            | undefined;
+            { scrollDOM: HTMLElement } | undefined;
         if (cm6?.scrollDOM) cm6.scrollDOM.scrollTop = 0;
     });
     await browser.pause(SETTLE_MS);
@@ -72,8 +71,7 @@ async function getScrollTop(): Promise<number> {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return -1;
         const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
-            | { scrollDOM: HTMLElement }
-            | undefined;
+            { scrollDOM: HTMLElement } | undefined;
         return cm6?.scrollDOM.scrollTop ?? -1;
     })) as number;
 }
@@ -83,8 +81,7 @@ async function hasMetadataContainer(): Promise<boolean> {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return false;
         const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
-            | { scrollDOM: HTMLElement }
-            | undefined;
+            { scrollDOM: HTMLElement } | undefined;
         const container =
             view.contentEl ?? cm6?.scrollDOM.closest('.workspace-leaf-content');
         return !!container?.querySelector('.metadata-container');

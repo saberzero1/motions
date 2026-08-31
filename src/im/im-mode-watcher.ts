@@ -59,8 +59,7 @@ class ImModeWatcher implements PluginValue {
     private bind(): void {
         if (!this.adapter) return;
         const vim = (this.adapter.state as Record<string, unknown>).vim as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         this.inInsert =
             vim?.insertMode === true ||
             (vim?.mode as string | undefined) === 'replace';

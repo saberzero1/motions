@@ -70,17 +70,15 @@ function getVaultHeadings(app: App): HeadingItem[] {
 }
 
 function buildHeadingItems(headings: HeadingItem[], includeFilename: boolean) {
-    return headings.map(
-        (heading): PickerItem => ({
-            id: `${heading.path}:${heading.line}:${heading.heading}`,
-            label: formatHeadingLabel(heading.level, heading.heading),
-            description: includeFilename ? heading.filename : undefined,
-            filterValue: includeFilename
-                ? `${heading.heading} ${heading.filename}`
-                : heading.heading,
-            data: { path: heading.path, line: heading.line },
-        }),
-    );
+    return headings.map((heading): PickerItem => ({
+        id: `${heading.path}:${heading.line}:${heading.heading}`,
+        label: formatHeadingLabel(heading.level, heading.heading),
+        description: includeFilename ? heading.filename : undefined,
+        filterValue: includeFilename
+            ? `${heading.heading} ${heading.filename}`
+            : heading.heading,
+        data: { path: heading.path, line: heading.line },
+    }));
 }
 
 function jumpToLine(app: App, line: number): void {

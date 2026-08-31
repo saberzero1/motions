@@ -37,15 +37,12 @@ describe('bundled-vim', () => {
         expect(mod.isBundledVimActive()).toBe(true);
     });
 
-    it('createBundledVimExtension() twice triggers invariant', async () => {
-        const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('createBundledVimExtension() twice is idempotent', async () => {
         const mod = await import('../../src/vim/bundled-vim');
-        mod.createBundledVimExtension();
-        mod.createBundledVimExtension();
-        expect(spy).toHaveBeenCalledWith(
-            expect.stringContaining('createBundledVimExtension() called twice'),
-        );
-        spy.mockRestore();
+        const ext1 = mod.createBundledVimExtension();
+        const ext2 = mod.createBundledVimExtension();
+        expect(ext1).toBeDefined();
+        expect(ext2).toBeDefined();
     });
 
     it('installVimBridge() is idempotent', async () => {

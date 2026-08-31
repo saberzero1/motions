@@ -89,8 +89,7 @@ async function handleKeyOnLeaf(leafId: string, key: string): Promise<boolean> {
             const editor = (view as { editor?: unknown }).editor;
             if (!editor) return false;
             const editorView = (editor as { cm?: unknown }).cm as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             if (!editorView) return false;
 
             const VimApi = (

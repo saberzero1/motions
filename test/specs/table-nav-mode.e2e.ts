@@ -193,8 +193,7 @@ async function getCellVimMode(): Promise<string> {
         > | null;
         if (!cellEditor) return 'unknown';
         const cellEditorView = cellEditor.cm as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         const adapter = (
             cellEditorView as { cm?: Record<string, unknown> } | undefined
         )?.cm as Record<string, unknown> | undefined;
@@ -899,8 +898,7 @@ async function getCellCursorPos(): Promise<{
         const cellCm = cellEditor.cm as Record<string, unknown>;
         const cellState = cellCm?.state as Record<string, unknown>;
         const sel = (cellState?.selection as Record<string, unknown>)?.main as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         if (!sel || typeof sel.head !== 'number') return null;
         const doc = cellState?.doc as
             | { lineAt?: (pos: number) => { number: number; from: number } }

@@ -901,8 +901,7 @@ describe('EasyMotion comprehensive', function () {
                         view.editor as unknown as Record<string, unknown>
                     ).cm as Record<string, unknown>;
                     const adapter = cm?.cm as
-                        | Record<string, unknown>
-                        | undefined;
+                        Record<string, unknown> | undefined;
                     const vim = (adapter?.state as Record<string, unknown>)
                         ?.vim as Record<string, boolean> | undefined;
                     return {

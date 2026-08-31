@@ -877,14 +877,11 @@ export class WhichKeyOverlay {
                             operator: (c as Record<string, unknown>)
                                 .operator as string | undefined,
                             motion: (c as Record<string, unknown>).motion as
-                                | string
-                                | undefined,
+                                string | undefined,
                             action: (c as Record<string, unknown>).action as
-                                | string
-                                | undefined,
+                                string | undefined,
                             toKeys: (c as Record<string, unknown>).toKeys as
-                                | string
-                                | undefined,
+                                string | undefined,
                             label:
                                 labelInfo?.label ??
                                 leaderBindingMap.get(c.suffix),

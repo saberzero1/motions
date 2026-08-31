@@ -316,8 +316,7 @@ describe('Spike: deep audit of TableCell extra methods and TableRow backing', fu
                 (k) => /^\d+$/.test(k),
             );
             const cellAtIndex0 = firstRow[0] as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             const cellAtIndex0IsCell = cellAtIndex0
                 ? typeof cellAtIndex0.row === 'number' &&
                   typeof cellAtIndex0.col === 'number'

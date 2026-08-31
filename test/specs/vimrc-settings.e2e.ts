@@ -207,8 +207,7 @@ describe('Vimrc settings parity', function () {
                 }
             ).plugins.plugins['vim-motions'];
             const modePrompts = plugin?.settings?.modePrompts as
-                | { normal?: string; insert?: string }
-                | undefined;
+                { normal?: string; insert?: string } | undefined;
             return {
                 normal: modePrompts?.normal,
                 insert: modePrompts?.insert,

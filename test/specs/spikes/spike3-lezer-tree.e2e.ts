@@ -19,8 +19,7 @@ describe('Spike 3: Lezer syntax tree access from Vim callback', function () {
             if (!cm6View) return { error: 'No editor.cm' };
 
             const cm5Adapter = cm6View.cm as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             if (!cm5Adapter) return { error: 'No editor.cm.cm' };
 
             return {

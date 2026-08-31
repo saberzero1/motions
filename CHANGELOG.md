@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Vim toggle commands** — three new Obsidian commands to toggle the plugin's vim mode on/off at runtime without reload: `toggle-vim-mode`, `enable-vim-mode`, and `disable-vim-mode`. Uses a mutable extension array for zero-latency switching. ([#153](https://github.com/saberzero1/motions/discussions/153))
+    - Plugin: `src/main.ts` (mutable extension array, toggle methods, Obsidian commands, `vimEnabled` guards)
+    - Plugin: `src/settings.ts` (new `vimEnabled` setting in General page)
+    - Fork: `~/Repos/codemirror-vim/src/index.ts` (exported `resetForkedVimState()`)
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (exported `resetCursorState()`)
+- **Lua ex command cleanup** — track and remove Lua-defined ex commands during toggle or reload.
+    - Plugin: `src/lua/loader.ts` (ex command name tracking)
+
+### Changed
+
+- **Vim subsystem lifecycle** — extracted `setupVimSubsystems()` and `teardownVimSubsystems()` for clean runtime toggling.
+    - Plugin: `src/main.ts` (lifecycle extraction)
+- **Bundled vim state reset** — `bundledActive` is now resettable to support runtime re-initialization.
+    - Plugin: `src/vim/bundled-vim.ts` (resettable state)
+
+### Fixed
+
+- **Native cursor visibility after vim toggle** — `BlockCursorPlugin.destroy()` now correctly restores native `caret-color` and cursor layer display, preventing an invisible cursor when vim is disabled.
+    - Fork: `~/Repos/codemirror-vim/src/block-cursor.ts` (restore logic in `destroy()`)
+- **`this.register()` accumulation** — fixed a bug where `reloadFeatures()` would accumulate listeners on every call.
+    - Plugin: `src/main.ts` (cleanup logic)
+
+### Tests
+
+- **Vim toggle e2e suite** — 27 new tests covering full toggle lifecycle, idempotent commands, edge cases (insert/visual mode, debounce), persistence, and bridge availability.
+    - Test: `test/specs/vim-toggle.e2e.ts` (17 tests)
+    - Test: `test/specs/vim-toggle-resilience.e2e.ts` (10 tests)
+- **Mutable array spike** — validated the `updateOptions()` mechanism for runtime extension swapping.
+    - Test: `test/specs/spikes/spike-mutable-array-destroy.e2e.ts` (3 tests)
+- **Regression detection** — added a `beforeSuite` hook to `wdio.conf.mts` that cycles vim mode before every spec.
+    - Test: `wdio.conf.mts` (toggle-cycle hook)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: updated fork API surface with `resetForkedVimState`, `resetCursorState`, `BlockCursorPlugin.destroy()` cursor restoration; documented vim toggle capability in dual-vim architecture; added `beforeSuite` toggle-cycle hook and new test files to test infrastructure section; added `vimEnabled` to settings documentation
+- `CONTRIBUTING.md`: documented `setupVimSubsystems()`/`teardownVimSubsystems()` extraction pattern and mutable extension array mechanism
+- `README.md`: added vim toggle commands to Quality of life features
+- `docs/configuration/settings.md`: added `vimEnabled` setting to General page
+- `docs/reference/keybindings.md`: added Obsidian commands section with `toggle-vim-mode`, `enable-vim-mode`, `disable-vim-mode`
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: documented `resetForkedVimState` API, `resetCursorState` API, and `BlockCursorPlugin.destroy()` cursor restoration fix
+
 ## [0.134.0] - 2026-08-30
 
 ### Changed

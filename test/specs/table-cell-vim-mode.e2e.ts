@@ -121,8 +121,7 @@ async function getCellVimMode(): Promise<string> {
         > | null;
         if (!cellEditor) return 'unknown';
         const cellEditorView = cellEditor.cm as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         const adapter = (
             cellEditorView as { cm?: Record<string, unknown> } | undefined
         )?.cm as Record<string, unknown> | undefined;

@@ -65,15 +65,13 @@ function buildTagIndex(app: App): Map<string, Set<string>> {
 }
 
 function buildFileItems(paths: string[]): PickerItem[] {
-    return paths.map(
-        (path): PickerItem => ({
-            id: path,
-            label: path.replace(/\.md$/, '').split('/').pop() ?? path,
-            description: path,
-            filterValue: path,
-            data: { path },
-        }),
-    );
+    return paths.map((path): PickerItem => ({
+        id: path,
+        label: path.replace(/\.md$/, '').split('/').pop() ?? path,
+        description: path,
+        filterValue: path,
+        data: { path },
+    }));
 }
 
 export function createTagsSource(
@@ -91,15 +89,13 @@ export function createTagsSource(
             const tagMap = buildTagIndex(app);
             return Array.from(tagMap.entries())
                 .sort(([a], [b]) => a.localeCompare(b))
-                .map(
-                    ([tag, files]): PickerItem => ({
-                        id: tag,
-                        label: tag,
-                        description: `${files.size} files`,
-                        filterValue: tag,
-                        data: { tag, files: Array.from(files) },
-                    }),
-                );
+                .map(([tag, files]): PickerItem => ({
+                    id: tag,
+                    label: tag,
+                    description: `${files.size} files`,
+                    filterValue: tag,
+                    data: { tag, files: Array.from(files) },
+                }));
         },
         onSelect(item, app) {
             const data = item.data as { tag: string; files: string[] };

@@ -38,8 +38,7 @@ const CONTENT = ['---', ...FRONTMATTER_PROPS, '---', '', ...BODY_LINES].join(
 function ensureFlashEnabled(enabled: boolean): Promise<void> {
     return browser.executeObsidian(({ app }, val: boolean) => {
         const plugin = (app as unknown as Record<string, unknown>).plugins as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
         const internal = (plugin?.plugins as Record<string, unknown>)?.[
             'vim-motions'
         ] as { settings: Record<string, unknown> } | undefined;
@@ -79,8 +78,7 @@ function getViewportHeight(): Promise<number> {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return 0;
         const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
-            | { scrollDOM: HTMLElement }
-            | undefined;
+            { scrollDOM: HTMLElement } | undefined;
         return cm6?.scrollDOM.clientHeight ?? 0;
     }) as unknown as Promise<number>;
 }
@@ -90,8 +88,7 @@ function getViewportTop(): Promise<number> {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return 0;
         const cm6 = (view.editor as unknown as Record<string, unknown>).cm as
-            | { scrollDOM: HTMLElement }
-            | undefined;
+            { scrollDOM: HTMLElement } | undefined;
         return cm6?.scrollDOM.getBoundingClientRect().top ?? 0;
     }) as unknown as Promise<number>;
 }

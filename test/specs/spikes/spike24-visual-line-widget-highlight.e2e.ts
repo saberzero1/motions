@@ -176,8 +176,7 @@ describe('Spike 24: Visual-line widget highlight DOM investigation (#57)', funct
                                 ) => {
                                     // Check if this is a replace or widget decoration
                                     const spec = dec.spec as
-                                        | Record<string, unknown>
-                                        | undefined;
+                                        Record<string, unknown> | undefined;
                                     const isReplace =
                                         from !== to && dec.point !== true;
                                     const isPoint =
@@ -621,8 +620,7 @@ describe('Spike 24: Visual-line widget highlight DOM investigation (#57)', funct
 
                                     if (linesSpanned > 1 || from === to) {
                                         const spec = dec.spec as
-                                            | Record<string, unknown>
-                                            | undefined;
+                                            Record<string, unknown> | undefined;
                                         const widget = spec?.widget as
                                             | {
                                                   constructor: {

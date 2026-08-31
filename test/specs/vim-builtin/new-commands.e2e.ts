@@ -34,8 +34,7 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                             view.editor as unknown as Record<string, unknown>
                         ).cm as Record<string, unknown>;
                         const adapter = cm?.cm as
-                            | Record<string, unknown>
-                            | undefined;
+                            Record<string, unknown> | undefined;
                         if (!adapter) return { error: 'No adapter' };
                         const Vim = (
                             window as unknown as {
@@ -147,8 +146,7 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                             view.editor as unknown as Record<string, unknown>
                         ).cm as Record<string, unknown>;
                         const adapter = cm?.cm as
-                            | Record<string, unknown>
-                            | undefined;
+                            Record<string, unknown> | undefined;
                         if (!adapter) return { error: 'No adapter' };
                         const Vim = (
                             window as unknown as {
@@ -380,8 +378,7 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                             view.editor as unknown as Record<string, unknown>
                         ).cm as Record<string, unknown>;
                         const adapter = cm?.cm as
-                            | Record<string, unknown>
-                            | undefined;
+                            Record<string, unknown> | undefined;
                         if (!adapter) return { error: 'No adapter' };
                         const Vim = (
                             window as unknown as {
@@ -428,8 +425,7 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                             view.editor as unknown as Record<string, unknown>
                         ).cm as Record<string, unknown>;
                         const adapter = cm?.cm as
-                            | Record<string, unknown>
-                            | undefined;
+                            Record<string, unknown> | undefined;
                         if (!adapter) return { error: 'No adapter' };
                         const Vim = (
                             window as unknown as {

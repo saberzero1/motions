@@ -124,8 +124,7 @@ describe('Mark gutter indicators', function () {
             const state = adapter.state as Record<string, unknown> | undefined;
             const vim = state?.vim as Record<string, unknown> | undefined;
             const marks = vim?.marks as
-                | Record<string, { clear: () => void }>
-                | undefined;
+                Record<string, { clear: () => void }> | undefined;
             if (!marks) return;
             for (const key of Object.keys(marks)) {
                 marks[key]?.clear();

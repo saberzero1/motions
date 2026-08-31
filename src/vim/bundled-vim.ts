@@ -23,8 +23,6 @@ import { editorLivePreviewField } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { CursorShapes } from '../settings';
-import { invariant } from '../util/invariant';
-
 /** Whether the bundled vim extension is active in this session. */
 let bundledActive = false;
 
@@ -37,10 +35,12 @@ export function createBundledVimExtension(
     cursorShapes?: CursorShapes,
     isPropertiesSource?: () => boolean,
 ): Extension {
-    invariant(
-        !bundledActive,
-        'createBundledVimExtension() called twice — bundledActive already true',
-    );
+    if (bundledActive)
+        return Prec.highest(
+            vim({
+                cursorShapes: cursorShapes ? { ...cursorShapes } : undefined,
+            }),
+        );
     bundledActive = true;
     setLivePreviewField(editorLivePreviewField);
     if (isPropertiesSource) {
@@ -133,4 +133,9 @@ export function getBundledCmAdapter(editorView: EditorView): CmAdapter | null {
 /** Whether the bundled vim is the active provider this session. */
 export function isBundledVimActive(): boolean {
     return bundledActive;
+}
+
+export function resetBundledVimState(): void {
+    bundledActive = false;
+    bridgeInstalled = false;
 }

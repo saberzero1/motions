@@ -113,6 +113,7 @@ export const DEFAULT_CURSOR_SHAPES: CursorShapes = {
 };
 
 export interface VimMotionsSettings {
+    vimEnabled: boolean;
     enableOnMobile: boolean;
     enableTextObjects: boolean;
     enableNavigation: boolean;
@@ -259,6 +260,7 @@ export interface VimMotionsSettings {
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
+    vimEnabled: true,
     enableOnMobile: false,
     enableTextObjects: true,
     enableNavigation: true,
@@ -602,6 +604,17 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                 desc: 'Mobile, vim features, picker, and vim engine options',
                 status: () => (builtinVimOn ? 'warning' : null),
                 items: [
+                    // ── Vim mode ─────────────────────────────────────────────
+                    {
+                        name: 'Vim mode',
+                        desc: 'Enable or disable the Vim engine. Requires no restart.',
+                        control: {
+                            type: 'toggle' as const,
+                            key: 'vimEnabled',
+                            defaultValue: true,
+                        },
+                    },
+
                     // ── Mobile ───────────────────────────────────────────────
                     {
                         type: 'group' as const,
@@ -3099,6 +3112,18 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         describeOverride: (key: string, desc?: string) => string,
         isOverridden: (key: string) => boolean,
     ): void {
+        new Setting(containerEl)
+            .setName('Vim mode')
+            .setDesc('Enable or disable the Vim engine. Requires no restart.')
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.vimEnabled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.vimEnabled = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
         // ── Mobile ──────────────────────────────────────────────────
 
         new Setting(containerEl).setName('Mobile').setHeading();
@@ -3372,8 +3397,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.pickerMatcherEngine)
                     .onChange(async (value) => {
                         this.plugin.settings.pickerMatcherEngine = value as
-                            | 'ufuzzy'
-                            | 'obsidian';
+                            'ufuzzy' | 'obsidian';
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                     }),
@@ -3410,8 +3434,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             .setValue(this.plugin.settings.grepMode)
                             .onChange(async (value) => {
                                 this.plugin.settings.grepMode = value as
-                                    | 'ripgrep'
-                                    | 'grep';
+                                    'ripgrep' | 'grep';
                                 await this.plugin.saveSettings();
                                 this.plugin.reloadFeatures();
                             }),
@@ -3829,9 +3852,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('linenumbermode'))
                     .onChange(async (value) => {
                         this.plugin.settings.linenumbermode = value as
-                            | 'hybrid'
-                            | 'dual'
-                            | 'dual-rel-abs';
+                            'hybrid' | 'dual' | 'dual-rel-abs';
                         this.plugin.clearSettingOverride('linenumbermode');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureLineNumberGutter();
@@ -3877,9 +3898,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('cursorlineopt'))
                     .onChange(async (value) => {
                         this.plugin.settings.cursorlineopt = value as
-                            | 'number'
-                            | 'line'
-                            | 'both';
+                            'number' | 'line' | 'both';
                         this.plugin.clearSettingOverride('cursorlineopt');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureCursorlineHighlight();
@@ -5184,9 +5203,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('whichKeyMode'))
                     .onChange(async (value) => {
                         this.plugin.settings.whichKeyMode = value as
-                            | 'off'
-                            | 'leader'
-                            | 'all';
+                            'off' | 'leader' | 'all';
                         this.plugin.clearSettingOverride('whichKeyMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
@@ -5221,8 +5238,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('whichKeyGrouping'))
                     .onChange(async (value) => {
                         this.plugin.settings.whichKeyGrouping = value as
-                            | 'flat'
-                            | 'grouped';
+                            'flat' | 'grouped';
                         this.plugin.clearSettingOverride('whichKeyGrouping');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
@@ -5278,8 +5294,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('whichKeySortOrder'))
                     .onChange(async (value) => {
                         this.plugin.settings.whichKeySortOrder = value as
-                            | 'which-key'
-                            | 'groups-first';
+                            'which-key' | 'groups-first';
                         this.plugin.clearSettingOverride('whichKeySortOrder');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
@@ -5422,9 +5437,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.snippetTriggerMode)
                     .onChange(async (value) => {
                         this.plugin.settings.snippetTriggerMode = value as
-                            | 'completion'
-                            | 'tab'
-                            | 'both';
+                            'completion' | 'tab' | 'both';
                         await this.plugin.saveSettings();
                     }),
             );
@@ -5499,9 +5512,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.oilDefaultSort)
                     .onChange(async (value) => {
                         this.plugin.settings.oilDefaultSort = value as
-                            | 'name'
-                            | 'mtime'
-                            | 'size';
+                            'name' | 'mtime' | 'size';
                         await this.plugin.saveSettings();
                     }),
             );
@@ -5579,8 +5590,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.undoTreePosition)
                     .onChange(async (value) => {
                         this.plugin.settings.undoTreePosition = value as
-                            | 'left'
-                            | 'right';
+                            'left' | 'right';
                         await this.plugin.saveSettings();
                     }),
             );
@@ -5695,10 +5705,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setDisabled(isOverridden('configMode'))
                     .onChange(async (value) => {
                         this.plugin.settings.configMode = value as
-                            | 'lua-vimrc'
-                            | 'lua'
-                            | 'vimrc'
-                            | 'settings';
+                            'lua-vimrc' | 'lua' | 'vimrc' | 'settings';
                         this.plugin.clearSettingOverride('configMode');
                         this.plugin.luaOverrides?.delete('configMode');
                         await this.plugin.saveSettings();
@@ -5987,8 +5994,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.imRestoreBehavior)
                     .onChange(async (value) => {
                         this.plugin.settings.imRestoreBehavior = value as
-                            | 'restore'
-                            | 'default';
+                            'restore' | 'default';
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
                         this.renderImSettings(container);

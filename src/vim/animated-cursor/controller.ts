@@ -446,8 +446,7 @@ class CursorController implements Tickable {
                 return 'visual';
             }
             const inputState = vim.inputState as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
             if (inputState?.operator) return 'operator-pending';
             return 'normal';
         } catch {

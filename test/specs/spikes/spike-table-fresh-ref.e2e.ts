@@ -414,8 +414,7 @@ describe('Spike: fresh table reference acquisition', function () {
             const cmTile = (widgetEl as unknown as Record<string, unknown>)
                 .cmTile as Record<string, unknown> | undefined;
             const tileWidget = cmTile?.widget as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
 
             const hasCellAt = typeof tileWidget?.getCellAt === 'function';
             const hasInsertRow = typeof tileWidget?.insertRow === 'function';

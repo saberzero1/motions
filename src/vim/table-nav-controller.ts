@@ -905,9 +905,7 @@ export class TableNavController implements PluginValue {
             if (s.state !== 'edit') return undefined;
             const editMode = getEditModeForView(this.view);
             const cellView = editMode?.tableCell?.cm as
-                | EditorView
-                | null
-                | undefined;
+                EditorView | null | undefined;
             if (cellView) {
                 const adapter = getCmAdapterFromEditorView(cellView);
                 const vimState = adapter?.state?.vim ?? null;
@@ -928,9 +926,7 @@ export class TableNavController implements PluginValue {
                 if (s.state !== 'edit') return undefined;
                 const editMode = getEditModeForView(this.view);
                 const cellView = editMode?.tableCell?.cm as
-                    | EditorView
-                    | null
-                    | undefined;
+                    EditorView | null | undefined;
                 if (!cellView) return undefined;
                 const adapter = getCmAdapterFromEditorView(cellView);
                 const vimState = adapter?.state?.vim ?? null;

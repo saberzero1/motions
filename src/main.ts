@@ -10,6 +10,7 @@ import {
 import { registerEasyMotion } from './easymotion/register';
 import { registerFlash } from './flash/register';
 import { enableFlashSearch } from './flash/search-mode';
+import { setFlashActive } from './flash/state';
 import {
     registerNavigationMotions,
     registerTableMotions,
@@ -56,6 +57,7 @@ import {
     installVimBridge,
     uninstallVimBridge,
     isBundledVimActive,
+    resetBundledVimState,
 } from './vim/bundled-vim';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintActions } from './ui/hint-mode';
@@ -87,7 +89,7 @@ import { JumpList } from './vim/jumplist';
 import { VimInfoModal } from './ui/vim-info-modal';
 
 import { EditorView, ViewPlugin } from '@codemirror/view';
-import { ChangeSet, Transaction } from '@codemirror/state';
+import { ChangeSet, Extension, Transaction } from '@codemirror/state';
 import {
     yankHighlightExtension,
     showYankHighlight,
@@ -143,7 +145,11 @@ import {
     setCursorShapes,
 } from './vim/animated-cursor/config';
 import { destroyAnimatedCursorManager } from './vim/animated-cursor/manager';
-import { setCursorSuppressed } from '@replit/codemirror-vim';
+import {
+    resetCursorState,
+    resetForkedVimState,
+    setCursorSuppressed,
+} from '@replit/codemirror-vim';
 import { loadInitLua } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
@@ -318,6 +324,8 @@ export default class VimMotionsPlugin extends Plugin {
     private hintWindowCleanups: Array<() => void> = [];
     private hintWindowDocs = new Set<Document>();
     private initializing = true;
+    private vimExtensionSlot: Extension[] = [];
+    private toggleInProgress = false;
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
     vimrcOverrides: Map<string, string> = new Map();
@@ -340,6 +348,7 @@ export default class VimMotionsPlugin extends Plugin {
     luaCommandLabels: CommandLabel[] = [];
     luaLoaded = false;
     luaCommandCount = 0;
+    luaExCommandNames: string[] = [];
     private luaState: lua_State | null = null;
     private luaActionNames = new Set<string>();
     private luaPendingExCommands: string[] = [];
@@ -355,8 +364,7 @@ export default class VimMotionsPlugin extends Plugin {
         | null = null;
     private timerManager: import('./lua/timers').TimerManager | null = null;
     private highlightManager:
-        | import('./lua/highlight').HighlightManager
-        | null = null;
+        import('./lua/highlight').HighlightManager | null = null;
     private frecencyStore: FrecencyStore | null = null;
     private frecencySaveTimer: number | null = null;
     private matcher: ManagedMatcher | null = null;
@@ -569,8 +577,11 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     private onLuaSettingOverrideRef:
-        | ((key: string, value: unknown, directive?: string) => void)
-        | null = null;
+        ((key: string, value: unknown, directive?: string) => void) | null =
+        null;
+    private onSettingOverrideRef:
+        ((key: string, value: unknown, directive?: string) => void) | null =
+        null;
     private vimRef: import('./types/vim-api').VimApi | null = null;
 
     isAnyViewComposingForTest(): boolean {
@@ -709,39 +720,897 @@ export default class VimMotionsPlugin extends Plugin {
             ),
         );
 
-        const builtinVimOn = isBuiltinVimEnabled(this.app);
+        this.registerEditorExtension(this.vimExtensionSlot);
 
-        if (!builtinVimOn) {
+        const builtinVimOn = isBuiltinVimEnabled(this.app);
+        if (this.settings.vimEnabled && !builtinVimOn) {
             installVimBridge();
-            this.registerEditorExtension(
-                createBundledVimExtension(
-                    this.settings.cursorShapes,
-                    () =>
-                        getVaultConfig(this.app, 'propertiesInDocument') ===
-                        'source',
-                ),
-            );
-            // Re-evaluate declarative settings now that the fork is active.
-            // addSettingTab() caches getSettingDefinitions() — the initial
-            // call captured forkActive=false, so static fields (like the
-            // cursor-shapes description) need a refresh.
-            (
-                this.declarativeSettingTab as unknown as {
-                    update?(): void;
-                }
-            )?.update?.();
+            const vim = getVimApi();
+            if (!vim) {
+                new Notice('Vim Motions: could not initialise Vim layer.');
+            } else {
+                this.setupVimSubsystems(vim);
+            }
         }
 
-        devAssert(
-            builtinVimOn !== isBundledVimActive(),
-            `Vim mode conflict: builtinVimOn=${builtinVimOn}, bundledActive=${isBundledVimActive()}`,
+        if (this.settings.vimEnabled) {
+            devAssert(
+                builtinVimOn !== isBundledVimActive(),
+                `Vim mode conflict: builtinVimOn=${builtinVimOn}, bundledActive=${isBundledVimActive()}`,
+            );
+        }
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (leaf) => {
+                if (!this.settings.vimEnabled) return;
+                const view =
+                    this.app.workspace.getActiveViewOfType(MarkdownView);
+                const adapter = view ? getCmAdapter(view) : null;
+                const leafInfo = leaf
+                    ? {
+                          type:
+                              (
+                                  leaf.view as unknown as {
+                                      getViewType?: () => string;
+                                  }
+                              ).getViewType?.() ?? 'empty',
+                          id: getLeafId(leaf),
+                          filePath:
+                              this.app.workspace.getActiveFile()?.path ?? null,
+                      }
+                    : undefined;
+                this.autocmdManager?.onActiveLeafChange(adapter, leafInfo);
+                const activeFile = this.app.workspace.getActiveFile();
+                const filePath = activeFile?.path ?? null;
+                if (activeFile?.extension === 'md') {
+                    trackRecentFile(activeFile.path);
+                }
+                this.bufferKeymapManager?.switchBuffer(filePath);
+                this.oilKeybindingManager?.onActiveLeafChange();
+                this.yankRingManager.cancel();
+                this.yankRingCommandDoneCleanup?.();
+                this.yankRingCommandDoneCleanup = null;
+                if (adapter && this.settings.enableYankRing) {
+                    this.yankRingManager.setAdapter(adapter);
+                    const keypressHandler = (key: string) =>
+                        this.yankRingManager.onKeypress(key);
+                    const commandDoneHandler = () =>
+                        this.yankRingManager.onCommandDone();
+                    adapter.on('vim-keypress', keypressHandler);
+                    adapter.on('vim-command-done', commandDoneHandler);
+                    this.yankRingCommandDoneCleanup = () => {
+                        adapter.off(
+                            'vim-keypress',
+                            keypressHandler as (...args: unknown[]) => void,
+                        );
+                        adapter.off('vim-command-done', commandDoneHandler);
+                    };
+                }
+                if (filePath) {
+                    this.autocmdManager?.fireFileType(filePath);
+                }
+            }),
         );
 
-        const vim = getVimApi();
-        if (!vim) {
-            new Notice('Vim Motions: could not initialise Vim layer.');
-            return;
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (newLeaf) => {
+                if (!this.settings.vimEnabled) return;
+                if (!this.settings.enableWorkspaceNav) return;
+                if (!(newLeaf?.view instanceof MarkdownView)) return;
+                const filePath = newLeaf.view.file?.path ?? null;
+                if (!filePath) return;
+                if (
+                    this.lastMarkdownFilePath &&
+                    this.lastMarkdownFilePath !== filePath
+                ) {
+                    this.alternateFilePath = this.lastMarkdownFilePath;
+                }
+                this.lastMarkdownFilePath = filePath;
+            }),
+        );
+
+        this.registerEvent(
+            this.app.workspace.on('file-open', (file) => {
+                if (!this.settings.vimEnabled) return;
+                if (!this.settings.enableUndoTree) return;
+                const filePath = file?.path ?? null;
+                this.activateUndoTreeForFile(filePath);
+                this.activeUndoFilePath = filePath;
+            }),
+        );
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', () => {
+                if (!this.settings.vimEnabled) return;
+                if (!this.settings.enableUndoTree) return;
+                const activePath =
+                    this.app.workspace.getActiveFile()?.path ?? null;
+                if (
+                    this.activeUndoFilePath &&
+                    this.activeUndoFilePath !== activePath
+                ) {
+                    this.persistUndoTreeForFile(this.activeUndoFilePath);
+                }
+                this.activeUndoFilePath = activePath;
+                this.activateUndoTreeForFile(activePath);
+
+                const openPaths = new Set<string>();
+                this.app.workspace.iterateAllLeaves((leaf) => {
+                    if (leaf.view instanceof MarkdownView && leaf.view.file) {
+                        openPaths.add(leaf.view.file.path);
+                    }
+                });
+                for (const key of [...this.undoTreeMap.keys()]) {
+                    if (key === activePath) continue;
+                    if (openPaths.has(key)) continue;
+                    if (this.undoTreeDirtyPaths.has(key)) {
+                        this.persistUndoTreeForFile(key);
+                    }
+                    this.undoTreeMap.delete(key);
+                    this.undoTreeDirtyPaths.delete(key);
+                }
+            }),
+        );
+
+        if (this.imSwitcher) {
+            this.registerEvent(
+                this.app.workspace.on('active-leaf-change', (leaf) => {
+                    if (!this.settings.vimEnabled) return;
+                    const leafId = leaf ? getLeafId(leaf) : '';
+                    this.imSwitcher?.onLeafChange(leafId);
+                }),
+            );
         }
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (newLeaf) => {
+                if (!this.settings.vimEnabled) return;
+                const oldLeafId = this.previousLeafId;
+                this.previousLeafId = newLeaf ? (newLeaf.id ?? null) : null;
+
+                if (!this.settings.enableHarpoon || !oldLeafId) return;
+                this.app.workspace.iterateAllLeaves((leaf) => {
+                    const leafId = getLeafId(leaf);
+                    if (
+                        leafId === oldLeafId &&
+                        leaf.view instanceof MarkdownView &&
+                        leaf.view.file
+                    ) {
+                        const view = leaf.view;
+                        const filePath = view.file!.path;
+                        if (this.harpoonStore.getByPath(filePath)) {
+                            const cursor = view.editor.getCursor();
+                            this.harpoonStore.updateCursor(
+                                filePath,
+                                cursor.line,
+                                cursor.ch,
+                            );
+                            this.harpoonSaveDirty = true;
+                        }
+                    }
+                });
+            }),
+        );
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', () => {
+                if (!this.settings.vimEnabled) return;
+                this.attachYankHighlight();
+                this.attachMarkGutter();
+            }),
+        );
+        if (this.settings.vimEnabled) {
+            this.attachYankHighlight();
+            this.attachMarkGutter();
+        }
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (newLeaf) => {
+                if (!this.settings.vimEnabled) return;
+                if (!this.settings.foldPersistence) return;
+                if (this.previousFoldFile) {
+                    const mdView =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (mdView?.file?.path === this.previousFoldFile) {
+                        const ev = getEditorView(mdView);
+                        if (ev) {
+                            this.foldStore.capture(this.previousFoldFile, ev);
+                            this.foldPersistDirty = true;
+                        }
+                    }
+                }
+                if (
+                    newLeaf?.view instanceof MarkdownView &&
+                    newLeaf.view.file
+                ) {
+                    const filePath = newLeaf.view.file.path;
+                    this.previousFoldFile = filePath;
+                    const ev = getEditorView(newLeaf.view);
+                    if (ev) {
+                        window.setTimeout(() => {
+                            this.foldStore.restore(filePath, ev);
+                        }, 100);
+                    }
+                } else {
+                    this.previousFoldFile = null;
+                }
+            }),
+        );
+
+        this.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                this.harpoonStore.renamePath(oldPath, file.path);
+                this.harpoonSaveDirty = true;
+                this.foldStore.renamePath(oldPath, file.path);
+                this.foldPersistDirty = true;
+                this.markStore.renamePath(oldPath, file.path);
+                this.markSaveDirty = true;
+                this.jumpList.handleRename(oldPath, file.path);
+                this.jumpListSaveDirty = true;
+                const undoTree = this.undoTreeMap.get(oldPath);
+                if (undoTree) {
+                    this.undoTreeMap.delete(oldPath);
+                    this.undoTreeMap.set(file.path, undoTree);
+                }
+                if (this.undoTreeDirtyPaths.has(oldPath)) {
+                    this.undoTreeDirtyPaths.delete(oldPath);
+                    this.undoTreeDirtyPaths.add(file.path);
+                }
+                if (this.activeUndoFilePath === oldPath) {
+                    this.activeUndoFilePath = file.path;
+                }
+                if (this.settings.undoFile) {
+                    const persisted = this.settings.persistedUndoTrees;
+                    const data = persisted[oldPath];
+                    if (data !== undefined) {
+                        const next = { ...persisted };
+                        delete next[oldPath];
+                        next[file.path] = data;
+                        this.settings.persistedUndoTrees =
+                            this.capPersistedUndoTrees(next);
+                        this.undoTreeSaveDirty = true;
+                    }
+                }
+            }),
+        );
+        this.registerEvent(
+            this.app.vault.on('delete', (file) => {
+                this.harpoonStore.removeByPath(file.path);
+                this.harpoonSaveDirty = true;
+                this.foldStore.removePath(file.path);
+                this.foldPersistDirty = true;
+                this.markStore.removeByPath(file.path);
+                this.markSaveDirty = true;
+                this.jumpList.handleDelete(file.path);
+                this.jumpListSaveDirty = true;
+                this.undoTreeMap.delete(file.path);
+                this.undoTreeDirtyPaths.delete(file.path);
+                if (this.settings.undoFile) {
+                    const persisted = this.settings.persistedUndoTrees;
+                    if (persisted[file.path]) {
+                        const next = { ...persisted };
+                        delete next[file.path];
+                        this.settings.persistedUndoTrees = next;
+                        this.undoTreeSaveDirty = true;
+                    }
+                }
+            }),
+        );
+
+        this.registerEvent(
+            (
+                this.app.vault as unknown as {
+                    on(
+                        name: 'config-changed',
+                        callback: (key: string) => void,
+                    ): import('obsidian').EventRef;
+                }
+            ).on('config-changed', (key) => {
+                if (key === 'vimMode') {
+                    const builtinOn = isBuiltinVimEnabled(this.app);
+                    if (builtinOn && this.settings.vimEnabled) {
+                        void this.disableVim();
+                    }
+                }
+            }),
+        );
+
+        if (this.vimrcEnabled) {
+            this.registerEvent(
+                this.app.workspace.on('active-leaf-change', () => {
+                    if (!this.settings.vimEnabled) return;
+                    const vim = this.vimRef;
+                    const onSettingOverride = this.onSettingOverrideRef;
+                    const onLuaSettingOverride = this.onLuaSettingOverrideRef;
+                    if (!vim || !onSettingOverride || !onLuaSettingOverride)
+                        return;
+                    void (async () => {
+                        this.resetVimInputStateOnPaneSwitch(vim);
+
+                        if (this.vimrcLoaded) {
+                            applyVimrcMaps(vim, this.vimrcMaps);
+                            this.applyLuaPendingExCommands(vim);
+                            if (this.pendingVimrcExCommands.length > 0) {
+                                const view =
+                                    this.app.workspace.getActiveViewOfType(
+                                        MarkdownView,
+                                    );
+                                const cm = view ? getCmAdapter(view) : null;
+                                if (cm) {
+                                    applyPendingExCommands(
+                                        vim,
+                                        cm,
+                                        this.pendingVimrcExCommands,
+                                    );
+                                    this.pendingVimrcExCommands = [];
+                                }
+                            }
+                            return;
+                        }
+                        if (this.vimrcLoading) return;
+                        this.vimrcLoading = true;
+                        try {
+                            const customVimrcPath =
+                                this.settings.vimrcPath || undefined;
+                            const vimrcResult = await loadVimrc(
+                                this.app,
+                                vim,
+                                this.leaderRegistry ?? undefined,
+                                onSettingOverride,
+                                customVimrcPath,
+                                this.settings.globalConfigSearch,
+                            );
+                            this.vimrcCommandCount = vimrcResult.commandCount;
+                            this.pendingVimrcExCommands =
+                                vimrcResult.pendingExCommands ?? [];
+                            const vimrcFound = vimrcResult.found;
+                            if (
+                                !vimrcFound &&
+                                this.settings.configMode === 'vimrc'
+                            ) {
+                                // Error-like: user chose vimrc-only but file is missing — always show.
+                                new Notice(
+                                    `Vim Motions: vimrc not found (searched ${vimrcResult.path}).`,
+                                );
+                            } else if (
+                                vimrcFound &&
+                                this.settings.showConfigNotifications
+                            ) {
+                                if (vimrcResult.commandCount === 0) {
+                                    new Notice(
+                                        `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
+                                    );
+                                } else {
+                                    new Notice(
+                                        `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
+                                    );
+                                }
+                            }
+                            this.vimrcMaps = vimrcResult.maps;
+                            this.vimrcMapKeys = new Set(
+                                vimrcResult.maps.map((m) => m.lhs),
+                            );
+                            this.vimrcExmapNames = new Set(
+                                vimrcResult.exmapNames ?? [],
+                            );
+                            this.vimrcWatchPath = vimrcFound
+                                ? vimrcResult.path
+                                : null;
+                            this.vimrcGlobalMaps = vimrcResult.globalMaps;
+                            this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
+                            this.vimrcGlobalWhichKeyLabels =
+                                vimrcResult.globalWhichKeyLabels;
+                            this.vimrcGlobalWhichKeyGroups =
+                                vimrcResult.globalWhichKeyGroups;
+                            applyVimrcMaps(vim, this.vimrcMaps);
+                            this.applyGlobalMaps();
+                            if (this.registration && this.leaderRegistry) {
+                                this.registration.unmapDefaultBinding(
+                                    this.leaderRegistry.getLeaderKey(),
+                                );
+                            }
+                            this.reregisterLeaderFeatures();
+                            this.rebuildWhichKey();
+                            this.vimrcLoaded = true;
+                            this.reloadFeatures();
+                            const luaResult = await this.loadLuaConfigInternal(
+                                vim,
+                                onLuaSettingOverride,
+                            );
+                            if (!vimrcFound && !luaResult?.found) {
+                                this.restoreBaseSettings();
+                            }
+                            this.captureConfigOverrides();
+                            if (
+                                this.settings.configMode === 'lua-vimrc' &&
+                                !vimrcFound &&
+                                !luaResult?.found &&
+                                this.settings.showConfigNotifications
+                            ) {
+                                new Notice(
+                                    `Vim Motions: no config files found (searched ${vimrcResult.path}, ${luaResult?.path ?? 'init.lua'}).`,
+                                );
+                            }
+                        } catch (e) {
+                            console.warn(
+                                'Vim Motions: vimrc loading failed, will retry on next leaf change',
+                                e,
+                            );
+                        } finally {
+                            this.vimrcLoading = false;
+                        }
+                    })();
+                }),
+            );
+
+            this.registerEvent(
+                this.app.vault.on('modify', (file) => {
+                    if (!this.settings.vimEnabled) return;
+                    const vim = this.vimRef;
+                    const onSettingOverride = this.onSettingOverrideRef;
+                    if (!vim || !onSettingOverride) return;
+                    if (
+                        !this.vimrcLoaded ||
+                        !this.vimrcWatchPath ||
+                        file.path !== this.vimrcWatchPath
+                    )
+                        return;
+                    void this.softReloadVimrc(
+                        vim,
+                        onSettingOverride,
+                        this.settings.globalConfigSearch,
+                    );
+                }),
+            );
+        }
+
+        if (!this.vimrcEnabled) {
+            this.registerEvent(
+                this.app.workspace.on('active-leaf-change', () => {
+                    if (!this.settings.vimEnabled) return;
+                    const vim = this.vimRef;
+                    const onLuaSettingOverride = this.onLuaSettingOverrideRef;
+                    if (!vim || !onLuaSettingOverride) return;
+                    void (async () => {
+                        if (this.luaLoaded) {
+                            this.applyLuaMaps(vim);
+                            this.applyLuaPendingExCommands(vim);
+                            return;
+                        }
+                        const luaResult = await this.loadLuaConfigInternal(
+                            vim,
+                            onLuaSettingOverride,
+                        );
+                        if (!luaResult?.found) {
+                            this.restoreBaseSettings();
+                        }
+                        this.captureConfigOverrides();
+                    })();
+                }),
+            );
+        }
+
+        const ensureVimEnabled = (): boolean => {
+            if (this.settings.vimEnabled) return true;
+            new Notice('Enable Vim mode first.');
+            return false;
+        };
+
+        this.addCommand({
+            id: 'toggle-vim-mode',
+            name: 'Toggle Vim mode',
+            callback: () => {
+                if (isBuiltinVimEnabled(this.app)) {
+                    new Notice("Disable Obsidian's built-in Vim mode first.");
+                    return;
+                }
+                if (this.settings.vimEnabled) {
+                    void this.disableVim();
+                } else {
+                    void this.enableVim();
+                }
+            },
+        });
+        this.addCommand({
+            id: 'enable-vim-mode',
+            name: 'Enable Vim mode',
+            callback: () => {
+                if (isBuiltinVimEnabled(this.app)) {
+                    new Notice("Disable Obsidian's built-in Vim mode first.");
+                    return;
+                }
+                if (!this.settings.vimEnabled) {
+                    void this.enableVim();
+                }
+            },
+        });
+        this.addCommand({
+            id: 'disable-vim-mode',
+            name: 'Disable Vim mode',
+            callback: () => {
+                if (isBuiltinVimEnabled(this.app)) return;
+                if (this.settings.vimEnabled) {
+                    void this.disableVim();
+                }
+            },
+        });
+
+        this.addCommand({
+            id: 'picker-files',
+            name: 'Picker: Find files',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('files');
+            },
+        });
+        this.addCommand({
+            id: 'picker-buffers',
+            name: 'Picker: Switch buffer',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('buffers');
+            },
+        });
+        this.addCommand({
+            id: 'picker-actions',
+            name: 'Picker: Run action',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('commands');
+            },
+        });
+        this.addCommand({
+            id: 'picker-headings',
+            name: 'Picker: Search headings',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('headings');
+            },
+        });
+        this.addCommand({
+            id: 'picker-outline',
+            name: 'Picker: Document outline',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('outline');
+            },
+        });
+        this.addCommand({
+            id: 'picker-backlinks',
+            name: 'Picker: Backlinks',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('backlinks');
+            },
+        });
+        this.addCommand({
+            id: 'picker-tags',
+            name: 'Picker: Search tags',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('tags');
+            },
+        });
+        this.addCommand({
+            id: 'picker-recent',
+            name: 'Picker: Recent files',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('recent');
+            },
+        });
+        this.addCommand({
+            id: 'picker-marks',
+            name: 'Picker: Jump to mark',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('marks');
+            },
+        });
+        this.addCommand({
+            id: 'picker-registers',
+            name: 'Picker: Registers',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('registers');
+            },
+        });
+        this.addCommand({
+            id: 'picker-resume',
+            name: 'Picker: Resume last picker',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('resume');
+            },
+        });
+        this.addCommand({
+            id: 'picker-livegrep',
+            name: 'Picker: Live grep',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('livegrep');
+            },
+        });
+        this.addCommand({
+            id: 'picker-pickers',
+            name: 'Picker: All pickers',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                this.openPicker?.('pickers');
+            },
+        });
+        this.addCommand({
+            id: 'harpoon-add',
+            name: 'Harpoon: Pin current file',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHarpoon) return;
+                const file = this.app.workspace.getActiveFile();
+                if (!file) {
+                    new Notice('No file to pin');
+                    return;
+                }
+                const view =
+                    this.app.workspace.getActiveViewOfType(MarkdownView);
+                const cursor = view?.editor.getCursor();
+                const idx = this.harpoonStore.add(
+                    file.path,
+                    cursor?.line ?? 0,
+                    cursor?.ch ?? 0,
+                );
+                const existing = this.harpoonStore.getByPath(file.path);
+                if (existing && existing.index === idx) {
+                    new Notice(`Pinned to slot ${idx + 1}`);
+                }
+                this.harpoonSaveDirty = true;
+            },
+        });
+        this.addCommand({
+            id: 'harpoon-toggle',
+            name: 'Harpoon: Toggle pin',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHarpoon) return;
+                const file = this.app.workspace.getActiveFile();
+                if (!file) {
+                    new Notice('No file to pin');
+                    return;
+                }
+                const view =
+                    this.app.workspace.getActiveViewOfType(MarkdownView);
+                const cursor = view?.editor.getCursor();
+                const added = this.harpoonStore.toggle(
+                    file.path,
+                    cursor?.line ?? 0,
+                    cursor?.ch ?? 0,
+                );
+                new Notice(
+                    added
+                        ? `Pinned to slot ${this.harpoonStore.getByPath(file.path)!.index + 1}`
+                        : 'Unpinned',
+                );
+                this.harpoonSaveDirty = true;
+            },
+        });
+        this.addCommand({
+            id: 'harpoon-remove',
+            name: 'Harpoon: Remove current file',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHarpoon) return;
+                const file = this.app.workspace.getActiveFile();
+                if (!file) return;
+                this.harpoonStore.removeByPath(file.path);
+                new Notice('Unpinned');
+                this.harpoonSaveDirty = true;
+            },
+        });
+        this.addCommand({
+            id: 'harpoon-picker',
+            name: 'Harpoon: Open pin list',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHarpoon) return;
+                this.openPicker?.('harpoon');
+            },
+        });
+        for (let i = 1; i <= 9; i++) {
+            this.addCommand({
+                id: `harpoon-select-${i}`,
+                name: `Harpoon: Go to pin ${i}`,
+                callback: () => {
+                    if (!ensureVimEnabled()) return;
+                    if (!this.settings.enableHarpoon) return;
+                    const item = this.harpoonStore.get(i - 1);
+                    if (item) void navigateToHarpoonPin(this.app, item);
+                },
+            });
+        }
+        this.addCommand({
+            id: 'harpoon-next',
+            name: 'Harpoon: Next pin',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHarpoon) return;
+                const item = this.harpoonStore.selectNext();
+                if (item) void navigateToHarpoonPin(this.app, item);
+            },
+        });
+        this.addCommand({
+            id: 'harpoon-prev',
+            name: 'Harpoon: Previous pin',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHarpoon) return;
+                const item = this.harpoonStore.selectPrev();
+                if (item) void navigateToHarpoonPin(this.app, item);
+            },
+        });
+        this.addCommand({
+            id: 'show-hint-labels',
+            name: 'Show hint labels',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHintMode || Platform.isMobile) return;
+                this.hintActions?.activate();
+            },
+        });
+        this.addCommand({
+            id: 'hint-open-new-pane',
+            name: 'Hint: open in new pane',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHintMode || Platform.isMobile) return;
+                this.hintActions?.openNew();
+            },
+        });
+        this.addCommand({
+            id: 'hint-yank',
+            name: 'Hint: yank link or text',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHintMode || Platform.isMobile) return;
+                this.hintActions?.yank();
+            },
+        });
+        this.addCommand({
+            id: 'hint-close',
+            name: 'Hint: close tab or pane',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHintMode || Platform.isMobile) return;
+                this.hintActions?.close();
+            },
+        });
+        this.addCommand({
+            id: 'hint-context-menu',
+            name: 'Hint: open context menu',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableHintMode || Platform.isMobile) return;
+                this.hintActions?.contextMenu();
+            },
+        });
+        this.addCommand({
+            id: 'undo-tree-toggle',
+            name: 'Toggle undo tree sidebar',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableUndoTree) return;
+                void this.toggleUndoTreeView();
+            },
+        });
+        this.addCommand({
+            id: 'undo-tree-show',
+            name: 'Show undo tree sidebar',
+            callback: async () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableUndoTree) return;
+                const leaves =
+                    this.app.workspace.getLeavesOfType(UNDO_TREE_VIEW_TYPE);
+                if (leaves.length > 0) return;
+                const leaf =
+                    this.settings.undoTreePosition === 'left'
+                        ? this.app.workspace.getLeftLeaf(false)
+                        : this.app.workspace.getRightLeaf(false);
+                if (leaf) {
+                    await leaf.setViewState({
+                        type: UNDO_TREE_VIEW_TYPE,
+                        active: true,
+                    });
+                    await this.app.workspace.revealLeaf(leaf);
+                }
+            },
+        });
+        this.addCommand({
+            id: 'undo-tree-hide',
+            name: 'Hide undo tree sidebar',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                if (!this.settings.enableUndoTree) return;
+                for (const leaf of this.app.workspace.getLeavesOfType(
+                    UNDO_TREE_VIEW_TYPE,
+                )) {
+                    leaf.detach();
+                }
+            },
+        });
+
+        if (this.settings.enableHintMode && !Platform.isMobile) {
+            this.setupHintModeWindows();
+        }
+
+        this.registerInterval(
+            window.setInterval(() => {
+                if (!this.settings.vimEnabled) return;
+                if (this.markSaveDirty) {
+                    this.markSaveDirty = false;
+                    this.settings.persistedMarks = this.markStore.save();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (!this.settings.vimEnabled) return;
+                if (this.harpoonSaveDirty) {
+                    this.harpoonSaveDirty = false;
+                    this.settings.harpoonPins = this.harpoonStore.save();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (!this.settings.vimEnabled) return;
+                if (this.jumpListSaveDirty) {
+                    this.jumpListSaveDirty = false;
+                    this.settings.persistedJumpList = this.jumpList.serialize();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (!this.settings.vimEnabled) return;
+                if (!this.settings.undoFile) return;
+                if (this.undoTreeSaveDirty) {
+                    this.persistDirtyUndoTrees();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (!this.settings.vimEnabled) return;
+                if (this.imSwitcher) {
+                    this.settings.persistedImState =
+                        this.imSwitcher.getPersistedState();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+        this.registerInterval(
+            window.setInterval(() => {
+                if (!this.settings.vimEnabled) return;
+                if (this.foldPersistDirty) {
+                    this.foldPersistDirty = false;
+                    (
+                        this.settings as unknown as Record<string, unknown>
+                    ).persistedFolds = this.foldStore.save();
+                    void this.saveSettings();
+                }
+            }, 30_000),
+        );
+
+        this.app.workspace.updateOptions();
+        this.app.workspace.trigger('parse-style-settings');
+        this.initializing = false;
+    }
+
+    private setupVimSubsystems(vim: import('./types/vim-api').VimApi): void {
+        this.initializing = true;
+        this.vimExtensionSlot.length = 0;
 
         this.vimrcOverrides = new Map();
         this.luaOverrides = new Map();
@@ -945,7 +1814,23 @@ export default class VimMotionsPlugin extends Plugin {
         };
 
         this.vimRef = vim;
+        this.onSettingOverrideRef = onSettingOverride;
         this.onLuaSettingOverrideRef = onLuaSettingOverride;
+
+        this.vimExtensionSlot.push(
+            createBundledVimExtension(
+                this.settings.cursorShapes,
+                () =>
+                    getVaultConfig(this.app, 'propertiesInDocument') ===
+                    'source',
+            ),
+        );
+
+        (
+            this.declarativeSettingTab as unknown as {
+                update?(): void;
+            }
+        )?.update?.();
 
         // --- Vim API setup ---
         // resetKeymap() is a fork-only method; guard against the built-in
@@ -1221,10 +2106,6 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.pickerAPI = installPickerAPI();
         (this as unknown as Record<string, unknown>).api = this.pickerAPI;
-        this.register(() => {
-            uninstallPickerAPI();
-            this.pickerAPI = null;
-        });
         this.app.workspace.trigger('vim-motions:picker-ready');
 
         this.app.workspace.onLayoutReady(() => {
@@ -1255,415 +2136,7 @@ export default class VimMotionsPlugin extends Plugin {
             }
         });
 
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', (leaf) => {
-                const view =
-                    this.app.workspace.getActiveViewOfType(MarkdownView);
-                const adapter = view ? getCmAdapter(view) : null;
-                const leafInfo = leaf
-                    ? {
-                          type:
-                              (
-                                  leaf.view as unknown as {
-                                      getViewType?: () => string;
-                                  }
-                              ).getViewType?.() ?? 'empty',
-                          id: getLeafId(leaf),
-                          filePath:
-                              this.app.workspace.getActiveFile()?.path ?? null,
-                      }
-                    : undefined;
-                this.autocmdManager?.onActiveLeafChange(adapter, leafInfo);
-                const activeFile = this.app.workspace.getActiveFile();
-                const filePath = activeFile?.path ?? null;
-                if (activeFile?.extension === 'md') {
-                    trackRecentFile(activeFile.path);
-                }
-                this.bufferKeymapManager?.switchBuffer(filePath);
-                this.oilKeybindingManager?.onActiveLeafChange();
-                this.yankRingManager.cancel();
-                this.yankRingCommandDoneCleanup?.();
-                this.yankRingCommandDoneCleanup = null;
-                if (adapter && this.settings.enableYankRing) {
-                    this.yankRingManager.setAdapter(adapter);
-                    const keypressHandler = (key: string) =>
-                        this.yankRingManager.onKeypress(key);
-                    const commandDoneHandler = () =>
-                        this.yankRingManager.onCommandDone();
-                    adapter.on('vim-keypress', keypressHandler);
-                    adapter.on('vim-command-done', commandDoneHandler);
-                    this.yankRingCommandDoneCleanup = () => {
-                        adapter.off(
-                            'vim-keypress',
-                            keypressHandler as (...args: unknown[]) => void,
-                        );
-                        adapter.off('vim-command-done', commandDoneHandler);
-                    };
-                }
-                if (filePath) {
-                    this.autocmdManager?.fireFileType(filePath);
-                }
-            }),
-        );
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', (newLeaf) => {
-                if (!this.settings.enableWorkspaceNav) return;
-                if (!(newLeaf?.view instanceof MarkdownView)) return;
-                const filePath = newLeaf.view.file?.path ?? null;
-                if (!filePath) return;
-                if (
-                    this.lastMarkdownFilePath &&
-                    this.lastMarkdownFilePath !== filePath
-                ) {
-                    this.alternateFilePath = this.lastMarkdownFilePath;
-                }
-                this.lastMarkdownFilePath = filePath;
-            }),
-        );
-
-        this.registerEvent(
-            this.app.workspace.on('file-open', (file) => {
-                if (!this.settings.enableUndoTree) return;
-                const filePath = file?.path ?? null;
-                this.activateUndoTreeForFile(filePath);
-                this.activeUndoFilePath = filePath;
-            }),
-        );
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', () => {
-                if (!this.settings.enableUndoTree) return;
-                const activePath =
-                    this.app.workspace.getActiveFile()?.path ?? null;
-                if (
-                    this.activeUndoFilePath &&
-                    this.activeUndoFilePath !== activePath
-                ) {
-                    this.persistUndoTreeForFile(this.activeUndoFilePath);
-                }
-                this.activeUndoFilePath = activePath;
-                this.activateUndoTreeForFile(activePath);
-
-                const openPaths = new Set<string>();
-                this.app.workspace.iterateAllLeaves((leaf) => {
-                    if (leaf.view instanceof MarkdownView && leaf.view.file) {
-                        openPaths.add(leaf.view.file.path);
-                    }
-                });
-                for (const key of [...this.undoTreeMap.keys()]) {
-                    if (key === activePath) continue;
-                    if (openPaths.has(key)) continue;
-                    if (this.undoTreeDirtyPaths.has(key)) {
-                        this.persistUndoTreeForFile(key);
-                    }
-                    this.undoTreeMap.delete(key);
-                    this.undoTreeDirtyPaths.delete(key);
-                }
-            }),
-        );
-
-        if (this.imSwitcher) {
-            this.registerEvent(
-                this.app.workspace.on('active-leaf-change', (leaf) => {
-                    const leafId = leaf ? getLeafId(leaf) : '';
-                    this.imSwitcher?.onLeafChange(leafId);
-                }),
-            );
-        }
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', (newLeaf) => {
-                const oldLeafId = this.previousLeafId;
-                this.previousLeafId = newLeaf ? (newLeaf.id ?? null) : null;
-
-                if (!this.settings.enableHarpoon || !oldLeafId) return;
-                this.app.workspace.iterateAllLeaves((leaf) => {
-                    const leafId = getLeafId(leaf);
-                    if (
-                        leafId === oldLeafId &&
-                        leaf.view instanceof MarkdownView &&
-                        leaf.view.file
-                    ) {
-                        const view = leaf.view;
-                        const filePath = view.file!.path;
-                        if (this.harpoonStore.getByPath(filePath)) {
-                            const cursor = view.editor.getCursor();
-                            this.harpoonStore.updateCursor(
-                                filePath,
-                                cursor.line,
-                                cursor.ch,
-                            );
-                            this.harpoonSaveDirty = true;
-                        }
-                    }
-                });
-            }),
-        );
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', () => {
-                this.attachYankHighlight();
-                this.attachMarkGutter();
-            }),
-        );
-        this.attachYankHighlight();
-        this.attachMarkGutter();
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', (newLeaf) => {
-                if (!this.settings.foldPersistence) return;
-                if (this.previousFoldFile) {
-                    const mdView =
-                        this.app.workspace.getActiveViewOfType(MarkdownView);
-                    if (mdView?.file?.path === this.previousFoldFile) {
-                        const ev = getEditorView(mdView);
-                        if (ev) {
-                            this.foldStore.capture(this.previousFoldFile, ev);
-                            this.foldPersistDirty = true;
-                        }
-                    }
-                }
-                if (
-                    newLeaf?.view instanceof MarkdownView &&
-                    newLeaf.view.file
-                ) {
-                    const filePath = newLeaf.view.file.path;
-                    this.previousFoldFile = filePath;
-                    const ev = getEditorView(newLeaf.view);
-                    if (ev) {
-                        window.setTimeout(() => {
-                            this.foldStore.restore(filePath, ev);
-                        }, 100);
-                    }
-                } else {
-                    this.previousFoldFile = null;
-                }
-            }),
-        );
-
-        this.registerEvent(
-            this.app.vault.on('rename', (file, oldPath) => {
-                this.harpoonStore.renamePath(oldPath, file.path);
-                this.harpoonSaveDirty = true;
-                this.foldStore.renamePath(oldPath, file.path);
-                this.foldPersistDirty = true;
-                this.markStore.renamePath(oldPath, file.path);
-                this.markSaveDirty = true;
-                this.jumpList.handleRename(oldPath, file.path);
-                this.jumpListSaveDirty = true;
-                const undoTree = this.undoTreeMap.get(oldPath);
-                if (undoTree) {
-                    this.undoTreeMap.delete(oldPath);
-                    this.undoTreeMap.set(file.path, undoTree);
-                }
-                if (this.undoTreeDirtyPaths.has(oldPath)) {
-                    this.undoTreeDirtyPaths.delete(oldPath);
-                    this.undoTreeDirtyPaths.add(file.path);
-                }
-                if (this.activeUndoFilePath === oldPath) {
-                    this.activeUndoFilePath = file.path;
-                }
-                if (this.settings.undoFile) {
-                    const persisted = this.settings.persistedUndoTrees;
-                    const data = persisted[oldPath];
-                    if (data !== undefined) {
-                        const next = { ...persisted };
-                        delete next[oldPath];
-                        next[file.path] = data;
-                        this.settings.persistedUndoTrees =
-                            this.capPersistedUndoTrees(next);
-                        this.undoTreeSaveDirty = true;
-                    }
-                }
-            }),
-        );
-        this.registerEvent(
-            this.app.vault.on('delete', (file) => {
-                this.harpoonStore.removeByPath(file.path);
-                this.harpoonSaveDirty = true;
-                this.foldStore.removePath(file.path);
-                this.foldPersistDirty = true;
-                this.markStore.removeByPath(file.path);
-                this.markSaveDirty = true;
-                this.jumpList.handleDelete(file.path);
-                this.jumpListSaveDirty = true;
-                this.undoTreeMap.delete(file.path);
-                this.undoTreeDirtyPaths.delete(file.path);
-                if (this.settings.undoFile) {
-                    const persisted = this.settings.persistedUndoTrees;
-                    if (persisted[file.path]) {
-                        const next = { ...persisted };
-                        delete next[file.path];
-                        this.settings.persistedUndoTrees = next;
-                        this.undoTreeSaveDirty = true;
-                    }
-                }
-            }),
-        );
-
-        // --- Leader key resolution ---
         this.leaderRegistry = new LeaderRegistry();
-        if (this.vimrcEnabled) {
-            this.registerEvent(
-                this.app.workspace.on('active-leaf-change', () => {
-                    void (async () => {
-                        this.resetVimInputStateOnPaneSwitch(vim);
-
-                        if (this.vimrcLoaded) {
-                            applyVimrcMaps(vim, this.vimrcMaps);
-                            this.applyLuaPendingExCommands(vim);
-                            if (this.pendingVimrcExCommands.length > 0) {
-                                const view =
-                                    this.app.workspace.getActiveViewOfType(
-                                        MarkdownView,
-                                    );
-                                const cm = view ? getCmAdapter(view) : null;
-                                if (cm) {
-                                    applyPendingExCommands(
-                                        vim,
-                                        cm,
-                                        this.pendingVimrcExCommands,
-                                    );
-                                    this.pendingVimrcExCommands = [];
-                                }
-                            }
-                            return;
-                        }
-                        if (this.vimrcLoading) return;
-                        this.vimrcLoading = true;
-                        try {
-                            const customVimrcPath =
-                                this.settings.vimrcPath || undefined;
-                            const vimrcResult = await loadVimrc(
-                                this.app,
-                                vim,
-                                this.leaderRegistry ?? undefined,
-                                onSettingOverride,
-                                customVimrcPath,
-                                this.settings.globalConfigSearch,
-                            );
-                            this.vimrcCommandCount = vimrcResult.commandCount;
-                            this.pendingVimrcExCommands =
-                                vimrcResult.pendingExCommands ?? [];
-                            const vimrcFound = vimrcResult.found;
-                            if (
-                                !vimrcFound &&
-                                this.settings.configMode === 'vimrc'
-                            ) {
-                                // Error-like: user chose vimrc-only but file is missing — always show.
-                                new Notice(
-                                    `Vim Motions: vimrc not found (searched ${vimrcResult.path}).`,
-                                );
-                            } else if (
-                                vimrcFound &&
-                                this.settings.showConfigNotifications
-                            ) {
-                                if (vimrcResult.commandCount === 0) {
-                                    new Notice(
-                                        `Vim Motions: ${vimrcResult.path} loaded but contained no commands.`,
-                                    );
-                                } else {
-                                    new Notice(
-                                        `Vim Motions: loaded ${vimrcResult.commandCount} command${vimrcResult.commandCount === 1 ? '' : 's'} from ${vimrcResult.path}.`,
-                                    );
-                                }
-                            }
-                            this.vimrcMaps = vimrcResult.maps;
-                            this.vimrcMapKeys = new Set(
-                                vimrcResult.maps.map((m) => m.lhs),
-                            );
-                            this.vimrcExmapNames = new Set(
-                                vimrcResult.exmapNames ?? [],
-                            );
-                            this.vimrcWatchPath = vimrcFound
-                                ? vimrcResult.path
-                                : null;
-                            this.vimrcGlobalMaps = vimrcResult.globalMaps;
-                            this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
-                            this.vimrcGlobalWhichKeyLabels =
-                                vimrcResult.globalWhichKeyLabels;
-                            this.vimrcGlobalWhichKeyGroups =
-                                vimrcResult.globalWhichKeyGroups;
-                            applyVimrcMaps(vim, this.vimrcMaps);
-                            this.applyGlobalMaps();
-                            if (this.registration && this.leaderRegistry) {
-                                this.registration.unmapDefaultBinding(
-                                    this.leaderRegistry.getLeaderKey(),
-                                );
-                            }
-                            this.reregisterLeaderFeatures();
-                            this.rebuildWhichKey();
-                            this.vimrcLoaded = true;
-                            this.reloadFeatures();
-                            const luaResult = await this.loadLuaConfigInternal(
-                                vim,
-                                onLuaSettingOverride,
-                            );
-                            if (!vimrcFound && !luaResult?.found) {
-                                this.restoreBaseSettings();
-                            }
-                            this.captureConfigOverrides();
-                            if (
-                                this.settings.configMode === 'lua-vimrc' &&
-                                !vimrcFound &&
-                                !luaResult?.found &&
-                                this.settings.showConfigNotifications
-                            ) {
-                                new Notice(
-                                    `Vim Motions: no config files found (searched ${vimrcResult.path}, ${luaResult?.path ?? 'init.lua'}).`,
-                                );
-                            }
-                        } catch (e) {
-                            console.warn(
-                                'Vim Motions: vimrc loading failed, will retry on next leaf change',
-                                e,
-                            );
-                        } finally {
-                            this.vimrcLoading = false;
-                        }
-                    })();
-                }),
-            );
-
-            this.registerEvent(
-                this.app.vault.on('modify', (file) => {
-                    if (
-                        !this.vimrcLoaded ||
-                        !this.vimrcWatchPath ||
-                        file.path !== this.vimrcWatchPath
-                    )
-                        return;
-                    void this.softReloadVimrc(
-                        vim,
-                        onSettingOverride,
-                        this.settings.globalConfigSearch,
-                    );
-                }),
-            );
-        }
-
-        if (!this.vimrcEnabled) {
-            this.registerEvent(
-                this.app.workspace.on('active-leaf-change', () => {
-                    void (async () => {
-                        if (this.luaLoaded) {
-                            this.applyLuaMaps(vim);
-                            this.applyLuaPendingExCommands(vim);
-                            return;
-                        }
-                        const luaResult = await this.loadLuaConfigInternal(
-                            vim,
-                            onLuaSettingOverride,
-                        );
-                        if (!luaResult?.found) {
-                            this.restoreBaseSettings();
-                        }
-                        this.captureConfigOverrides();
-                    })();
-                }),
-            );
-        }
 
         // --- Core ex command (needed by leader bindings) ---
         registerObCommand(this.registration, this.app, {
@@ -1748,6 +2221,7 @@ export default class VimMotionsPlugin extends Plugin {
                     : undefined,
             );
         }
+
         this.registerHarpoonExCommands();
         this.registerImExCommands();
         if (this.settings.oilExplorer) {
@@ -1807,165 +2281,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.snippetRegistry = null;
         }
 
-        this.addCommand({
-            id: 'picker-files',
-            name: 'Picker: Find files',
-            callback: () => this.openPicker?.('files'),
-        });
-        this.addCommand({
-            id: 'picker-buffers',
-            name: 'Picker: Switch buffer',
-            callback: () => this.openPicker?.('buffers'),
-        });
-        this.addCommand({
-            id: 'picker-actions',
-            name: 'Picker: Run action',
-            callback: () => this.openPicker?.('commands'),
-        });
-        this.addCommand({
-            id: 'picker-headings',
-            name: 'Picker: Search headings',
-            callback: () => this.openPicker?.('headings'),
-        });
-        this.addCommand({
-            id: 'picker-outline',
-            name: 'Picker: Document outline',
-            callback: () => this.openPicker?.('outline'),
-        });
-        this.addCommand({
-            id: 'picker-backlinks',
-            name: 'Picker: Backlinks',
-            callback: () => this.openPicker?.('backlinks'),
-        });
-        this.addCommand({
-            id: 'picker-tags',
-            name: 'Picker: Search tags',
-            callback: () => this.openPicker?.('tags'),
-        });
-        this.addCommand({
-            id: 'picker-recent',
-            name: 'Picker: Recent files',
-            callback: () => this.openPicker?.('recent'),
-        });
-        this.addCommand({
-            id: 'picker-marks',
-            name: 'Picker: Jump to mark',
-            callback: () => this.openPicker?.('marks'),
-        });
-        this.addCommand({
-            id: 'picker-registers',
-            name: 'Picker: Registers',
-            callback: () => this.openPicker?.('registers'),
-        });
-        this.addCommand({
-            id: 'picker-resume',
-            name: 'Picker: Resume last picker',
-            callback: () => this.openPicker?.('resume'),
-        });
-        this.addCommand({
-            id: 'picker-livegrep',
-            name: 'Picker: Live grep',
-            callback: () => this.openPicker?.('livegrep'),
-        });
-        this.addCommand({
-            id: 'picker-pickers',
-            name: 'Picker: All pickers',
-            callback: () => this.openPicker?.('pickers'),
-        });
-        if (this.settings.enableHarpoon) {
-            this.addCommand({
-                id: 'harpoon-add',
-                name: 'Harpoon: Pin current file',
-                callback: () => {
-                    const file = this.app.workspace.getActiveFile();
-                    if (!file) {
-                        new Notice('No file to pin');
-                        return;
-                    }
-                    const view =
-                        this.app.workspace.getActiveViewOfType(MarkdownView);
-                    const cursor = view?.editor.getCursor();
-                    const idx = this.harpoonStore.add(
-                        file.path,
-                        cursor?.line ?? 0,
-                        cursor?.ch ?? 0,
-                    );
-                    const existing = this.harpoonStore.getByPath(file.path);
-                    if (existing && existing.index === idx) {
-                        new Notice(`Pinned to slot ${idx + 1}`);
-                    }
-                    this.harpoonSaveDirty = true;
-                },
-            });
-            this.addCommand({
-                id: 'harpoon-toggle',
-                name: 'Harpoon: Toggle pin',
-                callback: () => {
-                    const file = this.app.workspace.getActiveFile();
-                    if (!file) {
-                        new Notice('No file to pin');
-                        return;
-                    }
-                    const view =
-                        this.app.workspace.getActiveViewOfType(MarkdownView);
-                    const cursor = view?.editor.getCursor();
-                    const added = this.harpoonStore.toggle(
-                        file.path,
-                        cursor?.line ?? 0,
-                        cursor?.ch ?? 0,
-                    );
-                    new Notice(
-                        added
-                            ? `Pinned to slot ${this.harpoonStore.getByPath(file.path)!.index + 1}`
-                            : 'Unpinned',
-                    );
-                    this.harpoonSaveDirty = true;
-                },
-            });
-            this.addCommand({
-                id: 'harpoon-remove',
-                name: 'Harpoon: Remove current file',
-                callback: () => {
-                    const file = this.app.workspace.getActiveFile();
-                    if (!file) return;
-                    this.harpoonStore.removeByPath(file.path);
-                    new Notice('Unpinned');
-                    this.harpoonSaveDirty = true;
-                },
-            });
-            this.addCommand({
-                id: 'harpoon-picker',
-                name: 'Harpoon: Open pin list',
-                callback: () => this.openPicker?.('harpoon'),
-            });
-            for (let i = 1; i <= 9; i++) {
-                this.addCommand({
-                    id: `harpoon-select-${i}`,
-                    name: `Harpoon: Go to pin ${i}`,
-                    callback: () => {
-                        const item = this.harpoonStore.get(i - 1);
-                        if (item) void navigateToHarpoonPin(this.app, item);
-                    },
-                });
-            }
-            this.addCommand({
-                id: 'harpoon-next',
-                name: 'Harpoon: Next pin',
-                callback: () => {
-                    const item = this.harpoonStore.selectNext();
-                    if (item) void navigateToHarpoonPin(this.app, item);
-                },
-            });
-            this.addCommand({
-                id: 'harpoon-prev',
-                name: 'Harpoon: Previous pin',
-                callback: () => {
-                    const item = this.harpoonStore.selectPrev();
-                    if (item) void navigateToHarpoonPin(this.app, item);
-                },
-            });
-        }
-        if (!Platform.isMobile && vim) {
+        if (!Platform.isMobile) {
             registerFlash(this.registration, this.app, this.settings, vim);
             this.flashSearchCleanup?.();
             this.flashSearchCleanup = enableFlashSearch(
@@ -1973,7 +2289,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
-        if (vim && this.settings.tableWidgetMode === 'native') {
+        if (this.settings.tableWidgetMode === 'native') {
             this.uninstallTableCellMotions = applyTableCellMotions(
                 this.app,
                 vim,
@@ -1997,32 +2313,6 @@ export default class VimMotionsPlugin extends Plugin {
         }
         if (this.settings.enableHintMode && !Platform.isMobile) {
             this.registerHintActions(this.registration, this.leaderRegistry);
-            this.addCommand({
-                id: 'show-hint-labels',
-                name: 'Show hint labels',
-                callback: () => this.hintActions?.activate(),
-            });
-            this.addCommand({
-                id: 'hint-open-new-pane',
-                name: 'Hint: open in new pane',
-                callback: () => this.hintActions?.openNew(),
-            });
-            this.addCommand({
-                id: 'hint-yank',
-                name: 'Hint: yank link or text',
-                callback: () => this.hintActions?.yank(),
-            });
-            this.addCommand({
-                id: 'hint-close',
-                name: 'Hint: close tab or pane',
-                callback: () => this.hintActions?.close(),
-            });
-            this.addCommand({
-                id: 'hint-context-menu',
-                name: 'Hint: open context menu',
-                callback: () => this.hintActions?.contextMenu(),
-            });
-            this.setupHintModeWindows();
         }
         this.registration.endLeaderScope();
 
@@ -2067,49 +2357,97 @@ export default class VimMotionsPlugin extends Plugin {
                 this.navigateUndoTreeTo(beforeSeq, node.seq);
             });
             this.registration.mapCommand('g+', 'action', 'undoTreeNewer', {});
-
-            this.addCommand({
-                id: 'undo-tree-toggle',
-                name: 'Toggle undo tree sidebar',
-                callback: () => this.toggleUndoTreeView(),
-            });
-
-            this.addCommand({
-                id: 'undo-tree-show',
-                name: 'Show undo tree sidebar',
-                callback: async () => {
-                    const leaves =
-                        this.app.workspace.getLeavesOfType(UNDO_TREE_VIEW_TYPE);
-                    if (leaves.length > 0) return;
-                    const leaf =
-                        this.settings.undoTreePosition === 'left'
-                            ? this.app.workspace.getLeftLeaf(false)
-                            : this.app.workspace.getRightLeaf(false);
-                    if (leaf) {
-                        await leaf.setViewState({
-                            type: UNDO_TREE_VIEW_TYPE,
-                            active: true,
-                        });
-                        await this.app.workspace.revealLeaf(leaf);
-                    }
-                },
-            });
-
-            this.addCommand({
-                id: 'undo-tree-hide',
-                name: 'Hide undo tree sidebar',
-                callback: () => {
-                    for (const leaf of this.app.workspace.getLeavesOfType(
-                        UNDO_TREE_VIEW_TYPE,
-                    )) {
-                        leaf.detach();
-                    }
-                },
-            });
         }
 
+        // --- :changes command (needs ChangeList instance) ---
+        const cl = this.changeList;
+        this.registration.defineEx('changes', 'cha', () => {
+            const entries = cl.getEntries();
+            const idx = cl.getIndex();
+            const rows = entries.map((pos, i) => [
+                i === idx ? '>' : ' ',
+                String(i),
+                String(pos.line + 1),
+                String(pos.ch),
+            ]);
+            new VimInfoModal(
+                this.app,
+                'Changes',
+                [
+                    { header: '' },
+                    { header: '#' },
+                    { header: 'Line' },
+                    { header: 'Col' },
+                ],
+                rows,
+            ).open();
+        });
+
+        // --- Status bar and scrolloff ---
+        if (this.settings.enableStatusBar) {
+            this.modeTracker = new VimModeTracker(this, {
+                chordDisplay: this.settings.enableChordDisplay,
+                powerline: this.settings.enablePowerline,
+                modePrompts: this.settings.modePrompts,
+            });
+            this.modeTracker.attach(this.app);
+        }
+        this.scrolloffManager = new ScrolloffManager(this);
+        this.scrolloffManager.setup(this.settings.scrolloffLines);
+        this.vimExtensionSlot.push(
+            skipInTableCells(createScrolloffExtension()),
+        );
+
+        if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+            this.globalRegistry = new GlobalMappingRegistry();
+            registerDefaultGlobalMappings(
+                this.globalRegistry,
+                this.app,
+                this.hintActions,
+                this.openPicker ?? undefined,
+                this.settings.oilExplorer
+                    ? (this.oilManager ?? undefined)
+                    : undefined,
+            );
+            this.globalKeyHandler = new GlobalKeyHandler(
+                this.app,
+                this.settings,
+                this.modeTracker,
+                this.globalRegistry,
+            );
+            this.globalKeyHandler.openPicker = this.openPicker ?? undefined;
+            this.globalKeyHandler.install();
+            this.rebuildGlobalWhichKey();
+        }
+
+        if (this.settings.enableVimTextareas && !Platform.isMobile) {
+            this.textareaVimManager = new TextareaVimManager(
+                this.app,
+                this.settings.cursorShapes,
+            );
+            this.textareaVimManager.install();
+        }
+
+        // --- Leader bindings from settings UI ---
+        this.registration.beginLeaderScope();
+        this.applySettingsLeaderBindings(
+            this.registration,
+            this.leaderRegistry,
+        );
+        this.registration.endLeaderScope();
+
+        // --- Insert escape handler ---
+        this.insertEscapeHandler = new InsertEscapeHandler(this.app, vim);
+        this.insertEscapeHandler.attach();
+
+        // --- Ex command suggest ---
+        this.rebuildExSuggest();
+
+        // --- Which-key overlay ---
+        this.rebuildWhichKey();
+
         const changeList = this.changeList;
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             EditorView.updateListener.of((update) => {
                 if (!update.docChanged) return;
                 const pos = update.state.selection.main.head;
@@ -2121,7 +2459,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         if (this.settings.enableUndoTree) {
             const refreshViews = () => this.refreshUndoTreeViews();
-            this.registerEditorExtension(
+            this.vimExtensionSlot.push(
                 EditorView.updateListener.of((update) => {
                     if (!update.docChanged) return;
 
@@ -2174,123 +2512,32 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
-        // --- :changes command (needs ChangeList instance) ---
-        const cl = this.changeList;
-        this.registration.defineEx('changes', 'cha', () => {
-            const entries = cl.getEntries();
-            const idx = cl.getIndex();
-            const rows = entries.map((pos, i) => [
-                i === idx ? '>' : ' ',
-                String(i),
-                String(pos.line + 1),
-                String(pos.ch),
-            ]);
-            new VimInfoModal(
-                this.app,
-                'Changes',
-                [
-                    { header: '' },
-                    { header: '#' },
-                    { header: 'Line' },
-                    { header: 'Col' },
-                ],
-                rows,
-            ).open();
-        });
-
-        // --- Status bar and scrolloff ---
-        if (this.settings.enableStatusBar) {
-            this.modeTracker = new VimModeTracker(this, {
-                chordDisplay: this.settings.enableChordDisplay,
-                powerline: this.settings.enablePowerline,
-                modePrompts: this.settings.modePrompts,
-            });
-            this.modeTracker.attach(this.app);
-        }
-        this.scrolloffManager = new ScrolloffManager(this);
-        this.scrolloffManager.setup(this.settings.scrolloffLines);
-        this.registerEditorExtension(
-            skipInTableCells(createScrolloffExtension()),
-        );
-
-        if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
-            this.globalRegistry = new GlobalMappingRegistry();
-            registerDefaultGlobalMappings(
-                this.globalRegistry,
-                this.app,
-                this.hintActions,
-                this.openPicker ?? undefined,
-                this.settings.oilExplorer
-                    ? (this.oilManager ?? undefined)
-                    : undefined,
-            );
-            this.globalKeyHandler = new GlobalKeyHandler(
-                this.app,
-                this.settings,
-                this.modeTracker,
-                this.globalRegistry,
-            );
-            this.globalKeyHandler.openPicker = this.openPicker ?? undefined;
-            this.globalKeyHandler.install();
-            this.rebuildGlobalWhichKey();
-        }
-
-        if (this.settings.enableVimTextareas && !Platform.isMobile) {
-            this.textareaVimManager = new TextareaVimManager(
-                this.app,
-                this.settings.cursorShapes,
-            );
-            this.textareaVimManager.install();
-            this.register(() => {
-                this.textareaVimManager?.destroy();
-                this.textareaVimManager = null;
-            });
-        }
-
-        // --- Leader bindings from settings UI ---
-        this.registration.beginLeaderScope();
-        this.applySettingsLeaderBindings(
-            this.registration,
-            this.leaderRegistry,
-        );
-        this.registration.endLeaderScope();
-
-        // --- Insert escape handler ---
-        this.insertEscapeHandler = new InsertEscapeHandler(this.app, vim);
-        this.insertEscapeHandler.attach();
-
-        // --- Ex command suggest ---
-        this.rebuildExSuggest();
-
-        // --- Which-key overlay ---
-        this.rebuildWhichKey();
-
-        this.registerEditorExtension(yankHighlightExtension());
-        this.registerEditorExtension(createTableCellCursorGuard());
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(yankHighlightExtension());
+        this.vimExtensionSlot.push(createTableCellCursorGuard());
+        this.vimExtensionSlot.push(
             createTableNavExtension(this.app, this.settings, getVimApi),
         );
-        this.registerEditorExtension(createCompositionTrackerExtension());
-        this.registerEditorExtension(createImModeWatcherExtension());
-        this.registerEditorExtension(createAutocmdModeWatcherExtension());
-        this.registerEditorExtension(createAutocmdEventExtension());
-        this.registerEditorExtension(skipInTableCells(foldSyncExtension()));
+        this.vimExtensionSlot.push(createCompositionTrackerExtension());
+        this.vimExtensionSlot.push(createImModeWatcherExtension());
+        this.vimExtensionSlot.push(createAutocmdModeWatcherExtension());
+        this.vimExtensionSlot.push(createAutocmdEventExtension());
+        this.vimExtensionSlot.push(skipInTableCells(foldSyncExtension()));
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
-        this.registerEditorExtension(skipInTableCells(foldEnableExtension()));
-        this.registerEditorExtension(skipInTableCells(foldLevelExtension()));
-        this.registerEditorExtension(skipInTableCells(markdownFoldProvider()));
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(skipInTableCells(foldEnableExtension()));
+        this.vimExtensionSlot.push(skipInTableCells(foldLevelExtension()));
+        this.vimExtensionSlot.push(skipInTableCells(markdownFoldProvider()));
+        this.vimExtensionSlot.push(
             skipInTableCells(foldPlaceholderExtension()),
         );
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(signColumnFieldExtension()),
         );
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(
                 createMarkGutterExtension(this.settings.signcolumn),
             ),
         );
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(
                 createStatusColumnExtension(
                     this.settings.statuscolumn,
@@ -2302,7 +2549,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableSnippets) {
             const triggerMode = this.settings.snippetTriggerMode;
             if (triggerMode === 'completion' || triggerMode === 'both') {
-                this.registerEditorExtension(
+                this.vimExtensionSlot.push(
                     autocompletion({
                         override: [
                             createSnippetCompletionSource(
@@ -2314,7 +2561,7 @@ export default class VimMotionsPlugin extends Plugin {
                         defaultKeymap: false,
                     }),
                 );
-                this.registerEditorExtension(
+                this.vimExtensionSlot.push(
                     ViewPlugin.define((view) => {
                         let observer: MutationObserver | null = null;
 
@@ -2358,7 +2605,7 @@ export default class VimMotionsPlugin extends Plugin {
                 );
             }
             if (triggerMode === 'tab' || triggerMode === 'both') {
-                this.registerEditorExtension(
+                this.vimExtensionSlot.push(
                     createSnippetTabKeymap(
                         () => this.snippetRegistry,
                         () => this.getSnippetPreprocessContext(),
@@ -2371,18 +2618,17 @@ export default class VimMotionsPlugin extends Plugin {
                             const adapter = getCmAdapter(mdView);
                             if (!adapter) return false;
                             const vimState = adapter.state.vim as
-                                | Record<string, unknown>
-                                | undefined;
+                                Record<string, unknown> | undefined;
                             return !!vimState?.insertMode;
                         },
                         () => this.settings.enableSnippets,
                     ),
                 );
             }
-            this.registerEditorExtension(
+            this.vimExtensionSlot.push(
                 createDynamicSnippetPlugin(() => getActiveDynamicContext()),
             );
-            this.registerEditorExtension(
+            this.vimExtensionSlot.push(
                 EditorView.updateListener.of((update) => {
                     const prev = update.startState.field(snippetState, false);
                     const curr = update.state.field(snippetState, false);
@@ -2393,7 +2639,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(
                 createLineNumberExtension(
                     this.settings.number,
@@ -2402,7 +2648,7 @@ export default class VimMotionsPlugin extends Plugin {
                 ),
             ),
         );
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(
                 createLineNumberSecondaryExtension(
                     this.settings.number,
@@ -2417,7 +2663,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         setNumberwidth(this.settings.numberwidth);
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(
                 createCursorlineExtension(
                     this.settings.cursorline,
@@ -2440,13 +2686,13 @@ export default class VimMotionsPlugin extends Plugin {
                 damping: this.settings.smearDamping,
                 maxLength: this.settings.smearMaxLength,
             });
-            this.registerEditorExtension(
+            this.vimExtensionSlot.push(
                 skipInTableCells(createAnimatedCursorExtension()),
             );
         } else {
             setAnimatedCursorConfig({ enabled: false });
         }
-        this.registerEditorExtension(
+        this.vimExtensionSlot.push(
             skipInTableCells(
                 createFoldColumnExtension(this.settings.foldcolumn),
             ),
@@ -2455,71 +2701,314 @@ export default class VimMotionsPlugin extends Plugin {
         installEscapeGuard(this.app);
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
-        this.registerEditorExtension(linewiseWidgetHighlightExtension());
-        this.registerEditorExtension(visualLineSelectionSyncExtension());
+        this.vimExtensionSlot.push(linewiseWidgetHighlightExtension());
+        this.vimExtensionSlot.push(visualLineSelectionSyncExtension());
 
-        this.registerInterval(
-            window.setInterval(() => {
-                if (this.markSaveDirty) {
-                    this.markSaveDirty = false;
-                    this.settings.persistedMarks = this.markStore.save();
-                    void this.saveSettings();
-                }
-            }, 30_000),
-        );
-        this.registerInterval(
-            window.setInterval(() => {
-                if (this.harpoonSaveDirty) {
-                    this.harpoonSaveDirty = false;
-                    this.settings.harpoonPins = this.harpoonStore.save();
-                    void this.saveSettings();
-                }
-            }, 30_000),
-        );
-        this.registerInterval(
-            window.setInterval(() => {
-                if (this.jumpListSaveDirty) {
-                    this.jumpListSaveDirty = false;
-                    this.settings.persistedJumpList = this.jumpList.serialize();
-                    void this.saveSettings();
-                }
-            }, 30_000),
-        );
-        this.registerInterval(
-            window.setInterval(() => {
-                if (!this.settings.undoFile) return;
-                if (this.undoTreeSaveDirty) {
-                    this.persistDirtyUndoTrees();
-                    void this.saveSettings();
-                }
-            }, 30_000),
-        );
-        this.registerInterval(
-            window.setInterval(() => {
-                if (this.imSwitcher) {
-                    this.settings.persistedImState =
-                        this.imSwitcher.getPersistedState();
-                    void this.saveSettings();
-                }
-            }, 30_000),
-        );
-        this.registerInterval(
-            window.setInterval(() => {
-                if (this.foldPersistDirty) {
-                    this.foldPersistDirty = false;
-                    (
-                        this.settings as unknown as Record<string, unknown>
-                    ).persistedFolds = this.foldStore.save();
-                    void this.saveSettings();
-                }
-            }, 30_000),
-        );
-
-        this.app.workspace.trigger('parse-style-settings');
         this.initializing = false;
     }
 
+    private teardownVimSubsystems(): void {
+        const vim = this.vimRef ?? getVimApi();
+        if (vim) {
+            for (const key of this.vimrcMapKeys) {
+                try {
+                    vim.unmap(key, 'normal');
+                } catch {
+                    /* intentional: skip missing map */
+                }
+            }
+            for (const name of this.vimrcExmapNames) {
+                try {
+                    vim.undefineEx(name);
+                } catch {
+                    /* intentional: skip missing command */
+                }
+            }
+            for (const name of this.luaExCommandNames) {
+                try {
+                    vim.undefineEx(name);
+                } catch {
+                    /* intentional: skip missing command */
+                }
+            }
+        }
+        this.vimrcMapKeys.clear();
+        this.vimrcExmapNames.clear();
+        this.luaExCommandNames = [];
+        this.vimrcLoaded = false;
+        this.luaLoaded = false;
+
+        destroyAnimatedCursorManager();
+        setActiveDynamicContext(null);
+        activeDocument.body.classList.remove('vim-motions-line-numbers-active');
+        activeDocument.body.classList.remove('vim-motions-raw-table');
+        this.markGutterCleanup?.();
+        this.markGutterCleanup = null;
+        this.yankHighlightCleanup?.();
+        this.yankHighlightCleanup = null;
+        this.globalWhichKeyOverlay?.destroy();
+        this.globalWhichKeyOverlay = null;
+        this.globalKeyHandler?.destroy();
+        this.globalKeyHandler = null;
+        this.globalRegistry = null;
+        this.cleanupHintModeWindows();
+        this.uninstallVisualLineFix?.();
+        this.uninstallVisualLineFix = null;
+        this.uninstallTableCellMotions?.();
+        this.uninstallTableCellMotions = null;
+        this.exSuggest?.destroy();
+        this.exSuggest = null;
+        this.whichKeyOverlay?.destroy();
+        this.whichKeyOverlay = null;
+        this.insertEscapeHandler?.destroy();
+        this.insertEscapeHandler = null;
+        this.modeTracker?.destroy();
+        this.modeTracker = null;
+        this.scrolloffManager?.destroy();
+        this.scrolloffManager = null;
+        this.registration?.unregisterAll();
+        this.registration = null;
+        if (this.pickerAPI) {
+            uninstallPickerAPI();
+            this.pickerAPI = null;
+            (this as unknown as Record<string, unknown>).api = null;
+        }
+        this.openPicker = null;
+        this.timerManager?.destroyAll();
+        this.timerManager = null;
+        clearImModeCallbacks();
+        this.imSwitcher?.destroy();
+        this.imSwitcher = null;
+        clearAutocmdModeCallbacks();
+        clearAutocmdEventCallbacks();
+        this.autocmdManager?.destroy();
+        this.autocmdManager = null;
+        this.highlightManager?.destroy();
+        this.highlightManager = null;
+        this.luaDeactivateRuntimeEx?.();
+        this.luaDeactivateRuntimeEx = null;
+        this.bufferKeymapManager?.destroy();
+        this.bufferKeymapManager = null;
+        this.flashSearchCleanup?.();
+        this.flashSearchCleanup = null;
+        this.textareaVimManager?.destroy();
+        this.textareaVimManager = null;
+
+        for (const leaf of this.app.workspace.getLeavesOfType(
+            OilView.VIEW_TYPE,
+        )) {
+            leaf.detach();
+        }
+
+        if (this.luaState) {
+            destroyState(this.luaState);
+            this.luaState = null;
+        }
+
+        (
+            vim as unknown as { setIdleEscapeCallback?: (fn: null) => void }
+        )?.setIdleEscapeCallback?.(null);
+        setFoldAwareNavigation(false);
+        setAnimatedCursorConfig({ enabled: false });
+
+        this.vimExtensionSlot.length = 0;
+
+        uninstallVimBridge();
+
+        this.vimRef = null;
+        this.onSettingOverrideRef = null;
+        this.onLuaSettingOverrideRef = null;
+        this.initializing = false;
+
+        if (__DEV__) {
+            const residuals = (
+                [
+                    ['modeTracker', this.modeTracker],
+                    ['scrolloffManager', this.scrolloffManager],
+                    ['insertEscapeHandler', this.insertEscapeHandler],
+                    ['whichKeyOverlay', this.whichKeyOverlay],
+                    ['exSuggest', this.exSuggest],
+                    ['globalKeyHandler', this.globalKeyHandler],
+                    ['globalWhichKeyOverlay', this.globalWhichKeyOverlay],
+                    ['registration', this.registration],
+                    ['timerManager', this.timerManager],
+                    ['autocmdManager', this.autocmdManager],
+                    ['highlightManager', this.highlightManager],
+                    ['luaState', this.luaState],
+                    ['imSwitcher', this.imSwitcher],
+                    ['bufferKeymapManager', this.bufferKeymapManager],
+                    ['textareaVimManager', this.textareaVimManager],
+                ] as const
+            ).filter(([, v]) => v != null);
+
+            devAssert(
+                residuals.length === 0,
+                `Leaked managers after teardown: ${residuals.map(([n]) => n).join(', ')}`,
+            );
+        }
+    }
+
+    private async disableVim(): Promise<void> {
+        if (this.toggleInProgress || !this.settings.vimEnabled) return;
+        this.toggleInProgress = true;
+        try {
+            if (this.vimrcLoading || this.luaLoading) {
+                new Notice('Config is loading, try again in a moment.');
+                return;
+            }
+
+            setFlashActive(false);
+            activeDocument
+                .querySelectorAll(
+                    '.vim-motions-easymotion, .vim-motions-easymotion-shade',
+                )
+                .forEach((el) => el.remove());
+            const pickerInput = activeDocument.querySelector(
+                '.vim-motions-picker-input',
+            );
+            if (pickerInput) {
+                pickerInput.dispatchEvent(
+                    new KeyboardEvent('keydown', {
+                        key: 'Escape',
+                        code: 'Escape',
+                        bubbles: true,
+                    }),
+                );
+            }
+            activeDocument
+                .querySelectorAll('.notice')
+                .forEach((el) => el.remove());
+
+            const vim = this.vimRef ?? getVimApi();
+            if (vim) {
+                const macroState = vim.getMacroState?.();
+                if (macroState?.isRecording) {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    const adapter = view ? getCmAdapter(view) : null;
+                    if (adapter) {
+                        vim.handleKey(adapter, 'q');
+                    }
+                }
+                this.app.workspace.iterateAllLeaves((leaf) => {
+                    if (!(leaf.view instanceof MarkdownView)) return;
+                    const adapter = getCmAdapter(leaf.view);
+                    if (!adapter?.state?.vim) return;
+                    const vimState = adapter.state.vim;
+                    if (
+                        vimState.visualMode ||
+                        vimState.visualLine ||
+                        vimState.visualBlock
+                    ) {
+                        vim.exitVisualMode(adapter);
+                    }
+                    if (typeof vim.clearInputState === 'function') {
+                        vim.clearInputState(adapter, 'vim-toggle');
+                    }
+                    if (vimState.status) vimState.status = '';
+                    vim.handleKey(adapter, '<Esc>');
+                });
+            }
+
+            this.settings.vimEnabled = false;
+
+            if (this.markSaveDirty) {
+                this.markSaveDirty = false;
+                this.settings.persistedMarks = this.markStore.save();
+            }
+            if (this.harpoonSaveDirty) {
+                this.harpoonSaveDirty = false;
+                this.settings.harpoonPins = this.harpoonStore.save();
+            }
+            if (this.jumpListSaveDirty) {
+                this.jumpListSaveDirty = false;
+                this.settings.persistedJumpList = this.jumpList.serialize();
+            }
+            if (this.settings.undoFile && this.undoTreeSaveDirty) {
+                this.persistDirtyUndoTrees();
+            }
+            if (this.foldPersistDirty) {
+                this.foldPersistDirty = false;
+                (
+                    this.settings as unknown as Record<string, unknown>
+                ).persistedFolds = this.foldStore.save();
+            }
+            if (this.imSwitcher) {
+                this.settings.persistedImState =
+                    this.imSwitcher.getPersistedState();
+            }
+
+            this.teardownVimSubsystems();
+            this.app.workspace.updateOptions();
+
+            resetForkedVimState();
+            resetCursorState();
+            resetBundledVimState();
+            (
+                vim as unknown as { resetVimGlobalState_?: () => void }
+            )?.resetVimGlobalState_?.();
+
+            (
+                this.declarativeSettingTab as unknown as {
+                    update?(): void;
+                }
+            )?.update?.();
+            await this.saveSettings();
+            this.app.workspace.trigger('parse-style-settings');
+        } finally {
+            window.setTimeout(() => {
+                this.toggleInProgress = false;
+            }, 500);
+        }
+    }
+
+    private async enableVim(): Promise<void> {
+        if (this.toggleInProgress || this.settings.vimEnabled) return;
+        if (isBuiltinVimEnabled(this.app)) {
+            new Notice("Disable Obsidian's built-in Vim mode first.");
+            return;
+        }
+        this.toggleInProgress = true;
+        try {
+            this.settings.vimEnabled = true;
+            installVimBridge();
+            const vim = getVimApi();
+            if (!vim) {
+                new Notice('Vim Motions: could not initialise Vim layer.');
+                this.settings.vimEnabled = false;
+                uninstallVimBridge();
+                resetBundledVimState();
+                return;
+            }
+            this.setupVimSubsystems(vim);
+            this.app.workspace.updateOptions();
+
+            const docs = new Set<Document>();
+            docs.add(this.app.workspace.containerEl.ownerDocument);
+            this.app.workspace.iterateAllLeaves((leaf) => {
+                const doc = leaf.view.containerEl?.ownerDocument;
+                if (doc) docs.add(doc);
+            });
+            for (const doc of docs) {
+                this.setupHintModeOnWindow(doc);
+            }
+
+            (
+                this.declarativeSettingTab as unknown as {
+                    update?(): void;
+                }
+            )?.update?.();
+            await this.saveSettings();
+            this.app.workspace.trigger('parse-style-settings');
+        } finally {
+            window.setTimeout(() => {
+                this.toggleInProgress = false;
+            }, 500);
+        }
+    }
+
     reloadFeatures(): void {
+        if (!this.settings.vimEnabled) return;
         if (this.autocmdManager?.isFiring()) {
             this.autocmdManager.deferReload();
             return;
@@ -2776,10 +3265,6 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.cursorShapes,
             );
             this.textareaVimManager.install();
-            this.register(() => {
-                this.textareaVimManager?.destroy();
-                this.textareaVimManager = null;
-            });
         }
 
         this.scrolloffManager?.setup(this.settings.scrolloffLines);
@@ -2791,8 +3276,7 @@ export default class VimMotionsPlugin extends Plugin {
                 const adapter = getCmAdapter(mdView);
                 if (adapter) {
                     const vimState = adapter.state.vim as
-                        | Record<string, unknown>
-                        | undefined;
+                        Record<string, unknown> | undefined;
                     if (vimState) {
                         vimState.cursorShapes = {
                             ...this.settings.cursorShapes,
@@ -3141,7 +3625,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (!this.settings.enableHarpoon || !this.registration) return;
         const vim = getVimApi();
         if (!vim) return;
-        vim.defineEx('HarpoonAdd', 'HarpoonA', () => {
+        this.registration.defineEx('HarpoonAdd', 'HarpoonA', () => {
             const file = this.app.workspace.getActiveFile();
             if (!file) {
                 new Notice('No file to pin');
@@ -3156,32 +3640,40 @@ export default class VimMotionsPlugin extends Plugin {
             );
             this.harpoonSaveDirty = true;
         });
-        vim.defineEx('HarpoonRemove', 'HarpoonR', (_cm, params) => {
-            const arg = (params.argString ?? '').trim();
-            if (arg) {
-                const n = parseInt(arg, 10);
-                if (!isNaN(n) && n >= 1) this.harpoonStore.remove(n - 1);
-            } else {
-                const file = this.app.workspace.getActiveFile();
-                if (file) this.harpoonStore.removeByPath(file.path);
-            }
-            this.harpoonSaveDirty = true;
-        });
-        vim.defineEx('Harpoon', 'Harpoon', () => {
+        this.registration.defineEx(
+            'HarpoonRemove',
+            'HarpoonR',
+            (_cm, params) => {
+                const arg = (params.argString ?? '').trim();
+                if (arg) {
+                    const n = parseInt(arg, 10);
+                    if (!isNaN(n) && n >= 1) this.harpoonStore.remove(n - 1);
+                } else {
+                    const file = this.app.workspace.getActiveFile();
+                    if (file) this.harpoonStore.removeByPath(file.path);
+                }
+                this.harpoonSaveDirty = true;
+            },
+        );
+        this.registration.defineEx('Harpoon', 'Harpoon', () => {
             this.openPicker?.('harpoon');
         });
-        vim.defineEx('HarpoonSelect', 'HarpoonS', (_cm, params) => {
-            const n = parseInt((params.argString ?? '').trim(), 10);
-            if (!isNaN(n) && n >= 1) {
-                const item = this.harpoonStore.get(n - 1);
-                if (item) void navigateToHarpoonPin(this.app, item);
-            }
-        });
-        vim.defineEx('HarpoonNext', 'HarpoonN', () => {
+        this.registration.defineEx(
+            'HarpoonSelect',
+            'HarpoonS',
+            (_cm, params) => {
+                const n = parseInt((params.argString ?? '').trim(), 10);
+                if (!isNaN(n) && n >= 1) {
+                    const item = this.harpoonStore.get(n - 1);
+                    if (item) void navigateToHarpoonPin(this.app, item);
+                }
+            },
+        );
+        this.registration.defineEx('HarpoonNext', 'HarpoonN', () => {
             const item = this.harpoonStore.selectNext();
             if (item) void navigateToHarpoonPin(this.app, item);
         });
-        vim.defineEx('HarpoonPrev', 'HarpoonP', () => {
+        this.registration.defineEx('HarpoonPrev', 'HarpoonP', () => {
             const item = this.harpoonStore.selectPrev();
             if (item) void navigateToHarpoonPin(this.app, item);
         });
@@ -3277,10 +3769,12 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     private registerImExCommands(): void {
+        const registration = this.registration;
+        if (!registration) return;
         const vim = getVimApi();
         if (!vim) return;
 
-        vim.defineEx('IMToggle', 'IMT', () => {
+        registration.defineEx('IMToggle', 'IMT', () => {
             this.settings.imEnabled = !this.settings.imEnabled;
             void this.saveSettings();
             this.reloadFeatures();
@@ -3289,7 +3783,7 @@ export default class VimMotionsPlugin extends Plugin {
             );
         });
 
-        vim.defineEx('IMStatus', 'IMS', () => {
+        registration.defineEx('IMStatus', 'IMS', () => {
             if (!this.imSwitcher) {
                 new Notice('Input method switching is not enabled.');
                 return;
@@ -3497,6 +3991,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.setupHintModeOnWindow(mainDoc);
         this.registerEvent(
             this.app.workspace.on('window-open', (_workspaceWindow, win) => {
+                if (!this.settings.vimEnabled) return;
                 this.setupHintModeOnWindow(win.document);
             }),
         );
@@ -3727,6 +4222,7 @@ export default class VimMotionsPlugin extends Plugin {
         });
 
         this.luaCommandCount = luaResult.commandCount;
+        this.luaExCommandNames = luaResult.exCommandNames;
         if (!luaResult.found) {
             this.luaLoaded = true;
             this.luaLoading = false;
@@ -4301,14 +4797,6 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     onunload() {
-        destroyAnimatedCursorManager();
-        setActiveDynamicContext(null);
-        activeDocument.body.classList.remove('vim-motions-line-numbers-active');
-        activeDocument.body.classList.remove('vim-motions-raw-table');
-        this.markGutterCleanup?.();
-        this.markGutterCleanup = null;
-        this.yankHighlightCleanup?.();
-        this.yankHighlightCleanup = null;
         if (this.markSaveDirty) {
             this.markSaveDirty = false;
             this.settings.persistedMarks = this.markStore.save();
@@ -4340,6 +4828,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.imSwitcher.getPersistedState();
             void this.saveSettings();
         }
+        this.teardownVimSubsystems();
         this.matcher?.dispose();
         this.matcher = null;
         if (this.frecencySaveTimer) {
@@ -4350,54 +4839,12 @@ export default class VimMotionsPlugin extends Plugin {
                 void this.saveSettings();
             }
         }
-        this.globalWhichKeyOverlay?.destroy();
-        this.globalWhichKeyOverlay = null;
-        this.globalKeyHandler?.destroy();
-        this.globalKeyHandler = null;
-        this.globalRegistry = null;
-        this.cleanupHintModeWindows();
-        this.uninstallVisualLineFix?.();
-        this.uninstallVisualLineFix = null;
-        this.uninstallTableCellMotions?.();
-        this.uninstallTableCellMotions = null;
-
-        this.exSuggest?.destroy();
-        this.exSuggest = null;
-        this.whichKeyOverlay?.destroy();
-        this.whichKeyOverlay = null;
-        this.insertEscapeHandler?.destroy();
-        this.insertEscapeHandler = null;
-        this.modeTracker?.destroy();
-        this.modeTracker = null;
-        this.scrolloffManager?.destroy();
-        this.scrolloffManager = null;
-        this.registration?.unregisterAll();
-        this.registration = null;
-        this.timerManager?.destroyAll();
-        this.timerManager = null;
-        clearImModeCallbacks();
-        this.imSwitcher?.destroy();
-        this.imSwitcher = null;
-        clearAutocmdModeCallbacks();
-        clearAutocmdEventCallbacks();
-        this.autocmdManager?.destroy();
-        this.autocmdManager = null;
-        this.highlightManager?.destroy();
-        this.highlightManager = null;
-        this.luaDeactivateRuntimeEx?.();
-        this.luaDeactivateRuntimeEx = null;
-        this.bufferKeymapManager?.destroy();
-        this.bufferKeymapManager = null;
         this.oilKeybindingManager?.destroy();
         this.oilKeybindingManager = null;
         if (this.oilManager) {
             this.oilManager.cleanup();
         }
         this.oilManager = null;
-        if (this.luaState) {
-            destroyState(this.luaState);
-            this.luaState = null;
-        }
 
         if (__DEV__) {
             const residuals = (
@@ -4418,6 +4865,7 @@ export default class VimMotionsPlugin extends Plugin {
                     ['oilManager', this.oilManager],
                     ['bufferKeymapManager', this.bufferKeymapManager],
                     ['oilKeybindingManager', this.oilKeybindingManager],
+                    ['matcher', this.matcher],
                 ] as const
             ).filter(([, v]) => v != null);
 
@@ -4426,8 +4874,6 @@ export default class VimMotionsPlugin extends Plugin {
                 `Leaked managers after onunload: ${residuals.map(([n]) => n).join(', ')}`,
             );
         }
-
-        uninstallVimBridge();
         this.app.workspace.trigger('parse-style-settings');
     }
 

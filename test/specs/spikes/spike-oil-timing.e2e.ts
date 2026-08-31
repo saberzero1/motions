@@ -70,8 +70,7 @@ describe('Spike: Oil keybinding and vim adapter timing', function () {
             if (!editorView) return { error: 'no editor view' };
 
             const cm = (editorView as Record<string, unknown>).cm as
-                | { state?: { vim?: Record<string, unknown> } }
-                | undefined;
+                { state?: { vim?: Record<string, unknown> } } | undefined;
             const hasFocus = !!(editorView as { hasFocus?: boolean }).hasFocus;
 
             const contentDOM = (editorView as { contentDOM?: HTMLElement })
@@ -118,8 +117,7 @@ describe('Spike: Oil keybinding and vim adapter timing', function () {
             if (!editorView) return { error: 'no editor view' };
 
             const cm = (editorView as Record<string, unknown>).cm as
-                | { state?: { vim?: Record<string, unknown> } }
-                | undefined;
+                { state?: { vim?: Record<string, unknown> } } | undefined;
             const hasFocus = !!(editorView as { hasFocus?: boolean }).hasFocus;
 
             const contentDOM = (editorView as { contentDOM?: HTMLElement })
@@ -202,8 +200,7 @@ describe('Spike: Oil keybinding and vim adapter timing', function () {
                     .actionsRegistered,
                 appliedKeysCount: (
                     (kb as Record<string, unknown>).appliedKeys as
-                        | string[]
-                        | undefined
+                        string[] | undefined
                 )?.length,
             };
         })) as Record<string, unknown>;

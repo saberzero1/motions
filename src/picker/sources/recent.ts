@@ -28,15 +28,13 @@ export function createRecentSource(): PickerSource {
         description: 'Recently opened files',
         priority: 8,
         items() {
-            return recentFiles.map(
-                (path): PickerItem => ({
-                    id: path,
-                    label: path.replace(/\.md$/, '').split('/').pop() ?? path,
-                    description: path,
-                    filterValue: path,
-                    data: { path },
-                }),
-            );
+            return recentFiles.map((path): PickerItem => ({
+                id: path,
+                label: path.replace(/\.md$/, '').split('/').pop() ?? path,
+                description: path,
+                filterValue: path,
+                data: { path },
+            }));
         },
         onSelect(item, app) {
             const data = item.data as { path: string };

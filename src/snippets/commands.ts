@@ -56,8 +56,7 @@ export function registerSnippetCommands(
     getRegistry: () => SnippetRegistry | null,
     getContext: () => PreprocessContext,
     getOpenPicker?: () =>
-        | ((source: string, opts?: Record<string, unknown>) => void)
-        | undefined,
+        ((source: string, opts?: Record<string, unknown>) => void) | undefined,
 ): void {
     reg.defineEx('snippet', 'snip', (cm, params) => {
         const query = (params.argString ?? '').trim();

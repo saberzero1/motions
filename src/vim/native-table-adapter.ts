@@ -71,8 +71,7 @@ export function getTableEditorFromWidgetEl(
     widgetEl: HTMLElement,
 ): TableEditor | null {
     const cmTile = (widgetEl as unknown as Record<string, unknown>).cmTile as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
     const widget = cmTile?.widget as TableEditor | undefined;
     if (!widget || typeof widget.getCellAt !== 'function') return null;
     return widget;
