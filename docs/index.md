@@ -31,13 +31,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.136.0
+## What's new in 0.137.0
 
-- **36 new `vim.fn` functions** — expanded the [[lua-config|Lua API]] from 29 to 65 supported `vim.fn.*` functions: register manipulation (`setreg`/`getreg`/`getregtype`), buffer modification (`setline`/`append`/`indent`), cursor/position (`getpos`/`setpos`/`cursor`/`getcurpos`), pattern matching (`matchstr`/`match`/`matchlist`), and string/list/dict utilities
-- **Neovim-compatible `foldopen` option** — [[workspace-navigation|fold-aware navigation]] now matches Neovim's semantics: each motion is tagged with a category (`hor`, `block`, `jump`, `mark`, `search`, `percent`, `undo`), and only matching categories trigger auto-unfold. Configurable via `set foldopen=…` or `vim.opt.foldopen`
-- **12 configurable Neovim options** — `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `wrapscan`, `gdefault`, `startofline`, `whichwrap`, `virtualedit`, `joinspaces`, `shiftround`, and `nrformats` are now user-configurable via [[vimrc|`:set`]] or [[lua-config|`vim.opt`]] with Neovim-compatible defaults
-- **Neovim options registry** — all 378 Neovim options are recognized by name with tiered classification: typos produce warnings (`set mose=a`), platform-handled options are silently accepted (`set mouse=a`), and hardcoded options log an info note (`set magic`)
-- **Oil improvements** — `<C-p>` [[oil-explorer|preview window]], visual mode multi-select (`V` + `<CR>` opens all selected files), hidden toggle guard (blocks `g.` with unsaved changes), nested path creation (`newfolder/notes.md` creates both directory and file, [#154](https://github.com/saberzero1/motions/issues/154))
-- **Range-aware fold ex commands** — `:{range}fold`, `:{range}foldopen[!]`, `:{range}foldclose[!]`, `:folddoopen`, and `:folddoclosed` now support Neovim-style line ranges
+- **`vim.treesitter` API** — full [[lua-config|treesitter integration]] backed by `web-tree-sitter` (WASM), running as a parallel parser alongside CM6's Lezer. Provides `get_parser`, `get_node`, `query.parse`, `Query:iter_captures`/`iter_matches`, LanguageTree with injection support, 31 TSNode methods, 8 built-in predicates, 4 directives, and language management — activates on-demand with zero cost when unused
+- **Treesitter-enhanced Markdown** — heading navigation (`]h`/`[h`), code block text objects (`iC`/`aC`), blockquote text objects (`iB`/`aB`), delimiter text objects (`i*`/`a*`, `` i` ``/`` a` ``), fold provider, and snippet context detection now use treesitter for structural parsing when available, with automatic regex fallback
+- **Token classifier hook** — the codemirror-vim fork's `%` bracket matcher now uses treesitter-based token classification, improving Markdown bracket matching accuracy by correctly skipping brackets inside inline code spans
+- **Note Composer visual-line fix** — `editor.replaceSelection()` now works correctly when called after visual-line mode has been exited between `getSelection()` and `replaceSelection()`, fixing modal-based extract commands ([#157](https://github.com/saberzero1/motions/issues/157))
+- **`zj`/`zk` nested heading folds** — fold motions now visit all foldable lines including nested headings, matching Neovim behavior (6 fold motion deviations resolved)
 
 See the [[changelog|full changelog]] for details.

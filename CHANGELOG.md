@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.137.0] - 2026-09-01
+
 ### Added
 
 - **`vim.treesitter` API** — full treesitter integration backed by `web-tree-sitter` (WASM), running as a parallel parser alongside CM6's Lezer. Markdown and HTML grammars are bundled; the subsystem activates on-demand when Lua code calls `get_parser()`. Provides the complete Neovim `vim.treesitter` API surface:
