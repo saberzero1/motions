@@ -42,13 +42,42 @@ export interface VimFnCallbacks {
                 blockwise: boolean;
             }
         >;
+        getRegister?(name: string): {
+            toString(): string;
+            setText(
+                text: string,
+                linewise?: boolean,
+                blockwise?: boolean,
+            ): void;
+            linewise: boolean;
+            blockwise: boolean;
+        };
     } | null;
+    setCursor?: (line: number, col: number) => void;
+    getMarkPos?: (name: string) => { line: number; ch: number } | null;
+    setMark?: (name: string, line: number, ch: number) => void;
+    setLine?: (line: number, text: string) => void;
+    insertLines?: (afterLine: number, lines: string[]) => void;
 }
 
 type VimFnHandler = (L: lua_State) => number;
 
 function readString(L: lua_State, index: number): string {
     return to_jsstring(lauxlib.luaL_checkstring(L, index));
+}
+
+function luaValueToJs(
+    L: lua_State,
+    index: number,
+): string | number | boolean | null {
+    if (lua.lua_isnil(L, index)) return null;
+    if (lua.lua_isboolean(L, index)) return !!lua.lua_toboolean(L, index);
+    if (lua.lua_isnumber(L, index)) return lua.lua_tonumber(L, index);
+    if (lua.lua_isstring(L, index)) {
+        const val = lua.lua_tolstring(L, index);
+        return val ? to_jsstring(val) : '';
+    }
+    return null;
 }
 
 function pushBooleanInt(L: lua_State, value: boolean): number {
@@ -483,11 +512,723 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
             : '';
         const linewise = opts.includes('l') || opts.includes('V');
         const blockwise = opts.includes('b') || opts.includes('\x16');
-        const reg = rc.registers[name];
+        const reg = rc.getRegister?.(name) ?? rc.registers[name];
         if (reg) {
             reg.setText(value, linewise, blockwise);
         }
         return 0;
+    });
+
+    // --- Register type ---
+
+    registry.set('getregtype', (state) => {
+        const rc = callbacks.getRegisterController?.();
+        if (!rc) {
+            lua.lua_pushstring(state, to_luastring('v'));
+            return 1;
+        }
+        const name = lua.lua_isstring(state, 1)
+            ? to_jsstring(lauxlib.luaL_checkstring(state, 1))
+            : '"';
+        const reg = rc.registers[name];
+        if (!reg) {
+            lua.lua_pushstring(state, to_luastring('v'));
+            return 1;
+        }
+        const type = reg.blockwise ? '\x16' : reg.linewise ? 'V' : 'v';
+        lua.lua_pushstring(state, to_luastring(type));
+        return 1;
+    });
+
+    // --- Buffer modification ---
+
+    registry.set('setline', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        const text = readString(state, 2);
+        callbacks.setLine?.(lnum - 1, text);
+        return 0;
+    });
+
+    registry.set('append', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        if (lua.lua_istable(state, 2)) {
+            const lines: string[] = [];
+            for (let i = 1; ; i++) {
+                lua.lua_rawgeti(state, 2, i);
+                if (lua.lua_isnil(state, -1)) {
+                    lua.lua_pop(state, 1);
+                    break;
+                }
+                if (lua.lua_isstring(state, -1)) {
+                    const val = lua.lua_tolstring(state, -1);
+                    if (val) lines.push(to_jsstring(val));
+                } else if (lua.lua_isnumber(state, -1)) {
+                    lines.push(String(lua.lua_tonumber(state, -1)));
+                }
+                lua.lua_pop(state, 1);
+            }
+            callbacks.insertLines?.(lnum, lines);
+        } else {
+            const text = readString(state, 2);
+            callbacks.insertLines?.(lnum, [text]);
+        }
+        return 0;
+    });
+
+    registry.set('indent', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        const text = callbacks.getLine(lnum - 1);
+        if (!text) {
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        }
+        const match = /^(\s*)/.exec(text);
+        let indent = 0;
+        if (match) {
+            for (const ch of match[1]!) {
+                indent += ch === '\t' ? 8 : 1;
+            }
+        }
+        lua.lua_pushnumber(state, indent);
+        return 1;
+    });
+
+    // --- Position/cursor functions ---
+
+    registry.set('nextnonblank', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        const lineCount = callbacks.getLineCount();
+        for (let i = lnum - 1; i < lineCount; i++) {
+            const text = callbacks.getLine(i);
+            if (text !== null && text.trim().length > 0) {
+                lua.lua_pushnumber(state, i + 1);
+                return 1;
+            }
+        }
+        lua.lua_pushnumber(state, 0);
+        return 1;
+    });
+
+    registry.set('prevnonblank', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        for (let i = lnum - 1; i >= 0; i--) {
+            const text = callbacks.getLine(i);
+            if (text !== null && text.trim().length > 0) {
+                lua.lua_pushnumber(state, i + 1);
+                return 1;
+            }
+        }
+        lua.lua_pushnumber(state, 0);
+        return 1;
+    });
+
+    registry.set('getpos', (state) => {
+        const expr = readString(state, 1);
+        lua.lua_newtable(state);
+        lua.lua_pushnumber(state, 0);
+        lua.lua_rawseti(state, -2, 1);
+
+        let line = 0;
+        let col = 0;
+        if (expr === '.') {
+            line = callbacks.getCursorLine();
+            col = callbacks.getCursorCol();
+        } else if (expr.startsWith("'")) {
+            const markName = expr.substring(1);
+            const pos = callbacks.getMarkPos?.(markName);
+            if (pos) {
+                line = pos.line + 1;
+                col = pos.ch + 1;
+            }
+        }
+
+        lua.lua_pushnumber(state, line);
+        lua.lua_rawseti(state, -2, 2);
+        lua.lua_pushnumber(state, col);
+        lua.lua_rawseti(state, -2, 3);
+        lua.lua_pushnumber(state, 0);
+        lua.lua_rawseti(state, -2, 4);
+        return 1;
+    });
+
+    registry.set('setpos', (state) => {
+        const expr = readString(state, 1);
+        if (!lua.lua_istable(state, 2)) return 0;
+        lua.lua_rawgeti(state, 2, 2);
+        const lnum = lua.lua_tonumber(state, -1);
+        lua.lua_pop(state, 1);
+        lua.lua_rawgeti(state, 2, 3);
+        const col = lua.lua_tonumber(state, -1);
+        lua.lua_pop(state, 1);
+
+        if (expr === '.') {
+            callbacks.setCursor?.(lnum - 1, col - 1);
+        } else if (expr.startsWith("'")) {
+            const markName = expr.substring(1);
+            callbacks.setMark?.(markName, lnum - 1, col - 1);
+        }
+        return 0;
+    });
+
+    registry.set('cursor', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        const col = lua.lua_tonumber(state, 2);
+        callbacks.setCursor?.(lnum - 1, col - 1);
+        return 0;
+    });
+
+    registry.set('getcurpos', (state) => {
+        lua.lua_newtable(state);
+
+        lua.lua_pushnumber(state, 0);
+        lua.lua_rawseti(state, -2, 1);
+        lua.lua_pushnumber(state, callbacks.getCursorLine());
+        lua.lua_rawseti(state, -2, 2);
+        lua.lua_pushnumber(state, callbacks.getCursorCol());
+        lua.lua_rawseti(state, -2, 3);
+        lua.lua_pushnumber(state, 0);
+        lua.lua_rawseti(state, -2, 4);
+        lua.lua_pushnumber(state, callbacks.getCursorCol());
+        lua.lua_rawseti(state, -2, 5);
+        return 1;
+    });
+
+    // --- Type/introspection ---
+
+    // Neovim type numbers: 0=number, 1=string, 2=funcref, 3=list, 4=dict, 5=float, 6=bool, 7=special
+    registry.set('type', (state) => {
+        let vimType: number;
+        if (lua.lua_isnumber(state, 1)) {
+            vimType = Number.isInteger(lua.lua_tonumber(state, 1)) ? 0 : 5;
+        } else if (lua.lua_isstring(state, 1)) {
+            vimType = 1;
+        } else if (lua.lua_isfunction(state, 1)) {
+            vimType = 2;
+        } else if (lua.lua_istable(state, 1)) {
+            lua.lua_rawgeti(state, 1, 1);
+            vimType = lua.lua_isnil(state, -1) ? 4 : 3;
+            lua.lua_pop(state, 1);
+        } else if (lua.lua_isboolean(state, 1)) {
+            vimType = 6;
+        } else {
+            vimType = 7;
+        }
+        lua.lua_pushnumber(state, vimType);
+        return 1;
+    });
+
+    registry.set('len', (state) => {
+        if (lua.lua_isstring(state, 1)) {
+            const s = to_jsstring(lauxlib.luaL_checkstring(state, 1));
+            lua.lua_pushnumber(state, s.length);
+        } else if (lua.lua_istable(state, 1)) {
+            lua.lua_pushnumber(state, lauxlib.luaL_len(state, 1));
+        } else {
+            lua.lua_pushnumber(state, 0);
+        }
+        return 1;
+    });
+
+    registry.set('empty', (state) => {
+        let isEmpty: boolean;
+        if (lua.lua_isstring(state, 1)) {
+            isEmpty =
+                to_jsstring(lauxlib.luaL_checkstring(state, 1)).length === 0;
+        } else if (lua.lua_istable(state, 1)) {
+            isEmpty = lauxlib.luaL_len(state, 1) === 0;
+        } else if (lua.lua_isnumber(state, 1)) {
+            isEmpty = lua.lua_tonumber(state, 1) === 0;
+        } else if (lua.lua_isboolean(state, 1)) {
+            isEmpty = !lua.lua_toboolean(state, 1);
+        } else {
+            isEmpty = true;
+        }
+        lua.lua_pushnumber(state, isEmpty ? 1 : 0);
+        return 1;
+    });
+
+    // --- String pattern matching ---
+
+    registry.set('matchstr', (state) => {
+        const s = readString(state, 1);
+        const pat = readString(state, 2);
+        try {
+            const re = new RegExp(pat);
+            const m = re.exec(s);
+            lua.lua_pushstring(state, to_luastring(m ? m[0] : ''));
+        } catch {
+            lua.lua_pushstring(state, to_luastring(''));
+        }
+        return 1;
+    });
+
+    registry.set('match', (state) => {
+        const s = readString(state, 1);
+        const pat = readString(state, 2);
+        const start = lua.lua_isnumber(state, 3)
+            ? lua.lua_tonumber(state, 3)
+            : 0;
+        try {
+            const re = new RegExp(pat);
+            const m = re.exec(s.substring(start));
+            lua.lua_pushnumber(state, m ? m.index + start : -1);
+        } catch {
+            lua.lua_pushnumber(state, -1);
+        }
+        return 1;
+    });
+
+    registry.set('matchlist', (state) => {
+        const s = readString(state, 1);
+        const pat = readString(state, 2);
+        lua.lua_newtable(state);
+        try {
+            const re = new RegExp(pat);
+            const m = re.exec(s);
+            if (m) {
+                for (let i = 0; i < Math.max(m.length, 10); i++) {
+                    lua.lua_pushstring(state, to_luastring(m[i] ?? ''));
+                    lua.lua_rawseti(state, -2, i + 1);
+                }
+            }
+        } catch {
+            /* invalid regex — return empty table */
+        }
+        return 1;
+    });
+
+    registry.set('escape', (state) => {
+        const s = readString(state, 1);
+        const chars = readString(state, 2);
+        let result = '';
+        for (const ch of s) {
+            if (chars.includes(ch)) {
+                result += '\\' + ch;
+            } else {
+                result += ch;
+            }
+        }
+        lua.lua_pushstring(state, to_luastring(result));
+        return 1;
+    });
+
+    // --- String/list utilities ---
+
+    registry.set('repeat', (state) => {
+        if (lua.lua_isstring(state, 1)) {
+            const s = readString(state, 1);
+            const count = lua.lua_tonumber(state, 2);
+            lua.lua_pushstring(
+                state,
+                to_luastring(s.repeat(Math.max(0, count))),
+            );
+        } else if (lua.lua_istable(state, 1)) {
+            const count = lua.lua_tonumber(state, 2);
+            lua.lua_newtable(state);
+            let idx = 1;
+            for (let c = 0; c < count; c++) {
+                for (let i = 1; ; i++) {
+                    lua.lua_rawgeti(state, 1, i);
+                    if (lua.lua_isnil(state, -1)) {
+                        lua.lua_pop(state, 1);
+                        break;
+                    }
+                    lua.lua_rawseti(state, -2, idx++);
+                }
+            }
+        } else {
+            lua.lua_pushstring(state, to_luastring(''));
+        }
+        return 1;
+    });
+
+    registry.set('reverse', (state) => {
+        if (lua.lua_isstring(state, 1)) {
+            const s = readString(state, 1);
+            lua.lua_pushstring(state, to_luastring([...s].reverse().join('')));
+        } else if (lua.lua_istable(state, 1)) {
+            const items: number[] = [];
+            for (let i = 1; ; i++) {
+                lua.lua_rawgeti(state, 1, i);
+                if (lua.lua_isnil(state, -1)) {
+                    lua.lua_pop(state, 1);
+                    break;
+                }
+                items.push(i);
+                lua.lua_pop(state, 1);
+            }
+
+            for (let i = 0; i < Math.floor(items.length / 2); i++) {
+                const j = items.length - 1 - i;
+                lua.lua_rawgeti(state, 1, i + 1);
+                lua.lua_rawgeti(state, 1, j + 1);
+                lua.lua_rawseti(state, 1, i + 1);
+                lua.lua_rawseti(state, 1, j + 1);
+            }
+            lua.lua_pushvalue(state, 1);
+        } else {
+            lua.lua_pushvalue(state, 1);
+        }
+        return 1;
+    });
+
+    registry.set('range', (state) => {
+        const start = lua.lua_tonumber(state, 1);
+        const end = lua.lua_isnumber(state, 2)
+            ? lua.lua_tonumber(state, 2)
+            : undefined;
+        const stride = lua.lua_isnumber(state, 3)
+            ? lua.lua_tonumber(state, 3)
+            : 1;
+        lua.lua_newtable(state);
+        if (end === undefined) {
+            // range(n) → {0, 1, ..., n-1} (Neovim convention)
+            for (let i = 0; i < start; i++) {
+                lua.lua_pushnumber(state, i);
+                lua.lua_rawseti(state, -2, i + 1);
+            }
+        } else {
+            let idx = 1;
+            if (stride > 0) {
+                for (let i = start; i <= end; i += stride) {
+                    lua.lua_pushnumber(state, i);
+                    lua.lua_rawseti(state, -2, idx++);
+                }
+            } else if (stride < 0) {
+                for (let i = start; i >= end; i += stride) {
+                    lua.lua_pushnumber(state, i);
+                    lua.lua_rawseti(state, -2, idx++);
+                }
+            }
+        }
+        return 1;
+    });
+
+    registry.set('sort', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        const items: string[] = [];
+        for (let i = 1; ; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_isnil(state, -1)) {
+                lua.lua_pop(state, 1);
+                break;
+            }
+            if (lua.lua_isstring(state, -1)) {
+                items.push(to_jsstring(lauxlib.luaL_checkstring(state, -1)));
+            } else if (lua.lua_isnumber(state, -1)) {
+                items.push(String(lua.lua_tonumber(state, -1)));
+            }
+            lua.lua_pop(state, 1);
+        }
+        items.sort();
+
+        for (let i = 0; i < items.length; i++) {
+            lua.lua_pushstring(state, to_luastring(items[i]!));
+            lua.lua_rawseti(state, 1, i + 1);
+        }
+        lua.lua_pushvalue(state, 1);
+        return 1;
+    });
+
+    registry.set('uniq', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        const items: string[] = [];
+        for (let i = 1; ; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_isnil(state, -1)) {
+                lua.lua_pop(state, 1);
+                break;
+            }
+            if (lua.lua_isstring(state, -1)) {
+                items.push(to_jsstring(lauxlib.luaL_checkstring(state, -1)));
+            } else if (lua.lua_isnumber(state, -1)) {
+                items.push(String(lua.lua_tonumber(state, -1)));
+            }
+            lua.lua_pop(state, 1);
+        }
+        // Remove consecutive duplicates (Neovim semantics — requires sorted input)
+        const unique = items.filter((v, i) => i === 0 || v !== items[i - 1]);
+
+        for (let i = 0; i < unique.length; i++) {
+            lua.lua_pushstring(state, to_luastring(unique[i]!));
+            lua.lua_rawseti(state, 1, i + 1);
+        }
+
+        for (let i = unique.length + 1; i <= items.length; i++) {
+            lua.lua_pushnil(state);
+            lua.lua_rawseti(state, 1, i);
+        }
+        lua.lua_pushvalue(state, 1);
+        return 1;
+    });
+
+    registry.set('max', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        }
+        let result = -Infinity;
+        for (let i = 1; ; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_isnil(state, -1)) {
+                lua.lua_pop(state, 1);
+                break;
+            }
+            if (lua.lua_isnumber(state, -1)) {
+                result = Math.max(result, lua.lua_tonumber(state, -1));
+            }
+            lua.lua_pop(state, 1);
+        }
+        lua.lua_pushnumber(state, result === -Infinity ? 0 : result);
+        return 1;
+    });
+
+    registry.set('min', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        }
+        let result = Infinity;
+        for (let i = 1; ; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_isnil(state, -1)) {
+                lua.lua_pop(state, 1);
+                break;
+            }
+            if (lua.lua_isnumber(state, -1)) {
+                result = Math.min(result, lua.lua_tonumber(state, -1));
+            }
+            lua.lua_pop(state, 1);
+        }
+        lua.lua_pushnumber(state, result === Infinity ? 0 : result);
+        return 1;
+    });
+
+    registry.set('abs', (state) => {
+        lua.lua_pushnumber(state, Math.abs(lua.lua_tonumber(state, 1)));
+        return 1;
+    });
+
+    registry.set('index', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushnumber(state, -1);
+            return 1;
+        }
+        const needle = luaValueToJs(state, 2);
+        for (let i = 1; ; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_isnil(state, -1)) {
+                lua.lua_pop(state, 1);
+                break;
+            }
+            if (luaValueToJs(state, -1) === needle) {
+                lua.lua_pop(state, 1);
+                lua.lua_pushnumber(state, i - 1);
+                return 1;
+            }
+            lua.lua_pop(state, 1);
+        }
+        lua.lua_pushnumber(state, -1);
+        return 1;
+    });
+
+    registry.set('count', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        }
+        const needle = luaValueToJs(state, 2);
+        let n = 0;
+        for (let i = 1; ; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_isnil(state, -1)) {
+                lua.lua_pop(state, 1);
+                break;
+            }
+            if (luaValueToJs(state, -1) === needle) {
+                n++;
+            }
+            lua.lua_pop(state, 1);
+        }
+        lua.lua_pushnumber(state, n);
+        return 1;
+    });
+
+    // --- List/dict operations (syntactic sugar over Lua builtins) ---
+
+    registry.set('add', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        const len = lauxlib.luaL_len(state, 1);
+        lua.lua_pushvalue(state, 2);
+        lua.lua_rawseti(state, 1, len + 1);
+        lua.lua_pushvalue(state, 1);
+        return 1;
+    });
+
+    registry.set('remove', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        }
+        const idx = lua.lua_isnumber(state, 2)
+            ? lua.lua_tonumber(state, 2)
+            : -1;
+        const len = lauxlib.luaL_len(state, 1);
+        const luaIdx = idx < 0 ? len : idx + 1;
+        if (luaIdx < 1 || luaIdx > len) {
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        }
+        lua.lua_rawgeti(state, 1, luaIdx);
+        for (let i = luaIdx; i < len; i++) {
+            lua.lua_rawgeti(state, 1, i + 1);
+            lua.lua_rawseti(state, 1, i);
+        }
+        lua.lua_pushnil(state);
+        lua.lua_rawseti(state, 1, len);
+        return 1;
+    });
+
+    registry.set('extend', (state) => {
+        if (!lua.lua_istable(state, 1) || !lua.lua_istable(state, 2)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        const len1 = lauxlib.luaL_len(state, 1);
+        const len2 = lauxlib.luaL_len(state, 2);
+        for (let i = 1; i <= len2; i++) {
+            lua.lua_rawgeti(state, 2, i);
+            lua.lua_rawseti(state, 1, len1 + i);
+        }
+        lua.lua_pushvalue(state, 1);
+        return 1;
+    });
+
+    registry.set('copy', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        const len = lauxlib.luaL_len(state, 1);
+        if (len > 0) {
+            for (let i = 1; i <= len; i++) {
+                lua.lua_rawgeti(state, 1, i);
+                lua.lua_rawseti(state, -2, i);
+            }
+        } else {
+            lua.lua_pushnil(state);
+            while (lua.lua_next(state, 1)) {
+                if (lua.lua_isstring(state, -2)) {
+                    const key = lua.lua_tolstring(state, -2);
+                    if (key) {
+                        lua.lua_setfield(state, -3, key);
+                    } else {
+                        lua.lua_pop(state, 1);
+                    }
+                } else {
+                    lua.lua_pop(state, 1);
+                }
+            }
+        }
+        return 1;
+    });
+
+    registry.set('deepcopy', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        lauxlib.luaL_dostring(state, to_luastring('return vim.deepcopy(...)'));
+        lua.lua_pushvalue(state, 1);
+        lua.lua_pcall(state, 1, 1, 0);
+        return 1;
+    });
+
+    registry.set('keys', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        let idx = 1;
+        lua.lua_pushnil(state);
+        while (lua.lua_next(state, 1)) {
+            lua.lua_pop(state, 1);
+            lua.lua_pushvalue(state, -1);
+            lua.lua_rawseti(state, -3, idx++);
+        }
+        return 1;
+    });
+
+    registry.set('values', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        let idx = 1;
+        lua.lua_pushnil(state);
+        while (lua.lua_next(state, 1)) {
+            lua.lua_rawseti(state, -3, idx++);
+        }
+        return 1;
+    });
+
+    registry.set('items', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        let idx = 1;
+        lua.lua_pushnil(state);
+        while (lua.lua_next(state, 1)) {
+            lua.lua_newtable(state);
+            lua.lua_pushvalue(state, -3);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushvalue(state, -2);
+            lua.lua_rawseti(state, -2, 2);
+            lua.lua_rawseti(state, -4, idx++);
+            lua.lua_pop(state, 1);
+        }
+        return 1;
+    });
+
+    registry.set('flatten', (state) => {
+        if (!lua.lua_istable(state, 1)) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        let outIdx = 1;
+        const flattenTable = (tableIdx: number) => {
+            for (let i = 1; ; i++) {
+                lua.lua_rawgeti(state, tableIdx, i);
+                if (lua.lua_isnil(state, -1)) {
+                    lua.lua_pop(state, 1);
+                    break;
+                }
+                if (lua.lua_istable(state, -1)) {
+                    const nested = lua.lua_gettop(state);
+                    flattenTable(nested);
+                    lua.lua_pop(state, 1);
+                } else {
+                    lua.lua_rawseti(state, -2, outIdx++);
+                }
+            }
+        };
+        flattenTable(1);
+        return 1;
     });
 
     registry.set('split', (state) => {

@@ -182,7 +182,7 @@ src/
     package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua config file loader
     api.ts                 # vim.keymap, vim.opt, vim.g, vim.v (predefined variables), vim.cmd, vim.notify, expr mapping support
-    fn.ts                  # vim.fn.* function library (26 functions)
+    fn.ts                  # vim.fn.* function library (65 functions)
     buffer.ts              # vim.api.nvim_buf_* buffer API
     autocmd.ts             # vim.api.nvim_create_autocmd and augroups
     highlight.ts           # vim.api.nvim_set_hl highlight groups

@@ -9,11 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`vim.fn.setreg()` and `vim.fn.getreg()`** — register manipulation from Lua. `vim.fn.setreg(regname, value [, options])` sets a register's content; `vim.fn.getreg(regname)` reads it. Supports linewise (`'l'`/`'V'`) and blockwise (`'b'`/`'\x16'`) options matching Neovim's `setreg()` signature.
-    - Plugin: `src/lua/fn.ts` (`setreg` and `getreg` implementations)
-    - Plugin: `src/lua/fn.ts` (`getRegisterController` callback added to `VimFnCallbacks`)
-    - Plugin: `src/main.ts` (wired `getRegisterController` callback in `executeLuaForTest`)
-    - Plugin: `src/lua/loader.ts` (wired `getRegisterController` callback in main loader)
+- **36 new `vim.fn` functions** — expanded the Lua API from 29 to 65 supported `vim.fn.*` functions:
+    - **Register**: `setreg(regname, value [, options])`, `getreg(regname)`, `getregtype(regname)` — full register manipulation matching Neovim's signatures
+    - **Buffer**: `setline(lnum, text)`, `append(lnum, text|list)`, `indent(lnum)`, `nextnonblank(lnum)`, `prevnonblank(lnum)` — buffer modification and line scanning
+    - **Position**: `getpos(expr)`, `setpos(expr, list)`, `cursor(lnum, col)`, `getcurpos()` — cursor and mark manipulation; `getpos("'[")` / `getpos("']")` enables `g@` operatorfunc usage
+    - **Type/introspection**: `type(expr)`, `len(expr)`, `empty(expr)` — fundamental type guards for Lua configs
+    - **Pattern matching**: `matchstr(s, pat)`, `match(s, pat [, start])`, `matchlist(s, pat)` — string pattern matching (ECMAScript regex)
+    - **String/list**: `escape(s, chars)`, `repeat(s|list, count)`, `reverse(s|list)`, `range(n [, end [, stride]])`, `sort(list)`, `uniq(list)`, `max(list)`, `min(list)`, `abs(n)`, `index(list, item)`, `count(list, val)`
+    - **List/dict sugar**: `add(list, item)`, `remove(list, idx)`, `extend(list1, list2)`, `copy(expr)`, `deepcopy(expr)`, `keys(dict)`, `values(dict)`, `items(dict)`, `flatten(list)` — syntactic sugar over Lua builtins / `vim.tbl_*` equivalents
+    - Plugin: `src/lua/fn.ts` (all implementations + `VimFnCallbacks` extended with `setCursor`, `getMarkPos`, `setMark`, `setLine`, `insertLines`)
+    - Plugin: `src/main.ts` (wired new callbacks in `executeLuaForTest`)
+    - Plugin: `src/lua/loader.ts` (wired new callbacks in main loader)
 - **Neovim-compatible `foldopen` option** — fold-aware navigation now matches Neovim's `foldopen` semantics. Each vim motion is tagged with a category (`hor`, `block`, `jump`, `mark`, `search`, `percent`, `undo`), and only motions whose category is in the configured `foldopen` set trigger auto-unfold when the cursor enters a folded range. Plain vertical motions (`j`/`k`) have no category and never unfold, matching Neovim's intentional exclusion of vertical movements. Configurable via `set foldopen=block,hor,mark,percent,search,undo` (Neovim default) or `set fdo=all`. ([#155](https://github.com/saberzero1/motions/pull/155))
     - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`foldopenAnnotation` CM6 transaction annotation, `_pendingFoldopen` on adapter)
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (40+ motions tagged with `foldopen` category in `defaultKeymap`, annotation set in `evalInput`, `undo`/`redo`, `jumpListWalk`)
@@ -46,15 +52,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Golden: `test/neovim/golden-data/foldopen.json`
     - Definitions: `test/neovim/test-definitions.ts` (new `foldopen` suite)
     - Deviations: `test/neovim/deviations.ts` (1 infra-limitation entry for column difference)
+- **`vim.fn` e2e tests** — 35 tests in `test/specs/lua-vim-fn.e2e.ts` covering all new `vim.fn` functions across 6 categories: registers (setreg, getreg, getregtype), buffer modification (setline, append, indent), position/cursor (nextnonblank, prevnonblank, cursor, setpos, getpos, getcurpos), type/introspection (type ×5, len ×2, empty), pattern matching (matchstr, match, matchlist, escape), string/list utilities (repeat, reverse, range, sort, uniq, max, min, abs, index, count).
+    - Test: `test/specs/lua-vim-fn.e2e.ts`
 - **Fold-aware navigation e2e tests** — expanded from 2 to 6 tests. New tests verify `j`/`k` do not auto-open folds, `j` from fold line skips past the fold, `k` navigates back to fold line, and upward `k` traversal preserves all folds.
     - Test: `test/specs/fold-navigation.e2e.ts`
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: updated Neovim golden comparison deviation counts (32 → 30)
-- `AGENTS.md`: fork API surface updated with `foldopenAnnotation`
-- `CONTRIBUTING.md`: `fold-sync.ts` description updated
+- `KNOWN_LIMITATIONS.md`: updated `vim.fn` function count (27 → 65), added not-yet-implemented table (lower-value/niche functions), added explicitly excluded functions (`map`/`filter`/`printf` incompatible signatures)
+- `docs/configuration/lua-config.md`: added 36 new `vim.fn` functions to quick-reference and detailed tables
+- `AGENTS.md`: `vim.fn` count updated (27 → 65), fork API surface updated with `foldopenAnnotation`
+- `CONTRIBUTING.md`: `fn.ts` description updated (26 → 65 functions)
+- `docs/development/architecture.md`: `fn.ts` function count updated
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: `:join` range/bang/cursor section expanded
 - `README.md`: folding feature description updated with `foldopen` semantics
 - `docs/configuration/settings.md`: fold-aware navigation description updated, `foldopen` row added to Workspace navigation settings
 - `docs/configuration/vimrc.md`: `foldopen`/`fdo` added to string options table, `foldawarenavigation` description updated

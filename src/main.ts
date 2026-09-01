@@ -582,6 +582,47 @@ export default class VimMotionsPlugin extends Plugin {
                     ? () => this.undoTree.toNeovimDict()
                     : undefined,
                 getRegisterController: () => vim.getRegisterController(),
+                setCursor: (line, col) => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!view) return;
+                    view.editor.setCursor({ line, ch: col });
+                },
+                getMarkPos: () => null,
+                setMark: () => {},
+                setLine: (line, text) => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!view) return;
+                    const editor = view.editor;
+                    if (line < 0 || line >= editor.lineCount()) return;
+                    const lineLen = editor.getLine(line).length;
+                    editor.replaceRange(
+                        text,
+                        { line, ch: 0 },
+                        { line, ch: lineLen },
+                    );
+                },
+                insertLines: (afterLine, lines) => {
+                    const view =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!view) return;
+                    const editor = view.editor;
+                    const lineCount = editor.lineCount();
+                    const text = lines.join('\n');
+                    if (afterLine >= lineCount) {
+                        const lastLine = lineCount - 1;
+                        editor.replaceRange('\n' + text, {
+                            line: lastLine,
+                            ch: editor.getLine(lastLine).length,
+                        });
+                    } else {
+                        editor.replaceRange(text + '\n', {
+                            line: afterLine,
+                            ch: 0,
+                        });
+                    }
+                },
             });
             this.autocmdManager = autocmdManager;
         }

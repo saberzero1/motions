@@ -1113,6 +1113,82 @@ export async function loadInitLua(
         },
         getUndoTree,
         getRegisterController: () => vim.getRegisterController(),
+        setCursor: (line, col) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cm = getCmAdapter(view);
+            if (!cm) return;
+            cm.setCursor(line, col);
+        },
+        getMarkPos: (name) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cm = getCmAdapter(view);
+            if (!cm) return null;
+            const vimState = (
+                cm as {
+                    state?: {
+                        vim?: {
+                            marks?: Record<
+                                string,
+                                {
+                                    find():
+                                        | { line: number; ch: number }
+                                        | undefined;
+                                }
+                            >;
+                        };
+                    };
+                }
+            ).state?.vim;
+            if (!vimState?.marks) return null;
+            const mark = vimState.marks[name];
+            const pos = mark?.find();
+            return pos ? { line: pos.line, ch: pos.ch } : null;
+        },
+        setMark: (name, line, ch) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cm = getCmAdapter(view);
+            if (!cm) return;
+            const vimState = (
+                cm as { state?: { vim?: { marks?: Record<string, unknown> } } }
+            ).state?.vim;
+            if (!vimState) return;
+            if (!vimState.marks) vimState.marks = {};
+            vimState.marks[name] = (
+                cm as unknown as {
+                    markText?(from: { line: number; ch: number }): unknown;
+                }
+            ).markText?.({ line, ch }) ?? {
+                find: () => ({ line, ch }),
+                clear: () => {},
+            };
+        },
+        setLine: (line, text) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const editor = view.editor;
+            if (line < 0 || line >= editor.lineCount()) return;
+            const lineLen = editor.getLine(line).length;
+            editor.replaceRange(text, { line, ch: 0 }, { line, ch: lineLen });
+        },
+        insertLines: (afterLine, lines) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const editor = view.editor;
+            const lineCount = editor.lineCount();
+            const text = lines.join('\n');
+            if (afterLine >= lineCount) {
+                const lastLine = lineCount - 1;
+                editor.replaceRange('\n' + text, {
+                    line: lastLine,
+                    ch: editor.getLine(lastLine).length,
+                });
+            } else {
+                editor.replaceRange(text + '\n', { line: afterLine, ch: 0 });
+            }
+        },
     });
 
     injectStdlib(L);

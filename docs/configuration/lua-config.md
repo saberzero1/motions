@@ -139,6 +139,10 @@ print("init.lua loaded for vault:", vim.vault_name())
 | `vim.fn.mode()`                                      | Current vim mode                                   | `vim.fn.mode()`                      |
 | `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                   | `vim.fn.line(".")`                   |
 | `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                 | `vim.fn.col(".")`                    |
+| `vim.fn.setreg(regname, value [, opts])`             | Set register content                               | `vim.fn.setreg('"', "text")`         |
+| `vim.fn.getreg(regname)`                             | Get register content                               | `vim.fn.getreg('"')`                 |
+| `vim.fn.getpos(expr)`                                | Get position `[buf, lnum, col, off]`               | `vim.fn.getpos("'[")`                |
+| `vim.fn.cursor(lnum, col)`                           | Move cursor                                        | `vim.fn.cursor(5, 1)`                |
 | `vim.notify(msg)`                                    | Show Obsidian notification                         | `vim.notify("Saved!")`               |
 | `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command                           | see below                            |
 | `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                               | see Autocommands section             |
@@ -439,39 +443,77 @@ See [[settings]] for the full list of options and their descriptions.
 
 ## Supported vim.fn functions
 
-A subset of Neovim's `vim.fn.*` functions is available for conditional configuration and platform detection.
+65 Neovim `vim.fn.*` functions are available for configuration, buffer manipulation, register access, and platform detection.
 
-| Function                                | Returns                       | Example                                          |
-| --------------------------------------- | ----------------------------- | ------------------------------------------------ |
-| `vim.fn.has(feature)`                   | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`                 |
-| `vim.fn.expand("%")`                    | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`        |
-| `vim.fn.expand("%:t")`                  | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`             |
-| `vim.fn.expand("%:e")`                  | Extension only                | `vim.fn.expand("%:e")` → `"md"`                  |
-| `vim.fn.expand("%:r")`                  | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`         |
-| `vim.fn.fnamemodify(path, mods)`        | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"`   |
-| `vim.fn.exists(expr)`                   | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                      |
-| `vim.fn.localtime()`                    | Unix timestamp (seconds)      | `vim.fn.localtime()`                             |
-| `vim.fn.strftime(fmt)`                  | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                    |
-| `vim.fn.filereadable(path)`             | `1` if vault file exists      | `vim.fn.filereadable("config.md")`               |
-| `vim.fn.isdirectory(path)`              | `1` if vault directory exists | `vim.fn.isdirectory("templates")`                |
-| `vim.fn.glob(pattern)`                  | Newline-separated file list   | `vim.fn.glob("*.md")`                            |
-| `vim.fn.mode()`                         | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`            |
-| `vim.fn.line(expr)`                     | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)              |
-| `vim.fn.col(expr)`                      | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)               |
-| `vim.fn.getline(expr)`                  | Line content string           | `vim.fn.getline(".")` (callbacks only)           |
-| `vim.fn.tolower(s)`                     | Lowercase string              | `vim.fn.tolower("Hello")` → `"hello"`            |
-| `vim.fn.toupper(s)`                     | Uppercase string              | `vim.fn.toupper("Hello")` → `"HELLO"`            |
-| `vim.fn.trim(s)`                        | Trimmed string                | `vim.fn.trim("  hi  ")` → `"hi"`                 |
-| `vim.fn.strlen(s)`                      | String length                 | `vim.fn.strlen("hello")` → `5`                   |
-| `vim.fn.strwidth(s)`                    | Display width                 | `vim.fn.strwidth("hello")` → `5`                 |
-| `vim.fn.stridx(s, needle)`              | First index of needle         | `vim.fn.stridx("hello", "ll")` → `2`             |
-| `vim.fn.strridx(s, needle)`             | Last index of needle          | `vim.fn.strridx("abab", "ab")` → `2`             |
-| `vim.fn.strpart(s, start, len?)`        | Substring                     | `vim.fn.strpart("hello", 1, 3)` → `"ell"`        |
-| `vim.fn.substitute(s, pat, sub, flags)` | Regex replace                 | `vim.fn.substitute("hi", "h", "H", "")` → `"Hi"` |
-| `vim.fn.nr2char(n)`                     | Character from code point     | `vim.fn.nr2char(65)` → `"A"`                     |
-| `vim.fn.char2nr(c)`                     | Code point from character     | `vim.fn.char2nr("A")` → `65`                     |
-| `vim.fn.split(s, sep?)`                 | List (table) of parts         | `vim.fn.split("a,b", ",")`                       |
-| `vim.fn.join(list, sep?)`               | Joined string                 | `vim.fn.join({"a","b"}, "-")` → `"a-b"`          |
+| Function                                 | Returns                       | Example                                          |
+| ---------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `vim.fn.has(feature)`                    | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`                 |
+| `vim.fn.expand("%")`                     | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`        |
+| `vim.fn.expand("%:t")`                   | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`             |
+| `vim.fn.expand("%:e")`                   | Extension only                | `vim.fn.expand("%:e")` → `"md"`                  |
+| `vim.fn.expand("%:r")`                   | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`         |
+| `vim.fn.fnamemodify(path, mods)`         | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"`   |
+| `vim.fn.exists(expr)`                    | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                      |
+| `vim.fn.localtime()`                     | Unix timestamp (seconds)      | `vim.fn.localtime()`                             |
+| `vim.fn.strftime(fmt)`                   | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                    |
+| `vim.fn.filereadable(path)`              | `1` if vault file exists      | `vim.fn.filereadable("config.md")`               |
+| `vim.fn.isdirectory(path)`               | `1` if vault directory exists | `vim.fn.isdirectory("templates")`                |
+| `vim.fn.glob(pattern)`                   | Newline-separated file list   | `vim.fn.glob("*.md")`                            |
+| `vim.fn.mode()`                          | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`            |
+| `vim.fn.line(expr)`                      | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)              |
+| `vim.fn.col(expr)`                       | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)               |
+| `vim.fn.getline(expr)`                   | Line content string           | `vim.fn.getline(".")` (callbacks only)           |
+| `vim.fn.tolower(s)`                      | Lowercase string              | `vim.fn.tolower("Hello")` → `"hello"`            |
+| `vim.fn.toupper(s)`                      | Uppercase string              | `vim.fn.toupper("Hello")` → `"HELLO"`            |
+| `vim.fn.trim(s)`                         | Trimmed string                | `vim.fn.trim("  hi  ")` → `"hi"`                 |
+| `vim.fn.strlen(s)`                       | String length                 | `vim.fn.strlen("hello")` → `5`                   |
+| `vim.fn.strwidth(s)`                     | Display width                 | `vim.fn.strwidth("hello")` → `5`                 |
+| `vim.fn.stridx(s, needle)`               | First index of needle         | `vim.fn.stridx("hello", "ll")` → `2`             |
+| `vim.fn.strridx(s, needle)`              | Last index of needle          | `vim.fn.strridx("abab", "ab")` → `2`             |
+| `vim.fn.strpart(s, start, len?)`         | Substring                     | `vim.fn.strpart("hello", 1, 3)` → `"ell"`        |
+| `vim.fn.substitute(s, pat, sub, flags)`  | Regex replace                 | `vim.fn.substitute("hi", "h", "H", "")` → `"Hi"` |
+| `vim.fn.nr2char(n)`                      | Character from code point     | `vim.fn.nr2char(65)` → `"A"`                     |
+| `vim.fn.char2nr(c)`                      | Code point from character     | `vim.fn.char2nr("A")` → `65`                     |
+| `vim.fn.split(s, sep?)`                  | List (table) of parts         | `vim.fn.split("a,b", ",")`                       |
+| `vim.fn.join(list, sep?)`                | Joined string                 | `vim.fn.join({"a","b"}, "-")` → `"a-b"`          |
+| `vim.fn.setreg(regname, value [, opts])` | (none)                        | `vim.fn.setreg('"', "text", "l")` (linewise)     |
+| `vim.fn.getreg(regname?)`                | Register content string       | `vim.fn.getreg('"')` → `"yanked text"`           |
+| `vim.fn.getregtype(regname?)`            | `"v"`, `"V"`, or `"\x16"`     | `vim.fn.getregtype('"')` → `"V"` (linewise)      |
+| `vim.fn.setline(lnum, text)`             | (none)                        | `vim.fn.setline(1, "new content")`               |
+| `vim.fn.append(lnum, text\|list)`        | (none)                        | `vim.fn.append(0, "first line")`                 |
+| `vim.fn.indent(lnum)`                    | Indent column number          | `vim.fn.indent(1)` → `4`                         |
+| `vim.fn.nextnonblank(lnum)`              | Line number or 0              | `vim.fn.nextnonblank(3)`                         |
+| `vim.fn.prevnonblank(lnum)`              | Line number or 0              | `vim.fn.prevnonblank(3)`                         |
+| `vim.fn.getpos(expr)`                    | `{buf, lnum, col, off}`       | `vim.fn.getpos("'[")` (operatorfunc range)       |
+| `vim.fn.setpos(expr, list)`              | (none)                        | `vim.fn.setpos(".", {0, 5, 1, 0})`               |
+| `vim.fn.cursor(lnum, col)`               | (none)                        | `vim.fn.cursor(5, 1)`                            |
+| `vim.fn.getcurpos()`                     | `{buf, lnum, col, off, want}` | `vim.fn.getcurpos()`                             |
+| `vim.fn.type(expr)`                      | Neovim type number            | `vim.fn.type("s")` → `1` (string)                |
+| `vim.fn.len(expr)`                       | Length of string/list/dict    | `vim.fn.len({1,2,3})` → `3`                      |
+| `vim.fn.empty(expr)`                     | `1` if empty, `0` otherwise   | `vim.fn.empty("")` → `1`                         |
+| `vim.fn.matchstr(s, pat)`                | Matched portion               | `vim.fn.matchstr("abc123", "\\d+")` → `"123"`    |
+| `vim.fn.match(s, pat [, start])`         | Match position or `-1`        | `vim.fn.match("hello", "ll")` → `2`              |
+| `vim.fn.matchlist(s, pat)`               | Match groups list             | `vim.fn.matchlist("ab12", "(\\w+)(\\d+)")`       |
+| `vim.fn.escape(s, chars)`                | Escaped string                | `vim.fn.escape("a.b", ".")` → `"a\\.b"`          |
+| `vim.fn.repeat(s\|list, count)`          | Repeated string/list          | `vim.fn.repeat("-", 5)` → `"-----"`              |
+| `vim.fn.reverse(s\|list)`                | Reversed string/list          | `vim.fn.reverse("abc")` → `"cba"`                |
+| `vim.fn.range(n [, end [, stride]])`     | Number list                   | `vim.fn.range(1, 5)` → `{1, 2, 3, 4, 5}`         |
+| `vim.fn.sort(list)`                      | Sorted list (in-place)        | `vim.fn.sort({"c","a","b"})` → `{"a","b","c"}`   |
+| `vim.fn.uniq(list)`                      | Deduplicated list (in-place)  | `vim.fn.uniq({"a","a","b"})` → `{"a","b"}`       |
+| `vim.fn.max(list)`                       | Maximum number                | `vim.fn.max({3,1,4})` → `4`                      |
+| `vim.fn.min(list)`                       | Minimum number                | `vim.fn.min({3,1,4})` → `1`                      |
+| `vim.fn.abs(n)`                          | Absolute value                | `vim.fn.abs(-5)` → `5`                           |
+| `vim.fn.index(list, item)`               | 0-based index or `-1`         | `vim.fn.index({"a","b"}, "b")` → `1`             |
+| `vim.fn.count(list, val)`                | Occurrence count              | `vim.fn.count({1,2,1}, 1)` → `2`                 |
+| `vim.fn.add(list, item)`                 | Appended list (mutates)       | `vim.fn.add(t, "x")` (same as `table.insert`)    |
+| `vim.fn.remove(list, idx)`               | Removed item (0-based idx)    | `vim.fn.remove(t, 0)` removes first element      |
+| `vim.fn.extend(list1, list2)`            | Merged list (mutates list1)   | `vim.fn.extend(t1, t2)`                          |
+| `vim.fn.copy(expr)`                      | Shallow copy                  | `vim.fn.copy({1,2,3})`                           |
+| `vim.fn.deepcopy(expr)`                  | Deep copy                     | `vim.fn.deepcopy(nested_table)`                  |
+| `vim.fn.keys(dict)`                      | Key list                      | `vim.fn.keys({a=1, b=2})`                        |
+| `vim.fn.values(dict)`                    | Value list                    | `vim.fn.values({a=1, b=2})`                      |
+| `vim.fn.items(dict)`                     | `{{key, val}, ...}` pairs     | `vim.fn.items({a=1})` → `{{"a", 1}}`             |
+| `vim.fn.flatten(list)`                   | Flattened list                | `vim.fn.flatten({{1,2},{3}})` → `{1,2,3}`        |
 
 ### vim.fn.has() features
 
