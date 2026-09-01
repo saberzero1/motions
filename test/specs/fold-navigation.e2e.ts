@@ -163,5 +163,36 @@ describe('Fold-aware navigation (Phase 4)', function () {
             await sendVimKeys(']', 'h');
             expect(await isFoldedAt(4)).toBe(true);
         });
+
+        it('plain j/k motions do NOT auto-open folds when enabled', async function () {
+            await setPluginSetting('foldAwareNavigation', true);
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { reloadFeatures: () => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                plugin?.reloadFeatures();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await setupEditor(FOLDED_HEADING_DOC, { line: 0, ch: 0 });
+
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await sendVimKeys('z', 'M');
+            expect(await isFoldedAt(4)).toBe(true);
+
+            // Move the cursor across the folded headings with plain motions.
+            await sendVimKeys('j', 'j');
+            expect(await isFoldedAt(4)).toBe(true);
+            await sendVimKeys('k');
+            expect(await isFoldedAt(4)).toBe(true);
+        });
     });
 });

@@ -10,6 +10,27 @@ let foldAwareNavigationEnabled = false;
 
 export function setFoldAwareNavigation(enabled: boolean): void {
     foldAwareNavigationEnabled = enabled;
+    if (!enabled) foldAwareUnfoldArmed = false;
+}
+
+let foldAwareUnfoldArmed = false;
+
+/**
+ * Arm a short window during which the next cursor-moving transaction is allowed
+ * to auto-unfold a fold the cursor lands in.  Structural navigation motions
+ * (`]h`, `[h`, `]l`, `]n`, …) call this so that jumping into a folded section
+ * reveals it — matching Neovim's `foldopen` behavior — while plain motions such
+ * as `j`/`k` leave folds closed as Neovim does.
+ *
+ * The flag auto-clears on the next microtask, so a jump that doesn't land in a
+ * fold never leaks the armed state into a later, unrelated cursor move.
+ */
+export function armFoldAwareUnfold(): void {
+    if (!foldAwareNavigationEnabled) return;
+    foldAwareUnfoldArmed = true;
+    queueMicrotask(() => {
+        foldAwareUnfoldArmed = false;
+    });
 }
 
 const foldScrollExtender = EditorState.transactionExtender.of((tr) => {
@@ -29,6 +50,7 @@ const foldScrollExtender = EditorState.transactionExtender.of((tr) => {
 
 const foldAwareNavExtender = EditorState.transactionExtender.of((tr) => {
     if (!foldAwareNavigationEnabled) return null;
+    if (!foldAwareUnfoldArmed) return null;
     if (tr.docChanged) return null;
     if (!tr.selection) return null;
 

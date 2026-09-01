@@ -116,7 +116,7 @@ The uppercase fold commands (`zO`, `zC`, `zA`, `zD`) operate recursively on all 
 
 In addition to heading-level folds, the plugin provides dedicated fold providers for **frontmatter** (`---` blocks) and **callouts** (`> [!type]`), making them foldable via `zc`/`zo`/`za`. Folded regions show descriptive placeholder text including the heading title, code language, or callout type.
 
-When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-aware navigation**), navigating into a folded section with `]h`, `[h`, `j`, `k`, or any motion will automatically unfold it. This is off by default for backwards compatibility.
+When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-aware navigation**, on by default), jumping into a folded section with a structural navigation motion (`]h`, `[h`, `]l`, `[l`, `]n`, `[n`, and the `]1`–`]6` / `[1`–`[6` variants) automatically unfolds it, matching Neovim's `foldopen` behavior. Plain cursor motions such as `j` and `k` leave folds closed, exactly as in Neovim.
 
 When **Fold persistence** is enabled (**Settings → Vim Motions → Fold persistence**), fold state is remembered across file switches and sessions. Folds are restored when re-opening a previously folded file.
 

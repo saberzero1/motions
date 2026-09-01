@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Fold-aware navigation no longer opens folds on plain motions** — with **Fold-aware navigation** enabled (the default), moving the cursor over a folded region with `j`/`k` (or any non-structural motion) unfolded it. Auto-unfold is now armed only by the structural navigation motions (`]h`/`[h`, `]l`/`[l`, `]n`/`[n`, `]1`–`]6`/`[1`–`[6`), so plain motions leave folds closed, matching Neovim's `foldopen` behavior.
+    - Plugin: `src/vim/fold-sync.ts` (`armFoldAwareUnfold()`, extender gated on the armed flag)
+    - Plugin: `src/motions/register.ts` (`foldAwareNav()` wrapper around structural navigation motions)
+    - Docs: `docs/features/workspace-navigation.md`, `docs/configuration/settings.md` (corrected behavior and default)
+
+### Tests
+
+- **Fold-aware navigation** — added a case asserting plain `j`/`k` motions do not auto-open folds when the feature is enabled.
+    - Test: `test/specs/fold-navigation.e2e.ts`
+
 ## [0.135.0] - 2026-08-31
 
 ### Added
