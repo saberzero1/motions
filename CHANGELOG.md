@@ -20,16 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/options.ts` (`set foldopen=…` / `set fdo=…` vim option)
     - Plugin: `src/main.ts` (`foldopen` handler in `applySettingOverride`)
     - Plugin: `src/settings.ts` (updated fold-aware navigation descriptions in both settings tabs)
+- **Range-aware fold ex commands** — `:{range}fold`, `:{range}foldopen[!]`, `:{range}foldclose[!]`, `:{range}folddoopen {cmd}`, and `:{range}folddoclosed {cmd}` now support Neovim-style line ranges. Previously `:foldopen`/`:foldclose` only operated at the cursor. `:{range}fold` creates a manual fold; `!` suffix opens/closes recursively; `:folddoopen`/`:folddoclosed` execute an ex command on lines that are not/are in a closed fold.
+    - Plugin: `src/fold/commands.ts` (range-aware handlers: `foldRangeEx`, `foldOpenRangeEx`, `foldCloseRangeEx`, `foldDoOpenEx`, `foldDoClosedEx`)
+    - Plugin: `src/workspace/navigation.ts` (removed `exCommandFromAction` registrations for `:foldopen`/`:foldclose`/`:foldtoggle` — replaced by range-aware versions in `fold/commands.ts`)
+    - Plugin: `src/main.ts` (`executeLuaForTest` sandbox `handleExCommand` wired to `vim.handleEx` — enables golden tests to create folds via `vim.cmd`)
 
 ### Tests
 
 - **Foldopen unit tests** — 36 tests covering `setFoldopen()` parsing, `shouldUnfold()` for every individual category, `all`/empty sets, custom combinations, and backward-compatible `setFoldAwareNavigation()`.
     - Test: `test/unit/foldopen.test.ts`
-- **Foldopen golden tests** — 8 golden cases recorded against Neovim 0.12.5 covering `j`/`k`/`3j`/`G`/`gg`/`5G` with manual folds. 5 match golden data, 3 are infra-limited (Neovim `luaSetup` fold creation has no Obsidian equivalent).
+- **Foldopen golden tests** — 8 golden cases recorded against Neovim 0.12.5 covering `j`/`k`/`3j`/`G`/`gg`/`5G` with manual folds. 7 match golden data exactly, 1 has a minor column-preservation difference (CM6 preserves visual column on fold-skip; Neovim resets to 0).
     - Test: `test/specs/vim-builtin/foldopen-golden.e2e.ts`
     - Golden: `test/neovim/golden-data/foldopen.json`
     - Definitions: `test/neovim/test-definitions.ts` (new `foldopen` suite)
-    - Deviations: `test/neovim/deviations.ts` (3 infra-limitation entries)
+    - Deviations: `test/neovim/deviations.ts` (1 infra-limitation entry for column difference)
 - **Fold-aware navigation e2e tests** — expanded from 2 to 6 tests. New tests verify `j`/`k` do not auto-open folds, `j` from fold line skips past the fold, `k` navigates back to fold line, and upward `k` traversal preserves all folds.
     - Test: `test/specs/fold-navigation.e2e.ts`
 
@@ -43,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/configuration/vimrc.md`: `foldopen`/`fdo` added to string options table, `foldawarenavigation` description updated
 - `docs/configuration/lua-config.md`: `foldopen` added to `vim.opt` options table
 - `docs/features/workspace-navigation.md`: fold-aware navigation section rewritten for `foldopen` semantics
+- `docs/features/ex-commands.md`: added `:{range}fold`, `:{range}foldopen[!]`, `:{range}foldclose[!]`, `:folddoopen`, `:folddoclosed`; updated `:foldopen`/`:foldclose` descriptions to note range support
 - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: `foldopenAnnotation` API section added
 
 ## [0.135.0] - 2026-08-31

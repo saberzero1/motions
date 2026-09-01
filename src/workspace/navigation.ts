@@ -642,7 +642,6 @@ export function registerWorkspaceNavigation(
     };
     reg.defineAction('foldClose', foldCloseAction);
     reg.mapCommand('zc', 'action', 'foldClose', {});
-    exCommandFromAction(reg, 'foldclose', 'foldc', foldCloseAction);
 
     const foldOpenAction: ActionFn = (cm: CmAdapter) => {
         const view = cm.cm6;
@@ -650,7 +649,6 @@ export function registerWorkspaceNavigation(
     };
     reg.defineAction('foldOpen', foldOpenAction);
     reg.mapCommand('zo', 'action', 'foldOpen', {});
-    exCommandFromAction(reg, 'foldopen', 'foldo', foldOpenAction);
 
     const foldToggleAction: ActionFn = (cm: CmAdapter) => {
         if (!isFoldingEnabled(cm)) return;
@@ -659,7 +657,6 @@ export function registerWorkspaceNavigation(
     };
     reg.defineAction('foldToggle', foldToggleAction);
     reg.mapCommand('za', 'action', 'foldToggle', {});
-    exCommandFromAction(reg, 'foldtoggle', 'foldt', foldToggleAction);
 
     const foldOpenRecursiveAction: ActionFn = (cm: CmAdapter) => {
         const view = cm.cm6;

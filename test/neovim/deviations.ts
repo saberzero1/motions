@@ -255,24 +255,8 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
     {
         testPattern: 'j from fold line skips folded lines',
         description:
-            'Golden luaSetup `vim.cmd("4,6fold")` creates folds in Neovim but not in Obsidian — the plugin has no range-fold ex command',
-        reason: 'The golden test framework runs luaSetup in both Neovim and Obsidian, but `4,6fold` only works in Neovim. Obsidian runs the test without folds, so j moves to the next document line instead of skipping the fold. The actual fold-skip behavior works correctly when CM6 folds are present (verified by e2e tests).',
-        fields: ['cursor'],
-        category: 'infra-limitation',
-    },
-    {
-        testPattern: 'k into fold line keeps fold closed',
-        description:
-            'Golden luaSetup `vim.cmd("4,6fold")` creates folds in Neovim but not in Obsidian — the plugin has no range-fold ex command',
-        reason: 'Same as "j from fold line": the golden framework cannot create CM6 folds from Lua. Without folds, k moves one line up instead of jumping to the fold start. The actual fold-skip behavior works correctly when CM6 folds are present (verified by e2e tests).',
-        fields: ['cursor'],
-        category: 'infra-limitation',
-    },
-    {
-        testPattern: '3j across fold skips folded lines',
-        description:
-            'Golden luaSetup `vim.cmd("4,6fold")` creates folds in Neovim but not in Obsidian — the plugin has no range-fold ex command',
-        reason: 'Same as "j from fold line": without folds in Obsidian, 3j counts document lines instead of visible lines. The actual fold-skip behavior works correctly when CM6 folds are present (verified by e2e tests).',
+            'CM6 moveVertically preserves visual column when jumping past a fold; Neovim resets to column 0',
+        reason: 'CM6 goalColumn tracking differs from Neovim on fold boundaries. Line position matches (both land on line 7); column differs (ch:2 vs ch:0).',
         fields: ['cursor'],
         category: 'infra-limitation',
     },

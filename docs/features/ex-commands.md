@@ -216,40 +216,43 @@ Every navigation motion and workspace action has an ex command alias, enabling u
 
 ### Workspace navigation
 
-| Command                 | Default key  | Description                     |
-| ----------------------- | ------------ | ------------------------------- |
-| `:focuspaneleft`        | `<C-w>h`     | Focus left pane                 |
-| `:focuspanedown`        | `<C-w>j`     | Focus pane below                |
-| `:focuspaneup`          | `<C-w>k`     | Focus pane above                |
-| `:focuspaneright`       | `<C-w>l`     | Focus right pane                |
-| `:splitvertical`        | `<C-w>v`     | Split vertically                |
-| `:splithorizontal`      | `<C-w>s`     | Split horizontally              |
-| `:closetab`             | `<C-w>c`     | Close current tab               |
-| `:closeothertabs`       | `<C-w>o`     | Close all other tabs            |
-| `:nexttab`              | `gt`         | Next tab                        |
-| `:prevtab`              | `gT`         | Previous tab                    |
-| `:gototab`              | `g<C-t>`     | Go to Nth tab                   |
-| `:gotodefinition`       | `gd`         | Follow link under cursor        |
-| `:gotodefinitionnewtab` | `gD`         | Follow link in new tab          |
-| `:gotodefinitionsplith` | `<C-w>gd`    | Follow link in horizontal split |
-| `:gotodefinitionsplitv` | `<C-w>gD`    | Follow link in vertical split   |
-| `:foldclose`            | `zc`         | Close fold                      |
-| `:foldopen`             | `zo`         | Open fold                       |
-| `:foldtoggle`           | `za`         | Toggle fold                     |
-| `:foldall`              | `zM`         | Close all folds                 |
-| `:unfoldall`            | `zR`         | Open all folds                  |
-| `:folddelete`           | `zd`         | Delete fold at cursor           |
-| `:foldeliminate`        | `zE`         | Eliminate all folds             |
-| `:foldmore`             | `zm`         | Fold one more heading level     |
-| `:foldless`             | `zr`         | Fold one less heading level     |
-| `:documentoutline`      | `gO`         | Open document outline           |
-| `:openurl`              | `gx`         | Open URL under cursor           |
-| `:docstats`             | `g<C-g>`     | Show document statistics        |
-| `:renamenote`           | `<leader>rn` | Rename current note             |
-| `:showbacklinks`        | `<leader>rb` | Show backlinks                  |
-| `:opengotofile`         | `gf`         | Open file switcher              |
-| `:contextactions`       | `<leader>ra` | Show context actions            |
-| `:charinfo`             | `ga`         | Show character info             |
+| Command                      | Default key  | Description                                  |
+| ---------------------------- | ------------ | -------------------------------------------- |
+| `:focuspaneleft`             | `<C-w>h`     | Focus left pane                              |
+| `:focuspanedown`             | `<C-w>j`     | Focus pane below                             |
+| `:focuspaneup`               | `<C-w>k`     | Focus pane above                             |
+| `:focuspaneright`            | `<C-w>l`     | Focus right pane                             |
+| `:splitvertical`             | `<C-w>v`     | Split vertically                             |
+| `:splithorizontal`           | `<C-w>s`     | Split horizontally                           |
+| `:closetab`                  | `<C-w>c`     | Close current tab                            |
+| `:closeothertabs`            | `<C-w>o`     | Close all other tabs                         |
+| `:nexttab`                   | `gt`         | Next tab                                     |
+| `:prevtab`                   | `gT`         | Previous tab                                 |
+| `:gototab`                   | `g<C-t>`     | Go to Nth tab                                |
+| `:gotodefinition`            | `gd`         | Follow link under cursor                     |
+| `:gotodefinitionnewtab`      | `gD`         | Follow link in new tab                       |
+| `:gotodefinitionsplith`      | `<C-w>gd`    | Follow link in horizontal split              |
+| `:gotodefinitionsplitv`      | `<C-w>gD`    | Follow link in vertical split                |
+| `:{range}fold`               | `zf`         | Create fold for range                        |
+| `:{range}foldclose[!]`       | `zc`         | Close fold(s) in range (`!` = recursive)     |
+| `:{range}foldopen[!]`        | `zo`         | Open fold(s) in range (`!` = recursive)      |
+| `:foldtoggle`                | `za`         | Toggle fold                                  |
+| `:foldall`                   | `zM`         | Close all folds                              |
+| `:unfoldall`                 | `zR`         | Open all folds                               |
+| `:folddelete`                | `zd`         | Delete fold at cursor                        |
+| `:foldeliminate`             | `zE`         | Eliminate all folds                          |
+| `:foldmore`                  | `zm`         | Fold one more heading level                  |
+| `:foldless`                  | `zr`         | Fold one less heading level                  |
+| `:{range}folddoopen {cmd}`   | —            | Execute `{cmd}` on non-folded lines in range |
+| `:{range}folddoclosed {cmd}` | —            | Execute `{cmd}` on folded lines in range     |
+| `:documentoutline`           | `gO`         | Open document outline                        |
+| `:openurl`                   | `gx`         | Open URL under cursor                        |
+| `:docstats`                  | `g<C-g>`     | Show document statistics                     |
+| `:renamenote`                | `<leader>rn` | Rename current note                          |
+| `:showbacklinks`             | `<leader>rb` | Show backlinks                               |
+| `:opengotofile`              | `gf`         | Open file switcher                           |
+| `:contextactions`            | `<leader>ra` | Show context actions                         |
+| `:charinfo`                  | `ga`         | Show character info                          |
 
 ### Undo tree
 

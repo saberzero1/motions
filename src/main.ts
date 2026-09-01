@@ -465,7 +465,14 @@ export default class VimMotionsPlugin extends Plugin {
             const autocmdManager = new AutocmdManager(this.luaState);
             const { globals } = injectVimApi(this.luaState, {
                 onSettingOverride: () => {},
-                handleExCommand: () => {},
+                handleExCommand: (command: string) => {
+                    const mdView =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (!mdView) return;
+                    const adapter = getCmAdapter(mdView);
+                    if (!adapter) return;
+                    vim.handleEx(adapter, command);
+                },
                 getVaultName: () => this.app.vault.getName(),
                 showNotice: () => {},
                 defineExCommand: (name, callback) => {
