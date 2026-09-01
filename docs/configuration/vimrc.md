@@ -167,7 +167,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `harpoon`              | —      | Harpoon file pinning                    | on      |
 | `dial`                 | —      | Enhanced increment/decrement            | off     |
 | `jumplist`             | —      | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
-| `foldawarenavigation`  | —      | Auto-unfold on navigation               | on      |
+| `foldawarenavigation`  | —      | Master toggle for fold-aware navigation | on      |
 | `foldpersistence`      | —      | Persist fold state across sessions      | off     |
 | `undotree`             | `ut`   | Enable undo tree tracking               | on      |
 | `undofile`             | `udf`  | Persist undo tree across sessions       | off     |
@@ -218,6 +218,7 @@ Use `set <option>=<value>`.
 | Option                  | Alias    | Description                                                      | Default                                                                    |
 | ----------------------- | -------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)                  | (off)                                                                      |
+| `foldopen`              | `fdo`    | Motion categories that auto-unfold (Neovim-compatible)           | `block,hor,mark,percent,search,undo`                                       |
 | `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                             | (off)                                                                      |
 | `flashjumpkey`          | —        | Key to trigger flash jump mode                                   | `s`                                                                        |
 | `flashminpatternlength` | `fmpl`   | Minimum chars before labels in jump mode                         | `1`                                                                        |

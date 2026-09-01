@@ -6,10 +6,26 @@ vi.mock('@replit/codemirror-vim', () => ({
     getCM: () => null,
     setLivePreviewField: vi.fn(),
     isCursorSuppressedForView: vi.fn(() => false),
+    foldopenAnnotation: { of: (v: unknown) => v },
 }));
 
 vi.mock('@codemirror/state', () => ({
     Prec: { highest: (ext: unknown) => ext },
+    Annotation: { define: () => ({ of: (v: unknown) => v }) },
+    EditorState: {
+        transactionExtender: { of: () => ({}) },
+    },
+}));
+
+vi.mock('@codemirror/view', () => ({
+    EditorView: { scrollIntoView: vi.fn() },
+    ViewPlugin: { fromClass: vi.fn(() => ({})) },
+}));
+
+vi.mock('@codemirror/language', () => ({
+    foldEffect: {},
+    unfoldEffect: { of: vi.fn() },
+    foldedRanges: vi.fn(() => ({ iter: () => ({ value: null }) })),
 }));
 
 vi.mock('obsidian', () => ({

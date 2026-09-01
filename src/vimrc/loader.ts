@@ -11,6 +11,7 @@ import {
     setJumpListSize,
 } from '../vim/options';
 import { setAnimatedCursorConfig } from '../vim/animated-cursor/config';
+import { setFoldopen } from '../vim/fold-sync';
 import { setCursorSuppressed } from '@replit/codemirror-vim';
 import { parseLine, parseVimrc } from './parser';
 import type { VimrcCommand } from './parser';
@@ -419,11 +420,22 @@ const guicursorOpt: SideEffectOpt = {
     },
 };
 
+const foldopenOpt: SideEffectOpt = {
+    type: 'sideEffect',
+    apply: (value, onSettingOverride, directive) => {
+        const str = typeof value === 'string' ? value : '';
+        setFoldopen(str);
+        onSettingOverride?.('foldopen', str, directive);
+    },
+};
+
 KNOWN_SET_OPTIONS['clipboard'] = clipboardOpt;
 KNOWN_SET_OPTIONS['clip'] = clipboardOpt;
 KNOWN_SET_OPTIONS['textwidth'] = textwidthOpt;
 KNOWN_SET_OPTIONS['tw'] = textwidthOpt;
 KNOWN_SET_OPTIONS['guicursor'] = guicursorOpt;
+KNOWN_SET_OPTIONS['foldopen'] = foldopenOpt;
+KNOWN_SET_OPTIONS['fdo'] = foldopenOpt;
 
 const jumplistOpt: SideEffectOpt = {
     type: 'sideEffect',

@@ -562,6 +562,17 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}foldawarenavigation`,
         );
     });
+    vim.defineOption(
+        'foldopen',
+        'block,hor,mark,percent,search,undo',
+        'string',
+        ['fdo'],
+        (value) => {
+            if (value === undefined) return;
+            const str = typeof value === 'string' ? value : '';
+            notify('foldopen', str, `set foldopen=${str}`);
+        },
+    );
     vim.defineOption('foldpersistence', false, 'boolean', [], (value) => {
         if (value === undefined) return;
         const enabled = !!value;

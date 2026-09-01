@@ -2112,7 +2112,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Fold-aware navigation',
                                 desc: this.describeOverride(
                                     'foldAwareNavigation',
-                                    'Automatically unfold sections when navigating into them (e.g., ]h into a folded heading).',
+                                    'Auto-unfold when a motion enters a folded range. Matches Neovim\u2019s foldopen — structural motions (]h, %, /) unfold; j/k leave folds closed. Use `set foldopen=...` for fine-grained control.',
                                 ),
                                 control: {
                                     type: 'toggle' as const,
@@ -5096,7 +5096,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             .setDesc(
                 describeOverride(
                     'foldAwareNavigation',
-                    'Automatically unfold sections when navigating into them (e.g., ]h into a folded heading).',
+                    'Auto-unfold when a motion enters a folded range. Matches Neovim\u2019s foldopen \u2014 structural motions (]h, %, /) unfold; j/k leave folds closed. Use `set foldopen=...` for fine-grained control.',
                 ),
             )
             .addToggle((toggle) =>

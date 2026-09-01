@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Neovim-compatible `foldopen` option** — fold-aware navigation now matches Neovim's `foldopen` semantics. Each vim motion is tagged with a category (`hor`, `block`, `jump`, `mark`, `search`, `percent`, `undo`), and only motions whose category is in the configured `foldopen` set trigger auto-unfold when the cursor enters a folded range. Plain vertical motions (`j`/`k`) have no category and never unfold, matching Neovim's intentional exclusion of vertical movements. Configurable via `set foldopen=block,hor,mark,percent,search,undo` (Neovim default) or `set fdo=all`. ([#155](https://github.com/saberzero1/motions/pull/155))
+    - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`foldopenAnnotation` CM6 transaction annotation, `_pendingFoldopen` on adapter)
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (40+ motions tagged with `foldopen` category in `defaultKeymap`, annotation set in `evalInput`, `undo`/`redo`, `jumpListWalk`)
+    - Fork: `~/Repos/codemirror-vim/src/types.ts` (`FoldopenCategory` type, `foldopen` on `MotionArgsPartial`)
+    - Fork: `~/Repos/codemirror-vim/src/index.ts` (exported `foldopenAnnotation`, `FoldopenCategory`)
+    - Plugin: `src/vim/fold-sync.ts` (annotation-gated `foldAwareNavExtender`, `setFoldopen()`/`getFoldopen()`/`shouldUnfold()`)
+    - Plugin: `src/vim/bundled-vim.ts` (injects fork annotation at extension creation)
+    - Plugin: `src/motions/register.ts` (structural motions tagged `block`, subword motions tagged `hor`)
+    - Plugin: `src/vim/options.ts` (`set foldopen=…` / `set fdo=…` vim option)
+    - Plugin: `src/main.ts` (`foldopen` handler in `applySettingOverride`)
+    - Plugin: `src/settings.ts` (updated fold-aware navigation descriptions in both settings tabs)
+
+### Tests
+
+- **Foldopen unit tests** — 36 tests covering `setFoldopen()` parsing, `shouldUnfold()` for every individual category, `all`/empty sets, custom combinations, and backward-compatible `setFoldAwareNavigation()`.
+    - Test: `test/unit/foldopen.test.ts`
+- **Foldopen golden tests** — 8 golden cases recorded against Neovim 0.12.5 covering `j`/`k`/`3j`/`G`/`gg`/`5G` with manual folds. 5 match golden data, 3 are infra-limited (Neovim `luaSetup` fold creation has no Obsidian equivalent).
+    - Test: `test/specs/vim-builtin/foldopen-golden.e2e.ts`
+    - Golden: `test/neovim/golden-data/foldopen.json`
+    - Definitions: `test/neovim/test-definitions.ts` (new `foldopen` suite)
+    - Deviations: `test/neovim/deviations.ts` (3 infra-limitation entries)
+- **Fold-aware navigation e2e tests** — expanded from 2 to 6 tests. New tests verify `j`/`k` do not auto-open folds, `j` from fold line skips past the fold, `k` navigates back to fold line, and upward `k` traversal preserves all folds.
+    - Test: `test/specs/fold-navigation.e2e.ts`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: fork API surface updated with `foldopenAnnotation`
+- `CONTRIBUTING.md`: `fold-sync.ts` description updated
+- `README.md`: folding feature description updated with `foldopen` semantics
+- `docs/configuration/settings.md`: fold-aware navigation description updated, `foldopen` row added to Workspace navigation settings
+- `docs/configuration/vimrc.md`: `foldopen`/`fdo` added to string options table, `foldawarenavigation` description updated
+- `docs/configuration/lua-config.md`: `foldopen` added to `vim.opt` options table
+- `docs/features/workspace-navigation.md`: fold-aware navigation section rewritten for `foldopen` semantics
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: `foldopenAnnotation` API section added
+
 ## [0.135.0] - 2026-08-31
 
 ### Added

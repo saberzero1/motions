@@ -690,7 +690,10 @@ export function injectVimApi(
             return 0;
         }
         let value: unknown;
-        if (spec.type === 'string' && lua.lua_istable(state, 3)) {
+        if (
+            (spec.type === 'string' || spec.type === 'sideEffect') &&
+            lua.lua_istable(state, 3)
+        ) {
             const items = getStringList(state, 3);
             value = items.join(',');
         } else {

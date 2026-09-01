@@ -1,6 +1,24 @@
 declare module '@replit/codemirror-vim' {
-    import type { Extension, StateField } from '@codemirror/state';
+    import type {
+        AnnotationType,
+        Extension,
+        StateField,
+    } from '@codemirror/state';
     import type { EditorView } from '@codemirror/view';
+
+    export type FoldopenCategory =
+        | 'all'
+        | 'block'
+        | 'hor'
+        | 'insert'
+        | 'jump'
+        | 'mark'
+        | 'percent'
+        | 'search'
+        | 'tag'
+        | 'undo';
+
+    export const foldopenAnnotation: AnnotationType<FoldopenCategory | null>;
 
     export type CursorShape = 'block' | 'bar' | 'underline' | 'hollow';
 

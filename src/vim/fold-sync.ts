@@ -5,11 +5,51 @@ import {
 } from '@codemirror/state';
 import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { foldEffect, unfoldEffect, foldedRanges } from '@codemirror/language';
+import {
+    foldopenAnnotation,
+    type FoldopenCategory,
+} from '@replit/codemirror-vim';
 
-let foldAwareNavigationEnabled = false;
+const NEOVIM_DEFAULT_FOLDOPEN: ReadonlySet<string> = new Set([
+    'block',
+    'hor',
+    'mark',
+    'percent',
+    'search',
+    'undo',
+]);
+
+let activeFoldopenSet: ReadonlySet<string> = NEOVIM_DEFAULT_FOLDOPEN;
+
+export function setFoldopen(value: string): void {
+    if (value === '') {
+        activeFoldopenSet = new Set();
+        return;
+    }
+    activeFoldopenSet = new Set(
+        value
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+    );
+}
+
+export function getFoldopen(): string {
+    return [...activeFoldopenSet].join(',');
+}
 
 export function setFoldAwareNavigation(enabled: boolean): void {
-    foldAwareNavigationEnabled = enabled;
+    if (enabled) {
+        activeFoldopenSet = NEOVIM_DEFAULT_FOLDOPEN;
+    } else {
+        activeFoldopenSet = new Set();
+    }
+}
+
+export function shouldUnfold(category: FoldopenCategory | null): boolean {
+    if (category == null) return false;
+    if (activeFoldopenSet.has('all')) return true;
+    return activeFoldopenSet.has(category);
 }
 
 const foldScrollExtender = EditorState.transactionExtender.of((tr) => {
@@ -28,8 +68,12 @@ const foldScrollExtender = EditorState.transactionExtender.of((tr) => {
 });
 
 const foldAwareNavExtender = EditorState.transactionExtender.of((tr) => {
-    if (!foldAwareNavigationEnabled) return null;
-    if (tr.docChanged) return null;
+    if (activeFoldopenSet.size === 0) return null;
+
+    const category = tr.annotation(foldopenAnnotation) ?? null;
+    if (!shouldUnfold(category)) return null;
+
+    if (tr.docChanged && category !== 'undo') return null;
     if (!tr.selection) return null;
 
     const cursorPos = tr.newSelection.main.head;

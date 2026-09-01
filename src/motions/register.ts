@@ -37,68 +37,70 @@ import {
     subwordForward,
 } from './subword';
 
+const BLOCK: Record<string, unknown> = { foldopen: 'block' };
+
 export function registerNavigationMotions(reg: VimRegistration): void {
     reg.defineMotion('nextHeading', nextHeading);
-    reg.mapCommand(']h', 'motion', 'nextHeading', {});
+    reg.mapCommand(']h', 'motion', 'nextHeading', BLOCK);
     exCommandFromMotion(reg, 'nextheading', '', nextHeading);
     reg.defineMotion('prevHeading', prevHeading);
-    reg.mapCommand('[h', 'motion', 'prevHeading', {});
+    reg.mapCommand('[h', 'motion', 'prevHeading', BLOCK);
     exCommandFromMotion(reg, 'prevheading', '', prevHeading);
 
     reg.defineMotion('nextHeading1', nextHeading1);
-    reg.mapCommand(']1', 'motion', 'nextHeading1', {});
+    reg.mapCommand(']1', 'motion', 'nextHeading1', BLOCK);
     exCommandFromMotion(reg, 'nextheading1', '', nextHeading1);
     reg.defineMotion('prevHeading1', prevHeading1);
-    reg.mapCommand('[1', 'motion', 'prevHeading1', {});
+    reg.mapCommand('[1', 'motion', 'prevHeading1', BLOCK);
     exCommandFromMotion(reg, 'prevheading1', '', prevHeading1);
 
     reg.defineMotion('nextHeading2', nextHeading2);
-    reg.mapCommand(']2', 'motion', 'nextHeading2', {});
+    reg.mapCommand(']2', 'motion', 'nextHeading2', BLOCK);
     exCommandFromMotion(reg, 'nextheading2', '', nextHeading2);
     reg.defineMotion('prevHeading2', prevHeading2);
-    reg.mapCommand('[2', 'motion', 'prevHeading2', {});
+    reg.mapCommand('[2', 'motion', 'prevHeading2', BLOCK);
     exCommandFromMotion(reg, 'prevheading2', '', prevHeading2);
 
     reg.defineMotion('nextHeading3', nextHeading3);
-    reg.mapCommand(']3', 'motion', 'nextHeading3', {});
+    reg.mapCommand(']3', 'motion', 'nextHeading3', BLOCK);
     exCommandFromMotion(reg, 'nextheading3', '', nextHeading3);
     reg.defineMotion('prevHeading3', prevHeading3);
-    reg.mapCommand('[3', 'motion', 'prevHeading3', {});
+    reg.mapCommand('[3', 'motion', 'prevHeading3', BLOCK);
     exCommandFromMotion(reg, 'prevheading3', '', prevHeading3);
 
     reg.defineMotion('nextHeading4', nextHeading4);
-    reg.mapCommand(']4', 'motion', 'nextHeading4', {});
+    reg.mapCommand(']4', 'motion', 'nextHeading4', BLOCK);
     exCommandFromMotion(reg, 'nextheading4', '', nextHeading4);
     reg.defineMotion('prevHeading4', prevHeading4);
-    reg.mapCommand('[4', 'motion', 'prevHeading4', {});
+    reg.mapCommand('[4', 'motion', 'prevHeading4', BLOCK);
     exCommandFromMotion(reg, 'prevheading4', '', prevHeading4);
 
     reg.defineMotion('nextHeading5', nextHeading5);
-    reg.mapCommand(']5', 'motion', 'nextHeading5', {});
+    reg.mapCommand(']5', 'motion', 'nextHeading5', BLOCK);
     exCommandFromMotion(reg, 'nextheading5', '', nextHeading5);
     reg.defineMotion('prevHeading5', prevHeading5);
-    reg.mapCommand('[5', 'motion', 'prevHeading5', {});
+    reg.mapCommand('[5', 'motion', 'prevHeading5', BLOCK);
     exCommandFromMotion(reg, 'prevheading5', '', prevHeading5);
 
     reg.defineMotion('nextHeading6', nextHeading6);
-    reg.mapCommand(']6', 'motion', 'nextHeading6', {});
+    reg.mapCommand(']6', 'motion', 'nextHeading6', BLOCK);
     exCommandFromMotion(reg, 'nextheading6', '', nextHeading6);
     reg.defineMotion('prevHeading6', prevHeading6);
-    reg.mapCommand('[6', 'motion', 'prevHeading6', {});
+    reg.mapCommand('[6', 'motion', 'prevHeading6', BLOCK);
     exCommandFromMotion(reg, 'prevheading6', '', prevHeading6);
 
     reg.defineMotion('nextListItem', nextListItem);
-    reg.mapCommand(']l', 'motion', 'nextListItem', {});
+    reg.mapCommand(']l', 'motion', 'nextListItem', BLOCK);
     exCommandFromMotion(reg, 'nextlistitem', 'nextlis', nextListItem);
     reg.defineMotion('prevListItem', prevListItem);
-    reg.mapCommand('[l', 'motion', 'prevListItem', {});
+    reg.mapCommand('[l', 'motion', 'prevListItem', BLOCK);
     exCommandFromMotion(reg, 'prevlistitem', 'prevlis', prevListItem);
 
     reg.defineMotion('nextLink', nextLink);
-    reg.mapCommand(']n', 'motion', 'nextLink', {});
+    reg.mapCommand(']n', 'motion', 'nextLink', BLOCK);
     exCommandFromMotion(reg, 'nextlink', '', nextLink);
     reg.defineMotion('prevLink', prevLink);
-    reg.mapCommand('[n', 'motion', 'prevLink', {});
+    reg.mapCommand('[n', 'motion', 'prevLink', BLOCK);
     exCommandFromMotion(reg, 'prevlink', '', prevLink);
 }
 
@@ -133,13 +135,19 @@ export { registerTableActions };
 
 export function registerSubwordMotions(reg: VimRegistration): void {
     reg.defineMotion('subwordForward', subwordForward);
-    reg.mapCommand('w', 'motion', 'subwordForward', {});
+    reg.mapCommand('w', 'motion', 'subwordForward', { foldopen: 'hor' });
     reg.defineMotion('subwordBackward', subwordBackward);
-    reg.mapCommand('b', 'motion', 'subwordBackward', {});
+    reg.mapCommand('b', 'motion', 'subwordBackward', { foldopen: 'hor' });
     reg.defineMotion('subwordEndForward', subwordEndForward);
-    reg.mapCommand('e', 'motion', 'subwordEndForward', { inclusive: true });
+    reg.mapCommand('e', 'motion', 'subwordEndForward', {
+        inclusive: true,
+        foldopen: 'hor',
+    });
     reg.defineMotion('subwordEndBackward', subwordEndBackward);
-    reg.mapCommand('ge', 'motion', 'subwordEndBackward', { inclusive: true });
+    reg.mapCommand('ge', 'motion', 'subwordEndBackward', {
+        inclusive: true,
+        foldopen: 'hor',
+    });
 }
 
 export function registerBufferNavigation(reg: VimRegistration, app: App): void {

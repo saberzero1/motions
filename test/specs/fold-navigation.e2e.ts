@@ -9,17 +9,19 @@ import {
 } from '../helpers.js';
 
 const FOLDED_HEADING_DOC = [
-    '# First Heading',
+    'Preamble line.',
     '',
-    'Content under first heading.',
+    '## First Section',
     '',
-    '## Second Heading',
+    'Content under first section.',
     '',
-    'Content under second heading.',
+    '## Second Section',
     '',
-    '## Third Heading',
+    'Content under second section.',
     '',
-    'Content under third heading.',
+    '## Third Section',
+    '',
+    'Content under third section.',
 ].join('\n');
 
 type VimApiWindow = {
@@ -141,12 +143,12 @@ describe('Fold-aware navigation (Phase 4)', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             await sendVimKeys('z', 'M');
-            expect(await isFoldedAt(4)).toBe(true);
+            expect(await isFoldedAt(2)).toBe(true);
 
             await sendVimKeys(']', 'h');
             const cursor = await getCursorPos();
-            expect(cursor.line).toBe(4);
-            expect(await isFoldedAt(4)).toBe(false);
+            expect(cursor.line).toBe(2);
+            expect(await isFoldedAt(2)).toBe(false);
         });
 
         it(']h into folded section does NOT auto-open when disabled', async function () {
@@ -158,10 +160,155 @@ describe('Fold-aware navigation (Phase 4)', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             await sendVimKeys('z', 'M');
-            expect(await isFoldedAt(4)).toBe(true);
+            expect(await isFoldedAt(2)).toBe(true);
 
             await sendVimKeys(']', 'h');
-            expect(await isFoldedAt(4)).toBe(true);
+            expect(await isFoldedAt(2)).toBe(true);
+        });
+
+        it('j/k motions do NOT auto-open folds (Neovim foldopen parity)', async function () {
+            await setPluginSetting('foldAwareNavigation', true);
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { reloadFeatures: () => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                plugin?.reloadFeatures();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await setupEditor(FOLDED_HEADING_DOC, { line: 0, ch: 0 });
+
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await sendVimKeys('z', 'M');
+            expect(await isFoldedAt(2)).toBe(true);
+
+            await sendVimKeys('j', 'j', 'j');
+            expect(await isFoldedAt(2)).toBe(true);
+
+            await sendVimKeys('k');
+            expect(await isFoldedAt(2)).toBe(true);
+        });
+
+        it('j from fold line skips past the fold (Neovim parity)', async function () {
+            await setPluginSetting('foldAwareNavigation', true);
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { reloadFeatures: () => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                plugin?.reloadFeatures();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await setupEditor(FOLDED_HEADING_DOC, { line: 0, ch: 0 });
+
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await sendVimKeys('z', 'M');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            expect(await isFoldedAt(2)).toBe(true);
+            expect(await isFoldedAt(6)).toBe(true);
+            expect(await isFoldedAt(10)).toBe(true);
+
+            await sendVimKeys('j', 'j');
+            const posOnFold = await getCursorPos();
+            expect(posOnFold.line).toBe(2);
+
+            await sendVimKeys('j');
+            const posAfterFold = await getCursorPos();
+            expect(posAfterFold.line).toBeGreaterThan(2);
+            expect(posAfterFold.line).toBeLessThanOrEqual(6);
+            expect(await isFoldedAt(2)).toBe(true);
+        });
+
+        it('k from below fold lands on fold line, not inside', async function () {
+            await setPluginSetting('foldAwareNavigation', true);
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { reloadFeatures: () => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                plugin?.reloadFeatures();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await setupEditor(FOLDED_HEADING_DOC, { line: 0, ch: 0 });
+
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await sendVimKeys('z', 'M');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            expect(await isFoldedAt(2)).toBe(true);
+            expect(await isFoldedAt(6)).toBe(true);
+            expect(await isFoldedAt(10)).toBe(true);
+
+            await sendVimKeys('j', 'j');
+            const posOnFold = await getCursorPos();
+            expect(posOnFold.line).toBe(2);
+
+            await sendVimKeys('j');
+            const posAfterFold1 = await getCursorPos();
+            expect(posAfterFold1.line).toBeGreaterThan(2);
+            expect(await isFoldedAt(2)).toBe(true);
+
+            await sendVimKeys('k');
+            const posBack = await getCursorPos();
+            expect(posBack.line).toBe(2);
+            expect(await isFoldedAt(2)).toBe(true);
+        });
+
+        it('k motion upward does NOT auto-open fold', async function () {
+            await setPluginSetting('foldAwareNavigation', true);
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<
+                                string,
+                                { reloadFeatures: () => void }
+                            >;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                plugin?.reloadFeatures();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await setupEditor(FOLDED_HEADING_DOC, { line: 12, ch: 0 });
+
+            await sendVimEscape();
+            await browser.pause(PAUSE.MODE_SWITCH);
+            await sendVimKeys('z', 'M');
+            expect(await isFoldedAt(2)).toBe(true);
+            expect(await isFoldedAt(6)).toBe(true);
+            expect(await isFoldedAt(10)).toBe(true);
+
+            await sendVimKeys('k', 'k', 'k', 'k');
+            expect(await isFoldedAt(2)).toBe(true);
+            expect(await isFoldedAt(6)).toBe(true);
+            expect(await isFoldedAt(10)).toBe(true);
         });
     });
 });

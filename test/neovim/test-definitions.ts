@@ -3656,4 +3656,74 @@ export const SUITES: SuiteDefinition[] = [
             },
         ],
     },
+    {
+        name: 'foldopen',
+        nvimSetup: ['set foldmethod=manual'],
+        cases: [
+            {
+                name: 'j into fold line keeps fold closed — cursor on fold',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 2, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: 'j',
+            },
+            {
+                name: 'j from fold line skips folded lines',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 3, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: 'j',
+            },
+            {
+                name: 'k into fold line keeps fold closed',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 6, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: 'k',
+            },
+            {
+                name: 'k from fold line goes above fold',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 3, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: 'k',
+            },
+            {
+                name: '3j across fold skips folded lines',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 1, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: '3j',
+            },
+            {
+                name: 'G does not open fold (jump not in default foldopen)',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 0, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: 'G',
+            },
+            {
+                name: 'gg does not open fold',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 9, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: 'gg',
+            },
+            {
+                name: '5G goes to fold-closed line',
+                content:
+                    'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10',
+                cursor: { line: 0, ch: 0 },
+                luaSetup: 'vim.cmd("4,6fold")',
+                keys: '5G',
+            },
+        ],
+    },
 ];

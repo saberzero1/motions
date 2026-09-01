@@ -94,7 +94,11 @@ import {
     yankHighlightExtension,
     showYankHighlight,
 } from './vim/yank-highlight';
-import { foldSyncExtension, setFoldAwareNavigation } from './vim/fold-sync';
+import {
+    foldSyncExtension,
+    setFoldAwareNavigation,
+    setFoldopen,
+} from './vim/fold-sync';
 import { foldLevelExtension } from './fold/fold-level';
 import { foldEnableExtension } from './fold/fold-enable';
 import { markdownFoldProvider } from './fold/provider';
@@ -1719,6 +1723,11 @@ export default class VimMotionsPlugin extends Plugin {
                 ) {
                     this.reconfigureStatusColumnGutter();
                 }
+            } else if (key === 'foldopen') {
+                const str = typeof value === 'string' ? value : '';
+                setFoldopen(str);
+                overrides.set(key, directive ?? `set foldopen=${str}`);
+                applied = true;
             } else if (key === 'foldcolumn') {
                 (this.settings as unknown as Record<string, unknown>)[key] =
                     value;
