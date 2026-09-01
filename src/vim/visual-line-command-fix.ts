@@ -206,6 +206,8 @@ class VisualLineSomethingSelectedPatch {
         this.original = origSelected;
         this.editorRef = editor;
 
+        let lastVisualLineSel: VimSel | null = null;
+
         const getVisualLineSel = (): VimState | null => {
             const cm = getCmAdapterFromEditorView(editorView);
             const vim = cm?.state?.vim as unknown as VimState | undefined;
@@ -224,6 +226,10 @@ class VisualLineSomethingSelectedPatch {
             if (nativeSel) return nativeSel;
             const vim = getVisualLineSel();
             if (!vim?.sel) return '';
+            lastVisualLineSel = {
+                anchor: { line: vim.sel.anchor.line, ch: vim.sel.anchor.ch },
+                head: { line: vim.sel.head.line, ch: vim.sel.head.ch },
+            };
             const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
             const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
             const doc = editorView.state.doc;
@@ -235,12 +241,14 @@ class VisualLineSomethingSelectedPatch {
         this.origReplaceSelection = origReplaceSel;
         editor.replaceSelection = function (text: string, origin?: string) {
             const vim = getVisualLineSel();
-            if (!vim?.sel) {
+            const sel = vim?.sel ?? lastVisualLineSel;
+            if (!sel) {
                 origReplaceSel(text, origin);
                 return;
             }
-            const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
-            const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+            lastVisualLineSel = null;
+            const startLine = Math.min(sel.anchor.line, sel.head.line);
+            const endLine = Math.max(sel.anchor.line, sel.head.line);
             const doc = editorView.state.doc;
             const from = doc.line(startLine + 1).from;
             const lineEnd = doc.line(endLine + 1).to;

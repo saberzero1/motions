@@ -52,11 +52,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Note Composer extract fails in visual-line mode** — `editor.replaceSelection()` now works when called after visual-line mode has been exited between `getSelection()` and `replaceSelection()`. Root cause: commands that open a modal (Note Composer, Note Refactor) return immediately from `checkCallback(false)`, causing the `withExpandedSelection` wrapper's `finally` block to restore cursor-only CM6 selection. The modal's async completion callback then calls `getSelection()` (works — patched) followed by `replaceSelection()`, but by that time the modal interaction has exited visual-line mode, so `getVisualLineSel()` returns `null` and the patched `replaceSelection` falls through to the unpatched original which sees no CM6 selection. Fixed by snapshotting the visual-line selection range when `getSelection()` is called; `replaceSelection()` uses the snapshot as fallback when vim visual-line state is no longer active, clearing it after use. ([#157](https://github.com/saberzero1/motions/issues/157), regression of [#137](https://github.com/saberzero1/motions/issues/137)/[#138](https://github.com/saberzero1/motions/issues/138))
+    - Plugin: `src/vim/visual-line-command-fix.ts` (`lastVisualLineSel` snapshot in `getSelection()`, fallback in `replaceSelection()`)
 - **`zj`/`zk` skip nested heading folds** — `zj` now visits all foldable lines including nested headings (e.g., `## Heading` inside a `# Heading` section), matching Neovim behavior. Previously `findNextFoldable`/`findPrevFoldable` had a `parentRange` filter that excluded child folds contained within a parent fold's range. Closes 6 fold motion Neovim deviations (`zj`, `2zj`, `zk`, `2zk`, `[z`, `]z`).
     - Plugin: `src/fold/motions.ts` (removed `parentRange` filter from `foldNext`/`foldPrev`, fixed `foldPrev` count search to use fold start instead of fold end)
 
 ### Tests
 
+- 1 regression test in `test/specs/visual-line-command.e2e.ts` (#157): reads `getSelection()` in V-LINE, exits visual mode via `<Esc>`, calls `replaceSelection()` — verifies snapshotted range is used for replacement
 - 97 unit tests for treesitter subsystem: `test/unit/treesitter/runtime.test.ts` (12), `test/unit/treesitter/api.test.ts` (36), `test/unit/treesitter/query.test.ts` (19), `test/unit/treesitter/language-tree.test.ts` (16), `test/unit/treesitter/js-api.test.ts` (22 — including 8 inline node detection tests)
 - 12 e2e tests for treesitter Lua API: `test/specs/treesitter.e2e.ts`
 - Re-recorded golden data: `test/neovim/golden-data/fold-motions.json` (with `luaSetup` forcing treesitter parse before fold motions)
@@ -65,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated visual-line selection section with snapshot behavior for modal-based commands (#157)
 - `AGENTS.md`: treesitter architecture, new file descriptions, Lua API surface update, fork `setTokenClassifier` hook
 - `CONTRIBUTING.md`: treesitter file tree in `src/` structure, `tree-state.ts` added
 - `KNOWN_LIMITATIONS.md`: treesitter integration section with 7 known limitations
