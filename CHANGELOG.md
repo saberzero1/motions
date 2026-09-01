@@ -23,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/treesitter/runtime.ts`, `src/treesitter/bridge.ts`, `src/treesitter/query.ts`, `src/treesitter/predicates.ts`, `src/treesitter/directives.ts`, `src/treesitter/language-tree.ts`, `src/treesitter/injection.ts`, `src/treesitter/types.ts`, `src/treesitter/wasm.d.ts`
     - Plugin: `src/lua/treesitter/api.ts`, `src/lua/treesitter/node.ts`, `src/lua/treesitter/tree.ts`, `src/lua/treesitter/language.ts`, `src/lua/treesitter/query-api.ts`, `src/lua/treesitter/language-tree-api.ts`, `src/lua/treesitter/range.ts`
     - Grammars: `src/treesitter/grammars/tree-sitter-markdown.wasm`, `src/treesitter/grammars/tree-sitter-html.wasm`
-
 - **Treesitter-enhanced Markdown features** — core plugin features now use treesitter for structural parsing when available, with regex fallback:
     - **Fold provider**: treesitter `section` node hierarchy for heading fold boundaries (replaces heading-level regex)
     - **Fold placeholder**: treesitter-based heading text and code language extraction
@@ -49,13 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Fold golden tests re-recorded** — fold-motions golden data re-recorded with `vim.treesitter.foldexpr()` active (previous recording had stale fold levels due to async treesitter parse timing). Closed 3 deviations (`[z`, `]z`, `zk with count`); identified 3 new deviations (`zj`/`zk` nested fold traversal).
+- **Fold golden tests re-recorded** — fold-motions golden data re-recorded with `vim.treesitter.foldexpr()` active and `luaSetup` forcing synchronous treesitter parse + fold recomputation before each test case. Corrected `2zk` golden value that was affected by `nvim_feedkeys` async timing (verified against `normal!` behavior). All 12 fold motion golden cases now have correct Neovim reference values.
+
+### Fixed
+
+- **`zj`/`zk` skip nested heading folds** — `zj` now visits all foldable lines including nested headings (e.g., `## Heading` inside a `# Heading` section), matching Neovim behavior. Previously `findNextFoldable`/`findPrevFoldable` had a `parentRange` filter that excluded child folds contained within a parent fold's range. Closes 6 fold motion Neovim deviations (`zj`, `2zj`, `zk`, `2zk`, `[z`, `]z`).
+    - Plugin: `src/fold/motions.ts` (removed `parentRange` filter from `foldNext`/`foldPrev`, fixed `foldPrev` count search to use fold start instead of fold end)
 
 ### Tests
 
 - 97 unit tests for treesitter subsystem: `test/unit/treesitter/runtime.test.ts` (12), `test/unit/treesitter/api.test.ts` (36), `test/unit/treesitter/query.test.ts` (19), `test/unit/treesitter/language-tree.test.ts` (16), `test/unit/treesitter/js-api.test.ts` (22 — including 8 inline node detection tests)
 - 12 e2e tests for treesitter Lua API: `test/specs/treesitter.e2e.ts`
 - Re-recorded golden data: `test/neovim/golden-data/fold-motions.json` (with `luaSetup` forcing treesitter parse before fold motions)
+- 6 fold motion Neovim deviations removed from `test/neovim/deviations.ts`
 
 ### Documentation
 

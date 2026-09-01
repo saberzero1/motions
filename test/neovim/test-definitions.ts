@@ -3631,7 +3631,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'zj',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: 'zj with count skips folds',
@@ -3640,7 +3640,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: '2zj',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: 'zj at last fold is no-op',
@@ -3648,7 +3648,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 4, ch: 0 },
                 keys: 'zj',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: 'zj from non-fold line',
@@ -3657,7 +3657,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'zj',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: 'zk moves to end of previous fold',
@@ -3666,7 +3666,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 8, ch: 0 },
                 keys: 'zk',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: 'zk with count skips folds backward',
@@ -3675,7 +3675,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 12, ch: 0 },
                 keys: '2zk',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: 'zk at first fold is no-op',
@@ -3683,7 +3683,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: 'zk',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: '[z moves to start of enclosing fold',
@@ -3692,7 +3692,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 2, ch: 0 },
                 keys: '[z',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: '[z on fold start line is no-op',
@@ -3700,7 +3700,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: '[z',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: '[z when not inside fold is no-op',
@@ -3708,7 +3708,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 0, ch: 0 },
                 keys: '[z',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: ']z moves to end of enclosing fold',
@@ -3717,7 +3717,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 2, ch: 0 },
                 keys: ']z',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
             {
                 name: ']z at fold end is no-op',
@@ -3725,7 +3725,7 @@ export const SUITES: SuiteDefinition[] = [
                 cursor: { line: 2, ch: 0 },
                 keys: ']z',
                 luaSetup:
-                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
+                    'vim.treesitter.get_parser(0):parse(true); vim.wait(200); vim.cmd("normal! zx")',
             },
         ],
     },

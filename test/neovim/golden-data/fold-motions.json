@@ -1,7 +1,7 @@
 {
     "suite": "fold-motions",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-09-01T22:27:00.430Z",
+    "recorded_at": "2026-09-01T22:48:14.636Z",
     "cases": [
         {
             "name": "zj moves to next foldable heading",
@@ -146,7 +146,7 @@
             "result": {
                 "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
                 "cursor": {
-                    "line": 10,
+                    "line": 6,
                     "ch": 0
                 },
                 "mode": "normal",

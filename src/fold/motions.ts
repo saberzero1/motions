@@ -102,9 +102,7 @@ export const foldNext: MotionFn = (cm, head, motionArgs) => {
     let result: VimPos = head;
     let searchFrom = head.line;
     for (let i = 0; i < repeat; i++) {
-        const cursorLine = state.doc.line(searchFrom + 1);
-        const parentRange = foldable(state, cursorLine.from, cursorLine.to);
-        const found = findNextFoldable(state, searchFrom + 1, parentRange);
+        const found = findNextFoldable(state, searchFrom + 1);
         if (!found) break;
         result = { line: found.line, ch: 0 };
         searchFrom = found.line;
@@ -118,16 +116,12 @@ export const foldPrev: MotionFn = (cm, head, motionArgs) => {
     const state = view.state;
     const repeat = motionArgs.repeat ?? 1;
     let result: VimPos = head;
-    // searchFrom tracks the 1-indexed line to search backward from
     let searchFrom = head.line + 1;
     for (let i = 0; i < repeat; i++) {
-        const cursorLine = state.doc.line(searchFrom);
-        const parentRange = foldable(state, cursorLine.from, cursorLine.to);
-        const found = findPrevFoldable(state, searchFrom, parentRange);
+        const found = findPrevFoldable(state, searchFrom);
         if (!found) break;
         const endLine = state.doc.lineAt(found.to).number - 1;
         result = { line: endLine, ch: 0 };
-        // found.line is 0-indexed; convert to 1-indexed for next search
         searchFrom = found.line + 1;
     }
     return result;

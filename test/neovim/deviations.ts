@@ -13,30 +13,6 @@ export interface Deviation {
 
 export const KNOWN_DEVIATIONS: Deviation[] = [
     {
-        testPattern: /zj moves to next foldable heading/,
-        description:
-            'zj skips nested heading folds — goes to next same-level fold instead of nearest fold start',
-        reason: 'Plugin fold provider skips child section folds; Neovim zj visits all foldable lines including nested headings',
-        fields: ['cursor'],
-        category: 'infra-limitation',
-    },
-    {
-        testPattern: /zj with count skips folds/,
-        description:
-            '2zj skips nested heading folds — count applies to same-level folds only',
-        reason: 'Plugin fold provider skips child section folds; Neovim zj visits all foldable lines including nested headings',
-        fields: ['cursor'],
-        category: 'infra-limitation',
-    },
-    {
-        testPattern: /zk with count skips folds backward/,
-        description:
-            '2zk skips nested heading folds — count applies to same-level folds only',
-        reason: 'Plugin fold provider skips child section folds; Neovim zk visits all foldable lines including nested headings',
-        fields: ['cursor'],
-        category: 'infra-limitation',
-    },
-    {
         testPattern: /\bgf\b/,
         description: 'gf opens quick switcher, not file under cursor',
         reason: 'Wikilinks are more natural for note navigation',
