@@ -120,6 +120,13 @@ const OIL_MAPPINGS: OilMapping[] = [
         exShort: 'oilh',
         desc: 'Toggle help',
     },
+    {
+        lhs: '<C-p>',
+        actionName: 'oilPreview',
+        exName: 'oilpreview',
+        exShort: 'oilpre',
+        desc: 'Toggle preview',
+    },
 ];
 
 export class OilKeybindingManager {
@@ -291,7 +298,7 @@ export class OilKeybindingManager {
             oilToggleHidden: () => {
                 const view = getActiveOilView();
                 if (!view) return;
-                manager.toggleHidden();
+                if (!manager.toggleHidden()) return;
                 void manager.navigateToDirectory(view.getDirPath());
             },
             oilCycleSort: () => {
@@ -314,6 +321,9 @@ export class OilKeybindingManager {
             oilHelp: () => {
                 if (!getActiveOilView()) return;
                 this.showOilHelp();
+            },
+            oilPreview: () => {
+                manager.togglePreview();
             },
             oilRevealInExplorer: () => {
                 const view = getActiveOilView();

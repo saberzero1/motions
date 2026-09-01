@@ -103,6 +103,11 @@ export class OilView extends View {
             this.manager.closeOil();
             return false;
         });
+        this.editor.registerScopeKey(['Ctrl'], 'P', (e) => {
+            e.preventDefault();
+            this.manager.togglePreview();
+            return false;
+        });
     }
 
     focusEditor(): void {

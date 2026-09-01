@@ -48,8 +48,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (12 `defineOption()` calls, search call sites updated, hlsearch gating, incsearch gating, wrapscan boundary messages, gdefault inversion, startofline in H/M/L/G/gg, whichwrap in moveByCharacters, virtualedit in clipCursorToContent, joinspaces in joinLines, shiftround in indent operator, nrformats with parseNumberMatch helper)
     - Plugin: `src/vimrc/loader.ts` (12 options registered in `KNOWN_SET_OPTIONS` with `_fork:` prefix settingsKey)
 
+### Added
+
+- **Oil preview window** (`<C-p>`) — toggle a side-by-side preview split showing the file under the cursor. Auto-updates on cursor movement via `EditorView.updateListener`. Second `<C-p>` closes the preview. Closes automatically when oil closes. New ex command `:oilpreview` (`:oilpre`).
+    - Plugin: `src/oil/manager.ts` (`togglePreview()`, `closePreview()`, `installPreviewCursorListener()`)
+    - Plugin: `src/oil/keybindings.ts` (`<C-p>` mapping + `oilPreview` action)
+    - Plugin: `src/oil/oil-view.ts` (`<C-p>` scope key registration)
+- **Oil visual mode multi-select** — `V` + select lines + `<CR>` opens all selected file entries. First file replaces the oil leaf, subsequent files open in new tabs. Matches oil.nvim's visual `select` behavior.
+    - Plugin: `src/oil/manager.ts` (`getVisualRangeEntries()`, `openMultipleEntries()`)
+- **Oil hidden toggle guard** — `g.` toggle is now blocked when the oil buffer has unsaved changes, showing a notice instead. Matches oil.nvim's `toggle_hidden()` behavior which warns and refuses when modified buffers exist.
+    - Plugin: `src/oil/manager.ts` (`hasUnsavedChanges()` guard in `toggleHidden()`, return type changed to `boolean`)
+    - Plugin: `src/oil/keybindings.ts` (checks return value before refreshing)
+
+### Fixed
+
+- **Oil: unable to create files with a new directory** — creating a file like `newfolder/notes.md` where `newfolder/` doesn't exist now creates both the directory and the file, matching oil.nvim's behavior. Root cause: `app.vault.create()` does not auto-create intermediate directories (unlike `app.vault.createFolder()`). ([#154](https://github.com/saberzero1/motions/issues/154))
+    - Plugin: `src/oil/actions.ts` (`ensureParentDirs()` — walks path segments and creates missing directories before file creation)
+
 ### Tests
 
+- **Oil nested path creation e2e tests** — 3 new e2e tests in `test/specs/oil-poc.e2e.ts` verifying nested file creation (`newfolder/notes.md`), deeply nested paths (`a/b/deep.md`), and nested directory creation (`parent/child/`). All 3 fail before the fix and pass after. (#154)
+- **Oil nested path parser unit tests** — 4 new unit tests in `test/unit/oil-parser.test.ts` for nested path parsing.
+- **Oil preview toggle e2e test** — 1 new e2e test verifying `<C-p>` opens a preview split and second `<C-p>` closes it.
+- **Oil hidden toggle guard e2e test** — 1 new e2e test verifying `g.` is blocked when buffer has unsaved changes.
+- **Oil visual mode multi-select e2e tests** — 2 new e2e tests: visual mode detection in oil editor, and multi-file open via visual select + `<CR>`.
 - **Ex command range golden tests** — 8 new golden test cases recorded against Neovim 0.12.5 verifying fork-native `:{range}` support for commands handled entirely by the codemirror-vim fork: `:1,3y` (yank range), `:2,4y a` (yank range to named register), `:1,3j` (join range), `:2,4j!` (join range without spaces), `:put` (put after current line via `:1y` + `:put`), `:3put` (put after addressed line via `:1y` + `:3put`), `:2,4g/pattern/d` (global with range prefix), `:1,3v/pattern/d` (vglobal with range prefix).
     - Definitions: `test/neovim/test-definitions.ts` (8 new cases in `ex-commands-expanded` and `ex-global` suites)
     - Golden: `test/neovim/golden-data/ex-commands-expanded.json` (re-recorded, 27 cases)
@@ -72,7 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: updated `vim.fn` function count (27 → 65), added not-yet-implemented table (lower-value/niche functions), added explicitly excluded functions (`map`/`filter`/`printf` incompatible signatures); search options now configurable; unknown options warning behavior updated for Neovim options registry
+- `KNOWN_LIMITATIONS.md`: updated `vim.fn` function count (27 → 65), added not-yet-implemented table (lower-value/niche functions), added explicitly excluded functions (`map`/`filter`/`printf` incompatible signatures); search options now configurable; unknown options warning behavior updated for Neovim options registry; added "Oil.nvim parity gaps" section documenting 8 unimplemented oil.nvim features; added `:oilpreview` to oil keybindings list; updated oil status line
+- `README.md`: oil explorer description updated with `<C-p>` preview, visual mode multi-select, nested path creation
+- `docs/reference/keybindings.md`: added `<C-p>` (`:oilpreview`) and `g?` (`:oilhelp`) to oil keybindings table
+- `docs/features/oil-explorer.md`: added preview, visual mode multi-select, nested path creation, and hidden toggle guard sections; added `:oilpreview` to ex commands table
+- `docs/features/ex-commands.md`: added `:oilpreview` and `:oilhelp` to oil ex commands table
 - `docs/configuration/lua-config.md`: added 36 new `vim.fn` functions to quick-reference and detailed tables; added 12 new Neovim options to `vim.opt` table
 - `AGENTS.md`: `vim.fn` count updated (27 → 65), fork API surface updated with `foldopenAnnotation` and 12 configurable Neovim options
 - `CONTRIBUTING.md`: `fn.ts` description updated (26 → 65 functions); added `neovim-options.ts` to `src/vim/` file tree

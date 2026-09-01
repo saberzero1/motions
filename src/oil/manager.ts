@@ -9,6 +9,9 @@ import type { OilEntry, OilMergedDiff } from './types';
 import { OIL_VIEW_TYPE, type OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
 import { navigateWithJump, navigateWithJumpFile } from '../workspace/navigate';
+import { getCmAdapterFromEditorView } from '../vim/vim-api';
+import { StateEffect } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 
 export function entriesToBufferText(entries: OilEntry[]): string {
     if (entries.length === 0) return '';
@@ -27,6 +30,9 @@ export class OilManager {
     private showHiddenOverride: boolean | null = null;
     private sortKey: 'name' | 'mtime' | 'size' = 'name';
     private refreshDebounceTimer: number | null = null;
+    private previewLeaf: import('obsidian').WorkspaceLeaf | null = null;
+    private previewDebounceTimer: number | null = null;
+    private previewListenerCleanup: (() => void) | null = null;
 
     constructor(
         private readonly app: App,
@@ -95,6 +101,7 @@ export class OilManager {
     }
 
     closeOil(): void {
+        this.closePreview();
         const leaf = this.app.workspace.getMostRecentLeaf();
         if (!leaf) return;
         const view = leaf.view;
@@ -177,6 +184,7 @@ export class OilManager {
     }
 
     cleanup(): void {
+        this.closePreview();
         if (this.refreshDebounceTimer !== null) {
             window.clearTimeout(this.refreshDebounceTimer);
             this.refreshDebounceTimer = null;
@@ -191,12 +199,33 @@ export class OilManager {
         return this.cache.getEntry(id);
     }
 
-    toggleHidden(): void {
+    toggleHidden(): boolean {
+        if (this.hasUnsavedChanges()) {
+            new Notice(
+                'Oil: cannot toggle hidden files while there are unsaved changes',
+            );
+            return false;
+        }
         const current = this.getEffectiveShowHidden();
         this.showHiddenOverride = !current;
         new Notice(
             `Oil: hidden files ${this.showHiddenOverride ? 'shown' : 'hidden'}`,
         );
+        return true;
+    }
+
+    private hasUnsavedChanges(): boolean {
+        let view: OilView | null;
+        try {
+            view = this.getActiveOilView();
+        } catch {
+            return false;
+        }
+        if (!view) return false;
+        const dirPath = view.getDirPath();
+        const currentContent = view.getBufferContent();
+        const rendered = this.renderDirectoryToBuffer(dirPath);
+        return currentContent !== rendered;
     }
 
     private getEffectiveShowHidden(): boolean {
@@ -264,6 +293,13 @@ export class OilManager {
         if (!leaf) return;
         const view = leaf.view;
         if (!this.isOilView(view)) return;
+
+        const visualEntries = this.getVisualRangeEntries(view);
+        if (visualEntries.length > 1) {
+            this.openMultipleEntries(leaf, view, visualEntries);
+            return;
+        }
+
         const entry = this.getEntryAtCursor(view);
         if (!entry) return;
         if (entry.type === 'folder') {
@@ -308,6 +344,73 @@ export class OilManager {
         this.app.openWithDefaultApp(entry.path);
     }
 
+    togglePreview(): void {
+        if (this.previewLeaf) {
+            this.closePreview();
+            return;
+        }
+        const view = this.getActiveOilView();
+        if (!view) return;
+        const entry = this.getEntryAtCursor(view);
+        if (!entry || entry.type === 'folder') return;
+        const file = this.app.vault.getAbstractFileByPath(entry.path);
+        if (!(file instanceof TFile)) return;
+
+        this.previewLeaf = this.app.workspace.getLeaf('split', 'vertical');
+        void this.previewLeaf.openFile(file, { state: { mode: 'preview' } });
+        this.installPreviewCursorListener(view);
+    }
+
+    closePreview(): void {
+        if (this.previewDebounceTimer !== null) {
+            window.clearTimeout(this.previewDebounceTimer);
+            this.previewDebounceTimer = null;
+        }
+        if (this.previewListenerCleanup) {
+            this.previewListenerCleanup();
+            this.previewListenerCleanup = null;
+        }
+        if (this.previewLeaf) {
+            this.previewLeaf.detach();
+            this.previewLeaf = null;
+        }
+    }
+
+    private installPreviewCursorListener(view: OilView): void {
+        const editorView = view.getEditorView();
+        if (!editorView) return;
+
+        let lastPreviewedPath = '';
+        const updatePreview = () => {
+            if (!this.previewLeaf) return;
+            const entry = this.getEntryAtCursor(view);
+            if (!entry || entry.type === 'folder') return;
+            if (entry.path === lastPreviewedPath) return;
+            lastPreviewedPath = entry.path;
+            const file = this.app.vault.getAbstractFileByPath(entry.path);
+            if (!(file instanceof TFile)) return;
+            void this.previewLeaf.openFile(file, {
+                state: { mode: 'preview' },
+            });
+        };
+
+        const listener = EditorView.updateListener.of((update) => {
+            if (!update.selectionSet) return;
+            if (this.previewDebounceTimer !== null) {
+                window.clearTimeout(this.previewDebounceTimer);
+            }
+            this.previewDebounceTimer = window.setTimeout(updatePreview, 100);
+        });
+
+        editorView.dispatch({
+            effects: StateEffect.appendConfig.of(listener),
+        });
+
+        this.previewListenerCleanup = () => {
+            lastPreviewedPath = '';
+        };
+    }
+
     private openFileInLeaf(
         leaf: import('obsidian').WorkspaceLeaf,
         path: string,
@@ -341,6 +444,55 @@ export class OilManager {
         const line = editorView.state.doc.lineAt(pos).number - 1;
         const lineText = view.getLineText(line);
         return this.getEntryAtLine(lineText);
+    }
+
+    private getVisualRangeEntries(view: OilView): OilEntry[] {
+        const editorView = view.getEditorView();
+        if (!editorView) return [];
+        const cm = getCmAdapterFromEditorView(editorView);
+        const vim:
+            | {
+                  visualMode?: boolean;
+                  sel?: { anchor: { line: number }; head: { line: number } };
+              }
+            | undefined = cm?.state?.vim;
+        if (!vim?.visualMode || !vim.sel) return [];
+        const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
+        const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+        const entries: OilEntry[] = [];
+        for (let i = startLine; i <= endLine; i++) {
+            const lineText = view.getLineText(i);
+            const entry = this.getEntryAtLine(lineText);
+            if (entry) entries.push(entry);
+        }
+        return entries;
+    }
+
+    private openMultipleEntries(
+        leaf: import('obsidian').WorkspaceLeaf,
+        view: OilView,
+        entries: OilEntry[],
+    ): void {
+        const folders = entries.filter((e) => e.type === 'folder');
+        const files = entries.filter((e) => e.type !== 'folder');
+
+        if (files.length === 0 && folders.length === 1 && folders[0]) {
+            void this.navigateToDirectory(folders[0].path);
+            return;
+        }
+
+        const firstFile = files[0];
+        if (firstFile) {
+            this.openFileInLeaf(leaf, firstFile.path);
+        }
+        for (let i = 1; i < files.length; i++) {
+            const file = files[i];
+            if (file) {
+                void navigateWithJump(this.app, file.path, '', {
+                    newTab: true,
+                });
+            }
+        }
     }
 
     private scheduleRefresh(view: OilView): void {

@@ -84,4 +84,28 @@ describe('Oil parser — parseBufferLines', () => {
         expect(result[1]).toEqual({ id: 0, type: 'f', name: 'newfile.md' });
         expect(result[2]).toEqual({ id: 2, type: 'd', name: 'existdir' });
     });
+
+    it('parses nested path as a single file create (#154)', () => {
+        const result = parseBufferLines('newfolder/notes.md');
+        expect(result).toEqual([
+            { id: 0, type: 'f', name: 'newfolder/notes.md' },
+        ]);
+    });
+
+    it('parses deeply nested path as a single file create (#154)', () => {
+        const result = parseBufferLines('a/b/c/deep.md');
+        expect(result).toEqual([{ id: 0, type: 'f', name: 'a/b/c/deep.md' }]);
+    });
+
+    it('parses nested path without extension — appends .md (#154)', () => {
+        const result = parseBufferLines('newfolder/untitled');
+        expect(result).toEqual([
+            { id: 0, type: 'f', name: 'newfolder/untitled.md' },
+        ]);
+    });
+
+    it('parses nested directory path (trailing slash) (#154)', () => {
+        const result = parseBufferLines('parent/child/');
+        expect(result).toEqual([{ id: 0, type: 'd', name: 'parent/child' }]);
+    });
 });

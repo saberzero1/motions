@@ -630,6 +630,8 @@ Oil keybindings are only active when an oil buffer is focused. All keybindings a
 | `y.`       | `:oilyankpath`     | Yank vault-relative file path to clipboard                                         |
 | `gf`       | `:oilreveal`       | Reveal file under cursor in Obsidian file explorer                                 |
 | `gx`       | `:oilopenexternal` | Open file under cursor in default system app                                       |
+| `g?`       | `:oilhelp`         | Show keybinding help modal                                                         |
+| `<C-p>`    | `:oilpreview`      | Toggle preview split (shows file under cursor, auto-updates on cursor move)        |
 | `dd`       |                    | Stage file deletion (commit with `:w`)                                             |
 | `o`        |                    | Stage file creation — type filename, commit with `:w`                              |
 | `cw`       |                    | Stage file rename — edit filename, commit with `:w`                                |

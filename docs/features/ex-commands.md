@@ -296,6 +296,8 @@ Oil ex commands only operate inside an Oil buffer. If invoked from a regular edi
 | `:oilyankpath`     | `y.`         | Yank file path to clipboard   |
 | `:oilreveal`       | `gf`         | Reveal in file explorer       |
 | `:oilopenexternal` | `gx`         | Open in default app           |
+| `:oilhelp`         | `g?`         | Show keybinding help modal    |
+| `:oilpreview`      | `<C-p>`      | Toggle preview split          |
 
 ## Global mapping commands
 

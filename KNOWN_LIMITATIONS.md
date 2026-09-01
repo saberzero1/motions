@@ -1176,6 +1176,19 @@ Extensions registered by other plugins via `registerEditorExtension()` do not ap
 
 The embedded editor is created by extracting Obsidian's internal `ScrollableMarkdownEditor` prototype via `app.embedRegistry.embedByExtension.md()`. This is an undocumented internal API used by the Kanban plugin (500k+ installs) since 2022 without breakage. A runtime guard produces a descriptive error if the API changes in a future Obsidian update. The oil feature will degrade gracefully (error notice, oil unavailable) rather than crashing.
 
+### Oil.nvim parity gaps
+
+The Oil explorer implements a subset of [oil.nvim](https://github.com/stevearc/oil.nvim)'s features. The following oil.nvim behaviors are not yet implemented:
+
+- **Brace expansion**: oil.nvim supports `foo.{js,test.js}` syntax to create multiple files at once. The plugin requires one file per line.
+- **Copy via buffer edit**: In oil.nvim, duplicating an existing entry line (same name, new ID) triggers a file copy. The plugin does not support this; use Obsidian's file explorer for copies.
+- **Trash view toggle** (`g\`): oil.nvim can toggle between the file view and a trash view for the current directory. Not applicable — Obsidian manages trash separately.
+- **Incremental rendering**: oil.nvim renders large directories progressively (25ms/500ms thresholds). The plugin renders all entries at once, which may cause a brief delay for directories with thousands of files.
+- **`../` entry**: oil.nvim shows a `../` entry as the first line for navigating up. The plugin uses the `-` keybinding instead.
+- **Column display**: oil.nvim supports configurable columns (icon, size, permissions, mtime). The plugin shows emoji icons (📁/📄) only.
+- **LSP workspace edit integration**: oil.nvim fires `willRenameFiles`/`willCreateFiles`/`willDeleteFiles` for LSP clients. The plugin does not integrate with LSP workspace edits.
+- **`_` (open cwd)**, **`` ` `` (`:cd`)**, **`g~` (`:tcd`)**: These oil.nvim bindings relate to Neovim's current working directory concept, which has no equivalent in Obsidian.
+
 ### ~~Note freezes in Reading Mode after closing Oil~~ (Fixed)
 
 **Status**: Fixed. Closing Oil now restores the original editor mode (source, live preview, or reading). The mode is captured when Oil opens via `MarkdownView.getState()` and restored via `leaf.openFile(file, { state: previousViewMode })` on close. All close paths (keybindings, ex commands, Lua API) use a unified `closeOil()` method. ([#93](https://github.com/saberzero1/motions/issues/93))
@@ -1203,7 +1216,7 @@ The embedded editor is created by extracting Obsidian's internal `ScrollableMark
 Every keybinding is remappable through one of four mechanisms depending on context:
 
 - **Editor keybindings** (motions, actions, operators): All have ex command aliases (e.g., `:nextheading`, `:focuspaneleft`, `:tablenextcell`, `:hintactivate`). Remap via `vim.keymap.set('n', 'key', ':excommand<CR>')` in Lua or `nmap key :excommand<CR>` in vimrc.
-- **Oil explorer keybindings**: Exposed as ex commands (`:oilopen`, `:oilopentab`, `:oilopensv`, `:oilopensh`, `:oilparent`, `:oilroot`, `:oilclose`, `:oilrefresh`, `:oiltogglehidden`, `:oilcyclesort`, `:oilyankpath`, `:oilreveal`, `:oilopenexternal`, `:oilhelp`) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys match oil.nvim conventions (`<CR>` same-leaf, `<C-t>` new tab, `<C-s>` vertical split, `<C-h>` horizontal split, `<C-c>`/`q` close, `gx` open external). Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
+- **Oil explorer keybindings**: Exposed as ex commands (`:oilopen`, `:oilopentab`, `:oilopensv`, `:oilopensh`, `:oilparent`, `:oilroot`, `:oilclose`, `:oilrefresh`, `:oiltogglehidden`, `:oilcyclesort`, `:oilyankpath`, `:oilreveal`, `:oilopenexternal`, `:oilhelp`, `:oilpreview`) and Lua functions (`vim.obsidian.oil.parent()`, etc.). Default keys match oil.nvim conventions (`<CR>` same-leaf, `<C-t>` new tab, `<C-s>` vertical split, `<C-h>` horizontal split, `<C-p>` preview toggle, `<C-c>`/`q` close, `gx` open external). Visual mode multi-select (`V` + `<CR>` opens all selected files). Buffer-local remapping via `OilEnter`/`OilLeave` autocmd events.
 - **Picker keybindings**: Configurable via `vim.obsidian.pick_keymap()` in Lua. Not available via vimrc (picker operates outside the vim keymap system).
 - **Global workspace navigation**: Remappable via `vim.obsidian.keymap.set`/`del` (Lua) and `:gmap`/`:gunmap`/`:gmaps` (vimrc and ex command line). Each default is tagged with a stable name.
 

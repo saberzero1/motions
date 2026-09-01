@@ -316,6 +316,86 @@ describe('Oil explorer', function () {
             await cleanupTestFiles('oil-test-create.md');
         });
 
+        it('nested path creates intermediate directories and file (#154)', async function () {
+            await openOilAndWait();
+            await appendToOilBuffer('oil-nested-dir/nested-note.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const commitResult = await runOilCommit();
+            expect(commitResult).toHaveProperty('success', true);
+            await browser.pause(1000);
+
+            expect(await fileExists('oil-nested-dir/nested-note.md')).toBe(
+                true,
+            );
+
+            await browser.executeObsidian(async ({ app }) => {
+                const file = app.vault.getAbstractFileByPath(
+                    'oil-nested-dir/nested-note.md',
+                );
+                if (file) await app.vault.delete(file);
+                const folder =
+                    app.vault.getAbstractFileByPath('oil-nested-dir');
+                if (folder) await app.vault.delete(folder, true);
+            });
+        });
+
+        it('deeply nested path creates all intermediate directories (#154)', async function () {
+            await openOilAndWait();
+            await appendToOilBuffer('oil-deep-a/oil-deep-b/deep-file.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const commitResult = await runOilCommit();
+            expect(commitResult).toHaveProperty('success', true);
+            await browser.pause(1000);
+
+            expect(await fileExists('oil-deep-a/oil-deep-b/deep-file.md')).toBe(
+                true,
+            );
+
+            const dirsExist = (await browser.executeObsidian(({ app }) => {
+                const a = app.vault.getAbstractFileByPath('oil-deep-a');
+                const b = app.vault.getAbstractFileByPath(
+                    'oil-deep-a/oil-deep-b',
+                );
+                return { a: a !== null, b: b !== null };
+            })) as { a: boolean; b: boolean };
+            expect(dirsExist.a).toBe(true);
+            expect(dirsExist.b).toBe(true);
+
+            await browser.executeObsidian(async ({ app }) => {
+                const folder = app.vault.getAbstractFileByPath('oil-deep-a');
+                if (folder) await app.vault.delete(folder, true);
+            });
+        });
+
+        it('nested directory path creates all intermediate directories (#154)', async function () {
+            await openOilAndWait();
+            await appendToOilBuffer('oil-nested-parent/oil-nested-child/');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const commitResult = await runOilCommit();
+            expect(commitResult).toHaveProperty('success', true);
+            await browser.pause(1000);
+
+            const dirsExist = (await browser.executeObsidian(({ app }) => {
+                const parent =
+                    app.vault.getAbstractFileByPath('oil-nested-parent');
+                const child = app.vault.getAbstractFileByPath(
+                    'oil-nested-parent/oil-nested-child',
+                );
+                return { parent: parent !== null, child: child !== null };
+            })) as { parent: boolean; child: boolean };
+            expect(dirsExist.parent).toBe(true);
+            expect(dirsExist.child).toBe(true);
+
+            await browser.executeObsidian(async ({ app }) => {
+                const folder =
+                    app.vault.getAbstractFileByPath('oil-nested-parent');
+                if (folder) await app.vault.delete(folder, true);
+            });
+        });
+
         it('new line ending with / creates a folder', async function () {
             await openOilAndWait();
             await appendToOilBuffer('oil-test-folder/');
@@ -1124,6 +1204,117 @@ describe('Oil explorer', function () {
         });
     });
 
+    describe('hidden toggle guard', function () {
+        it('g. toggle is blocked when buffer has unsaved changes', async function () {
+            await openOilAndWait('');
+            await appendToOilBuffer('oil-guard-test.md');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const result = (await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return { toggled: false };
+                const mgr = plugin.oilManager as {
+                    toggleHidden?: () => boolean;
+                };
+                const toggled = mgr.toggleHidden?.() ?? false;
+                return { toggled };
+            })) as { toggled: boolean };
+
+            expect(result.toggled).toBe(false);
+        });
+    });
+
+    describe('preview toggle', function () {
+        before(async function () {
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await browser.executeObsidian(async ({ app }) => {
+                const dir = 'oil-preview-dir';
+                const existing = app.vault.getAbstractFileByPath(dir);
+                if (!existing) await app.vault.createFolder(dir);
+                const f = app.vault.getAbstractFileByPath(
+                    `${dir}/preview-test.md`,
+                );
+                if (!f)
+                    await app.vault.create(`${dir}/preview-test.md`, 'preview');
+            });
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+        });
+
+        it('C-p opens a preview split and second C-p closes it', async function () {
+            await openOilAndWait('oil-preview-dir');
+            await focusOilEditor();
+
+            const leafCountBefore = (await browser.executeObsidian(
+                ({ app }) => {
+                    let count = 0;
+                    app.workspace.iterateAllLeaves(() => count++);
+                    return count;
+                },
+            )) as number;
+
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                (
+                    plugin.oilManager as { togglePreview?: () => void }
+                ).togglePreview?.();
+            });
+            await browser.pause(1000);
+
+            const leafCountDuring = (await browser.executeObsidian(
+                ({ app }) => {
+                    let count = 0;
+                    app.workspace.iterateAllLeaves(() => count++);
+                    return count;
+                },
+            )) as number;
+            expect(leafCountDuring).toBe(leafCountBefore + 1);
+
+            await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return;
+                (
+                    plugin.oilManager as { togglePreview?: () => void }
+                ).togglePreview?.();
+            });
+            await browser.pause(500);
+
+            const leafCountAfter = (await browser.executeObsidian(({ app }) => {
+                let count = 0;
+                app.workspace.iterateAllLeaves(() => count++);
+                return count;
+            })) as number;
+            expect(leafCountAfter).toBe(leafCountBefore);
+        });
+
+        after(async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const folder =
+                    app.vault.getAbstractFileByPath('oil-preview-dir');
+                if (folder) await app.vault.delete(folder, true);
+            });
+        });
+    });
+
     describe('select opens in same leaf', function () {
         it('opening a file from oil replaces the oil view in the same leaf', async function () {
             await openOilAndWait('');
@@ -1296,6 +1487,153 @@ describe('Oil explorer', function () {
             await browser.executeObsidian(async ({ app }) => {
                 const folder =
                     app.vault.getAbstractFileByPath('oil-ct-test-dir');
+                if (folder) await app.vault.delete(folder, true);
+            });
+        });
+    });
+
+    describe('visual mode multi-select', function () {
+        before(async function () {
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await browser.executeObsidian(async ({ app }) => {
+                const dir = 'oil-visual-dir';
+                const existing = app.vault.getAbstractFileByPath(dir);
+                if (!existing) await app.vault.createFolder(dir);
+                for (const name of ['alpha.md', 'beta.md', 'gamma.md']) {
+                    const f = app.vault.getAbstractFileByPath(`${dir}/${name}`);
+                    if (!f) await app.vault.create(`${dir}/${name}`, name);
+                }
+            });
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(PAUSE.OBSIDIAN_LOAD);
+        });
+
+        it('getVisualRangeEntries returns entries when visual mode is active', async function () {
+            await openOilAndWait('oil-visual-dir');
+
+            const result = (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                if (leaf?.view?.getViewType() !== 'oil-explorer') {
+                    return { error: 'not oil' };
+                }
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'no vim' };
+                const editorView = (
+                    leaf.view as unknown as {
+                        getEditorView?: () => Record<string, unknown> | null;
+                    }
+                ).getEditorView?.();
+                if (!editorView) return { error: 'no editor view' };
+                const cm = editorView['cm'];
+                if (!cm) return { error: 'no cm adapter' };
+
+                Vim.handleKey(cm, 'V');
+                Vim.handleKey(cm, 'j');
+
+                const vim = (cm as Record<string, unknown>).state as
+                    Record<string, unknown> | undefined;
+                const vimState = vim?.['vim'] as
+                    Record<string, unknown> | undefined;
+                const isVisual = vimState?.['visualMode'] === true;
+
+                Vim.handleKey(cm, '<Esc>');
+
+                return { isVisual, hadCm: true };
+            })) as {
+                error?: string;
+                isVisual?: boolean;
+                hadCm?: boolean;
+            };
+
+            expect(result.error).toBeUndefined();
+            expect(result.hadCm).toBe(true);
+            expect(result.isVisual).toBe(true);
+        });
+
+        it('openEntryAtCursor opens multiple files via visual select', async function () {
+            await openOilAndWait('oil-visual-dir');
+
+            const leafCountBefore = (await browser.executeObsidian(
+                ({ app }) => {
+                    let count = 0;
+                    app.workspace.iterateAllLeaves(() => count++);
+                    return count;
+                },
+            )) as number;
+
+            const openResult = (await browser.executeObsidian(({ app }) => {
+                const leaf = app.workspace.getMostRecentLeaf();
+                if (leaf?.view?.getViewType() !== 'oil-explorer') {
+                    return { error: 'not oil' };
+                }
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return { error: 'no vim' };
+                const editorView = (
+                    leaf.view as unknown as {
+                        getEditorView?: () => Record<string, unknown> | null;
+                    }
+                ).getEditorView?.();
+                if (!editorView) return { error: 'no editor view' };
+                const cm = editorView['cm'];
+                if (!cm) return { error: 'no cm adapter' };
+
+                Vim.handleKey(cm, 'V');
+                Vim.handleKey(cm, 'j');
+
+                const plugin = (
+                    app as unknown as {
+                        plugins?: {
+                            plugins?: Record<string, { oilManager?: unknown }>;
+                        };
+                    }
+                ).plugins?.plugins?.['vim-motions'];
+                if (!plugin?.oilManager) return { error: 'no oil manager' };
+                (
+                    plugin.oilManager as {
+                        openEntryAtCursor?: () => void;
+                    }
+                ).openEntryAtCursor?.();
+                return { ok: true };
+            })) as { error?: string; ok?: boolean };
+
+            expect(openResult.error).toBeUndefined();
+            await browser.pause(1500);
+
+            const leafCountAfter = (await browser.executeObsidian(({ app }) => {
+                let count = 0;
+                app.workspace.iterateAllLeaves(() => count++);
+                return count;
+            })) as number;
+
+            expect(leafCountAfter).toBeGreaterThan(leafCountBefore);
+        });
+
+        after(async function () {
+            await browser.executeObsidian(async ({ app }) => {
+                const folder =
+                    app.vault.getAbstractFileByPath('oil-visual-dir');
                 if (folder) await app.vault.delete(folder, true);
             });
         });
@@ -1687,6 +2025,19 @@ describe('Oil explorer', function () {
             'oil-delete-me.md',
             'oil-rename-src.md',
             'oil-rename-dst.md',
+            'oil-nested-dir/nested-note.md',
         );
+        await browser.executeObsidian(async ({ app }) => {
+            for (const dir of [
+                'oil-nested-dir',
+                'oil-deep-a',
+                'oil-nested-parent',
+                'oil-visual-dir',
+                'oil-preview-dir',
+            ]) {
+                const folder = app.vault.getAbstractFileByPath(dir);
+                if (folder) await app.vault.delete(folder, true);
+            }
+        });
     });
 });

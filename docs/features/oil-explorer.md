@@ -25,7 +25,7 @@ Oil is not intended to replace the Obsidian file explorer, but rather to provide
 
 All changes in an Oil buffer are staged and only applied to the filesystem when you save the buffer with `:w`.
 
-- **Create**: Type a new line with the desired filename. Pressing `:w` creates the file. Filenames without an extension default to `.md`. Names ending with a `/` create folders.
+- **Create**: Type a new line with the desired filename. Pressing `:w` creates the file. Filenames without an extension default to `.md`. Names ending with a `/` create folders. Nested paths like `newfolder/notes.md` create both the directory and the file in one step.
 - **Rename**: Edit the filename text on an existing line. Pressing `:w` renames the file. Obsidian backlinks are updated automatically.
 - **Delete**: Delete a line using `dd` or any other Vim command. Pressing `:w` moves the file to the trash (respecting your Obsidian trash settings). A confirmation dialog is shown if the number of deleted files exceeds the configured threshold.
 
@@ -60,6 +60,7 @@ Oil ex commands are always registered, even outside an Oil buffer. If you invoke
 | `:oilreveal`       | `:oilrev`    | `gf`         | Reveal in Obsidian file explorer |
 | `:oilopenexternal` | `:oilopene`  | `gx`         | Open in default app              |
 | `:oilhelp`         | `:oilh`      | `g?`         | Show keybinding help modal       |
+| `:oilpreview`      | `:oilpre`    | `<C-p>`      | Toggle preview split             |
 
 ### Remap via Lua (recommended)
 
@@ -137,6 +138,18 @@ When committing changes with `:w`, the Oil editor retains focus after the operat
 ### Opening from non-editor contexts
 
 Oil works correctly when opened from any context — including empty panes, settings, graph view, or the command palette with no file open. The plugin automatically primes the workspace leaf with editor infrastructure before creating the Oil view, ensuring vim keybindings, conceal decorations, and which-key all function as expected.
+
+### Preview
+
+Press `<C-p>` to open a preview split alongside the Oil buffer. The preview shows a read-only rendering of the file under the cursor and auto-updates as you move through the directory listing. Press `<C-p>` again to close the preview. The preview also closes automatically when you close Oil.
+
+### Visual mode multi-select
+
+Select multiple entries with `V` (visual line mode) and press `<CR>` to open all selected files. The first file replaces the Oil view in the current leaf, and additional files open in new tabs. Folders in the selection are skipped (use `<CR>` on a single folder entry to navigate into it).
+
+### Hidden toggle guard
+
+The `g.` toggle (`:oiltogglehidden`) is blocked when the Oil buffer has unsaved changes. A notice is shown instead of toggling. Save your changes with `:w` first, then toggle hidden files. This prevents accidental data loss from re-rendering the buffer while edits are pending.
 
 ### Hidden files (dotfiles)
 

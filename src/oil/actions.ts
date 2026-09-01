@@ -5,6 +5,21 @@ function buildPath(parentPath: string, name: string): string {
     return parentPath ? `${parentPath}/${name}` : name;
 }
 
+async function ensureParentDirs(app: App, targetPath: string): Promise<void> {
+    const lastSlash = targetPath.lastIndexOf('/');
+    if (lastSlash <= 0) return;
+    const parentDir = targetPath.slice(0, lastSlash);
+    if (app.vault.getAbstractFileByPath(parentDir)) return;
+    const segments = parentDir.split('/');
+    let current = '';
+    for (const seg of segments) {
+        current = current ? `${current}/${seg}` : seg;
+        if (!app.vault.getAbstractFileByPath(current)) {
+            await app.vault.createFolder(current);
+        }
+    }
+}
+
 function isInConfigDir(path: string, configDir: string): boolean {
     return path === configDir || path.startsWith(`${configDir}/`);
 }
@@ -94,6 +109,7 @@ export async function executeActions(
             continue;
         }
         try {
+            await ensureParentDirs(app, targetPath);
             if (create.isFolder) {
                 await app.vault.createFolder(targetPath);
                 completed.push({
