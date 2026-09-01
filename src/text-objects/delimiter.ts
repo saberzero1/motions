@@ -1,5 +1,62 @@
 import type { MotionFn, VimPos, VimState } from '../types/vim-api';
 import { findFenceLines } from './code-block';
+import {
+    isTreeAvailable,
+    findContainingInlineNodeOfType,
+} from '../treesitter/js-api';
+
+const DELIMITER_TO_INLINE_NODE: Record<string, string[]> = {
+    '**': ['strong_emphasis'],
+    '*': ['emphasis'],
+    _: ['emphasis'],
+    __: ['strong_emphasis'],
+    '`': ['code_span'],
+    $$: ['latex_block'],
+    $: ['latex_block'],
+    '~~': ['strikethrough'],
+    '==': [],
+};
+
+function treesitterDelimiterRange(
+    cm: Parameters<MotionFn>[0],
+    head: VimPos,
+    delimiter: string,
+    inner: boolean,
+): [VimPos, VimPos] | null {
+    const view = (
+        cm as unknown as { cm6?: import('@codemirror/view').EditorView }
+    ).cm6;
+    if (!view || !isTreeAvailable(view)) return null;
+
+    const nodeTypes = DELIMITER_TO_INLINE_NODE[delimiter];
+    if (!nodeTypes || nodeTypes.length === 0) return null;
+
+    for (const nodeType of nodeTypes) {
+        const node = findContainingInlineNodeOfType(
+            view,
+            head.line,
+            head.ch,
+            nodeType,
+        );
+        if (!node) continue;
+
+        const startRow = node.startPosition.row;
+        const startCol = node.startPosition.column;
+        const endRow = node.endPosition.row;
+        const endCol = node.endPosition.column;
+
+        if (inner) {
+            const delimLen = delimiter.length;
+            return [
+                createPos(startRow, startCol + delimLen),
+                createPos(endRow, endCol - delimLen),
+            ];
+        }
+        return [createPos(startRow, startCol), createPos(endRow, endCol)];
+    }
+
+    return null;
+}
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 
@@ -107,6 +164,12 @@ export function createSmartAsteriskTextObject(scanLimit = 20): MotionFn {
     const singleStar = createMultiLineDelimiterTextObject('*', scanLimit);
 
     return (cm, head, motionArgs, vim, inputState) => {
+        const inner = motionArgs.textObjectInner === true;
+        const strongRange = treesitterDelimiterRange(cm, head, '**', inner);
+        if (strongRange) return adjustRangeForVisualMode(strongRange, vim);
+        const emphRange = treesitterDelimiterRange(cm, head, '*', inner);
+        if (emphRange) return adjustRangeForVisualMode(emphRange, vim);
+
         const doubleResult = doubleStar(cm, head, motionArgs, vim, inputState);
         if (doubleResult) return doubleResult;
         return singleStar(cm, head, motionArgs, vim, inputState);
@@ -214,6 +277,10 @@ export function createMultiLineDelimiterTextObject(
     const singleLine = createDelimiterTextObject(delimiter);
 
     return (cm, head, motionArgs, vim, inputState) => {
+        const inner = motionArgs.textObjectInner === true;
+        const tsRange = treesitterDelimiterRange(cm, head, delimiter, inner);
+        if (tsRange) return adjustRangeForVisualMode(tsRange, vim);
+
         const singleResult = singleLine(cm, head, motionArgs, vim, inputState);
         if (singleResult) return singleResult;
 
@@ -239,7 +306,6 @@ export function createMultiLineDelimiterTextObject(
         );
         if (!close) return null;
 
-        const inner = motionArgs.textObjectInner === true;
         const cursorAfterOpen = inner
             ? head.line > open.line ||
               (head.line === open.line && head.ch >= open.ch + delimiter.length)

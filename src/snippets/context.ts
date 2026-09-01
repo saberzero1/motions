@@ -1,3 +1,11 @@
+import type { EditorView } from '@codemirror/view';
+import {
+    isTreeAvailable,
+    findContainingNodeOfType,
+    getNodeAtPosition,
+    hasAncestorOfType,
+} from '../treesitter/js-api';
+
 interface DocLike {
     lineAt(pos: number): { number: number; text: string };
     line(n: number): { text: string };
@@ -17,10 +25,63 @@ export interface CursorContext {
 
 const FENCE_RE = /^(`{3,}|~{3,})\s*(.*)/;
 
+function detectCursorContextTreesitter(
+    view: EditorView,
+    pos: number,
+): CursorContext | null {
+    if (!isTreeAvailable(view)) return null;
+
+    const doc = view.state.doc;
+    const line = doc.lineAt(pos);
+    const row = line.number - 1;
+    const col = pos - line.from;
+
+    const node = getNodeAtPosition(view, row, col);
+    if (!node) return null;
+
+    if (
+        node.type === 'minus_metadata' ||
+        hasAncestorOfType(node, 'minus_metadata')
+    ) {
+        return { type: 'frontmatter' };
+    }
+
+    const codeBlock = findContainingNodeOfType(
+        view,
+        row,
+        col,
+        'fenced_code_block',
+    );
+    if (codeBlock) {
+        let language: string | undefined;
+        for (let i = 0; i < codeBlock.childCount; i++) {
+            const child = codeBlock.child(i);
+            if (child?.type === 'info_string') {
+                const langNode = child.child(0);
+                if (langNode) {
+                    language = view.state.doc.sliceString(
+                        langNode.startIndex,
+                        langNode.endIndex,
+                    );
+                }
+                break;
+            }
+        }
+        return { type: 'code', language: language || undefined };
+    }
+
+    return { type: 'prose' };
+}
+
 export function detectCursorContext(
     state: EditorStateLike,
     pos: number,
+    view?: EditorView,
 ): CursorContext {
+    if (view) {
+        const tsResult = detectCursorContextTreesitter(view, pos);
+        if (tsResult) return tsResult;
+    }
     const doc = state.doc;
     const cursorLine = doc.lineAt(pos).number;
 

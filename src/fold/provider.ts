@@ -1,5 +1,7 @@
 import { foldService } from '@codemirror/language';
 import type { Extension, EditorState } from '@codemirror/state';
+import type { Node } from 'web-tree-sitter';
+import { treeSitterTreeField } from '../treesitter/tree-state';
 
 const FRONTMATTER_DELIM = /^---\s*$/;
 const CALLOUT_START = /^(\s*>)\s*\[!.+\]/;
@@ -68,12 +70,73 @@ function headingFold(
     return { from: lineEnd, to: endLine.to };
 }
 
+function treesitterHeadingFold(
+    state: EditorState,
+    lineStart: number,
+    lineEnd: number,
+): { from: number; to: number } | null {
+    let tree;
+    try {
+        tree = state.field(treeSitterTreeField);
+    } catch {
+        return null;
+    }
+    if (!tree) return null;
+
+    const line = state.doc.lineAt(lineStart);
+    const row = line.number - 1;
+
+    const node = tree.rootNode.descendantForPosition({ row, column: 0 });
+    if (!node) return null;
+
+    let section: Node | null = null;
+    let current: Node | null = node;
+    while (current) {
+        if (current.type === 'section' && current.startPosition.row === row) {
+            section = current;
+            break;
+        }
+        current = current.parent;
+    }
+    if (!section) return null;
+
+    let hasHeading = false;
+    for (let i = 0; i < section.childCount; i++) {
+        const child = section.child(i);
+        if (child?.type === 'atx_heading' && child.startPosition.row === row) {
+            hasHeading = true;
+            break;
+        }
+    }
+    if (!hasHeading) return null;
+
+    const sectionEndRow = section.endPosition.row;
+    const sectionEndCol = section.endPosition.column;
+
+    let lastContentRow = -1;
+    for (let r = sectionEndRow; r > row; r--) {
+        const docLine = state.doc.line(r + 1);
+        if (docLine.text.trim().length > 0) {
+            lastContentRow = r;
+            break;
+        }
+    }
+    if (sectionEndCol > 0) lastContentRow = sectionEndRow;
+
+    if (lastContentRow <= row) return null;
+
+    const endLine = state.doc.line(lastContentRow + 1);
+    if (endLine.to <= lineEnd) return null;
+    return { from: lineEnd, to: endLine.to };
+}
+
 export function markdownFoldProvider(): Extension {
     return [
         foldService.of((state, lineStart, lineEnd) => {
             return (
                 frontmatterFold(state, lineStart, lineEnd) ??
                 calloutFold(state, lineStart, lineEnd) ??
+                treesitterHeadingFold(state, lineStart, lineEnd) ??
                 headingFold(state, lineStart, lineEnd)
             );
         }),

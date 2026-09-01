@@ -48,6 +48,7 @@ export function createSnippetTabKeymap(
                     const cursorCtx = detectCursorContext(
                         view.state,
                         cursorPos,
+                        view,
                     );
                     const matches = registry
                         .lookupByPrefix(prefix)

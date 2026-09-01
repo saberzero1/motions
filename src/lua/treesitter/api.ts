@@ -6,6 +6,7 @@ import { pushTSTree } from './tree';
 import { pushLanguageTree } from './language-tree-api';
 import { injectLanguageApi, setLanguageRuntime } from './language';
 import { injectQueryApi, setQueryRuntime } from './query-api';
+import { setJsApiModules } from '../../treesitter/js-api';
 import type { CoroutineRunner } from '../coroutine-runner';
 type LanguageTreeModule = typeof import('../../treesitter/language-tree');
 let _ltreeModule: LanguageTreeModule | null = null;
@@ -25,8 +26,12 @@ export async function initTreesitterRuntime(): Promise<void> {
     if (_runtime) return;
     _runtime = await import('../../treesitter/runtime');
     _ltreeModule = await import('../../treesitter/language-tree');
+    const queryModule = await import('../../treesitter/query');
     setLanguageRuntime(_runtime);
     setQueryRuntime(_runtime);
+    setJsApiModules(_runtime, queryModule);
+    await _runtime.loadLanguage('markdown');
+    await _runtime.loadLanguage('markdown_inline');
 }
 
 const parserCache = new Map<string, { tree: Tree; sourceText: string }>();

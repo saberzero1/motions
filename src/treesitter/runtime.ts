@@ -1,12 +1,14 @@
-import { Parser, Language, type Tree } from 'web-tree-sitter';
+import { Parser, Language, type Tree, type Node } from 'web-tree-sitter';
 import treeSitterWasm from '../../node_modules/web-tree-sitter/web-tree-sitter.wasm';
 import markdownWasm from './grammars/tree-sitter-markdown.wasm';
+import markdownInlineWasm from './grammars/tree-sitter-markdown-inline.wasm';
 import htmlWasm from './grammars/tree-sitter-html.wasm';
 
 type GrammarName = string;
 
 const BUNDLED_GRAMMARS: ReadonlyMap<GrammarName, Uint8Array> = new Map([
     ['markdown', markdownWasm],
+    ['markdown_inline', markdownInlineWasm],
     ['html', htmlWasm],
 ]);
 
@@ -103,5 +105,57 @@ export function parseString(
     return tree;
 }
 
-export { Parser, Language, type Tree };
+export function parseInlineContent(
+    text: string,
+    startIndex: number,
+): Tree | null {
+    if (!isLanguageLoaded('markdown_inline')) return null;
+    const parser = getOrCreateParser('markdown_inline');
+    return parser.parse(text) ?? null;
+}
+
+export function getInlineNodeAtPosition(
+    blockTree: Tree,
+    docText: string,
+    row: number,
+    col: number,
+): Node | null {
+    const blockNode = blockTree.rootNode.descendantForPosition({
+        row,
+        column: col,
+    });
+    if (!blockNode) return null;
+
+    let inlineNode: Node | null = null;
+    let current: Node | null = blockNode;
+    while (current) {
+        if (current.type === 'inline') {
+            inlineNode = current;
+            break;
+        }
+        current = current.parent;
+    }
+    if (!inlineNode) {
+        if (blockNode.type === 'inline') inlineNode = blockNode;
+        else return null;
+    }
+
+    const inlineText = docText.slice(
+        inlineNode.startIndex,
+        inlineNode.endIndex,
+    );
+    const inlineTree = parseInlineContent(inlineText, inlineNode.startIndex);
+    if (!inlineTree) return null;
+
+    const localCol = col - inlineNode.startPosition.column;
+    const localRow = row - inlineNode.startPosition.row;
+    const result = inlineTree.rootNode.descendantForPosition({
+        row: localRow,
+        column: localCol,
+    });
+
+    return result;
+}
+
+export { Parser, Language, type Tree, type Node };
 export type { GrammarName };

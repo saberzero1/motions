@@ -1,10 +1,40 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
 import { adjustRangeForVisualMode } from './delimiter';
+import {
+    isTreeAvailable,
+    findContainingNodeOfType,
+} from '../treesitter/js-api';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 
 const FENCE_OPEN = /^((?:>\s*)*)```/;
 const FENCE_CLOSE = /^((?:>\s*)*)```\s*$/;
+
+function treesitterCodeBlock(
+    cm: Parameters<MotionFn>[0],
+    cursorLine: number,
+): { openLine: number; closeLine: number } | null {
+    const view = (
+        cm as unknown as { cm6?: import('@codemirror/view').EditorView }
+    ).cm6;
+    if (!view || !isTreeAvailable(view)) return null;
+
+    const node = findContainingNodeOfType(
+        view,
+        cursorLine,
+        0,
+        'fenced_code_block',
+    );
+    if (!node) return null;
+
+    return {
+        openLine: node.startPosition.row,
+        closeLine:
+            node.endPosition.column === 0
+                ? node.endPosition.row - 1
+                : node.endPosition.row,
+    };
+}
 
 function blockquoteDepth(prefix: string): number {
     return (prefix.match(/>/g) ?? []).length;
@@ -55,8 +85,9 @@ export function findContainingBlock(
 }
 
 export const codeBlockInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
-    const pairs = findFenceLines(cm);
-    const block = findContainingBlock(pairs, head.line);
+    const block =
+        treesitterCodeBlock(cm, head.line) ??
+        findContainingBlock(findFenceLines(cm), head.line);
     if (!block) return null;
 
     const innerStart = block.openLine + 1;
@@ -71,8 +102,9 @@ export const codeBlockInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
 };
 
 export const codeBlockAroundTextObject: MotionFn = (cm, head, _ma, vim) => {
-    const pairs = findFenceLines(cm);
-    const block = findContainingBlock(pairs, head.line);
+    const block =
+        treesitterCodeBlock(cm, head.line) ??
+        findContainingBlock(findFenceLines(cm), head.line);
     if (!block) return null;
 
     const lastLineText = cm.getLine(block.closeLine);

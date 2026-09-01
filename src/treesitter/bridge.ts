@@ -7,8 +7,12 @@ import {
 } from '@codemirror/view';
 import { type Tree, Edit } from 'web-tree-sitter';
 import { getOrCreateParser } from './runtime';
-
-const viewTrees = new WeakMap<EditorView, Tree>();
+import {
+    setTreeForView,
+    deleteTreeForView,
+    setTreeEffect,
+    treeSitterTreeField,
+} from './tree-state';
 
 function translateChanges(tr: Transaction, oldDoc: string): Edit[] {
     const edits: Edit[] = [];
@@ -63,7 +67,8 @@ class TreeSitterBridge implements PluginValue {
         const parser = getOrCreateParser(langName);
         this.tree = parser.parse(this.prevDoc);
         if (this.tree) {
-            viewTrees.set(view, this.tree);
+            setTreeForView(view, this.tree);
+            view.dispatch({ effects: setTreeEffect.of(this.tree) });
         }
     }
 
@@ -84,13 +89,14 @@ class TreeSitterBridge implements PluginValue {
         this.prevDoc = newDoc;
 
         if (this.tree) {
-            viewTrees.set(update.view, this.tree);
+            setTreeForView(update.view, this.tree);
+            update.view.dispatch({ effects: setTreeEffect.of(this.tree) });
         }
     }
 
     destroy(): void {
         if (this.tree) {
-            viewTrees.delete(this.view);
+            deleteTreeForView(this.view);
             this.tree.delete();
             this.tree = null;
         }
@@ -100,17 +106,18 @@ class TreeSitterBridge implements PluginValue {
 const activeBridges = new WeakMap<EditorView, TreeSitterBridge>();
 
 export function createBridgeExtension(langName: string): Extension {
-    return ViewPlugin.define((view) => {
-        const bridge = new TreeSitterBridge(view, langName);
-        activeBridges.set(view, bridge);
-        return bridge;
-    }, {});
+    return [
+        treeSitterTreeField,
+        ViewPlugin.define((view) => {
+            const bridge = new TreeSitterBridge(view, langName);
+            activeBridges.set(view, bridge);
+            return bridge;
+        }, {}),
+    ];
 }
 
-export function getTreeForView(view: EditorView): Tree | null {
-    return viewTrees.get(view) ?? null;
-}
-
-export function hasTreeForView(view: EditorView): boolean {
-    return viewTrees.has(view);
-}
+export {
+    getTreeForView,
+    hasTreeForView,
+    treeSitterTreeField,
+} from './tree-state';

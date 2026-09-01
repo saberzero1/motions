@@ -1,6 +1,16 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
+import { isTreeAvailable, getAllNodesOfType } from '../treesitter/js-api';
 
 const HEADING_RE = /^(#{1,6})\s/;
+
+const HEADING_MARKER_TYPES = [
+    'atx_h1_marker',
+    'atx_h2_marker',
+    'atx_h3_marker',
+    'atx_h4_marker',
+    'atx_h5_marker',
+    'atx_h6_marker',
+];
 
 function getHeadingLevel(lineText: string): number {
     const match = HEADING_RE.exec(lineText);
@@ -8,45 +18,107 @@ function getHeadingLevel(lineText: string): number {
     return match[1].length;
 }
 
+function headingLevelFromNode(node: import('web-tree-sitter').Node): number {
+    for (let i = 0; i < node.childCount; i++) {
+        const child = node.child(i);
+        if (!child) continue;
+        const idx = HEADING_MARKER_TYPES.indexOf(child.type);
+        if (idx !== -1) return idx + 1;
+    }
+    return 0;
+}
+
 function createHeadingMotion(forward: boolean, level?: number): MotionFn {
     return (cm, head, motionArgs) => {
-        const repeat = motionArgs.repeat ?? 1;
-        const lastLine = cm.lastLine();
-        let found: VimPos | null = null;
-        let count = 0;
+        const view = (
+            cm as unknown as { cm6?: import('@codemirror/view').EditorView }
+        ).cm6;
+        if (view && isTreeAvailable(view)) {
+            return treesitterHeadingMotion(
+                view,
+                head,
+                motionArgs.repeat ?? 1,
+                forward,
+                level,
+            );
+        }
+        return regexHeadingMotion(
+            cm,
+            head,
+            motionArgs.repeat ?? 1,
+            forward,
+            level,
+        );
+    };
+}
 
-        if (forward) {
-            for (let i = head.line + 1; i <= lastLine; i++) {
-                const headingLevel = getHeadingLevel(cm.getLine(i));
-                if (
-                    headingLevel > 0 &&
-                    (level === undefined || headingLevel === level)
-                ) {
-                    count++;
-                    if (count >= repeat) {
-                        found = { line: i, ch: 0 };
-                        break;
-                    }
-                }
-            }
-        } else {
-            for (let i = head.line - 1; i >= 0; i--) {
-                const headingLevel = getHeadingLevel(cm.getLine(i));
-                if (
-                    headingLevel > 0 &&
-                    (level === undefined || headingLevel === level)
-                ) {
-                    count++;
-                    if (count >= repeat) {
-                        found = { line: i, ch: 0 };
-                        break;
-                    }
-                }
+function treesitterHeadingMotion(
+    view: import('@codemirror/view').EditorView,
+    head: VimPos,
+    repeat: number,
+    forward: boolean,
+    level: number | undefined,
+): VimPos {
+    const headings = getAllNodesOfType(view, 'atx_heading');
+    let count = 0;
+
+    if (forward) {
+        for (const h of headings) {
+            if (h.startPosition.row <= head.line) continue;
+            if (level !== undefined && headingLevelFromNode(h) !== level)
+                continue;
+            count++;
+            if (count >= repeat) return { line: h.startPosition.row, ch: 0 };
+        }
+    } else {
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const h = headings[i]!;
+            if (h.startPosition.row >= head.line) continue;
+            if (level !== undefined && headingLevelFromNode(h) !== level)
+                continue;
+            count++;
+            if (count >= repeat) return { line: h.startPosition.row, ch: 0 };
+        }
+    }
+
+    return head;
+}
+
+function regexHeadingMotion(
+    cm: { getLine: (n: number) => string; lastLine: () => number },
+    head: VimPos,
+    repeat: number,
+    forward: boolean,
+    level: number | undefined,
+): VimPos {
+    const lastLine = cm.lastLine();
+    let count = 0;
+
+    if (forward) {
+        for (let i = head.line + 1; i <= lastLine; i++) {
+            const headingLevel = getHeadingLevel(cm.getLine(i));
+            if (
+                headingLevel > 0 &&
+                (level === undefined || headingLevel === level)
+            ) {
+                count++;
+                if (count >= repeat) return { line: i, ch: 0 };
             }
         }
+    } else {
+        for (let i = head.line - 1; i >= 0; i--) {
+            const headingLevel = getHeadingLevel(cm.getLine(i));
+            if (
+                headingLevel > 0 &&
+                (level === undefined || headingLevel === level)
+            ) {
+                count++;
+                if (count >= repeat) return { line: i, ch: 0 };
+            }
+        }
+    }
 
-        return found ?? head;
-    };
+    return head;
 }
 
 export const nextHeading = createHeadingMotion(true);

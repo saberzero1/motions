@@ -1,7 +1,7 @@
 {
     "suite": "normal-search",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:19.466Z",
+    "recorded_at": "2026-09-01T22:24:42.528Z",
     "cases": [
         {
             "name": "f should find char to the right",
@@ -22,7 +22,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -48,7 +48,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -74,7 +74,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -100,7 +100,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -126,7 +126,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -152,7 +152,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -178,7 +178,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -204,7 +204,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -230,7 +230,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -256,7 +256,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -282,7 +282,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -308,7 +308,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -334,7 +334,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -360,7 +360,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -386,7 +386,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -412,7 +412,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -438,7 +438,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -464,7 +464,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -490,7 +490,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },

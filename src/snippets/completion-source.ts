@@ -20,7 +20,11 @@ export function createSnippetCompletionSource(
         const match = context.matchBefore(/[\w>![#]+/);
         if (!match && !context.explicit) return null;
 
-        const cursorCtx = detectCursorContext(context.state, context.pos);
+        const cursorCtx = detectCursorContext(
+            context.state,
+            context.pos,
+            context.view,
+        );
         const query = match?.text ?? '';
         const from = match?.from ?? context.pos;
         const options = registry.getAll().flatMap((entry) => {

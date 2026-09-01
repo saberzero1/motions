@@ -180,6 +180,8 @@ src/
   treesitter/
     runtime.ts             # web-tree-sitter WASM init, parser/language cache, grammar loading
     bridge.ts              # CM6 ViewPlugin for per-view incremental treesitter parsing
+    tree-state.ts          # Shared treesitter state (WeakMap + StateField) — import-chain-safe for non-WASM consumers
+    js-api.ts              # JS-side treesitter query helpers for TypeScript feature code (position lookup, ancestor check, inline nodes)
     query.ts               # QueryWrapper: compile .scm queries, iterCaptures/iterMatches with predicate filtering
     predicates.ts          # 8 built-in predicate handlers with generic #not-*/#any-* prefix dispatch
     directives.ts          # 4 built-in directive handlers (#set!, #offset!, #gsub!, #trim!)

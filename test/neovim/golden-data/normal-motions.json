@@ -1,7 +1,7 @@
 {
     "suite": "normal-motions",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:19.194Z",
+    "recorded_at": "2026-09-01T22:24:42.512Z",
     "cases": [
         {
             "name": "h should move cursor left",
@@ -22,7 +22,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -48,7 +48,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -74,7 +74,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -100,7 +100,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -126,7 +126,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -152,7 +152,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -178,7 +178,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -204,7 +204,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -230,7 +230,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -256,7 +256,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -282,7 +282,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -308,7 +308,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -334,7 +334,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -360,7 +360,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -386,7 +386,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -412,7 +412,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -438,7 +438,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -464,7 +464,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -490,7 +490,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -516,7 +516,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -542,7 +542,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -568,7 +568,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -594,7 +594,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -620,7 +620,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -646,7 +646,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -672,7 +672,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -698,7 +698,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -724,7 +724,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -750,7 +750,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -776,7 +776,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -802,7 +802,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -828,7 +828,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -854,7 +854,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -880,7 +880,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -906,7 +906,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -932,7 +932,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -958,7 +958,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -984,7 +984,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -1010,7 +1010,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -1036,7 +1036,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -1062,7 +1062,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -1088,7 +1088,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -1114,7 +1114,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },
@@ -1140,7 +1140,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "ccc\n",
+                        "text": "three\n",
                         "linewise": true
                     }
                 },

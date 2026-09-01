@@ -24,16 +24,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/treesitter/api.ts`, `src/lua/treesitter/node.ts`, `src/lua/treesitter/tree.ts`, `src/lua/treesitter/language.ts`, `src/lua/treesitter/query-api.ts`, `src/lua/treesitter/language-tree-api.ts`, `src/lua/treesitter/range.ts`
     - Grammars: `src/treesitter/grammars/tree-sitter-markdown.wasm`, `src/treesitter/grammars/tree-sitter-html.wasm`
 
+- **Treesitter-enhanced Markdown features** — core plugin features now use treesitter for structural parsing when available, with regex fallback:
+    - **Fold provider**: treesitter `section` node hierarchy for heading fold boundaries (replaces heading-level regex)
+    - **Fold placeholder**: treesitter-based heading text and code language extraction
+    - **Heading navigation** (`]h`/`[h`): `getAllNodesOfType(view, 'atx_heading')` replaces line-by-line regex scan; automatically skips headings inside fenced code blocks
+    - **Code block text objects** (`iC`/`aC`): `findContainingNodeOfType(view, row, col, 'fenced_code_block')` replaces full-document fence scan
+    - **Blockquote text objects** (`iB`/`aB`): `findContainingNodeOfType(view, row, col, 'block_quote')` with correct nesting depth (fixes nested `diB` scoping)
+    - **Delimiter text objects** (`i*`/`a*`, `i_`/`a_`, `` i` ``/`` a` ``, `i$`/`a$`, `i~`/`a~`): inline grammar nodes (`emphasis`, `strong_emphasis`, `code_span`, `latex_block`, `strikethrough`) for correct nested delimiter boundaries
+    - **Snippet context detection**: treesitter-based code/prose/frontmatter detection (O(1) vs O(n) document scan)
+    - Plugin: `src/text-objects/code-block.ts`, `src/text-objects/blockquote.ts`, `src/text-objects/delimiter.ts`, `src/motions/headings.ts`, `src/snippets/context.ts`, `src/fold/provider.ts`, `src/fold/placeholder.ts`
+- **Markdown inline grammar** — bundled `tree-sitter-markdown-inline.wasm` (416KB) for inline content parsing. Provides structural nodes for emphasis, strong emphasis, code spans, inline links, strikethrough, LaTeX, HTML tags, and backslash escapes.
+    - Plugin: `src/treesitter/grammars/tree-sitter-markdown-inline.wasm`
+    - Plugin: `src/treesitter/runtime.ts` (`parseInlineContent`, `getInlineNodeAtPosition`)
+- **JS-side treesitter API** — TypeScript helper functions for querying treesitter trees from plugin code (not Lua):
+    - Position lookup: `getNodeAtPosition`, `getNamedNodeAtPosition`, `getInlineNodeAtPosition`
+    - Ancestor queries: `hasAncestorOfType`, `findAncestorOfType`, `isInsideNodeType`, `findContainingNodeOfType`
+    - Inline nodes: `findContainingInlineNodeOfType`, `isInsideInlineNodeType`
+    - Navigation: `findNextNodeOfType`, `getAllNodesOfType`
+    - Full queries: `queryCaptures`
+    - Plugin: `src/treesitter/js-api.ts`, `src/treesitter/tree-state.ts`
+- **Fork: `setTokenClassifier` hook** — codemirror-vim fork now exposes `Vim.setTokenClassifier(fn)` for host-provided token classification. The `%` bracket matcher uses the classifier to skip brackets inside inline code spans, improving Markdown bracket matching accuracy.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`setTokenClassifier`, `moveToMatchedSymbol`, surround match path)
+    - Plugin: `src/main.ts` (`installTokenClassifier`)
+
+### Changed
+
+- **Fold golden tests re-recorded** — fold-motions golden data re-recorded with `vim.treesitter.foldexpr()` active (previous recording had stale fold levels due to async treesitter parse timing). Closed 3 deviations (`[z`, `]z`, `zk with count`); identified 3 new deviations (`zj`/`zk` nested fold traversal).
+
 ### Tests
 
-- 83 unit tests for treesitter subsystem: `test/unit/treesitter/runtime.test.ts` (12), `test/unit/treesitter/api.test.ts` (36), `test/unit/treesitter/query.test.ts` (19), `test/unit/treesitter/language-tree.test.ts` (16)
+- 97 unit tests for treesitter subsystem: `test/unit/treesitter/runtime.test.ts` (12), `test/unit/treesitter/api.test.ts` (36), `test/unit/treesitter/query.test.ts` (19), `test/unit/treesitter/language-tree.test.ts` (16), `test/unit/treesitter/js-api.test.ts` (22 — including 8 inline node detection tests)
 - 12 e2e tests for treesitter Lua API: `test/specs/treesitter.e2e.ts`
+- Re-recorded golden data: `test/neovim/golden-data/fold-motions.json` (with `luaSetup` forcing treesitter parse before fold motions)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: treesitter architecture, new file descriptions, Lua API surface update
-- `CONTRIBUTING.md`: treesitter file tree in `src/` structure
+- `AGENTS.md`: treesitter architecture, new file descriptions, Lua API surface update, fork `setTokenClassifier` hook
+- `CONTRIBUTING.md`: treesitter file tree in `src/` structure, `tree-state.ts` added
 - `KNOWN_LIMITATIONS.md`: treesitter integration section with 7 known limitations
 - `README.md`: treesitter feature in Lua configuration description
 - `docs/configuration/lua-config.md`: updated API availability note

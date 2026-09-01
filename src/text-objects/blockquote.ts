@@ -1,8 +1,51 @@
 import type { MotionFn, VimPos } from '../types/vim-api';
 import { adjustRangeForVisualMode } from './delimiter';
+import {
+    isTreeAvailable,
+    findContainingNodeOfType,
+} from '../treesitter/js-api';
 
 const createPos = (line: number, ch: number): VimPos => ({ line, ch });
 const CALLOUT_RE = /^(\s*>)\s*\[!.+\]/;
+
+function treesitterBlockquoteRange(
+    cm: Parameters<MotionFn>[0],
+    cursorLine: number,
+    cursorCh: number,
+): {
+    startLine: number;
+    startCol: number;
+    endLine: number;
+    endCol: number;
+} | null {
+    const view = (
+        cm as unknown as { cm6?: import('@codemirror/view').EditorView }
+    ).cm6;
+    if (!view || !isTreeAvailable(view)) return null;
+
+    const node = findContainingNodeOfType(
+        view,
+        cursorLine,
+        cursorCh,
+        'block_quote',
+    );
+    if (!node) return null;
+
+    const endRow =
+        node.endPosition.column === 0
+            ? node.endPosition.row - 1
+            : node.endPosition.row;
+
+    return {
+        startLine: node.startPosition.row,
+        startCol: node.startPosition.column,
+        endLine: endRow,
+        endCol:
+            node.endPosition.column === 0
+                ? cm.getLine(endRow).length
+                : node.endPosition.column,
+    };
+}
 
 function isQuoteLine(lineText: string): boolean {
     return /^\s*>/.test(lineText);
@@ -90,6 +133,31 @@ function stripQuotePrefix(lineText: string): string {
 }
 
 export const blockquoteInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
+    const tsRange = treesitterBlockquoteRange(cm, head.line, head.ch);
+    if (tsRange) {
+        const firstContentLine = tsRange.startLine;
+        const markerLine = cm.getLine(firstContentLine);
+        const markerMatch = /^(\s*>\s*)/.exec(markerLine);
+        const prefixLen = markerMatch
+            ? markerMatch[1]!.length
+            : tsRange.startCol + 2;
+
+        const lastLine = cm.getLine(tsRange.endLine);
+        const lastMarkerMatch = /^(\s*>\s*)/.exec(lastLine);
+        const lastPrefixLen = lastMarkerMatch ? lastMarkerMatch[1]!.length : 0;
+
+        return adjustRangeForVisualMode(
+            [
+                createPos(firstContentLine, prefixLen),
+                createPos(
+                    tsRange.endLine,
+                    lastPrefixLen + lastLine.substring(lastPrefixLen).length,
+                ),
+            ],
+            vim,
+        );
+    }
+
     const cursorDepth = quoteDepth(cm.getLine(head.line));
     if (cursorDepth === 0) return null;
     const range = findBlockRange(
@@ -117,6 +185,18 @@ export const blockquoteInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
 };
 
 export const blockquoteAroundTextObject: MotionFn = (cm, head, _ma, vim) => {
+    const tsRange = treesitterBlockquoteRange(cm, head.line, head.ch);
+    if (tsRange) {
+        const lastLineText = cm.getLine(tsRange.endLine);
+        return adjustRangeForVisualMode(
+            [
+                createPos(tsRange.startLine, tsRange.startCol),
+                createPos(tsRange.endLine, lastLineText.length),
+            ],
+            vim,
+        );
+    }
+
     const cursorDepth = quoteDepth(cm.getLine(head.line));
     if (cursorDepth === 0) return null;
     const range = findBlockRange(

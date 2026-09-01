@@ -1,7 +1,7 @@
 {
     "suite": "ex-commands-builtin",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:22.879Z",
+    "recorded_at": "2026-09-01T22:24:42.769Z",
     "cases": [
         {
             "name": ":s/old/new/ should replace first on line",

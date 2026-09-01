@@ -1,7 +1,7 @@
 {
     "suite": "fold-motions",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:27.150Z",
+    "recorded_at": "2026-09-01T22:27:00.430Z",
     "cases": [
         {
             "name": "zj moves to next foldable heading",
@@ -16,14 +16,14 @@
             "result": {
                 "content": "# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text",
                 "cursor": {
-                    "line": 8,
+                    "line": 4,
                     "ch": 0
                 },
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -42,14 +42,14 @@
             "result": {
                 "content": "# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText",
                 "cursor": {
-                    "line": 12,
+                    "line": 8,
                     "ch": 0
                 },
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -74,8 +74,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -100,8 +100,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -126,8 +126,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -152,8 +152,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -178,8 +178,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -198,14 +198,14 @@
             "result": {
                 "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
                 "cursor": {
-                    "line": 2,
+                    "line": 0,
                     "ch": 0
                 },
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -230,8 +230,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -256,8 +256,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -276,14 +276,14 @@
             "result": {
                 "content": "# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText",
                 "cursor": {
-                    "line": 2,
+                    "line": 8,
                     "ch": 0
                 },
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null
@@ -308,8 +308,8 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "orl",
-                        "linewise": false
+                        "text": "67891\nabcde\n",
+                        "linewise": true
                     }
                 },
                 "visualMode": null

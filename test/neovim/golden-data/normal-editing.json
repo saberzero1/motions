@@ -1,7 +1,7 @@
 {
     "suite": "normal-editing",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:20.655Z",
+    "recorded_at": "2026-09-01T22:24:42.657Z",
     "cases": [
         {
             "name": "x should delete char under cursor",

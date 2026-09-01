@@ -3630,6 +3630,8 @@ export const SUITES: SuiteDefinition[] = [
                     '# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text',
                 cursor: { line: 0, ch: 0 },
                 keys: 'zj',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: 'zj with count skips folds',
@@ -3637,12 +3639,16 @@ export const SUITES: SuiteDefinition[] = [
                     '# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText',
                 cursor: { line: 0, ch: 0 },
                 keys: '2zj',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: 'zj at last fold is no-op',
                 content: '# Heading 1\n\nText\n\n## Heading 2\n\nText',
                 cursor: { line: 4, ch: 0 },
                 keys: 'zj',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: 'zj from non-fold line',
@@ -3650,6 +3656,8 @@ export const SUITES: SuiteDefinition[] = [
                     'Plain text\n\n# Heading 1\n\nSome content\n\n## Heading 2\n\nMore content',
                 cursor: { line: 0, ch: 0 },
                 keys: 'zj',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: 'zk moves to end of previous fold',
@@ -3657,6 +3665,8 @@ export const SUITES: SuiteDefinition[] = [
                     '# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text\n\n# Heading 3\n\nFinal text',
                 cursor: { line: 8, ch: 0 },
                 keys: 'zk',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: 'zk with count skips folds backward',
@@ -3664,12 +3674,16 @@ export const SUITES: SuiteDefinition[] = [
                     '# Heading 1\n\nText\n\n## Heading 2\n\nText\n\n## Heading 3\n\nText\n\n# Heading 4\n\nText',
                 cursor: { line: 12, ch: 0 },
                 keys: '2zk',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: 'zk at first fold is no-op',
                 content: '# Heading 1\n\nText\n\n## Heading 2\n\nText',
                 cursor: { line: 0, ch: 0 },
                 keys: 'zk',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: '[z moves to start of enclosing fold',
@@ -3677,18 +3691,24 @@ export const SUITES: SuiteDefinition[] = [
                     '# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText',
                 cursor: { line: 2, ch: 0 },
                 keys: '[z',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: '[z on fold start line is no-op',
                 content: '# Heading 1\n\nSome text\n\n## Heading 2\n\nText',
                 cursor: { line: 0, ch: 0 },
                 keys: '[z',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: '[z when not inside fold is no-op',
                 content: 'Plain text\n\nMore plain text',
                 cursor: { line: 0, ch: 0 },
                 keys: '[z',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: ']z moves to end of enclosing fold',
@@ -3696,12 +3716,16 @@ export const SUITES: SuiteDefinition[] = [
                     '# Heading 1\n\nSome text\n\nMore text\n\n## Heading 2\n\nText',
                 cursor: { line: 2, ch: 0 },
                 keys: ']z',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
             {
                 name: ']z at fold end is no-op',
                 content: '# Heading 1\n\nSome text',
                 cursor: { line: 2, ch: 0 },
                 keys: ']z',
+                luaSetup:
+                    'vim.treesitter.get_parser(0):parse(true); vim.cmd("normal! zx")',
             },
         ],
     },

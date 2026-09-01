@@ -233,6 +233,7 @@ import {
 import { expandTilde } from './util/external-fs';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
+import { isInsideInlineNodeType } from './treesitter/js-api';
 import { isBuiltinVimEnabled, getVaultConfig } from './util/vault';
 import { invariant, devAssert } from './util/invariant';
 import { skipInTableCells } from './util/cell-editor-guard';
@@ -2784,12 +2785,35 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         installEscapeGuard(this.app);
+        this.installTokenClassifier();
 
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
         this.vimExtensionSlot.push(linewiseWidgetHighlightExtension());
         this.vimExtensionSlot.push(visualLineSelectionSyncExtension());
 
         this.initializing = false;
+    }
+
+    private installTokenClassifier(): void {
+        const vimApi = this.vimRef ?? getVimApi();
+        if (!vimApi) return;
+        (
+            vimApi as unknown as {
+                setTokenClassifier?: (
+                    fn: ((line: number, ch: number) => string) | null,
+                ) => void;
+            }
+        ).setTokenClassifier?.((line: number, ch: number): string => {
+            const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (!mdView) return '';
+            const editorView = getEditorView(mdView);
+            if (!editorView) return '';
+            if (isInsideInlineNodeType(editorView, line, ch, 'code_span'))
+                return 'string';
+            if (isInsideInlineNodeType(editorView, line, ch, 'html_tag'))
+                return 'comment';
+            return '';
+        });
     }
 
     private teardownVimSubsystems(): void {
