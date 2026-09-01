@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`vim.fn.setreg()` and `vim.fn.getreg()`** — register manipulation from Lua. `vim.fn.setreg(regname, value [, options])` sets a register's content; `vim.fn.getreg(regname)` reads it. Supports linewise (`'l'`/`'V'`) and blockwise (`'b'`/`'\x16'`) options matching Neovim's `setreg()` signature.
+    - Plugin: `src/lua/fn.ts` (`setreg` and `getreg` implementations)
+    - Plugin: `src/lua/fn.ts` (`getRegisterController` callback added to `VimFnCallbacks`)
+    - Plugin: `src/main.ts` (wired `getRegisterController` callback in `executeLuaForTest`)
+    - Plugin: `src/lua/loader.ts` (wired `getRegisterController` callback in main loader)
 - **Neovim-compatible `foldopen` option** — fold-aware navigation now matches Neovim's `foldopen` semantics. Each vim motion is tagged with a category (`hor`, `block`, `jump`, `mark`, `search`, `percent`, `undo`), and only motions whose category is in the configured `foldopen` set trigger auto-unfold when the cursor enters a folded range. Plain vertical motions (`j`/`k`) have no category and never unfold, matching Neovim's intentional exclusion of vertical movements. Configurable via `set foldopen=block,hor,mark,percent,search,undo` (Neovim default) or `set fdo=all`. ([#155](https://github.com/saberzero1/motions/pull/155))
     - Fork: `~/Repos/codemirror-vim/src/cm_adapter.ts` (`foldopenAnnotation` CM6 transaction annotation, `_pendingFoldopen` on adapter)
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (40+ motions tagged with `foldopen` category in `defaultKeymap`, annotation set in `evalInput`, `undo`/`redo`, `jumpListWalk`)
@@ -27,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **Ex command range golden tests** — 8 new golden test cases recorded against Neovim 0.12.5 verifying fork-native `:{range}` support for commands handled entirely by the codemirror-vim fork: `:1,3y` (yank range), `:2,4y a` (yank range to named register), `:1,3j` (join range), `:2,4j!` (join range without spaces), `:put` (put after current line via `:1y` + `:put`), `:3put` (put after addressed line via `:1y` + `:3put`), `:2,4g/pattern/d` (global with range prefix), `:1,3v/pattern/d` (vglobal with range prefix).
+    - Definitions: `test/neovim/test-definitions.ts` (8 new cases in `ex-commands-expanded` and `ex-global` suites)
+    - Golden: `test/neovim/golden-data/ex-commands-expanded.json` (re-recorded, 27 cases)
+    - Golden: `test/neovim/golden-data/ex-global.json` (re-recorded, 5 cases)
+- **`:d` count/address and `:j` range deviations resolved** — `:d3` (delete with count argument), `:$d` (delete with `$` address), `:1,3j` (join with range), and `:2,4j!` (join bang with range) were marked as deviations. All now work correctly: `:d{count}` parses the count from `args[0]`; `:$d` resolves via the fork's `parseLineSpec_`; `:j` range fix changes `repeat: lineEnd - line` to `repeat: lineEnd - line + 1`; `:j!` now passes `keepSpaces: true` via `params.argString` bang detection. All 4 deviations removed.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`exCommands.join`: off-by-one fix + `keepSpaces` bang support)
+    - Deviations: `test/neovim/deviations.ts` (2 `upstream-unsupported` entries removed: `:d3`, `:$d`)
 - **Foldopen unit tests** — 36 tests covering `setFoldopen()` parsing, `shouldUnfold()` for every individual category, `all`/empty sets, custom combinations, and backward-compatible `setFoldAwareNavigation()`.
     - Test: `test/unit/foldopen.test.ts`
 - **Foldopen golden tests** — 8 golden cases recorded against Neovim 0.12.5 covering `j`/`k`/`3j`/`G`/`gg`/`5G` with manual folds. 7 match golden data exactly, 1 has a minor column-preservation difference (CM6 preserves visual column on fold-skip; Neovim resets to 0).
@@ -40,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated Neovim golden comparison deviation counts (32 → 30)
 - `AGENTS.md`: fork API surface updated with `foldopenAnnotation`
 - `CONTRIBUTING.md`: `fold-sync.ts` description updated
 - `README.md`: folding feature description updated with `foldopen` semantics

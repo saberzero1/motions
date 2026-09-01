@@ -1,7 +1,7 @@
 {
     "suite": "ex-global",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:24.769Z",
+    "recorded_at": "2026-09-01T10:53:31.607Z",
     "cases": [
         {
             "name": ":g/pattern/d deletes matching lines",
@@ -69,6 +69,58 @@
                 "content": "xbc\ndef\nxbc",
                 "cursor": {
                     "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "remove\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":2,4g/pattern/d deletes matching in range",
+            "initial": {
+                "content": "keep\ndelete_me\nkeep\ndelete_me\nkeep",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":2,4g/delete/d\n",
+            "result": {
+                "content": "keep\nkeep\nkeep",
+                "cursor": {
+                    "line": 2,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "delete_me\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":1,3v/pattern/d deletes non-matching in range",
+            "initial": {
+                "content": "keep\nremove\nkeep\nremove\nkeep",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1,3v/keep/d\n",
+            "result": {
+                "content": "keep\nkeep\nremove\nkeep",
+                "cursor": {
+                    "line": 1,
                     "ch": 0
                 },
                 "mode": "normal",

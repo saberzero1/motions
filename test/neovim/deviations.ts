@@ -172,22 +172,6 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
         category: 'intentional',
     },
     {
-        testPattern: ':d3 should delete 3 lines',
-        description: ':d with count argument not supported',
-        reason: 'codemirror-vim :d does not accept a count argument',
-        fields: ['content'],
-        category: 'upstream-unsupported',
-    },
-
-    {
-        testPattern: ':$d should delete last line',
-        description: ':$d cursor position differs',
-        reason: 'codemirror-vim :d with $ address leaves cursor at different position',
-        fields: ['cursor'],
-        category: 'upstream-unsupported',
-    },
-
-    {
         testPattern: 'Ctrl-U should delete to start of inserted text',
         description:
             'Ctrl-U deletes to line start instead of insert-mode entry point',

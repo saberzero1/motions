@@ -28,6 +28,21 @@ export interface VimFnCallbacks {
     getGlobal: (name: string) => unknown;
     getOption: (name: string) => unknown;
     getUndoTree?: () => ReturnType<UndoTree['toNeovimDict']> | null;
+    getRegisterController?: () => {
+        registers: Record<
+            string,
+            {
+                toString(): string;
+                setText(
+                    text: string,
+                    linewise?: boolean,
+                    blockwise?: boolean,
+                ): void;
+                linewise: boolean;
+                blockwise: boolean;
+            }
+        >;
+    } | null;
 }
 
 type VimFnHandler = (L: lua_State) => number;
@@ -442,6 +457,37 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         const s = readString(state, 1);
         lua.lua_pushnumber(state, s.length > 0 ? s.charCodeAt(0) : 0);
         return 1;
+    });
+
+    registry.set('getreg', (state) => {
+        const rc = callbacks.getRegisterController?.();
+        if (!rc) {
+            lua.lua_pushstring(state, to_luastring(''));
+            return 1;
+        }
+        const name = lua.lua_isstring(state, 1)
+            ? to_jsstring(lauxlib.luaL_checkstring(state, 1))
+            : '"';
+        const reg = rc.registers[name];
+        lua.lua_pushstring(state, to_luastring(reg ? reg.toString() : ''));
+        return 1;
+    });
+
+    registry.set('setreg', (state) => {
+        const rc = callbacks.getRegisterController?.();
+        if (!rc) return 0;
+        const name = readString(state, 1);
+        const value = readString(state, 2);
+        const opts = lua.lua_isstring(state, 3)
+            ? to_jsstring(lauxlib.luaL_checkstring(state, 3))
+            : '';
+        const linewise = opts.includes('l') || opts.includes('V');
+        const blockwise = opts.includes('b') || opts.includes('\x16');
+        const reg = rc.registers[name];
+        if (reg) {
+            reg.setText(value, linewise, blockwise);
+        }
+        return 0;
     });
 
     registry.set('split', (state) => {

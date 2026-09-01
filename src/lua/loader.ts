@@ -1112,6 +1112,7 @@ export async function loadInitLua(
             }
         },
         getUndoTree,
+        getRegisterController: () => vim.getRegisterController(),
     });
 
     injectStdlib(L);

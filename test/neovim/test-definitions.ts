@@ -2205,10 +2205,47 @@ export const SUITES: SuiteDefinition[] = [
                 keys: ':yank\n',
             },
             {
+                name: ':1,3y should yank range',
+                content: 'one\ntwo\nthree\nfour\nfive',
+                cursor: { line: 0, ch: 0 },
+                keys: ':1,3y\n',
+            },
+            {
+                name: ':2,4y a should yank range to register a',
+                content: 'one\ntwo\nthree\nfour\nfive',
+                cursor: { line: 0, ch: 0 },
+                keys: ':2,4y a\n',
+            },
+            {
                 name: ':join should join lines',
                 content: 'one\ntwo\nthree',
                 cursor: { line: 0, ch: 0 },
                 keys: ':join\n',
+            },
+            {
+                name: ':1,3j should join range',
+                content: 'one\ntwo\nthree\nfour\nfive',
+                cursor: { line: 0, ch: 0 },
+                keys: ':1,3j\n',
+            },
+            {
+                name: ':2,4j! should join range without spaces',
+                content: 'one\ntwo\nthree\nfour\nfive',
+                cursor: { line: 0, ch: 0 },
+                keys: ':2,4j!\n',
+            },
+
+            {
+                name: ':put should put after current line',
+                content: 'one\ntwo\nthree',
+                cursor: { line: 0, ch: 0 },
+                keys: ':1y\n:put\n',
+            },
+            {
+                name: ':3put should put after line 3',
+                content: 'one\ntwo\nthree\nfour',
+                cursor: { line: 0, ch: 0 },
+                keys: ':1y\n:3put\n',
             },
             {
                 name: ':nohlsearch should not error',
@@ -3131,6 +3168,18 @@ export const SUITES: SuiteDefinition[] = [
                 content: 'abc\ndef\nabc',
                 cursor: { line: 0, ch: 0 },
                 keys: ':g/a/s/a/x/\n',
+            },
+            {
+                name: ':2,4g/pattern/d deletes matching in range',
+                content: 'keep\ndelete_me\nkeep\ndelete_me\nkeep',
+                cursor: { line: 0, ch: 0 },
+                keys: ':2,4g/delete/d\n',
+            },
+            {
+                name: ':1,3v/pattern/d deletes non-matching in range',
+                content: 'keep\nremove\nkeep\nremove\nkeep',
+                cursor: { line: 0, ch: 0 },
+                keys: ':1,3v/keep/d\n',
             },
         ],
     },

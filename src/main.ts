@@ -581,6 +581,7 @@ export default class VimMotionsPlugin extends Plugin {
                 getUndoTree: this.settings.enableUndoTree
                     ? () => this.undoTree.toNeovimDict()
                     : undefined,
+                getRegisterController: () => vim.getRegisterController(),
             });
             this.autocmdManager = autocmdManager;
         }

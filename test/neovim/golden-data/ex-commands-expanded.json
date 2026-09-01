@@ -1,7 +1,7 @@
 {
     "suite": "ex-commands-expanded",
     "neovim_version": "0.12.5",
-    "recorded_at": "2026-08-29T01:58:23.161Z",
+    "recorded_at": "2026-09-01T11:41:50.138Z",
     "cases": [
         {
             "name": ":yank should not error",
@@ -30,6 +30,58 @@
             }
         },
         {
+            "name": ":1,3y should yank range",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1,3y\n",
+            "result": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\ntwo\nthree\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":2,4y a should yank range to register a",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":2,4y a\n",
+            "result": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\nfour\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
             "name": ":join should join lines",
             "initial": {
                 "content": "one\ntwo\nthree",
@@ -48,7 +100,111 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "hello world\n",
+                        "text": "two\nthree\nfour\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":1,3j should join range",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1,3j\n",
+            "result": {
+                "content": "one two three\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\nfour\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":2,4j! should join range without spaces",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour\nfive",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":2,4j!\n",
+            "result": {
+                "content": "one\ntwothreefour\nfive",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "two\nthree\nfour\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":put should put after current line",
+            "initial": {
+                "content": "one\ntwo\nthree",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1y\n:put\n",
+            "result": {
+                "content": "one\none\ntwo\nthree",
+                "cursor": {
+                    "line": 1,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\n",
+                        "linewise": true
+                    }
+                },
+                "visualMode": null
+            }
+        },
+        {
+            "name": ":3put should put after line 3",
+            "initial": {
+                "content": "one\ntwo\nthree\nfour",
+                "cursor": {
+                    "line": 0,
+                    "ch": 0
+                }
+            },
+            "keys": ":1y\n:3put\n",
+            "result": {
+                "content": "one\ntwo\nthree\none\nfour",
+                "cursor": {
+                    "line": 3,
+                    "ch": 0
+                },
+                "mode": "normal",
+                "registers": {
+                    "\"": {
+                        "text": "one\n",
                         "linewise": true
                     }
                 },
@@ -74,7 +230,7 @@
                 "mode": "normal",
                 "registers": {
                     "\"": {
-                        "text": "hello world\n",
+                        "text": "one\n",
                         "linewise": true
                     }
                 },
