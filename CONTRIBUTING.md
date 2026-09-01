@@ -177,6 +177,17 @@ src/
     persistence.ts         # Cross-session fold persistence
     placeholder.ts         # Descriptive fold placeholder text
     fold-level.ts          # Fold level tracking + reapply (zx/zX)
+  treesitter/
+    runtime.ts             # web-tree-sitter WASM init, parser/language cache, grammar loading
+    bridge.ts              # CM6 ViewPlugin for per-view incremental treesitter parsing
+    query.ts               # QueryWrapper: compile .scm queries, iterCaptures/iterMatches with predicate filtering
+    predicates.ts          # 8 built-in predicate handlers with generic #not-*/#any-* prefix dispatch
+    directives.ts          # 4 built-in directive handlers (#set!, #offset!, #gsub!, #trim!)
+    language-tree.ts       # LanguageTree class: multi-parser management, injection resolution, callbacks
+    injection.ts           # Injection query processing: resolve injection language and ranges
+    types.ts               # TypeScript interfaces for treesitter state
+    wasm.d.ts              # Ambient module declaration for .wasm binary imports
+    grammars/              # Vendored grammar .wasm files (tree-sitter-markdown.wasm, tree-sitter-html.wasm)
   lua/
     engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
@@ -194,6 +205,14 @@ src/
     textobject-api.ts      # vim.textobject + vim.gen_spec Lua API injection
     strftime.ts            # os.date-compatible time formatting
     types.d.ts             # Lua engine type declarations
+    treesitter/
+      api.ts               # vim.treesitter top-level namespace (get_parser, get_node, get_node_text, etc.)
+      node.ts              # TSNode fengari userdata (31 methods via __index metatable)
+      tree.ts              # TSTree fengari userdata (root, copy, included_ranges)
+      language.ts          # vim.treesitter.language namespace (register, get_lang, add, inspect)
+      query-api.ts         # vim.treesitter.query namespace (parse, get, set, iter_captures, iter_matches)
+      language-tree-api.ts # LanguageTree Lua bindings (18 methods)
+      range.ts             # Range push/read utilities for Lua
   oil/
     oil-view.ts            # Oil file explorer view (ItemView) — state includes dirPath, previousFile, previousViewMode for mode restoration on close; focusEditor() for tab-switch focus recovery; registerOilScopeKeys() registers Ctrl-key combos (<C-t>, <C-s>, <C-h>, <C-l>, <C-c>) on the editor's Obsidian Scope to intercept before Obsidian's default hotkeys, with blur-before-navigate for cross-leaf actions; onClose() calls editor.destroy() before removeChild() to pop the Obsidian Scope and prevent Ctrl-key interception leaking to the restored file
     manager.ts             # Oil session lifecycle management — openOil() captures editor mode + primes non-editor leaves with markdown view state before Oil, closeOil() restores mode via leaf.openFile({ state }), discoverAndMergeHidden(dirPath, expectedContent) async dotfile discovery with cache-safe single loadDirectory call, openEntryAtCursor() same-leaf open via leaf.openFile(), openEntryAtCursorInNewTab/InSplit/ExternalAtCursor for tab/split/external open

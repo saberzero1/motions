@@ -27,6 +27,7 @@ import { injectTimers, TimerManager } from './timers';
 import { HighlightManager } from './highlight';
 import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
 import { injectTextObjectApi } from './textobject-api';
+import { injectTreesitterApi, initTreesitterRuntime } from './treesitter/api';
 import type { lua_State } from 'fengari';
 import type { ImSwitcher } from '../im/im-switcher';
 import { CoroutineRunner } from './coroutine-runner';
@@ -987,6 +988,14 @@ export async function loadInitLua(
     };
     const { globals } = injectVimApi(L, callbacks);
     injectTextObjectApi(L, callbacks);
+    void initTreesitterRuntime().catch((err) => {
+        console.warn('Vim Motions: treesitter runtime init failed:', err);
+    });
+    injectTreesitterApi(L, runner, () => {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return null;
+        return view.editor.getValue();
+    });
 
     injectVimFn(L, {
         getActiveFilePath: () => app.workspace.getActiveFile()?.path ?? null,

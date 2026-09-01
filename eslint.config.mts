@@ -15,6 +15,7 @@ export default defineConfig(
         'package-lock.json',
         'tsconfig.json',
         'wdio.conf.mts',
+        'vitest.config.ts',
         'test',
         'test-vault',
     ]),

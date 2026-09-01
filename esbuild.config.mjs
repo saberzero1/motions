@@ -34,6 +34,9 @@ const context = await esbuild.context({
         '@lezer/lr',
         ...builtinModules,
     ],
+    loader: {
+        '.wasm': 'binary',
+    },
     format: 'cjs',
     target: 'es2021',
     logLevel: 'info',

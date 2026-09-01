@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`vim.treesitter` API** — full treesitter integration backed by `web-tree-sitter` (WASM), running as a parallel parser alongside CM6's Lezer. Markdown and HTML grammars are bundled; the subsystem activates on-demand when Lua code calls `get_parser()`. Provides the complete Neovim `vim.treesitter` API surface:
+    - **Core**: `get_parser`, `get_string_parser`, `get_node`, `get_node_text`, `get_range`, `get_node_range`, `is_in_node_range`, `is_ancestor`, `node_contains`, `get_captures_at_pos`, `get_captures_at_cursor`
+    - **TSNode**: 31 methods (`type`, `parent`, `child`, `named_child`, `field`, `start`, `end_`, `range`, `sexpr`, `equal`, `iter_children`, `named_children`, `descendant_for_range`, and more)
+    - **TSTree**: `root`, `copy`, `included_ranges`
+    - **LanguageTree**: 18 methods (`parse`, `trees`, `lang`, `children`, `parent`, `root`, `for_each_tree`, `register_cbs`, `node_for_range`, `tree_for_range`, `language_for_range`, `invalidate`, `destroy`, and more)
+    - **Query engine**: `query.parse`, `query.get`, `query.set`, `Query:iter_captures`, `Query:iter_matches`, `Query:disable_capture`, `Query:disable_pattern`
+    - **8 built-in predicates**: `#eq?`, `#match?`, `#vim-match?`, `#lua-match?`, `#contains?`, `#any-of?`, `#has-ancestor?`, `#has-parent?` with generic `#not-*`/`#any-*` prefix handling
+    - **4 built-in directives**: `#set!`, `#offset!`, `#gsub!`, `#trim!`
+    - **Custom predicates/directives**: `query.add_predicate`, `query.add_directive`, `query.list_predicates`, `query.list_directives`
+    - **Language management**: `language.register`, `language.get_lang`, `language.get_filetypes`, `language.add` (async via coroutine bridge), `language.inspect` (ABI version, fields, symbols, supertypes)
+    - **Stubs** (present, won't error): `start`, `stop`, `foldexpr`, `select`, `inspect_tree`
+    - Plugin: `src/treesitter/runtime.ts`, `src/treesitter/bridge.ts`, `src/treesitter/query.ts`, `src/treesitter/predicates.ts`, `src/treesitter/directives.ts`, `src/treesitter/language-tree.ts`, `src/treesitter/injection.ts`, `src/treesitter/types.ts`, `src/treesitter/wasm.d.ts`
+    - Plugin: `src/lua/treesitter/api.ts`, `src/lua/treesitter/node.ts`, `src/lua/treesitter/tree.ts`, `src/lua/treesitter/language.ts`, `src/lua/treesitter/query-api.ts`, `src/lua/treesitter/language-tree-api.ts`, `src/lua/treesitter/range.ts`
+    - Grammars: `src/treesitter/grammars/tree-sitter-markdown.wasm`, `src/treesitter/grammars/tree-sitter-html.wasm`
+
+### Tests
+
+- 83 unit tests for treesitter subsystem: `test/unit/treesitter/runtime.test.ts` (12), `test/unit/treesitter/api.test.ts` (36), `test/unit/treesitter/query.test.ts` (19), `test/unit/treesitter/language-tree.test.ts` (16)
+- 12 e2e tests for treesitter Lua API: `test/specs/treesitter.e2e.ts`
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: treesitter architecture, new file descriptions, Lua API surface update
+- `CONTRIBUTING.md`: treesitter file tree in `src/` structure
+- `KNOWN_LIMITATIONS.md`: treesitter integration section with 7 known limitations
+- `README.md`: treesitter feature in Lua configuration description
+- `docs/configuration/lua-config.md`: updated API availability note
+
 ## [0.136.0] - 2026-09-01
 
 ### Added

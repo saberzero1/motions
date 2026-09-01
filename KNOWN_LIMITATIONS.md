@@ -57,6 +57,61 @@ The following `vim.v` variables are registered in the API and return default val
 - **`vim.v.char`** — character typed during `InsertCharPre` autocmd. Currently writable but never set by the plugin. Will be populated when `InsertCharPre` is added to the supported autocmd events (requires a fork hook into insert-mode character input). Not in the current 19-event list.
 - ~~**`vim.v.insertmode`**~~: Fixed. Returns `'i'` for insert mode, `'r'` for replace mode (`R`), `'v'` for virtual replace mode (`gR`), and `''` in normal/visual modes. Available in keymap function callbacks. Autocmd callbacks default to `''` (no adapter context available).
 
+## Treesitter integration (`vim.treesitter`)
+
+**Status**: Implemented (Phase 0–3 complete).
+
+The plugin provides a `vim.treesitter` API backed by `web-tree-sitter` (WASM). Treesitter runs as a parallel parser alongside CM6's Lezer — Lezer continues to power CM6's native highlighting, folding, and indentation while treesitter is exposed through the Lua API for Neovim plugin compatibility. Markdown and HTML grammars are bundled; the treesitter subsystem activates on-demand when Lua code first calls `get_parser()`.
+
+**Implemented**: `get_parser`, `get_string_parser`, `get_node`, `get_node_text`, `get_range`, `get_node_range`, `is_in_node_range`, `is_ancestor`, `node_contains`, TSNode (31 methods), TSTree, LanguageTree (18 methods), `query.parse`, `query.set`, `Query:iter_captures`, `Query:iter_matches`, 8 built-in predicates with `#not-*`/`#any-*` generics, 4 built-in directives, `language.register`, `language.get_lang`, `language.get_filetypes`, `language.add`, `language.inspect`, `query.add_predicate`, `query.add_directive`.
+
+**Known limitations**:
+
+### `query.get()` does not load `.scm` files from the vault
+
+`vim.treesitter.query.get(lang, query_name)` currently only returns queries previously registered via `query.set()`. It does not search for `.scm` files in a vault `queries/` directory. This means plugins like nvim-treesitter-textobjects and mini.ai that call `query.get("markdown", "textobjects")` expecting a file at `queries/markdown/textobjects.scm` will get `nil`.
+
+**Workaround**: Use `vim.treesitter.query.parse(lang, query_string)` with inline query strings, or call `vim.treesitter.query.set(lang, name, text)` to pre-register queries from your `init.lua`.
+
+**To fix**: Implement file-based query resolution that searches `queries/{lang}/{name}.scm` in the vault root (mirroring Neovim's `runtime/queries/` path) and loads matching `.scm` files. The `query.get()` function already has caching infrastructure.
+
+### Only Markdown and HTML grammars are bundled
+
+`vim.treesitter.language.add("javascript")` (or any non-bundled grammar) fails with an error. The plan called for CDN-based grammar fetching on first use, but this is not yet implemented.
+
+**Workaround**: Only `"markdown"` and `"html"` are available. Users cannot parse JavaScript, Python, or other languages embedded in code blocks.
+
+**To fix**: Implement on-demand grammar fetching from a CDN (e.g., GitHub releases of tree-sitter grammar repos). Download the `.wasm` file, cache it in the plugin's data directory via `adapter.writeBinary()`, and load it via `Language.load()`. The runtime already supports async grammar loading via the coroutine bridge.
+
+### `#lua-match?` predicate uses ECMAScript regex
+
+The `#lua-match?` query predicate falls back to ECMAScript `RegExp` instead of Lua's `string.find` pattern matching. Most `.scm` files use `#match?` (which correctly uses ECMAScript regex), but some Neovim-specific query files use `#lua-match?` with Lua pattern syntax (e.g., `%w+` instead of `\w+`) that differs from regex.
+
+**Workaround**: Use `#match?` with ECMAScript regex syntax in custom queries.
+
+**To fix**: Implement Lua pattern → ECMAScript regex translation, or evaluate `#lua-match?` patterns through the fengari Lua `string.find` function. The latter is more correct but slower.
+
+### Stub functions: `start()`, `stop()`, `foldexpr()`, `select()`, `inspect_tree()`
+
+These functions are present (calling them won't error) but don't perform their intended action:
+
+- **`vim.treesitter.start()` / `stop()`** — no-op. Treesitter-driven syntax highlighting via CM6 decorations is not implemented. The plugin uses Lezer-based highlighting natively.
+- **`vim.treesitter.foldexpr()`** — returns `"0"`. Treesitter fold computation from `folds.scm` queries is not implemented. The plugin has its own fold system.
+- **`vim.treesitter.select()`** — no-op. Treesitter-based structural visual selection is not implemented.
+- **`vim.treesitter.inspect_tree()`** — no-op. The tree inspector debug UI is not implemented.
+
+These are lower priority because the plugin provides equivalent native features (highlighting, folding) and the functions are rarely called by Neovim plugins (they're Neovim UI/editor integration points, not plugin API).
+
+### `get_captures_at_pos()` / `get_captures_at_cursor()` return empty
+
+These functions return empty tables. They require a loaded highlights query (`query.get(lang, 'highlights')`) to produce meaningful results, which depends on the `query.get()` file loading gap above.
+
+### Injection support is structural but not query-driven
+
+The `LanguageTree` class supports child language trees and injection resolution, but the injection query loading depends on `query.get()` file loading (see above). Without `injections.scm` files available, nested language parsing (e.g., JavaScript inside Markdown code blocks) does not activate automatically.
+
+**Workaround**: Manually register injection queries via `vim.treesitter.query.set("markdown", "injections", query_string)` from `init.lua`.
+
 ## Cross-note jump list
 
 **Status**: Implemented.

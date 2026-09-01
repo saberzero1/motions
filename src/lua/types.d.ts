@@ -19,6 +19,7 @@ declare module 'fengari' {
         lua_pushnumber: (L: lua_State, value: number) => void;
         lua_pushnil: (L: lua_State) => void;
         lua_pushvalue: (L: lua_State, index: number) => void;
+        lua_pushlightuserdata: (L: lua_State, value: object) => void;
         lua_tolstring: (L: lua_State, index: number) => Uint8Array | null;
         lua_tonumber: (L: lua_State, index: number) => number;
         lua_toboolean: (L: lua_State, index: number) => boolean;
@@ -61,6 +62,7 @@ declare module 'fengari' {
         ) => number;
         lua_status: (L: lua_State) => number;
         lua_xmove: (from: lua_State, to: lua_State, n: number) => void;
+        lua_remove: (L: lua_State, index: number) => void;
         lua_isyieldable: (L: lua_State) => boolean;
         lua_touserdata: (L: lua_State, index: number) => unknown;
         lua_atnativeerror: (

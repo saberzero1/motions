@@ -1659,6 +1659,33 @@ export default class VimMotionsPlugin extends Plugin {
         this.app.workspace.updateOptions();
         this.app.workspace.trigger('parse-style-settings');
         this.initializing = false;
+
+        if (__DEV__) {
+            void (async () => {
+                try {
+                    const { loadLanguage, parseString, destroyAll } =
+                        await import('./treesitter/runtime');
+                    await loadLanguage('markdown');
+                    const tree = parseString(
+                        'markdown',
+                        '# Treesitter smoke\n\nParagraph\n',
+                    );
+                    const root = tree.rootNode;
+                    const ok = root.type === 'document' && root.childCount > 0;
+                    console.debug(
+                        `[vim-motions] treesitter WASM smoke: ${ok ? 'PASS' : 'FAIL'} ` +
+                            `(root=${root.type}, children=${root.childCount})`,
+                    );
+                    tree.delete();
+                    destroyAll();
+                } catch (e) {
+                    console.error(
+                        '[vim-motions] treesitter WASM smoke: FAIL',
+                        e,
+                    );
+                }
+            })();
+        }
     }
 
     private setupVimSubsystems(vim: import('./types/vim-api').VimApi): void {

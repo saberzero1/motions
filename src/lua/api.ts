@@ -1875,7 +1875,6 @@ export function injectVimApi(
 
     for (const [key, message] of [
         ['lsp', 'vim.lsp is not available in Obsidian'],
-        ['treesitter', 'vim.treesitter is not available in Obsidian'],
         ['ui', 'vim.ui is not available in Obsidian'],
         ['diagnostic', 'vim.diagnostic is not available in Obsidian'],
     ]) {
