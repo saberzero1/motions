@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.136.0] - 2026-09-01
+
 ### Added
 
 - **36 new `vim.fn` functions** — expanded the Lua API from 29 to 65 supported `vim.fn.*` functions:
@@ -35,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/fold/commands.ts` (range-aware handlers: `foldRangeEx`, `foldOpenRangeEx`, `foldCloseRangeEx`, `foldDoOpenEx`, `foldDoClosedEx`)
     - Plugin: `src/workspace/navigation.ts` (removed `exCommandFromAction` registrations for `:foldopen`/`:foldclose`/`:foldtoggle` — replaced by range-aware versions in `fold/commands.ts`)
     - Plugin: `src/main.ts` (`executeLuaForTest` sandbox `handleExCommand` wired to `vim.handleEx` — enables golden tests to create folds via `vim.cmd`)
-
 - **Neovim options registry** — every Neovim option (378 total from `src/nvim/options.lua`) is now recognized by name in both `:set` (vimrc) and `vim.opt` (Lua). Options are classified into tiers: implemented options work normally, hardcoded options log an info note (e.g., `set magic` — "always on"), deferred options log that support is planned, platform-handled options are accepted silently (e.g., `set mouse=a`, `set encoding=utf-8`, `set noswapfile`), and truly unknown options still produce a warning — enabling typo detection (`set mose=a` warns, `set mouse=a` is silent).
     - Plugin: `src/vim/neovim-options.ts` (new file — comprehensive registry with tier classification)
     - Plugin: `src/vimrc/loader.ts` (integrated registry, replaced `KNOWN_CM_VIM_OPTIONS` set, tiered logging)

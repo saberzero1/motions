@@ -31,11 +31,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.135.0
+## What's new in 0.136.0
 
-- **Vim toggle commands** — three new Obsidian commands (`toggle-vim-mode`, `enable-vim-mode`, `disable-vim-mode`) to switch the plugin's vim mode on/off at runtime without reloading the plugin ([#153](https://github.com/saberzero1/motions/discussions/153))
-- **Native cursor restoration** — disabling vim mode now correctly restores the native cursor instead of leaving it invisible
-- **Vim subsystem lifecycle** — extracted clean setup/teardown for all vim subsystems, enabling reliable runtime toggling of Lua, vimrc, gutters, and animated cursor
-- **Lua ex command cleanup** — Lua-defined ex commands are properly removed during vim toggle or config reload, preventing stale command accumulation
+- **36 new `vim.fn` functions** — expanded the [[lua-config|Lua API]] from 29 to 65 supported `vim.fn.*` functions: register manipulation (`setreg`/`getreg`/`getregtype`), buffer modification (`setline`/`append`/`indent`), cursor/position (`getpos`/`setpos`/`cursor`/`getcurpos`), pattern matching (`matchstr`/`match`/`matchlist`), and string/list/dict utilities
+- **Neovim-compatible `foldopen` option** — [[workspace-navigation|fold-aware navigation]] now matches Neovim's semantics: each motion is tagged with a category (`hor`, `block`, `jump`, `mark`, `search`, `percent`, `undo`), and only matching categories trigger auto-unfold. Configurable via `set foldopen=…` or `vim.opt.foldopen`
+- **12 configurable Neovim options** — `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `wrapscan`, `gdefault`, `startofline`, `whichwrap`, `virtualedit`, `joinspaces`, `shiftround`, and `nrformats` are now user-configurable via [[vimrc|`:set`]] or [[lua-config|`vim.opt`]] with Neovim-compatible defaults
+- **Neovim options registry** — all 378 Neovim options are recognized by name with tiered classification: typos produce warnings (`set mose=a`), platform-handled options are silently accepted (`set mouse=a`), and hardcoded options log an info note (`set magic`)
+- **Oil improvements** — `<C-p>` [[oil-explorer|preview window]], visual mode multi-select (`V` + `<CR>` opens all selected files), hidden toggle guard (blocks `g.` with unsaved changes), nested path creation (`newfolder/notes.md` creates both directory and file, [#154](https://github.com/saberzero1/motions/issues/154))
+- **Range-aware fold ex commands** — `:{range}fold`, `:{range}foldopen[!]`, `:{range}foldclose[!]`, `:folddoopen`, and `:folddoclosed` now support Neovim-style line ranges
 
 See the [[changelog|full changelog]] for details.
