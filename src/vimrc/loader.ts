@@ -21,6 +21,11 @@ import {
     externalFileExists,
     getObsidianUserDataDir,
 } from '../util/external-fs';
+import {
+    getNeovimOption,
+    isNoopLogged,
+    isRejected,
+} from '../vim/neovim-options';
 
 type SettingOverrideFn = (
     key: string,
@@ -55,25 +60,10 @@ interface SideEffectOpt {
 
 type KnownOpt = BoolOpt | NumOpt | StrOpt | SideEffectOpt;
 
-/**
- * CM Vim built-in options that the plugin forwards via `vim.handleEx`.
- * These are NOT in KNOWN_SET_OPTIONS but are valid — don't warn about them.
- */
-const KNOWN_CM_VIM_OPTIONS = new Set([
-    'number',
-    'relativenumber',
-    'wrap',
-    'ignorecase',
-    'smartcase',
-    'hlsearch',
-    'incsearch',
-    'pcre',
-]);
-
-let warnedSetOptions = new Set<string>();
+let loggedNeovimOptions = new Set<string>();
 
 export function clearSetOptionWarnings(): void {
-    warnedSetOptions = new Set();
+    loggedNeovimOptions = new Set();
 }
 
 export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
@@ -561,6 +551,75 @@ const smoothcursormaxlengthOpt: SideEffectOpt = {
 };
 KNOWN_SET_OPTIONS['smoothcursormaxlength'] = smoothcursormaxlengthOpt;
 KNOWN_SET_OPTIONS['scml'] = smoothcursormaxlengthOpt;
+
+// ── Fork-handled search/substitute options ──────────────────────────
+// These are managed by defineOption() in the fork. applyKnownSetOption
+// forwards the value via vim.setOption() so the fork receives the
+// user's `:set ignorecase` / `:set noignorecase` from vimrc.
+// settingsKey is prefixed with `_fork:` to avoid colliding with
+// real plugin settings — the settings layer ignores unknown keys.
+KNOWN_SET_OPTIONS['ignorecase'] = {
+    type: 'boolean',
+    settingsKey: '_fork:ignorecase',
+};
+KNOWN_SET_OPTIONS['ic'] = KNOWN_SET_OPTIONS['ignorecase']!;
+KNOWN_SET_OPTIONS['smartcase'] = {
+    type: 'boolean',
+    settingsKey: '_fork:smartcase',
+};
+KNOWN_SET_OPTIONS['scs'] = KNOWN_SET_OPTIONS['smartcase']!;
+KNOWN_SET_OPTIONS['hlsearch'] = {
+    type: 'boolean',
+    settingsKey: '_fork:hlsearch',
+};
+KNOWN_SET_OPTIONS['hls'] = KNOWN_SET_OPTIONS['hlsearch']!;
+KNOWN_SET_OPTIONS['incsearch'] = {
+    type: 'boolean',
+    settingsKey: '_fork:incsearch',
+};
+KNOWN_SET_OPTIONS['is'] = KNOWN_SET_OPTIONS['incsearch']!;
+KNOWN_SET_OPTIONS['gdefault'] = {
+    type: 'boolean',
+    settingsKey: '_fork:gdefault',
+};
+KNOWN_SET_OPTIONS['gd'] = KNOWN_SET_OPTIONS['gdefault']!;
+
+KNOWN_SET_OPTIONS['wrapscan'] = {
+    type: 'boolean',
+    settingsKey: '_fork:wrapscan',
+};
+KNOWN_SET_OPTIONS['ws'] = KNOWN_SET_OPTIONS['wrapscan']!;
+KNOWN_SET_OPTIONS['joinspaces'] = {
+    type: 'boolean',
+    settingsKey: '_fork:joinspaces',
+};
+KNOWN_SET_OPTIONS['js'] = KNOWN_SET_OPTIONS['joinspaces']!;
+KNOWN_SET_OPTIONS['startofline'] = {
+    type: 'boolean',
+    settingsKey: '_fork:startofline',
+};
+KNOWN_SET_OPTIONS['sol'] = KNOWN_SET_OPTIONS['startofline']!;
+KNOWN_SET_OPTIONS['whichwrap'] = {
+    type: 'string',
+    settingsKey: '_fork:whichwrap',
+};
+KNOWN_SET_OPTIONS['ww'] = KNOWN_SET_OPTIONS['whichwrap']!;
+KNOWN_SET_OPTIONS['virtualedit'] = {
+    type: 'string',
+    settingsKey: '_fork:virtualedit',
+    validValues: ['', 'onemore', 'all', 'block', 'insert'],
+};
+KNOWN_SET_OPTIONS['ve'] = KNOWN_SET_OPTIONS['virtualedit']!;
+KNOWN_SET_OPTIONS['shiftround'] = {
+    type: 'boolean',
+    settingsKey: '_fork:shiftround',
+};
+KNOWN_SET_OPTIONS['sr'] = KNOWN_SET_OPTIONS['shiftround']!;
+KNOWN_SET_OPTIONS['nrformats'] = {
+    type: 'string',
+    settingsKey: '_fork:nrformats',
+};
+KNOWN_SET_OPTIONS['nf'] = KNOWN_SET_OPTIONS['nrformats']!;
 
 function applyKnownSetOption(
     optName: string,
@@ -1130,6 +1189,23 @@ export function applyVimrcCommands(
                 applied++;
                 continue;
             }
+            const nvimEntry = getNeovimOption(optName);
+            if (nvimEntry) {
+                if (!loggedNeovimOptions.has(optName)) {
+                    if (isRejected(nvimEntry)) {
+                        console.warn(
+                            `Vim Motions: "set ${optName}" is not supported: ${nvimEntry.reason}`,
+                        );
+                    } else if (isNoopLogged(nvimEntry)) {
+                        console.debug(
+                            `Vim Motions: "set ${optName}" — ${nvimEntry.reason}`,
+                        );
+                    }
+                    loggedNeovimOptions.add(optName);
+                }
+                applied++;
+                continue;
+            }
             if (cm) {
                 try {
                     vim.handleEx(cm, processedLine);
@@ -1139,14 +1215,11 @@ export function applyVimrcCommands(
             } else {
                 pendingExCommands.push(processedLine);
             }
-            if (
-                !KNOWN_CM_VIM_OPTIONS.has(optName) &&
-                !warnedSetOptions.has(optName)
-            ) {
+            if (!loggedNeovimOptions.has(optName)) {
                 console.warn(
                     `Vim Motions: unknown set option "${optName}" in vimrc`,
                 );
-                warnedSetOptions.add(optName);
+                loggedNeovimOptions.add(optName);
             }
             applied++;
             continue;

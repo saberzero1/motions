@@ -132,59 +132,68 @@ surroundmap m $$ $$
 
 Use `set <option>` to enable, `set no<option>` to disable.
 
-| Option                 | Alias  | Description                             | Default |
-| ---------------------- | ------ | --------------------------------------- | ------- |
-| `textobjects`          | `to`   | Markdown-aware text objects             | on      |
-| `replacewithregister`  | `rwr`  | Replace-with-register operator          | on      |
-| `navigation`           | `nav`  | Heading, list, and link navigation      | on      |
-| `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators           | on      |
-| `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`      | on      |
-| `tablenav`             | `tn`   | Table cell navigation                   | on      |
-| `workspacenav`         | `wn`   | Pane/tab/sidebar control                | on      |
-| `number`               | `nu`   | Show absolute line numbers              | off     |
-| `relativenumber`       | `rnu`  | Show relative line numbers              | off     |
-| `flash`                | —      | Flash-style f/F/t/T labels              | on      |
-| `flashmultiline`       | `fml`  | Flash searches beyond current line      | on      |
-| `flashjump`            | —      | Flash bidirectional jump mode (s)       | off     |
-| `flashcleverf`         | —      | Clever-f repetition                     | off     |
-| `flashsearch`          | —      | Labels on /? search matches             | on      |
-| `labelmatchfontsize`   | `lmfs` | Scale labels to match line font size    | off     |
-| `easymotion`           | `em`   | EasyMotion/Hop navigation               | on      |
-| `easymotiondimming`    | `emd`  | Dim non-target text during EasyMotion   | on      |
-| `hintmode`             | `hm`   | Vimium-style hint labels                | on      |
-| `statusbar`            | `sb`   | Vim mode in status bar                  | on      |
-| `chorddisplay`         | `cd`   | Pending keystrokes in status bar        | on      |
-| `powerline`            | `pl`   | Colored powerline status bar            | off     |
-| `expandtab`            | `et`   | Use spaces instead of tabs              | on      |
-| `pcre`                 | —      | Use JavaScript regexps in search/subst  | on      |
-| `cursorline`           | `cul`  | Cursor line highlight                   | on      |
-| `foldcolumn`           | `fdc`  | Fold column indicators                  | off     |
-| `markgutter`           | —      | Alias for `signcolumn` (compat)         | on      |
-| `snippets`             | —      | Enable snippet expansion                | on      |
-| `snippetbundled`       | —      | Include bundled Obsidian snippets       | on      |
-| `vimtextareas`         | `vta`  | Vim keybindings in text areas           | off     |
-| `yankring`             | —      | Yank-ring paste cycling                 | on      |
-| `harpoon`              | —      | Harpoon file pinning                    | on      |
-| `dial`                 | —      | Enhanced increment/decrement            | off     |
-| `jumplist`             | —      | Vim-style jump list for `<C-o>`/`<C-i>` | on      |
-| `foldawarenavigation`  | —      | Master toggle for fold-aware navigation | on      |
-| `foldpersistence`      | —      | Persist fold state across sessions      | off     |
-| `undotree`             | `ut`   | Enable undo tree tracking               | on      |
-| `undofile`             | `udf`  | Persist undo tree across sessions       | off     |
-| `smoothcursor`         | `sc`   | Enable animated cursor                  | off     |
-| `smoothcursorglide`    | `scg`  | Smooth cursor movement (glide)          | on      |
-| `smoothcursorsmear`    | `scm`  | Enable smear trail                      | on      |
-| `subword`              | —      | Spider.nvim-style subword motions       | off     |
-| `picker`               | —      | Telescope-style picker                  | on      |
-| `pickerleadermappings` | —      | Leader key picker shortcuts             | on      |
-| `pickeromnisearch`     | —      | Omnisearch picker integration           | off     |
-| `pickertasks`          | —      | Obsidian Tasks picker integration       | off     |
-| `pickerdataview`       | —      | Dataview picker integration             | off     |
-| `ripgrep`              | —      | Use ripgrep binary for grep             | off     |
-| `oil`                  | —      | Oil file explorer                       | off     |
-| `oilhiddenfiles`       | —      | Show hidden files in Oil                | off     |
-| `undotreeautoopen`     | —      | Auto-open undo tree on branch           | off     |
-| `imswitching`          | —      | Input method auto-switching             | off     |
+| Option                 | Alias  | Description                                  | Default |
+| ---------------------- | ------ | -------------------------------------------- | ------- |
+| `textobjects`          | `to`   | Markdown-aware text objects                  | on      |
+| `replacewithregister`  | `rwr`  | Replace-with-register operator               | on      |
+| `navigation`           | `nav`  | Heading, list, and link navigation           | on      |
+| `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators                | on      |
+| `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`           | on      |
+| `tablenav`             | `tn`   | Table cell navigation                        | on      |
+| `workspacenav`         | `wn`   | Pane/tab/sidebar control                     | on      |
+| `number`               | `nu`   | Show absolute line numbers                   | off     |
+| `relativenumber`       | `rnu`  | Show relative line numbers                   | off     |
+| `flash`                | —      | Flash-style f/F/t/T labels                   | on      |
+| `flashmultiline`       | `fml`  | Flash searches beyond current line           | on      |
+| `flashjump`            | —      | Flash bidirectional jump mode (s)            | off     |
+| `flashcleverf`         | —      | Clever-f repetition                          | off     |
+| `flashsearch`          | —      | Labels on /? search matches                  | on      |
+| `labelmatchfontsize`   | `lmfs` | Scale labels to match line font size         | off     |
+| `easymotion`           | `em`   | EasyMotion/Hop navigation                    | on      |
+| `easymotiondimming`    | `emd`  | Dim non-target text during EasyMotion        | on      |
+| `hintmode`             | `hm`   | Vimium-style hint labels                     | on      |
+| `statusbar`            | `sb`   | Vim mode in status bar                       | on      |
+| `chorddisplay`         | `cd`   | Pending keystrokes in status bar             | on      |
+| `powerline`            | `pl`   | Colored powerline status bar                 | off     |
+| `expandtab`            | `et`   | Use spaces instead of tabs                   | on      |
+| `pcre`                 | —      | Use JavaScript regexps in search/subst       | on      |
+| `cursorline`           | `cul`  | Cursor line highlight                        | on      |
+| `foldcolumn`           | `fdc`  | Fold column indicators                       | off     |
+| `markgutter`           | —      | Alias for `signcolumn` (compat)              | on      |
+| `snippets`             | —      | Enable snippet expansion                     | on      |
+| `snippetbundled`       | —      | Include bundled Obsidian snippets            | on      |
+| `vimtextareas`         | `vta`  | Vim keybindings in text areas                | off     |
+| `yankring`             | —      | Yank-ring paste cycling                      | on      |
+| `harpoon`              | —      | Harpoon file pinning                         | on      |
+| `dial`                 | —      | Enhanced increment/decrement                 | off     |
+| `jumplist`             | —      | Vim-style jump list for `<C-o>`/`<C-i>`      | on      |
+| `foldawarenavigation`  | —      | Master toggle for fold-aware navigation      | on      |
+| `foldpersistence`      | —      | Persist fold state across sessions           | off     |
+| `undotree`             | `ut`   | Enable undo tree tracking                    | on      |
+| `undofile`             | `udf`  | Persist undo tree across sessions            | off     |
+| `smoothcursor`         | `sc`   | Enable animated cursor                       | off     |
+| `smoothcursorglide`    | `scg`  | Smooth cursor movement (glide)               | on      |
+| `smoothcursorsmear`    | `scm`  | Enable smear trail                           | on      |
+| `subword`              | —      | Spider.nvim-style subword motions            | off     |
+| `picker`               | —      | Telescope-style picker                       | on      |
+| `pickerleadermappings` | —      | Leader key picker shortcuts                  | on      |
+| `pickeromnisearch`     | —      | Omnisearch picker integration                | off     |
+| `pickertasks`          | —      | Obsidian Tasks picker integration            | off     |
+| `pickerdataview`       | —      | Dataview picker integration                  | off     |
+| `ripgrep`              | —      | Use ripgrep binary for grep                  | off     |
+| `oil`                  | —      | Oil file explorer                            | off     |
+| `oilhiddenfiles`       | —      | Show hidden files in Oil                     | off     |
+| `undotreeautoopen`     | —      | Auto-open undo tree on branch                | off     |
+| `imswitching`          | —      | Input method auto-switching                  | off     |
+| `ignorecase`           | `ic`   | Case-insensitive search                      | on      |
+| `smartcase`            | `scs`  | Override ignorecase when query has uppercase | on      |
+| `hlsearch`             | `hls`  | Highlight all search matches                 | on      |
+| `incsearch`            | `is`   | Incremental search while typing              | on      |
+| `wrapscan`             | `ws`   | Search wraps around document                 | on      |
+| `gdefault`             | `gd`   | `:s` defaults to global replace              | off     |
+| `startofline`          | `sol`  | Vertical motions go to first non-blank       | on      |
+| `joinspaces`           | `js`   | `J` inserts two spaces after `.!?`           | off     |
+| `shiftround`           | `sr`   | `>>`/`<<` round to shiftwidth multiple       | off     |
 
 ## Number options
 
@@ -252,6 +261,9 @@ Use `set <option>=<value>`.
 | `imdefaultnormal`       | —        | Default IM for normal mode                                       | (off)                                                                      |
 | `imrestorebehavior`     | —        | IM restore behavior (`restore`/`default`)                        | `restore`                                                                  |
 | `imdefaultinsert`       | —        | Default IM for insert mode                                       | (off)                                                                      |
+| `whichwrap`             | `ww`     | Keys that wrap to next/prev line at boundaries (`h,l,b,s,<,>`)   | `b,s`                                                                      |
+| `virtualedit`           | `ve`     | Cursor past EOL (`onemore`/`all`/`block`/`insert`)               | (off)                                                                      |
+| `nrformats`             | `nf`     | Number formats for `<C-a>`/`<C-x>` (`bin,hex,octal`)             | `bin,hex`                                                                  |
 
 ## Mode prompt customization
 
@@ -337,7 +349,7 @@ Settings overridden by vimrc appear as disabled controls in the settings tab wit
 | `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc           |
 | `pickerKeymap`   | Complex array-valued keys — not suited for `:set` syntax            |
 
-Unknown `set` options produce a `console.warn` on first encounter per vimrc load, helping you identify typos or Neovim-only options. Options recognized by the plugin or CM Vim built-in options (`number`, `relativenumber`, `wrap`, etc.) are not warned about.
+Every Neovim option is recognized by name — typos produce a warning (`set mose=a` warns) while Neovim options that are not applicable in Obsidian are accepted silently (`set mouse=a`, `set encoding=utf-8`, `set noswapfile`). Options that exist but are not yet configurable log an info-level note explaining the current behavior.
 
 ## Soft-reload
 

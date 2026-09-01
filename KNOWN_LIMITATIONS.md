@@ -372,7 +372,7 @@ The following settings are intentionally **not** exposed via vimrc:
 | `leaderBindings` | Already achievable via `nmap <leader>x :command` in vimrc or `vim.keymap.set` in init.lua |
 | `pickerKeymap`   | Complex array-valued keys — not suited for `:set` syntax                                  |
 
-Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are not implemented because they require CodeMirror-level integration beyond what `Vim.defineOption` provides.
+`ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `gdefault` are now configurable via `:set` / `vim.opt` (defaults match Neovim: `ignorecase` on, `smartcase` on, `hlsearch` on, `incsearch` on, `gdefault` off). `wrap` is controlled by Obsidian's editor settings and is not exposed as a vim option.
 
 `signcolumn` accepts `auto`, `auto:N`, `yes`, `yes:N`, `no` (N = 1–4, character slots). `auto` shows the sign column when marks exist and hides it when empty (causes layout shift, matching Neovim). `yes` always reserves gutter space. Clicking a mark label in the sign column moves the cursor to that line. Global marks (`A`–`Z`) render in a distinct color from local marks (`a`–`z`). `cursorlineopt=screenline` is not supported.
 
@@ -380,7 +380,7 @@ Options like `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `wrap` are 
 
 `statuscolumn` provides a format string for customizing the gutter layout. Supported tokens: `%l` (line number respecting `number`/`relativenumber`, absolute fallback when both off), `%r` (relative number), `%s` (sign column marks, respects `signcolumn` auto/yes/no and width), `%C` (fold indicators, always active when present), `%=` (flex separator), literal text. When `statuscolumn` is set, all individual gutter columns are hidden — the unified gutter replaces them. When empty (default), individual settings manage gutters independently. Changing `statuscolumn` requires an Obsidian restart — the unified gutter compartment is registered during plugin load. Set `statuscolumn` in your Lua config (`vim.opt.statuscolumn = "%s %l %r %C"`) for it to apply on startup. v1 limitations: no `%{expr}` Lua expressions, no `%#HlGroup#` highlight groups, no width specifiers (`%-5l`), no per-window `statuscolumn`, no `v:virtnum` for wrapped lines. Global only (`vim.opt.statuscolumn`). Invalid format strings silently fall back to empty (plugin-managed gutters).
 
-Unknown `set` options produce a `console.warn` on first encounter per vimrc load. Options recognized by either the plugin (`KNOWN_SET_OPTIONS`) or CM Vim built-in options (`number`, `relativenumber`, `wrap`, `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, `pcre`) are not warned about. Each unknown option is warned at most once per vimrc load/reload to avoid console noise.
+Every Neovim option is recognized by name. Options not applicable to Obsidian (terminal, GUI, mouse, file I/O, etc.) are accepted silently. Options that exist but are not yet configurable log an info-level note. Only truly unknown options (typos, non-Neovim options) produce a `console.warn`. Each option is logged at most once per vimrc load/reload to avoid console noise.
 
 ## `nmap L $` may not work via vimrc
 

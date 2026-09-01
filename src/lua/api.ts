@@ -8,6 +8,11 @@ import type {
 } from '../types/vim-api';
 import type { AutocmdEventData, AutocmdManager } from './autocmd';
 import { KNOWN_SET_OPTIONS } from '../vimrc/loader';
+import {
+    getNeovimOption,
+    isNoopLogged,
+    isRejected,
+} from '../vim/neovim-options';
 import type { HighlightAttrs, HighlightManager } from './highlight';
 import {
     CALLBACK_INSTRUCTION_LIMIT,
@@ -642,6 +647,7 @@ export function injectVimApi(
     lua.lua_newtable(L);
     const optTableIndex = lua.lua_gettop(L);
     lua.lua_newtable(L);
+    const loggedLuaOptions = new Set<string>();
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const key = readLuaString(state, 2);
         if (!key) {
@@ -649,12 +655,21 @@ export function injectVimApi(
             return 1;
         }
         const spec = KNOWN_SET_OPTIONS[key];
-        if (!spec) {
-            lua.lua_pushnil(state);
+        if (spec) {
+            const value = callbacks.getOption?.(key);
+            pushLuaValue(state, value);
             return 1;
         }
-        const value = callbacks.getOption?.(key);
-        pushLuaValue(state, value);
+        const nvimEntry = getNeovimOption(key);
+        if (
+            nvimEntry &&
+            isNoopLogged(nvimEntry) &&
+            !loggedLuaOptions.has(key)
+        ) {
+            console.debug(`Vim Motions: vim.opt.${key} — ${nvimEntry.reason}`);
+            loggedLuaOptions.add(key);
+        }
+        lua.lua_pushnil(state);
         return 1;
     });
     lua.lua_setfield(L, -2, to_luastring('__index'));
@@ -686,7 +701,23 @@ export function injectVimApi(
         }
         const spec = KNOWN_SET_OPTIONS[key];
         if (!spec) {
-            console.warn(`Vim Motions: unknown vim.opt option ${key}`);
+            const nvimEntry = getNeovimOption(key);
+            if (nvimEntry) {
+                if (!loggedLuaOptions.has(key)) {
+                    if (isRejected(nvimEntry)) {
+                        console.warn(
+                            `Vim Motions: vim.opt.${key} is not supported: ${nvimEntry.reason}`,
+                        );
+                    } else if (isNoopLogged(nvimEntry)) {
+                        console.debug(
+                            `Vim Motions: vim.opt.${key} — ${nvimEntry.reason}`,
+                        );
+                    }
+                    loggedLuaOptions.add(key);
+                }
+            } else {
+                console.warn(`Vim Motions: unknown vim.opt option "${key}"`);
+            }
             return 0;
         }
         let value: unknown;

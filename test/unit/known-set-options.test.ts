@@ -139,6 +139,7 @@ describe('KNOWN_SET_OPTIONS coverage', () => {
         for (const [optName, opt] of Object.entries(KNOWN_SET_OPTIONS)) {
             if (!('settingsKey' in opt)) continue;
             if (sideEffectOnlyKeys.has(opt.settingsKey)) continue;
+            if (opt.settingsKey.startsWith('_fork:')) continue;
             if (!allKeys.has(opt.settingsKey)) {
                 invalid.push(`${optName} → ${opt.settingsKey}`);
             }

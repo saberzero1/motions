@@ -70,6 +70,7 @@ src/
     search-counter.ts      # Search match counter (hlslens-style [3/15])
     scrolloff.ts           # CSS scroll-padding based scrolloff
     options.ts             # Vim option registration (clipboard, tabstop, etc.) — registerVimOptions() returns activation function to defer notify callbacks until after initial settings sync
+    neovim-options.ts      # Comprehensive registry of ALL Neovim options with tier classification (hardcoded, noop-platform, noop-deferred, rejected, not-applicable) — used by vimrc loader and Lua vim.opt for tiered logging and typo detection
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
     changelist.ts          # Change list tracking
     undo-tree.ts           # Undo tree data structure (shadow tree, branching, serialize/deserialize)

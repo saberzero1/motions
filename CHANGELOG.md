@@ -36,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/workspace/navigation.ts` (removed `exCommandFromAction` registrations for `:foldopen`/`:foldclose`/`:foldtoggle` — replaced by range-aware versions in `fold/commands.ts`)
     - Plugin: `src/main.ts` (`executeLuaForTest` sandbox `handleExCommand` wired to `vim.handleEx` — enables golden tests to create folds via `vim.cmd`)
 
+- **Neovim options registry** — every Neovim option (378 total from `src/nvim/options.lua`) is now recognized by name in both `:set` (vimrc) and `vim.opt` (Lua). Options are classified into tiers: implemented options work normally, hardcoded options log an info note (e.g., `set magic` — "always on"), deferred options log that support is planned, platform-handled options are accepted silently (e.g., `set mouse=a`, `set encoding=utf-8`, `set noswapfile`), and truly unknown options still produce a warning — enabling typo detection (`set mose=a` warns, `set mouse=a` is silent).
+    - Plugin: `src/vim/neovim-options.ts` (new file — comprehensive registry with tier classification)
+    - Plugin: `src/vimrc/loader.ts` (integrated registry, replaced `KNOWN_CM_VIM_OPTIONS` set, tiered logging)
+    - Plugin: `src/lua/api.ts` (integrated registry into `vim.opt`/`vim.o` getter and setter)
+- **12 configurable Neovim options** — standard Neovim options previously hardcoded in the codemirror-vim fork are now user-configurable via `set`/`vim.opt` with Neovim-compatible defaults and abbreviations:
+    - **Search**: `ignorecase`/`ic` (default on), `smartcase`/`scs` (default on), `hlsearch`/`hls` (default on), `incsearch`/`is` (default on), `wrapscan`/`ws` (default on)
+    - **Substitute**: `gdefault`/`gd` (default off — `:s` g flag inverts when on)
+    - **Motion**: `startofline`/`sol` (default on), `whichwrap`/`ww` (default `b,s`), `virtualedit`/`ve` (default empty — supports `onemore`, `all`, `block`)
+    - **Editing**: `joinspaces`/`js` (default off — `J` inserts double space after `.!?`), `shiftround`/`sr` (default off — `>>`/`<<` round to shiftwidth), `nrformats`/`nf` (default `bin,hex` — `<C-a>`/`<C-x>` format support, octal now available)
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (12 `defineOption()` calls, search call sites updated, hlsearch gating, incsearch gating, wrapscan boundary messages, gdefault inversion, startofline in H/M/L/G/gg, whichwrap in moveByCharacters, virtualedit in clipCursorToContent, joinspaces in joinLines, shiftround in indent operator, nrformats with parseNumberMatch helper)
+    - Plugin: `src/vimrc/loader.ts` (12 options registered in `KNOWN_SET_OPTIONS` with `_fork:` prefix settingsKey)
+
 ### Tests
 
 - **Ex command range golden tests** — 8 new golden test cases recorded against Neovim 0.12.5 verifying fork-native `:{range}` support for commands handled entirely by the codemirror-vim fork: `:1,3y` (yank range), `:2,4y a` (yank range to named register), `:1,3j` (join range), `:2,4j!` (join range without spaces), `:put` (put after current line via `:1y` + `:put`), `:3put` (put after addressed line via `:1y` + `:3put`), `:2,4g/pattern/d` (global with range prefix), `:1,3v/pattern/d` (vglobal with range prefix).
@@ -60,15 +72,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: updated `vim.fn` function count (27 → 65), added not-yet-implemented table (lower-value/niche functions), added explicitly excluded functions (`map`/`filter`/`printf` incompatible signatures)
-- `docs/configuration/lua-config.md`: added 36 new `vim.fn` functions to quick-reference and detailed tables
-- `AGENTS.md`: `vim.fn` count updated (27 → 65), fork API surface updated with `foldopenAnnotation`
-- `CONTRIBUTING.md`: `fn.ts` description updated (26 → 65 functions)
+- `KNOWN_LIMITATIONS.md`: updated `vim.fn` function count (27 → 65), added not-yet-implemented table (lower-value/niche functions), added explicitly excluded functions (`map`/`filter`/`printf` incompatible signatures); search options now configurable; unknown options warning behavior updated for Neovim options registry
+- `docs/configuration/lua-config.md`: added 36 new `vim.fn` functions to quick-reference and detailed tables; added 12 new Neovim options to `vim.opt` table
+- `AGENTS.md`: `vim.fn` count updated (27 → 65), fork API surface updated with `foldopenAnnotation` and 12 configurable Neovim options
+- `CONTRIBUTING.md`: `fn.ts` description updated (26 → 65 functions); added `neovim-options.ts` to `src/vim/` file tree
 - `docs/development/architecture.md`: `fn.ts` function count updated
-- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: `:join` range/bang/cursor section expanded
-- `README.md`: folding feature description updated with `foldopen` semantics
+- Fork: `~/Repos/codemirror-vim/DIFFERENCES.md`: `:join` range/bang/cursor section expanded; added "Configurable Neovim options" section documenting 12 new `defineOption()` calls
+- `README.md`: folding feature description updated with `foldopen` semantics; quality of life section updated with 12 configurable Neovim options and Neovim option compatibility
 - `docs/configuration/settings.md`: fold-aware navigation description updated, `foldopen` row added to Workspace navigation settings
-- `docs/configuration/vimrc.md`: `foldopen`/`fdo` added to string options table, `foldawarenavigation` description updated
+- `docs/configuration/vimrc.md`: `foldopen`/`fdo` added to string options table, `foldawarenavigation` description updated; added 12 new Neovim options to boolean and string tables; updated unknown options warning description for Neovim options registry
 - `docs/configuration/lua-config.md`: `foldopen` added to `vim.opt` options table
 - `docs/features/workspace-navigation.md`: fold-aware navigation section rewritten for `foldopen` semantics
 - `docs/features/ex-commands.md`: added `:{range}fold`, `:{range}foldopen[!]`, `:{range}foldclose[!]`, `:folddoopen`, `:folddoclosed`; updated `:foldopen`/`:foldclose` descriptions to note range support
