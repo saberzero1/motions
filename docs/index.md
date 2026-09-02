@@ -31,12 +31,9 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.137.0
+## What's new in 0.138.0
 
-- **`vim.treesitter` API** — full [[lua-config|treesitter integration]] backed by `web-tree-sitter` (WASM), running as a parallel parser alongside CM6's Lezer. Provides `get_parser`, `get_node`, `query.parse`, `Query:iter_captures`/`iter_matches`, LanguageTree with injection support, 31 TSNode methods, 8 built-in predicates, 4 directives, and language management — activates on-demand with zero cost when unused
-- **Treesitter-enhanced Markdown** — heading navigation (`]h`/`[h`), code block text objects (`iC`/`aC`), blockquote text objects (`iB`/`aB`), delimiter text objects (`i*`/`a*`, `` i` ``/`` a` ``), fold provider, and snippet context detection now use treesitter for structural parsing when available, with automatic regex fallback
-- **Token classifier hook** — the codemirror-vim fork's `%` bracket matcher now uses treesitter-based token classification, improving Markdown bracket matching accuracy by correctly skipping brackets inside inline code spans
-- **Note Composer visual-line fix** — `editor.replaceSelection()` now works correctly when called after visual-line mode has been exited between `getSelection()` and `replaceSelection()`, fixing modal-based extract commands ([#157](https://github.com/saberzero1/motions/issues/157))
-- **`zj`/`zk` nested heading folds** — fold motions now visit all foldable lines including nested headings, matching Neovim behavior (6 fold motion deviations resolved)
+- **Tier 1 `vim.api` expansion** — 27 new `nvim_*` functions (43 total), unlocking the mini.nvim plugin ecosystem. Adds cursor/line/marks, global keymaps + key injection, commands + options, variables + messaging + text APIs to the [[lua-config|Lua configuration]] layer
+- **Table-nav row wrapping** — `Tab`/`Shift+Tab` in [[tables|table-nav mode]] now wraps at row boundaries, matching Obsidian's native table Tab behavior ([#158](https://github.com/saberzero1/motions/issues/158))
 
 See the [[changelog|full changelog]] for details.

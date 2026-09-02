@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.138.0] - 2026-09-02
+
 ### Added
 
 - **Tier 1 `vim.api` expansion** — 27 new `nvim_*` functions (43 total), unlocking the mini.nvim plugin ecosystem. New functions organized in 4 waves:
