@@ -54,6 +54,7 @@ const EXCLUDED_SETTINGS_KEYS = new Set([
     // Platform/runtime toggles — not vim options
     'enableOnMobile',
     'vimEnabled',
+    'pluginAutoFetch',
 
     // Nested objects — configured via dedicated commands or sub-options
     'modePrompts', // via `let g:mode_prompt_*`

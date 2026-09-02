@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Plugin auto-fetch system** — `vim.plugins.add()` now supports automatic fetching of Neovim plugins from GitHub. Downloads tarball archives, extracts them to `lua/`, and manages a lock file (`lua/.plugin-lock.json`) for version pinning. Supports branch, tag, and commit pinning. Atomic staging writes to `lua/.staging/` ensure vault integrity. Configurable via `pluginAutoFetch` setting (Advanced page).
+    - Plugin: `src/lua/plugin-fetch.ts` (download and extraction logic)
+    - Plugin: `src/lua/plugin-store.ts` (atomic writes and lock file management)
+    - Plugin: `src/lua/tar.ts` (synchronous tar parser)
+    - Plugin: `src/lua/api.ts` (extended `vim.plugins.add` with fetch triggering)
+    - Plugin: `src/lua/loader.ts` (wired fetch callback)
+    - Plugin: `src/settings.ts` (new `pluginAutoFetch` setting)
+- **`require()` init.lua fallback** — `require("name")` now tries `lua/name/init.lua` if `lua/name.lua` is not found. Matches Neovim's module resolution behavior and enables multi-file plugins.
+    - Plugin: `src/lua/package.ts` (updated `package.path` and search logic)
+
+### Changed
+
+- **Lua sandbox: `rawget`/`rawset`/`rawequal` re-enabled** — these standard Lua functions are now available in the sandbox, matching Neovim's Lua environment. Previously disabled as a sandboxing measure, but this prevented `vim.is_callable` from detecting callable tables and broke compatibility with Neovim plugins that use `rawget`/`rawset`.
+    - Plugin: `src/lua/engine.ts` (removed from disabled globals list)
+
+### Fixed
+
+- **Operator-pending mode context** — `modeToContext('o')` now correctly returns `'operatorPending'` instead of `'normal'`. Fixes keymap collisions where operator-pending text objects shadowed normal mode mappings (e.g., `gc`/`gcc`).
+    - Plugin: `src/lua/api.ts` (context mapping fix)
+- **Fork: Backtracking dispatch** — the codemirror-vim fork now supports backtracking when a longer partial match fails. Deferring a shorter full match (e.g., flash `s` motion) for a longer partial (e.g., surround `s<char>`) no longer loses the motion if the partial match fails or times out. Replays the suffix via `doKeyToKey`.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (backtracking logic in `handleKeyNonInsertMode`)
+- **Fork: Backtracking deferral exclusion rules** — the backtracking deferral in `matchCommand` no longer falsely defers built-in keys (`i`, `a`, `s`, `S`, `d`, `y`, `c`, `<`, `>`) when text-object motions, linewise shortcuts, surround actions, or `<leader>` keymaps share a string prefix. Four exclusion rules prevent false positives: `_isDefault` entries (built-in keymaps), special-key false prefix (`<` vs `<leader>`), motions extending non-motions (`il` vs `i`), and `operatorPending` actions without an active operator (`s<char>` vs `s`). Without this fix, pressing `i` or `a` in normal mode was deferred by ~1 second instead of immediately entering insert mode.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (exclusion rules in `matchCommand`)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (documented all 4 exclusion rules)
+- **Lua function-callback keymaps survive view plugin recreation** — `applyLuaMaps` reverted to use `this.registration?.defineAction()` instead of `vim.defineAction()` directly. The `VimRegistration` persistence layer re-applies action registrations when the CM6 view plugin is recreated (e.g., during vim mode toggle), preventing Lua `vim.keymap.set` function callbacks from silently stopping.
+    - Plugin: `src/main.ts` (reverted `applyLuaMaps` function-callback path)
+
+### Tests
+
+- Updated `test/specs/lua-plugin-mini-comment.e2e.ts` to use auto-fetch for `mini.comment` verification. The vendored `test-vault/lua/mini/comment.lua` has been removed — tests now fetch the plugin from GitHub at runtime via the auto-fetch system.
+- Added `pluginAutoFetch` to excluded settings in `test/unit/known-set-options.test.ts`.
+- Added `vimHandleKeysSync` helper in `test/helpers.ts` — dispatches keys via `Vim.handleKey` in a single synchronous `executeObsidian` call with Escape prefix. Supports `waitForTimeout` flag for leader-key mappings that trigger Neovim-correct `operatorshadowtimeout` deferral.
+- Updated `test/specs/lua-vim-v.e2e.ts` to use `vimHandleKeysSync` with `waitForTimeout=true` for `<leader>t`/`<leader>h` mappings that have longer partials (table nav keymaps `\tL`, `\tdd`, etc.).
+- Updated `test/specs/lua-doc-examples.e2e.ts` smart-go-to-top test to use `vimHandleKeysSync` with `waitForTimeout=true`.
+- Updated `test/specs/lua-require.e2e.ts` rawget/rawset tests — expectations changed from 86/87 to 90 to reflect intentional re-enabling.
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: added `vimHandleKeysSync` to test helpers list, added fork backtracking description
+- `CONTRIBUTING.md`: updated `src/lua/` file tree with new fetch-related files
+- `KNOWN_LIMITATIONS.md`: marked plugin fetching as implemented; added `init.lua` fallback note; updated `vim.is_callable` note (rawget no longer restricted); updated operator-prefix key dispatch section with backtracking deferral
+- `README.md`: added plugin auto-fetch to features list
+- `docs/configuration/settings.md`: added `pluginAutoFetch` setting
+- `docs/configuration/lua-config.md`: updated `vim.plugins.add` and `require()` sections
+
 ## [0.138.0] - 2026-09-02
 
 ### Added

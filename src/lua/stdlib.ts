@@ -342,6 +342,12 @@ function vim.pesc(s)
     return (s:gsub('([%^%$%(%)%%%.%[%]%*%+%-%?])', '%%%1'))
 end
 
+function vim.is_callable(f)
+    if type(f) == 'function' then return true end
+    local mt = getmetatable(f)
+    return mt ~= nil and type(rawget(mt, '__call')) == 'function'
+end
+
 function vim.stricmp(a, b)
     local la = string.lower(a)
     local lb = string.lower(b)

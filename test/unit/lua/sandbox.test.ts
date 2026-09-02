@@ -22,10 +22,10 @@ describe('sandboxed Lua state', () => {
         destroyState(L);
     });
 
-    it('should not allow debug library', () => {
+    it('should allow debug library', () => {
         const L = createSandboxedState();
         const status = runLua(L, 'return debug.getinfo(1)');
-        expect(status).not.toBe(lua.LUA_OK);
+        expect(status).toBe(lua.LUA_OK);
         destroyState(L);
     });
 

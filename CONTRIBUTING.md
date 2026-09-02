@@ -195,8 +195,11 @@ src/
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
     package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua config file loader
-    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v, vim.cmd, vim.notify, vim.api (43 nvim_* functions: buffer, cursor, marks, keymaps, options, commands, highlights, autocommands, key injection, UI)
+    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v, vim.cmd, vim.notify, vim.api (43 nvim_* functions: buffer, cursor, marks, keymaps, options, commands, highlights, autocommands, key injection, UI), vim.plugins (add/list with auto-fetch support)
     fn.ts                  # vim.fn.* function library (65 functions)
+    plugin-fetch.ts        # Plugin archive download and extraction (GitHub tarballs)
+    plugin-store.ts        # Atomic plugin storage and lock file management
+    tar.ts                 # Synchronous tar archive parser
     buffer.ts              # Buffer-local keymap manager (per-file keymap storage and application)
     autocmd.ts             # Autocommand manager (event registration, group lifecycle, pattern matching)
     highlight.ts           # Highlight group manager (nvim_set_hl/nvim_get_hl CSS variable bridge)
@@ -634,6 +637,7 @@ describe('My feature', function () {
 - `vimKeys(...keys)` — Send Vim key sequence with proper pauses.
 - `vimRawKeys(keys)` — Send raw key string character-by-character via DOM events (with `Vim.handleKey` for control chars).
 - `vimHandleKeys(keys)` — Send all keys synchronously through `Vim.handleKey()` in a single `executeObsidian` callback. No DOM event timing gaps. Use for visual-mode compound operations that fail with `vimRawKeys` (e.g., `vt.d`, `vawd`, `V3jJ`).
+- `vimHandleKeysSync(keys, waitForTimeout?)` — Like `vimHandleKeys` but includes `<Esc>` in the same `executeObsidian` call (no cross-call boundary). When `waitForTimeout=true`, waits 1200ms for the `operatorshadowtimeout` deferral timer to fire — needed for `<leader>X` mappings that have longer partials (e.g., table nav `<leader>tL`).
 - `getCursorPos()` — Get `{ line, ch }` cursor position. Throws if no MarkdownView.
 - `getEditorValue()` — Get editor text content. Throws if no MarkdownView.
 - `getSelection()` — Get selected text. Throws if no MarkdownView.

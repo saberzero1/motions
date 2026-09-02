@@ -224,18 +224,18 @@ describe('Lua require() — sandbox security', function () {
         expect(await getPluginSetting('scrolloffLines')).toBe(85);
     });
 
-    it('rawget remains disabled', async function () {
+    it('rawget is available', async function () {
         await loadLuaConfig(
             'local ok = pcall(function() rawget({}, 1) end)\nvim.opt.scrolloff = ok and 90 or 86',
         );
-        expect(await getPluginSetting('scrolloffLines')).toBe(86);
+        expect(await getPluginSetting('scrolloffLines')).toBe(90);
     });
 
-    it('rawset remains disabled', async function () {
+    it('rawset is available', async function () {
         await loadLuaConfig(
             'local ok = pcall(function() rawset({}, 1, 1) end)\nvim.opt.scrolloff = ok and 90 or 87',
         );
-        expect(await getPluginSetting('scrolloffLines')).toBe(87);
+        expect(await getPluginSetting('scrolloffLines')).toBe(90);
     });
 
     it('load() works for string compilation', async function () {

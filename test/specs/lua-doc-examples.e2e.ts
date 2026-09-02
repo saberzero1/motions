@@ -5,6 +5,7 @@ import {
     focusEditor,
     setupEditor,
     vimKeys,
+    vimHandleKeysSync,
     sendVimEscape,
     getCursorPos,
     getPluginSetting,
@@ -25,7 +26,7 @@ describe('Lua documentation example validation', function () {
                 'end, { desc = "Smart go-to-top" })',
         );
         await setupEditor('line1\nline2\nline3', { line: 2, ch: 0 });
-        await vimKeys('\\', 'h');
+        await vimHandleKeysSync('\\h', true);
         const pos = await getCursorPos();
         expect(pos.line).toBe(0);
     });

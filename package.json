@@ -58,6 +58,7 @@
         "@leeoniya/ufuzzy": "^1.0.19",
         "@replit/codemirror-vim": "github:saberzero1/codemirror-vim",
         "fengari": "https://github.com/saberzero1/fengari.git",
+        "fflate": "^0.8.3",
         "web-tree-sitter": "^0.27.0"
     },
     "overrides": {

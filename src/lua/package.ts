@@ -13,7 +13,10 @@ export function injectPackageAndRequire(
     lua.lua_newtable(L);
     lua.lua_setfield(L, packageIndex, to_luastring('loaded'));
 
-    lua.lua_pushstring(L, to_luastring(`${basePath}/?.lua`));
+    lua.lua_pushstring(
+        L,
+        to_luastring(`${basePath}/?.lua;${basePath}/?/init.lua`),
+    );
     lua.lua_setfield(L, packageIndex, to_luastring('path'));
 
     lua.lua_pushstring(L, to_luastring('\n;\n?\n!\n-'));
@@ -80,6 +83,13 @@ function require(modname)
     package.loaded[modname] = true
 
     local read_ok, source = pcall(vim.ob.fs.read, file_path)
+    if not read_ok then
+        local init_path = _base_path .. "/" .. rel_path .. "/init.lua"
+        read_ok, source = pcall(vim.ob.fs.read, init_path)
+        if read_ok then
+            file_path = init_path
+        end
+    end
     if not read_ok then
         package.loaded[modname] = nil
         error("module '" .. modname .. "' not found: " .. tostring(source), 2)

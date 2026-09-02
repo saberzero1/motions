@@ -100,9 +100,6 @@ export function getInsertModeChar(cm: unknown): string {
     return 'i';
 }
 
-let exprDepth = 0;
-const MAX_EXPR_DEPTH = 200;
-
 export interface LuaKeymapDelete {
     mode: MapContext;
     lhs: string;
@@ -287,6 +284,16 @@ export interface VimApiCallbacks {
         toLine: number,
         toCol: number,
     ) => void;
+    getBufferOption?: (name: string) => unknown;
+    setBufferOption?: (name: string, value: unknown) => void;
+    pluginExists?: (name: string) => boolean;
+    fetchPlugin?: (
+        owner: string,
+        repoFullName: string,
+        ref: string,
+        options: { branch?: string; tag?: string; commit?: string },
+    ) => Promise<{ files: string[] }>;
+    isPluginAutoFetchEnabled?: () => boolean;
 }
 
 export const MODE_PROMPT_MAP: Record<string, string> = {
@@ -458,7 +465,7 @@ function modeToContext(mode: string): MapContext | null {
         case 's':
             return 'select';
         case 'o':
-            return 'normal';
+            return 'operatorPending';
         default:
             return null;
     }
@@ -635,6 +642,8 @@ export function injectVimApi(
     callbacks: VimApiCallbacks,
 ): VimApiState {
     const globals = new Map<string, unknown>();
+    const bufferVars = new Map<string, Map<string, unknown>>();
+    let operatorfuncName: string | null = null;
     const notifiedMessages = new Set<string>();
     const userEnvMap = new Map<string, string>();
     const getLeaderKey = () => callbacks.getLeaderKey?.() ?? '\\';
@@ -692,6 +701,14 @@ export function injectVimApi(
             lua.lua_pushnil(state);
             return 1;
         }
+        if (key === 'operatorfunc') {
+            if (operatorfuncName) {
+                lua.lua_pushstring(state, to_luastring(operatorfuncName));
+            } else {
+                lua.lua_pushstring(state, to_luastring(''));
+            }
+            return 1;
+        }
         const spec = KNOWN_SET_OPTIONS[key];
         if (spec) {
             const value = callbacks.getOption?.(key);
@@ -719,6 +736,7 @@ export function injectVimApi(
             if (lua.lua_isfunction(state, 3)) {
                 lua.lua_pushvalue(state, 3);
                 const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+                operatorfuncName = null;
                 const wrapper = (cm: unknown, type: string) => {
                     lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
                     lua.lua_pushstring(state, to_luastring(type));
@@ -732,7 +750,31 @@ export function injectVimApi(
                     }
                 };
                 vimApi?.setOperatorfunc?.(wrapper);
+            } else if (lua.lua_isstring(state, 3)) {
+                const fnName = to_jsstring(lua.lua_tolstring(state, 3)!);
+                operatorfuncName = fnName;
+                const wrapper = (_cm: unknown, type: string) => {
+                    const vluaPrefix = 'v:lua.';
+                    const luaFn = fnName.startsWith(vluaPrefix)
+                        ? fnName.slice(vluaPrefix.length)
+                        : fnName;
+                    const callCode = `${luaFn}('${type}')`;
+                    const callStatus = lauxlib.luaL_dostring(
+                        L,
+                        to_luastring(callCode),
+                    );
+                    if (callStatus !== lua.LUA_OK) {
+                        const msg = lua.lua_tolstring(L, -1);
+                        const error = msg ? to_jsstring(msg) : 'unknown';
+                        console.error(
+                            `Vim Motions: operatorfunc error: ${error}`,
+                        );
+                        lua.lua_pop(L, 1);
+                    }
+                };
+                vimApi?.setOperatorfunc?.(wrapper);
             } else if (lua.lua_isnil(state, 3)) {
+                operatorfuncName = null;
                 vimApi?.setOperatorfunc?.(null);
             }
             return 0;
@@ -865,6 +907,80 @@ export function injectVimApi(
     lua.lua_pop(L, 1);
 
     lua.lua_newtable(L);
+    const bTableIndex = lua.lua_gettop(L);
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        const filePath = callbacks.getActiveFilePath?.() ?? '';
+        const vars = bufferVars.get(filePath);
+        const value = vars?.get(key);
+        if (value === undefined) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        pushLuaAny(state, value);
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) return 0;
+        const value = readLuaValue(state, 3);
+        const filePath = callbacks.getActiveFilePath?.() ?? '';
+        let vars = bufferVars.get(filePath);
+        if (!vars) {
+            vars = new Map();
+            bufferVars.set(filePath, vars);
+        }
+        if (value === null || value === undefined) {
+            vars.delete(key);
+        } else {
+            vars.set(key, value);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, bTableIndex);
+    lua.lua_pushvalue(L, bTableIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('b'));
+    lua.lua_pop(L, 1);
+
+    lua.lua_newtable(L);
+    const boTableIndex = lua.lua_gettop(L);
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        const value = callbacks.getBufferOption?.(key);
+        if (value === undefined || value === null) {
+            lua.lua_pushnil(state);
+        } else {
+            pushLuaValue(state, value);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) return 0;
+        const value = readLuaValue(state, 3);
+        callbacks.setBufferOption?.(key, value);
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, boTableIndex);
+    lua.lua_pushvalue(L, boTableIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('bo'));
+    lua.lua_pop(L, 1);
+
+    lua.lua_newtable(L);
     const vTableIndex = lua.lua_gettop(L);
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
@@ -984,17 +1100,153 @@ export function injectVimApi(
     lua.lua_pop(L, 1);
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
-        const command = readLuaString(state, 1);
+        let command = readLuaString(state, 1);
         if (!command) {
             return lauxlib.luaL_error(
                 state,
                 to_luastring('vim.cmd expects a command string'),
             );
         }
+        if (command.startsWith('lockmarks ')) {
+            command = command.slice('lockmarks '.length);
+        }
+        if (command.startsWith('lua ')) {
+            const luaCode = command.slice('lua '.length);
+            const luaStatus = lauxlib.luaL_dostring(L, to_luastring(luaCode));
+            if (luaStatus !== lua.LUA_OK) {
+                const msg = lua.lua_tolstring(L, -1);
+                const error = msg ? to_jsstring(msg) : 'vim.cmd lua error';
+                console.error(`Vim Motions: vim.cmd lua error: ${error}`);
+                lua.lua_pop(L, 1);
+            }
+            return 0;
+        }
+        if (command.startsWith('normal! ') || command.startsWith('normal ')) {
+            const keys = command.replace(/^normal!?\s+/, '');
+            const adapter = callbacks.getCmAdapter?.();
+            const vimApi = callbacks.getVimApi?.();
+            if (adapter && vimApi?.feedKeys) {
+                vimApi.feedKeys(adapter, keys, {
+                    noremap: command.includes('!'),
+                });
+            }
+            return 0;
+        }
         callbacks.handleExCommand(command);
         return 0;
     });
     lua.lua_setfield(L, vimTableIndex, to_luastring('cmd'));
+
+    const pluginRegistry = new Map<
+        string,
+        {
+            repo: string;
+            name: string;
+            available: boolean;
+            opts?: boolean;
+        }
+    >();
+
+    lua.lua_newtable(L);
+    const pluginsIndex = lua.lua_gettop(L);
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (!lua.lua_istable(state, 1)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.plugins.add: expected spec table (e.g., { "owner/repo" })',
+                ),
+            );
+        }
+        lua.lua_rawgeti(state, 1, 1);
+        const repo = lua.lua_isstring(state, -1)
+            ? to_jsstring(lua.lua_tolstring(state, -1)!)
+            : null;
+        lua.lua_pop(state, 1);
+        if (!repo || !repo.includes('/')) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'vim.plugins.add: expected "owner/repo" string as first element',
+                ),
+            );
+        }
+
+        const branch = readStringField(state, 1, 'branch');
+        const tag = readStringField(state, 1, 'tag');
+        const commit = readStringField(state, 1, 'commit');
+        const hasOpts = (() => {
+            lua.lua_getfield(state, 1, to_luastring('opts'));
+            const exists = !lua.lua_isnil(state, -1);
+            lua.lua_pop(state, 1);
+            return exists;
+        })();
+
+        const slash = repo.indexOf('/');
+        const owner = repo.substring(0, slash);
+        const repoName = repo.substring(slash + 1);
+        const strippedName = repoName.replace(/\.nvim$/, '');
+        const available = callbacks.pluginExists?.(strippedName) ?? false;
+        pluginRegistry.set(repo, {
+            repo,
+            name: repoName,
+            available,
+            opts: hasOpts,
+        });
+
+        if (!available) {
+            const autoFetch = callbacks.isPluginAutoFetchEnabled?.() ?? false;
+            if (autoFetch && callbacks.fetchPlugin) {
+                const runner = callbacks.runner;
+                if (runner) {
+                    const ref = commit ?? tag ?? branch ?? 'main';
+                    const promise = callbacks.fetchPlugin(
+                        owner,
+                        repoName,
+                        ref,
+                        { branch, tag, commit },
+                    );
+                    const fetchAndSetup = promise.then((result) => {
+                        pluginRegistry.set(repo, {
+                            repo,
+                            name: repoName,
+                            available: true,
+                            opts: hasOpts,
+                        });
+                        return result.files.length;
+                    });
+                    return runner.yieldWithPromise(state, fetchAndSetup);
+                }
+            }
+            callbacks.showNotice?.(
+                `Plugin ${repoName} not found. Download from https://github.com/${repo} and place Lua files in lua/`,
+            );
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, pluginsIndex, to_luastring('add'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_newtable(state);
+        let idx = 1;
+        for (const [, entry] of pluginRegistry) {
+            lua.lua_newtable(state);
+            lua.lua_pushstring(state, to_luastring(entry.name));
+            lua.lua_setfield(state, -2, to_luastring('name'));
+            lua.lua_pushstring(state, to_luastring(entry.repo));
+            lua.lua_setfield(state, -2, to_luastring('repo'));
+            lua.lua_pushboolean(state, entry.available);
+            lua.lua_setfield(state, -2, to_luastring('available'));
+            lua.lua_rawseti(state, -2, idx++);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, pluginsIndex, to_luastring('list'));
+
+    lua.lua_pushvalue(L, pluginsIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('plugins'));
+    lua.lua_pop(L, 1);
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const name = callbacks.getVaultName();
@@ -1163,7 +1415,6 @@ export function injectVimApi(
         if (rhsIsFn) {
             lua.lua_pushvalue(state, 3);
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
-            const runner = callbacks.runner;
             if (expr) {
                 callback = (cm?: unknown, actionArgs?: unknown) => {
                     if (actionArgs && typeof actionArgs === 'object') {
@@ -1176,81 +1427,40 @@ export function injectVimApi(
                             insertmode: getInsertModeChar(cm),
                         });
                     }
-                    lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                    lua.lua_rawgeti(L, lua.LUA_REGISTRYINDEX, ref);
                     const status = withInstructionGuard(
-                        state,
+                        L,
                         EXPR_INSTRUCTION_LIMIT,
-                        () => lua.lua_pcall(state, 0, 1, 0),
+                        () => lua.lua_pcall(L, 0, 1, 0),
                     );
                     clearVimVContext();
                     if (status !== lua.LUA_OK) {
-                        const message = lua.lua_tolstring(state, -1);
+                        const message = lua.lua_tolstring(L, -1);
                         const error = message
                             ? to_jsstring(message)
                             : 'Lua expr callback error';
                         console.error(`Vim Motions: ${error}`);
                         showLuaErrorNotice(error);
-                        lua.lua_pop(state, 1);
+                        lua.lua_pop(L, 1);
                         return;
                     }
-                    const returnedKeys = lua.lua_isstring(state, -1)
-                        ? to_jsstring(lua.lua_tolstring(state, -1)!)
+                    const returnedKeys = lua.lua_isstring(L, -1)
+                        ? to_jsstring(lua.lua_tolstring(L, -1)!)
                         : null;
-                    lua.lua_pop(state, 1);
+                    lua.lua_pop(L, 1);
                     if (!returnedKeys || returnedKeys.length === 0) return;
-                    if (
+                    const adapter =
                         cm &&
                         typeof (cm as Record<string, unknown>).state ===
                             'object'
-                    ) {
-                        const adapter = cm as CmAdapter;
-                        const vimApi = callbacks.getVimApi?.();
-                        if (vimApi?.feedKeys) {
-                            exprDepth++;
-                            if (exprDepth > MAX_EXPR_DEPTH) {
-                                exprDepth = 0;
-                                console.error(
-                                    'Vim Motions: expr mapping recursion limit exceeded',
-                                );
-                                return;
-                            }
-                            try {
-                                vimApi.feedKeys(adapter, returnedKeys, {
-                                    noremap,
-                                });
-                            } finally {
-                                exprDepth--;
-                            }
-                        }
-                    }
-                };
-            } else if (runner) {
-                callback = (cm?: unknown, actionArgs?: unknown) => {
-                    if (actionArgs && typeof actionArgs === 'object') {
-                        const args = actionArgs as ActionArgs;
-                        setVimVContext({
-                            count: args.repeatIsExplicit ? args.repeat : 0,
-                            count1: args.repeat,
-                            register: args.registerName ?? '"',
-                            operator: args.pendingOperator ?? '',
-                            insertmode: getInsertModeChar(cm),
+                            ? (cm as CmAdapter)
+                            : callbacks.getCmAdapter?.();
+                    const vimApi = callbacks.getVimApi?.();
+                    if (adapter && vimApi?.feedKeys) {
+                        vimApi.feedKeys(adapter, returnedKeys, {
+                            noremap,
                         });
                     }
-                    void runner
-                        .invokeAsyncCapable(
-                            ref,
-                            () => 0,
-                            CALLBACK_INSTRUCTION_LIMIT,
-                        )
-                        .then((result) => {
-                            clearVimVContext();
-                            if (!result.ok) {
-                                console.error(`Vim Motions: ${result.error}`);
-                                showLuaErrorNotice(
-                                    result.error ?? 'Lua callback error',
-                                );
-                            }
-                        });
                 };
             } else {
                 callback = (cm?: unknown, actionArgs?: unknown) => {
@@ -1264,21 +1474,21 @@ export function injectVimApi(
                             insertmode: getInsertModeChar(cm),
                         });
                     }
-                    lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+                    lua.lua_rawgeti(L, lua.LUA_REGISTRYINDEX, ref);
                     const status = withInstructionGuard(
-                        state,
+                        L,
                         CALLBACK_INSTRUCTION_LIMIT,
-                        () => lua.lua_pcall(state, 0, 0, 0),
+                        () => lua.lua_pcall(L, 0, 0, 0),
                     );
                     clearVimVContext();
                     if (status !== lua.LUA_OK) {
-                        const message = lua.lua_tolstring(state, -1);
+                        const message = lua.lua_tolstring(L, -1);
                         const error = message
                             ? to_jsstring(message)
                             : 'Lua callback error';
                         console.error(`Vim Motions: ${error}`);
                         showLuaErrorNotice(error);
-                        lua.lua_pop(state, 1);
+                        lua.lua_pop(L, 1);
                     }
                 };
             }
@@ -2276,8 +2486,6 @@ export function injectVimApi(
 
     // --- Wave 4: Variables + messaging + text ---
 
-    const bufferVars = new Map<string, Map<string, unknown>>();
-
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_get_var');
         const name = readLuaString(state, 2);
@@ -2456,6 +2664,44 @@ export function injectVimApi(
         createErrorStub(L, message as string);
         lua.lua_setfield(L, vimTableIndex, to_luastring(key as string));
     }
+
+    lua.lua_newtable(L);
+    const filetypeIndex = lua.lua_gettop(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const ft = readLuaString(state, 1);
+        const optName = readLuaString(state, 2);
+        if (optName === 'commentstring') {
+            const csMap: Record<string, string> = {
+                markdown: '%% %s %%',
+                javascript: '// %s',
+                typescript: '// %s',
+                python: '# %s',
+                lua: '-- %s',
+                css: '/* %s */',
+                html: '<!-- %s -->',
+                xml: '<!-- %s -->',
+                c: '/* %s */',
+                cpp: '// %s',
+                java: '// %s',
+                rust: '// %s',
+                go: '// %s',
+                ruby: '# %s',
+                sh: '# %s',
+                bash: '# %s',
+                yaml: '# %s',
+                toml: '# %s',
+            };
+            const cs = ft ? (csMap[ft] ?? '%% %s %%') : '%% %s %%';
+            lua.lua_pushstring(state, to_luastring(cs));
+            return 1;
+        }
+        lua.lua_pushnil(state);
+        return 1;
+    });
+    lua.lua_setfield(L, filetypeIndex, to_luastring('get_option'));
+    lua.lua_pushvalue(L, filetypeIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('filetype'));
+    lua.lua_pop(L, 1);
 
     injectRegex(L, vimTableIndex);
 

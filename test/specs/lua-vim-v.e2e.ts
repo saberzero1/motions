@@ -7,6 +7,7 @@ import {
     sendVimEscape,
     getPluginSetting,
     vimKeys,
+    vimHandleKeysSync,
     PAUSE,
 } from '../helpers';
 
@@ -29,10 +30,8 @@ describe('vim.v in keymap callbacks', function () {
                 'end)\n',
         );
         await focusEditor();
-        await browser.keys(['\\']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['t']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await vimHandleKeysSync('\\t', true);
         expect(await getPluginSetting('scrolloffLines')).toBe(0);
     });
 
@@ -44,12 +43,7 @@ describe('vim.v in keymap callbacks', function () {
                 'end)\n',
         );
         await focusEditor();
-        await browser.keys(['5']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['\\']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['t']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await vimHandleKeysSync('5\\t', true);
         expect(await getPluginSetting('scrolloffLines')).toBe(5);
     });
 
@@ -61,10 +55,7 @@ describe('vim.v in keymap callbacks', function () {
                 'end)\n',
         );
         await focusEditor();
-        await browser.keys(['\\']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['t']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await vimHandleKeysSync('\\t', true);
         expect(await getPluginSetting('scrolloffLines')).toBe(1);
     });
 
@@ -76,12 +67,7 @@ describe('vim.v in keymap callbacks', function () {
                 'end)\n',
         );
         await focusEditor();
-        await browser.keys(['3']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['\\']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['t']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await vimHandleKeysSync('3\\t', true);
         expect(await getPluginSetting('scrolloffLines')).toBe(3);
     });
 });
@@ -161,10 +147,7 @@ describe('vim.v.hlsearch', function () {
         await browser.pause(PAUSE.EDITOR_SETTLE);
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
-        await browser.keys(['\\']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['h']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await vimHandleKeysSync('\\h', true);
         expect(await getPluginSetting('scrolloffLines')).toBe(1);
     });
 
@@ -204,10 +187,7 @@ describe('vim.v.hlsearch', function () {
             Vim.handleEx(adapter, 'nohlsearch');
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
-        await browser.keys(['\\']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['h']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await vimHandleKeysSync('\\h', true);
         expect(await getPluginSetting('scrolloffLines')).toBe(0);
     });
 });

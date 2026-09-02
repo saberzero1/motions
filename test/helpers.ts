@@ -320,7 +320,10 @@ export async function vimRawKeys(keys: string): Promise<void> {
     await browser.pause(PAUSE.EDITOR_SETTLE - PAUSE.KEY_GAP);
 }
 
-export async function vimHandleKeys(keys: string): Promise<void> {
+export async function vimHandleKeys(
+    keys: string,
+    options?: { useHandleKey?: boolean },
+): Promise<void> {
     await sendVimEscape();
     await browser.pause(PAUSE.MODE_SWITCH);
     await browser.executeObsidian(({ app, obsidian }, keyStr: string) => {
@@ -355,6 +358,63 @@ export async function vimHandleKeys(keys: string): Promise<void> {
             }
         }
     }, keys);
+    await browser.pause(PAUSE.EDITOR_SETTLE);
+}
+
+/**
+ * Dispatch keys via Vim.handleKey in a single synchronous batch.
+ * Sends Escape first (inside the same executeObsidian call) to ensure
+ * normal mode.  Avoids timer-based deferral — the full key sequence is
+ * resolved synchronously, matching Neovim's key dispatch semantics.
+ */
+export async function vimHandleKeysSync(
+    keys: string,
+    waitForTimeout = false,
+): Promise<void> {
+    const result = await browser.executeObsidian(
+        ({ app, obsidian }, keyStr: string) => {
+            const Vim = (
+                window as unknown as Record<string, unknown> & {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (
+                (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>
+            )?.cm;
+            if (!cm) return;
+            Vim.handleKey(cm, '<Esc>');
+            const dispatched: string[] = [];
+            for (const ch of keyStr) {
+                const code = ch.charCodeAt(0);
+                if (code === 0x1b) {
+                    Vim.handleKey(cm, '<Esc>');
+                    dispatched.push('<Esc>');
+                } else if (code < 0x20) {
+                    const letter = String.fromCharCode(code + 0x60);
+                    Vim.handleKey(cm, '<C-' + letter + '>');
+                    dispatched.push('<C-' + letter + '>');
+                } else {
+                    Vim.handleKey(cm, ch);
+                    dispatched.push(ch);
+                }
+            }
+            return dispatched;
+        },
+        keys,
+    );
+    if (waitForTimeout) {
+        await browser.pause(1200);
+    }
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 

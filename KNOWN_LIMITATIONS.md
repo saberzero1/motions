@@ -65,6 +65,11 @@ The following `vim.v` variables are registered in the API and return default val
 - **`nvim_echo` maps to Obsidian's `Notice` API** — highlight groups in chunks are ignored (plain text only).
 - **All buffer/window/tabpage handles must be `0` (current)**. Multi-buffer/multi-window operations are not supported.
 - **`nvim_replace_termcodes` is an identity function** (returns input unchanged) because the codemirror-vim fork uses vim key notation natively.
+- **`vim.bo.commentstring` defaults to `%% %s %%`** (Obsidian-native comment syntax) for all buffers. Treesitter-contextual commentstring (e.g., `// %s` inside a JS code block) is not implemented.
+- **`vim.is_callable` does not detect callable tables** with `__call` metamethods in the fengari sandbox. Only functions return `true`. (Note: `rawget`/`rawset`/`rawequal` are now available in the sandbox for Neovim compatibility, but `vim.is_callable` still uses a function-type check rather than `rawget` on the metatable.)
+- **`lockmarks` ex command modifier is silently stripped** in `vim.cmd()`. Marks are not preserved during buffer edits performed via `lockmarks`.
+- **`vim.plugins.add()` supports automatic fetching** from GitHub. Users can specify a repository (e.g., `owner/repo`) and optional branch/tag/commit. Archives are downloaded as tarballs and extracted to `lua/`. Requires `pluginAutoFetch` setting to be enabled.
+- **`require()` supports `init.lua` fallback** — matches Neovim's module resolution by trying `lua/name/init.lua` if `lua/name.lua` is missing.
 
 ## Treesitter integration (`vim.treesitter`)
 
@@ -265,7 +270,9 @@ This resolves the `cs`/`ys`/`ds` vs flash `s` conflict: when the user types `c` 
 
 Settings: `set operatorshadowtimeout=1000` (vimrc), `vim.opt.operatorshadowtimeout = 1000` (Lua), or **Settings → Vim Motions → Vim engine → Operator shadow timeout**. Set to `0` to disable (immediate motion execution, upstream behavior).
 
-**Not in scope**: Full non-operator `timeoutlen` — keys that are both a built-in prefix and a mapping prefix (e.g., remapping `g` to something other than a prefix) are not covered by the operator-prefix resolver. The existing `keyBuffer` partial match system handles `g`/`z`/`<C-w>` prefixes without timeouts (matching Neovim's behavior for built-in multi-key commands). Full non-operator `timeoutlen` would require a global key dispatch rewrite with broader UX implications and is deferred unless demand arises.
+The fork also implements a **backtracking deferral** for user-registered keymaps that share a prefix with a shorter full match (e.g., user maps `gc` as an action while `gcc` is also mapped). When `matchCommand` finds both a full match and a longer partial, it defers the full match for `operatorshadowtimeout` ms, allowing the user to complete the longer sequence. If the next keystroke doesn't extend the match, the deferred command backtracks and executes, replaying the leftover keys via `doKeyToKey`. Four exclusion rules prevent false deferrals from built-in keymap collisions: `_isDefault` entries, special-key false prefix (`<` vs `<leader>`), motions extending non-motions (`il` vs `i`), and `operatorPending` actions without an active operator (`s<char>` vs `s`).
+
+This means `<leader>t` mappings with longer partials (e.g., table nav `<leader>tL`) exhibit Neovim-correct `timeoutlen` behavior — the mapping fires after `operatorshadowtimeout` (default 1000ms) if no further key completes a longer match.
 
 ## ~~Insert-mode surround dot-repeat~~ (Fixed)
 
