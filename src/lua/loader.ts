@@ -575,6 +575,100 @@ export async function loadInitLua(
             const searchState = vim.getSearchState?.(cm);
             return searchState?.getOverlay() ? 1 : 0;
         },
+        getCmAdapter: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            return getCmAdapter(view);
+        },
+        getMarkPos: (name) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cm = getCmAdapter(view);
+            if (!cm) return null;
+            const vimState = (
+                cm as {
+                    state?: {
+                        vim?: {
+                            marks?: Record<
+                                string,
+                                {
+                                    find():
+                                        | { line: number; ch: number }
+                                        | undefined;
+                                }
+                            >;
+                        };
+                    };
+                }
+            ).state?.vim;
+            if (!vimState?.marks) return null;
+            const mark = vimState.marks[name];
+            const pos = mark?.find();
+            return pos ? { line: pos.line, ch: pos.ch } : null;
+        },
+        setMark: (name, line, ch) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cm = getCmAdapter(view);
+            if (!cm) return;
+            const vimState = (
+                cm as { state?: { vim?: { marks?: Record<string, unknown> } } }
+            ).state?.vim;
+            if (!vimState) return;
+            if (!vimState.marks) vimState.marks = {};
+            vimState.marks[name] = (
+                cm as unknown as {
+                    markText?(from: { line: number; ch: number }): unknown;
+                }
+            ).markText?.({ line, ch }) ?? {
+                find: () => ({ line, ch }),
+                clear: () => {},
+            };
+        },
+        delMark: (name) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return false;
+            const cm = getCmAdapter(view);
+            if (!cm) return false;
+            const vimState = (
+                cm as {
+                    state?: {
+                        vim?: {
+                            marks?: Record<string, { clear?(): void }>;
+                        };
+                    };
+                }
+            ).state?.vim;
+            if (!vimState?.marks) return false;
+            const mark = vimState.marks[name];
+            if (!mark) return false;
+            mark.clear?.();
+            delete vimState.marks[name];
+            return true;
+        },
+        getLine: (line) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            if (line < 0 || line >= view.editor.lineCount()) return null;
+            return view.editor.getLine(line);
+        },
+        setLine: (line, text) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const editor = view.editor;
+            if (line < 0 || line >= editor.lineCount()) return;
+            const lineLen = editor.getLine(line).length;
+            editor.replaceRange(text, { line, ch: 0 }, { line, ch: lineLen });
+        },
+        replaceRange: (text, fromLine, fromCol, toLine, toCol) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            view.editor.replaceRange(
+                text,
+                { line: fromLine, ch: fromCol },
+                { line: toLine, ch: toCol },
+            );
+        },
         onGlobalKeymap: (map) => {
             commandCount++;
             globalMaps.push(map);

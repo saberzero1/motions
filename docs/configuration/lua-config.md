@@ -819,20 +819,59 @@ Use `buffer = 0` for the current file. Buffer-local keymaps are automatically sw
 
 Read and modify editor content from Lua callbacks:
 
-| Function                                                   | Description                                  | Example                                              |
-| ---------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------- |
-| `vim.api.nvim_buf_get_lines(0, start, end, strict)`        | Get lines (0-based, end-exclusive, -1 = EOF) | `vim.api.nvim_buf_get_lines(0, 0, -1, true)`         |
-| `vim.api.nvim_buf_set_lines(0, start, end, strict, lines)` | Set lines (empty table = delete)             | `vim.api.nvim_buf_set_lines(0, 0, 0, true, {"new"})` |
-| `vim.api.nvim_get_current_buf()`                           | Returns 0 (current buffer)                   | `local buf = vim.api.nvim_get_current_buf()`         |
-| `vim.api.nvim_buf_get_name(0)`                             | Vault-relative file path                     | `vim.api.nvim_buf_get_name(0)`                       |
-| `vim.api.nvim_buf_line_count(0)`                           | Total line count                             | `vim.api.nvim_buf_line_count(0)`                     |
+| Function                                                                            | Description                                  | Example                                              |
+| ----------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------- |
+| `vim.api.nvim_get_current_buf()`                                                    | Returns 0 (current buffer)                   | `local buf = vim.api.nvim_get_current_buf()`         |
+| `vim.api.nvim_buf_get_name(0)`                                                      | Vault-relative file path                     | `vim.api.nvim_buf_get_name(0)`                       |
+| `vim.api.nvim_buf_line_count(0)`                                                    | Total line count                             | `vim.api.nvim_buf_line_count(0)`                     |
+| `vim.api.nvim_buf_get_lines(0, start, end, strict)`                                 | Get lines (0-based, end-exclusive, -1 = EOF) | `vim.api.nvim_buf_get_lines(0, 0, -1, true)`         |
+| `vim.api.nvim_buf_set_lines(0, start, end, strict, lines)`                          | Set lines (empty table = delete)             | `vim.api.nvim_buf_set_lines(0, 0, 0, true, {"new"})` |
+| `vim.api.nvim_buf_set_text(0, start_row, start_col, end_row, end_col, replacement)` | Set text in range (0-indexed)                | `vim.api.nvim_buf_set_text(0, 0, 0, 0, 0, {"hi"})`   |
+| `vim.api.nvim_get_current_line()`                                                   | Get current line content                     | `local line = vim.api.nvim_get_current_line()`       |
+| `vim.api.nvim_set_current_line(line)`                                               | Set current line content                     | `vim.api.nvim_set_current_line("new")`               |
+| `vim.api.nvim_buf_get_mark(0, name)`                                                | Get mark position `{line, col}` (0-indexed)  | `local pos = vim.api.nvim_buf_get_mark(0, "a")`      |
+| `vim.api.nvim_buf_set_mark(0, name, line, col, opts)`                               | Set mark position (0-indexed)                | `vim.api.nvim_buf_set_mark(0, "a", 5, 0, {})`        |
+| `vim.api.nvim_buf_del_mark(0, name)`                                                | Delete a mark                                | `vim.api.nvim_buf_del_mark(0, "a")`                  |
+| `vim.api.nvim_buf_get_var(0, name)`                                                 | Get buffer-local variable                    | `local val = vim.api.nvim_buf_get_var(0, "x")`       |
+| `vim.api.nvim_buf_set_var(0, name, value)`                                          | Set buffer-local variable                    | `vim.api.nvim_buf_set_var(0, "x", 1)`                |
+| `vim.api.nvim_buf_get_option(0, name)`                                              | Get buffer-local option                      | `local val = vim.api.nvim_buf_get_option(0, "sw")`   |
+| `vim.api.nvim_buf_set_option(0, name, value)`                                       | Set buffer-local option                      | `vim.api.nvim_buf_set_option(0, "sw", 4)`            |
 
 > [!info] Buffer argument
 > Only `buffer = 0` (current buffer) is supported. These functions operate on the active editor.
 
+## Window and Cursor
+
+| Function                                      | Description                                   | Example                                          |
+| --------------------------------------------- | --------------------------------------------- | ------------------------------------------------ |
+| `vim.api.nvim_get_current_win()`              | Returns 0 (current window)                    | `local win = vim.api.nvim_get_current_win()`     |
+| `vim.api.nvim_win_get_cursor(0)`              | Get cursor position `{line, col}` (0-indexed) | `local pos = vim.api.nvim_win_get_cursor(0)`     |
+| `vim.api.nvim_win_set_cursor(0, {line, col})` | Set cursor position (0-indexed)               | `vim.api.nvim_win_set_cursor(0, {5, 0})`         |
+| `vim.api.nvim_win_get_buf(0)`                 | Returns 0 (current buffer)                    | `local buf = vim.api.nvim_win_get_buf(0)`        |
+| `vim.api.nvim_get_current_tabpage()`          | Returns 0 (current tabpage)                   | `local tab = vim.api.nvim_get_current_tabpage()` |
+
+> [!info] Window and Tabpage handles
+> Only `0` (current) is supported for window and tabpage handles.
+
+## Keymaps
+
+| Function                                               | Description                  | Example                                             |
+| ------------------------------------------------------ | ---------------------------- | --------------------------------------------------- |
+| `vim.api.nvim_set_keymap(mode, lhs, rhs, opts)`        | Create a global key mapping  | `vim.api.nvim_set_keymap("n", "x", "y", {})`        |
+| `vim.api.nvim_del_keymap(mode, lhs)`                   | Remove a global key mapping  | `vim.api.nvim_del_keymap("n", "x")`                 |
+| `vim.api.nvim_get_keymap(mode)`                        | Get list of global keymaps   | `local maps = vim.api.nvim_get_keymap("n")`         |
+| `vim.api.nvim_buf_set_keymap(0, mode, lhs, rhs, opts)` | Create a buffer-local keymap | `vim.api.nvim_buf_set_keymap(0, "n", "x", "y", {})` |
+| `vim.api.nvim_buf_del_keymap(0, mode, lhs)`            | Remove a buffer-local keymap | `vim.api.nvim_buf_del_keymap(0, "n", "x")`          |
+
 ## Custom ex commands
 
 Define custom commands that are usable from the `:` ex command line.
+
+| Function                                            | Description              | Example                                  |
+| --------------------------------------------------- | ------------------------ | ---------------------------------------- |
+| `vim.api.nvim_command(command)`                     | Execute an ex command    | `vim.api.nvim_command("set nu")`         |
+| `vim.api.nvim_create_user_command(name, cmd, opts)` | Define custom ex command | see below                                |
+| `vim.api.nvim_del_user_command(name)`               | Delete custom ex command | `vim.api.nvim_del_user_command("Today")` |
 
 ```lua
 -- Simple alias
@@ -865,9 +904,24 @@ end, {})
 
 Registered commands are immediately available via `:CommandName` in the ex command line. The function callback receives an `opts` table with an `args` field containing the argument string.
 
+## Key injection
+
+| Function                                   | Description                       | Example                                        |
+| ------------------------------------------ | --------------------------------- | ---------------------------------------------- |
+| `vim.api.nvim_feedkeys(keys, mode, remap)` | Inject keystrokes                 | `vim.api.nvim_feedkeys("j", "n", false)`       |
+| `vim.api.nvim_replace_termcodes(str, ...)` | Identity function (returns input) | `vim.api.nvim_replace_termcodes("<Esc>", ...)` |
+
 ## Autocommands
 
 Vim Motions supports a Neovim-compatible autocommand system for reacting to editor events.
+
+| Function                                   | Description                  | Example                                         |
+| ------------------------------------------ | ---------------------------- | ----------------------------------------------- |
+| `vim.api.nvim_create_autocmd(event, opts)` | Register autocommand         | see below                                       |
+| `vim.api.nvim_create_augroup(name, opts)`  | Create/get autocommand group | see below                                       |
+| `vim.api.nvim_del_autocmd(id)`             | Delete autocommand           | `vim.api.nvim_del_autocmd(42)`                  |
+| `vim.api.nvim_del_augroup_by_name(name)`   | Delete autocommand group     | `vim.api.nvim_del_augroup_by_name("my-config")` |
+| `vim.api.nvim_clear_autocmds(opts)`        | Clear autocommands           | `vim.api.nvim_clear_autocmds({ group = g })`    |
 
 > [!tip] Per-view mode events
 > Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) and cursor/yank/cmdline events (`CursorMoved`, `CursorHold`, `TextYankPost`, `CmdlineEnter`, `CmdlineLeave`) fire per-view across all editors — split panes, popover editors, and canvas card text inputs — when using the bundled vim fork (recommended setup). This means autocmd callbacks work in every editor, not just the active leaf.
@@ -1396,6 +1450,12 @@ vim.g.mode_prompt_replace = "R"
 
 Customize plugin styling from Lua using Neovim's `nvim_set_hl` API:
 
+| Function                              | Description                    | Example                                                |
+| ------------------------------------- | ------------------------------ | ------------------------------------------------------ |
+| `vim.api.nvim_create_namespace(name)` | Returns 0 (global namespace)   | `local ns = vim.api.nvim_create_namespace("my")`       |
+| `vim.api.nvim_set_hl(ns, name, opts)` | Set highlight group attributes | `vim.api.nvim_set_hl(0, "MyHl", { fg = "red" })`       |
+| `vim.api.nvim_get_hl(ns, opts)`       | Get highlight group attributes | `local hl = vim.api.nvim_get_hl(0, { name = "MyHl" })` |
+
 ```lua
 -- Change EasyMotion label colors
 vim.api.nvim_set_hl(0, "EasyMotionTarget", { fg = "#ff5555", bg = "#282a36", bold = true })
@@ -1462,6 +1522,19 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 
 > [!info] Underline styles
 > Only one underline style can be active per highlight group. If multiple underline attributes (`undercurl`, `underdouble`, `underdotted`, `underdashed`) are set, only the first one takes effect.
+
+## UI
+
+| Function                                   | Description                         | Example                                            |
+| ------------------------------------------ | ----------------------------------- | -------------------------------------------------- |
+| `vim.api.nvim_echo(chunks, history, opts)` | Show Obsidian notification (Notice) | `vim.api.nvim_echo({{"Hello", "None"}}, true, {})` |
+
+## Options
+
+| Function                               | Description             | Example                                     |
+| -------------------------------------- | ----------------------- | ------------------------------------------- |
+| `vim.api.nvim_get_option(name)`        | Get global option value | `local val = vim.api.nvim_get_option("sw")` |
+| `vim.api.nvim_set_option(name, value)` | Set global option value | `vim.api.nvim_set_option("sw", 4)`          |
 
 ## When to use Lua vs Vimrc
 

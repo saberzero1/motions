@@ -296,7 +296,7 @@ describe('vim api', () => {
 
         const status = lauxlib.luaL_dostring(
             L,
-            to_luastring('return vim.api.nvim_buf_get_mark(0, "a")'),
+            to_luastring('return vim.api.nvim_win_set_config(0, {})'),
         );
         expect(status).not.toBe(lua.LUA_OK);
         const err = lua.lua_tolstring(L, -1);
@@ -304,6 +304,704 @@ describe('vim api', () => {
             'nvim_create_user_command',
         );
         destroyState(L);
+    });
+
+    describe('vim.api — Wave 1: Cursor + line + marks', () => {
+        it('nvim_get_current_win returns 0', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_get_current_win()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(0);
+            destroyState(L);
+        });
+
+        it('nvim_get_current_line returns cursor line text', () => {
+            const L = createSandboxedState();
+            const getLines = vi.fn(() => ['hello world']);
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getCursorPosition: () => ({ line: 3, col: 5 }),
+                getLines,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_get_current_line()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('hello world');
+            expect(getLines).toHaveBeenCalledWith(2, 3);
+            destroyState(L);
+        });
+
+        it('nvim_set_current_line calls setLine with cursor line index', () => {
+            const L = createSandboxedState();
+            const setLine = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getCursorPosition: () => ({ line: 3, col: 5 }),
+                setLine,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_set_current_line("new text")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(setLine).toHaveBeenCalledWith(2, 'new text');
+            destroyState(L);
+        });
+
+        it('nvim_win_get_cursor returns {line_1indexed, col_0indexed}', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getCursorPosition: () => ({ line: 3, col: 5 }),
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'local pos = vim.api.nvim_win_get_cursor(0)\nreturn string.format("%d:%d", pos[1], pos[2])',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('3:4');
+            destroyState(L);
+        });
+
+        it('nvim_win_set_cursor calls setCursorPosition(line, col+1)', () => {
+            const L = createSandboxedState();
+            const setCursorPosition = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                setCursorPosition,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_win_set_cursor(0, {5, 3})'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(setCursorPosition).toHaveBeenCalledWith(5, 4);
+            destroyState(L);
+        });
+
+        it('nvim_win_get_cursor errors with non-zero window', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_win_get_cursor(1)'),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
+            const err = lua.lua_tolstring(L, -1);
+            expect(err ? to_jsstring(err) : '').toContain(
+                'window numbers other than 0',
+            );
+            destroyState(L);
+        });
+
+        it('nvim_buf_get_mark returns {line+1, ch} for set mark', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getMarkPos: (name) =>
+                    name === 'a' ? { line: 2, ch: 3 } : null,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'local m = vim.api.nvim_buf_get_mark(0, "a")\nreturn string.format("%d:%d", m[1], m[2])',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('3:3');
+            destroyState(L);
+        });
+
+        it('nvim_buf_get_mark returns {0, 0} for unset mark', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getMarkPos: () => null,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'local m = vim.api.nvim_buf_get_mark(0, "z")\nreturn string.format("%d:%d", m[1], m[2])',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('0:0');
+            destroyState(L);
+        });
+
+        it('nvim_buf_set_mark calls setMark with line-1 conversion', () => {
+            const L = createSandboxedState();
+            const setMark = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                setMark,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'return vim.api.nvim_buf_set_mark(0, "a", 5, 3, {})',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            expect(setMark).toHaveBeenCalledWith('a', 4, 3);
+            destroyState(L);
+        });
+
+        it('nvim_buf_del_mark calls delMark and returns result', () => {
+            const L = createSandboxedState();
+            const delMark = vi.fn(() => true);
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                delMark,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_buf_del_mark(0, "a")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            expect(delMark).toHaveBeenCalledWith('a');
+            destroyState(L);
+        });
+    });
+
+    describe('vim.api — Wave 2: Global keymaps + key injection', () => {
+        it('nvim_set_keymap calls onKeymap with mapped mode', () => {
+            const L = createSandboxedState();
+            const onKeymap = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap,
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_set_keymap("n", "Q", ":q<CR>", {})'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onKeymap).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    mode: 'normal',
+                    lhs: 'Q',
+                    rhs: ':q<CR>',
+                    noremap: false,
+                }),
+            );
+            destroyState(L);
+        });
+
+        it('nvim_set_keymap with noremap option', () => {
+            const L = createSandboxedState();
+            const onKeymap = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap,
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.api.nvim_set_keymap("n", "Q", ":q<CR>", { noremap = true })',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onKeymap).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    mode: 'normal',
+                    lhs: 'Q',
+                    rhs: ':q<CR>',
+                    noremap: true,
+                }),
+            );
+            destroyState(L);
+        });
+
+        it('nvim_del_keymap calls onKeymapDel', () => {
+            const L = createSandboxedState();
+            const onKeymapDel = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_del_keymap("n", "Q")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(onKeymapDel).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    mode: 'normal',
+                    lhs: 'Q',
+                }),
+            );
+            destroyState(L);
+        });
+
+        it('nvim_get_keymap returns keymap table', () => {
+            const L = createSandboxedState();
+            const mockGetKeymap = vi.fn(() => [
+                {
+                    keys: 'Q',
+                    type: 'keyToKey',
+                    context: 'normal',
+                    toKeys: ':q<CR>',
+                },
+            ]);
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getVimApi: () =>
+                    ({ getKeymap: mockGetKeymap }) as unknown as NonNullable<
+                        ReturnType<
+                            NonNullable<
+                                Parameters<typeof injectVimApi>[1]['getVimApi']
+                            >
+                        >
+                    >,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'local maps = vim.api.nvim_get_keymap("n")\nreturn maps[1].lhs .. "|" .. maps[1].rhs',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('Q|:q<CR>');
+            destroyState(L);
+        });
+
+        it('nvim_replace_termcodes returns string unchanged', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'return vim.api.nvim_replace_termcodes("<CR>", true, true, true)',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('<CR>');
+            destroyState(L);
+        });
+
+        it('nvim_feedkeys calls feedKeys with noremap flag', () => {
+            const L = createSandboxedState();
+            const mockFeedKeys = vi.fn();
+            const mockAdapter = {};
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getVimApi: () =>
+                    ({ feedKeys: mockFeedKeys }) as unknown as NonNullable<
+                        ReturnType<
+                            NonNullable<
+                                Parameters<typeof injectVimApi>[1]['getVimApi']
+                            >
+                        >
+                    >,
+                getCmAdapter: () =>
+                    mockAdapter as unknown as NonNullable<
+                        ReturnType<
+                            NonNullable<
+                                Parameters<
+                                    typeof injectVimApi
+                                >[1]['getCmAdapter']
+                            >
+                        >
+                    >,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_feedkeys("jj", "n", false)'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(mockFeedKeys).toHaveBeenCalledWith(mockAdapter, 'jj', {
+                noremap: true,
+            });
+            destroyState(L);
+        });
+    });
+
+    describe('vim.api — Wave 3: Commands + stubs + options', () => {
+        it('nvim_command calls handleExCommand', () => {
+            const L = createSandboxedState();
+            const handleExCommand = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand,
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_command(":set scrolloff=5")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(handleExCommand).toHaveBeenCalledWith(':set scrolloff=5');
+            destroyState(L);
+        });
+
+        it('nvim_del_user_command calls undefineEx', () => {
+            const L = createSandboxedState();
+            const mockUndefineEx = vi.fn(() => true);
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getVimApi: () =>
+                    ({ undefineEx: mockUndefineEx }) as unknown as NonNullable<
+                        ReturnType<
+                            NonNullable<
+                                Parameters<typeof injectVimApi>[1]['getVimApi']
+                            >
+                        >
+                    >,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_del_user_command("MyCmd")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(mockUndefineEx).toHaveBeenCalledWith('MyCmd');
+            destroyState(L);
+        });
+
+        it('nvim_win_get_buf returns 0', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_win_get_buf(0)'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(0);
+            destroyState(L);
+        });
+
+        it('nvim_get_current_tabpage returns 0', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_get_current_tabpage()'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(0);
+            destroyState(L);
+        });
+
+        it('nvim_buf_get_option calls getOption', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getOption: (name) => (name === 'scrolloff' ? 5 : undefined),
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'return vim.api.nvim_buf_get_option(0, "scrolloff")',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(5);
+            destroyState(L);
+        });
+
+        it('nvim_buf_set_option calls setOption', () => {
+            const L = createSandboxedState();
+            const setOption = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                setOption,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_buf_set_option(0, "scrolloff", 5)'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(setOption).toHaveBeenCalledWith('scrolloff', 5);
+            destroyState(L);
+        });
+
+        it('nvim_get_option calls getOption', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getOption: (name) => (name === 'scrolloff' ? 10 : undefined),
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_get_option("scrolloff")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(10);
+            destroyState(L);
+        });
+
+        it('nvim_set_option calls setOption', () => {
+            const L = createSandboxedState();
+            const setOption = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                setOption,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.api.nvim_set_option("scrolloff", 5)'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(setOption).toHaveBeenCalledWith('scrolloff', 5);
+            destroyState(L);
+        });
+    });
+
+    describe('vim.api — Wave 4: Variables + messaging + text', () => {
+        it('nvim_buf_set_var and nvim_buf_get_var round-trip', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => 'test.md',
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.api.nvim_buf_set_var(0, "myvar", 42)\nreturn vim.api.nvim_buf_get_var(0, "myvar")',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(42);
+            destroyState(L);
+        });
+
+        it('nvim_buf_get_var errors for non-existent variable', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => 'test.md',
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'return vim.api.nvim_buf_get_var(0, "nonexistent")',
+                ),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
+            const err = lua.lua_tolstring(L, -1);
+            expect(err ? to_jsstring(err) : '').toContain('Key not found');
+            destroyState(L);
+        });
+
+        it('nvim_echo calls showNotice with concatenated text', () => {
+            const L = createSandboxedState();
+            const showNotice = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                showNotice,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.api.nvim_echo({{"hello ", "Normal"}, {" world", "Error"}}, false, {})',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(showNotice).toHaveBeenCalledWith('hello  world');
+            destroyState(L);
+        });
+
+        it('nvim_buf_set_text calls replaceRange', () => {
+            const L = createSandboxedState();
+            const replaceRange = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                replaceRange,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.api.nvim_buf_set_text(0, 0, 0, 0, 5, {"hello"})',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(replaceRange).toHaveBeenCalledWith('hello', 0, 0, 0, 5);
+            destroyState(L);
+        });
+    });
+
+    describe('vim.api — __index metatable', () => {
+        it('lists all supported function names in error for unsupported call', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.api.nvim_totally_fake_function()'),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
+            const err = lua.lua_tolstring(L, -1);
+            const errStr = err ? to_jsstring(err) : '';
+            const expectedFunctions = [
+                'nvim_get_current_win',
+                'nvim_get_current_line',
+                'nvim_set_current_line',
+                'nvim_win_get_cursor',
+                'nvim_win_set_cursor',
+                'nvim_win_get_buf',
+                'nvim_get_current_tabpage',
+                'nvim_buf_get_mark',
+                'nvim_buf_set_mark',
+                'nvim_buf_del_mark',
+                'nvim_set_keymap',
+                'nvim_del_keymap',
+                'nvim_get_keymap',
+                'nvim_replace_termcodes',
+                'nvim_feedkeys',
+                'nvim_command',
+                'nvim_del_user_command',
+                'nvim_buf_get_option',
+                'nvim_buf_set_option',
+                'nvim_get_option',
+                'nvim_set_option',
+                'nvim_buf_get_var',
+                'nvim_buf_set_var',
+                'nvim_echo',
+                'nvim_buf_set_text',
+            ];
+            for (const fn of expectedFunctions) {
+                expect(errStr).toContain(fn);
+            }
+            destroyState(L);
+        });
     });
 
     describe('vim.obsidian', () => {

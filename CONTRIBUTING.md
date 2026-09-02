@@ -195,11 +195,11 @@ src/
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
     package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua config file loader
-    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v (predefined variables), vim.cmd, vim.notify, expr mapping support
+    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v, vim.cmd, vim.notify, vim.api (43 nvim_* functions: buffer, cursor, marks, keymaps, options, commands, highlights, autocommands, key injection, UI)
     fn.ts                  # vim.fn.* function library (65 functions)
-    buffer.ts              # vim.api.nvim_buf_* buffer API
-    autocmd.ts             # vim.api.nvim_create_autocmd and augroups
-    highlight.ts           # vim.api.nvim_set_hl highlight groups
+    buffer.ts              # Buffer-local keymap manager (per-file keymap storage and application)
+    autocmd.ts             # Autocommand manager (event registration, group lifecycle, pattern matching)
+    highlight.ts           # Highlight group manager (nvim_set_hl/nvim_get_hl CSS variable bridge)
     stdlib.ts              # vim.tbl_*, vim.split, vim.trim, vim.inspect, vim.json, etc.
     regex.ts               # vim.regex() — ECMAScript RegExp wrapper (match_str, match_pos, replace, test)
     obsidian-api.ts        # vim.obsidian / vim.ob namespace (including vim.obsidian.im)

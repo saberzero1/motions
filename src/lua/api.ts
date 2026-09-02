@@ -271,6 +271,22 @@ export interface VimApiCallbacks {
     getSearchForward?: () => number;
     setSearchForward?: (value: number) => void;
     getHlSearch?: () => number;
+    getCmAdapter?: () => CmAdapter | null;
+    // Tier 1 — Mark operations (for nvim_buf_get/set/del_mark)
+    getMarkPos?: (name: string) => { line: number; ch: number } | null;
+    setMark?: (name: string, line: number, ch: number) => void;
+    delMark?: (name: string) => boolean;
+    // Tier 1 — Line operations (for nvim_get/set_current_line)
+    getLine?: (line: number) => string | null;
+    setLine?: (line: number, text: string) => void;
+    // Tier 1 — Text replacement (for nvim_buf_set_text)
+    replaceRange?: (
+        text: string,
+        fromLine: number,
+        fromCol: number,
+        toLine: number,
+        toCol: number,
+    ) => void;
 }
 
 export const MODE_PROMPT_MAP: Record<string, string> = {
@@ -507,6 +523,28 @@ function requireBufferZero(
             state,
             to_luastring(
                 `${fnName}: buffer numbers other than 0 are not supported in Obsidian; use buffer = 0 for current file`,
+            ),
+        );
+    }
+}
+
+function requireWindowZero(
+    state: lua_State,
+    index: number,
+    fnName: string,
+): void {
+    if (!lua.lua_isnumber(state, index)) {
+        lauxlib.luaL_error(
+            state,
+            to_luastring(`${fnName}: expected window number`),
+        );
+    }
+    const win = lua.lua_tonumber(state, index);
+    if (win !== 0) {
+        lauxlib.luaL_error(
+            state,
+            to_luastring(
+                `${fnName}: window numbers other than 0 are not supported in Obsidian; use window = 0 for current editor`,
             ),
         );
     }
@@ -1834,11 +1872,523 @@ export function injectVimApi(
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_line_count'));
 
+    // --- Wave 1: Cursor + line + marks ---
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_pushnumber(state, 0);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_win'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_pushnumber(state, 0);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_tabpage'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const pos = callbacks.getCursorPosition?.();
+        if (!pos) {
+            lua.lua_pushstring(state, to_luastring(''));
+            return 1;
+        }
+        const lineText =
+            callbacks.getLines?.(pos.line - 1, pos.line)?.[0] ?? '';
+        lua.lua_pushstring(state, to_luastring(lineText));
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_line'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const line = readLuaString(state, 1);
+        if (line === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_set_current_line: expected string'),
+            );
+        }
+        const pos = callbacks.getCursorPosition?.();
+        if (!pos) return 0;
+        const zeroLine = pos.line - 1;
+        callbacks.setLine?.(zeroLine, line);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_current_line'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireWindowZero(state, 1, 'nvim_win_get_cursor');
+        const pos = callbacks.getCursorPosition?.();
+        if (!pos) {
+            lua.lua_newtable(state);
+            lua.lua_pushnumber(state, 1);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushnumber(state, 0);
+            lua.lua_rawseti(state, -2, 2);
+            return 1;
+        }
+        lua.lua_newtable(state);
+        lua.lua_pushnumber(state, pos.line);
+        lua.lua_rawseti(state, -2, 1);
+        lua.lua_pushnumber(state, pos.col - 1);
+        lua.lua_rawseti(state, -2, 2);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_get_cursor'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireWindowZero(state, 1, 'nvim_win_set_cursor');
+        if (!lua.lua_istable(state, 2)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_win_set_cursor: expected {line, col} table'),
+            );
+        }
+        lua.lua_rawgeti(state, 2, 1);
+        const line = lua.lua_tonumber(state, -1);
+        lua.lua_pop(state, 1);
+        lua.lua_rawgeti(state, 2, 2);
+        const col = lua.lua_tonumber(state, -1);
+        lua.lua_pop(state, 1);
+        if (Number.isNaN(line) || Number.isNaN(col)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_win_set_cursor: expected {line, col} with numbers',
+                ),
+            );
+        }
+        callbacks.setCursorPosition?.(line, col + 1);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_set_cursor'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_mark');
+        const name = readLuaString(state, 2);
+        if (!name || name.length !== 1) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_buf_get_mark: expected single-character mark name',
+                ),
+            );
+        }
+        const pos = callbacks.getMarkPos?.(name);
+        lua.lua_newtable(state);
+        if (pos) {
+            lua.lua_pushnumber(state, pos.line + 1);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushnumber(state, pos.ch);
+            lua.lua_rawseti(state, -2, 2);
+        } else {
+            lua.lua_pushnumber(state, 0);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushnumber(state, 0);
+            lua.lua_rawseti(state, -2, 2);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_mark'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_set_mark');
+        const name = readLuaString(state, 2);
+        if (!name || name.length !== 1) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_buf_set_mark: expected single-character mark name',
+                ),
+            );
+        }
+        if (!lua.lua_isnumber(state, 3) || !lua.lua_isnumber(state, 4)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_buf_set_mark: expected line and col numbers',
+                ),
+            );
+        }
+        const line = lua.lua_tonumber(state, 3);
+        const col = lua.lua_tonumber(state, 4);
+        callbacks.setMark?.(name, line - 1, col);
+        lua.lua_pushboolean(state, true);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_mark'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_del_mark');
+        const name = readLuaString(state, 2);
+        if (!name || name.length !== 1) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_buf_del_mark: expected single-character mark name',
+                ),
+            );
+        }
+        const result = callbacks.delMark?.(name) ?? false;
+        lua.lua_pushboolean(state, result);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_del_mark'));
+
+    // --- Wave 2: Global keymaps + key injection ---
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const mode = readLuaString(state, 1);
+        const lhs = readLuaString(state, 2);
+        const rhs = readLuaString(state, 3);
+        if (!mode || !lhs || rhs === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_set_keymap: expected mode, lhs, rhs strings',
+                ),
+            );
+        }
+        let noremap = false;
+        let desc: string | undefined;
+        let expr = false;
+        if (lua.lua_istable(state, 4)) {
+            noremap = readBooleanField(state, 4, 'noremap') ?? false;
+            desc = readStringField(state, 4, 'desc');
+            expr = readBooleanField(state, 4, 'expr') ?? false;
+        }
+        const context = modeToContext(mode);
+        if (!context) {
+            console.warn(
+                `Vim Motions: nvim_set_keymap unsupported mode ${mode}`,
+            );
+            return 0;
+        }
+        callbacks.onKeymap({
+            mode: context,
+            lhs,
+            rhs,
+            noremap,
+            desc,
+            expr,
+        });
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_keymap'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const mode = readLuaString(state, 1);
+        const lhs = readLuaString(state, 2);
+        if (!mode || !lhs) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_del_keymap: expected mode and lhs strings'),
+            );
+        }
+        const context = modeToContext(mode);
+        if (!context) {
+            console.warn(
+                `Vim Motions: nvim_del_keymap unsupported mode ${mode}`,
+            );
+            return 0;
+        }
+        callbacks.onKeymapDel({ mode: context, lhs });
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_del_keymap'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const mode = readLuaString(state, 1);
+        if (!mode) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_get_keymap: expected mode string'),
+            );
+        }
+        const context = modeToContext(mode);
+        const vimApi = callbacks.getVimApi?.();
+        const keymaps = vimApi?.getKeymap(context ?? undefined) ?? [];
+        const contextToMode: Record<string, string> = {
+            normal: 'n',
+            insert: 'i',
+            visual: 'v',
+        };
+        lua.lua_newtable(state);
+        let idx = 1;
+        for (const km of keymaps) {
+            lua.lua_newtable(state);
+            lua.lua_pushstring(state, to_luastring(km.keys ?? ''));
+            lua.lua_setfield(state, -2, to_luastring('lhs'));
+            lua.lua_pushstring(state, to_luastring(km.toKeys ?? ''));
+            lua.lua_setfield(state, -2, to_luastring('rhs'));
+            lua.lua_pushstring(
+                state,
+                to_luastring(contextToMode[km.context ?? ''] ?? mode),
+            );
+            lua.lua_setfield(state, -2, to_luastring('mode'));
+            lua.lua_pushboolean(state, km.type !== 'keyToKey');
+            lua.lua_setfield(state, -2, to_luastring('noremap'));
+            lua.lua_pushboolean(state, false);
+            lua.lua_setfield(state, -2, to_luastring('expr'));
+            lua.lua_pushboolean(state, false);
+            lua.lua_setfield(state, -2, to_luastring('silent'));
+            lua.lua_rawseti(state, -2, idx++);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_keymap'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const str = readLuaString(state, 1);
+        if (str === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_replace_termcodes: expected string'),
+            );
+        }
+        lua.lua_pushstring(state, to_luastring(str));
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_replace_termcodes'));
+
+    const feedkeysWarnedFlags = new Set<string>();
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const keys = readLuaString(state, 1);
+        const mode = readLuaString(state, 2) ?? '';
+        if (keys === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_feedkeys: expected keys string'),
+            );
+        }
+        const noremap = mode.includes('n');
+        for (const ch of mode) {
+            if (ch !== 'n' && ch !== 'm' && !feedkeysWarnedFlags.has(ch)) {
+                feedkeysWarnedFlags.add(ch);
+                console.warn(
+                    `Vim Motions: nvim_feedkeys mode flag '${ch}' is not supported; only 'n' (noremap) and 'm' (remap) are implemented`,
+                );
+            }
+        }
+        const vimApi = callbacks.getVimApi?.();
+        const adapter = callbacks.getCmAdapter?.();
+        if (vimApi?.feedKeys && adapter) {
+            vimApi.feedKeys(adapter, keys, { noremap });
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_feedkeys'));
+
+    // --- Wave 3: Commands + stubs + options ---
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const cmd = readLuaString(state, 1);
+        if (cmd === null) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_command: expected command string'),
+            );
+        }
+        callbacks.handleExCommand(cmd);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_command'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_del_user_command: expected command name string',
+                ),
+            );
+        }
+        const vimApi = callbacks.getVimApi?.();
+        vimApi?.undefineEx?.(name);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_del_user_command'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireWindowZero(state, 1, 'nvim_win_get_buf');
+        lua.lua_pushnumber(state, 0);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_get_buf'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_option');
+        const name = readLuaString(state, 2);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_buf_get_option: expected option name'),
+            );
+        }
+        const value = callbacks.getOption?.(name);
+        pushLuaValue(state, value ?? null);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_option'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_set_option');
+        const name = readLuaString(state, 2);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_buf_set_option: expected option name'),
+            );
+        }
+        const value = readLuaValue(state, 3);
+        callbacks.setOption?.(name, value);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_option'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_get_option: expected option name'),
+            );
+        }
+        const value = callbacks.getOption?.(name);
+        pushLuaValue(state, value ?? null);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_option'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_set_option: expected option name'),
+            );
+        }
+        const value = readLuaValue(state, 2);
+        callbacks.setOption?.(name, value);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_option'));
+
+    // --- Wave 4: Variables + messaging + text ---
+
+    const bufferVars = new Map<string, Map<string, unknown>>();
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_var');
+        const name = readLuaString(state, 2);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_buf_get_var: expected variable name'),
+            );
+        }
+        const filePath = callbacks.getActiveFilePath?.() ?? '';
+        const vars = bufferVars.get(filePath);
+        const value = vars?.get(name);
+        if (value === undefined) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(`Key not found: ${name}`),
+            );
+        }
+        pushLuaAny(state, value);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_var'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_set_var');
+        const name = readLuaString(state, 2);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_buf_set_var: expected variable name'),
+            );
+        }
+        const value = readLuaValue(state, 3);
+        const filePath = callbacks.getActiveFilePath?.() ?? '';
+        let vars = bufferVars.get(filePath);
+        if (!vars) {
+            vars = new Map();
+            bufferVars.set(filePath, vars);
+        }
+        if (value === null || value === undefined) {
+            vars.delete(name);
+        } else {
+            vars.set(name, value);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_var'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (!lua.lua_istable(state, 1)) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_echo: expected chunks table as first argument',
+                ),
+            );
+        }
+        const parts: string[] = [];
+        const len = lauxlib.luaL_len(state, 1);
+        for (let i = 1; i <= len; i++) {
+            lua.lua_rawgeti(state, 1, i);
+            if (lua.lua_istable(state, -1)) {
+                lua.lua_rawgeti(state, -1, 1);
+                const text = lua.lua_isstring(state, -1)
+                    ? to_jsstring(lua.lua_tolstring(state, -1)!)
+                    : '';
+                lua.lua_pop(state, 1);
+                parts.push(text);
+            }
+            lua.lua_pop(state, 1);
+        }
+        const message = parts.join('');
+        if (message.length > 0) {
+            callbacks.showNotice?.(message);
+        }
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_echo'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_set_text');
+        if (
+            !lua.lua_isnumber(state, 2) ||
+            !lua.lua_isnumber(state, 3) ||
+            !lua.lua_isnumber(state, 4) ||
+            !lua.lua_isnumber(state, 5)
+        ) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring(
+                    'nvim_buf_set_text: expected start_row, start_col, end_row, end_col numbers',
+                ),
+            );
+        }
+        const startRow = lua.lua_tonumber(state, 2);
+        const startCol = lua.lua_tonumber(state, 3);
+        const endRow = lua.lua_tonumber(state, 4);
+        const endCol = lua.lua_tonumber(state, 5);
+        const lines = getStringList(state, 6);
+        const text = lines.join('\n');
+        callbacks.replaceRange?.(text, startRow, startCol, endRow, endCol);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_text'));
+
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const fnName = readLuaString(state, 2);
         const supported = new Set([
             'nvim_create_user_command',
+            'nvim_del_user_command',
             'nvim_create_autocmd',
             'nvim_create_augroup',
             'nvim_del_autocmd',
@@ -1847,22 +2397,47 @@ export function injectVimApi(
             'nvim_create_namespace',
             'nvim_set_hl',
             'nvim_get_hl',
+            'nvim_set_keymap',
+            'nvim_del_keymap',
+            'nvim_get_keymap',
             'nvim_buf_set_keymap',
             'nvim_buf_del_keymap',
             'nvim_buf_get_lines',
             'nvim_buf_set_lines',
+            'nvim_buf_set_text',
             'nvim_get_current_buf',
+            'nvim_get_current_win',
+            'nvim_get_current_tabpage',
+            'nvim_get_current_line',
+            'nvim_set_current_line',
             'nvim_buf_get_name',
             'nvim_buf_line_count',
+            'nvim_win_get_cursor',
+            'nvim_win_set_cursor',
+            'nvim_win_get_buf',
+            'nvim_buf_get_mark',
+            'nvim_buf_set_mark',
+            'nvim_buf_del_mark',
+            'nvim_buf_get_var',
+            'nvim_buf_set_var',
+            'nvim_buf_get_option',
+            'nvim_buf_set_option',
+            'nvim_get_option',
+            'nvim_set_option',
+            'nvim_command',
+            'nvim_feedkeys',
+            'nvim_replace_termcodes',
+            'nvim_echo',
         ]);
         if (fnName && supported.has(fnName)) {
             lua.lua_getfield(state, 1, to_luastring(fnName));
             return 1;
         }
+        const supportedList = Array.from(supported).join(', ');
         return lauxlib.luaL_error(
             state,
             to_luastring(
-                `vim.api.${fnName ?? '?'} is not available in Obsidian. Supported: nvim_create_user_command, nvim_create_autocmd, nvim_create_augroup, nvim_del_autocmd, nvim_del_augroup_by_name, nvim_clear_autocmds, nvim_create_namespace, nvim_set_hl, nvim_get_hl, nvim_buf_set_keymap, nvim_buf_del_keymap, nvim_buf_get_lines, nvim_buf_set_lines, nvim_get_current_buf, nvim_buf_get_name, nvim_buf_line_count`,
+                `vim.api.${fnName ?? '?'} is not available in Obsidian. Supported: ${supportedList}`,
             ),
         );
     });

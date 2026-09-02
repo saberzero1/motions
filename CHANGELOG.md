@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Tier 1 `vim.api` expansion** — 27 new `nvim_*` functions (43 total), unlocking the mini.nvim plugin ecosystem. New functions organized in 4 waves:
+    - **Cursor + line + marks**: `nvim_get_current_win`, `nvim_get_current_line`, `nvim_set_current_line`, `nvim_win_get_cursor`, `nvim_win_set_cursor`, `nvim_buf_get_mark`, `nvim_buf_set_mark`, `nvim_buf_del_mark`
+    - **Global keymaps + key injection**: `nvim_set_keymap`, `nvim_del_keymap`, `nvim_get_keymap`, `nvim_replace_termcodes`, `nvim_feedkeys`
+    - **Commands + stubs + options**: `nvim_command`, `nvim_del_user_command`, `nvim_win_get_buf`, `nvim_get_current_tabpage`, `nvim_buf_get_option`, `nvim_buf_set_option`, `nvim_get_option`, `nvim_set_option`
+    - **Variables + messaging + text**: `nvim_buf_get_var`, `nvim_buf_set_var`, `nvim_echo`, `nvim_buf_set_text`
+    - Plugin: `src/lua/api.ts` (27 function registrations, `requireWindowZero` validator, updated metatable)
+    - Plugin: `src/lua/loader.ts` (8 new callbacks: `getCmAdapter`, `getMarkPos`, `setMark`, `delMark`, `getLine`, `setLine`, `replaceRange`)
+
+### Tests
+
+- 29 new unit tests in `test/unit/lua/api.test.ts` for all new `nvim_*` functions (92 total)
+
+### Documentation
+
+- `AGENTS.md`: updated `vim.api` function count to 43 with expanded category list
+- `CONTRIBUTING.md`: updated `src/lua/api.ts` description and buffer/autocmd/highlight file descriptions
+- `KNOWN_LIMITATIONS.md`: 6 new known limitations for Lua API (character offsets, deprecated options, feedkeys flags, echo, handles, replace_termcodes)
+- `README.md`: updated `vim.api.*` description
+- `docs/configuration/lua-config.md`: full API reference tables for all new functions
+
 ## [0.137.1] - 2026-09-02
 
 ### Fixed
