@@ -90,25 +90,25 @@ When the cursor enters a table in Live Preview with `tablenav` enabled, a naviga
 
 ### Keybindings
 
-| Key                             | Action                                       |
-| ------------------------------- | -------------------------------------------- |
-| `h` / `j` / `k` / `l`           | Navigate between cells                       |
-| `Tab` / `Shift+Tab`             | Navigate to next / previous cell             |
-| `{count}j`, `{count}l`, etc.    | Navigate with count prefix (e.g., `3j`)      |
-| `i` / `a` / `c` / `s` / `Enter` | Start editing the active cell                |
-| `Escape`                        | Exit table-nav and return to the main editor |
-| `o`                             | Add a row below                              |
-| `O`                             | Add a row above                              |
-| `dd`                            | Delete the current row                       |
-| `dc`                            | Delete the current column                    |
-| `J`                             | Move the current row down                    |
-| `K`                             | Move the current row up                      |
-| `H`                             | Move the current column to the left          |
-| `L`                             | Move the current column to the right         |
-| `I`                             | Add a column to the left                     |
-| `A`                             | Add a column to the right                    |
-| `=`                             | Realign the table                            |
-| `.`                             | Repeat the last structural command           |
+| Key                             | Action                                               |
+| ------------------------------- | ---------------------------------------------------- |
+| `h` / `j` / `k` / `l`           | Navigate between cells                               |
+| `Tab` / `Shift+Tab`             | Navigate to next / previous cell (wraps across rows) |
+| `{count}j`, `{count}l`, etc.    | Navigate with count prefix (e.g., `3j`)              |
+| `i` / `a` / `c` / `s` / `Enter` | Start editing the active cell                        |
+| `Escape`                        | Exit table-nav and return to the main editor         |
+| `o`                             | Add a row below                                      |
+| `O`                             | Add a row above                                      |
+| `dd`                            | Delete the current row                               |
+| `dc`                            | Delete the current column                            |
+| `J`                             | Move the current row down                            |
+| `K`                             | Move the current row up                              |
+| `H`                             | Move the current column to the left                  |
+| `L`                             | Move the current column to the right                 |
+| `I`                             | Add a column to the left                             |
+| `A`                             | Add a column to the right                            |
+| `=`                             | Realign the table                                    |
+| `.`                             | Repeat the last structural command                   |
 
 > [!info] Fork-only feature
 > Table-nav mode requires the bundled vim engine (fork mode). If you are using Obsidian's built-in vim mode, the plugin falls back to standard cell editing.
@@ -144,7 +144,7 @@ Operator-pending (`dj`, `yl`) and visual mode motions are confined to the curren
 
 Cell editors are Obsidian's native editors with vim injected via `registerEditorExtension()`. Full Vim modality is supported: Normal, Insert, and Visual modes all work within a single table cell.
 
-- `Tab` / `Shift+Tab` navigate between cells. When table-nav is enabled, Tab exits the cell editor and returns to table-nav on the next cell; Shift+Tab returns to table-nav on the previous cell.
+- `Tab` / `Shift+Tab` navigate between cells, wrapping across rows (Tab at the last cell of a row moves to the first cell of the next row; Shift+Tab at the first cell wraps to the last cell of the previous row). When table-nav is enabled, Tab exits the cell editor and returns to table-nav on the destination cell.
 - When table-nav is enabled: `Escape` in normal mode returns to table-nav. `h`/`j`/`k`/`l` and `w`/`b`/`e` in normal mode move the cursor within the cell; only when the cursor reaches a cell boundary do they exit to table-nav and navigate to the adjacent cell. This lets you use standard vim cursor movement inside cells after pressing Escape from insert mode.
 - When table-nav is disabled: `Escape` in normal mode stays in the cell; `h`/`j`/`k`/`l` and `w`/`b`/`e` cross cell boundaries directly via motion overrides.
 - **Register sharing**: Vim registers are shared between cell editors and the main document.

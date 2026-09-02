@@ -17,17 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/api.ts` (27 function registrations, `requireWindowZero` validator, updated metatable)
     - Plugin: `src/lua/loader.ts` (8 new callbacks: `getCmAdapter`, `getMarkPos`, `setMark`, `delMark`, `getLine`, `setLine`, `replaceRange`)
 
+### Fixed
+
+- **Table-nav `Tab`/`Shift+Tab` stops at row boundaries** — pressing `Tab` at the last cell of a row now wraps to the first cell of the next row, and `Shift+Tab` at the first cell wraps to the last cell of the previous row. Matches Obsidian's native table Tab behavior. At the absolute first/last cell of the table, Tab/Shift+Tab stay in place. The `navigate()` method gains a `wrap` parameter; `h`/`l` keys retain their non-wrapping behavior. ([#158](https://github.com/saberzero1/motions/issues/158))
+    - Plugin: `src/vim/table-nav-controller.ts` (wrapping logic in `navigate()`, forwarded `wrap` parameter in actions lambda and cell-edit scope)
+    - Plugin: `src/vim/table-nav-keymap.ts` (`wrap` parameter in `TableNavActions` interface, Tab handler passes `wrap=true`)
+
 ### Tests
 
 - 29 new unit tests in `test/unit/lua/api.test.ts` for all new `nvim_*` functions (92 total)
+- 4 regression tests in `test/specs/table-nav-mode.e2e.ts` for Tab/Shift+Tab row wrapping (#158)
 
 ### Documentation
 
+- `CHANGELOG.md`
 - `AGENTS.md`: updated `vim.api` function count to 43 with expanded category list
 - `CONTRIBUTING.md`: updated `src/lua/api.ts` description and buffer/autocmd/highlight file descriptions
 - `KNOWN_LIMITATIONS.md`: 6 new known limitations for Lua API (character offsets, deprecated options, feedkeys flags, echo, handles, replace_termcodes)
 - `README.md`: updated `vim.api.*` description
 - `docs/configuration/lua-config.md`: full API reference tables for all new functions
+- `docs/features/tables.md`: updated Tab/Shift+Tab description to mention row wrapping
+- `docs/reference/keybindings.md`: updated Tab description to mention row wrapping
 
 ## [0.137.1] - 2026-09-02
 

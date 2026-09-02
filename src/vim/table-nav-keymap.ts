@@ -1,5 +1,9 @@
 export interface TableNavActions {
-    navigate(direction: 'h' | 'j' | 'k' | 'l', count?: number): void;
+    navigate(
+        direction: 'h' | 'j' | 'k' | 'l',
+        count?: number,
+        wrap?: boolean,
+    ): void;
     enterCellEdit(
         mode: 'insert' | 'insert-append' | 'change' | 'substitute' | 'normal',
     ): void;
@@ -146,9 +150,9 @@ export function createTableNavKeyHandler(
                 return true;
             case 'Tab':
                 if (e.shiftKey) {
-                    actions.navigate('h', count);
+                    actions.navigate('h', count, true);
                 } else {
-                    actions.navigate('l', count);
+                    actions.navigate('l', count, true);
                 }
                 return true;
             case 'd':

@@ -98,20 +98,20 @@ Manage table structure using the `<leader>t` prefix.
 
 Available when the table widget is set to "Embedded" and the cursor enters a table. These keybindings are active in the table navigation layer (before entering a cell).
 
-| Keybinding                      | Description                            |
-| ------------------------------- | -------------------------------------- |
-| `h` / `l`                       | Move cell highlight left / right       |
-| `j` / `k`                       | Move cell highlight down / up          |
-| `i` / `a` / `c` / `s` / `Enter` | Enter cell editing                     |
-| `Escape`                        | Exit table                             |
-| `o` / `O`                       | Add row below / above                  |
-| `dd`                            | Delete row                             |
-| `dc`                            | Delete column                          |
-| `J` / `K`                       | Move row down / up                     |
-| `H` / `L`                       | Move column left / right               |
-| `I` / `A`                       | Add column left / right                |
-| `=`                             | Realign table                          |
-| `Tab` / `Shift-Tab`             | Next / previous cell (in cell editing) |
+| Keybinding                      | Description                              |
+| ------------------------------- | ---------------------------------------- |
+| `h` / `l`                       | Move cell highlight left / right         |
+| `j` / `k`                       | Move cell highlight down / up            |
+| `i` / `a` / `c` / `s` / `Enter` | Enter cell editing                       |
+| `Escape`                        | Exit table                               |
+| `o` / `O`                       | Add row below / above                    |
+| `dd`                            | Delete row                               |
+| `dc`                            | Delete column                            |
+| `J` / `K`                       | Move row down / up                       |
+| `H` / `L`                       | Move column left / right                 |
+| `I` / `A`                       | Add column left / right                  |
+| `=`                             | Realign table                            |
+| `Tab` / `Shift-Tab`             | Next / previous cell (wraps across rows) |
 
 ## Picker shortcuts
 

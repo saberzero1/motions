@@ -1268,5 +1268,99 @@ describe('Table-nav edge cases', function () {
             expect(after).not.toBeNull();
             expect(after!.col).toBe(0);
         });
+
+        it('Tab at last column should wrap to first column of next row (#158)', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            await browser.keys(['l']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            await browser.keys(['l']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            const atEnd = await getHighlightedCell();
+            expect(atEnd).not.toBeNull();
+            expect(atEnd!.col).toBe(2);
+            expect(atEnd!.row).toBe(0);
+
+            await browser.keys(['Tab']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            expect(await hasTableNavHighlight()).toBe(true);
+            const wrapped = await getHighlightedCell();
+            expect(wrapped).not.toBeNull();
+            expect(wrapped!.col).toBe(0);
+            expect(wrapped!.row).toBe(1);
+        });
+
+        it('Shift+Tab at first column should wrap to last column of previous row (#158)', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            await browser.keys(['j']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            const atStart = await getHighlightedCell();
+            expect(atStart).not.toBeNull();
+            expect(atStart!.col).toBe(0);
+            expect(atStart!.row).toBe(1);
+
+            await browser.keys(['Shift', 'Tab', 'NULL']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            expect(await hasTableNavHighlight()).toBe(true);
+            const wrapped = await getHighlightedCell();
+            expect(wrapped).not.toBeNull();
+            expect(wrapped!.col).toBe(2);
+            expect(wrapped!.row).toBe(0);
+        });
+
+        it('Tab at last cell of last row should stay (#158)', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            await browser.keys(['j']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            await browser.keys(['j']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            await browser.keys(['l']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            await browser.keys(['l']);
+            await browser.pause(CELL_EDIT_PAUSE);
+            const atEnd = await getHighlightedCell();
+            expect(atEnd).not.toBeNull();
+            expect(atEnd!.col).toBe(2);
+            expect(atEnd!.row).toBe(2);
+
+            await browser.keys(['Tab']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            expect(await hasTableNavHighlight()).toBe(true);
+            const after = await getHighlightedCell();
+            expect(after).not.toBeNull();
+            expect(after!.col).toBe(2);
+            expect(after!.row).toBe(2);
+        });
+
+        it('Shift+Tab at first cell of first row should stay (#158)', async function () {
+            this.timeout(20000);
+            await setupTableDoc(TABLE_3COL);
+            await enterTableNav();
+
+            const atStart = await getHighlightedCell();
+            expect(atStart).not.toBeNull();
+            expect(atStart!.col).toBe(0);
+            expect(atStart!.row).toBe(0);
+
+            await browser.keys(['Shift', 'Tab', 'NULL']);
+            await browser.pause(CELL_EDIT_PAUSE);
+
+            expect(await hasTableNavHighlight()).toBe(true);
+            const after = await getHighlightedCell();
+            expect(after).not.toBeNull();
+            expect(after!.col).toBe(0);
+            expect(after!.row).toBe(0);
+        });
     });
 });

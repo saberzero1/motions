@@ -370,7 +370,7 @@ export class TableNavController implements PluginValue {
         return getTableEditorFromWidgetEl(widgetEl);
     }
 
-    navigate(direction: 'h' | 'j' | 'k' | 'l', count = 1): void {
+    navigate(direction: 'h' | 'j' | 'k' | 'l', count = 1, wrap = false): void {
         const s = this.session;
         if (s.state !== 'nav') return;
 
@@ -382,11 +382,27 @@ export class TableNavController implements PluginValue {
 
         for (let i = 0; i < count; i++) {
             if (direction === 'h') {
-                if (s.activeCol <= 0) break;
-                s.activeCol--;
+                if (s.activeCol <= 0) {
+                    if (wrap && s.activeRow > 0) {
+                        s.activeRow--;
+                        s.activeCol = colCount - 1;
+                    } else {
+                        break;
+                    }
+                } else {
+                    s.activeCol--;
+                }
             } else if (direction === 'l') {
-                if (s.activeCol >= colCount - 1) break;
-                s.activeCol++;
+                if (s.activeCol >= colCount - 1) {
+                    if (wrap && s.activeRow < rowCount - 1) {
+                        s.activeRow++;
+                        s.activeCol = 0;
+                    } else {
+                        break;
+                    }
+                } else {
+                    s.activeCol++;
+                }
             } else if (direction === 'j') {
                 if (s.activeRow >= rowCount - 1) {
                     this.exitTable('after');
@@ -851,7 +867,7 @@ export class TableNavController implements PluginValue {
         if (s.navScope || !this.app) return;
 
         const actions: TableNavActions = {
-            navigate: (d, c) => this.navigate(d, c),
+            navigate: (d, c, w) => this.navigate(d, c, w),
             enterCellEdit: (m) => {
                 resetPendingState();
                 clearLastStructuralAction();
@@ -942,13 +958,13 @@ export class TableNavController implements PluginValue {
         scope.register(null, 'Tab', () => {
             if (s.state !== 'edit') return undefined;
             this.exitCellEditToNav();
-            this.navigate('l');
+            this.navigate('l', 1, true);
             return false;
         });
         scope.register(['Shift'], 'Tab', () => {
             if (s.state !== 'edit') return undefined;
             this.exitCellEditToNav();
-            this.navigate('h');
+            this.navigate('h', 1, true);
             return false;
         });
 
