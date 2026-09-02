@@ -115,7 +115,8 @@ export type KeymapType =
     'motion' | 'action' | 'operator' | 'operatorMotion' | 'keyToKey';
 
 /** Context for key mappings. */
-export type MapContext = 'normal' | 'visual' | 'insert' | 'select';
+export type MapContext =
+    'normal' | 'visual' | 'insert' | 'select' | 'operatorPending';
 
 /**
  * Motion function signature.

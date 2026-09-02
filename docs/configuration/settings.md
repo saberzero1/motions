@@ -277,10 +277,11 @@ Describe individual bindings in the which-key popup. The UI shows a list of all 
 
 ## Advanced
 
-| Name                              | Type   | Default | Range/Options | Lua                 | Vimrc           | Description                                                          |
-| --------------------------------- | ------ | ------- | ------------- | ------------------- | --------------- | -------------------------------------------------------------------- |
-| Scrolloff lines                   | number | `5`     | `0–9999`      | `vim.opt.scrolloff` | `set scrolloff` | Number of lines to keep visible above and below when scrolling.      |
-| Multi-line text object scan range | slider | `20`    | `5–200`       | `vim.opt.scanlimit` | `set scanlimit` | Maximum lines to scan in each direction for multi-line text objects. |
+| Name                              | Type   | Default | Range/Options | Lua                 | Vimrc           | Description                                                                                |
+| --------------------------------- | ------ | ------- | ------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| Scrolloff lines                   | number | `5`     | `0–9999`      | `vim.opt.scrolloff` | `set scrolloff` | Number of lines to keep visible above and below when scrolling.                            |
+| Multi-line text object scan range | slider | `20`    | `5–200`       | `vim.opt.scanlimit` | `set scanlimit` | Maximum lines to scan in each direction for multi-line text objects.                       |
+| Auto-fetch plugins                | toggle | `false` | —             | —                   | —               | Automatically download Neovim plugins from GitHub when registered via `vim.plugins.add()`. |
 
 > [!tip]
 > Set **Scrolloff lines** to `9999` to keep the cursor vertically centered.

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Plugin auto-fetch system** — `vim.plugins.add()` now supports automatic fetching of Neovim plugins from GitHub. Downloads tarball archives, extracts them to `lua/`, and manages a lock file (`lua/.plugin-lock.json`) for version pinning. Supports branch, tag, and commit pinning. Atomic staging writes to `lua/.staging/` ensure vault integrity. Configurable via `pluginAutoFetch` setting (Advanced page).
+    - Plugin: `src/lua/plugin-fetch.ts` (download and extraction logic)
+    - Plugin: `src/lua/plugin-store.ts` (atomic writes and lock file management)
+    - Plugin: `src/lua/tar.ts` (synchronous tar parser)
+    - Plugin: `src/lua/api.ts` (extended `vim.plugins.add` with fetch triggering)
+    - Plugin: `src/lua/loader.ts` (wired fetch callback)
+    - Plugin: `src/settings.ts` (new `pluginAutoFetch` setting)
+- **`require()` init.lua fallback** — `require("name")` now tries `lua/name/init.lua` if `lua/name.lua` is not found. Matches Neovim's module resolution behavior and enables multi-file plugins.
+    - Plugin: `src/lua/package.ts` (updated `package.path` and search logic)
+
+### Fixed
+
+- **Operator-pending mode context** — `modeToContext('o')` now correctly returns `'operatorPending'` instead of `'normal'`. Fixes keymap collisions where operator-pending text objects shadowed normal mode mappings (e.g., `gc`/`gcc`).
+    - Plugin: `src/lua/api.ts` (context mapping fix)
+- **Fork: Backtracking dispatch** — the codemirror-vim fork now supports backtracking when a longer partial match fails. Deferring a shorter full match (e.g., flash `s` motion) for a longer partial (e.g., surround `s<char>`) no longer loses the motion if the partial match fails or times out. Replays the suffix via `doKeyToKey`.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (backtracking logic in `handleKeyNonInsertMode`)
+
+### Tests
+
+- Updated `test/specs/lua-plugin-mini-comment.e2e.ts` to use auto-fetch for `mini.comment` verification. The vendored `test-vault/lua/mini/comment.lua` has been removed — tests now fetch the plugin from GitHub at runtime via the auto-fetch system.
+- Added `pluginAutoFetch` to excluded settings in `test/unit/known-set-options.test.ts`.
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: added new Lua files and fork backtracking description
+- `CONTRIBUTING.md`: updated `src/lua/` file tree with new fetch-related files
+- `KNOWN_LIMITATIONS.md`: marked plugin fetching as implemented; added `init.lua` fallback note
+- `README.md`: added plugin auto-fetch to features list
+- `docs/configuration/settings.md`: added `pluginAutoFetch` setting
+- `docs/configuration/lua-config.md`: updated `vim.plugins.add` and `require()` sections
+
 ## [0.138.0] - 2026-09-02
 
 ### Added

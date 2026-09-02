@@ -64,17 +64,136 @@ export function createSandboxedState(): lua_State {
     lauxlib.luaL_requiref(L, to_luastring('utf8'), lualib.luaopen_utf8, 1);
     lua.lua_pop(L, 1);
 
+    const luaopen_debug = (lualib as Record<string, (L: lua_State) => number>)
+        .luaopen_debug;
+    if (luaopen_debug) {
+        lauxlib.luaL_requiref(L, to_luastring('debug'), luaopen_debug, 1);
+        lua.lua_pop(L, 1);
+    }
+
     for (const name of [
         'dofile',
         'loadfile',
         'load', // re-enabled as sandboxed version by package.ts
-        'rawget',
-        'rawset',
-        'rawequal',
     ]) {
         lua.lua_pushnil(L);
         lua.lua_setglobal(L, to_luastring(name));
     }
+
+    const luaCompatShims = `
+-- Lua 5.1 globals moved/removed in 5.3
+unpack = table.unpack
+loadstring = load
+string.gfind = string.gmatch
+
+-- Table functions removed in 5.3
+table.maxn = function(t)
+    local n = 0
+    for k in pairs(t) do
+        if type(k) == 'number' and k > n then n = k end
+    end
+    return n
+end
+table.getn = function(t) return #t end
+table.foreach = function(t, f)
+    for k, v in pairs(t) do
+        local r = f(k, v)
+        if r ~= nil then return r end
+    end
+end
+table.foreachi = function(t, f)
+    for i = 1, #t do
+        local r = f(i, t[i])
+        if r ~= nil then return r end
+    end
+end
+
+-- Math functions removed/renamed in 5.3
+math.atan2 = math.atan
+math.log10 = function(x) return math.log(x, 10) end
+math.mod = math.fmod
+math.pow = function(x, y) return x ^ y end
+math.cosh = function(x) return (math.exp(x) + math.exp(-x)) / 2 end
+math.sinh = function(x) return (math.exp(x) - math.exp(-x)) / 2 end
+math.tanh = function(x)
+    local e2x = math.exp(2 * x)
+    return (e2x - 1) / (e2x + 1)
+end
+math.frexp = function(x)
+    if x == 0 then return 0, 0 end
+    local e = math.floor(math.log(math.abs(x), 2)) + 1
+    return x / 2^e, e
+end
+math.ldexp = function(m, e) return m * 2^e end
+
+-- LuaJIT bit library (wrapping Lua 5.3 native bitwise operators)
+if not bit then
+    bit = {}
+    bit.band   = function(a, b) return a & b end
+    bit.bor    = function(a, b) return a | b end
+    bit.bxor   = function(a, b) return a ~ b end
+    bit.bnot   = function(a) return ~a end
+    bit.lshift = function(a, n) return (a << n) & 0xFFFFFFFF end
+    bit.rshift = function(a, n) return (a & 0xFFFFFFFF) >> n end
+    bit.arshift = function(a, n)
+        a = a & 0xFFFFFFFF
+        if a >= 0x80000000 then a = a - 0x100000000 end
+        if n >= 32 then return a < 0 and -1 or 0 end
+        return math.floor(a / 2^n)
+    end
+    bit.rol = function(a, n)
+        a = a & 0xFFFFFFFF
+        n = n % 32
+        return ((a << n) | (a >> (32 - n))) & 0xFFFFFFFF
+    end
+    bit.ror = function(a, n)
+        a = a & 0xFFFFFFFF
+        n = n % 32
+        return ((a >> n) | (a << (32 - n))) & 0xFFFFFFFF
+    end
+    bit.tobit = function(a)
+        a = a & 0xFFFFFFFF
+        if a >= 0x80000000 then return a - 0x100000000 end
+        return a
+    end
+    bit.tohex = function(a, n)
+        n = n or 8
+        a = a & 0xFFFFFFFF
+        return string.format('%0' .. math.abs(n) .. (n > 0 and 'x' or 'X'), a)
+    end
+    bit.bswap = function(a)
+        a = a & 0xFFFFFFFF
+        return ((a & 0xFF) << 24) | (((a >> 8) & 0xFF) << 16) |
+               (((a >> 16) & 0xFF) << 8) | ((a >> 24) & 0xFF)
+    end
+end
+
+-- LuaJIT jit.* stubs (no-op to prevent crashes)
+if not jit then
+    jit = {
+        on = function() end,
+        off = function() end,
+        flush = function() end,
+        status = function() return false end,
+        version = 'fengari',
+        version_num = 0,
+        os = 'Other',
+        arch = 'portable',
+    }
+end
+
+-- getfenv/setfenv stubs (removed in Lua 5.3, can't be perfectly emulated)
+if not getfenv then
+    getfenv = function() return _G end
+    setfenv = function() end
+end
+
+-- coroutine.isyieldable (not in 5.1)
+if not coroutine.isyieldable then
+    coroutine.isyieldable = function() return false end
+end
+`;
+    lauxlib.luaL_dostring(L, to_luastring(luaCompatShims));
 
     lua.lua_sethook(
         L,

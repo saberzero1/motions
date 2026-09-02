@@ -5,6 +5,7 @@ import {
     apiVersion,
     getAllTags,
     parseFrontMatterAliases,
+    requestUrl,
     TFile,
 } from 'obsidian';
 import type { App } from 'obsidian';
@@ -28,10 +29,20 @@ import { HighlightManager } from './highlight';
 import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
 import { injectTextObjectApi } from './textobject-api';
 import { injectTreesitterApi, initTreesitterRuntime } from './treesitter/api';
+import { lua, lauxlib, to_luastring, to_jsstring } from 'fengari';
 import type { lua_State } from 'fengari';
 import type { ImSwitcher } from '../im/im-switcher';
 import { CoroutineRunner } from './coroutine-runner';
 import { injectPackageAndRequire } from './package';
+import { injectIoShim } from './io-shim';
+import { getTarballUrl, fetchPluginTarball } from './plugin-fetch';
+import {
+    readLockFile,
+    writePluginFiles,
+    isPluginCached,
+    cleanupAllStaging,
+    type VaultAdapter,
+} from './plugin-store';
 import {
     isAbsolutePath,
     readExternalFile,
@@ -244,6 +255,7 @@ export interface LoadInitLuaOptions {
     getUndoTree?: () => ReturnType<
         import('../vim/undo-tree').UndoTree['toNeovimDict']
     > | null;
+    isPluginAutoFetchEnabled?: () => boolean;
 }
 
 export async function loadInitLua(
@@ -303,6 +315,8 @@ export async function loadInitLua(
     }
 
     let commandCount = 0;
+    let eagerActionCounter = 0;
+    const eagerActionNames = new Set<string>();
     const exCommandNames: string[] = [];
     const maps: LuaKeymap[] = [];
     const unmaps: LuaKeymapDelete[] = [];
@@ -314,7 +328,7 @@ export async function loadInitLua(
     }> = [];
     const pendingExCommands: string[] = [];
     const mapOperations: Array<
-        | { type: 'map'; map: LuaKeymap }
+        | { type: 'map'; map: LuaKeymap & { _applied?: boolean } }
         | { type: 'unmap'; map: LuaKeymapDelete }
     > = [];
     const globalMaps: LuaGlobalKeymap[] = [];
@@ -448,9 +462,49 @@ export async function loadInitLua(
         onKeymap: (map) => {
             commandCount++;
             maps.push(map);
-            mapOperations.push({ type: 'map', map });
+            const taggedMap = map as LuaKeymap & { _applied?: boolean };
+            mapOperations.push({ type: 'map', map: taggedMap });
+
             if (map.desc) {
                 commandLabels.push({ key: map.lhs, label: map.desc });
+            }
+            if (map.isFn && map.callback) {
+                const actionName = `lua-action-eager-${eagerActionCounter++}`;
+                if (!eagerActionNames.has(actionName)) {
+                    vim.defineAction(actionName, map.callback);
+                    eagerActionNames.add(actionName);
+                }
+                try {
+                    vim.unmap(map.lhs, undefined, {
+                        includeDefaults: true,
+                    });
+                } catch {
+                    /* no built-in mapping to remove */
+                }
+                try {
+                    vim.unmap(map.lhs, map.mode, {
+                        includeDefaults: true,
+                    });
+                } catch {
+                    /* no existing mapping to remove */
+                }
+                vim.mapCommand(
+                    map.lhs,
+                    'action',
+                    actionName,
+                    undefined,
+                    map.mode ? { context: map.mode } : undefined,
+                );
+            } else if (map.rhs) {
+                try {
+                    if (map.noremap) {
+                        vim.noremap(map.lhs, map.rhs, map.mode);
+                    } else {
+                        vim.map(map.lhs, map.rhs, map.mode);
+                    }
+                } catch {
+                    /* skip malformed mapping */
+                }
             }
         },
         onBufferKeymap: (filePath, map) => {
@@ -668,6 +722,80 @@ export async function loadInitLua(
                 { line: fromLine, ch: fromCol },
                 { line: toLine, ch: toCol },
             );
+        },
+        getBufferOption: (name) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            switch (name) {
+                case 'commentstring':
+                    return '%% %s %%';
+                case 'filetype': {
+                    if (!view) return '';
+                    const file = view.file;
+                    return file?.extension ?? 'markdown';
+                }
+                case 'expandtab':
+                    return true;
+                case 'shiftwidth':
+                case 'tabstop':
+                case 'softtabstop':
+                    try {
+                        return (
+                            (
+                                app.vault as unknown as {
+                                    getConfig?: (key: string) => unknown;
+                                }
+                            ).getConfig?.('tabSize') ?? 4
+                        );
+                    } catch {
+                        return 4;
+                    }
+                case 'modifiable':
+                    return true;
+                case 'buftype':
+                    return '';
+                case 'textwidth':
+                    return 0;
+                default:
+                    return undefined;
+            }
+        },
+        setBufferOption: () => {},
+        pluginExists: (name) => {
+            const stripped = name.replace(/\.nvim$/, '');
+            const asPath = stripped.replace(/\./g, '/');
+            return (
+                app.vault.getAbstractFileByPath(`lua/${name}`) !== null ||
+                app.vault.getAbstractFileByPath(`lua/${stripped}`) !== null ||
+                app.vault.getAbstractFileByPath(`lua/${asPath}`) !== null ||
+                app.vault.getAbstractFileByPath(`lua/${asPath}.lua`) !== null ||
+                app.vault.getAbstractFileByPath(`lua/${asPath}/init.lua`) !==
+                    null
+            );
+        },
+        isPluginAutoFetchEnabled: () =>
+            options.isPluginAutoFetchEnabled?.() ?? false,
+        fetchPlugin: async (owner, repoFullName, ref, fetchOptions) => {
+            const adapter: VaultAdapter = {
+                read: (p) => app.vault.adapter.read(p),
+                write: (p, d) => app.vault.adapter.write(p, d),
+                exists: async (p) => await app.vault.adapter.exists(p),
+                remove: (p) => app.vault.adapter.remove(p),
+                mkdir: (p) => app.vault.adapter.mkdir(p),
+                list: (p) => app.vault.adapter.list(p),
+            };
+            await cleanupAllStaging(adapter);
+            const lock = await readLockFile(adapter);
+            const repo = `${owner}/${repoFullName}`;
+            if (isPluginCached(lock, repo, ref) && lock[repo]) {
+                return { files: lock[repo].files };
+            }
+            const url = getTarballUrl(owner, repoFullName, fetchOptions);
+            const files = await fetchPluginTarball(url, (u) => requestUrl(u));
+            if (files.length === 0) {
+                throw new Error(`No lua files found in ${repo}`);
+            }
+            await writePluginFiles(adapter, repo, ref, files, lock);
+            return { files: files.map((f) => f.path) };
         },
         onGlobalKeymap: (map) => {
             commandCount++;
@@ -1295,9 +1423,77 @@ export async function loadInitLua(
     });
 
     injectStdlib(L);
+    const vaultBasePath = (
+        app.vault.adapter as unknown as { basePath?: string }
+    ).basePath;
+    injectIoShim(L, {
+        vaultRead: (path) => {
+            if (!vaultBasePath || !Platform.isDesktop) return null;
+            try {
+                const reqFn = (
+                    window as Window & { require?: (m: string) => unknown }
+                ).require;
+                if (!reqFn) return null;
+                const fs = reqFn('fs') as {
+                    readFileSync: (p: string, e: string) => string;
+                };
+                return fs.readFileSync(vaultBasePath + '/' + path, 'utf-8');
+            } catch {
+                return null;
+            }
+        },
+        vaultWrite: (path, content) => {
+            if (!vaultBasePath || !Platform.isDesktop) return false;
+            try {
+                const reqFn = (
+                    window as Window & { require?: (m: string) => unknown }
+                ).require;
+                if (!reqFn) return false;
+                const fs = reqFn('fs') as {
+                    writeFileSync: (p: string, d: string) => void;
+                };
+                fs.writeFileSync(vaultBasePath + '/' + path, content);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+        vaultAppend: (path, content) => {
+            if (!vaultBasePath || !Platform.isDesktop) return false;
+            try {
+                const reqFn = (
+                    window as Window & { require?: (m: string) => unknown }
+                ).require;
+                if (!reqFn) return false;
+                const fs = reqFn('fs') as {
+                    appendFileSync: (p: string, d: string) => void;
+                };
+                fs.appendFileSync(vaultBasePath + '/' + path, content);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+        vaultExists: (path) => {
+            return app.vault.getAbstractFileByPath(path) !== null;
+        },
+    });
     const timerManager = injectTimers(L, runner);
     injectPackageAndRequire(L, app.vault.configDir);
     const luaSnippets = injectSnippetApi(L);
+
+    vim.defineEx('lua', '', (_cm, params) => {
+        const code = params.argString?.trim() ?? '';
+        if (code.length === 0) return;
+        const luaStatus = lauxlib.luaL_dostring(L, to_luastring(code));
+        if (luaStatus !== lua.LUA_OK) {
+            const msg = lua.lua_tolstring(L, -1);
+            console.error(
+                `Vim Motions: :lua error: ${msg ? to_jsstring(msg) : 'unknown'}`,
+            );
+            lua.lua_pop(L, 1);
+        }
+    });
 
     const result = await evalLuaAsync(L, content, runner);
     const initialFilePath = app.workspace.getActiveFile()?.path ?? null;

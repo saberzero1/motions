@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
 import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
+import { injectStdlib } from '../../../src/lua/stdlib';
 import { AutocmdManager } from '../../../src/lua/autocmd';
 
 type LuaState = ReturnType<typeof createSandboxedState>;
@@ -2241,6 +2242,408 @@ describe('vim api', () => {
                 'N',
                 'vim.g.mode_prompt_normal = "N"',
             );
+            destroyState(L);
+        });
+    });
+
+    describe('vim.b', () => {
+        it('should round-trip buffer-local variables', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => 'test.md',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.b.foo = 42\nreturn vim.b.foo'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_tonumber(L, -1)).toBe(42);
+            destroyState(L);
+        });
+
+        it('should return nil for unset variables', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => 'test.md',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.b.unset_var == nil'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should delete variable when assigned nil', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => 'test.md',
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.b.foo = 99\nvim.b.foo = nil\nreturn vim.b.foo == nil',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should isolate variables per buffer', () => {
+            let currentFile = 'a.md';
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => currentFile,
+            });
+
+            lauxlib.luaL_dostring(L, to_luastring('vim.b.x = 10'));
+            currentFile = 'b.md';
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.b.x == nil'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+    });
+
+    describe('vim.bo', () => {
+        it('should read commentstring from callback', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getBufferOption: (name) =>
+                    name === 'commentstring' ? '%% %s %%' : undefined,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.bo.commentstring'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('%% %s %%');
+            destroyState(L);
+        });
+
+        it('should read filetype from callback', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getBufferOption: (name) =>
+                    name === 'filetype' ? 'markdown' : undefined,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.bo.filetype'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe('markdown');
+            destroyState(L);
+        });
+
+        it('should return nil for unknown options', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getBufferOption: () => undefined,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.bo.unknown_option == nil'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should call setBufferOption on assignment', () => {
+            const L = createSandboxedState();
+            const setBufferOption = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                setBufferOption,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.bo.commentstring = "new"'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(setBufferOption).toHaveBeenCalledWith(
+                'commentstring',
+                'new',
+            );
+            destroyState(L);
+        });
+    });
+
+    describe('vim.is_callable', () => {
+        const enableRawget = (L: LuaState) => {
+            lauxlib.luaL_dostring(
+                L,
+                to_luastring('rawget = function(t, k) return t[k] end'),
+            );
+        };
+
+        it('should return true for functions', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            enableRawget(L);
+            injectStdlib(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.is_callable(function() end) == true'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should return false for strings', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            enableRawget(L);
+            injectStdlib(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.is_callable("string") == false'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should return false for numbers', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            enableRawget(L);
+            injectStdlib(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.is_callable(42) == false'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should return false for nil', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            enableRawget(L);
+            injectStdlib(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.is_callable(nil) == false'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+    });
+
+    describe('vim.cmd lockmarks stripping', () => {
+        it('should strip lockmarks prefix and execute lua inline', () => {
+            const L = createSandboxedState();
+            const handleExCommand = vi.fn();
+            injectApi(L, {
+                onSettingOverride: vi.fn(),
+                handleExCommand,
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.cmd("lockmarks lua vim.opt.scrolloff = 42")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(handleExCommand).not.toHaveBeenCalled();
+            destroyState(L);
+        });
+
+        it('should pass normal commands through unchanged', () => {
+            const L = createSandboxedState();
+            const handleExCommand = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand,
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('vim.cmd("set scrolloff=5")'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(handleExCommand).toHaveBeenCalledWith('set scrolloff=5');
+            destroyState(L);
+        });
+    });
+
+    describe('vim.plugins', () => {
+        it('should register plugin when available', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                pluginExists: () => true,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring("vim.plugins.add({ 'echasnovski/mini.nvim' })"),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            destroyState(L);
+        });
+
+        it('should list registered plugins with metadata', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                pluginExists: () => true,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.plugins.add({ 'echasnovski/mini.nvim' })
+                    local list = vim.plugins.list()
+                    return list[1].name .. '|' .. list[1].repo .. '|' .. tostring(list[1].available)
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            const value = lua.lua_tolstring(L, -1);
+            expect(value ? to_jsstring(value) : '').toBe(
+                'mini.nvim|echasnovski/mini.nvim|true',
+            );
+            destroyState(L);
+        });
+
+        it('should show notice when plugin unavailable', () => {
+            const L = createSandboxedState();
+            const showNotice = vi.fn();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                pluginExists: () => false,
+                showNotice,
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring("vim.plugins.add({ 'owner/missing-plugin' })"),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(showNotice).toHaveBeenCalledWith(
+                'Plugin missing-plugin not found. Download from https://github.com/owner/missing-plugin and place Lua files in lua/',
+            );
+            destroyState(L);
+        });
+
+        it('should error when spec is not a table', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring("vim.plugins.add('not-a-table')"),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
             destroyState(L);
         });
     });

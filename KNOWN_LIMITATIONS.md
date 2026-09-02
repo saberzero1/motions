@@ -65,6 +65,11 @@ The following `vim.v` variables are registered in the API and return default val
 - **`nvim_echo` maps to Obsidian's `Notice` API** — highlight groups in chunks are ignored (plain text only).
 - **All buffer/window/tabpage handles must be `0` (current)**. Multi-buffer/multi-window operations are not supported.
 - **`nvim_replace_termcodes` is an identity function** (returns input unchanged) because the codemirror-vim fork uses vim key notation natively.
+- **`vim.bo.commentstring` defaults to `%% %s %%`** (Obsidian-native comment syntax) for all buffers. Treesitter-contextual commentstring (e.g., `// %s` inside a JS code block) is not implemented.
+- **`vim.is_callable` does not detect callable tables** with `__call` metamethods in the fengari sandbox (rawget is restricted). Only functions return `true`.
+- **`lockmarks` ex command modifier is silently stripped** in `vim.cmd()`. Marks are not preserved during buffer edits performed via `lockmarks`.
+- **`vim.plugins.add()` supports automatic fetching** from GitHub. Users can specify a repository (e.g., `owner/repo`) and optional branch/tag/commit. Archives are downloaded as tarballs and extracted to `lua/`. Requires `pluginAutoFetch` setting to be enabled.
+- **`require()` supports `init.lua` fallback** — matches Neovim's module resolution by trying `lua/name/init.lua` if `lua/name.lua` is missing.
 
 ## Treesitter integration (`vim.treesitter`)
 

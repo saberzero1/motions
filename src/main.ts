@@ -4328,6 +4328,7 @@ export default class VimMotionsPlugin extends Plugin {
             },
             globalRegistry: this.globalRegistry ?? undefined,
             imSwitcher: this.imSwitcher,
+            isPluginAutoFetchEnabled: () => this.settings.pluginAutoFetch,
         });
 
         this.luaCommandCount = luaResult.commandCount;
@@ -4559,38 +4560,32 @@ export default class VimMotionsPlugin extends Plugin {
                 continue;
             }
 
-            const map = op.map;
+            const map = op.map as LuaLoadResult['maps'][number] & {
+                actionName?: string;
+            };
+
             if (map.isFn && map.callback) {
                 const actionName =
-                    (
-                        map as LuaLoadResult['maps'][number] & {
-                            actionName?: string;
-                        }
-                    ).actionName ?? `lua-action-${this.luaActionCounter++}`;
-                (
-                    map as LuaLoadResult['maps'][number] & {
-                        actionName?: string;
-                    }
-                ).actionName = actionName;
+                    map.actionName ?? `lua-action-${this.luaActionCounter++}`;
+                map.actionName = actionName;
                 if (!this.luaActionNames.has(actionName)) {
-                    this.registration?.defineAction(actionName, map.callback);
-                    this.registration?.mapCommand(
-                        map.lhs,
-                        'action',
-                        actionName,
-                        undefined,
-                        map.mode ? { context: map.mode } : undefined,
-                    );
+                    vim.defineAction(actionName, map.callback);
                     this.luaActionNames.add(actionName);
-                } else {
-                    vim.mapCommand(
-                        map.lhs,
-                        'action',
-                        actionName,
-                        undefined,
-                        map.mode ? { context: map.mode } : undefined,
-                    );
                 }
+                try {
+                    vim.unmap(map.lhs, undefined, {
+                        includeDefaults: true,
+                    });
+                } catch {
+                    /* intentional: skip missing map */
+                }
+                vim.mapCommand(
+                    map.lhs,
+                    'action',
+                    actionName,
+                    undefined,
+                    map.mode ? { context: map.mode } : undefined,
+                );
                 continue;
             }
 

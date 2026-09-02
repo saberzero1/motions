@@ -257,6 +257,7 @@ export interface VimMotionsSettings {
     smearTrailingStiffness: number;
     smearDamping: number;
     smearMaxLength: number;
+    pluginAutoFetch: boolean;
 }
 
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
@@ -394,6 +395,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     smearTrailingStiffness: 0.3,
     smearDamping: 0.85,
     smearMaxLength: 400,
+    pluginAutoFetch: false,
 };
 
 interface ObsidianCommand {
@@ -2836,6 +2838,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         value < 5 || value > 200
                                             ? 'Must be between 5 and 200'
                                             : undefined,
+                                },
+                            },
+                        ],
+                    },
+
+                    {
+                        type: 'group' as const,
+                        heading: 'Lua plugins',
+                        items: [
+                            {
+                                name: 'Auto-fetch plugins from GitHub',
+                                desc: 'When enabled, vim.plugins.add({ "owner/repo" }) automatically downloads Lua files from GitHub if not already cached in the vault. Requires network access.',
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'pluginAutoFetch',
                                 },
                             },
                         ],
@@ -5674,6 +5691,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.clearSettingOverride('multilineScanLimit');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl).setName('Lua plugins').setHeading();
+
+        new Setting(containerEl)
+            .setName('Auto-fetch plugins from GitHub')
+            .setDesc(
+                'When enabled, vim.plugins.add({ "owner/repo" }) automatically downloads Lua files from GitHub if not already cached in the vault. Requires network access.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.pluginAutoFetch)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pluginAutoFetch = value;
+                        await this.plugin.saveSettings();
                     }),
             );
     }

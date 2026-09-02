@@ -46,7 +46,7 @@ Neither option is available on mobile.
 
 ## Multi-file configs with require()
 
-Split your configuration across multiple files by placing Lua modules in a `lua/` directory at the vault root:
+Split your configuration across multiple files by placing Lua modules in a `lua/` directory at the vault root. The plugin supports both `lua/name.lua` and `lua/name/init.lua` patterns:
 
 ```
 <vault>/
@@ -54,6 +54,8 @@ Split your configuration across multiple files by placing Lua modules in a `lua/
     keymaps.lua
     utils/
       strings.lua
+    plugin/
+      init.lua
   init.lua
 ```
 
@@ -61,6 +63,7 @@ Split your configuration across multiple files by placing Lua modules in a `lua/
 -- init.lua
 local keymaps = require("keymaps")      -- loads lua/keymaps.lua
 local strings = require("utils.strings") -- loads lua/utils/strings.lua
+local plugin  = require("plugin")        -- loads lua/plugin/init.lua
 
 keymaps.setup()
 ```
@@ -117,52 +120,52 @@ print("init.lua loaded for vault:", vim.vault_name())
 
 ## Supported APIs
 
-| API                                                  | Description                                        | Example                              |
-| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------ |
-| `vim.opt.<name> = value`                             | Set a plugin option (string options accept tables) | `vim.opt.scrolloff = 8`              |
-| `vim.o.<name> = value`                               | Alias for `vim.opt`                                | `vim.o.scrolloff = 8`                |
-| `vim.o.operatorfunc`                                 | Function called by the `g@` operator               | see Custom operators                 |
-| `vim.g.mapleader`                                    | Set the leader key                                 | `vim.g.mapleader = " "`              |
-| `vim.g.<name> = value`                               | Set a user variable                                | `vim.g.my_var = true`                |
-| `vim.cmd(string)`                                    | Execute an ex command                              | `vim.cmd("set nohlsearch")`          |
-| `vim.vault_name()`                                   | Returns the current vault name                     | `if vim.vault_name() == "work" then` |
-| `vim.fn.has(feature)`                                | Platform/feature detection                         | `vim.fn.has("mac")`                  |
-| `vim.fn.expand(expr)`                                | Active file path (vault-relative)                  | `vim.fn.expand("%:t")`               |
-| `vim.fn.fnamemodify(path, mods)`                     | Path manipulation                                  | `vim.fn.fnamemodify(path, ":t:r")`   |
-| `vim.fn.exists(expr)`                                | Check variable/option existence                    | `vim.fn.exists("g:my_var")`          |
-| `vim.fn.localtime()`                                 | Unix timestamp                                     | `vim.fn.localtime()`                 |
-| `vim.fn.strftime(fmt)`                               | Format date/time                                   | `vim.fn.strftime("%Y-%m-%d")`        |
-| `vim.fn.filereadable(path)`                          | Check vault file exists                            | `vim.fn.filereadable("config.md")`   |
-| `vim.fn.isdirectory(path)`                           | Check vault directory exists                       | `vim.fn.isdirectory("templates")`    |
-| `vim.fn.glob(pattern)`                               | Find matching vault files                          | `vim.fn.glob("*.md")`                |
-| `vim.fn.undotree()`                                  | Returns undo tree dictionary                       | `local tree = vim.fn.undotree()`     |
-| `vim.fn.mode()`                                      | Current vim mode                                   | `vim.fn.mode()`                      |
-| `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                   | `vim.fn.line(".")`                   |
-| `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                 | `vim.fn.col(".")`                    |
-| `vim.fn.setreg(regname, value [, opts])`             | Set register content                               | `vim.fn.setreg('"', "text")`         |
-| `vim.fn.getreg(regname)`                             | Get register content                               | `vim.fn.getreg('"')`                 |
-| `vim.fn.getpos(expr)`                                | Get position `[buf, lnum, col, off]`               | `vim.fn.getpos("'[")`                |
-| `vim.fn.cursor(lnum, col)`                           | Move cursor                                        | `vim.fn.cursor(5, 1)`                |
-| `vim.notify(msg)`                                    | Show Obsidian notification                         | `vim.notify("Saved!")`               |
-| `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command                           | see below                            |
-| `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                               | see Autocommands section             |
-| `vim.api.nvim_create_augroup(name, opts)`            | Create/get autocommand group                       | see Autocommands section             |
-| `vim.keymap.set(mode, lhs, rhs, opts?)`              | Create a key mapping                               | see example above                    |
-| `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                               | `vim.keymap.del("n", "Q")`           |
-| `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap                | see Obsidian namespace               |
-| `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap                             | see Obsidian namespace               |
-| `vim.obsidian.pick(source, opts?)`                   | Open the unified picker                            | `vim.obsidian.pick("files")`         |
-| `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                             | see Obsidian namespace               |
-| `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                          | see Obsidian namespace               |
-| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace               |
-| `vim.obsidian.oil.parent()`                          | Oil: navigate to parent directory                  | see Obsidian namespace               |
-| `vim.obsidian.oil.open_entry()`                      | Oil: open file/directory under cursor              | see Obsidian namespace               |
-| `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                | see Obsidian namespace               |
-| `vim.obsidian.im.get()`                              | Get current IM identifier (desktop only)           | see Obsidian namespace               |
-| `vim.obsidian.im.set(id)`                            | Switch to specific IM (desktop only)               | see Obsidian namespace               |
-| `vim.obsidian.im.save()`                             | Save current IM for active editor view             | see Obsidian namespace               |
-| `vim.obsidian.im.restore()`                          | Restore saved IM for active editor view            | see Obsidian namespace               |
-| `print(...)`                                         | Print to developer console                         | `print("loaded")`                    |
+| API                                                  | Description                                        | Example                                     |
+| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------------- |
+| `vim.opt.<name> = value`                             | Set a plugin option (string options accept tables) | `vim.opt.scrolloff = 8`                     |
+| `vim.o.<name> = value`                               | Alias for `vim.opt`                                | `vim.o.scrolloff = 8`                       |
+| `vim.o.operatorfunc`                                 | Function called by the `g@` operator               | see Custom operators                        |
+| `vim.g.mapleader`                                    | Set the leader key                                 | `vim.g.mapleader = " "`                     |
+| `vim.g.<name> = value`                               | Set a user variable                                | `vim.g.my_var = true`                       |
+| `vim.cmd(string)`                                    | Execute an ex command                              | `vim.cmd("set nohlsearch")`                 |
+| `vim.vault_name()`                                   | Returns the current vault name                     | `if vim.vault_name() == "work" then`        |
+| `vim.fn.has(feature)`                                | Platform/feature detection                         | `vim.fn.has("mac")`                         |
+| `vim.fn.expand(expr)`                                | Active file path (vault-relative)                  | `vim.fn.expand("%:t")`                      |
+| `vim.fn.fnamemodify(path, mods)`                     | Path manipulation                                  | `vim.fn.fnamemodify(path, ":t:r")`          |
+| `vim.fn.exists(expr)`                                | Check variable/option existence                    | `vim.fn.exists("g:my_var")`                 |
+| `vim.fn.localtime()`                                 | Unix timestamp                                     | `vim.fn.localtime()`                        |
+| `vim.fn.strftime(fmt)`                               | Format date/time                                   | `vim.fn.strftime("%Y-%m-%d")`               |
+| `vim.fn.filereadable(path)`                          | Check vault file exists                            | `vim.fn.filereadable("config.md")`          |
+| `vim.fn.isdirectory(path)`                           | Check vault directory exists                       | `vim.fn.isdirectory("templates")`           |
+| `vim.fn.glob(pattern)`                               | Find matching vault files                          | `vim.fn.glob("*.md")`                       |
+| `vim.fn.undotree()`                                  | Returns undo tree dictionary                       | `local tree = vim.fn.undotree()`            |
+| `vim.fn.mode()`                                      | Current vim mode                                   | `vim.fn.mode()`                             |
+| `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                   | `vim.fn.line(".")`                          |
+| `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                 | `vim.fn.col(".")`                           |
+| `vim.fn.setreg(regname, value [, opts])`             | Set register content                               | `vim.fn.setreg('"', "text")`                |
+| `vim.fn.getreg(regname)`                             | Get register content                               | `vim.fn.getreg('"')`                        |
+| `vim.fn.getpos(expr)`                                | Get position `[buf, lnum, col, off]`               | `vim.fn.getpos("'[")`                       |
+| `vim.fn.cursor(lnum, col)`                           | Move cursor                                        | `vim.fn.cursor(5, 1)`                       |
+| `vim.notify(msg)`                                    | Show Obsidian notification                         | `vim.notify("Saved!")`                      |
+| `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command                           | see below                                   |
+| `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                               | see Autocommands section                    |
+| `vim.api.nvim_create_augroup(name, opts)`            | Create/get autocommand group                       | see Autocommands section                    |
+| `vim.keymap.set(mode, lhs, rhs, opts?)`              | Create a key mapping                               | see example above                           |
+| `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                               | `vim.keymap.del("n", "Q")`                  |
+| `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap                | see Obsidian namespace                      |
+| `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap                             | see Obsidian namespace                      |
+| `vim.obsidian.pick(source, opts?)`                   | Open the unified picker                            | `vim.obsidian.pick("files")`                |
+| `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                             | see Obsidian namespace                      |
+| `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                          | see Obsidian namespace                      |
+| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace                      |
+| `vim.obsidian.oil.parent()`                          | Oil: navigate to parent directory                  | see Obsidian namespace                      |
+| `vim.obsidian.oil.open_entry()`                      | Oil: open file/directory under cursor              | see Obsidian namespace                      |
+| `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                | see Obsidian namespace                      |
+| `vim.obsidian.im.get()`                              | Get current IM identifier (desktop only)           | see Obsidian namespace                      |
+| `vim.obsidian.im.set(id)`                            | Switch to specific IM (desktop only)               | see Obsidian namespace                      |
+| `vim.obsidian.im.save()`                             | Save current IM for active editor view             | see Obsidian namespace                      |
+| `vim.plugins.add(spec)`                              | Register a Neovim plugin                           | see Plugin management                       |
+| `vim.plugins.list()`                                 | List registered plugins                            | `for _, p in ipairs(vim.plugins.list()) do` |
 
 ## Custom operators
 
@@ -791,6 +794,67 @@ vim.keymap.del("n", "Q")
 
 > [!warning] Which-key auto-resolution with function callbacks
 > String RHS mappings like `vim.keymap.set("n", "<leader>r", ":ob app:go-back<CR>")` auto-resolve the Obsidian command name in the which-key popup. Function callbacks wrapping `vim.cmd("ob ...")` do **not** — Lua functions are opaque and cannot be introspected. Always provide a `desc` option when using function callbacks, or use a string RHS for automatic resolution.
+
+## Buffer-local variables (`vim.b`)
+
+Per-buffer variable storage, isolated by file path:
+
+```lua
+vim.b.my_flag = true
+if vim.b.my_flag then
+    vim.notify("Flag is set for this buffer")
+end
+vim.b.my_flag = nil  -- delete
+```
+
+Returns `nil` for unset variables. Variables persist for the session but are not saved across plugin reloads.
+
+## Buffer-local options (`vim.bo`)
+
+Read buffer-local options:
+
+| Option          | Default (markdown) | Description                |
+| --------------- | ------------------ | -------------------------- |
+| `commentstring` | `%% %s %%`         | Comment format string      |
+| `filetype`      | file extension     | Buffer filetype            |
+| `expandtab`     | `true`             | Use spaces for indentation |
+| `shiftwidth`    | Obsidian tab size  | Indent width               |
+| `tabstop`       | Obsidian tab size  | Tab character width        |
+| `modifiable`    | `true`             | Buffer is editable         |
+| `buftype`       | `""`               | Buffer type                |
+| `textwidth`     | `0`                | Hard-wrap width            |
+
+```lua
+local cs = vim.bo.commentstring  -- "%% %s %%"
+local ft = vim.bo.filetype       -- "md" or file extension
+```
+
+## Plugin management (`vim.plugins`)
+
+Register Neovim-compatible Lua plugins. The plugin supports automatic fetching from GitHub when **Settings → Vim Motions → Advanced → Auto-fetch plugins** is enabled.
+
+```lua
+-- Register a plugin (checks if files exist in lua/, fetches if enabled)
+vim.plugins.add({ 'echasnovski/mini.nvim' })
+
+-- Pin to a specific branch, tag, or commit
+vim.plugins.add({ 'echasnovski/mini.comment', branch = 'main' })
+vim.plugins.add({ 'folke/flash.nvim', tag = 'v1.0.0' })
+vim.plugins.add({ 'nvim-lua/plenary.nvim', commit = 'abcdef1' })
+
+-- Then use the plugin normally
+require('mini.comment').setup({})
+```
+
+If the plugin files are not found and auto-fetch is disabled, a Notice is shown with download instructions. When auto-fetch is enabled, the plugin is downloaded as a tarball archive and extracted to `lua/`. A lock file at `lua/.plugin-lock.json` tracks installed versions.
+
+```lua
+-- List registered plugins
+local plugins = vim.plugins.list()
+for _, p in ipairs(plugins) do
+    print(p.name, p.repo, p.available)
+end
+```
 
 ## Buffer-local keymaps
 
@@ -1575,14 +1639,14 @@ Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sand
 
 ## Keymapping mode reference
 
-| Mode string | Context          | Description                    |
-| ----------- | ---------------- | ------------------------------ |
-| `'n'`       | Normal           | Normal mode mappings           |
-| `'i'`       | Insert           | Insert mode mappings           |
-| `'v'`       | Visual           | Visual mode (same as `'x'`)    |
-| `'x'`       | Visual           | Visual mode (alias for `'v'`)  |
-| `'s'`       | Select           | Select mode only               |
-| `'o'`       | Operator-pending | Maps to normal mode internally |
+| Mode string | Context          | Description                                                  |
+| ----------- | ---------------- | ------------------------------------------------------------ |
+| `'n'`       | Normal           | Normal mode mappings                                         |
+| `'i'`       | Insert           | Insert mode mappings                                         |
+| `'v'`       | Visual           | Visual mode (same as `'x'`)                                  |
+| `'x'`       | Visual           | Visual mode (alias for `'v'`)                                |
+| `'s'`       | Select           | Select mode only                                             |
+| `'o'`       | Operator-pending | Operator-pending mode (e.g., text objects for `d`, `c`, `y`) |
 
 > [!info] Difference from Neovim
 > In Neovim, `'v'` maps to both visual and select mode. In Vim Motions, `'v'` maps to visual mode only. Use `{"v", "s"}` to map in both visual and select modes.
