@@ -103,12 +103,17 @@ export function matchesPickerKey(
     keys: string[],
 ): boolean {
     const ctrl = event.ctrlKey || event.metaKey;
+    const alt = event.altKey;
+
     for (const spec of keys) {
         if (spec.startsWith('C-')) {
-            if (ctrl && event.key === spec.slice(2)) return true;
+            if (ctrl && !alt && event.key === spec.slice(2)) return true;
+        } else if (spec.startsWith('A-')) {
+            if (alt && !ctrl && event.key === spec.slice(2)) return true;
         } else {
-            if (!ctrl && event.key === spec) return true;
+            if (!ctrl && !alt && event.key === spec) return true;
         }
     }
+
     return false;
 }
