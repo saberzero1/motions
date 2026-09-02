@@ -1,5 +1,25 @@
 import { browser } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
+import { readFileSync } from 'fs';
+import { type Plugin } from 'vitest/config';
+
+export function wasmBinaryPlugin(): Plugin {
+    return {
+        name: 'wasm-binary',
+        enforce: 'pre',
+        load(id: string) {
+            if (!id.endsWith('.wasm')) return;
+            const bytes = readFileSync(id);
+            const base64 = bytes.toString('base64');
+            return `
+                const b = atob(${JSON.stringify(base64)});
+                const u = new Uint8Array(b.length);
+                for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+                export default u;
+            `;
+        },
+    };
+}
 
 export const PAUSE = {
     KEY_GAP: 30,

@@ -1,23 +1,5 @@
-import { defineConfig, type Plugin } from 'vitest/config';
-import { readFileSync } from 'fs';
-
-function wasmBinaryPlugin(): Plugin {
-    return {
-        name: 'wasm-binary',
-        enforce: 'pre',
-        load(id: string) {
-            if (!id.endsWith('.wasm')) return;
-            const bytes = readFileSync(id);
-            const base64 = bytes.toString('base64');
-            return `
-                const b = atob(${JSON.stringify(base64)});
-                const u = new Uint8Array(b.length);
-                for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
-                export default u;
-            `;
-        },
-    };
-}
+import { defineConfig } from 'vitest/config';
+import { wasmBinaryPlugin } from './test/helpers';
 
 export default defineConfig({
     plugins: [wasmBinaryPlugin()],
