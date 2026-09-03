@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.140.0] - 2026-09-03
+
 ### Fixed
 
 - **Picker `pick_keymap` ignores Alt and other modifier keys** — `vim.obsidian.pick_keymap()` only recognized the `C-` (Ctrl) modifier prefix. Key specs with `A-` (Alt), `S-` (Shift), `M-` (Meta), or modifier combinations like `C-A-j` were silently ignored. Root cause: `matchesPickerKey()` had a simple `C-` check and fell through to plain key matching for everything else. Replaced with a proper modifier parser (`parsePickerKeySpec`) that strips all modifier prefixes and validates each against the corresponding `KeyboardEvent` flags. ([#159](https://github.com/saberzero1/motions/pull/159))

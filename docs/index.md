@@ -31,13 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.139.0
+## What's new in 0.140.0
 
-- **Plugin auto-fetch** — `vim.plugins.add()` now automatically downloads Neovim plugins from GitHub, extracts them to `lua/`, and manages version pinning via a lock file. Supports branch, tag, and commit pinning with atomic staging writes. Configurable via the `pluginAutoFetch` setting
-- **`require()` init.lua fallback** — `require("name")` now tries `lua/name/init.lua` when `lua/name.lua` is not found, matching Neovim's module resolution and enabling multi-file [[lua-config|Lua plugins]]
-- **Sandbox compatibility** — `rawget`/`rawset`/`rawequal` re-enabled in the Lua sandbox, restoring compatibility with Neovim plugins that depend on these standard functions (fixes `vim.is_callable` for callable tables)
-- **Operator-pending keymap fix** — operator-pending text objects no longer shadow normal mode mappings (e.g., `gc`/`gcc` collisions resolved)
-- **Fork: backtracking dispatch** — the operator-prefix shadow resolver now supports backtracking when a longer partial match fails, preventing lost motions (e.g., flash `s` vs surround `s<char>`)
-- **Lua keymap resilience** — `vim.keymap.set` function callbacks now survive vim mode toggle and view plugin recreation
+- **Full modifier key support** — [[lua-config|picker keymaps]] (`pick_keymap`) and [[workspace-navigation|global workspace mappings]] now recognize Alt, Shift, Meta, and combined modifier prefixes (`<C-A-j>`, `<C-S-Tab>`, `<M-f>`, etc.) — previously only Ctrl was handled
+- **Unicode subword motions** — `w`/`b`/`e`/`ge` with [[text-objects|subword motions]] enabled now correctly stop at word boundaries in Arabic, CJK, accented Latin, and other non-ASCII scripts
+- **Unicode EasyMotion targets** — [[easymotion|EasyMotion]] word motions (`w`/`b`/`e`) now generate jump labels on non-ASCII words (Arabic, CJK, etc.)
+- **Hint mode Alt support** — [[hint-mode|hint mode]] now captures the Alt modifier on label selection, enabling Alt-modified hint actions
 
 See the [[changelog|full changelog]] for details.
