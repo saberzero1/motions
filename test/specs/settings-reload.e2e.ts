@@ -652,6 +652,232 @@ describe('Settings hot-reload', function () {
         expect(value).toContain('[[');
     });
 
+    it('disabling workspace nav should not break editor ex commands (#165)', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = false;
+            plugin.settings.picker = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await setupEditor('test content', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleEx: (cm: unknown, input: string) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            Vim.handleEx(adapter, 'buffers');
+        });
+        await browser.pause(300);
+
+        const hasModal = await browser.executeObsidian(() => {
+            return !!activeDocument.querySelector('.modal-container');
+        });
+        expect(hasModal).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = true;
+            plugin.settings.picker = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('disabling workspace nav should not break core vim actions (#165)', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await setupEditor('# Heading\nbody text', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, 'g');
+            Vim.handleKey(adapter, 'O');
+        });
+        await browser.pause(300);
+
+        const hasModal = await browser.executeObsidian(() => {
+            return !!activeDocument.querySelector('.modal-container');
+        });
+        expect(hasModal).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('disabling hard-wrap should not break fold commands', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableHardWrap = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await setupEditor('# H1\nbody\n\n## H2\nmore', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const cursorLine = await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const Vim = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim) return -1;
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return -1;
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter) return -1;
+                Vim.handleKey(adapter, '<Esc>');
+                Vim.handleKey(adapter, 'z');
+                Vim.handleKey(adapter, 'j');
+                return view.editor.getCursor().line;
+            },
+        );
+        expect(cursorLine).toBeGreaterThan(0);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableHardWrap = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
     it('disabling workspace nav should not break ex command line (#164)', async function () {
         await browser.executeObsidian(({ app }) => {
             const plugin = (

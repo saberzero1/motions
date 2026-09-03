@@ -1,8 +1,6 @@
 import { VimRegistration } from '../vim/registration';
 import { hardWrapOperator, hardWrapKeepCursorOperator } from './hardwrap';
 import { replaceWithRegisterOperator } from './replace-with-register';
-import { registerFoldCommands } from '../fold/commands';
-import { registerFoldEnableCommands } from '../fold/fold-enable';
 
 export function registerOperators(reg: VimRegistration): void {
     reg.defineOperator('hardWrap', hardWrapOperator);
@@ -10,9 +8,6 @@ export function registerOperators(reg: VimRegistration): void {
 
     reg.defineOperator('hardWrapKeepCursor', hardWrapKeepCursorOperator);
     reg.mapCommand('gw', 'operator', 'hardWrapKeepCursor', {});
-
-    registerFoldEnableCommands(reg);
-    registerFoldCommands(reg);
 }
 
 export function registerReplaceWithRegister(reg: VimRegistration): void {

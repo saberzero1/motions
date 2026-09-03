@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Disabling workspace navigation disables editor ex commands and core vim actions** — turning off **Settings → Vim Motions → Navigation → Workspace navigation** also disabled all editor-level ex commands (`:w`, `:q`, `:buffers`, `:sp`, `:vs`, `:grep`, etc.) and all core vim actions registered by `registerWorkspaceNavigation()` — including fold commands (`zc`/`zo`/`za`/`zM`/`zR`/`zj`/`zk`/`[z`/`]z`/`zf`/`zd`/`zE`), paste (`P`/`gp`/`gP`), goto-definition (`gd`/`gD`/`<C-]>`), document outline (`gO`), URL open (`gx`), character info (`ga`/`g8`/`K`), file info (`<C-g>`), blank lines (`]<Space>`/`[<Space>`), horizontal scroll (`zs`/`ze`/`zH`/`zL`), and more. Root cause: `registerExCommands()` and `registerWorkspaceNavigation()` were both inside the `if (enableWorkspaceNav)` gate. Fixed by (1) moving `registerExCommands()` outside the gate, (2) splitting `registerWorkspaceNavigation()` into `registerCoreVimActions()` (always called — editor commands unrelated to pane/tab management) and `registerWorkspaceNavigation()` (gated — pane focus, tab switching, splits, close). ([#165](https://github.com/saberzero1/motions/issues/165))
+    - Plugin: `src/main.ts` (`registerExCommands` and `registerCoreVimActions` called unconditionally; `registerWorkspaceNavigation` remains gated)
+    - Plugin: `src/workspace/navigation.ts` (split into `registerCoreVimActions` + `registerWorkspaceNavigation`)
+- **Disabling hard-wrap disables fold commands** — turning off **Settings → Vim Motions → Vim features → Hard-wrap formatting** also disabled all fold commands (`zf`/`zF`/`zd`/`zD`/`zE`/`zv`/`zj`/`zk`/`[z`/`]z`/`zn`/`zN`/`zi` + `:fold`/`:foldopen`/`:foldclose`/`:folddoopen`/`:folddoclosed`). Root cause: `registerFoldCommands()` and `registerFoldEnableCommands()` were called inside `registerOperators()`, which is gated by `enableHardWrap`. Fixed by moving both fold registration calls out of `registerOperators()` and calling them unconditionally in `main.ts`.
+    - Plugin: `src/operators/register.ts` (removed fold registration calls)
+    - Plugin: `src/main.ts` (`registerFoldEnableCommands` and `registerFoldCommands` called unconditionally)
+
+### Tests
+
+- 3 regression tests in `test/specs/settings-reload.e2e.ts` for #165 (`:buffers` ex command works with workspace nav disabled; `gO` outline works with workspace nav disabled; `zj` fold motion works with hard-wrap disabled)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: marked workspace navigation paste dependency as fixed
+- `CONTRIBUTING.md`: updated `navigation.ts` and `operators/register.ts` descriptions to reflect split
+
 ## [0.142.0] - 2026-09-03
 
 ### Fixed

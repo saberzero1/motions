@@ -35,7 +35,6 @@ import {
 import { createContextActionsAction } from '../ui/context-actions';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
-import type { LeaderRegistry } from '../ui/which-key';
 import { executeCommand } from '../util/commands';
 
 export { executeCommand } from '../util/commands';
@@ -510,92 +509,12 @@ function createFocusPreviousPaneAction(
     };
 }
 
-export function registerWorkspaceNavigation(
+export function registerCoreVimActions(
     reg: VimRegistration,
     app: App,
-    leaderRegistry: LeaderRegistry,
     enableReplaceWithRegister = true,
-    getPreviousLeafId: () => string | null = () => null,
     getAlternateFilePath: () => string | null = () => null,
 ): void {
-    void leaderRegistry;
-    const focusLeft = createCommandAction(app, 'editor:focus-left');
-    reg.defineAction('focusPaneLeft', focusLeft);
-    reg.mapCommand('<C-w>h', 'action', 'focusPaneLeft', {});
-    exCommandFromAction(reg, 'focuspaneleft', 'focuspanel', focusLeft);
-
-    const focusDown = createCommandAction(app, 'editor:focus-bottom');
-    reg.defineAction('focusPaneDown', focusDown);
-    reg.mapCommand('<C-w>j', 'action', 'focusPaneDown', {});
-    exCommandFromAction(reg, 'focuspanedown', 'focuspaned', focusDown);
-
-    const focusUp = createCommandAction(app, 'editor:focus-top');
-    reg.defineAction('focusPaneUp', focusUp);
-    reg.mapCommand('<C-w>k', 'action', 'focusPaneUp', {});
-    exCommandFromAction(reg, 'focuspaneup', '', focusUp);
-
-    const focusRight = createCommandAction(app, 'editor:focus-right');
-    reg.defineAction('focusPaneRight', focusRight);
-    reg.mapCommand('<C-w>l', 'action', 'focusPaneRight', {});
-    exCommandFromAction(reg, 'focuspaneright', 'focuspaner', focusRight);
-
-    const splitV = createCommandAction(app, 'workspace:split-vertical');
-    reg.defineAction('splitVertical', splitV);
-    reg.mapCommand('<C-w>v', 'action', 'splitVertical', {});
-    exCommandFromAction(reg, 'splitvertical', 'splitv', splitV);
-
-    const splitH = createCommandAction(app, 'workspace:split-horizontal');
-    reg.defineAction('splitHorizontal', splitH);
-    reg.mapCommand('<C-w>s', 'action', 'splitHorizontal', {});
-    reg.mapCommand('<C-w>n', 'action', 'splitHorizontal', {});
-    exCommandFromAction(reg, 'splithorizontal', 'splith', splitH);
-
-    const closeTabAction = createCommandAction(app, 'workspace:close');
-    reg.defineAction('closeTab', closeTabAction);
-    reg.mapCommand('<C-w>c', 'action', 'closeTab', {});
-    reg.mapCommand('<C-w>q', 'action', 'closeTab', {});
-    exCommandFromAction(reg, 'closetab', 'closet', closeTabAction);
-
-    const closeOthers = createCloseOthersAction(app);
-    reg.defineAction('closeOtherTabs', closeOthers);
-    reg.mapCommand('<C-w>o', 'action', 'closeOtherTabs', {});
-    exCommandFromAction(reg, 'closeothertabs', 'closeo', closeOthers);
-
-    const nextTabAction = createCommandAction(app, 'workspace:next-tab');
-    reg.defineAction('nextTab', nextTabAction);
-    exCommandFromAction(reg, 'nexttab', '', nextTabAction);
-
-    const gtAction: ActionFn = (_cm, actionArgs) => {
-        if (actionArgs.repeatIsExplicit) {
-            const n = actionArgs.repeat ?? 1;
-            const rootSplit = app.workspace.rootSplit;
-            const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
-            app.workspace.iterateAllLeaves((leaf) => {
-                if (leaf.getRoot() === rootSplit) {
-                    leaves.push(leaf);
-                }
-            });
-            const target = leaves[n - 1];
-            if (target) {
-                app.workspace.setActiveLeaf(target, { focus: true });
-            }
-        } else {
-            executeCommand(app, 'workspace:next-tab');
-        }
-    };
-    reg.defineAction('gt', gtAction);
-    reg.mapCommand('gt', 'action', 'gt', {});
-
-    const prevTabAction = createCommandAction(app, 'workspace:previous-tab');
-    reg.defineAction('prevTab', prevTabAction);
-    reg.mapCommand('gT', 'action', 'prevTab', {});
-    exCommandFromAction(reg, 'prevtab', '', prevTabAction);
-
-    const gotoTabAction = createGotoTabAction(app);
-    reg.defineAction('gotoTab', gotoTabAction);
-    reg.mapCommand('g<C-t>', 'action', 'gotoTab', {});
-    exCommandFromAction(reg, 'gototab', 'gotot', gotoTabAction);
-
     const gotoDef = createGotoDefinitionAction(app);
     reg.defineAction('gotoDefinition', gotoDef);
     reg.mapCommand('gd', 'action', 'gotoDefinition', {});
@@ -893,19 +812,6 @@ export function registerWorkspaceNavigation(
     reg.defineAction('keywordLookup', keywordLookup);
     reg.mapCommand('K', 'action', 'keywordLookup', {});
 
-    const cyclePaneNext = createCyclePaneAction(app, false);
-    reg.defineAction('cyclePaneNext', cyclePaneNext);
-    reg.mapCommand('<C-w>w', 'action', 'cyclePaneNext', {});
-
-    const cyclePanePrev = createCyclePaneAction(app, true);
-    reg.defineAction('cyclePanePrev', cyclePanePrev);
-    reg.mapCommand('<C-w>W', 'action', 'cyclePanePrev', {});
-
-    const focusPrevPane = createFocusPreviousPaneAction(app, getPreviousLeafId);
-    reg.defineAction('focusPreviousPane', focusPrevPane);
-    reg.mapCommand('<C-w>p', 'action', 'focusPreviousPane', {});
-    reg.mapCommand('g<Tab>', 'action', 'focusPreviousPane', {});
-
     const utf8Info = createUtf8ByteInfoAction(app);
     reg.defineAction('utf8ByteInfo', utf8Info);
     reg.mapCommand('g8', 'action', 'utf8ByteInfo', {});
@@ -980,6 +886,103 @@ export function registerWorkspaceNavigation(
     reg.mapCommand('[<Space>', 'action', 'addBlankLineAbove', {
         isEdit: true,
     });
+}
+
+export function registerWorkspaceNavigation(
+    reg: VimRegistration,
+    app: App,
+    getPreviousLeafId: () => string | null = () => null,
+    getAlternateFilePath: () => string | null = () => null,
+): void {
+    const focusLeft = createCommandAction(app, 'editor:focus-left');
+    reg.defineAction('focusPaneLeft', focusLeft);
+    reg.mapCommand('<C-w>h', 'action', 'focusPaneLeft', {});
+    exCommandFromAction(reg, 'focuspaneleft', 'focuspanel', focusLeft);
+
+    const focusDown = createCommandAction(app, 'editor:focus-bottom');
+    reg.defineAction('focusPaneDown', focusDown);
+    reg.mapCommand('<C-w>j', 'action', 'focusPaneDown', {});
+    exCommandFromAction(reg, 'focuspanedown', 'focuspaned', focusDown);
+
+    const focusUp = createCommandAction(app, 'editor:focus-top');
+    reg.defineAction('focusPaneUp', focusUp);
+    reg.mapCommand('<C-w>k', 'action', 'focusPaneUp', {});
+    exCommandFromAction(reg, 'focuspaneup', '', focusUp);
+
+    const focusRight = createCommandAction(app, 'editor:focus-right');
+    reg.defineAction('focusPaneRight', focusRight);
+    reg.mapCommand('<C-w>l', 'action', 'focusPaneRight', {});
+    exCommandFromAction(reg, 'focuspaneright', 'focuspaner', focusRight);
+
+    const splitV = createCommandAction(app, 'workspace:split-vertical');
+    reg.defineAction('splitVertical', splitV);
+    reg.mapCommand('<C-w>v', 'action', 'splitVertical', {});
+    exCommandFromAction(reg, 'splitvertical', 'splitv', splitV);
+
+    const splitH = createCommandAction(app, 'workspace:split-horizontal');
+    reg.defineAction('splitHorizontal', splitH);
+    reg.mapCommand('<C-w>s', 'action', 'splitHorizontal', {});
+    reg.mapCommand('<C-w>n', 'action', 'splitHorizontal', {});
+    exCommandFromAction(reg, 'splithorizontal', 'splith', splitH);
+
+    const closeTabAction = createCommandAction(app, 'workspace:close');
+    reg.defineAction('closeTab', closeTabAction);
+    reg.mapCommand('<C-w>c', 'action', 'closeTab', {});
+    reg.mapCommand('<C-w>q', 'action', 'closeTab', {});
+    exCommandFromAction(reg, 'closetab', 'closet', closeTabAction);
+
+    const closeOthers = createCloseOthersAction(app);
+    reg.defineAction('closeOtherTabs', closeOthers);
+    reg.mapCommand('<C-w>o', 'action', 'closeOtherTabs', {});
+    exCommandFromAction(reg, 'closeothertabs', 'closeo', closeOthers);
+
+    const nextTabAction = createCommandAction(app, 'workspace:next-tab');
+    reg.defineAction('nextTab', nextTabAction);
+    exCommandFromAction(reg, 'nexttab', '', nextTabAction);
+
+    const gtAction: ActionFn = (_cm, actionArgs) => {
+        if (actionArgs.repeatIsExplicit) {
+            const n = actionArgs.repeat ?? 1;
+            const rootSplit = app.workspace.rootSplit;
+            const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
+            app.workspace.iterateAllLeaves((leaf) => {
+                if (leaf.getRoot() === rootSplit) {
+                    leaves.push(leaf);
+                }
+            });
+            const target = leaves[n - 1];
+            if (target) {
+                app.workspace.setActiveLeaf(target, { focus: true });
+            }
+        } else {
+            executeCommand(app, 'workspace:next-tab');
+        }
+    };
+    reg.defineAction('gt', gtAction);
+    reg.mapCommand('gt', 'action', 'gt', {});
+
+    const prevTabAction = createCommandAction(app, 'workspace:previous-tab');
+    reg.defineAction('prevTab', prevTabAction);
+    reg.mapCommand('gT', 'action', 'prevTab', {});
+    exCommandFromAction(reg, 'prevtab', '', prevTabAction);
+
+    const gotoTabAction = createGotoTabAction(app);
+    reg.defineAction('gotoTab', gotoTabAction);
+    reg.mapCommand('g<C-t>', 'action', 'gotoTab', {});
+    exCommandFromAction(reg, 'gototab', 'gotot', gotoTabAction);
+
+    const cyclePaneNext = createCyclePaneAction(app, false);
+    reg.defineAction('cyclePaneNext', cyclePaneNext);
+    reg.mapCommand('<C-w>w', 'action', 'cyclePaneNext', {});
+
+    const cyclePanePrev = createCyclePaneAction(app, true);
+    reg.defineAction('cyclePanePrev', cyclePanePrev);
+    reg.mapCommand('<C-w>W', 'action', 'cyclePanePrev', {});
+
+    const focusPrevPane = createFocusPreviousPaneAction(app, getPreviousLeafId);
+    reg.defineAction('focusPreviousPane', focusPrevPane);
+    reg.mapCommand('<C-w>p', 'action', 'focusPreviousPane', {});
+    reg.mapCommand('g<Tab>', 'action', 'focusPreviousPane', {});
 
     // <C-W>^ — split + alternate file (Neovim default)
     const splitAlternateFile: ActionFn = () => {

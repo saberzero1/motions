@@ -140,14 +140,14 @@ src/
   operators/
     hardwrap.ts            # gq/gw Markdown-aware hard-wrap
     replace-with-register.ts  # gr{motion} replace text with register contents
-    register.ts            # Wires operators (gq/gw, gr) to keybindings
+    register.ts            # Wires hard-wrap operators (gq/gw) to keybindings — fold commands are registered unconditionally in main.ts, not here
   actions/
     open-line.ts           # Open-line action implementation
     dial.ts                # Enhanced increment/decrement dispatcher
     dial-rules.ts          # Dial rules (checkbox, boolean, hex, date, CSS, integer)
     register-dial.ts       # Dial action override registration
   workspace/
-    navigation.ts          # Pane/tab/fold/gd/gx/gO/gf/hint-mode keybindings + <leader>r* note actions — gt uses repeatIsExplicit for Ngt count support, gotoNthTab filters to rootSplit
+    navigation.ts          # registerCoreVimActions (always-on: gd/gD/gx/gO/gf/ga/g8/K/P/gp/gP/zs/ze/zH/zL/]Space/[Space/fold commands/alternate file/<leader>r* note actions) + registerWorkspaceNavigation (gated by enableWorkspaceNav: <C-w>h/j/k/l/v/s/c/q/o/w/W/p/T, gt/gT/g<C-t>) — gt uses repeatIsExplicit for Ngt count support, gotoNthTab filters to rootSplit
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation

@@ -37,7 +37,10 @@ import {
 } from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
-import { registerWorkspaceNavigation } from './workspace/navigation';
+import {
+    registerCoreVimActions,
+    registerWorkspaceNavigation,
+} from './workspace/navigation';
 import { YankRingManager, registerYankRing } from './vim/yank-ring';
 import { GlobalKeyHandler } from './workspace/global-key-handler';
 import { detectHotkeyConflicts } from './workspace/hotkey-conflicts';
@@ -100,7 +103,11 @@ import {
     setFoldopen,
 } from './vim/fold-sync';
 import { foldLevelExtension } from './fold/fold-level';
-import { foldEnableExtension } from './fold/fold-enable';
+import {
+    foldEnableExtension,
+    registerFoldEnableCommands,
+} from './fold/fold-enable';
+import { registerFoldCommands } from './fold/commands';
 import { markdownFoldProvider } from './fold/provider';
 import { FoldPersistenceStore } from './fold/persistence';
 import { foldPlaceholderExtension } from './fold/placeholder';
@@ -2268,6 +2275,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
         }
+        registerFoldEnableCommands(this.registration);
+        registerFoldCommands(this.registration);
         if (this.settings.enableReplaceWithRegister) {
             registerReplaceWithRegister(this.registration);
         }
@@ -2277,36 +2286,40 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableSubwordMotions) {
             registerSubwordMotions(this.registration);
         }
+        registerCoreVimActions(
+            this.registration,
+            this.app,
+            this.settings.enableReplaceWithRegister,
+            () => this.alternateFilePath,
+        );
         if (this.settings.enableWorkspaceNav) {
             registerWorkspaceNavigation(
                 this.registration,
                 this.app,
-                this.leaderRegistry,
-                this.settings.enableReplaceWithRegister,
                 () => this.previousLeafId,
                 () => this.alternateFilePath,
             );
-            registerExCommands(
-                this.registration,
-                this.app,
-                vim,
-                this.globalRegistry ?? undefined,
-                this.autocmdManager ?? undefined,
-                this.settings.oilExplorer
-                    ? (this.oilManager ?? undefined)
-                    : undefined,
-                {
-                    openPicker: this.openPicker ?? undefined,
-                    isPickerEnabled: () => this.settings.picker,
-                },
-                this.triggerMarkGutterRefresh,
-                this.jumpList,
-                this.settings.enableUndoTree ? this.undoTree : undefined,
-                this.settings.enableUndoTree
-                    ? this.navigateUndoTreeTo.bind(this)
-                    : undefined,
-            );
         }
+        registerExCommands(
+            this.registration,
+            this.app,
+            vim,
+            this.globalRegistry ?? undefined,
+            this.autocmdManager ?? undefined,
+            this.settings.oilExplorer
+                ? (this.oilManager ?? undefined)
+                : undefined,
+            {
+                openPicker: this.openPicker ?? undefined,
+                isPickerEnabled: () => this.settings.picker,
+            },
+            this.triggerMarkGutterRefresh,
+            this.jumpList,
+            this.settings.enableUndoTree ? this.undoTree : undefined,
+            this.settings.enableUndoTree
+                ? this.navigateUndoTreeTo.bind(this)
+                : undefined,
+        );
 
         this.registerHarpoonExCommands();
         this.registerImExCommands();
@@ -3192,6 +3205,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
         }
+        registerFoldEnableCommands(this.registration);
+        registerFoldCommands(this.registration);
         if (this.settings.enableReplaceWithRegister) {
             registerReplaceWithRegister(this.registration);
         }
@@ -3201,36 +3216,40 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableSubwordMotions) {
             registerSubwordMotions(this.registration);
         }
+        registerCoreVimActions(
+            this.registration,
+            this.app,
+            this.settings.enableReplaceWithRegister,
+            () => this.alternateFilePath,
+        );
         if (this.settings.enableWorkspaceNav && this.leaderRegistry) {
             registerWorkspaceNavigation(
                 this.registration,
                 this.app,
-                this.leaderRegistry,
-                this.settings.enableReplaceWithRegister,
                 () => this.previousLeafId,
                 () => this.alternateFilePath,
             );
-            registerExCommands(
-                this.registration,
-                this.app,
-                vim,
-                this.globalRegistry ?? undefined,
-                this.autocmdManager ?? undefined,
-                this.settings.oilExplorer
-                    ? (this.oilManager ?? undefined)
-                    : undefined,
-                {
-                    openPicker: this.openPicker ?? undefined,
-                    isPickerEnabled: () => this.settings.picker,
-                },
-                this.triggerMarkGutterRefresh,
-                this.jumpList,
-                this.settings.enableUndoTree ? this.undoTree : undefined,
-                this.settings.enableUndoTree
-                    ? this.navigateUndoTreeTo.bind(this)
-                    : undefined,
-            );
         }
+        registerExCommands(
+            this.registration,
+            this.app,
+            vim,
+            this.globalRegistry ?? undefined,
+            this.autocmdManager ?? undefined,
+            this.settings.oilExplorer
+                ? (this.oilManager ?? undefined)
+                : undefined,
+            {
+                openPicker: this.openPicker ?? undefined,
+                isPickerEnabled: () => this.settings.picker,
+            },
+            this.triggerMarkGutterRefresh,
+            this.jumpList,
+            this.settings.enableUndoTree ? this.undoTree : undefined,
+            this.settings.enableUndoTree
+                ? this.navigateUndoTreeTo.bind(this)
+                : undefined,
+        );
         if (this.settings.enableYankRing && this.registration) {
             registerYankRing(this.registration, vim, this.yankRingManager);
         }
