@@ -129,7 +129,7 @@ vim.obsidian.pick_keymap({
 })
 ```
 
-Key format: `ArrowDown`, `ArrowUp`, `Enter`, `Escape` for special keys; `C-x` for Ctrl+x combinations. Only specified fields are updated — omitted fields keep their defaults.
+Key format: `ArrowDown`, `ArrowUp`, `Enter`, `Escape` for special keys. Modifier prefixes: `C-` (Ctrl/Cmd), `A-` (Alt), `S-` (Shift), `M-` (Meta/Cmd). Prefixes can be combined: `C-A-j` for Ctrl+Alt+j. Only specified fields are updated — omitted fields keep their defaults.
 
 ### Lua API
 

@@ -110,19 +110,36 @@ export function normalizeKeyString(input: string): string {
 export function normalizeKeyEvent(e: KeyboardEvent): string {
     const key = e.key;
 
-    if (e.ctrlKey && key.length === 1) {
-        return `<C-${key}>`;
+    // Build modifier prefix in canonical order: C-, A-, M-, S-
+    let prefix = '';
+    if (e.ctrlKey) prefix += 'C-';
+    if (e.altKey) prefix += 'A-';
+    if (e.metaKey && !e.ctrlKey) prefix += 'M-';
+
+    if (prefix && key.length === 1) {
+        return `<${prefix}${key}>`;
     }
 
-    if (e.altKey && key.length === 1) {
-        return `<A-${key}>`;
+    // Normalize special keys — include S- prefix when Shift is held
+    // (for single-char keys, Shift is implicit in the key value)
+    let special: string | null = null;
+    if (key === 'Enter') special = 'CR';
+    else if (key === 'Escape') special = 'Esc';
+    else if (key === 'Backspace') special = 'BS';
+    else if (key === 'Tab') special = 'Tab';
+    else if (key === ' ') special = 'Space';
+
+    if (special) {
+        if (prefix || e.shiftKey) {
+            const fullPrefix = prefix + (e.shiftKey ? 'S-' : '');
+            return `<${fullPrefix}${special}>`;
+        }
+        return `<${special}>`;
     }
 
-    if (key === 'Enter') return '<CR>';
-    if (key === 'Escape') return '<Esc>';
-    if (key === 'Backspace') return '<BS>';
-    if (key === 'Tab') return '<Tab>';
-    if (key === ' ') return '<Space>';
+    if (prefix) {
+        return `<${prefix}${key}>`;
+    }
 
     return key;
 }

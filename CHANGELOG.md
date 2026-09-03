@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Picker `pick_keymap` ignores Alt and other modifier keys** — `vim.obsidian.pick_keymap()` only recognized the `C-` (Ctrl) modifier prefix. Key specs with `A-` (Alt), `S-` (Shift), `M-` (Meta), or modifier combinations like `C-A-j` were silently ignored. Root cause: `matchesPickerKey()` had a simple `C-` check and fell through to plain key matching for everything else. Replaced with a proper modifier parser (`parsePickerKeySpec`) that strips all modifier prefixes and validates each against the corresponding `KeyboardEvent` flags. ([#159](https://github.com/saberzero1/motions/pull/159))
+    - Plugin: `src/picker/types.ts` (rewrote `matchesPickerKey` with full modifier support)
+- **Global workspace navigation missing Shift and Meta modifier normalization** — `normalizeKeyEvent()` only produced `<C-x>` and `<A-x>` notation. `<S-Tab>`, `<M-f>`, and modifier combinations like `<C-S-Tab>` or `<C-A-f>` were never generated, so user-defined global mappings with those prefixes could not match keyboard events. Added `<S->` normalization for special keys (Tab, Enter, Space, etc.), `<M->` for Meta-only, and combined prefix support in canonical order (`C-`, `A-`, `M-`, `S-`).
+    - Plugin: `src/workspace/global-mapping-registry.ts` (rewrote `normalizeKeyEvent` with full modifier prefix generation)
+- **Hint mode missing `altKey` in result** — `waitForHintKey()` captured `ctrlKey`, `metaKey`, and `shiftKey` from the label selection event but discarded `altKey`. Added `altKey` to the `HintResult` interface and all three resolve sites, making Alt-modified hint actions possible for future extensions.
+    - Plugin: `src/ui/hint-mode.ts` (added `altKey` to `HintResult` interface and all resolve sites)
 - **Subword motions skip non-ASCII Unicode characters** — `w`/`b`/`e`/`ge` with subword motions enabled skipped Arabic, CJK, accented Latin, and other non-ASCII text instead of stopping at word boundaries. Root cause: `isWordChar()` used `/[A-Za-z0-9]/` and `SUBWORD_RE` only matched ASCII letter patterns. Fixed by replacing all character classification with Unicode property escapes (`\p{L}`, `\p{Lu}`, `\p{Ll}`, `\p{N}`, `\p{M}`) and adding a `([\p{L}\p{M}]+)` alternative for caseless scripts (Arabic, Hebrew, CJK, Devanagari). The long-line fallback regex (`WORD_SEGMENT_RE`) was also updated. ([#160](https://github.com/saberzero1/motions/issues/160))
     - Plugin: `src/util/subword.ts` (Unicode-aware `SUBWORD_RE` and `isWordChar()`)
     - Plugin: `src/motions/subword.ts` (Unicode-aware `WORD_SEGMENT_RE` fallback)
@@ -17,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 29 unit tests in `test/unit/picker/picker-keymap.test.ts` for `matchesPickerKey` modifier support (Alt, Shift, Meta, combinations, multi-spec matching) (#159)
+- 4 e2e tests in `test/specs/picker-modifier-keys.e2e.ts` for Alt-j/Alt-k picker navigation via `pick_keymap` Lua config (#159)
+- 21 unit tests in `test/unit/global-mapping-registry.test.ts` for `normalizeKeyEvent` modifier normalization (Ctrl, Alt, Meta, Shift, special keys, combinations)
 - 6 unit test cases in `test/unit/subword.test.ts` for Unicode boundary/end detection (Arabic, mixed ASCII+Arabic, CJK, accented Latin)
 - 6 regression tests in `test/specs/subword-motions.e2e.ts` for Unicode subword motions (`w`/`b`/`e`/`dw` on Arabic, mixed text, CJK) (#160)
 - 5 regression tests in `test/specs/easymotion-comprehensive.e2e.ts` for Unicode EasyMotion word targets (`w`/`e`/`b` on Arabic and CJK) (#160)
@@ -24,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `docs/features/ex-commands.md`: updated picker key format description to document `A-`, `S-`, `M-` modifier prefixes and combinations
+- `docs/configuration/remapping.md`: updated picker key format description and added Alt-j/Alt-k example
 - `README.md`: updated subword motions description to mention Unicode support
 - `docs/reference/keybindings.md`: updated subword motions table to note Unicode support
 

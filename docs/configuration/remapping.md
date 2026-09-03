@@ -102,7 +102,16 @@ vim.obsidian.pick_keymap({
 })
 ```
 
-Key format: `ArrowDown`, `Enter`, `Escape` for special keys; `C-x` for Ctrl+x. Only specified fields are updated — omitted fields keep their defaults.
+Key format: `ArrowDown`, `Enter`, `Escape` for special keys. Modifier prefixes: `C-` (Ctrl/Cmd), `A-` (Alt), `S-` (Shift), `M-` (Meta/Cmd). Prefixes can be combined: `C-A-j` for Ctrl+Alt+j. Only specified fields are updated — omitted fields keep their defaults.
+
+Example using Alt+j/k for navigation:
+
+```lua
+vim.obsidian.pick_keymap({
+    move_down = { 'A-j', 'C-j' },
+    move_up = { 'A-k', 'C-k' },
+})
+```
 
 > [!info] Vimrc not supported
 > Picker keybindings cannot be configured via vimrc. Use Lua.

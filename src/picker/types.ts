@@ -98,17 +98,63 @@ export const DEFAULT_PICKER_KEYMAP: PickerKeymap = {
     close: ['Escape', 'C-c'],
 };
 
+const MODIFIER_PREFIXES = ['C-', 'A-', 'S-', 'M-'] as const;
+
+function parsePickerKeySpec(spec: string): {
+    wantCtrl: boolean;
+    wantAlt: boolean;
+    wantShift: boolean;
+    wantMeta: boolean;
+    key: string;
+} {
+    let rest = spec;
+    let wantCtrl = false;
+    let wantAlt = false;
+    let wantShift = false;
+    let wantMeta = false;
+
+    let found = true;
+    while (found) {
+        found = false;
+        for (const prefix of MODIFIER_PREFIXES) {
+            if (rest.startsWith(prefix)) {
+                rest = rest.slice(prefix.length);
+                found = true;
+                if (prefix === 'C-') wantCtrl = true;
+                else if (prefix === 'A-') wantAlt = true;
+                else if (prefix === 'S-') wantShift = true;
+                else if (prefix === 'M-') wantMeta = true;
+            }
+        }
+    }
+
+    return { wantCtrl, wantAlt, wantShift, wantMeta, key: rest };
+}
+
 export function matchesPickerKey(
     event: KeyboardEvent,
     keys: string[],
 ): boolean {
-    const ctrl = event.ctrlKey || event.metaKey;
     for (const spec of keys) {
-        if (spec.startsWith('C-')) {
-            if (ctrl && event.key === spec.slice(2)) return true;
-        } else {
-            if (!ctrl && event.key === spec) return true;
-        }
+        const { wantCtrl, wantAlt, wantShift, wantMeta, key } =
+            parsePickerKeySpec(spec);
+
+        // C- matches ctrlKey OR metaKey (macOS Cmd treated as Ctrl).
+        // M- matches metaKey only — exclude metaKey from the C- check
+        // so that M-j doesn't falsely trigger the ctrl guard.
+        const hasCtrl = wantMeta
+            ? event.ctrlKey
+            : event.ctrlKey || event.metaKey;
+        if (wantCtrl !== hasCtrl) continue;
+
+        if (wantAlt !== event.altKey) continue;
+        if (wantShift !== event.shiftKey) continue;
+
+        // M- requires metaKey. When M- is absent, don't enforce metaKey
+        // because C- already accepts it via the hasCtrl check above.
+        if (wantMeta && !event.metaKey) continue;
+
+        if (event.key === key) return true;
     }
     return false;
 }

@@ -217,6 +217,7 @@ export function resolveOverlaps(
 interface HintResult {
     target: HintTarget | null;
     ctrlKey: boolean;
+    altKey: boolean;
     metaKey: boolean;
     shiftKey: boolean;
 }
@@ -253,6 +254,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
                 resolve({
                     target: null,
                     ctrlKey: false,
+                    altKey: false,
                     metaKey: false,
                     shiftKey: false,
                 });
@@ -270,6 +272,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
                     resolve({
                         target: null,
                         ctrlKey: false,
+                        altKey: false,
                         metaKey: false,
                         shiftKey: false,
                     });
@@ -289,6 +292,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
                     resolve({
                         target: exactMatch,
                         ctrlKey: e.ctrlKey,
+                        altKey: e.altKey,
                         metaKey: e.metaKey,
                         shiftKey: e.shiftKey,
                     });
@@ -310,6 +314,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
             resolve({
                 target: match ?? null,
                 ctrlKey: e.ctrlKey,
+                altKey: e.altKey,
                 metaKey: e.metaKey,
                 shiftKey: e.shiftKey,
             });
