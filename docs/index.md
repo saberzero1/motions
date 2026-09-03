@@ -31,8 +31,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.142.0
+## What's new in 0.143.0
 
-- **`:obcommand` preserves visual selection** — visual-mode mappings to Obsidian commands (e.g., `vmap` to `:obcommand editor:toggle-bullet-list`) now operate on the full visual selection instead of collapsing to the cursor line. Both direct `handleEx` and `exmap` indirection paths are fixed ([#161](https://github.com/saberzero1/motions/discussions/161))
+- **Workspace navigation toggle no longer breaks ex commands** — disabling **Workspace navigation** in settings no longer disables `:w`, `:q`, `:buffers`, fold commands (`zc`/`zo`/`za`/`zM`/`zR`), paste (`P`/`gp`), goto-definition (`gd`), and other core vim actions. Editor-level commands are now always registered ([#165](https://github.com/saberzero1/motions/issues/165))
+- **Hard-wrap toggle no longer breaks fold commands** — disabling **Hard-wrap formatting** no longer disables `zf`/`zd`/`zE`/`zv`/`zj`/`zk`/`[z`/`]z` and fold-related ex commands
+- **`keyToKey` mappings with prefix ambiguity now execute correctly** — Lua/vimrc mappings like `vim.keymap.set("n", "<leader><leader>", ":buffers<CR>")` no longer silently fail when a longer partial match exists (e.g., `<Space><Space>h` for hint mode). The deferred command timer now correctly routes `keyToKey` mappings. `set timeoutlen=300` (alias for `operatorshadowtimeout`) controls the deferral delay ([#166](https://github.com/saberzero1/motions/issues/166))
 
 See the [[changelog|full changelog]] for details.
