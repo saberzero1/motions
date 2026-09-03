@@ -2484,7 +2484,7 @@ export default class VimMotionsPlugin extends Plugin {
             skipInTableCells(createScrolloffExtension()),
         );
 
-        if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+        if (!Platform.isMobile) {
             this.globalRegistry = new GlobalMappingRegistry();
             registerDefaultGlobalMappings(
                 this.globalRegistry,
@@ -2494,6 +2494,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.oilExplorer
                     ? (this.oilManager ?? undefined)
                     : undefined,
+                { enableWorkspaceNav: this.settings.enableWorkspaceNav },
             );
             this.globalKeyHandler = new GlobalKeyHandler(
                 this.app,
@@ -3343,7 +3344,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.globalKeyHandler?.destroy();
         this.globalKeyHandler = null;
         this.globalRegistry = null;
-        if (this.settings.enableWorkspaceNav && !Platform.isMobile) {
+        if (!Platform.isMobile) {
             this.globalRegistry = new GlobalMappingRegistry();
             registerDefaultGlobalMappings(
                 this.globalRegistry,
@@ -3353,6 +3354,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings.oilExplorer
                     ? (this.oilManager ?? undefined)
                     : undefined,
+                { enableWorkspaceNav: this.settings.enableWorkspaceNav },
             );
             this.applyGlobalMaps();
             this.globalKeyHandler = new GlobalKeyHandler(
@@ -3402,9 +3404,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.registerBundledIntegrations();
         }
 
-        // Reconfigure gutter compartments so that settings applied during
-        // vimrc/Lua loading (where per-option reconfiguration is deferred)
-        // take effect in a single batch.
+        this.applyLuaMaps(vim);
+
         this.reconfigureLineNumberGutter();
         this.reconfigureCursorlineHighlight();
         this.reconfigureFoldColumnGutter();
@@ -3636,7 +3637,15 @@ export default class VimMotionsPlugin extends Plugin {
         });
         const leader = leaderRegistry.getLeaderKey();
         const hintKeys = leader + leader + 'h';
-        reg.mapCommand(hintKeys, 'action', 'hintMode', {});
+        reg.mapCommand(
+            hintKeys,
+            'action',
+            'hintMode',
+            {},
+            {
+                context: 'normal',
+            },
+        );
         leaderRegistry.addBinding(hintKeys, 'Hint mode', 'builtin');
     }
 
@@ -3648,7 +3657,15 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.defineAction('pickerGrep', () => {
             this.openPicker?.('livegrep');
         });
-        this.registration.mapCommand(leader + 'fg', 'action', 'pickerGrep', {});
+        this.registration.mapCommand(
+            leader + 'fg',
+            'action',
+            'pickerGrep',
+            {},
+            {
+                context: 'normal',
+            },
+        );
         this.leaderRegistry.addBinding(leader + 'fg', 'grep', 'builtin');
 
         const sources = [
@@ -3673,6 +3690,7 @@ export default class VimMotionsPlugin extends Plugin {
                 'action',
                 actionName,
                 {},
+                { context: 'normal' },
             );
             this.leaderRegistry.addBinding(
                 leader + suffix,
@@ -4007,6 +4025,7 @@ export default class VimMotionsPlugin extends Plugin {
                 'action',
                 actionName,
                 {},
+                { context: 'normal' },
             );
             this.leaderRegistry.addBinding(
                 leader + suffix,
@@ -4026,6 +4045,7 @@ export default class VimMotionsPlugin extends Plugin {
                 'action',
                 actionName,
                 {},
+                { context: 'normal' },
             );
             this.leaderRegistry.addBinding(
                 leader + `${i}`,
@@ -4463,7 +4483,6 @@ export default class VimMotionsPlugin extends Plugin {
         this.luaLoading = false;
         this.reloadFeatures();
         this.reregisterLuaTextObjects();
-        this.applyLuaMaps(vim);
         this.autocmdManager?.fireInitialBufEnter();
         return luaResult;
     }

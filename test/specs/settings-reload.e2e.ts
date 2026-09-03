@@ -651,4 +651,250 @@ describe('Settings hot-reload', function () {
         const value = await getEditorValue();
         expect(value).toContain('[[');
     });
+
+    it('disabling workspace nav should not break ex command line (#164)', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const state = view.leaf.getViewState();
+            state.state = { ...state.state, mode: 'preview' };
+            void view.leaf.setViewState(state);
+        });
+        await browser.pause(500);
+
+        const result = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                globalKeyHandler: unknown;
+                                globalRegistry: unknown;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return {
+                hasGlobalKeyHandler: !!plugin?.globalKeyHandler,
+                hasGlobalRegistry: !!plugin?.globalRegistry,
+            };
+        });
+        expect(result.hasGlobalKeyHandler).toBe(true);
+        expect(result.hasGlobalRegistry).toBe(true);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const state = view.leaf.getViewState();
+            state.state = { ...state.state, mode: 'source' };
+            void view.leaf.setViewState(state);
+        });
+        await browser.pause(300);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('disabling workspace nav should not break lua global keymaps (#164)', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = false;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(500);
+
+        const result = await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                globalRegistry: {
+                                    addMapping: (
+                                        keys: string,
+                                        action: unknown,
+                                        opts: unknown,
+                                    ) => void;
+                                    resolve: (seq: string) => { type: string };
+                                } | null;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return { error: 'no plugin' };
+            if (!plugin.globalRegistry) {
+                return { registryExists: false };
+            }
+            plugin.globalRegistry.addMapping(
+                'T',
+                {
+                    type: 'builtin',
+                    fn: () => {},
+                },
+                { source: 'user', gate: 'standard' },
+            );
+            const resolved = plugin.globalRegistry.resolve('T');
+            (
+                plugin.globalRegistry as unknown as {
+                    removeMapping: (k: string) => void;
+                }
+            ).removeMapping('T');
+            return {
+                registryExists: true,
+                canResolve: resolved.type === 'exact',
+            };
+        });
+        expect(result.registryExists).toBe(true);
+        expect(result.canResolve).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.enableWorkspaceNav = true;
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
+    it('reloadFeatures should re-apply Lua keymap deletions (#162)', async function () {
+        const result = await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: Record<string, (...args: unknown[]) => unknown>;
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return { error: 'no Vim' };
+
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { error: 'no view' };
+            view.editor.focus();
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return { error: 'no adapter' };
+
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                reloadFeatures: () => void;
+                                leaderRegistry: {
+                                    getLeaderKey: () => string;
+                                };
+                                luaMapOperations: Array<{
+                                    type: string;
+                                    map: { lhs: string; mode: string };
+                                }>;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return { error: 'no plugin' };
+
+            const leader = plugin.leaderRegistry.getLeaderKey();
+            const hintLhs = leader + leader + 'h';
+
+            Vim.handleKey(adapter, '<Esc>');
+
+            plugin.luaMapOperations.push({
+                type: 'unmap',
+                map: { lhs: hintLhs, mode: 'normal' },
+            });
+
+            plugin.reloadFeatures();
+            Vim.handleKey(adapter, '<Esc>');
+
+            let mappingStillExists = false;
+            try {
+                const removed = Vim.unmap(hintLhs, 'normal');
+                mappingStillExists = !!removed;
+            } catch {
+                mappingStillExists = false;
+            }
+
+            plugin.luaMapOperations.pop();
+
+            return { mappingStillExists };
+        });
+
+        expect(result.error).toBeUndefined();
+        expect(result.mappingStillExists).toBe(false);
+    });
 });

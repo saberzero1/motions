@@ -156,7 +156,6 @@ export class GlobalKeyHandler {
     }
 
     private shouldInterceptContent(e: KeyboardEvent, doc: Document): boolean {
-        if (!this.settings.enableWorkspaceNav) return false;
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
         if (isModalOpen(doc)) return false;
@@ -165,7 +164,6 @@ export class GlobalKeyHandler {
     }
 
     private shouldInterceptHints(e: KeyboardEvent, doc: Document): boolean {
-        if (!this.settings.enableWorkspaceNav) return false;
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
         return true;
@@ -175,7 +173,6 @@ export class GlobalKeyHandler {
         e: KeyboardEvent,
         doc: Document,
     ): boolean {
-        if (!this.settings.enableWorkspaceNav) return false;
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
         if (isModalOpen(doc)) return false;

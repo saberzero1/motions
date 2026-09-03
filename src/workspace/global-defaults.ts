@@ -209,8 +209,10 @@ export function registerDefaultGlobalMappings(
     } | null,
     openPicker?: (source: string, opts?: { query?: string }) => void,
     oilManager?: OilManager,
+    opts?: { enableWorkspaceNav?: boolean },
 ): void {
     void app;
+    const wsNav = opts?.enableWorkspaceNav !== false;
     const add = (
         keys: string,
         action: Parameters<GlobalMappingRegistry['addMapping']>[1],
@@ -224,150 +226,6 @@ export function registerDefaultGlobalMappings(
         return;
     };
 
-    add(
-        'j',
-        {
-            type: 'builtin',
-            fn: (app2, count) => scrollBy(app2, LINE_HEIGHT * (count || 1)),
-        },
-        'standard',
-        'scrollDown',
-    );
-    add(
-        'k',
-        {
-            type: 'builtin',
-            fn: (app2, count) => scrollBy(app2, -LINE_HEIGHT * (count || 1)),
-        },
-        'standard',
-        'scrollUp',
-    );
-    add(
-        'H',
-        { type: 'obcommand', commandId: 'workspace:previous-tab' },
-        'standard',
-        'previousTab',
-    );
-    add(
-        'L',
-        { type: 'obcommand', commandId: 'workspace:next-tab' },
-        'standard',
-        'nextTab',
-    );
-    add(
-        'G',
-        { type: 'builtin', fn: (app2) => scrollToEnd(app2) },
-        'standard',
-        'scrollToEnd',
-    );
-    add(
-        'gg',
-        { type: 'builtin', fn: (app2) => scrollTo(app2, 0) },
-        'standard',
-        'scrollToTop',
-    );
-    add(
-        'gt',
-        {
-            type: 'builtin',
-            fn: (app2, count) => {
-                if (count > 0) {
-                    gotoNthTab(app2, count);
-                } else {
-                    executeCommand(app2, 'workspace:next-tab');
-                }
-            },
-        },
-        'structural',
-        'gotoTab',
-    );
-    add(
-        'gT',
-        { type: 'obcommand', commandId: 'workspace:previous-tab' },
-        'structural',
-        'gotoPrevTab',
-    );
-    add(
-        '<C-d>',
-        { type: 'builtin', fn: (app2) => scrollHalfPage(app2, 1) },
-        'standard',
-        'scrollHalfPageDown',
-    );
-    add(
-        '<C-u>',
-        { type: 'builtin', fn: (app2) => scrollHalfPage(app2, -1) },
-        'standard',
-        'scrollHalfPageUp',
-    );
-    add(
-        '<C-f>',
-        { type: 'builtin', fn: (app2) => scrollFullPage(app2, 1) },
-        'standard',
-        'scrollFullPageDown',
-    );
-    add(
-        '<C-b>',
-        { type: 'builtin', fn: (app2) => scrollFullPage(app2, -1) },
-        'standard',
-        'scrollFullPageUp',
-    );
-    // <C-o> and <C-i> are handled via defineActionOverride('jumpListWalk')
-    // in main.ts — not here — because they fire from within the editor
-    // where the global key handler's structural gate doesn't intercept.
-    add(
-        '<C-w>h',
-        { type: 'obcommand', commandId: 'editor:focus-left' },
-        'structural',
-        'focusPaneLeft',
-    );
-    add(
-        '<C-w>j',
-        { type: 'obcommand', commandId: 'editor:focus-bottom' },
-        'structural',
-        'focusPaneDown',
-    );
-    add(
-        '<C-w>k',
-        { type: 'obcommand', commandId: 'editor:focus-top' },
-        'structural',
-        'focusPaneUp',
-    );
-    add(
-        '<C-w>l',
-        { type: 'obcommand', commandId: 'editor:focus-right' },
-        'structural',
-        'focusPaneRight',
-    );
-    add(
-        '<C-w>v',
-        { type: 'obcommand', commandId: 'workspace:split-vertical' },
-        'structural',
-        'splitVertical',
-    );
-    add(
-        '<C-w>s',
-        { type: 'obcommand', commandId: 'workspace:split-horizontal' },
-        'structural',
-        'splitHorizontal',
-    );
-    add(
-        '<C-w>c',
-        { type: 'obcommand', commandId: 'workspace:close' },
-        'structural',
-        'closeTab',
-    );
-    add(
-        '<C-w>q',
-        { type: 'obcommand', commandId: 'workspace:close' },
-        'structural',
-        'closeTabAlt',
-    );
-    add(
-        '<C-w>o',
-        { type: 'builtin', fn: (app2) => closeOtherTabs(app2) },
-        'structural',
-        'closeOtherTabs',
-    );
     add(
         ':',
         {
@@ -384,8 +242,153 @@ export function registerDefaultGlobalMappings(
         'structural',
         'exCommandLine',
     );
-    add('z', { type: 'builtin', fn: noop }, 'standard');
-    add('<C-w>g', { type: 'builtin', fn: noop }, 'structural');
+
+    if (wsNav) {
+        add(
+            'j',
+            {
+                type: 'builtin',
+                fn: (app2, count) => scrollBy(app2, LINE_HEIGHT * (count || 1)),
+            },
+            'standard',
+            'scrollDown',
+        );
+        add(
+            'k',
+            {
+                type: 'builtin',
+                fn: (app2, count) =>
+                    scrollBy(app2, -LINE_HEIGHT * (count || 1)),
+            },
+            'standard',
+            'scrollUp',
+        );
+        add(
+            'H',
+            { type: 'obcommand', commandId: 'workspace:previous-tab' },
+            'standard',
+            'previousTab',
+        );
+        add(
+            'L',
+            { type: 'obcommand', commandId: 'workspace:next-tab' },
+            'standard',
+            'nextTab',
+        );
+        add(
+            'G',
+            { type: 'builtin', fn: (app2) => scrollToEnd(app2) },
+            'standard',
+            'scrollToEnd',
+        );
+        add(
+            'gg',
+            { type: 'builtin', fn: (app2) => scrollTo(app2, 0) },
+            'standard',
+            'scrollToTop',
+        );
+        add(
+            'gt',
+            {
+                type: 'builtin',
+                fn: (app2, count) => {
+                    if (count > 0) {
+                        gotoNthTab(app2, count);
+                    } else {
+                        executeCommand(app2, 'workspace:next-tab');
+                    }
+                },
+            },
+            'structural',
+            'gotoTab',
+        );
+        add(
+            'gT',
+            { type: 'obcommand', commandId: 'workspace:previous-tab' },
+            'structural',
+            'gotoPrevTab',
+        );
+        add(
+            '<C-d>',
+            { type: 'builtin', fn: (app2) => scrollHalfPage(app2, 1) },
+            'standard',
+            'scrollHalfPageDown',
+        );
+        add(
+            '<C-u>',
+            { type: 'builtin', fn: (app2) => scrollHalfPage(app2, -1) },
+            'standard',
+            'scrollHalfPageUp',
+        );
+        add(
+            '<C-f>',
+            { type: 'builtin', fn: (app2) => scrollFullPage(app2, 1) },
+            'standard',
+            'scrollFullPageDown',
+        );
+        add(
+            '<C-b>',
+            { type: 'builtin', fn: (app2) => scrollFullPage(app2, -1) },
+            'standard',
+            'scrollFullPageUp',
+        );
+        add(
+            '<C-w>h',
+            { type: 'obcommand', commandId: 'editor:focus-left' },
+            'structural',
+            'focusPaneLeft',
+        );
+        add(
+            '<C-w>j',
+            { type: 'obcommand', commandId: 'editor:focus-bottom' },
+            'structural',
+            'focusPaneDown',
+        );
+        add(
+            '<C-w>k',
+            { type: 'obcommand', commandId: 'editor:focus-top' },
+            'structural',
+            'focusPaneUp',
+        );
+        add(
+            '<C-w>l',
+            { type: 'obcommand', commandId: 'editor:focus-right' },
+            'structural',
+            'focusPaneRight',
+        );
+        add(
+            '<C-w>v',
+            { type: 'obcommand', commandId: 'workspace:split-vertical' },
+            'structural',
+            'splitVertical',
+        );
+        add(
+            '<C-w>s',
+            { type: 'obcommand', commandId: 'workspace:split-horizontal' },
+            'structural',
+            'splitHorizontal',
+        );
+        add(
+            '<C-w>c',
+            { type: 'obcommand', commandId: 'workspace:close' },
+            'structural',
+            'closeTab',
+        );
+        add(
+            '<C-w>q',
+            { type: 'obcommand', commandId: 'workspace:close' },
+            'structural',
+            'closeTabAlt',
+        );
+        add(
+            '<C-w>o',
+            { type: 'builtin', fn: (app2) => closeOtherTabs(app2) },
+            'structural',
+            'closeOtherTabs',
+        );
+        add('z', { type: 'builtin', fn: noop }, 'standard');
+        add('<C-w>g', { type: 'builtin', fn: noop }, 'structural');
+    }
 
     if (hintActions !== null) {
         add(

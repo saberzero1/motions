@@ -786,18 +786,50 @@ export function registerWorkspaceNavigation(
     );
     reg.defineAction('renameNote', renameNoteAction);
     if (enableReplaceWithRegister) {
-        reg.mapCommand('<leader>rn', 'action', 'renameNote', {});
+        reg.mapCommand(
+            '<leader>rn',
+            'action',
+            'renameNote',
+            {},
+            {
+                context: 'normal',
+            },
+        );
     } else {
-        reg.mapCommand('grn', 'action', 'renameNote', {});
+        reg.mapCommand(
+            'grn',
+            'action',
+            'renameNote',
+            {},
+            {
+                context: 'normal',
+            },
+        );
     }
     exCommandFromAction(reg, 'renamenote', 'ren', renameNoteAction);
 
     const showBacklinksAction = createCommandAction(app, 'backlink:open');
     reg.defineAction('showBacklinks', showBacklinksAction);
     if (enableReplaceWithRegister) {
-        reg.mapCommand('<leader>rb', 'action', 'showBacklinks', {});
+        reg.mapCommand(
+            '<leader>rb',
+            'action',
+            'showBacklinks',
+            {},
+            {
+                context: 'normal',
+            },
+        );
     } else {
-        reg.mapCommand('grr', 'action', 'showBacklinks', {});
+        reg.mapCommand(
+            'grr',
+            'action',
+            'showBacklinks',
+            {},
+            {
+                context: 'normal',
+            },
+        );
     }
     exCommandFromAction(reg, 'showbacklinks', '', showBacklinksAction);
 
@@ -811,9 +843,25 @@ export function registerWorkspaceNavigation(
     const contextActionsAction = createContextActionsAction(app);
     reg.defineAction('contextActions', contextActionsAction);
     if (enableReplaceWithRegister) {
-        reg.mapCommand('<leader>ra', 'action', 'contextActions', {});
+        reg.mapCommand(
+            '<leader>ra',
+            'action',
+            'contextActions',
+            {},
+            {
+                context: 'normal',
+            },
+        );
     } else {
-        reg.mapCommand('gra', 'action', 'contextActions', {});
+        reg.mapCommand(
+            'gra',
+            'action',
+            'contextActions',
+            {},
+            {
+                context: 'normal',
+            },
+        );
     }
     exCommandFromAction(reg, 'contextactions', 'con', contextActionsAction);
 

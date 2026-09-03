@@ -151,9 +151,9 @@ src/
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation
-    global-key-handler.ts  # Global key event handling (outside editor) — dispatch passes raw count to builtin handlers, sequence timeout restarts on partial match (which-key parity)
+    global-key-handler.ts  # Global key event handling (outside editor) — always installed on desktop, interception gates check focus/modal/leaf-type only (not enableWorkspaceNav); dispatch passes raw count to builtin handlers, sequence timeout restarts on partial match (which-key parity)
     global-mapping-registry.ts  # Registry for global key mappings
-    global-defaults.ts     # Default global keybindings — gotoNthTab filters to rootSplit leaves only; gf hint binding for context menu action
+    global-defaults.ts     # Default global keybindings — always-on (`:`, hints) vs workspace-nav-conditional (scroll, tabs, panes) split via opts.enableWorkspaceNav; gotoNthTab filters to rootSplit leaves only; gf hint binding for context menu action
   easymotion/
     register.ts            # Wires EasyMotion to keybindings — per-motion motionArgs (inclusive, linewise, forward) for correct operator-pending behavior matching native Vim semantics
     targets.ts             # Target detection (words, lines, chars) — getVisibleRange uses view.visibleRanges for correct viewport calculation with collapsed frontmatter widgets in Live Preview

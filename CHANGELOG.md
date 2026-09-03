@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Disabling workspace navigation disables all global keybindings** — turning off **Settings → Vim Motions → Navigation → Workspace navigation** also disabled the `:` ex command line in reading view, `vim.obsidian.keymap.set` mappings, and hint mode global hotkeys. Root cause: the `GlobalKeyHandler` and `GlobalMappingRegistry` were only instantiated when `enableWorkspaceNav` was true, and all three interception gates (`shouldInterceptContent`, `shouldInterceptHints`, `shouldInterceptStructural`) returned false when the setting was disabled. Fixed by always creating the global key handler on desktop and moving the `enableWorkspaceNav` guard from the interception layer to the mapping registration layer — only scroll, tab, and pane navigation keys are conditional on the setting; `:`, hint mode, and user global keymaps are always registered. ([#164](https://github.com/saberzero1/motions/issues/164))
+    - Plugin: `src/workspace/global-key-handler.ts` (removed `enableWorkspaceNav` guard from `shouldIntercept*` methods)
+    - Plugin: `src/workspace/global-defaults.ts` (added `opts.enableWorkspaceNav` parameter to conditionally register workspace-nav-specific keys)
+    - Plugin: `src/main.ts` (always create `GlobalKeyHandler`/`GlobalMappingRegistry` on desktop)
+- **Hint mode `<leader><leader>h` mapping reappears after settings change** — `vim.keymap.del("n", "<leader><leader>h")` in init.lua was silently undone by any subsequent settings change because `reloadFeatures()` re-registered the hardcoded mapping without re-applying Lua map operations. Additionally, the mapping was registered without an explicit `context: 'normal'`, making mode-specific `vim.keymap.del` unable to target it (codemirror-vim's `unmap` requires exact context match). Fixed by (1) calling `applyLuaMaps()` at the end of `reloadFeatures()` so Lua unmaps are re-applied after built-in mappings, and (2) registering the hint mode mapping with `{ context: 'normal' }`. ([#162](https://github.com/saberzero1/motions/issues/162))
+    - Plugin: `src/main.ts` (`applyLuaMaps` call in `reloadFeatures`, `context: 'normal'` on hint mode `mapCommand`)
+- **Leader-based `mapCommand` calls missing `context: 'normal'`** — picker (`<leader>ff/fg/fb/...`), harpoon (`<leader>ha/hp/hn/hN`, `<leader>1`–`<leader>9`), and workspace navigation (`<leader>rn/rb/ra`, `grn/grr/gra`) leader mappings were registered without an explicit mode context. This made `vim.keymap.del("n", ...)` unable to remove them because codemirror-vim's `unmap(lhs, 'normal')` requires `context === 'normal'` to match. Added `{ context: 'normal' }` to all leader-based action `mapCommand` calls. EasyMotion motions were intentionally left without context because they must work in operator-pending and visual modes (`d<leader><leader>w`, `v<leader><leader>j`).
+    - Plugin: `src/main.ts` (picker and harpoon leader mappings)
+    - Plugin: `src/workspace/navigation.ts` (`<leader>rn/rb/ra` and `grn/grr/gra` mappings)
 - **Command palette lags ~1 second in visual-line mode** — opening the command palette from visual-line mode caused a visible delay. Root cause: the `wrapCheckCallback` wrapper called `withExpandedSelection` for every command's `checkCallback(true)` availability check, dispatching two CM6 transactions (expand + restore) per command. With 200+ commands, this produced 400+ synchronous CM6 dispatches while the palette rendered. Fixed by skipping `withExpandedSelection` for the checking path (`checkCallback(true)`) — the `VisualLineSomethingSelectedPatch` already ensures `somethingSelected()`, `getCursor()`, and `listSelections()` return the correct visual-line range, so availability checks work without native CM6 selection expansion. The executing path (`checkCallback(false)`) still uses `withExpandedSelection`. (regression of [#157](https://github.com/saberzero1/motions/issues/157), [#163](https://github.com/saberzero1/motions/issues/163))
     - Plugin: `src/vim/visual-line-command-fix.ts` (skip `withExpandedSelection` for `checkCallback(true)`)
 - **Stale visual-line selection cache causes RangeError** — `lastVisualLineSel` and `pendingVisualLineSel` cached line numbers from a previous visual-line selection could exceed the document length after the editor content was replaced with a shorter document (e.g., between e2e tests or `:e` commands). The stale cache caused `doc.line(N)` to throw `RangeError: Invalid line number N in M-line document`. Fixed by validating cached selection line numbers against the current document length before use; stale caches are invalidated instead of producing errors.
@@ -18,9 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **E2E test Obsidian version pinned to 1.13.7** — `wdio.conf.mts` `browserVersion` changed from `'latest'` to `'1.13.7'`. Obsidian 1.13.8 is a mobile-only release (APK only, no desktop asar), causing the test runner to fail with "No compatible installers available."
 
+### Tests
+
+- 3 regression tests in `test/specs/settings-reload.e2e.ts` for #164 (global key handler/registry existence with workspace nav disabled) and #162 (Lua keymap deletions survive `reloadFeatures`)
+
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated workspace navigation section to reflect decoupled architecture; updated yank-ring workspace navigation dependency note; updated three-gate description
 - `KNOWN_LIMITATIONS.md`: updated `wrapCheckCallback` description with `checkCallback(true)` optimization (#163)
 
 ## [0.140.0] - 2026-09-03
