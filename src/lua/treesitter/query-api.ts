@@ -387,6 +387,21 @@ export function injectQueryApi(L: lua_State, tsTableIndex: number): void {
     });
     lua.lua_setfield(L, queryIndex, to_luastring('add_directive'));
 
+    lua.lua_pushjsfunction(L, (_state: lua_State) => 0);
+    lua.lua_setfield(L, queryIndex, to_luastring('edit'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_newtable(state);
+        return 1;
+    });
+    lua.lua_setfield(L, queryIndex, to_luastring('lint'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_pushinteger(state, 0);
+        return 1;
+    });
+    lua.lua_setfield(L, queryIndex, to_luastring('omnifunc'));
+
     lua.lua_setfield(L, tsTableIndex, to_luastring('query'));
 }
 

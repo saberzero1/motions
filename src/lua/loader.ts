@@ -29,6 +29,7 @@ import { HighlightManager } from './highlight';
 import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
 import { injectTextObjectApi } from './textobject-api';
 import { injectTreesitterApi, initTreesitterRuntime } from './treesitter/api';
+import { injectNamespaceStubs } from './namespace-stubs';
 import { lua, lauxlib, to_luastring, to_jsstring } from 'fengari';
 import type { lua_State } from 'fengari';
 import type { ImSwitcher } from '../im/im-switcher';
@@ -1209,6 +1210,7 @@ export async function loadInitLua(
         },
     };
     const { globals } = injectVimApi(L, callbacks);
+    injectNamespaceStubs(L);
     injectTextObjectApi(L, callbacks);
     void initTreesitterRuntime().catch((err) => {
         console.warn('Vim Motions: treesitter runtime init failed:', err);

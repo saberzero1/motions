@@ -488,6 +488,321 @@ end)()
 function vim.inspect(value, opts)
     return inspect(value, opts)
 end
+
+-- Stubs for unimplemented vim.* utilities
+vim.NIL = vim.NIL or {}
+vim.EMPTY = vim.EMPTY or vim.NIL
+
+vim.log = vim.log or {}
+vim.log.levels = vim.log.levels or { DEBUG = 0, INFO = 1, WARN = 2, ERROR = 3, OFF = 4 }
+
+vim.F = vim.F or {}
+vim.F.if_nil = vim.F.if_nil or function(val, default)
+    if val == nil then return default end
+    return val
+end
+vim.F.ok_or_nil = vim.F.ok_or_nil or function(status, ...)
+    if status then return ... end
+    return nil
+end
+
+if not vim.notify_once then
+    function vim.notify_once(msg, level, opts)
+        vim.notify(msg, level, opts)
+    end
+end
+
+if not vim.schedule_wrap then
+    function vim.schedule_wrap(fn)
+        return function(...)
+            local args = { ... }
+            vim.schedule(function() fn(table.unpack(args)) end)
+        end
+    end
+end
+
+if not vim.print then
+    function vim.print(...)
+        local args = { ... }
+        for i, v in ipairs(args) do
+            args[i] = vim.inspect(v)
+        end
+        print(table.concat(args, '\t'))
+        return ...
+    end
+end
+
+if not vim.validate then
+    function vim.validate(spec)
+        return true
+    end
+end
+
+if not vim.in_fast_event then
+    function vim.in_fast_event()
+        return false
+    end
+end
+
+if not vim.deep_equal then
+    function vim.deep_equal(a, b)
+        if a == b then return true end
+        if type(a) ~= type(b) then return false end
+        if type(a) ~= 'table' then return false end
+        for k, v in pairs(a) do
+            if not vim.deep_equal(v, b[k]) then return false end
+        end
+        for k in pairs(b) do
+            if a[k] == nil then return false end
+        end
+        return true
+    end
+end
+
+if not vim.islist then
+    function vim.islist(t)
+        if type(t) ~= 'table' then return false end
+        local count = 0
+        for k in pairs(t) do
+            if type(k) ~= 'number' or k <= 0 or k % 1 ~= 0 then return false end
+            count = count + 1
+        end
+        for i = 1, count do
+            if t[i] == nil then return false end
+        end
+        return true
+    end
+end
+vim.isarray = vim.isarray or vim.islist
+
+if not vim.list_contains then
+    function vim.list_contains(t, value)
+        for _, v in ipairs(t) do
+            if v == value then return true end
+        end
+        return false
+    end
+end
+
+if not vim.list_slice then
+    function vim.list_slice(t, start, finish)
+        local s = start or 1
+        local f = finish or #t
+        local result = {}
+        for i = s, f do
+            table.insert(result, t[i])
+        end
+        return result
+    end
+end
+
+if not vim.empty_dict then
+    function vim.empty_dict()
+        return {}
+    end
+end
+
+if not vim.defaulttable then
+    function vim.defaulttable(create)
+        create = create or function() return {} end
+        return setmetatable({}, {
+            __index = function(t, k)
+                local v = create(k)
+                t[k] = v
+                return v
+            end,
+        })
+    end
+end
+
+if not vim.ringbuf then
+    function vim.ringbuf(size)
+        local buf = { _items = {}, _size = size, _pos = 0, _count = 0 }
+        function buf:push(item)
+            self._pos = (self._pos % self._size) + 1
+            self._items[self._pos] = item
+            if self._count < self._size then
+                self._count = self._count + 1
+            end
+        end
+        function buf:pop()
+            if self._count == 0 then return nil end
+            local item = self._items[self._pos]
+            self._items[self._pos] = nil
+            self._pos = ((self._pos - 2) % self._size) + 1
+            self._count = self._count - 1
+            return item
+        end
+        function buf:peek()
+            if self._count == 0 then return nil end
+            return self._items[self._pos]
+        end
+        function buf:clear()
+            self._items = {}
+            self._pos = 0
+            self._count = 0
+        end
+        return buf
+    end
+end
+
+if not vim.spairs then
+    function vim.spairs(t)
+        local keys = {}
+        for k in pairs(t) do
+            table.insert(keys, k)
+        end
+        table.sort(keys)
+        local i = 0
+        return function()
+            i = i + 1
+            local k = keys[i]
+            if k ~= nil then return k, t[k] end
+        end
+    end
+end
+
+if not vim.gsplit then
+    function vim.gsplit(s, sep, opts)
+        local result = vim.split(s, sep, opts)
+        local i = 0
+        return function()
+            i = i + 1
+            return result[i]
+        end
+    end
+end
+
+if not vim.keycode then
+    function vim.keycode(str)
+        return str
+    end
+end
+
+if not vim.call then
+    function vim.call(fn, ...)
+        return vim.fn[fn](...)
+    end
+end
+
+if not vim.paste then
+    function vim.paste(lines, phase)
+        return true
+    end
+end
+
+if not vim.deprecate then
+    function vim.deprecate(name, alt, ver, plugin, backtrace)
+    end
+end
+
+if not vim.diff then
+    function vim.diff(a, b, opts)
+        return ''
+    end
+end
+
+if not vim.wait then
+    function vim.wait(timeout, cond, interval)
+        if cond and cond() then return true, -1 end
+        return false, -1
+    end
+end
+
+if not vim.on_key then
+    function vim.on_key(fn, ns)
+    end
+end
+
+if not vim.tbl_flatten then
+    function vim.tbl_flatten(t)
+        local result = {}
+        local function flatten(tbl)
+            for _, v in ipairs(tbl) do
+                if type(v) == 'table' then
+                    flatten(v)
+                else
+                    table.insert(result, v)
+                end
+            end
+        end
+        flatten(t)
+        return result
+    end
+end
+
+vim.tbl_islist = vim.tbl_islist or vim.islist
+
+if not vim.tbl_add_reverse_lookup then
+    function vim.tbl_add_reverse_lookup(t)
+        for k, v in pairs(t) do
+            t[v] = k
+        end
+        return t
+    end
+end
+
+if not vim.str_byteindex then
+    function vim.str_byteindex(s, ...)
+        return 0
+    end
+end
+if not vim.str_utfindex then
+    function vim.str_utfindex(s, ...)
+        return 0
+    end
+end
+if not vim.str_utf_start then
+    function vim.str_utf_start(s, index)
+        return 0
+    end
+end
+if not vim.str_utf_end then
+    function vim.str_utf_end(s, index)
+        return 0
+    end
+end
+if not vim.str_utf_pos then
+    function vim.str_utf_pos(s, encoding)
+        return {}
+    end
+end
+if not vim.iconv then
+    function vim.iconv(str, from, to)
+        return str
+    end
+end
+
+if not vim.uri_decode then
+    function vim.uri_decode(str)
+        return str
+    end
+end
+if not vim.uri_encode then
+    function vim.uri_encode(str)
+        return str
+    end
+end
+if not vim.uri_from_bufnr then
+    function vim.uri_from_bufnr(bufnr)
+        return ''
+    end
+end
+if not vim.uri_from_fname then
+    function vim.uri_from_fname(path)
+        return 'file://' .. path
+    end
+end
+if not vim.uri_to_bufnr then
+    function vim.uri_to_bufnr(uri)
+        return 0
+    end
+end
+if not vim.uri_to_fname then
+    function vim.uri_to_fname(uri)
+        return uri
+    end
+end
 `;
 
 export function injectStdlib(L: lua_State): void {

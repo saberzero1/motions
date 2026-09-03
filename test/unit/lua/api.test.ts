@@ -295,15 +295,21 @@ describe('vim api', () => {
             onKeymapDel: () => {},
         });
 
-        const status = lauxlib.luaL_dostring(
+        // Known but unimplemented functions should succeed (stub returns void)
+        const knownStatus = lauxlib.luaL_dostring(
             L,
             to_luastring('return vim.api.nvim_win_set_config(0, {})'),
         );
-        expect(status).not.toBe(lua.LUA_OK);
-        const err = lua.lua_tolstring(L, -1);
-        expect(err ? to_jsstring(err) : '').toContain(
-            'nvim_create_user_command',
+        expect(knownStatus).toBe(lua.LUA_OK);
+
+        // Truly unknown functions should still error
+        const unknownStatus = lauxlib.luaL_dostring(
+            L,
+            to_luastring('return vim.api.nvim_totally_fake_function()'),
         );
+        expect(unknownStatus).not.toBe(lua.LUA_OK);
+        const err = lua.lua_tolstring(L, -1);
+        expect(err ? to_jsstring(err) : '').toContain('is not available');
         destroyState(L);
     });
 

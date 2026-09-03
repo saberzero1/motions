@@ -141,6 +141,15 @@ function errorUnsupported(
 
 export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     const registry = new Map<string, VimFnHandler>();
+    const warnedFns = new Set<string>();
+    const warnOnce = (name: string): void => {
+        if (warnedFns.has(name)) return;
+        warnedFns.add(name);
+        console.warn(`Vim Motions: vim.fn.${name} is not implemented`);
+    };
+    const registerStub = (name: string, handler: VimFnHandler): void => {
+        if (!registry.has(name)) registry.set(name, handler);
+    };
 
     registry.set('has', (state) => {
         const featureRaw = readString(state, 1).toLowerCase();
@@ -1276,6 +1285,104 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         }
         lua.lua_pushstring(state, to_luastring(parts.join(sep)));
         return 1;
+    });
+
+    const stringReturnFns = new Set([
+        'getcharstr',
+        'visualmode',
+        'input',
+        'maparg',
+        'mapcheck',
+        'strcharpart',
+        'getcmdtype',
+        'reg_recording',
+        'reg_executing',
+        'bufname',
+        'synIDattr',
+        'execute',
+        'json_encode',
+        'printf',
+        'string',
+    ]);
+    const numberReturnFns = new Set([
+        'foldclosed',
+        'foldclosedend',
+        'getchar',
+        'strdisplaywidth',
+        'byte2line',
+        'line2byte',
+        'search',
+        'win_getid',
+        'shiftwidth',
+        'setbufline',
+        'deletebufline',
+        'bufnr',
+        'winnr',
+        'tabpagenr',
+        'changenr',
+        'virtcol',
+        'charcol',
+        'screencol',
+        'screenrow',
+        'synID',
+        'synIDtrans',
+        'complete',
+        'pumvisible',
+        'confirm',
+        'feedkeys',
+    ]);
+    const booleanReturnFns = new Set(['hasmapto', 'buflisted', 'bufexists']);
+    const tableReturnFns = new Set([
+        'searchpos',
+        'winsaveview',
+        'getwininfo',
+        'getbufline',
+        'json_decode',
+    ]);
+
+    for (const name of stringReturnFns) {
+        registerStub(name, (state) => {
+            warnOnce(name);
+            lua.lua_pushstring(state, to_luastring(''));
+            return 1;
+        });
+    }
+    for (const name of numberReturnFns) {
+        registerStub(name, (state) => {
+            warnOnce(name);
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        });
+    }
+    for (const name of booleanReturnFns) {
+        registerStub(name, (state) => {
+            warnOnce(name);
+            lua.lua_pushnumber(state, 0);
+            return 1;
+        });
+    }
+    for (const name of tableReturnFns) {
+        registerStub(name, (state) => {
+            warnOnce(name);
+            lua.lua_newtable(state);
+            return 1;
+        });
+    }
+    registerStub('winrestview', (_state) => {
+        warnOnce('winrestview');
+        return 0;
+    });
+    registerStub('system', (state) => {
+        return lauxlib.luaL_error(
+            state,
+            to_luastring('vim.fn.system is not supported in Obsidian'),
+        );
+    });
+    registerStub('systemlist', (state) => {
+        return lauxlib.luaL_error(
+            state,
+            to_luastring('vim.fn.systemlist is not supported in Obsidian'),
+        );
     });
 
     lua.lua_newtable(L);

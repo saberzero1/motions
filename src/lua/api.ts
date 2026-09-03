@@ -24,6 +24,10 @@ import { type CoroutineRunner } from './coroutine-runner';
 import { injectObsidianApi } from './obsidian-api';
 import { injectRegex } from './regex';
 
+const luaRawset = (
+    lua as unknown as { lua_rawset: (L: lua_State, index: number) => void }
+).lua_rawset;
+
 export interface LuaKeymap {
     mode: MapContext;
     lhs: string;
@@ -619,19 +623,390 @@ function readHighlightAttrs(L: lua_State, index: number): HighlightAttrs {
     return attrs;
 }
 
-function createErrorStub(L: lua_State, message: string): void {
+function createWarnStub(
+    L: lua_State,
+    namespace: string,
+    warned: Set<string>,
+): void {
     lua.lua_newtable(L);
     lua.lua_newtable(L);
-    lua.lua_pushjsfunction(L, (state: lua_State) =>
-        lauxlib.luaL_error(state, to_luastring(message)),
-    );
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2) ?? '?';
+        const warnKey = `vim.${namespace}.${key}`;
+        if (!warned.has(warnKey)) {
+            warned.add(warnKey);
+            console.warn(
+                `Vim Motions: vim.${namespace}.${key} is not available in Obsidian`,
+            );
+        }
+        lua.lua_pushjsfunction(state, () => 0);
+        return 1;
+    });
     lua.lua_setfield(L, -2, to_luastring('__index'));
-    lua.lua_pushjsfunction(L, (state: lua_State) =>
-        lauxlib.luaL_error(state, to_luastring(message)),
-    );
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_pushvalue(state, 2);
+        lua.lua_pushvalue(state, 3);
+        luaRawset(state, 1);
+        return 0;
+    });
     lua.lua_setfield(L, -2, to_luastring('__newindex'));
     lua.lua_setmetatable(L, -2);
 }
+
+function createWarnVarTable(
+    L: lua_State,
+    namespace: string,
+    warned: Set<string>,
+): void {
+    lua.lua_newtable(L);
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2) ?? '?';
+        const warnKey = `vim.${namespace}.${key}`;
+        if (!warned.has(warnKey)) {
+            warned.add(warnKey);
+            console.warn(
+                `Vim Motions: vim.${namespace}.${key} is not available in Obsidian`,
+            );
+        }
+        lua.lua_pushnil(state);
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_pushvalue(state, 2);
+        lua.lua_pushvalue(state, 3);
+        luaRawset(state, 1);
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, -2);
+}
+
+const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
+    'nvim_create_user_command',
+    'nvim_del_user_command',
+    'nvim_create_autocmd',
+    'nvim_create_augroup',
+    'nvim_del_autocmd',
+    'nvim_del_augroup_by_name',
+    'nvim_clear_autocmds',
+    'nvim_create_namespace',
+    'nvim_set_hl',
+    'nvim_get_hl',
+    'nvim_set_keymap',
+    'nvim_del_keymap',
+    'nvim_get_keymap',
+    'nvim_buf_set_keymap',
+    'nvim_buf_del_keymap',
+    'nvim_buf_get_lines',
+    'nvim_buf_set_lines',
+    'nvim_buf_set_text',
+    'nvim_get_current_buf',
+    'nvim_get_current_win',
+    'nvim_get_current_tabpage',
+    'nvim_get_current_line',
+    'nvim_set_current_line',
+    'nvim_buf_get_name',
+    'nvim_buf_line_count',
+    'nvim_win_get_cursor',
+    'nvim_win_set_cursor',
+    'nvim_win_get_buf',
+    'nvim_buf_get_mark',
+    'nvim_buf_set_mark',
+    'nvim_buf_del_mark',
+    'nvim_buf_get_var',
+    'nvim_buf_set_var',
+    'nvim_buf_get_option',
+    'nvim_buf_set_option',
+    'nvim_get_option',
+    'nvim_set_option',
+    'nvim_command',
+    'nvim_feedkeys',
+    'nvim_replace_termcodes',
+    'nvim_echo',
+]);
+
+const KNOWN_NVIM_API_FUNCTIONS = new Set<string>([
+    'nvim_buf_add_highlight',
+    'nvim_buf_attach',
+    'nvim_buf_call',
+    'nvim_buf_clear_namespace',
+    'nvim_buf_create_user_command',
+    'nvim_buf_del_extmark',
+    'nvim_buf_del_keymap',
+    'nvim_buf_del_mark',
+    'nvim_buf_del_user_command',
+    'nvim_buf_del_var',
+    'nvim_buf_delete',
+    'nvim_buf_detach',
+    'nvim_buf_get_changedtick',
+    'nvim_buf_get_commands',
+    'nvim_buf_get_extmark_by_id',
+    'nvim_buf_get_extmarks',
+    'nvim_buf_get_keymap',
+    'nvim_buf_get_lines',
+    'nvim_buf_get_mark',
+    'nvim_buf_get_name',
+    'nvim_buf_get_offset',
+    'nvim_buf_get_option',
+    'nvim_buf_get_text',
+    'nvim_buf_get_var',
+    'nvim_buf_is_loaded',
+    'nvim_buf_is_valid',
+    'nvim_buf_line_count',
+    'nvim_buf_set_extmark',
+    'nvim_buf_set_keymap',
+    'nvim_buf_set_lines',
+    'nvim_buf_set_mark',
+    'nvim_buf_set_name',
+    'nvim_buf_set_option',
+    'nvim_buf_set_text',
+    'nvim_buf_set_var',
+    'nvim_call_dict_function',
+    'nvim_call_function',
+    'nvim_chan_send',
+    'nvim_clear_autocmds',
+    'nvim_cmd',
+    'nvim_command',
+    'nvim_create_augroup',
+    'nvim_create_autocmd',
+    'nvim_create_buf',
+    'nvim_create_namespace',
+    'nvim_create_user_command',
+    'nvim_del_augroup_by_id',
+    'nvim_del_augroup_by_name',
+    'nvim_del_autocmd',
+    'nvim_del_current_line',
+    'nvim_del_keymap',
+    'nvim_del_mark',
+    'nvim_del_user_command',
+    'nvim_del_var',
+    'nvim_echo',
+    'nvim_err_write',
+    'nvim_err_writeln',
+    'nvim_eval',
+    'nvim_eval_statusline',
+    'nvim_exec_autocmds',
+    'nvim_exec_lua',
+    'nvim_feedkeys',
+    'nvim_get_all_options_info',
+    'nvim_get_api_info',
+    'nvim_get_autocmds',
+    'nvim_get_chan_info',
+    'nvim_get_color_by_name',
+    'nvim_get_color_map',
+    'nvim_get_commands',
+    'nvim_get_context',
+    'nvim_get_current_buf',
+    'nvim_get_current_line',
+    'nvim_get_current_tabpage',
+    'nvim_get_current_win',
+    'nvim_get_hl',
+    'nvim_get_hl_id_by_name',
+    'nvim_get_hl_ns',
+    'nvim_get_keymap',
+    'nvim_get_mark',
+    'nvim_get_mode',
+    'nvim_get_namespaces',
+    'nvim_get_option',
+    'nvim_get_option_value',
+    'nvim_get_proc',
+    'nvim_get_proc_children',
+    'nvim_get_runtime_file',
+    'nvim_get_var',
+    'nvim_get_vvar',
+    'nvim_input',
+    'nvim_input_mouse',
+    'nvim_list_bufs',
+    'nvim_list_chans',
+    'nvim_list_runtime_paths',
+    'nvim_list_tabpages',
+    'nvim_list_uis',
+    'nvim_list_wins',
+    'nvim_load_context',
+    'nvim_open_tabpage',
+    'nvim_open_term',
+    'nvim_open_win',
+    'nvim_out_write',
+    'nvim_parse_cmd',
+    'nvim_parse_expression',
+    'nvim_paste',
+    'nvim_put',
+    'nvim_replace_termcodes',
+    'nvim_select_popupmenu_item',
+    'nvim_set_client_info',
+    'nvim_set_current_buf',
+    'nvim_set_current_dir',
+    'nvim_set_current_line',
+    'nvim_set_current_tabpage',
+    'nvim_set_current_win',
+    'nvim_set_decoration_provider',
+    'nvim_set_extmark',
+    'nvim_set_hl',
+    'nvim_set_hl_ns',
+    'nvim_set_hl_ns_fast',
+    'nvim_set_keymap',
+    'nvim_set_option',
+    'nvim_set_option_value',
+    'nvim_set_var',
+    'nvim_set_vvar',
+    'nvim_strwidth',
+    'nvim_tabpage_del_var',
+    'nvim_tabpage_get_number',
+    'nvim_tabpage_get_var',
+    'nvim_tabpage_get_win',
+    'nvim_tabpage_is_valid',
+    'nvim_tabpage_list_wins',
+    'nvim_tabpage_set_var',
+    'nvim_tabpage_set_win',
+    'nvim_win_call',
+    'nvim_win_close',
+    'nvim_win_del_var',
+    'nvim_win_get_buf',
+    'nvim_win_get_config',
+    'nvim_win_get_cursor',
+    'nvim_win_get_height',
+    'nvim_win_get_number',
+    'nvim_win_get_option',
+    'nvim_win_get_position',
+    'nvim_win_get_tabpage',
+    'nvim_win_get_var',
+    'nvim_win_get_width',
+    'nvim_win_hide',
+    'nvim_win_is_valid',
+    'nvim_win_set_buf',
+    'nvim_win_set_config',
+    'nvim_win_set_cursor',
+    'nvim_win_set_height',
+    'nvim_win_set_hl_ns',
+    'nvim_win_set_option',
+    'nvim_win_set_var',
+    'nvim_win_set_width',
+    'nvim_win_text_height',
+]);
+
+const NVIM_API_RETURN_TYPES = {
+    boolean: new Set([
+        'nvim_del_mark',
+        'nvim_buf_attach',
+        'nvim_buf_detach',
+        'nvim_buf_is_loaded',
+        'nvim_buf_is_valid',
+        'nvim_win_is_valid',
+        'nvim_tabpage_is_valid',
+        'nvim_paste',
+    ]),
+    integer: new Set([
+        'nvim_create_buf',
+        'nvim_input',
+        'nvim_strwidth',
+        'nvim_open_term',
+        'nvim_open_win',
+        'nvim_buf_get_changedtick',
+        'nvim_buf_get_offset',
+        'nvim_win_get_height',
+        'nvim_win_get_number',
+        'nvim_win_get_width',
+        'nvim_tabpage_get_number',
+        'nvim_open_tabpage',
+        'nvim_get_hl_id_by_name',
+        'nvim_echo',
+        'nvim_get_color_by_name',
+    ]),
+    string: new Set(['nvim_eval']),
+    table: new Set([
+        'nvim_get_all_options_info',
+        'nvim_get_api_info',
+        'nvim_get_autocmds',
+        'nvim_get_chan_info',
+        'nvim_get_color_map',
+        'nvim_get_commands',
+        'nvim_get_context',
+        'nvim_get_mark',
+        'nvim_get_mode',
+        'nvim_get_namespaces',
+        'nvim_get_proc',
+        'nvim_get_proc_children',
+        'nvim_get_var',
+        'nvim_get_vvar',
+        'nvim_eval_statusline',
+        'nvim_exec_lua',
+        'nvim_parse_cmd',
+        'nvim_parse_expression',
+        'nvim_buf_get_commands',
+        'nvim_buf_get_text',
+        'nvim_buf_get_keymap',
+        'nvim_win_get_config',
+        'nvim_win_get_position',
+        'nvim_win_get_tabpage',
+        'nvim_win_get_var',
+        'nvim_tabpage_get_var',
+        'nvim_tabpage_get_win',
+        'nvim_win_text_height',
+        'nvim_load_context',
+        'nvim_get_hl_ns',
+    ]),
+    array: new Set([
+        'nvim_list_bufs',
+        'nvim_list_chans',
+        'nvim_list_runtime_paths',
+        'nvim_list_tabpages',
+        'nvim_list_uis',
+        'nvim_list_wins',
+        'nvim_get_runtime_file',
+        'nvim_tabpage_list_wins',
+    ]),
+    void: new Set([
+        'nvim_chan_send',
+        'nvim_del_current_line',
+        'nvim_del_var',
+        'nvim_set_client_info',
+        'nvim_set_current_buf',
+        'nvim_set_current_dir',
+        'nvim_set_current_tabpage',
+        'nvim_set_current_win',
+        'nvim_set_decoration_provider',
+        'nvim_set_hl_ns',
+        'nvim_set_hl_ns_fast',
+        'nvim_set_var',
+        'nvim_set_vvar',
+        'nvim_buf_call',
+        'nvim_buf_delete',
+        'nvim_buf_set_name',
+        'nvim_buf_del_var',
+        'nvim_win_close',
+        'nvim_win_del_var',
+        'nvim_win_hide',
+        'nvim_win_set_buf',
+        'nvim_win_set_config',
+        'nvim_win_set_height',
+        'nvim_win_set_hl_ns',
+        'nvim_win_set_var',
+        'nvim_win_set_width',
+        'nvim_win_get_option',
+        'nvim_win_set_option',
+        'nvim_tabpage_del_var',
+        'nvim_tabpage_set_var',
+        'nvim_tabpage_set_win',
+        'nvim_exec_autocmds',
+        'nvim_select_popupmenu_item',
+        'nvim_err_write',
+        'nvim_err_writeln',
+        'nvim_out_write',
+        'nvim_input_mouse',
+        'nvim_put',
+        'nvim_buf_create_user_command',
+        'nvim_buf_del_user_command',
+        'nvim_set_option_value',
+    ]),
+    nil: new Set([
+        'nvim_call_dict_function',
+        'nvim_call_function',
+        'nvim_cmd',
+        'nvim_get_option_value',
+    ]),
+};
 
 export interface VimApiState {
     globals: Map<string, unknown>;
@@ -645,6 +1020,8 @@ export function injectVimApi(
     const bufferVars = new Map<string, Map<string, unknown>>();
     let operatorfuncName: string | null = null;
     const notifiedMessages = new Set<string>();
+    const warnedNamespaceKeys = new Set<string>();
+    const warnedApiFunctions = new Set<string>();
     const userEnvMap = new Map<string, string>();
     const getLeaderKey = () => callbacks.getLeaderKey?.() ?? '\\';
     const autocmdManager = callbacks.autocmdManager;
@@ -737,7 +1114,8 @@ export function injectVimApi(
                 lua.lua_pushvalue(state, 3);
                 const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
                 operatorfuncName = null;
-                const wrapper = (cm: unknown, type: string) => {
+                const wrapper = (_cm: unknown, type: string) => {
+                    void _cm;
                     lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
                     lua.lua_pushstring(state, to_luastring(type));
                     const status = lua.lua_pcall(state, 1, 0, 0);
@@ -980,6 +1358,77 @@ export function injectVimApi(
     lua.lua_pushvalue(L, boTableIndex);
     lua.lua_setfield(L, vimTableIndex, to_luastring('bo'));
     lua.lua_pop(L, 1);
+
+    lua.lua_newtable(L);
+    const oTableIndex = lua.lua_gettop(L);
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        const value = callbacks.getOption?.(key);
+        if (value === undefined || value === null) {
+            lua.lua_pushnil(state);
+        } else {
+            pushLuaValue(state, value);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) return 0;
+        const value = readLuaValue(state, 3);
+        callbacks.setOption?.(key, value);
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, oTableIndex);
+    lua.lua_pushvalue(L, oTableIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('o'));
+    lua.lua_pop(L, 1);
+
+    lua.lua_newtable(L);
+    const goTableIndex = lua.lua_gettop(L);
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        const value = callbacks.getOption?.(key);
+        if (value === undefined || value === null) {
+            lua.lua_pushnil(state);
+        } else {
+            pushLuaValue(state, value);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) return 0;
+        const value = readLuaValue(state, 3);
+        callbacks.setOption?.(key, value);
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, goTableIndex);
+    lua.lua_pushvalue(L, goTableIndex);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('go'));
+    lua.lua_pop(L, 1);
+
+    createWarnVarTable(L, 'wo', warnedNamespaceKeys);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('wo'));
+
+    createWarnVarTable(L, 'w', warnedNamespaceKeys);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('w'));
+
+    createWarnVarTable(L, 't', warnedNamespaceKeys);
+    lua.lua_setfield(L, vimTableIndex, to_luastring('t'));
 
     lua.lua_newtable(L);
     const vTableIndex = lua.lua_gettop(L);
@@ -2595,54 +3044,56 @@ export function injectVimApi(
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const fnName = readLuaString(state, 2);
-        const supported = new Set([
-            'nvim_create_user_command',
-            'nvim_del_user_command',
-            'nvim_create_autocmd',
-            'nvim_create_augroup',
-            'nvim_del_autocmd',
-            'nvim_del_augroup_by_name',
-            'nvim_clear_autocmds',
-            'nvim_create_namespace',
-            'nvim_set_hl',
-            'nvim_get_hl',
-            'nvim_set_keymap',
-            'nvim_del_keymap',
-            'nvim_get_keymap',
-            'nvim_buf_set_keymap',
-            'nvim_buf_del_keymap',
-            'nvim_buf_get_lines',
-            'nvim_buf_set_lines',
-            'nvim_buf_set_text',
-            'nvim_get_current_buf',
-            'nvim_get_current_win',
-            'nvim_get_current_tabpage',
-            'nvim_get_current_line',
-            'nvim_set_current_line',
-            'nvim_buf_get_name',
-            'nvim_buf_line_count',
-            'nvim_win_get_cursor',
-            'nvim_win_set_cursor',
-            'nvim_win_get_buf',
-            'nvim_buf_get_mark',
-            'nvim_buf_set_mark',
-            'nvim_buf_del_mark',
-            'nvim_buf_get_var',
-            'nvim_buf_set_var',
-            'nvim_buf_get_option',
-            'nvim_buf_set_option',
-            'nvim_get_option',
-            'nvim_set_option',
-            'nvim_command',
-            'nvim_feedkeys',
-            'nvim_replace_termcodes',
-            'nvim_echo',
-        ]);
-        if (fnName && supported.has(fnName)) {
+        if (fnName && SUPPORTED_NVIM_API_FUNCTIONS.has(fnName)) {
             lua.lua_getfield(state, 1, to_luastring(fnName));
             return 1;
         }
-        const supportedList = Array.from(supported).join(', ');
+        if (fnName && KNOWN_NVIM_API_FUNCTIONS.has(fnName)) {
+            const stub = (stubState: lua_State) => {
+                if (!warnedApiFunctions.has(fnName)) {
+                    warnedApiFunctions.add(fnName);
+                    console.warn(
+                        `Vim Motions: vim.api.${fnName} is not implemented in Obsidian`,
+                    );
+                }
+                if (NVIM_API_RETURN_TYPES.boolean.has(fnName)) {
+                    lua.lua_pushboolean(stubState, false);
+                    return 1;
+                }
+                if (NVIM_API_RETURN_TYPES.integer.has(fnName)) {
+                    lua.lua_pushinteger(stubState, 0);
+                    return 1;
+                }
+                if (NVIM_API_RETURN_TYPES.string.has(fnName)) {
+                    lua.lua_pushstring(stubState, to_luastring(''));
+                    return 1;
+                }
+                if (NVIM_API_RETURN_TYPES.table.has(fnName)) {
+                    lua.lua_newtable(stubState);
+                    return 1;
+                }
+                if (NVIM_API_RETURN_TYPES.array.has(fnName)) {
+                    lua.lua_newtable(stubState);
+                    return 1;
+                }
+                if (NVIM_API_RETURN_TYPES.nil.has(fnName)) {
+                    lua.lua_pushnil(stubState);
+                    return 1;
+                }
+                if (NVIM_API_RETURN_TYPES.void.has(fnName)) {
+                    return 0;
+                }
+                lua.lua_pushnil(stubState);
+                return 1;
+            };
+            lua.lua_pushjsfunction(state, stub);
+            lua.lua_pushvalue(state, -1);
+            lua.lua_setfield(state, 1, to_luastring(fnName));
+            return 1;
+        }
+        const supportedList = Array.from(SUPPORTED_NVIM_API_FUNCTIONS).join(
+            ', ',
+        );
         return lauxlib.luaL_error(
             state,
             to_luastring(
@@ -2657,13 +3108,9 @@ export function injectVimApi(
     lua.lua_setfield(L, vimTableIndex, to_luastring('api'));
     lua.lua_pop(L, 1);
 
-    for (const [key, message] of [
-        ['lsp', 'vim.lsp is not available in Obsidian'],
-        ['ui', 'vim.ui is not available in Obsidian'],
-        ['diagnostic', 'vim.diagnostic is not available in Obsidian'],
-    ]) {
-        createErrorStub(L, message as string);
-        lua.lua_setfield(L, vimTableIndex, to_luastring(key as string));
+    for (const key of ['lsp', 'ui', 'diagnostic']) {
+        createWarnStub(L, key, warnedNamespaceKeys);
+        lua.lua_setfield(L, vimTableIndex, to_luastring(key));
     }
 
     lua.lua_newtable(L);

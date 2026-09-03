@@ -271,7 +271,7 @@ describe('vim.fn', () => {
     it('should error on unsupported functions', () => {
         const L = setupState();
         const error = runLuaError(L, "return vim.fn.system('ls')");
-        expect(error).toContain('Supported:');
+        expect(error).toContain('not supported in Obsidian');
         destroyState(L);
     });
 
