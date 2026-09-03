@@ -1,5 +1,5 @@
-import { lua, lauxlib, to_luastring, to_jsstring } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lua, lauxlib, to_luastring, to_jsstring } from '../../lib/fengari';
+import type { lua_State } from '../../lib/fengari';
 import type { LanguageTree } from '../../treesitter/language-tree';
 import { pushTSTree } from './tree';
 import { pushTSNode } from './node';

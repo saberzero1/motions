@@ -1,8 +1,22 @@
-import { lua, lauxlib, lualib, to_jsstring, to_luastring } from 'fengari';
-import type { lua_State } from 'fengari';
-import { Notice } from 'obsidian';
+import {
+    lua,
+    lauxlib,
+    lualib,
+    to_jsstring,
+    to_luastring,
+    setPlatformProvider,
+} from '../lib/fengari';
+import type { lua_State } from '../lib/fengari';
+import { Notice, Platform } from 'obsidian';
 import type { CoroutineRunner } from './coroutine-runner';
 import { invariant } from '../util/invariant';
+
+setPlatformProvider({
+    isDesktop: Platform.isDesktop,
+    requireModule: (
+        window as Window & { require?: (module: string) => unknown }
+    ).require,
+});
 
 export const INSTRUCTION_LIMIT = 1_000_000;
 export const LUA_TIMEOUT_ERROR = 'Lua execution timed out';
@@ -63,11 +77,25 @@ export function createSandboxedState(): lua_State {
     lua.lua_pop(L, 1);
     lauxlib.luaL_requiref(L, to_luastring('utf8'), lualib.luaopen_utf8, 1);
     lua.lua_pop(L, 1);
+    lauxlib.luaL_requiref(L, to_luastring('os'), lualib.luaopen_os, 1);
+    lua.lua_pop(L, 1);
 
-    const luaopen_debug = (lualib as Record<string, (L: lua_State) => number>)
-        .luaopen_debug;
-    if (luaopen_debug) {
-        lauxlib.luaL_requiref(L, to_luastring('debug'), luaopen_debug, 1);
+    // Defense-in-depth: nil out dangerous os functions even though the fork
+    // already stubs them — prevents regressions if the fork code changes.
+    lua.lua_getglobal(L, to_luastring('os'));
+    lua.lua_pushnil(L);
+    lua.lua_setfield(L, -2, to_luastring('execute'));
+    lua.lua_pushnil(L);
+    lua.lua_setfield(L, -2, to_luastring('exit'));
+    lua.lua_pop(L, 1);
+
+    if (lualib.luaopen_debug) {
+        lauxlib.luaL_requiref(
+            L,
+            to_luastring('debug'),
+            lualib.luaopen_debug,
+            1,
+        );
         lua.lua_pop(L, 1);
     }
 

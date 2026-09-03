@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
+import {
+    lua,
+    lauxlib,
+    to_jsstring,
+    to_luastring,
+} from '../../../../src/lib/fengari';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { Parser, Language } from 'web-tree-sitter';

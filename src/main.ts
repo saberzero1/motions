@@ -172,7 +172,7 @@ import {
     migrateConfigModeSettings,
     migrateSigncolumnSettings,
 } from './settings-migration';
-import type { lua_State } from 'fengari';
+import type { lua_State } from './lib/fengari';
 import { pickerRegistry } from './picker/registry';
 import type { PickerSource } from './picker/types';
 import { createMatcher } from './picker/matcher';

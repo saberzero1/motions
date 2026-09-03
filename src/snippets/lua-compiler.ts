@@ -1,7 +1,7 @@
 import type { SnippetFile } from './types';
 import type { LuaSnippetDef, LuaSnippetNode } from '../lua/snippet-api';
 import type { DynamicSnippetDef, DynamicNodeMeta } from './dynamic-bridge';
-import type { lua_State } from 'fengari';
+import type { lua_State } from '../lib/fengari';
 
 export function compileLuaSnippets(defs: LuaSnippetDef[]): SnippetFile {
     const result: SnippetFile = {};

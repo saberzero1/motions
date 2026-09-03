@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Lua `os` library support** — the `os` library is now available in the Lua sandbox, providing access to date, time, and environment functions. Parity with Neovim: all functions available on desktop, nil on mobile. `os.execute` and `os.exit` are permanently blocked for security.
+    - Plugin: `src/lua/engine.ts` (opened `os` library, added defense-in-depth blocks)
+
+### Changed
+
+- **Absorbed fengari fork into monorepo** — the browser-only fengari fork is now vendored directly in the codebase, eliminating the external dependency and simplifying the build process.
+    - Plugin: `src/lib/fengari/` (absorbed 36 source files)
+    - Plugin: `src/lib/fengari/index.ts` (new ESM barrel with typed re-exports)
+    - Plugin: `src/lib/fengari/platform.js` (new host-agnostic platform provider)
+    - Plugin: `package.json` (removed `fengari` dependency)
+- **Host-agnostic Lua runtime** — replaced platform guards with a dependency injection pattern. Fengari no longer sniffs for Node.js or browser environments, instead using a provider injected by the plugin.
+    - Plugin: `src/lib/fengari/platform.js` (platform provider implementation)
+    - Plugin: `src/lua/engine.ts` (injected Obsidian platform provider)
+
+### Tests
+
+- 13 unit tests in `test/unit/lua/os-lib.test.ts` for the `os` library
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: updated fengari section — absorbed into monorepo, platform provider, 7 libraries
+- `KNOWN_LIMITATIONS.md`: updated sandbox library count (6 → 7), removed `os` from unavailable list
+- `docs/configuration/lua-config.md`: updated sandbox reference — 7 libraries, `os` library table entry, desktop/mobile callout, blocked functions
+
 ## [0.143.0] - 2026-09-03
 
 ### Fixed

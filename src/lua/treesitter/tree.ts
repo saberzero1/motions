@@ -1,5 +1,5 @@
-import { lua, lauxlib, to_luastring, to_jsstring } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lua, lauxlib, to_luastring, to_jsstring } from '../../lib/fengari';
+import type { lua_State } from '../../lib/fengari';
 import type { Tree } from 'web-tree-sitter';
 import { pushTSNode } from './node';
 import { pushRange4, pushRange6 } from './range';

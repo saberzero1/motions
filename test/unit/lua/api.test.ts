@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
+import {
+    lua,
+    lauxlib,
+    to_jsstring,
+    to_luastring,
+} from '../../../src/lib/fengari';
 import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
 import { injectStdlib } from '../../../src/lua/stdlib';

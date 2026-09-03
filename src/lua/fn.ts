@@ -1,5 +1,5 @@
-import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lua, lauxlib, to_jsstring, to_luastring } from '../lib/fengari';
+import type { lua_State } from '../lib/fengari';
 import type { UndoTree } from '../vim/undo-tree';
 import { pushLuaAny } from './api';
 import { strftime } from './strftime';

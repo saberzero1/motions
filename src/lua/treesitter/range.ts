@@ -1,5 +1,5 @@
-import { lua, lauxlib, to_luastring } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lua, lauxlib, to_luastring } from '../../lib/fengari';
+import type { lua_State } from '../../lib/fengari';
 
 function readRangeValue(L: lua_State, index: number, label: string): number {
     if (!lua.lua_isnumber(L, index)) {

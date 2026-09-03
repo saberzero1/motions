@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
+import {
+    lua,
+    lauxlib,
+    to_jsstring,
+    to_luastring,
+} from '../../../src/lib/fengari';
 import {
     createSandboxedState,
     destroyState,

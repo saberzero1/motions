@@ -3,7 +3,7 @@ import type { SnippetFile } from './types';
 import { SnippetRegistry } from './registry';
 import { compileLuaSnippets, compileLuaSnippetsHybrid } from './lua-compiler';
 import type { LuaSnippetDef } from '../lua/snippet-api';
-import type { lua_State } from 'fengari';
+import type { lua_State } from '../lib/fengari';
 import {
     isAbsolutePath,
     readExternalFile,

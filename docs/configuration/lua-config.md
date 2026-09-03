@@ -1753,30 +1753,32 @@ The Lua runtime runs in a sandboxed Lua 5.3 environment ([fengari](https://githu
 
 ### Available standard libraries
 
-Only 6 standard libraries are loaded:
+7 standard libraries are loaded:
 
-| Library     | Description                                                                                                                          |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `_G` (base) | Core functions (`type`, `tostring`, `tonumber`, `pcall`, `xpcall`, `error`, `select`, `pairs`, `ipairs`, `next`, `unpack`, `assert`) |
-| `string`    | String manipulation (`format`, `find`, `gsub`, `sub`, `rep`, `byte`, `char`, `len`, `lower`, `upper`, `match`, `gmatch`, `reverse`)  |
-| `table`     | Table manipulation (`insert`, `remove`, `sort`, `concat`, `move`, `pack`, `unpack`)                                                  |
-| `math`      | Math functions (`floor`, `ceil`, `abs`, `max`, `min`, `random`, `sqrt`, `sin`, `cos`, `pi`, `huge`, etc.)                            |
-| `coroutine` | Coroutine support (`create`, `resume`, `yield`, `wrap`, `status`)                                                                    |
-| `utf8`      | UTF-8 support (`char`, `codepoint`, `codes`, `len`, `offset`, `charpattern`)                                                         |
+| Library     | Description                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `_G` (base) | Core functions (`type`, `tostring`, `tonumber`, `pcall`, `xpcall`, `error`, `select`, `pairs`, `ipairs`, `next`, `unpack`, `assert`)  |
+| `string`    | String manipulation (`format`, `find`, `gsub`, `sub`, `rep`, `byte`, `char`, `len`, `lower`, `upper`, `match`, `gmatch`, `reverse`)   |
+| `table`     | Table manipulation (`insert`, `remove`, `sort`, `concat`, `move`, `pack`, `unpack`)                                                   |
+| `math`      | Math functions (`floor`, `ceil`, `abs`, `max`, `min`, `random`, `sqrt`, `sin`, `cos`, `pi`, `huge`, etc.)                             |
+| `coroutine` | Coroutine support (`create`, `resume`, `yield`, `wrap`, `status`)                                                                     |
+| `utf8`      | UTF-8 support (`char`, `codepoint`, `codes`, `len`, `offset`, `charpattern`)                                                          |
+| `os`        | Date/time (`date`, `time`, `difftime`, `clock`, `setlocale`), environment (`getenv`), file operations (`remove`, `rename`, `tmpname`) |
+
+> [!info] Desktop vs mobile
+> `os.getenv`, `os.remove`, `os.rename`, and `os.tmpname` require desktop (Node.js). On mobile, they return `nil`. `os.execute` and `os.exit` are permanently blocked on all platforms.
 
 ### Not available
 
-| Library/function               | Reason                                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------------------------- |
-| `io`                           | Stripped from fork (file system access)                                                      |
-| `os`                           | Not loaded by plugin (security)                                                              |
-| `debug`                        | Not loaded by plugin (security)                                                              |
-| `package` (native)             | Stripped from fork; plugin provides `package.loaded`/`package.path` and a custom `require()` |
-| `dofile`, `loadfile`           | Disabled (no direct file loading)                                                            |
-| `rawget`, `rawset`, `rawequal` | Disabled (sandbox integrity)                                                                 |
-
-> [!info] Fork vs plugin
-> The [fengari fork](https://github.com/saberzero1/fengari) retains browser-safe `os` functions (`os.date`, `os.time`, etc.) and the `debug` library in its compiled VM. However, the plugin's sandbox deliberately does not load these libraries. Only the 6 libraries listed above are available to Lua scripts.
+| Library/function               | Reason                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `io`                           | Stripped from runtime (file system access)                                                      |
+| `debug`                        | Not loaded by plugin (security)                                                                 |
+| `package` (native)             | Stripped from runtime; plugin provides `package.loaded`/`package.path` and a custom `require()` |
+| `dofile`, `loadfile`           | Disabled (no direct file loading)                                                               |
+| `rawget`, `rawset`, `rawequal` | Disabled (sandbox integrity)                                                                    |
+| `os.execute`                   | Permanently blocked (arbitrary shell execution is a security risk)                              |
+| `os.exit`                      | Permanently blocked (would terminate Obsidian)                                                  |
 
 ### Execution limits
 

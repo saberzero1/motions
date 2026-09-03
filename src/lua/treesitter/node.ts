@@ -1,5 +1,5 @@
-import { lua, lauxlib, to_luastring, to_jsstring } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lua, lauxlib, to_luastring, to_jsstring } from '../../lib/fengari';
+import type { lua_State } from '../../lib/fengari';
 import type { Node } from 'web-tree-sitter';
 
 function luaToUserdata(L: lua_State, index: number): Node | null {

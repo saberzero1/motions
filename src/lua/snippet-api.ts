@@ -1,5 +1,5 @@
-import { lua, lauxlib, to_jsstring, to_luastring } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lua, lauxlib, to_jsstring, to_luastring } from '../lib/fengari';
+import type { lua_State } from '../lib/fengari';
 import { evalLua } from './engine';
 
 const LUA_SNIPPET_DSL = `vim.snippet = vim.snippet or {}

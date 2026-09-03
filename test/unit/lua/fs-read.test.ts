@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { lua, lauxlib, lualib, to_jsstring, to_luastring } from 'fengari';
-import type { lua_State } from 'fengari';
+import {
+    lua,
+    lauxlib,
+    lualib,
+    to_jsstring,
+    to_luastring,
+} from '../../../src/lib/fengari';
+import type { lua_State } from '../../../src/lib/fengari';
 import { CoroutineRunner } from '../../../src/lua/coroutine-runner';
 import { CALLBACK_INSTRUCTION_LIMIT } from '../../../src/lua/engine';
 

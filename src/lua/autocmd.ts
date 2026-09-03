@@ -1,6 +1,6 @@
 import type { TFile } from 'obsidian';
-import { lauxlib, lua } from 'fengari';
-import type { lua_State } from 'fengari';
+import { lauxlib, lua } from '../lib/fengari';
+import type { lua_State } from '../lib/fengari';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import { getDialogPrefix } from '../vim/mode-tracker';
 import { simpleGlobMatch } from './fn';

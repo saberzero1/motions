@@ -1,4 +1,4 @@
-import { lua, lauxlib } from 'fengari';
+import { lua, lauxlib } from '../lib/fengari';
 import type { DynamicSnippetDef } from './dynamic-bridge';
 import type { SnippetDefinition, SnippetEntry, SnippetFile } from './types';
 
