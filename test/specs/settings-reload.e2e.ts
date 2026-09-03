@@ -878,6 +878,234 @@ describe('Settings hot-reload', function () {
         await browser.pause(300);
     });
 
+    it('leader-leader keyToKey mapping should execute after timeout (#166)', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                                leaderRegistry: {
+                                    setLeaderKey: (k: string) => void;
+                                    getLeaderKey: () => string;
+                                };
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.picker = false;
+            plugin.leaderRegistry.setLeaderKey(' ');
+            plugin.reloadFeatures();
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            setOption: (name: string, value: unknown) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim?.setOption('operatorshadowtimeout', 100);
+        });
+        await browser.pause(500);
+
+        await setupEditor('test', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                            noremap: (
+                                lhs: string,
+                                rhs: string,
+                                ctx?: string,
+                            ) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return;
+            Vim.noremap('<Space><Space>', ':buffers<CR>', 'normal');
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, '<Space>');
+            Vim.handleKey(adapter, '<Space>');
+        });
+
+        await browser.pause(400);
+
+        const hasModal = await browser.executeObsidian(() => {
+            return !!activeDocument.querySelector('.modal-container');
+        });
+        expect(hasModal).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            unmap: (lhs: string, ctx?: string) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim?.unmap('<Space><Space>', 'normal');
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                                leaderRegistry: {
+                                    setLeaderKey: (k: string) => void;
+                                };
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.picker = true;
+            plugin.leaderRegistry.setLeaderKey('\\');
+            plugin.reloadFeatures();
+            const Vim2 = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            setOption: (name: string, value: unknown) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim2?.setOption('operatorshadowtimeout', 1000);
+        });
+        await browser.pause(300);
+    });
+
+    it('timeoutlen=0 should execute deferred mapping immediately (#166)', async function () {
+        await browser.executeObsidian(({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                                leaderRegistry: {
+                                    setLeaderKey: (k: string) => void;
+                                };
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.picker = false;
+            plugin.leaderRegistry.setLeaderKey(' ');
+            plugin.reloadFeatures();
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            setOption: (name: string, value: unknown) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim?.setOption('operatorshadowtimeout', 0);
+        });
+        await browser.pause(500);
+
+        await setupEditor('test', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const hasModal = await browser.executeObsidian(({ app, obsidian }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                            noremap: (
+                                lhs: string,
+                                rhs: string,
+                                ctx?: string,
+                            ) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            if (!Vim) return false;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return false;
+            const cm = (view.editor as unknown as Record<string, unknown>)
+                .cm as Record<string, unknown>;
+            const adapter = cm?.cm;
+            if (!adapter) return false;
+            Vim.noremap('<Space><Space>', ':buffers<CR>', 'normal');
+            Vim.handleKey(adapter, '<Esc>');
+            Vim.handleKey(adapter, '<Space>');
+            Vim.handleKey(adapter, '<Space>');
+            return !!activeDocument.querySelector('.modal-container');
+        });
+        expect(hasModal).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            unmap: (lhs: string, ctx?: string) => void;
+                            setOption: (name: string, value: unknown) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim?.unmap('<Space><Space>', 'normal');
+            Vim?.setOption('operatorshadowtimeout', 1000);
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                reloadFeatures: () => void;
+                                leaderRegistry: {
+                                    setLeaderKey: (k: string) => void;
+                                };
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            plugin.settings.picker = true;
+            plugin.leaderRegistry.setLeaderKey('\\');
+            plugin.reloadFeatures();
+        });
+        await browser.pause(300);
+    });
+
     it('disabling workspace nav should not break ex command line (#164)', async function () {
         await browser.executeObsidian(({ app }) => {
             const plugin = (

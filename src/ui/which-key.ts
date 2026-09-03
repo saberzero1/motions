@@ -398,6 +398,7 @@ export class WhichKeyOverlay {
     private pendingLeader = false;
     private leaderPrefix = '';
     private lastStatus = '';
+    private suppressNextKeypress = false;
 
     constructor(
         app: App,
@@ -463,6 +464,7 @@ export class WhichKeyOverlay {
 
         const doneHandler = () => {
             this.dismiss();
+            this.suppressNextKeypress = true;
         };
         this.commandDoneHandler = doneHandler;
 
@@ -540,6 +542,10 @@ export class WhichKeyOverlay {
     }
 
     private onKeyPress(key: string): void {
+        if (this.suppressNextKeypress) {
+            this.suppressNextKeypress = false;
+            return;
+        }
         if (!this.lastAdapter) return;
         const vim = this.lastAdapter.state.vim;
         if (vim?.insertMode) {

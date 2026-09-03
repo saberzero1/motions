@@ -199,26 +199,26 @@ Use `set <option>` to enable, `set no<option>` to disable.
 
 Use `set <option>=<value>`.
 
-| Option                       | Alias  | Description                                     | Default | Range    |
-| ---------------------------- | ------ | ----------------------------------------------- | ------- | -------- |
-| `scrolloff`                  | `so`   | Lines to keep visible above/below cursor        | 5       | 0-9999   |
-| `scanlimit`                  | `sl`   | Max lines to scan for text objects              | 20      | 5-200    |
-| `labelfontsize`              | `lfs`  | Font size for EasyMotion/hint labels            | 14      | 10-20    |
-| `tabstop`                    | `ts`   | Tab display width                               | 4       | 1-8      |
-| `shiftwidth`                 | `sw`   | Indent width                                    | 4       | 1-8      |
-| `textwidth`                  | `tw`   | Line wrap width for `gq`/`gw`                   | 80      | 0-200    |
-| `insertmodeescapetimeout`    | `imet` | Timeout (ms) for insert escape sequence         | 1000    | 100-5000 |
-| `operatorshadowtimeout`      | `ost`  | Timeout (ms) for operator-prefix disambiguation | 1000    | 0-5000   |
-| `numberwidth`                | `nuw`  | Minimum line number column width                | 2       | 1-20     |
-| `jumplistsize`               | —      | Maximum jump list entries                       | 200     | 1-1000   |
-| `undotreemaxnodes`           | `utmn` | Maximum undo tree nodes per file                | 1000    | 100-5000 |
-| `yankhighlightduration`      | —      | Yank highlight duration (ms)                    | 200     | 0-5000   |
-| `smoothcursorsmoothness`     | `scs`  | Cursor movement smoothness                      | 0.5     | 0-1      |
-| `smoothcursorstiffness`      | `scst` | Smear trail head stiffness                      | 0.6     | 0.1-1    |
-| `smoothcursortrailstiffness` | `scts` | Smear trail tail stiffness                      | 0.3     | 0.1-1    |
-| `smoothcursordamping`        | `scd`  | Smear trail velocity decay                      | 0.85    | 0.1-0.99 |
-| `smoothcursormaxlength`      | `scml` | Maximum smear trail length (px)                 | 400     | 50-800   |
-| `oilconfirmdeletethreshold`  | —      | Oil delete confirmation threshold               | 1       | 0-100    |
+| Option                       | Alias                     | Description                                                                                              | Default | Range    |
+| ---------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| `scrolloff`                  | `so`                      | Lines to keep visible above/below cursor                                                                 | 5       | 0-9999   |
+| `scanlimit`                  | `sl`                      | Max lines to scan for text objects                                                                       | 20      | 5-200    |
+| `labelfontsize`              | `lfs`                     | Font size for EasyMotion/hint labels                                                                     | 14      | 10-20    |
+| `tabstop`                    | `ts`                      | Tab display width                                                                                        | 4       | 1-8      |
+| `shiftwidth`                 | `sw`                      | Indent width                                                                                             | 4       | 1-8      |
+| `textwidth`                  | `tw`                      | Line wrap width for `gq`/`gw`                                                                            | 80      | 0-200    |
+| `insertmodeescapetimeout`    | `imet`                    | Timeout (ms) for insert escape sequence                                                                  | 1000    | 100-5000 |
+| `operatorshadowtimeout`      | `ost`, `timeoutlen`, `tm` | Timeout (ms) for operator-prefix and mapping-prefix disambiguation (equivalent to Neovim's `timeoutlen`) | 1000    | 0-5000   |
+| `numberwidth`                | `nuw`                     | Minimum line number column width                                                                         | 2       | 1-20     |
+| `jumplistsize`               | —                         | Maximum jump list entries                                                                                | 200     | 1-1000   |
+| `undotreemaxnodes`           | `utmn`                    | Maximum undo tree nodes per file                                                                         | 1000    | 100-5000 |
+| `yankhighlightduration`      | —                         | Yank highlight duration (ms)                                                                             | 200     | 0-5000   |
+| `smoothcursorsmoothness`     | `scs`                     | Cursor movement smoothness                                                                               | 0.5     | 0-1      |
+| `smoothcursorstiffness`      | `scst`                    | Smear trail head stiffness                                                                               | 0.6     | 0.1-1    |
+| `smoothcursortrailstiffness` | `scts`                    | Smear trail tail stiffness                                                                               | 0.3     | 0.1-1    |
+| `smoothcursordamping`        | `scd`                     | Smear trail velocity decay                                                                               | 0.85    | 0.1-0.99 |
+| `smoothcursormaxlength`      | `scml`                    | Maximum smear trail length (px)                                                                          | 400     | 50-800   |
+| `oilconfirmdeletethreshold`  | —                         | Oil delete confirmation threshold                                                                        | 1       | 0-100    |
 
 ## String options
 

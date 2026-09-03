@@ -70,25 +70,18 @@ export const NEOVIM_OPTIONS: Record<string, NeovimOptionEntry> = {
         reason: 'not yet implemented (word boundaries use CodeMirror defaults)',
     },
     // joinspaces, shiftround, softtabstop, smarttab: now in KNOWN_SET_OPTIONS
-    timeoutlen: {
-        tier: 'noop-platform',
-        reason: 'use operatorshadowtimeout for operator-pending timeout',
-    },
-    tm: {
-        tier: 'noop-platform',
-        reason: 'use operatorshadowtimeout for operator-pending timeout',
-    },
+    // timeoutlen, tm: now aliases for operatorshadowtimeout in the fork
     ttimeout: {
         tier: 'noop-platform',
-        reason: 'use operatorshadowtimeout for operator-pending timeout',
+        reason: 'terminal key code timeout — not applicable in browser',
     },
     ttimeoutlen: {
         tier: 'noop-platform',
-        reason: 'use operatorshadowtimeout for operator-pending timeout',
+        reason: 'terminal key code timeout — not applicable in browser',
     },
     ttm: {
         tier: 'noop-platform',
-        reason: 'use operatorshadowtimeout for operator-pending timeout',
+        reason: 'terminal key code timeout — not applicable in browser',
     },
     softtabstop: {
         tier: 'noop-platform',

@@ -15,16 +15,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Disabling hard-wrap disables fold commands** — turning off **Settings → Vim Motions → Vim features → Hard-wrap formatting** also disabled all fold commands (`zf`/`zF`/`zd`/`zD`/`zE`/`zv`/`zj`/`zk`/`[z`/`]z`/`zn`/`zN`/`zi` + `:fold`/`:foldopen`/`:foldclose`/`:folddoopen`/`:folddoclosed`). Root cause: `registerFoldCommands()` and `registerFoldEnableCommands()` were called inside `registerOperators()`, which is gated by `enableHardWrap`. Fixed by moving both fold registration calls out of `registerOperators()` and calling them unconditionally in `main.ts`.
     - Plugin: `src/operators/register.ts` (removed fold registration calls)
     - Plugin: `src/main.ts` (`registerFoldEnableCommands` and `registerFoldCommands` called unconditionally)
+- **`keyToKey` mappings silently fail when prefix-deferred** — `vim.keymap.set("n", "<leader><leader>", ":buffers<CR>")` with `vim.g.mapleader = " "` silently did nothing because `<Space><Space>h` (hint mode) created a partial match, triggering the fork's prefix-ambiguity deferral. After the `operatorshadowtimeout` (1000ms), the deferred command timer called `commandDispatcher.processCommand()` which has no handler for `keyToKey` type mappings — they fell through to `default: break`. Fixed by adding a `keyToKey` type check in the deferred command timer that routes to `doKeyToKey()` instead, matching the dispatch logic in the main `findKey` path. The 1-second delay before the deferred command fires is correct Neovim `timeoutlen` behavior — users who want a shorter delay can use `set timeoutlen=300` (now a supported alias for `operatorshadowtimeout`). ([#166](https://github.com/saberzero1/motions/issues/166))
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`_deferredCommandTimer` callback: `keyToKey` → `doKeyToKey`; `timeoutlen`/`tm` registered as aliases for `operatorshadowtimeout`; `timeoutlen=0` executes immediately instead of blocking)
+    - Plugin: `src/vim/neovim-options.ts` (removed `timeoutlen`/`tm` from noop list — now handled by the fork)
+    - Plugin: `src/vimrc/loader.ts` (added `timeoutlen`/`tm` to `KNOWN_SET_OPTIONS` as aliases for `operatorshadowtimeout`)
+    - Plugin: `src/lua/api.ts` (`vim.opt.__newindex` now syncs non-sideEffect `KNOWN_SET_OPTIONS` to the fork via `callbacks.setOption`)
+    - Plugin: `src/ui/which-key.ts` (suppress `vim-keypress` after `vim-command-done` to prevent which-key popup re-showing after synchronous command execution)
 
 ### Tests
 
 - 3 regression tests in `test/specs/settings-reload.e2e.ts` for #165 (`:buffers` ex command works with workspace nav disabled; `gO` outline works with workspace nav disabled; `zj` fold motion works with hard-wrap disabled)
+- 2 regression tests in `test/specs/settings-reload.e2e.ts` for #166 (`<Space><Space>` keyToKey mapping executes after operatorshadowtimeout when `<Space><Space>h` partial exists; `timeoutlen=0` executes deferred mapping immediately)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: marked workspace navigation paste dependency as fixed
+- `KNOWN_LIMITATIONS.md`: marked workspace navigation paste dependency as fixed; updated operator-prefix key dispatch section with `timeoutlen`/`tm` aliases, `keyToKey` dispatch fix, and `timeoutlen=0` immediate execution
 - `CONTRIBUTING.md`: updated `navigation.ts` and `operators/register.ts` descriptions to reflect split
+- `AGENTS.md`: updated fork description with `keyToKey` deferred command fix and `timeoutlen`/`tm` aliases
+- `docs/configuration/settings.md`: updated `operatorshadowtimeout` description with `timeoutlen`/`tm` aliases
+- `docs/configuration/vimrc.md`: updated `operatorshadowtimeout` short names with `timeoutlen`/`tm` aliases
+- `docs/configuration/lua-config.md`: updated `operatorshadowtimeout` entry with `timeoutlen`/`tm` aliases
 
 ## [0.142.0] - 2026-09-03
 

@@ -181,6 +181,18 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         min: 0,
         max: 5000,
     },
+    timeoutlen: {
+        type: 'number',
+        settingsKey: 'operatorshadowtimeout',
+        min: 0,
+        max: 5000,
+    },
+    tm: {
+        type: 'number',
+        settingsKey: 'operatorshadowtimeout',
+        min: 0,
+        max: 5000,
+    },
     tablewidget: {
         type: 'string',
         settingsKey: 'tableWidgetMode',

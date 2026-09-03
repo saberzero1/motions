@@ -827,6 +827,7 @@ export function injectVimApi(
             value,
             `vim.opt.${key} = ${formatDirectiveValue(value)}`,
         );
+        callbacks.setOption?.(key, value);
         return 0;
     });
     lua.lua_setfield(L, -2, to_luastring('__newindex'));
