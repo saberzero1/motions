@@ -546,6 +546,8 @@ test/
     test-wrapper.ts          # testWithNeovim() helper — enforces golden case exists
     record-golden.ts         # Golden file recording script
     smoke.ts                 # Quick Neovim smoke test
+  fixtures/                  # Test fixture data
+    test-plugins.json        # Plugin manifest for CI pre-fetch
   unit/                      # Unit tests (Vitest)
     lua/                     # Lua engine unit tests
     picker/                  # Picker unit tests

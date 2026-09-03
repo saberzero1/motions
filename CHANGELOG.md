@@ -38,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- Updated `test/specs/lua-plugin-mini-comment.e2e.ts` to use auto-fetch for `mini.comment` verification. The vendored `test-vault/lua/mini/comment.lua` has been removed — tests now fetch the plugin from GitHub at runtime via the auto-fetch system.
+- **CI test plugin pre-fetch** — e2e tests no longer depend on runtime GitHub fetches. A `scripts/fetch-test-plugins.sh` script downloads plugin tarballs before tests run, driven by `test/fixtures/test-plugins.json`. The CI workflow fetches plugins in a dedicated step on all platforms (Linux, macOS, Windows). `loadMiniComment` skips `vim.plugins.add()` when the plugin is pre-fetched; the fetch test is skipped when pre-fetched.
+- Updated `test/specs/lua-plugin-mini-comment.e2e.ts` — `loadMiniComment` detects pre-fetched plugins and skips `vim.plugins.add()`; fetch test guarded with `this.skip()` when pre-fetched.
 - Added `pluginAutoFetch` to excluded settings in `test/unit/known-set-options.test.ts`.
 - Added `vimHandleKeysSync` helper in `test/helpers.ts` — dispatches keys via `Vim.handleKey` in a single synchronous `executeObsidian` call with Escape prefix. Supports `waitForTimeout` flag for leader-key mappings that trigger Neovim-correct `operatorshadowtimeout` deferral.
 - Updated `test/specs/lua-vim-v.e2e.ts` to use `vimHandleKeysSync` with `waitForTimeout=true` for `<leader>t`/`<leader>h` mappings that have longer partials (table nav keymaps `\tL`, `\tdd`, etc.).
@@ -48,8 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: added `vimHandleKeysSync` to test helpers list, added fork backtracking description
-- `CONTRIBUTING.md`: updated `src/lua/` file tree with new fetch-related files
+- `AGENTS.md`: added `vimHandleKeysSync` to test helpers list, added fork backtracking description, added CI test plugin pre-fetch description
+- `CONTRIBUTING.md`: updated `src/lua/` file tree with new fetch-related files, added test plugin pre-fetch documentation
 - `KNOWN_LIMITATIONS.md`: marked plugin fetching as implemented; added `init.lua` fallback note; updated `vim.is_callable` note (rawget no longer restricted); updated operator-prefix key dispatch section with backtracking deferral
 - `README.md`: added plugin auto-fetch to features list
 - `docs/configuration/settings.md`: added `pluginAutoFetch` setting

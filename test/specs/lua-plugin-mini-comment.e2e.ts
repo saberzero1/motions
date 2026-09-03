@@ -29,8 +29,13 @@ async function vaultFileExists(path: string): Promise<boolean> {
 }
 
 async function loadMiniComment(luaConfig: string): Promise<void> {
-    const pluginAdd = `vim.plugins.add({ "echasnovski/mini.comment" })`;
-    await loadLuaConfig(`${pluginAdd}\n${luaConfig}`);
+    const preFetched = await vaultFileExists('lua/mini/comment.lua');
+    if (preFetched) {
+        await loadLuaConfig(luaConfig);
+    } else {
+        const pluginAdd = `vim.plugins.add({ "echasnovski/mini.comment" })`;
+        await loadLuaConfig(`${pluginAdd}\n${luaConfig}`);
+    }
     await browser.pause(200);
 }
 
@@ -46,11 +51,19 @@ describe('mini.comment plugin integration', function () {
 
     describe('plugin fetch', function () {
         it('vim.plugins.add fetches mini.comment from GitHub', async function () {
-            await removeVaultFile('lua/mini/comment.lua');
+            const preFetched = await vaultFileExists('lua/mini/comment.lua');
+            if (preFetched) {
+                this.skip();
+                return;
+            }
             await removeVaultFile('lua/.plugin-lock.json');
             const beforeExists = await vaultFileExists('lua/mini/comment.lua');
             expect(beforeExists).toBe(false);
-            await loadMiniComment(`require('mini.comment').setup({})`);
+            const pluginAdd = `vim.plugins.add({ "echasnovski/mini.comment" })`;
+            await loadLuaConfig(
+                `${pluginAdd}\nrequire('mini.comment').setup({})`,
+            );
+            await browser.pause(200);
             const afterExists = await vaultFileExists('lua/mini/comment.lua');
             expect(afterExists).toBe(true);
         });

@@ -1,0 +1,7 @@
+[
+    {
+        "repo": "echasnovski/mini.comment",
+        "ref": "main",
+        "files": ["lua/mini/comment.lua"]
+    }
+]

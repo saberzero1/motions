@@ -73,6 +73,9 @@ jobs:
             - name: Install dependencies
               run: npm install --include=dev
 
+            - name: Fetch test plugins
+              run: bash scripts/fetch-test-plugins.sh
+
             - name: Build
               run: npm run build:ci-test
 
@@ -111,6 +114,10 @@ jobs:
 
             - name: Install dependencies
               run: npm install --include=dev
+
+            - name: Fetch test plugins
+              shell: bash
+              run: bash scripts/fetch-test-plugins.sh
 
             - name: Build
               run: npm run build:ci-test

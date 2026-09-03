@@ -35,6 +35,9 @@ test-vault/.obsidian/plugins/vim-motions/
 test-vault/.obsidian.vimrc
 test-vault/.obsidian/plugins/wdio-obsidian-service-plugin/
 
+# Fetched test plugins (downloaded by scripts/fetch-test-plugins.sh)
+test-vault/lua/mini/
+
 # Sisyphus plans
 .sisyphus/
 .omc/
