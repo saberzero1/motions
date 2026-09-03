@@ -1151,7 +1151,7 @@ All runtime `lua_pcall` sites (function keymaps, user commands, autocmd handlers
 
 4 deviations registered in `test/neovim/deviations.ts`:
 
-- `keymap.del` + `Q`: plugin's built-in `Q→@@` mapping persists after Lua unmap
+- ~~`keymap.del` + `Q`: plugin's built-in `Q→@@` mapping persists after Lua unmap~~ — Fixed. `reloadFeatures()` now re-applies Lua map operations (including unmaps) after re-registering built-in mappings
 - `cw` + `<Esc>` in mapped keys: test infrastructure key dispatch difference
 - Visual surround cursor: off-by-one in visual mode
 - Leader key in test: leaderRegistry propagation timing in `executeLuaForTest`
@@ -1949,7 +1949,7 @@ The plugin now unmaps the leader key's default binding centrally — after vimrc
 
 The fork also normalizes literal special characters in key strings to angle-bracket notation when they enter the keymap. The `<leader>` substitution in the vimrc loader replaces `<leader>` with the literal leader character — for space, this produces `' j'` from `nmap <leader>j gj`. However, `vimKeyFromEvent` converts space key presses to `'<Space>'` (angle-bracket notation). Without normalization, `commandMatch('<Space>', ' j')` would never match because it uses exact string comparison. The fork's `normalizeKeyString` converts `' j'` to `'<Space>j'` in `_mapCommand` before the entry is stored, so the dispatched `'<Space>'` correctly partial-matches and `'<Space>j'` fully matches. This normalization also applies to `toKeys` (the rhs of `keyToKey` mappings), `unmap()`, and `removeMapCommand()`.
 
-When `.obsidian.vimrc` sets a custom leader via `let mapleader = ","`, the plugin properly cleans up the initial backslash-leader bindings and re-registers all leader-dependent features (EasyMotion, hint mode, table manipulation, settings leader bindings) with the new leader. Previously, the old `\`-leader `mapCommand` entries persisted in the keymap alongside the new leader bindings because `Vim.unmap()` could not remove `mapCommand`-created entries. The fork provides `Vim.removeMapCommand(keys)` for clean removal.
+When `.obsidian.vimrc` sets a custom leader via `let mapleader = ","`, the plugin properly cleans up the initial backslash-leader bindings and re-registers all leader-dependent features (EasyMotion, hint mode, table manipulation, settings leader bindings) with the new leader. Previously, the old `\`-leader `mapCommand` entries persisted in the keymap alongside the new leader bindings because `Vim.unmap()` could not remove `mapCommand`-created entries. The fork provides `Vim.removeMapCommand(keys)` for clean removal. Additionally, the fork's `unmap(lhs, ctx)` now supports per-mode removal of context-less (all-mode) mappings — when a mode-specific unmap finds no exact context match, it splits the context-less entry into per-mode entries for the remaining modes, matching Neovim's `:nunmap` on a `:map`-created mapping.
 
 ## ~~Visual mode on single-character text objects~~ (Fixed)
 
