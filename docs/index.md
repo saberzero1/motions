@@ -31,12 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.141.0
+## What's new in 0.142.0
 
-- **Workspace nav no longer disables global keybindings** — turning off [[workspace-navigation|workspace navigation]] previously also disabled the `:` ex command line in reading view, `vim.obsidian.keymap.set` mappings, and [[hint-mode|hint mode]] global hotkeys. These now work independently of the workspace navigation setting ([#164](https://github.com/saberzero1/motions/issues/164))
-- **Lua `vim.keymap.del` survives settings reload** — Lua keymap deletions (e.g., removing the default `<leader><leader>h` hint mode mapping) are now re-applied after every settings change, and all leader-based mappings include proper mode context for reliable per-mode removal ([#162](https://github.com/saberzero1/motions/issues/162))
-- **Fork: per-mode `unmap` of context-less mappings** — `Vim.unmap(lhs, 'normal')` now correctly splits context-less `:map` entries into per-mode entries for the remaining modes, matching Neovim's `:nunmap` behavior
-- **Command palette no longer lags in visual-line mode** — opening the palette from visual-line mode previously dispatched 400+ CM6 transactions for availability checks; now skips unnecessary selection expansion during the checking path ([#163](https://github.com/saberzero1/motions/issues/163))
-- **Stale visual-line selection cache fix** — cached visual-line selections are now validated against document length, preventing `RangeError` crashes after document replacement
+- **`:obcommand` preserves visual selection** — visual-mode mappings to Obsidian commands (e.g., `vmap` to `:obcommand editor:toggle-bullet-list`) now operate on the full visual selection instead of collapsing to the cursor line. Both direct `handleEx` and `exmap` indirection paths are fixed ([#161](https://github.com/saberzero1/motions/discussions/161))
 
 See the [[changelog|full changelog]] for details.
