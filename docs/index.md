@@ -31,9 +31,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.138.0
+## What's new in 0.139.0
 
-- **Tier 1 `vim.api` expansion** — 27 new `nvim_*` functions (43 total), unlocking the mini.nvim plugin ecosystem. Adds cursor/line/marks, global keymaps + key injection, commands + options, variables + messaging + text APIs to the [[lua-config|Lua configuration]] layer
-- **Table-nav row wrapping** — `Tab`/`Shift+Tab` in [[tables|table-nav mode]] now wraps at row boundaries, matching Obsidian's native table Tab behavior ([#158](https://github.com/saberzero1/motions/issues/158))
+- **Plugin auto-fetch** — `vim.plugins.add()` now automatically downloads Neovim plugins from GitHub, extracts them to `lua/`, and manages version pinning via a lock file. Supports branch, tag, and commit pinning with atomic staging writes. Configurable via the `pluginAutoFetch` setting
+- **`require()` init.lua fallback** — `require("name")` now tries `lua/name/init.lua` when `lua/name.lua` is not found, matching Neovim's module resolution and enabling multi-file [[lua-config|Lua plugins]]
+- **Sandbox compatibility** — `rawget`/`rawset`/`rawequal` re-enabled in the Lua sandbox, restoring compatibility with Neovim plugins that depend on these standard functions (fixes `vim.is_callable` for callable tables)
+- **Operator-pending keymap fix** — operator-pending text objects no longer shadow normal mode mappings (e.g., `gc`/`gcc` collisions resolved)
+- **Fork: backtracking dispatch** — the operator-prefix shadow resolver now supports backtracking when a longer partial match fails, preventing lost motions (e.g., flash `s` vs surround `s<char>`)
+- **Lua keymap resilience** — `vim.keymap.set` function callbacks now survive vim mode toggle and view plugin recreation
 
 See the [[changelog|full changelog]] for details.

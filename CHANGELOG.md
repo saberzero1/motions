@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.139.0] - 2026-09-03
+
 ### Added
 
 - **Plugin auto-fetch system** — `vim.plugins.add()` now supports automatic fetching of Neovim plugins from GitHub. Downloads tarball archives, extracts them to `lua/`, and manages a lock file (`lua/.plugin-lock.json`) for version pinning. Supports branch, tag, and commit pinning. Atomic staging writes to `lua/.staging/` ensure vault integrity. Configurable via `pluginAutoFetch` setting (Advanced page).

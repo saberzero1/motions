@@ -282,8 +282,21 @@ class VisualLineSomethingSelectedPatch {
         editor.somethingSelected = function () {
             if (origSelected()) return true;
             if (getVisualLineSel() !== null) return true;
-            if (lastVisualLineSel !== null) return true;
-            return pendingVisualLineSel.has(editorView);
+            if (lastVisualLineSel !== null && isSelInBounds(lastVisualLineSel))
+                return true;
+            const pending = pendingVisualLineSel.get(editorView);
+            if (pending && isSelInBounds(pending)) return true;
+            return false;
+        };
+
+        const isSelInBounds = (sel: VimSel): boolean => {
+            const maxLine = editorView.state.doc.lines - 1;
+            return (
+                sel.anchor.line <= maxLine &&
+                sel.head.line <= maxLine &&
+                sel.anchor.line >= 0 &&
+                sel.head.line >= 0
+            );
         };
 
         this.origGetSelection = origGetSel;
@@ -291,11 +304,15 @@ class VisualLineSomethingSelectedPatch {
             const nativeSel = origGetSel();
             if (nativeSel) return nativeSel;
             const vim = getVisualLineSel();
-            const sel =
+            let sel: VimSel | null =
                 vim?.sel ??
                 lastVisualLineSel ??
                 pendingVisualLineSel.get(editorView) ??
                 null;
+            if (sel && !isSelInBounds(sel)) {
+                lastVisualLineSel = null;
+                sel = null;
+            }
             if (!sel) return '';
             lastVisualLineSel = {
                 anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
@@ -312,8 +329,12 @@ class VisualLineSomethingSelectedPatch {
         this.origReplaceSelection = origReplaceSel;
         editor.replaceSelection = function (text: string, origin?: string) {
             const vim = getVisualLineSel();
-            const sel =
+            let sel: VimSel | null =
                 vim?.sel ?? lastVisualLineSel ?? consumePendingSel(editorView);
+            if (sel && !isSelInBounds(sel)) {
+                lastVisualLineSel = null;
+                sel = null;
+            }
             if (!sel) {
                 origReplaceSel(text, origin);
                 return;
@@ -343,42 +364,38 @@ class VisualLineSomethingSelectedPatch {
             }
         };
 
-        const resolveVisualLineBounds = (): {
-            from: { line: number; ch: number };
-            to: { line: number; ch: number };
-        } | null => {
-            const vim = getVisualLineSel();
-            const sel =
-                vim?.sel ??
-                lastVisualLineSel ??
-                pendingVisualLineSel.get(editorView) ??
-                null;
-            if (!sel) return null;
-            const startLine = Math.min(sel.anchor.line, sel.head.line);
-            const endLine = Math.max(sel.anchor.line, sel.head.line);
-            const doc = editorView.state.doc;
-            const endLineLen =
-                doc.line(endLine + 1).to - doc.line(endLine + 1).from;
-            return {
-                from: { line: startLine, ch: 0 },
-                to: { line: endLine, ch: endLineLen },
-            };
-        };
-
         this.origGetCursor = origGetCursor;
         editor.getCursor = function (pos?: string) {
-            const bounds = resolveVisualLineBounds();
-            if (!bounds) return origGetCursor(pos);
-            if (pos === 'from' || pos === 'anchor') return bounds.from;
-            if (pos === 'to' || pos === 'head') return bounds.to;
+            const vim = getVisualLineSel();
+            if (!vim?.sel) return origGetCursor(pos);
+            const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
+            const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+            if (pos === 'from' || pos === 'anchor')
+                return { line: startLine, ch: 0 };
+            if (pos === 'to' || pos === 'head') {
+                const doc = editorView.state.doc;
+                const endLineLen =
+                    doc.line(endLine + 1).to - doc.line(endLine + 1).from;
+                return { line: endLine, ch: endLineLen };
+            }
             return origGetCursor(pos);
         };
 
         this.origListSelections = origListSel;
         editor.listSelections = function () {
-            const bounds = resolveVisualLineBounds();
-            if (!bounds) return origListSel();
-            return [{ anchor: bounds.from, head: bounds.to }];
+            const vim = getVisualLineSel();
+            if (!vim?.sel) return origListSel();
+            const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
+            const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+            const doc = editorView.state.doc;
+            const endLineLen =
+                doc.line(endLine + 1).to - doc.line(endLine + 1).from;
+            return [
+                {
+                    anchor: { line: startLine, ch: 0 },
+                    head: { line: endLine, ch: endLineLen },
+                },
+            ];
         };
     }
 
