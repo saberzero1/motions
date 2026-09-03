@@ -2,12 +2,12 @@ import type { MotionFn, VimPos } from '../types/vim-api';
 import { findSubwordBoundaries, findSubwordEnds } from '../util/subword';
 
 const MAX_LINE_LENGTH = 10_000;
-const WORD_SEGMENT_RE = /\b\w+\b/g;
+const WORD_SEGMENT_RE = /[\p{L}\p{M}\p{N}]+/gu;
 
 function findWordStarts(text: string): number[] {
     const starts: number[] = [];
     let match: RegExpExecArray | null;
-    const re = new RegExp(WORD_SEGMENT_RE.source, 'g');
+    const re = new RegExp(WORD_SEGMENT_RE.source, WORD_SEGMENT_RE.flags);
     while ((match = re.exec(text)) !== null) {
         starts.push(match.index);
     }
@@ -17,7 +17,7 @@ function findWordStarts(text: string): number[] {
 function findWordEnds(text: string): number[] {
     const ends: number[] = [];
     let match: RegExpExecArray | null;
-    const re = new RegExp(WORD_SEGMENT_RE.source, 'g');
+    const re = new RegExp(WORD_SEGMENT_RE.source, WORD_SEGMENT_RE.flags);
     while ((match = re.exec(text)) !== null) {
         ends.push(match.index + match[0].length);
     }

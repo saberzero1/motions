@@ -113,6 +113,52 @@ describe('Subword motions', function () {
         });
     });
 
+    describe('Unicode / non-ASCII text (#160)', function () {
+        it('w on Arabic text should move to next word', async function () {
+            // "مرحبا اسمي" = two Arabic words separated by a space
+            await setupEditor('مرحبا اسمي', { line: 0, ch: 0 });
+            await vimKeys('w');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(6);
+        });
+
+        it('b on Arabic text should move to previous word', async function () {
+            await setupEditor('مرحبا اسمي', { line: 0, ch: 6 });
+            await vimKeys('b');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(0);
+        });
+
+        it('w on mixed ASCII and Arabic should stop at Arabic word', async function () {
+            await setupEditor('hello مرحبا world', { line: 0, ch: 0 });
+            await vimKeys('w');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(6);
+        });
+
+        it('e on Arabic text should move to end of word', async function () {
+            await setupEditor('مرحبا اسمي', { line: 0, ch: 0 });
+            await vimKeys('e');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(4);
+        });
+
+        it('dw on Arabic text should delete first word and space', async function () {
+            await setupEditor('مرحبا اسمي', { line: 0, ch: 0 });
+            await vimKeys('d', 'w');
+            const content = await getEditorValue();
+            expect(content).toBe('اسمي');
+        });
+
+        it('w on CJK text should move to next character group', async function () {
+            // CJK characters should each be treated as a word
+            await setupEditor('你好 世界', { line: 0, ch: 0 });
+            await vimKeys('w');
+            const pos = await getCursorPos();
+            expect(pos.ch).toBe(3);
+        });
+    });
+
     describe('setting disabled', function () {
         it('w uses normal word motion when setting is off', async function () {
             await setPluginSetting('enableSubwordMotions', false);

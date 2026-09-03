@@ -643,6 +643,64 @@ describe('EasyMotion comprehensive', function () {
         });
     });
 
+    describe('Unicode / non-ASCII word targets (#160)', function () {
+        it('w should generate labels on Arabic words', async function () {
+            const result = await triggerEasyMotion(
+                'hello مرحبا world',
+                { line: 0, ch: 0 },
+                ['\\', '\\', 'w'],
+            );
+            expect(result.error).toBeUndefined();
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('w should jump cursor to Arabic word start', async function () {
+            const result = await triggerEasyMotion(
+                'hello مرحبا world',
+                { line: 0, ch: 0 },
+                ['\\', '\\', 'w'],
+            );
+            expect(result.labels.length).toBeGreaterThanOrEqual(1);
+
+            await browser.keys([result.labels[0]!]);
+            await browser.pause(300);
+
+            const pos = await getCursorPos();
+            expect(pos.line).toBe(0);
+            expect(pos.ch).toBe(6);
+        });
+
+        it('e should generate labels on Arabic word ends', async function () {
+            const result = await triggerEasyMotion(
+                'hello مرحبا world',
+                { line: 0, ch: 0 },
+                ['\\', '\\', 'e'],
+            );
+            expect(result.error).toBeUndefined();
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('w should generate labels on CJK words', async function () {
+            const result = await triggerEasyMotion(
+                'hello 你好 world',
+                { line: 0, ch: 0 },
+                ['\\', '\\', 'w'],
+            );
+            expect(result.error).toBeUndefined();
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('b should generate labels on Arabic words backward', async function () {
+            const result = await triggerEasyMotion(
+                'hello مرحبا world',
+                { line: 0, ch: 16 },
+                ['\\', '\\', 'b'],
+            );
+            expect(result.error).toBeUndefined();
+            expect(result.labels.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+
     describe('edge cases', function () {
         it('should not crash on empty document', async function () {
             await setupEditor('', { line: 0, ch: 0 });

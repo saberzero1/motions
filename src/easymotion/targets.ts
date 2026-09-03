@@ -81,7 +81,7 @@ function collectRegexTargets(
     return targets;
 }
 
-const WORD_START_RE = /\b\w/g;
+const WORD_START_RE = /[\p{L}\p{M}\p{N}]+/gu;
 
 /** Collect big-WORD start positions without lookbehind (iOS < 16.4 compat). */
 function collectBigWordStartTargets(
@@ -119,7 +119,7 @@ export function findWordStartTargets(
     return filterByDirection(raw, cm, direction);
 }
 
-const WORD_CHARS_RE = /\w+/g;
+const WORD_CHARS_RE = /[\p{L}\p{M}\p{N}]+/gu;
 const BIG_WORD_CHARS_RE = /\S+/g;
 
 export function findWordEndTargets(

@@ -48,12 +48,12 @@ Jump between document structures. Works with counts (e.g., `3]h` jumps 3 heading
 
 ## Subword motions
 
-| Key  | Action                      | Notes                                                                                        |
-| ---- | --------------------------- | -------------------------------------------------------------------------------------------- |
-| `w`  | Next subword start          | Requires `enableSubwordMotions` setting. Stops at camelCase/snake_case/kebab-case boundaries |
-| `b`  | Previous subword start      | Same                                                                                         |
-| `e`  | End of current/next subword | Same                                                                                         |
-| `ge` | End of previous subword     | Same                                                                                         |
+| Key  | Action                      | Notes                                                                                                                                     |
+| ---- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `w`  | Next subword start          | Requires `enableSubwordMotions` setting. Stops at camelCase/snake_case/kebab-case boundaries. Unicode-aware (Arabic, CJK, accented Latin) |
+| `b`  | Previous subword start      | Same                                                                                                                                      |
+| `e`  | End of current/next subword | Same                                                                                                                                      |
+| `ge` | End of previous subword     | Same                                                                                                                                      |
 
 ## Table navigation
 

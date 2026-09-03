@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Subword motions skip non-ASCII Unicode characters** — `w`/`b`/`e`/`ge` with subword motions enabled skipped Arabic, CJK, accented Latin, and other non-ASCII text instead of stopping at word boundaries. Root cause: `isWordChar()` used `/[A-Za-z0-9]/` and `SUBWORD_RE` only matched ASCII letter patterns. Fixed by replacing all character classification with Unicode property escapes (`\p{L}`, `\p{Lu}`, `\p{Ll}`, `\p{N}`, `\p{M}`) and adding a `([\p{L}\p{M}]+)` alternative for caseless scripts (Arabic, Hebrew, CJK, Devanagari). The long-line fallback regex (`WORD_SEGMENT_RE`) was also updated. ([#160](https://github.com/saberzero1/motions/issues/160))
+    - Plugin: `src/util/subword.ts` (Unicode-aware `SUBWORD_RE` and `isWordChar()`)
+    - Plugin: `src/motions/subword.ts` (Unicode-aware `WORD_SEGMENT_RE` fallback)
+- **EasyMotion word targets skip non-ASCII Unicode characters** — EasyMotion `w`/`b`/`e` word motions did not generate jump labels on Arabic, CJK, or other non-ASCII words. Root cause: `WORD_START_RE` used `\b\w` and `WORD_CHARS_RE` used `\w+`, both ASCII-only. Fixed with `[\p{L}\p{M}\p{N}]+` using the `u` flag. ([#160](https://github.com/saberzero1/motions/issues/160))
+    - Plugin: `src/easymotion/targets.ts` (Unicode-aware `WORD_START_RE` and `WORD_CHARS_RE`)
+
+### Tests
+
+- 6 unit test cases in `test/unit/subword.test.ts` for Unicode boundary/end detection (Arabic, mixed ASCII+Arabic, CJK, accented Latin)
+- 6 regression tests in `test/specs/subword-motions.e2e.ts` for Unicode subword motions (`w`/`b`/`e`/`dw` on Arabic, mixed text, CJK) (#160)
+- 5 regression tests in `test/specs/easymotion-comprehensive.e2e.ts` for Unicode EasyMotion word targets (`w`/`e`/`b` on Arabic and CJK) (#160)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `README.md`: updated subword motions description to mention Unicode support
+- `docs/reference/keybindings.md`: updated subword motions table to note Unicode support
+
 ## [0.139.0] - 2026-09-03
 
 ### Added

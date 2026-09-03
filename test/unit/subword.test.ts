@@ -22,6 +22,10 @@ describe('findSubwordBoundaries', () => {
         ['word123number', [0, 4, 7]],
         ['XMLHTTPRequest', [0, 7]],
         ['__dunder__', [2]],
+        ['مرحبا اسمي', [0, 6]],
+        ['hello مرحبا world', [0, 6, 12]],
+        ['你好世界', [0]],
+        ['café', [0]],
     ] as [string, number[]][])(
         'returns correct boundaries for %j',
         (input, expected) => {
@@ -36,6 +40,9 @@ describe('findSubwordEnds', () => {
         ['snake_case', [5, 10]],
         ['HTMLParser', [4, 10]],
         ['', []],
+        ['مرحبا اسمي', [5, 10]],
+        ['hello مرحبا world', [5, 11, 17]],
+        ['café', [4]],
     ] as [string, number[]][])(
         'returns correct ends for %j',
         (input, expected) => {
