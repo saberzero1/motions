@@ -5,7 +5,7 @@ import {
     editorInfoField,
 } from 'obsidian';
 import { type Extension } from '@codemirror/state';
-import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { type EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { around } from '../util/around';
 import { getCmAdapter, getCmAdapterFromEditorView } from './vim-api';
 import { getVimApi } from './vim-api';
@@ -35,6 +35,44 @@ interface VisualLineState {
     vim: VimState;
     editorView: EditorViewLike;
     cm: NonNullable<ReturnType<typeof getCmAdapter>>;
+}
+
+/**
+ * Per-EditorView snapshot of the visual-line selection range, set by
+ * {@link withExpandedSelection} before it temporarily expands the native CM6
+ * selection.  The {@link VisualLineSomethingSelectedPatch} reads this as a
+ * last-resort fallback when vim is no longer in visual-line mode AND the
+ * inline `lastVisualLineSel` cache was never populated (which happens when
+ * `getSelection()` was satisfied by the expanded native selection).
+ *
+ * Cleared on first successful use by `replaceSelection`, or after a 30 s TTL
+ * to prevent stale replacements when a modal is cancelled.
+ */
+const pendingVisualLineSel = new WeakMap<EditorView, VimSel>();
+let pendingSelTimer: number | null = null;
+
+function setPendingSel(editorView: EditorView, sel: VimSel): void {
+    pendingVisualLineSel.set(editorView, {
+        anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
+        head: { line: sel.head.line, ch: sel.head.ch },
+    });
+    if (pendingSelTimer !== null) window.clearTimeout(pendingSelTimer);
+    pendingSelTimer = window.setTimeout(() => {
+        pendingVisualLineSel.delete(editorView);
+        pendingSelTimer = null;
+    }, 30_000);
+}
+
+function consumePendingSel(editorView: EditorView): VimSel | null {
+    const sel = pendingVisualLineSel.get(editorView) ?? null;
+    if (sel) {
+        pendingVisualLineSel.delete(editorView);
+        if (pendingSelTimer !== null) {
+            window.clearTimeout(pendingSelTimer);
+            pendingSelTimer = null;
+        }
+    }
+    return sel;
 }
 
 function getActiveVisualLineState(app: App): VisualLineState | null {
@@ -85,6 +123,12 @@ function withExpandedSelection(
 ): unknown {
     const state = getActiveVisualLineState(app);
     if (!state) return fn.apply(thisArg, args);
+
+    // Snapshot BEFORE expanding — async commands (Note Composer, Note Refactor)
+    // call getSelection/replaceSelection after their modal closes, by which
+    // time the expanded native selection and visual-line vim state are both
+    // gone.  The snapshot survives as a last-resort fallback.
+    setPendingSel(state.editorView as unknown as EditorView, state.vim.sel!);
 
     expandSelection(state.editorView, state.vim.sel!);
     try {
@@ -170,7 +214,20 @@ class VisualLineSomethingSelectedPatch {
         somethingSelected: () => boolean;
         getSelection: () => string;
         replaceSelection: (text: string, origin?: string) => void;
+        getCursor: (pos?: string) => { line: number; ch: number };
+        listSelections: () => {
+            anchor: { line: number; ch: number };
+            head: { line: number; ch: number };
+        }[];
     } | null = null;
+    private origGetCursor:
+        ((pos?: string) => { line: number; ch: number }) | null = null;
+    private origListSelections:
+        | (() => {
+              anchor: { line: number; ch: number };
+              head: { line: number; ch: number };
+          }[])
+        | null = null;
 
     constructor(private view: import('@codemirror/view').EditorView) {
         this.tryPatch();
@@ -194,6 +251,11 @@ class VisualLineSomethingSelectedPatch {
                   somethingSelected: () => boolean;
                   getSelection: () => string;
                   replaceSelection: (text: string, origin?: string) => void;
+                  getCursor: (pos?: string) => { line: number; ch: number };
+                  listSelections: () => {
+                      anchor: { line: number; ch: number };
+                      head: { line: number; ch: number };
+                  }[];
               }
             | undefined;
         if (!editor || typeof editor.somethingSelected !== 'function') return;
@@ -201,6 +263,8 @@ class VisualLineSomethingSelectedPatch {
         const origSelected = editor.somethingSelected.bind(editor);
         const origGetSel = editor.getSelection.bind(editor);
         const origReplaceSel = editor.replaceSelection.bind(editor);
+        const origGetCursor = editor.getCursor.bind(editor);
+        const origListSel = editor.listSelections.bind(editor);
         const editorView = this.view;
         this.patched = true;
         this.original = origSelected;
@@ -217,7 +281,9 @@ class VisualLineSomethingSelectedPatch {
 
         editor.somethingSelected = function () {
             if (origSelected()) return true;
-            return getVisualLineSel() !== null;
+            if (getVisualLineSel() !== null) return true;
+            if (lastVisualLineSel !== null) return true;
+            return pendingVisualLineSel.has(editorView);
         };
 
         this.origGetSelection = origGetSel;
@@ -225,13 +291,18 @@ class VisualLineSomethingSelectedPatch {
             const nativeSel = origGetSel();
             if (nativeSel) return nativeSel;
             const vim = getVisualLineSel();
-            if (!vim?.sel) return '';
+            const sel =
+                vim?.sel ??
+                lastVisualLineSel ??
+                pendingVisualLineSel.get(editorView) ??
+                null;
+            if (!sel) return '';
             lastVisualLineSel = {
-                anchor: { line: vim.sel.anchor.line, ch: vim.sel.anchor.ch },
-                head: { line: vim.sel.head.line, ch: vim.sel.head.ch },
+                anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
+                head: { line: sel.head.line, ch: sel.head.ch },
             };
-            const startLine = Math.min(vim.sel.anchor.line, vim.sel.head.line);
-            const endLine = Math.max(vim.sel.anchor.line, vim.sel.head.line);
+            const startLine = Math.min(sel.anchor.line, sel.head.line);
+            const endLine = Math.max(sel.anchor.line, sel.head.line);
             const doc = editorView.state.doc;
             const from = doc.line(startLine + 1).from;
             const to = doc.line(endLine + 1).to;
@@ -241,12 +312,13 @@ class VisualLineSomethingSelectedPatch {
         this.origReplaceSelection = origReplaceSel;
         editor.replaceSelection = function (text: string, origin?: string) {
             const vim = getVisualLineSel();
-            const sel = vim?.sel ?? lastVisualLineSel;
+            const sel =
+                vim?.sel ?? lastVisualLineSel ?? consumePendingSel(editorView);
             if (!sel) {
                 origReplaceSel(text, origin);
                 return;
             }
-            lastVisualLineSel = null;
+            if (lastVisualLineSel) lastVisualLineSel = null;
             const startLine = Math.min(sel.anchor.line, sel.head.line);
             const endLine = Math.max(sel.anchor.line, sel.head.line);
             const doc = editorView.state.doc;
@@ -270,6 +342,44 @@ class VisualLineSomethingSelectedPatch {
                 }
             }
         };
+
+        const resolveVisualLineBounds = (): {
+            from: { line: number; ch: number };
+            to: { line: number; ch: number };
+        } | null => {
+            const vim = getVisualLineSel();
+            const sel =
+                vim?.sel ??
+                lastVisualLineSel ??
+                pendingVisualLineSel.get(editorView) ??
+                null;
+            if (!sel) return null;
+            const startLine = Math.min(sel.anchor.line, sel.head.line);
+            const endLine = Math.max(sel.anchor.line, sel.head.line);
+            const doc = editorView.state.doc;
+            const endLineLen =
+                doc.line(endLine + 1).to - doc.line(endLine + 1).from;
+            return {
+                from: { line: startLine, ch: 0 },
+                to: { line: endLine, ch: endLineLen },
+            };
+        };
+
+        this.origGetCursor = origGetCursor;
+        editor.getCursor = function (pos?: string) {
+            const bounds = resolveVisualLineBounds();
+            if (!bounds) return origGetCursor(pos);
+            if (pos === 'from' || pos === 'anchor') return bounds.from;
+            if (pos === 'to' || pos === 'head') return bounds.to;
+            return origGetCursor(pos);
+        };
+
+        this.origListSelections = origListSel;
+        editor.listSelections = function () {
+            const bounds = resolveVisualLineBounds();
+            if (!bounds) return origListSel();
+            return [{ anchor: bounds.from, head: bounds.to }];
+        };
     }
 
     destroy(): void {
@@ -279,6 +389,10 @@ class VisualLineSomethingSelectedPatch {
                 this.editorRef.getSelection = this.origGetSelection;
             if (this.origReplaceSelection)
                 this.editorRef.replaceSelection = this.origReplaceSelection;
+            if (this.origGetCursor)
+                this.editorRef.getCursor = this.origGetCursor;
+            if (this.origListSelections)
+                this.editorRef.listSelections = this.origListSelections;
         }
     }
 }

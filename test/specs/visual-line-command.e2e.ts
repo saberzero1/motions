@@ -37,7 +37,6 @@ describe('Visual-line mode command integration (#137)', function () {
             ch: 0,
         });
 
-        // Enter visual-line mode and select 2 lines: V, j
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
         await browser.keys(['V']);
@@ -48,10 +47,6 @@ describe('Visual-line mode command integration (#137)', function () {
         const mode = await getVimMode();
         expect(mode).toBe('visual');
 
-        // Call checkCallback(true) on note-composer:split-file — this is the
-        // "checking" path that the command palette uses to determine whether
-        // the command is available. If it returns false/undefined, the command
-        // is greyed out or does nothing.
         const result = await browser.executeObsidian(({ app }) => {
             const cmd = (
                 app as unknown as {
@@ -66,8 +61,6 @@ describe('Visual-line mode command integration (#137)', function () {
             if (!cmd) return { error: 'Command not found' };
             if (!cmd.checkCallback) return { error: 'No checkCallback' };
 
-            // checkCallback(true) = "checking" mode, returns true if command
-            // can execute, false/undefined if not
             const canExecute = cmd.checkCallback(true);
             return { canExecute };
         });
@@ -82,7 +75,6 @@ describe('Visual-line mode command integration (#137)', function () {
             ch: 0,
         });
 
-        // Enter visual-line mode and select 3 lines: V, j, j
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
         await browser.keys(['V']);
@@ -109,7 +101,6 @@ describe('Visual-line mode command integration (#137)', function () {
 
         expect(result).not.toHaveProperty('error');
         expect(result).toHaveProperty('somethingSelected', true);
-        // The selection should contain all 3 lines
         expect((result as { selection: string }).selection).toContain(
             'line one',
         );
@@ -127,7 +118,6 @@ describe('Visual-line mode command integration (#137)', function () {
             ch: 0,
         });
 
-        // Enter visual-line mode and select 3 lines
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
         await browser.keys(['V']);
@@ -137,8 +127,6 @@ describe('Visual-line mode command integration (#137)', function () {
         await browser.keys(['j']);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
-        // Use toggle-numbered-list as a proxy — it reads the selection and
-        // should affect all 3 selected lines
         await browser.executeObsidian(({ app }) => {
             (
                 app as unknown as {
@@ -228,5 +216,104 @@ describe('Visual-line mode command integration (#137)', function () {
         expect(result.valueAfter).not.toContain('gamma');
         expect(result.valueAfter).toContain('alpha');
         expect(result.valueAfter).toContain('delta');
+    });
+
+    it('real command palette: toggle numbered list in visual-line mode (#157)', async function () {
+        await setupEditor('alpha\nbeta\ngamma\ndelta', {
+            line: 0,
+            ch: 0,
+        });
+
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['V']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const mode = await getVimMode();
+        expect(mode).toBe('visual');
+
+        await browser.executeObsidian(({ app }) => {
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (id: string) => void };
+                }
+            ).commands.executeCommandById('command-palette:open');
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const paletteInput = await browser.$('.prompt-input');
+        await paletteInput.waitForExist({ timeout: 3000 });
+        await paletteInput.setValue('Toggle numbered list');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.keys(['Enter']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const value = await getEditorValue();
+        const numberedLines = value
+            .split('\n')
+            .filter((l: string) => /^\d+\.\s/.test(l));
+
+        expect(numberedLines.length).toBe(3);
+    });
+
+    it('real command palette: Note Composer extract in visual-line mode (#157)', async function () {
+        await setupEditor(
+            'first line\nsecond line\nthird line\nfourth line\nfifth line',
+            { line: 1, ch: 0 },
+        );
+
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['V']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const mode = await getVimMode();
+        expect(mode).toBe('visual');
+
+        await browser.executeObsidian(({ app }) => {
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (id: string) => void };
+                }
+            ).commands.executeCommandById('command-palette:open');
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const paletteInput = await browser.$('.prompt-input');
+        await paletteInput.waitForExist({ timeout: 3000 });
+        await paletteInput.setValue('Extract current selection');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        await browser.keys(['Enter']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const ncInput = await browser.$('.prompt-input');
+        await ncInput.waitForExist({ timeout: 3000 });
+        await ncInput.setValue('extracted-test-157');
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['Enter']);
+        await browser.pause(1000);
+
+        const value = await getEditorValue();
+
+        expect(value).toContain('first line');
+        expect(value).toContain('fourth line');
+        expect(value).not.toContain('second line');
+        expect(value).not.toContain('third line');
+        expect(value).toContain('[[extracted-test-157]]');
+
+        await browser.executeObsidian(async ({ app }) => {
+            const file = app.vault.getAbstractFileByPath(
+                'extracted-test-157.md',
+            );
+            if (file) await app.vault.delete(file);
+        });
     });
 });
