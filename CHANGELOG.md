@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.141.0] - 2026-09-03
+
 ### Fixed
 
 - **Disabling workspace navigation disables all global keybindings** — turning off **Settings → Vim Motions → Navigation → Workspace navigation** also disabled the `:` ex command line in reading view, `vim.obsidian.keymap.set` mappings, and hint mode global hotkeys. Root cause: the `GlobalKeyHandler` and `GlobalMappingRegistry` were only instantiated when `enableWorkspaceNav` was true, and all three interception gates (`shouldInterceptContent`, `shouldInterceptHints`, `shouldInterceptStructural`) returned false when the setting was disabled. Fixed by always creating the global key handler on desktop and moving the `enableWorkspaceNav` guard from the interception layer to the mapping registration layer — only scroll, tab, and pane navigation keys are conditional on the setting; `:`, hint mode, and user global keymaps are always registered. ([#164](https://github.com/saberzero1/motions/issues/164))
