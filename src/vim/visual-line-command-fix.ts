@@ -158,6 +158,14 @@ function wrapCheckCallback(app: App, cmd: Command): void {
     (
         cmd as unknown as { checkCallback: (...args: unknown[]) => unknown }
     ).checkCallback = function (this: unknown, ...args: unknown[]): unknown {
+        const checking = args[0] === true;
+        if (checking) {
+            // checkCallback(true) only queries availability — the patched
+            // somethingSelected()/getCursor()/listSelections() already
+            // report the visual-line range.  Expanding the CM6 selection
+            // for every command in the palette causes visible lag (#163).
+            return original.apply(this, args);
+        }
         return withExpandedSelection(app, original, this, args);
     };
     tagged[WRAPPED] = true;

@@ -11,7 +11,7 @@ export const config: WebdriverIO.Config = {
     capabilities: [
         {
             browserName: 'obsidian',
-            browserVersion: 'latest',
+            browserVersion: '1.13.7',
             'wdio:obsidianOptions': {
                 installerVersion: 'earliest',
                 plugins: [

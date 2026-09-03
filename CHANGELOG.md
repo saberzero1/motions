@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Command palette lags ~1 second in visual-line mode** — opening the command palette from visual-line mode caused a visible delay. Root cause: the `wrapCheckCallback` wrapper called `withExpandedSelection` for every command's `checkCallback(true)` availability check, dispatching two CM6 transactions (expand + restore) per command. With 200+ commands, this produced 400+ synchronous CM6 dispatches while the palette rendered. Fixed by skipping `withExpandedSelection` for the checking path (`checkCallback(true)`) — the `VisualLineSomethingSelectedPatch` already ensures `somethingSelected()`, `getCursor()`, and `listSelections()` return the correct visual-line range, so availability checks work without native CM6 selection expansion. The executing path (`checkCallback(false)`) still uses `withExpandedSelection`. (regression of [#157](https://github.com/saberzero1/motions/issues/157), [#163](https://github.com/saberzero1/motions/issues/163))
+    - Plugin: `src/vim/visual-line-command-fix.ts` (skip `withExpandedSelection` for `checkCallback(true)`)
+- **Stale visual-line selection cache causes RangeError** — `lastVisualLineSel` and `pendingVisualLineSel` cached line numbers from a previous visual-line selection could exceed the document length after the editor content was replaced with a shorter document (e.g., between e2e tests or `:e` commands). The stale cache caused `doc.line(N)` to throw `RangeError: Invalid line number N in M-line document`. Fixed by validating cached selection line numbers against the current document length before use; stale caches are invalidated instead of producing errors.
+    - Plugin: `src/vim/visual-line-command-fix.ts` (`isSelInBounds` validation in `somethingSelected`, `getSelection`, `replaceSelection`)
+
+### Changed
+
+- **E2E test Obsidian version pinned to 1.13.7** — `wdio.conf.mts` `browserVersion` changed from `'latest'` to `'1.13.7'`. Obsidian 1.13.8 is a mobile-only release (APK only, no desktop asar), causing the test runner to fail with "No compatible installers available."
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated `wrapCheckCallback` description with `checkCallback(true)` optimization (#163)
+
 ## [0.140.0] - 2026-09-03
 
 ### Fixed
