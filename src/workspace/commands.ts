@@ -114,8 +114,46 @@ function parseLineTarget(
     return clampLine(number, 0, lineCount);
 }
 
+function expandSelectionFromRange(
+    cm: CmAdapter,
+    startLine: number,
+    endLine: number,
+): void {
+    const doc = cm.cm6.state.doc;
+    const from = doc.line(startLine + 1).from;
+    const to = doc.line(Math.min(endLine, doc.lines - 1) + 1).to;
+    cm.cm6.dispatch({ selection: { anchor: from, head: to } });
+}
+
+function getVisualRange(
+    cm: CmAdapter,
+    params: { selectionLine?: number; selectionLineEnd?: number },
+): { startLine: number; endLine: number } | null {
+    const { selectionLine, selectionLineEnd } = params;
+    if (
+        selectionLine != null &&
+        selectionLineEnd != null &&
+        selectionLine !== selectionLineEnd
+    ) {
+        return {
+            startLine: Math.min(selectionLine, selectionLineEnd),
+            endLine: Math.max(selectionLine, selectionLineEnd),
+        };
+    }
+    const marks = cm.state.vim?.marks;
+    if (!marks) return null;
+    const lt = marks['<']?.find();
+    const gt = marks['>']?.find();
+    if (lt == null || gt == null) return null;
+    if (lt.line === gt.line) return null;
+    return {
+        startLine: Math.min(lt.line, gt.line),
+        endLine: Math.max(lt.line, gt.line),
+    };
+}
+
 function createObCommand(app: App): ExCommandFn {
-    return (_cm, params) => {
+    return (cm, params) => {
         if (!params.argString?.trim()) {
             const rows = Object.values(getCommandRegistry(app))
                 .sort((a, b) => a.id.localeCompare(b.id))
@@ -129,6 +167,10 @@ function createObCommand(app: App): ExCommandFn {
             return;
         }
         const commandId = params.argString?.trim() ?? '';
+        const range = getVisualRange(cm, params);
+        if (range) {
+            expandSelectionFromRange(cm, range.startLine, range.endLine);
+        }
         executeCommand(app, commandId);
     };
 }

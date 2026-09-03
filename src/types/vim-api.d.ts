@@ -86,6 +86,8 @@ export interface ExCommandArgs {
     input: string;
     line?: number;
     lineEnd?: number;
+    selectionLine?: number;
+    selectionLineEnd?: number;
 }
 
 /** Internal Vim state attached to a CM adapter. */

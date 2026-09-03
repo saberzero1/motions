@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`:obcommand` via vim mapping in visual mode loses selection** — when a user maps a visual-mode key to `:obcommand editor:toggle-bullet-list` (or any selection-dependent Obsidian command) via `exmap` + `vmap`, the command operates on only the cursor line instead of all selected lines. Root cause: the codemirror-vim fork's `ExCommandDispatcher._processCommand()` exits visual mode before executing the ex command handler, so by the time `:obcommand` calls `executeCommandById()`, the CM6 selection is collapsed. Fixed by reading the visual range from `params.selectionLine`/`params.selectionLineEnd` (set by `parseInput_` before `exitVisualMode`) and falling back to the `'<`/`'>` vim marks for the `exmap` indirection path where the inner `_processCommand` no longer has visual mode context. The CM6 selection is expanded to the visual range before the Obsidian command executes. ([#161](https://github.com/saberzero1/motions/discussions/161))
+    - Plugin: `src/workspace/commands.ts` (added `getVisualRange()` and `expandSelectionFromRange()` in `createObCommand`)
+    - Plugin: `src/types/vim-api.d.ts` (added `selectionLine`/`selectionLineEnd` to `ExCommandArgs`)
+
+### Tests
+
+- 3 e2e tests in `test/specs/obcommand-visual-mode.e2e.ts` for #161 (direct `handleEx` bullet toggle, `defineEx` exmap indirection, numbered list variant — all in visual-line mode)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: updated Obsidian command passthrough section with ex command path fix
+
 ## [0.141.0] - 2026-09-03
 
 ### Fixed
