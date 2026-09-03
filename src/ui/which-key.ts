@@ -463,8 +463,10 @@ export class WhichKeyOverlay {
         this.keyHandler = handler;
 
         const doneHandler = () => {
+            if (this.pendingLeader) {
+                this.suppressNextKeypress = true;
+            }
             this.dismiss();
-            this.suppressNextKeypress = true;
         };
         this.commandDoneHandler = doneHandler;
 
