@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.144.0] - 2026-09-04
+
 ### Added
 
 - **Lua `os` library support** — the `os` library is now available in the Lua sandbox, providing access to date, time, and environment functions. Parity with Neovim: all functions available on desktop, nil on mobile. `os.execute` and `os.exit` are permanently blocked for security.
