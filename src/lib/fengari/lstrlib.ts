@@ -185,6 +185,7 @@ const luaSprintf = function (format: string, value: unknown): string {
             if (num === 0 && precision === 0) {
                 digits = '';
             } else {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- closure-captured variable not narrowed by TS
                 digits = digits.padStart(precision!, '0');
             }
         }
@@ -325,7 +326,8 @@ const luaSprintf = function (format: string, value: unknown): string {
             const char =
                 typeof value === 'number'
                     ? String.fromCharCode(value)
-                    : String(value || '')[0] || '';
+                    : // eslint-disable-next-line @typescript-eslint/no-base-to-string -- Lua %c format coercion
+                      String(value || '')[0] || '';
             result = applyWidth(char, ' ');
             break;
         }

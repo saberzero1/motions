@@ -233,6 +233,7 @@ const lua_setlocal = function (
     if (local) {
         name = local.name;
         lobject.setobjs2s(L, local.pos, L.top - 1);
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         delete L.stack![--L.top]; /* pop value */
     } else {
         name = null;

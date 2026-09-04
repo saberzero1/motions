@@ -619,7 +619,9 @@ syslib.clock = function (L: lua_State): number {
 syslib.getenv = function (L: lua_State): number {
     const varname = luaL_checkstring(L, 1);
     const name = to_jsstring(varname);
+    // eslint-disable-next-line no-undef -- process is available in Electron/Node environments
     if (isDesktop() && typeof process !== 'undefined' && process.env) {
+        // eslint-disable-next-line no-undef -- guarded by typeof check above
         const val = process.env[name];
         if (val !== undefined) {
             lua_pushstring(L, to_luastring(val));
@@ -690,6 +692,7 @@ syslib.tmpname = function (L: lua_State): number {
                 os.tmpdir() + '/lua_' + Math.random().toString(36).slice(2);
             lua_pushstring(L, to_luastring(path));
             return 1;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars -- catch binding intentionally unused
         } catch (_e) {
             lua_pushnil(L);
             return 1;

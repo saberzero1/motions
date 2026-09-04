@@ -96,6 +96,7 @@ if (typeof TextDecoder === 'function') {
         try {
             const text = to_jsstring(s);
             buff.push(text);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars -- catch binding intentionally unused
         } catch (_e) {
             const copy = new Uint8Array(s.length);
             copy.set(s);
@@ -304,6 +305,7 @@ const b_str2int = function (s: Uint8Array, base: number): number | null {
     let jsString: string;
     try {
         jsString = to_jsstring(s);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- catch binding intentionally unused
     } catch (_e) {
         return null;
     }

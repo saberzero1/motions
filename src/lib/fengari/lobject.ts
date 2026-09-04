@@ -586,6 +586,7 @@ const lua_str2number = function (
     let s2: string;
     try {
         s2 = to_jsstring(s);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- catch binding intentionally unused
     } catch (_e) {
         return null;
     }

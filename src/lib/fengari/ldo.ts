@@ -49,6 +49,7 @@ const adjust_top = function (L: lua_State, newtop: number): void {
         while (L.top < newtop)
             L.stack![L.top++] = new lobject.TValue(LUA_TNIL, null);
     } else {
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         while (L.top > newtop) delete L.stack![--L.top];
     }
 };
@@ -86,6 +87,7 @@ const seterrorobj = function (
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     while (L.top > oldtop + 1) delete L.stack![--L.top];
 };
 
@@ -268,6 +270,7 @@ const moveresults = function (
         case LUA_MULTRET: {
             for (let i = 0; i < nres; i++)
                 lobject.setobjs2s(L, res + i, firstResult + i);
+            // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
             for (let i = L.top; i >= res + nres; i--) delete L.stack![i];
             L.top = res + nres;
             return false;
@@ -290,6 +293,7 @@ const moveresults = function (
         }
     }
     let newtop = res + wanted; /* top points after the last result */
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     for (let i = L.top; i >= newtop; i--) delete L.stack![i];
     L.top = newtop;
     return true;
@@ -408,6 +412,7 @@ const luaD_throw = function (L: lua_State, errcode: number): void {
     if (L.errorJmp) {
         /* thread has an error handler? */
         (L.errorJmp as ErrorJmp).status = errcode; /* set status */
+        // eslint-disable-next-line @typescript-eslint/only-throw-error -- Lua errors are TValues, not JS Error objects
         throw L.errorJmp;
     } else {
         /* thread has no error handler */
@@ -479,6 +484,7 @@ const luaD_rawrunprotected = function <T>(
                     }
 
                     lj.status = LUA_ERRRUN;
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- catch binding intentionally unused
                 } catch (_e2) {
                     if (lj.status === LUA_OK) {
                         /* also failed */
@@ -603,6 +609,7 @@ const resume_error = function (
         api_check(L, L.top <= L.ci!.top, 'stack overflow');
     } else {
         /* remove args from the stack */
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         for (let i = 1; i < narg; i++) delete L.stack![--L.top];
         lobject.setsvalue2s(L, L.top - 1, ts); /* push error message */
     }

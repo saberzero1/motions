@@ -135,6 +135,7 @@ const luaT_callTM = function (
     if (hasres) {
         /* if has result, move it to its place */
         let tv = L.stack![L.top - 1]!;
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         delete L.stack![--L.top];
         p3.setfrom(tv);
     }

@@ -22,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lib/fengari/DIFFERENCES.md` (updated for TS conversion)
     - Plugin: `src/lua/engine.ts` (null check for `luaL_newstate()`)
     - Plugin: `vitest.config.ts` (removed `.test.js` pattern)
-    - Plugin: `eslint.config.mts` (reduced fengari overrides from 16 to 7)
+    - Plugin: `eslint.config.mts` (removed all fengari-specific rule overrides — all suppressions now inline with descriptions)
+    - Plugin: `src/lib/fengari/lbaselib.ts` (`console.log` → `console.warn` for Lua `print()` fallback — dead code in plugin context, avoids community scanner `no-console` warning)
+    - Plugin: `src/lua/engine.ts` (narrowed `lua_atnativeerror` handler string coercion)
 - **Host-agnostic Lua runtime** — replaced platform guards with a dependency injection pattern. Fengari no longer sniffs for Node.js or browser environments, instead using a provider injected by the plugin.
     - Plugin: `src/lib/fengari/platform.ts` (platform provider implementation)
     - Plugin: `src/lua/engine.ts` (injected Obsidian platform provider)

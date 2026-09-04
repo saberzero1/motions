@@ -1016,6 +1016,7 @@ const skipBOM = function (lf: { n: number; buff: Uint8Array }): number | null {
  ** first "valid" character of the file (after the optional BOM and
  ** a first-line comment).
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for upstream parity
 const _skipcomment = function (lf: { n: number; buff: Uint8Array }): {
     skipped: boolean;
     c: number | null;

@@ -267,6 +267,7 @@ const drainFinalizers = function (L: lua_State): void {
                 );
                 luaE_freethread(L, thread);
                 L.top--;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- catch binding intentionally unused
             } catch (_e) {
                 /* swallow — PUC-Rio semantics */
             }

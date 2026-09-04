@@ -184,6 +184,7 @@ const lua_xmove = function (from: lua_State, to: lua_State, n: number): void {
     for (let i = 0; i < n; i++) {
         to.stack![to.top] = new lobject.TValue(LUA_TNIL, null);
         lobject.setobj2s(to, to.top, from.stack![from.top + i]!);
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         delete from.stack![from.top + i];
         to.top++;
     }
@@ -387,6 +388,7 @@ const lua_pushcclosure = function (
         let cl = new CClosure(L, closureFn, n);
         for (let i = 0; i < n; i++)
             cl.upvalue[i]!.setfrom(L.stack![L.top - n + i]!);
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         for (let i = 1; i < n; i++) delete L.stack![--L.top];
         if (n > 0) --L.top;
         L.stack![L.top]!.setclCvalue(cl);
@@ -440,7 +442,9 @@ const auxsetstr = function (
     api_check(L, L.top <= L.ci!.top, 'stack overflow');
     lvm.settable(L, t, L.stack![L.top - 1]!, L.stack![L.top - 2]!);
     /* pop value and key */
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -495,6 +499,7 @@ const lua_setmetatable = function (L: lua_State, objindex: number): boolean {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
     return true;
 };
@@ -503,7 +508,9 @@ const lua_settable = function (L: lua_State, idx: number): void {
     api_checknelems(L, 2);
     let t = index2addr(L, idx);
     lvm.settable(L, t, L.stack![L.top - 2]!, L.stack![L.top - 1]!);
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -523,7 +530,9 @@ const lua_seti = function (L: lua_State, idx: number, n: number): void {
     api_incr_top(L);
     lvm.settable(L, t, L.stack![L.top - 1]!, L.stack![L.top - 2]!);
     /* pop value and key */
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -535,7 +544,9 @@ const lua_rawset = function (L: lua_State, idx: number): void {
     let v = L.stack![L.top - 1]!;
     ltable.luaH_setfrom(L, o.hvalue(), k, v);
     ltable.invalidateTMcache(o.hvalue());
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -545,6 +556,7 @@ const lua_rawseti = function (L: lua_State, idx: number, n: number): void {
     let o = index2addr(L, idx);
     api_check(L, o.ttistable(), 'table expected');
     ltable.luaH_setint(o.hvalue(), n, L.stack![L.top - 1]!);
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -555,6 +567,7 @@ const lua_rawsetp = function (L: lua_State, idx: number, p: unknown): void {
     let k = new TValue(LUA_TLIGHTUSERDATA, p);
     let v = L.stack![L.top - 1]!;
     ltable.luaH_setfrom(L, o.hvalue(), k, v);
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -688,6 +701,7 @@ const lua_setupvalue = function (
         let name = aux.name;
         let val = aux.val;
         val.setfrom(L.stack![L.top - 1]!);
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         delete L.stack![--L.top];
         return name;
     }
@@ -1069,6 +1083,7 @@ const lua_arith = function (L: lua_State, op: number): void {
         L.stack![L.top - 1]!,
         L.stack![L.top - 2]!,
     );
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top]; /* remove second operand */
 };
 
@@ -1128,6 +1143,7 @@ const lua_setuservalue = function (L: lua_State, idx: number): void {
     let o = index2addr(L, idx);
     api_check(L, o.ttisfulluserdata(), 'full userdata expected');
     o.uvalue().uservalue.setfrom(L.stack![L.top - 1]!);
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top];
 };
 
@@ -1254,7 +1270,9 @@ const lua_next = function (L: lua_State, idx: number): number {
         api_incr_top(L);
         return 1;
     } else {
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         delete L.stack![L.top];
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         delete L.stack![--L.top];
         return 0;
     }

@@ -772,7 +772,7 @@ const codeclosure = function (ls: LexState, v: expdesc): void {
 };
 
 const open_func = function (ls: LexState, fs: FuncState, bl: BlockCnt): void {
-    fs.prev = ls.fs as FuncState | null; /* linked list of funcstates */
+    fs.prev = ls.fs;
     fs.ls = ls;
     fs.L = ls.L!;
     ls.fs = fs;
@@ -2036,6 +2036,7 @@ const luaY_parser = function (
     lua_assert(!funcstate.prev && funcstate.nups === 1 && !lexstate.fs);
     /* all scopes should be correctly finished */
     lua_assert(dyd.actvar.n === 0 && dyd.gt.n === 0 && dyd.label.n === 0);
+    // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
     delete L.stack![--L.top]; /* remove scanner's table */
     return cl; /* closure is on the stack, too */
 };

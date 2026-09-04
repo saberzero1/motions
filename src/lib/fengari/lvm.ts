@@ -130,6 +130,7 @@ const luaV_finishOp = function (L: lua_State): void {
         case OP_GETTABLE:
         case OP_SELF: {
             lobject.setobjs2s(L, base + inst.A, L.top - 1);
+            // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
             delete stack[--L.top];
             break;
         }
@@ -137,6 +138,7 @@ const luaV_finishOp = function (L: lua_State): void {
         case OP_LT:
         case OP_EQ: {
             let res = !stack[L.top - 1]!.l_isfalse();
+            // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
             delete stack[--L.top];
             if (ci.callstatus & lstate.CIST_LEQ) {
                 /* "<=" using "<" instead? */
@@ -1277,6 +1279,7 @@ const luaV_concat = function (L: lua_State, total: number): void {
         }
         total -= n - 1; /* got 'n' strings to create 1 new */
         /* popped 'n' strings and pushed one */
+        // eslint-disable-next-line @typescript-eslint/no-array-delete -- Lua VM stack slot reclamation
         for (; L.top > top - (n - 1);) delete L.stack![--L.top];
     } while (total > 1); /* repeat until only 1 result left */
 };

@@ -13,9 +13,8 @@ import { invariant } from '../util/invariant';
 
 setPlatformProvider({
     isDesktop: Platform.isDesktop,
-    requireModule: (
-        window as Window & { require?: (module: string) => unknown }
-    ).require,
+    requireModule: (window as Window & { require?: (module: string) => object })
+        .require,
 });
 
 export const INSTRUCTION_LIMIT = 1_000_000;
