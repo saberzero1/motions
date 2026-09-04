@@ -49,7 +49,6 @@ export default defineConfig(
             '@typescript-eslint/only-throw-error': 'off',
             '@typescript-eslint/no-base-to-string': 'off',
             'no-undef': 'off',
-            'obsidianmd/rule-custom-message': 'off',
         },
     },
     {

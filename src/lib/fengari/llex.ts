@@ -28,6 +28,7 @@ import type { lua_State } from './lstate.js';
 import type { TString } from './lstring.js';
 import type { Table } from './ltable.js';
 import type { MBuffer, ZIO } from './lzio.js';
+import type { FuncState } from './lparser.js';
 import type { Dyndata } from './lparser.js';
 
 const { LUA_TBOOLEAN, LUA_TLNGSTR, LUA_TNIL } = constant_types;
@@ -187,7 +188,7 @@ class LexState {
     lastline: number;
     t: Token;
     lookahead: Token;
-    fs: unknown | null;
+    fs: FuncState | null;
     L: lua_State | null;
     z: ZIO | null;
     buff: MBuffer | null;

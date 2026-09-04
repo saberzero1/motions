@@ -87,7 +87,7 @@ if (typeof TextDecoder === 'function') {
     let empty = new Uint8Array(0);
     lua_writeline = function (): void {
         buff += decoder.decode(empty);
-        console.log(buff);
+        console.warn(buff);
         buff = '';
     };
 } else {
@@ -103,7 +103,7 @@ if (typeof TextDecoder === 'function') {
         }
     };
     lua_writeline = function (): void {
-        console.log.apply(console.log, buff);
+        console.warn.apply(console.warn, buff);
         buff = [];
     };
 }

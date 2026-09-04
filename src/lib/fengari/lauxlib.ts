@@ -450,7 +450,7 @@ const luaL_testudata = function (
     L: lua_State,
     ud: number,
     tname: Uint8Array,
-): unknown | null {
+): object | null {
     let p = lua_touserdata(L, ud);
     if (p !== null) {
         /* value is a userdata? */

@@ -369,7 +369,7 @@ class lua_Debug {
     isvararg: number;
     istailcall: number;
     short_src: Uint8Array | null;
-    i_ci: unknown | null;
+    i_ci: object | null;
 
     constructor() {
         this.event = NaN;

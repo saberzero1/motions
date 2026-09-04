@@ -860,13 +860,13 @@ const lua_tonumberx = function (L: lua_State, idx: number): number | false {
     return lvm.tonumber(index2addr(L, idx));
 };
 
-const lua_touserdata = function (L: lua_State, idx: number): unknown | null {
+const lua_touserdata = function (L: lua_State, idx: number): object | null {
     let o = index2addr(L, idx);
     switch (o.ttnov()) {
         case LUA_TUSERDATA:
             return o.uvalue().data;
         case LUA_TLIGHTUSERDATA:
-            return o.value;
+            return o.pvalue();
         default:
             return null;
     }
@@ -877,7 +877,7 @@ const lua_tothread = function (L: lua_State, idx: number): lua_State | null {
     return o.ttisthread() ? o.value : null;
 };
 
-const lua_topointer = function (L: lua_State, idx: number): unknown | null {
+const lua_topointer = function (L: lua_State, idx: number): object | null {
     let o = index2addr(L, idx);
     switch (o.ttype()) {
         case LUA_TTABLE:
@@ -885,9 +885,9 @@ const lua_topointer = function (L: lua_State, idx: number): unknown | null {
         case LUA_TCCL:
         case LUA_TLCF:
         case LUA_TTHREAD:
-        case LUA_TUSERDATA: /* note: this differs in behaviour to reference lua implementation */
+        case LUA_TUSERDATA:
         case LUA_TLIGHTUSERDATA:
-            return o.value;
+            return o.value as object;
         default:
             return null;
     }

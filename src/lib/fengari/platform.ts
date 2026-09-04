@@ -1,4 +1,5 @@
 type PlatformModuleLoader = (name: string) => unknown;
+type ModuleOrNull = ReturnType<PlatformModuleLoader> | null;
 
 interface PlatformProvider {
     isDesktop?: boolean;
@@ -13,7 +14,7 @@ let _provider: {
     requireModule: null,
 };
 
-let _moduleCache: Record<string, unknown | null> = {};
+let _moduleCache: Record<string, ModuleOrNull> = {};
 
 const setPlatformProvider = function (provider: PlatformProvider): void {
     _provider = {
@@ -27,7 +28,7 @@ const isDesktop = function (): boolean {
     return _provider.isDesktop;
 };
 
-const requireModule = function (name: string): unknown | null {
+const requireModule = function (name: string): ModuleOrNull {
     if (!_provider.isDesktop || !_provider.requireModule) return null;
     const cached = _moduleCache[name];
     if (cached !== undefined) return cached;

@@ -236,8 +236,14 @@ end
 
     lua.lua_atnativeerror(L, (errState: lua_State) => {
         const jsError = lua.lua_touserdata(errState, 1);
-        const message =
-            jsError instanceof Error ? jsError.message : String(jsError);
+        let message: string;
+        if (jsError instanceof Error) {
+            message = jsError.message;
+        } else if (typeof jsError === 'string') {
+            message = jsError;
+        } else {
+            message = 'unknown error';
+        }
         lua.lua_pushstring(errState, to_luastring(message));
         return 1;
     });

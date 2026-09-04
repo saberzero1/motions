@@ -2040,4 +2040,4 @@ const luaY_parser = function (
     return cl; /* closure is on the stack, too */
 };
 
-export { Dyndata, expkind, expdesc, luaY_parser, vkisinreg };
+export { Dyndata, expkind, expdesc, FuncState, luaY_parser, vkisinreg };
