@@ -118,6 +118,16 @@ vim.cmd("set nohlsearch")
 print("init.lua loaded for vault:", vim.vault_name())
 ```
 
+## Soft-reload
+
+The Lua configuration file is watched for changes. When you save the file, the old Lua state is torn down and the file is re-executed without reloading the plugin. This allows for rapid iteration on your configuration.
+
+You can also manually trigger a reload of all configuration files (both Lua and vimrc) using the **Vim Motions: Reload configuration** command from the Obsidian command palette.
+
+## External editor (desktop only)
+
+On desktop, you can open your active configuration files in your system's default external editor using the **Vim Motions: Open configuration in default editor** command. This will open both `init.lua` and `.obsidian.vimrc` if both are enabled and found.
+
 ## Supported APIs
 
 | API                                                  | Description                                        | Example                                     |

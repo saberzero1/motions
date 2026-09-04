@@ -34,6 +34,7 @@ import {
     applyVimrcCommands,
     applyPendingExCommands,
     readAndParseVimrcFile,
+    resolveVimrcPath,
 } from './vimrc/loader';
 import type { VimrcLoadResult } from './vimrc/loader';
 import { registerExCommands, registerObCommand } from './workspace/commands';
@@ -161,7 +162,7 @@ import {
     resetForkedVimState,
     setCursorSuppressed,
 } from '@replit/codemirror-vim';
-import { loadInitLua } from './lua/loader';
+import { loadInitLua, resolveLuaConfigPath } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
@@ -353,6 +354,7 @@ export default class VimMotionsPlugin extends Plugin {
     private vimrcMapKeys: Set<string> = new Set();
     private vimrcExmapNames: Set<string> = new Set();
     private vimrcWatchPath: string | null = null;
+    private luaWatchPath: string | null = null;
     private luaLoading = false;
     private luaMapOperations: LuaLoadResult['mapOperations'] = [];
     luaOverrides: Map<string, string> = new Map();
@@ -1251,6 +1253,24 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
+        if (this.luaConfigEnabled) {
+            this.registerEvent(
+                this.app.vault.on('modify', (file) => {
+                    if (!this.settings.vimEnabled) return;
+                    const vim = this.vimRef;
+                    const onLuaSettingOverride = this.onLuaSettingOverrideRef;
+                    if (!vim || !onLuaSettingOverride) return;
+                    if (
+                        !this.luaLoaded ||
+                        !this.luaWatchPath ||
+                        file.path !== this.luaWatchPath
+                    )
+                        return;
+                    void this.softReloadLuaConfig(vim, onLuaSettingOverride);
+                }),
+            );
+        }
+
         const ensureVimEnabled = (): boolean => {
             if (this.settings.vimEnabled) return true;
             new Notice('Enable Vim mode first.');
@@ -1594,6 +1614,26 @@ export default class VimMotionsPlugin extends Plugin {
                 )) {
                     leaf.detach();
                 }
+            },
+        });
+
+        this.addCommand({
+            id: 'reload-configuration',
+            name: 'Reload configuration',
+            callback: () => {
+                if (!ensureVimEnabled()) return;
+                void this.reloadAllConfigs();
+            },
+        });
+        this.addCommand({
+            id: 'open-configuration',
+            name: 'Open configuration in default editor',
+            checkCallback: (checking) => {
+                if (Platform.isMobile) return false;
+                if (checking) return true;
+                if (!ensureVimEnabled()) return false;
+                void this.openConfigInDefaultEditor();
+                return true;
             },
         });
 
@@ -3914,6 +3954,136 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    private async softReloadLuaConfig(
+        vim: import('./types/vim-api').VimApi,
+        onLuaSettingOverride: (
+            key: string,
+            value: unknown,
+            directive?: string,
+        ) => void,
+    ): Promise<void> {
+        if (!this.luaConfigEnabled) return;
+
+        // Restore pre-lua overrides
+        for (const key of this.luaOverrides.keys()) {
+            if (key.startsWith('modePrompts.')) {
+                const mode = key.replace(
+                    'modePrompts.',
+                    '',
+                ) as keyof VimMotionsSettings['modePrompts'];
+                this.settings.modePrompts[mode] =
+                    this.preVimrcSettings.modePrompts[mode];
+            } else if (key === 'cursorShapes') {
+                Object.assign(
+                    this.settings.cursorShapes,
+                    this.preVimrcSettings.cursorShapes,
+                );
+            } else if (key in this.preVimrcSettings) {
+                (this.settings as unknown as Record<string, unknown>)[key] = (
+                    this.preVimrcSettings as unknown as Record<string, unknown>
+                )[key];
+            }
+        }
+        this.luaOverrides.clear();
+
+        // Tear down old Lua state (same pattern as loadLuaConfigForTest)
+        this.luaLoaded = false;
+        this.luaLoading = false;
+        this.timerManager?.destroyAll();
+        this.timerManager = null;
+        this.autocmdManager?.clearUngrouped();
+        this.autocmdManager?.clearAll();
+        this.autocmdManager = null;
+        this.highlightManager?.destroy();
+        this.highlightManager = null;
+        if (this.luaState) {
+            destroyState(this.luaState);
+            this.luaState = null;
+        }
+        this.luaActionNames.clear();
+        this.luaActionCounter = 0;
+        this.luaDeactivateRuntimeEx?.();
+        this.luaDeactivateRuntimeEx = null;
+
+        const luaResult = await this.loadLuaConfigInternal(
+            vim,
+            onLuaSettingOverride,
+        );
+        this.captureConfigOverrides();
+        return void luaResult;
+    }
+
+    private async reloadAllConfigs(): Promise<void> {
+        const vim = this.vimRef;
+        const onSettingOverride = this.onSettingOverrideRef;
+        const onLuaSettingOverride = this.onLuaSettingOverrideRef;
+        if (!vim) return;
+
+        let reloaded = false;
+
+        if (this.vimrcEnabled && this.vimrcLoaded && onSettingOverride) {
+            if (!this.vimrcWatchPath) {
+                const customVimrcPath = this.settings.vimrcPath || undefined;
+                const { path, found } = await resolveVimrcPath(
+                    this.app,
+                    customVimrcPath,
+                    this.settings.globalConfigSearch,
+                );
+                if (found) this.vimrcWatchPath = path;
+            }
+            await this.softReloadVimrc(
+                vim,
+                onSettingOverride,
+                this.settings.globalConfigSearch,
+            );
+            reloaded = true;
+        }
+
+        if (this.luaConfigEnabled && this.luaLoaded && onLuaSettingOverride) {
+            await this.softReloadLuaConfig(vim, onLuaSettingOverride);
+            reloaded = true;
+        }
+
+        if (reloaded && !this.settings.showConfigNotifications) {
+            new Notice('Vim Motions: configuration reloaded.');
+        } else if (!reloaded) {
+            new Notice('Vim Motions: no configuration files to reload.');
+        }
+    }
+
+    private async openConfigInDefaultEditor(): Promise<void> {
+        const paths: string[] = [];
+
+        if (this.vimrcEnabled) {
+            const customVimrcPath = this.settings.vimrcPath || undefined;
+            const { path, found } = await resolveVimrcPath(
+                this.app,
+                customVimrcPath,
+                this.settings.globalConfigSearch,
+            );
+            if (found) paths.push(path);
+        }
+
+        if (this.luaConfigEnabled) {
+            const customLuaPath = this.settings.luaConfigPath || undefined;
+            const { path, found } = await resolveLuaConfigPath(
+                this.app,
+                customLuaPath,
+                this.settings.globalConfigSearch,
+            );
+            if (found) paths.push(path);
+        }
+
+        if (paths.length === 0) {
+            new Notice('Vim Motions: no configuration files found.');
+            return;
+        }
+
+        for (const p of paths) {
+            this.app.openWithDefaultApp(p);
+        }
+    }
+
     private registerImExCommands(): void {
         const registration = this.registration;
         if (!registration) return;
@@ -4372,6 +4542,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.luaCommandCount = luaResult.commandCount;
         this.luaExCommandNames = luaResult.exCommandNames;
+        this.luaWatchPath = luaResult.found ? luaResult.path : null;
         if (!luaResult.found) {
             this.luaLoaded = true;
             this.luaLoading = false;

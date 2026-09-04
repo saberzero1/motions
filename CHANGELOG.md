@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Configuration hot-reload for Lua** — the Lua configuration file (`init.lua`) is now watched for changes. Saving the file triggers a soft-reload that tears down the old Lua state and re-initializes it without a plugin reload, matching the existing vimrc hot-reload behavior. ([#168](https://github.com/saberzero1/motions/issues/168))
+    - Plugin: `src/main.ts` (added Lua file watcher, `softReloadLuaConfig()` method)
+- **New configuration management commands** — two new Obsidian commands for managing configuration files:
+    - `Vim Motions: Reload configuration` — reloads both vimrc and Lua config files immediately.
+    - `Vim Motions: Open configuration in default editor` — opens all active configuration files (vimrc and/or Lua) in the system's default external editor. Desktop only.
+    - Plugin: `src/main.ts` (added `reload-configuration` and `open-configuration` commands, `reloadAllConfigs()` and `openConfigInDefaultEditor()` methods)
+
 ### Fixed
 
+- **`reload-configuration` fails when initial vimrc load missed the file** — if the initial vimrc load hit the known adapter timing race (empty file read during early lifecycle), `vimrcWatchPath` was null and the reload command silently did nothing. Fixed by resolving the vimrc path on-demand in `reloadAllConfigs()` when `vimrcWatchPath` is null. ([#168](https://github.com/saberzero1/motions/issues/168))
+    - Plugin: `src/main.ts` (`reloadAllConfigs()` path resolution fallback)
+- **`reload-configuration` notification shown when notifications disabled** — the generic "configuration reloaded" notice was shown when `showConfigNotifications` was disabled, and was also shown when `configMode` was `settings` (no configs to reload). Fixed: generic notice only shows when notifications are suppressed as a minimal confirmation; shows "no configuration files to reload" when neither config type is active. ([#168](https://github.com/saberzero1/motions/issues/168))
+    - Plugin: `src/main.ts` (`reloadAllConfigs()` notification logic)
 - **Non-markdown files missing from `:files`, `:buffers`, and buffer navigation** — `:files` only listed `.md` files (used `getMarkdownFiles()`), `:buffers` only listed markdown leaves (checked `getViewType() === 'markdown'`), and `]b`/`[b`, `:b <name>`, `:find`, `:bfirst`/`:blast` all had the same markdown-only filters. Canvas, base, and other file-backed views were invisible to all buffer/file commands. Fixed by replacing `getMarkdownFiles()` with `getFiles()` for file listing, `getViewType()` checks with `instanceof FileView` for leaf iteration, and adding `leaf.getRoot() === rootSplit` guards to exclude sidebar panel views (backlink, outline, etc.) from buffer commands. ([#169](https://github.com/saberzero1/motions/issues/169))
     - Plugin: `src/picker/sources/files.ts` (`getMarkdownFiles()` → `getFiles()`)
     - Plugin: `src/picker/sources/buffers.ts` (`getViewType()` → `instanceof FileView` + `rootSplit` guard)
@@ -18,11 +31,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 6 e2e tests in `test/specs/config-management.e2e.ts` for #168 (vimrc reload picks up new mappings; reloaded mapping works functionally; Lua config reload via command; `open-configuration` registered; `reload-configuration` registered; `open-configuration` does not throw)
 - 6 regression tests in `test/specs/files-buffers-non-md.e2e.ts` for #169 (`:files` picker includes `.canvas` files; `:buffers` picker includes canvas leaves; `:find` navigates to canvas file; `:b` switches to canvas leaf; `:blast` works with canvas leaf present; `]b` reaches canvas leaf)
 
 ### Documentation
 
 - `CHANGELOG.md`
+- `AGENTS.md`: updated with configuration management commands and Lua hot-reload
+- `CONTRIBUTING.md`: updated `src/main.ts` description
+- `README.md`: added hot-reload to feature list
+- `docs/configuration/lua-config.md`: documented soft-reload and external editor command
+- `docs/configuration/vimrc.md`: documented reload and external editor commands
+- `docs/reference/keybindings.md`: added new configuration commands to Obsidian commands table
+- `docs/features/quality-of-life.md`: added configuration hot-reload section
+- `docs/features/index.md`: added hot-reload to configuration overview
+- `docs/index.md`: added hot-reload to feature highlights
 - `docs/features/ex-commands.md`: clarified `:files` searches all vault files, not just markdown
 
 ## [0.144.0] - 2026-09-04

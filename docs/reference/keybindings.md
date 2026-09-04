@@ -590,13 +590,15 @@ Execute commands via the `:` command line, grouped by function.
 
 The following commands are available in the Obsidian command palette (**Ctrl+P** or **Cmd+P**).
 
-| Command                         | Description                               |
-| ------------------------------- | ----------------------------------------- |
-| `Vim Motions: Toggle Vim mode`  | Toggle the plugin's vim mode on/off       |
-| `Vim Motions: Enable Vim mode`  | Enable the plugin's vim mode              |
-| `Vim Motions: Disable Vim mode` | Disable the plugin's vim mode             |
-| `Vim Motions: Toggle mobile`    | Toggle plugin activation on mobile        |
-| `Vim Motions: Check conflicts`  | Open the hotkey conflict resolution modal |
+| Command                                             | Description                                         |
+| --------------------------------------------------- | --------------------------------------------------- |
+| `Vim Motions: Toggle Vim mode`                      | Toggle the plugin's vim mode on/off                 |
+| `Vim Motions: Enable Vim mode`                      | Enable the plugin's vim mode                        |
+| `Vim Motions: Disable Vim mode`                     | Disable the plugin's vim mode                       |
+| `Vim Motions: Toggle mobile`                        | Toggle plugin activation on mobile                  |
+| `Vim Motions: Check conflicts`                      | Open the hotkey conflict resolution modal           |
+| `Vim Motions: Reload configuration`                 | Reload both vimrc and Lua config files              |
+| `Vim Motions: Open configuration in default editor` | Open config files in external editor (desktop only) |
 
 ## Snippets
 

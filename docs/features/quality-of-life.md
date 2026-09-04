@@ -138,6 +138,12 @@ Shows `RECORDING @{register}` in the status bar when recording a macro.
 
 Tab-complete ex commands as you type in the `:` command line.
 
+## Configuration hot-reload
+
+Configuration files (`init.lua` and `.obsidian.vimrc`) are watched for changes. When you save a config file, it is automatically re-applied without reloading the plugin.
+
+You can also manually trigger a reload of all configuration files using the **Vim Motions: Reload configuration** command from the Obsidian command palette.
+
 ## Settings hot-reload
 
 All feature toggles and vim engine settings take effect immediately when changed — no Obsidian restart required. This includes clipboard, tabstop, shiftwidth, expandtab, pcre, insertmodeescape, insertmodeescapetimeout, operatorshadowtimeout, and textwidth. All nine settings also persist across restarts — the plugin syncs saved values to the vim engine on every plugin load.
