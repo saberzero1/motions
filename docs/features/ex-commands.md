@@ -176,7 +176,7 @@ When `pickerLeaderMappings` is enabled (default: on), the following bindings are
 
 ### `:files` — find files
 
-`:files` opens the fuzzy picker for vault files.
+`:files` opens the fuzzy picker for all vault files, including canvas, base, and other non-markdown file types.
 
 ### `:commands` — run commands
 

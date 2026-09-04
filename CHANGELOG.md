@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Non-markdown files missing from `:files`, `:buffers`, and buffer navigation** — `:files` only listed `.md` files (used `getMarkdownFiles()`), `:buffers` only listed markdown leaves (checked `getViewType() === 'markdown'`), and `]b`/`[b`, `:b <name>`, `:find`, `:bfirst`/`:blast` all had the same markdown-only filters. Canvas, base, and other file-backed views were invisible to all buffer/file commands. Fixed by replacing `getMarkdownFiles()` with `getFiles()` for file listing, `getViewType()` checks with `instanceof FileView` for leaf iteration, and adding `leaf.getRoot() === rootSplit` guards to exclude sidebar panel views (backlink, outline, etc.) from buffer commands. ([#169](https://github.com/saberzero1/motions/issues/169))
+    - Plugin: `src/picker/sources/files.ts` (`getMarkdownFiles()` → `getFiles()`)
+    - Plugin: `src/picker/sources/buffers.ts` (`getViewType()` → `instanceof FileView` + `rootSplit` guard)
+    - Plugin: `src/workspace/commands.ts` (`:buffers` fallback modal, `:find`, `:b`, `:bfirst`/`:blast` — same `FileView` + `rootSplit` pattern)
+    - Plugin: `src/ui/global-ex-command.ts` (global ex fallbacks: `findFile`, `bufferSwitch`, `bufferFirstLast`)
+    - Plugin: `src/motions/buffers.ts` (renamed `getMarkdownLeaves` → `getFileLeaves`, `instanceof FileView` + `rootSplit`, removed `.endsWith('.md')` fallback filter)
+
+### Tests
+
+- 6 regression tests in `test/specs/files-buffers-non-md.e2e.ts` for #169 (`:files` picker includes `.canvas` files; `:buffers` picker includes canvas leaves; `:find` navigates to canvas file; `:b` switches to canvas leaf; `:blast` works with canvas leaf present; `]b` reaches canvas leaf)
+
+### Documentation
+
+- `CHANGELOG.md`
+- `docs/features/ex-commands.md`: clarified `:files` searches all vault files, not just markdown
+
 ## [0.144.0] - 2026-09-04
 
 ### Added

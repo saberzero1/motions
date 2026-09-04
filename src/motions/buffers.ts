@@ -1,17 +1,17 @@
-import { MarkdownView } from 'obsidian';
+import { FileView } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ActionFn } from '../types/vim-api';
 import {
     navigateWithJump,
     navigateWithJumpSetActive,
 } from '../workspace/navigate';
+import { getViewFilePath } from '../util/leaf';
 
-function getMarkdownLeaves(
-    app: App,
-): ReturnType<typeof app.workspace.getLeaf>[] {
+function getFileLeaves(app: App): ReturnType<typeof app.workspace.getLeaf>[] {
+    const rootSplit = app.workspace.rootSplit;
     const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
     app.workspace.iterateAllLeaves((leaf) => {
-        if (leaf.view.getViewType() === 'markdown') {
+        if (leaf.view instanceof FileView && leaf.getRoot() === rootSplit) {
             leaves.push(leaf);
         }
     });
@@ -21,7 +21,7 @@ function getMarkdownLeaves(
 function createBufferNavAction(app: App, direction: 1 | -1): ActionFn {
     return (_cm, actionArgs) => {
         const repeat = actionArgs.repeat ?? 1;
-        const leaves = getMarkdownLeaves(app);
+        const leaves = getFileLeaves(app);
         if (leaves.length === 0) return;
 
         const activeLeaf = app.workspace.getLeaf(false);
@@ -29,10 +29,8 @@ function createBufferNavAction(app: App, direction: 1 | -1): ActionFn {
 
         if (leaves.length <= 1 && currentIdx >= 0) {
             const recentFiles = app.workspace.getLastOpenFiles();
-            const currentPath = (activeLeaf.view as MarkdownView).file?.path;
-            const nextRecent = recentFiles.find(
-                (p) => p !== currentPath && p.endsWith('.md'),
-            );
+            const currentPath = getViewFilePath(activeLeaf.view);
+            const nextRecent = recentFiles.find((p) => p !== currentPath);
             if (nextRecent) {
                 void navigateWithJump(app, nextRecent, '');
             }

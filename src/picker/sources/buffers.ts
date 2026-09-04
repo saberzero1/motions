@@ -1,5 +1,5 @@
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
-import { MarkdownView } from 'obsidian';
+import { FileView } from 'obsidian';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import { navigateWithJumpSetActive } from '../../workspace/navigate';
@@ -16,10 +16,11 @@ export function createBuffersSource(): PickerSource {
         items(app) {
             const items: PickerItem[] = [];
             const activeLeaf = app.workspace.getLeaf(false);
+            const rootSplit = app.workspace.rootSplit;
             app.workspace.iterateAllLeaves((leaf) => {
-                if (leaf.view.getViewType() !== 'markdown') return;
-                const view = leaf.view as MarkdownView;
-                const file = view.file;
+                if (!(leaf.view instanceof FileView)) return;
+                if (leaf.getRoot() !== rootSplit) return;
+                const file = leaf.view.file;
                 const path = file?.path ?? '';
                 const basename = file?.basename ?? '(untitled)';
                 const active = leaf === activeLeaf ? '% ' : '';
@@ -36,11 +37,12 @@ export function createBuffersSource(): PickerSource {
         onSelect(item, app) {
             const data = item.data as { path: string };
             let target: ReturnType<typeof app.workspace.getLeaf> | null = null;
+            const rootSplit = app.workspace.rootSplit;
             app.workspace.iterateAllLeaves((leaf) => {
                 if (target) return;
-                if (leaf.view.getViewType() !== 'markdown') return;
-                const view = leaf.view as MarkdownView;
-                const path = view.file?.path ?? '';
+                if (!(leaf.view instanceof FileView)) return;
+                if (leaf.getRoot() !== rootSplit) return;
+                const path = leaf.view.file?.path ?? '';
                 if (path === data.path) target = leaf;
             });
             if (target) {

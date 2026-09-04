@@ -1,4 +1,4 @@
-import { App, MarkdownView, Notice, TFile } from 'obsidian';
+import { App, FileView, MarkdownView, Notice, TFile } from 'obsidian';
 import type { OilManager } from '../oil/manager';
 import { OilView } from '../oil/oil-view';
 import { createGrepCommand } from './vault-search';
@@ -345,12 +345,13 @@ function createBufferListCommand(app: App, picker?: PickerConfig): ExCommandFn {
         const rows: string[][] = [];
         let idx = 1;
         const activeLeaf = app.workspace.getLeaf(false);
+        const rootSplit = app.workspace.rootSplit;
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf.view.getViewType() !== 'markdown') return;
-            const view = leaf.view as MarkdownView;
+            if (!(leaf.view instanceof FileView)) return;
+            if (leaf.getRoot() !== rootSplit) return;
             const active = leaf === activeLeaf ? '%' : ' ';
-            const name = view.file?.basename ?? '(untitled)';
-            const path = view.file?.path ?? '';
+            const name = leaf.view.file?.basename ?? '(untitled)';
+            const path = leaf.view.file?.path ?? '';
             rows.push([String(idx), active, name, path]);
             idx++;
         });
@@ -525,7 +526,7 @@ function createFindCommand(app: App): ExCommandFn {
             executeCommand(app, 'switcher:open');
             return;
         }
-        const files = app.vault.getMarkdownFiles();
+        const files = app.vault.getFiles();
         const match = files.find(
             (f) =>
                 f.basename.toLowerCase().includes(query) ||
@@ -566,10 +567,10 @@ function createBufferCommand(app: App): ExCommandFn {
             leaf: ReturnType<typeof app.workspace.getLeaf>;
             name: string;
         }[] = [];
+        const rootSplit = app.workspace.rootSplit;
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf.view.getViewType() === 'markdown') {
-                const view = leaf.view as MarkdownView;
-                leaves.push({ leaf, name: view.file?.basename ?? '' });
+            if (leaf.view instanceof FileView && leaf.getRoot() === rootSplit) {
+                leaves.push({ leaf, name: leaf.view.file?.basename ?? '' });
             }
         });
         const match = leaves.find((l) => l.name.toLowerCase().includes(query));
@@ -583,9 +584,11 @@ function createBufferCommand(app: App): ExCommandFn {
 
 function createBufferFirstLast(app: App, first: boolean): ExCommandFn {
     return () => {
+        const rootSplit = app.workspace.rootSplit;
         const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
         app.workspace.iterateAllLeaves((leaf) => {
-            if (leaf.view.getViewType() === 'markdown') leaves.push(leaf);
+            if (leaf.view instanceof FileView && leaf.getRoot() === rootSplit)
+                leaves.push(leaf);
         });
         const target = first ? leaves[0] : leaves[leaves.length - 1];
         if (target) navigateWithJumpSetActive(app, target, { focus: true });

@@ -13,7 +13,7 @@ export function createFilesSource(): PickerSource {
         description: 'Search vault files by name',
         priority: 1,
         items(app) {
-            return app.vault.getMarkdownFiles().map((file) => ({
+            return app.vault.getFiles().map((file) => ({
                 id: file.path,
                 label: file.basename,
                 description: file.parent?.path ?? '',

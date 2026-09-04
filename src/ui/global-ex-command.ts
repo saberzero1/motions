@@ -1,4 +1,4 @@
-import { App, Notice, SuggestModal } from 'obsidian';
+import { App, FileView, Notice, SuggestModal } from 'obsidian';
 import { executeCommand } from '../workspace/navigation';
 import type {
     GlobalMapAction,
@@ -75,7 +75,7 @@ export function buildGlobalExCommands(
             executeCommand(app, 'switcher:open');
             return;
         }
-        const files = app.vault.getMarkdownFiles();
+        const files = app.vault.getFiles();
         const match = files.find(
             (f) =>
                 f.basename.toLowerCase().includes(query) ||
@@ -92,9 +92,10 @@ export function buildGlobalExCommands(
         const query = args.trim().toLowerCase();
         if (!query) return;
         let found = false;
+        const rootSplit = app.workspace.rootSplit;
         app.workspace.iterateAllLeaves((leaf) => {
             if (found) return;
-            if (leaf.view.getViewType() === 'markdown') {
+            if (leaf.view instanceof FileView && leaf.getRoot() === rootSplit) {
                 const basename = getViewFileBasename(leaf.view);
                 if (basename?.toLowerCase().includes(query)) {
                     app.workspace.setActiveLeaf(leaf, { focus: true });
@@ -107,9 +108,14 @@ export function buildGlobalExCommands(
 
     const bufferFirstLast = (first: boolean): GlobalExFn => {
         return () => {
+            const rootSplit = app.workspace.rootSplit;
             const leaves: ReturnType<typeof app.workspace.getLeaf>[] = [];
             app.workspace.iterateAllLeaves((leaf) => {
-                if (leaf.view.getViewType() === 'markdown') leaves.push(leaf);
+                if (
+                    leaf.view instanceof FileView &&
+                    leaf.getRoot() === rootSplit
+                )
+                    leaves.push(leaf);
             });
             const target = first ? leaves[0] : leaves[leaves.length - 1];
             if (target) app.workspace.setActiveLeaf(target, { focus: true });
