@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.145.0] - 2026-09-04
+
 ### Added
 
 - **Configuration hot-reload for Lua** — the Lua configuration file (`init.lua`) is now watched for changes. Saving the file triggers a soft-reload that tears down the old Lua state and re-initializes it without a plugin reload, matching the existing vimrc hot-reload behavior. ([#168](https://github.com/saberzero1/motions/issues/168))

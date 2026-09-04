@@ -31,9 +31,11 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.144.0
+## What's new in 0.145.0
 
-- **[[lua-config|Lua `os` library]]** — the `os` library is now available in the Lua sandbox, providing `os.date`, `os.time`, `os.difftime`, `os.clock`, and more. Parity with Neovim: all functions available on desktop, nil on mobile. `os.execute` and `os.exit` are permanently blocked for security
-- **Fengari TypeScript rewrite** — the absorbed Lua runtime (fengari) has been fully converted from CommonJS JavaScript to typed TypeScript ESM, improving maintainability and enabling stricter type checking across the Lua subsystem
+- **[[lua-config|Lua configuration hot-reload]]** — saving `init.lua` now triggers a soft-reload that tears down the old Lua state and re-initializes it without a plugin reload, matching the existing vimrc hot-reload behavior
+- **Configuration management commands** — `Vim Motions: Reload configuration` reloads both vimrc and Lua config files immediately; `Vim Motions: Open configuration in default editor` opens all active config files in the system's default external editor (desktop only)
+- **Non-markdown files in buffer commands** — `:files`, `:buffers`, `]b`/`[b`, `:b`, `:find`, and `:bfirst`/`:blast` now include canvas, base, and other file-backed views instead of only markdown files
+- **`reload-configuration` reliability** — fixed a race where the reload command silently did nothing if the initial vimrc load missed the file, and fixed notification behavior when notifications are disabled or no config files are active
 
 See the [[changelog|full changelog]] for details.
