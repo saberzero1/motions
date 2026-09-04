@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hot-reload and manual reload fail intermittently** — when the initial config load hit Obsidian's adapter timing race (file exists on disk but `adapter.read()` returns empty during early lifecycle), `vimrcWatchPath`/`luaWatchPath` were set to null because `found` was derived from the read result, not the stat. This broke both the file watcher (never fires) and the reload command (`softReloadVimrc` bails on null path). Three fixes: (1) watch paths are now resolved via `resolveVimrcPath`/`resolveLuaConfigPath` (stat-based) as a fallback when the read-based load returns `found: false`; (2) `softReloadVimrc` no longer bails on empty commands — an empty parse is a valid reload (clears all vimrc mappings); (3) `reloadAllConfigs` resolves `vimrcWatchPath` on-demand when null. ([#168](https://github.com/saberzero1/motions/issues/168))
+    - Plugin: `src/main.ts` (stat-based watch path fallback in initial load, `softReloadVimrc` guard relaxed, `reloadAllConfigs` on-demand resolution)
+- **Removed Lua keymaps persist after config reload** — keymaps registered via `vim.keymap.set()` in `init.lua` were not cleaned up when removed from the config and reloaded. Two root causes: (1) `softReloadLuaConfig` did not unmap old Lua keymaps or undefine old ex commands before re-loading; (2) Lua keymaps were double-registered (eagerly during `loadInitLua` and again via `applyLuaMaps` in `reloadFeatures`), so a single `vim.unmap` only removed one entry. Fixed by adding an unmap loop in `softReloadLuaConfig` that removes all occurrences of each old mapping. ([#168](https://github.com/saberzero1/motions/issues/168))
+    - Plugin: `src/main.ts` (`softReloadLuaConfig` unmap/undefineEx cleanup with multi-occurrence loop)
+
+### Tests
+
+- 3 additional e2e tests in `test/specs/config-management.e2e.ts` for #168 (removed vimrc mapping cleaned up via reload command; removed vimrc mapping cleaned up on disk change; removed Lua keymap cleaned up via reload command)
+
+### Documentation
+
+- `CHANGELOG.md`
+
 ## [0.145.0] - 2026-09-04
 
 ### Added

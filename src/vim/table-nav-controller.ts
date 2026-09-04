@@ -95,6 +95,12 @@ interface TableNavSession {
     preEntryScrollTop: number;
 }
 
+let onTableNavEnter: (() => void) | null = null;
+
+export function setTableNavEnterCallback(cb: (() => void) | null): void {
+    onTableNavEnter = cb;
+}
+
 const sessions = new WeakMap<EditorView, TableNavSession>();
 
 function getSession(view: EditorView): TableNavSession {
@@ -260,6 +266,9 @@ export class TableNavController implements PluginValue {
 
         this.hideCellEditor(editMode);
 
+        this.exitParentVisualMode();
+        onTableNavEnter?.();
+
         s.tableFrom = table.from;
         s.widgetEl = widgetEl;
         s.activeRow = row;
@@ -318,8 +327,14 @@ export class TableNavController implements PluginValue {
         this.view.scrollDOM
             .querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
             .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
+        this.view.dom
+            .querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
+            .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
         this.session.widgetEl
             ?.querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
+            .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
+        document
+            .querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
             .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
     }
 
@@ -358,6 +373,17 @@ export class TableNavController implements PluginValue {
         this.installNavScope();
         this.highlightCell();
         this.focusWithoutScroll();
+    }
+
+    private exitParentVisualMode(): void {
+        const vim = this.getVimApi();
+        if (!vim) return;
+        const adapter = getCmAdapterFromEditorView(this.view);
+        if (!adapter) return;
+        const vimState = adapter.state?.vim;
+        if (vimState?.visualMode || vimState?.insertMode) {
+            vim.handleKey(adapter, '<Esc>');
+        }
     }
 
     private getFreshTable(): TableEditor | null {
@@ -771,6 +797,15 @@ export class TableNavController implements PluginValue {
             dy = cellRect.bottom - (scrollerRect.bottom - effectiveMargin);
         }
         if (dy) scroller.scrollTop += dy;
+
+        const hMargin = 5;
+        let dx = 0;
+        if (cellRect.left < scrollerRect.left + hMargin) {
+            dx = cellRect.left - (scrollerRect.left + hMargin);
+        } else if (cellRect.right > scrollerRect.right - hMargin) {
+            dx = cellRect.right - (scrollerRect.right - hMargin);
+        }
+        if (dx) scroller.scrollLeft += dx;
     }
 
     private ensureHighlight(): void {
@@ -1062,12 +1097,16 @@ export class TableNavController implements PluginValue {
             s.widgetEl?.classList.remove(NAV_MODE_CLASS);
             this.showCellEditor();
             setKeyInterceptActive(false);
-            clearCursorSuppressedForView(this.view);
-            resumeAnimatedCursorForView(this.view);
-            this.restoreCursorLayers();
         }
+        clearCursorSuppressedForView(this.view);
+        resumeAnimatedCursorForView(this.view);
+        this.restoreCursorLayers();
         this.cancelEntry();
         this.clearRefreshTimer();
+        s.state = 'inactive';
+        s.widgetEl = null;
+        s.hiddenEl = null;
+        sessions.delete(this.view);
     }
 }
 
@@ -1100,6 +1139,15 @@ const tableNavScrollHandler = EditorView.scrollHandler.of(
         }
 
         if (dy) scroller.scrollTop += dy;
+
+        const hMargin = 5;
+        let dx = 0;
+        if (cellRect.left < scrollerRect.left + hMargin) {
+            dx = cellRect.left - (scrollerRect.left + hMargin);
+        } else if (cellRect.right > scrollerRect.right - hMargin) {
+            dx = cellRect.right - (scrollerRect.right - hMargin);
+        }
+        if (dx) scroller.scrollLeft += dx;
 
         return true;
     },

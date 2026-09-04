@@ -247,7 +247,10 @@ import { invariant, devAssert } from './util/invariant';
 import { skipInTableCells } from './util/cell-editor-guard';
 import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
-import { createTableNavExtension } from './vim/table-nav-controller';
+import {
+    createTableNavExtension,
+    setTableNavEnterCallback,
+} from './vim/table-nav-controller';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -1156,9 +1159,21 @@ export default class VimMotionsPlugin extends Plugin {
                             this.vimrcExmapNames = new Set(
                                 vimrcResult.exmapNames ?? [],
                             );
-                            this.vimrcWatchPath = vimrcFound
-                                ? vimrcResult.path
-                                : null;
+                            if (vimrcFound) {
+                                this.vimrcWatchPath = vimrcResult.path;
+                            } else {
+                                const {
+                                    path: resolvedPath,
+                                    found: fileExists,
+                                } = await resolveVimrcPath(
+                                    this.app,
+                                    customVimrcPath,
+                                    this.settings.globalConfigSearch,
+                                );
+                                this.vimrcWatchPath = fileExists
+                                    ? resolvedPath
+                                    : null;
+                            }
                             this.vimrcGlobalMaps = vimrcResult.globalMaps;
                             this.vimrcGlobalUnmaps = vimrcResult.globalUnmaps;
                             this.vimrcGlobalWhichKeyLabels =
@@ -2530,6 +2545,8 @@ export default class VimMotionsPlugin extends Plugin {
                 modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
+            const tracker = this.modeTracker;
+            setTableNavEnterCallback(() => tracker.forceMode('normal'));
         }
         this.scrolloffManager = new ScrolloffManager(this);
         this.scrolloffManager.setup(this.settings.scrolloffLines);
@@ -3396,6 +3413,8 @@ export default class VimMotionsPlugin extends Plugin {
                 modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
+            const tracker = this.modeTracker;
+            setTableNavEnterCallback(() => tracker.forceMode('normal'));
         }
 
         this.globalWhichKeyOverlay?.destroy();
@@ -3879,7 +3898,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (!path) return;
 
         const parsed = await readAndParseVimrcFile(this.app, path);
-        if (!parsed.found || parsed.commands.length === 0) return;
+        if (!parsed.found) return;
 
         for (const key of this.vimrcOverrides.keys()) {
             if (key.startsWith('modePrompts.')) {
@@ -3986,7 +4005,24 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.luaOverrides.clear();
 
-        // Tear down old Lua state (same pattern as loadLuaConfigForTest)
+        for (const op of this.luaMapOperations) {
+            if (op.type === 'map') {
+                for (;;) {
+                    try {
+                        if (!vim.unmap(op.map.lhs, op.map.mode)) break;
+                    } catch {
+                        break;
+                    }
+                }
+            }
+        }
+        this.luaMapOperations = [];
+
+        for (const name of this.luaExCommandNames) {
+            vim.undefineEx(name);
+        }
+        this.luaExCommandNames = [];
+
         this.luaLoaded = false;
         this.luaLoading = false;
         this.timerManager?.destroyAll();
@@ -4542,7 +4578,18 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.luaCommandCount = luaResult.commandCount;
         this.luaExCommandNames = luaResult.exCommandNames;
-        this.luaWatchPath = luaResult.found ? luaResult.path : null;
+        if (luaResult.found) {
+            this.luaWatchPath = luaResult.path;
+        } else if (!this.luaWatchPath) {
+            const customLuaPath = this.settings.luaConfigPath || undefined;
+            const { path: resolvedLuaPath, found: luaFileExists } =
+                await resolveLuaConfigPath(
+                    this.app,
+                    customLuaPath,
+                    this.settings.globalConfigSearch,
+                );
+            this.luaWatchPath = luaFileExists ? resolvedLuaPath : null;
+        }
         if (!luaResult.found) {
             this.luaLoaded = true;
             this.luaLoading = false;

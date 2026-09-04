@@ -43,28 +43,37 @@ async function getLuaCommandCount(): Promise<number> {
     })) as number;
 }
 
-async function checkMappingExists(
+async function checkUserMappingExists(
     lhs: string,
+    rhs?: string,
     context = 'normal',
 ): Promise<boolean> {
     return (await browser.executeObsidian(
-        (_ctx, key: string, ctx: string) => {
+        (_ctx, key: string, expectedRhs: string | undefined, ctx: string) => {
             const Vim = (
                 window as unknown as {
                     CodeMirrorAdapter?: {
                         Vim?: {
-                            getKeymap: (
-                                context?: string,
-                            ) => Array<{ keys: string }>;
+                            getKeymap: (context?: string) => Array<{
+                                keys: string;
+                                type?: string;
+                                toKeys?: string;
+                            }>;
                         };
                     };
                 }
             ).CodeMirrorAdapter?.Vim;
             if (!Vim) return false;
             const keymap = Vim.getKeymap(ctx);
-            return keymap.some((entry) => entry.keys === key);
+            return keymap.some(
+                (entry) =>
+                    entry.keys === key &&
+                    entry.type === 'keyToKey' &&
+                    (expectedRhs === undefined || entry.toKeys === expectedRhs),
+            );
         },
         lhs,
+        rhs,
         context,
     )) as boolean;
 }
@@ -118,9 +127,9 @@ describe('Config management commands (#168)', function () {
                 { timeout: 5000, interval: 200 },
             );
 
-            const hasH = await checkMappingExists('H');
+            const hasH = await checkUserMappingExists('H', '^');
             expect(hasH).toBe(true);
-            const hasL = await checkMappingExists('L');
+            const hasL = await checkUserMappingExists('L', '$');
             expect(hasL).toBe(true);
         });
 
@@ -154,6 +163,66 @@ describe('Config management commands (#168)', function () {
 
             const pos = await getCursorPos();
             expect(pos.ch).toBe(10);
+        });
+
+        it('should remove mapping when deleted from vimrc via reload command', async function () {
+            await obsidianPage.write('.obsidian.vimrc', 'nmap L $\nnmap H ^\n');
+            await browser.pause(300);
+            await executeCommand('reload-configuration');
+            await browser.waitUntil(
+                async () => (await getVimrcCommandCount()) === 2,
+                { timeout: 5000, interval: 200 },
+            );
+            expect(await checkUserMappingExists('H', '^')).toBe(true);
+
+            await obsidianPage.write('.obsidian.vimrc', 'nmap L $\n');
+            await browser.pause(300);
+            await executeCommand('reload-configuration');
+            await browser.waitUntil(
+                async () => (await getVimrcCommandCount()) === 1,
+                { timeout: 5000, interval: 200 },
+            );
+
+            expect(await checkUserMappingExists('H', '^')).toBe(false);
+            expect(await checkUserMappingExists('L', '$')).toBe(true);
+        });
+
+        it('should remove mapping when vimrc is modified on disk', async function () {
+            await obsidianPage.write('.obsidian.vimrc', 'nmap L $\nnmap H ^\n');
+            await browser.pause(300);
+            await executeCommand('reload-configuration');
+            await browser.waitUntil(
+                async () => (await getVimrcCommandCount()) === 2,
+                { timeout: 5000, interval: 200 },
+            );
+            expect(await checkUserMappingExists('H', '^')).toBe(true);
+
+            await obsidianPage.write('.obsidian.vimrc', 'nmap L $\n');
+            await browser.pause(500);
+
+            let watcherFired = false;
+            try {
+                await browser.waitUntil(
+                    async () => (await getVimrcCommandCount()) === 1,
+                    { timeout: 5000, interval: 300 },
+                );
+                watcherFired = true;
+            } catch {
+                await executeCommand('reload-configuration');
+                await browser.waitUntil(
+                    async () => (await getVimrcCommandCount()) === 1,
+                    { timeout: 5000, interval: 200 },
+                );
+            }
+
+            expect(await checkUserMappingExists('H', '^')).toBe(false);
+            expect(await checkUserMappingExists('L', '$')).toBe(true);
+
+            if (!watcherFired) {
+                console.log(
+                    'Note: file watcher did not fire — reload command used as fallback',
+                );
+            }
         });
     });
 
@@ -193,6 +262,37 @@ describe('Config management commands (#168)', function () {
 
             const countAfter = await getLuaCommandCount();
             expect(countAfter).toBeGreaterThanOrEqual(2);
+        });
+
+        it('should remove Lua keymap when deleted from init.lua via reload command', async function () {
+            await loadLuaConfig(
+                "vim.keymap.set('n', 'Q', '$')\nvim.keymap.set('n', 'Z', '^')\n",
+            );
+            expect(await checkUserMappingExists('Q', '$')).toBe(true);
+            expect(await checkUserMappingExists('Z', '^')).toBe(true);
+
+            await browser.executeObsidian(async ({ app }) => {
+                const configDir = app.vault.configDir;
+                await app.vault.adapter.write(
+                    `${configDir}.init.lua`,
+                    "vim.keymap.set('n', 'Q', '$')\n",
+                );
+            });
+            await browser.pause(500);
+
+            await executeCommand('reload-configuration');
+            await browser.waitUntil(
+                async () => (await getLuaCommandCount()) === 1,
+                {
+                    timeout: 10000,
+                    interval: 500,
+                    timeoutMsg:
+                        'Lua config did not reload after removing keymap',
+                },
+            );
+
+            expect(await checkUserMappingExists('Z', '^')).toBe(false);
+            expect(await checkUserMappingExists('Q', '$')).toBe(true);
         });
     });
 

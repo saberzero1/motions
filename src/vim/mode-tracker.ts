@@ -7,6 +7,7 @@ import {
     getActiveTableCellEditorView,
     hasActiveTableCell,
 } from './native-table-adapter';
+import { isTableNavActive as isTableNavActiveState } from './table-nav-state';
 import { countSearchMatches, formatSearchCount } from './search-counter';
 import { invariant } from '../util/invariant';
 
@@ -95,9 +96,11 @@ export class VimModeTracker {
     attach(app: App): void {
         this.app = app;
         const modeHandler = (mode: VimModeChange) => {
+            const inTableNav = this.isTableNavMode();
             if (
-                this.cellEditorActive ||
-                (this.app && hasActiveTableCell(this.app))
+                !inTableNav &&
+                (this.cellEditorActive ||
+                    (this.app && hasActiveTableCell(this.app)))
             )
                 return;
             const resolved = this.resolveMode(mode.mode, mode.subMode);
@@ -210,12 +213,26 @@ export class VimModeTracker {
         }
     }
 
+    private isTableNavMode(): boolean {
+        if (!this.app) return false;
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view) return false;
+        const editorView = view.editor.cm as
+            { state?: import('@codemirror/state').EditorState } | undefined;
+        if (!editorView?.state) return false;
+        try {
+            return isTableNavActiveState(editorView.state);
+        } catch {
+            return false;
+        }
+    }
+
     private startCellEditorMonitor(): void {
         if (this.cellEditorTimer !== null) return;
         this.cellEditorTimer = window.setInterval(() => {
             if (!this.app) return;
             const active = hasActiveTableCell(this.app);
-            if (!active) {
+            if (!active || this.isTableNavMode()) {
                 if (this.cellEditorActive) {
                     this.cellEditorActive = false;
                     const fallback = this.lastAdapter?.state?.vim?.mode;
@@ -347,6 +364,12 @@ export class VimModeTracker {
         if (editor.hasHighlight('is-flashing')) {
             editor.removeHighlights('is-flashing');
         }
+    }
+
+    forceMode(mode: string): void {
+        this.currentMode = mode;
+        this.cellEditorActive = false;
+        this.updateDisplay();
     }
 
     setGlobalChord(text: string): void {
