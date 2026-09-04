@@ -1622,7 +1622,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `vim.lsp`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.treesitter` is fully implemented — see [[#vim.treesitter]] below for the complete API reference. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 6 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`). The `io`, `os`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile`, `loadfile`, `rawget`, `rawset`, and `rawequal` are disabled.
+> The following Neovim APIs are not available: `vim.lsp`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.treesitter` is fully implemented — see [[#vim.treesitter]] below for the complete API reference. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 7 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`, `os`). The `io`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile` and `loadfile` are disabled. `rawget`, `rawset`, and `rawequal` are available for Neovim compatibility.
 
 ### `collectgarbage` behavior
 
@@ -1749,36 +1749,35 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 
 ## Lua sandbox reference
 
-The Lua runtime runs in a sandboxed Lua 5.3 environment ([fengari](https://github.com/saberzero1/fengari)).
+The Lua runtime runs in a sandboxed Lua 5.3 environment (a browser-only version of fengari, absorbed into the monorepo and converted to TypeScript ESM).
 
 ### Available standard libraries
 
 7 standard libraries are loaded:
 
-| Library     | Description                                                                                                                           |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `_G` (base) | Core functions (`type`, `tostring`, `tonumber`, `pcall`, `xpcall`, `error`, `select`, `pairs`, `ipairs`, `next`, `unpack`, `assert`)  |
-| `string`    | String manipulation (`format`, `find`, `gsub`, `sub`, `rep`, `byte`, `char`, `len`, `lower`, `upper`, `match`, `gmatch`, `reverse`)   |
-| `table`     | Table manipulation (`insert`, `remove`, `sort`, `concat`, `move`, `pack`, `unpack`)                                                   |
-| `math`      | Math functions (`floor`, `ceil`, `abs`, `max`, `min`, `random`, `sqrt`, `sin`, `cos`, `pi`, `huge`, etc.)                             |
-| `coroutine` | Coroutine support (`create`, `resume`, `yield`, `wrap`, `status`)                                                                     |
-| `utf8`      | UTF-8 support (`char`, `codepoint`, `codes`, `len`, `offset`, `charpattern`)                                                          |
-| `os`        | Date/time (`date`, `time`, `difftime`, `clock`, `setlocale`), environment (`getenv`), file operations (`remove`, `rename`, `tmpname`) |
+| Library     | Description                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `_G` (base) | Core functions (`type`, `tostring`, `tonumber`, `pcall`, `xpcall`, `error`, `select`, `pairs`, `ipairs`, `next`, `unpack`, `assert`, `rawget`, `rawset`, `rawequal`) |
+| `string`    | String manipulation (`format`, `find`, `gsub`, `sub`, `rep`, `byte`, `char`, `len`, `lower`, `upper`, `match`, `gmatch`, `reverse`)                                  |
+| `table`     | Table manipulation (`insert`, `remove`, `sort`, `concat`, `move`, `pack`, `unpack`)                                                                                  |
+| `math`      | Math functions (`floor`, `ceil`, `abs`, `max`, `min`, `random`, `sqrt`, `sin`, `cos`, `pi`, `huge`, etc.)                                                            |
+| `coroutine` | Coroutine support (`create`, `resume`, `yield`, `wrap`, `status`)                                                                                                    |
+| `utf8`      | UTF-8 support (`char`, `codepoint`, `codes`, `len`, `offset`, `charpattern`)                                                                                         |
+| `os`        | Date/time (`date`, `time`, `difftime`, `clock`, `setlocale`), environment (`getenv`), file operations (`remove`, `rename`, `tmpname`)                                |
 
 > [!info] Desktop vs mobile
 > `os.getenv`, `os.remove`, `os.rename`, and `os.tmpname` require desktop (Node.js). On mobile, they return `nil`. `os.execute` and `os.exit` are permanently blocked on all platforms.
 
 ### Not available
 
-| Library/function               | Reason                                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `io`                           | Stripped from runtime (file system access)                                                      |
-| `debug`                        | Not loaded by plugin (security)                                                                 |
-| `package` (native)             | Stripped from runtime; plugin provides `package.loaded`/`package.path` and a custom `require()` |
-| `dofile`, `loadfile`           | Disabled (no direct file loading)                                                               |
-| `rawget`, `rawset`, `rawequal` | Disabled (sandbox integrity)                                                                    |
-| `os.execute`                   | Permanently blocked (arbitrary shell execution is a security risk)                              |
-| `os.exit`                      | Permanently blocked (would terminate Obsidian)                                                  |
+| Library/function     | Reason                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `io`                 | Stripped from runtime (file system access)                                                      |
+| `debug`              | Not loaded by plugin (security)                                                                 |
+| `package` (native)   | Stripped from runtime; plugin provides `package.loaded`/`package.path` and a custom `require()` |
+| `dofile`, `loadfile` | Disabled (no direct file loading)                                                               |
+| `os.execute`         | Permanently blocked (arbitrary shell execution is a security risk)                              |
+| `os.exit`            | Permanently blocked (would terminate Obsidian)                                                  |
 
 ### Execution limits
 

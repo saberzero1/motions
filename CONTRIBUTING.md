@@ -111,7 +111,10 @@ src/
       manager.ts             # Global rAF scheduler + shared canvas owner + heartbeat safety net + visibilitychange recovery + cross-cell handoff (CellCrossingHandoff token, storeCrossingHandoff/consumeCrossingHandoff with TTL, signalCellCrossing/getPendingCrossingToken/clearPendingCrossingToken)
       controller.ts          # CM6 ViewPlugin — position tracking + shared context drawing + vim mode detection (operator-pending via inputState.operator only). Cell editors: native cursor steady-state renderer, canvas draws only during cross-cell transitions (cellTransitionActive flag). Non-cell editors: canvas renders, native cursor suppressed (removed per-update toggling, restored clearCursorSuppressedForView in destroy). Above-canvas editors (isAboveCanvas: .popover, .modal-container): fork's vim cursor un-suppressed via setCursorSuppressedForView(view, false), tick() skips canvas rendering — canvas z-index:15 renders behind popover z-index:30. Constructor gates suppression on config.enabled; update() clears per-view override when disabled
       config.ts              # Module-level getters/setters + per-view pause/resume API
+  lib/
+    fengari/               # Absorbed Fengari Lua 5.3 VM (TypeScript ESM)
   text-objects/
+
     delimiter.ts           # Paired-delimiter factory (single-line, multi-line, smart asterisk)
     link.ts                # [[wikilink]] and [text](url) text objects
     code-block.ts          # Fenced code block text objects

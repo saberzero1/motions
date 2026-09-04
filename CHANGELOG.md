@@ -14,25 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Absorbed fengari fork into monorepo** — the browser-only fengari fork is now vendored directly in the codebase, eliminating the external dependency and simplifying the build process.
-    - Plugin: `src/lib/fengari/` (absorbed 36 source files)
-    - Plugin: `src/lib/fengari/index.ts` (new ESM barrel with typed re-exports)
-    - Plugin: `src/lib/fengari/platform.js` (new host-agnostic platform provider)
-    - Plugin: `package.json` (removed `fengari` dependency)
+- **Fengari CJS-to-TypeScript-ESM conversion** — all 37 fengari source files converted from CommonJS JavaScript to TypeScript ESM with full typing (`strict: true`). Broken circular dependencies between `defs.ts`/`luaconf.ts` and `linit.ts`/`lualib.ts`. Implemented a hybrid TValue type system with type predicates and narrowed accessors.
+    - Plugin: `src/lib/fengari/*.ts` (37 files converted from `.js` CJS to `.ts` ESM)
+    - Plugin: `src/lib/fengari/index.ts` (barrel rewritten — no `as any` casts)
+    - Plugin: `src/lib/fengari/platform.ts` (was `.js`)
+    - Plugin: `src/lib/fengari/package.json` (removed — CJS marker no longer needed)
+    - Plugin: `src/lib/fengari/DIFFERENCES.md` (updated for TS conversion)
+    - Plugin: `src/lua/engine.ts` (null check for `luaL_newstate()`)
+    - Plugin: `vitest.config.ts` (removed `.test.js` pattern)
+    - Plugin: `eslint.config.mts` (reduced fengari overrides from 16 to 7)
 - **Host-agnostic Lua runtime** — replaced platform guards with a dependency injection pattern. Fengari no longer sniffs for Node.js or browser environments, instead using a provider injected by the plugin.
-    - Plugin: `src/lib/fengari/platform.js` (platform provider implementation)
+    - Plugin: `src/lib/fengari/platform.ts` (platform provider implementation)
     - Plugin: `src/lua/engine.ts` (injected Obsidian platform provider)
 
 ### Tests
 
+- 23 unit tests in `test/unit/fengari/` (6 fork-specific converted to typed TS, 17 upstream absorbed from fengari repo)
 - 13 unit tests in `test/unit/lua/os-lib.test.ts` for the `os` library
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: updated fengari section — absorbed into monorepo, platform provider, 7 libraries
-- `KNOWN_LIMITATIONS.md`: updated sandbox library count (6 → 7), removed `os` from unavailable list
-- `docs/configuration/lua-config.md`: updated sandbox reference — 7 libraries, `os` library table entry, desktop/mobile callout, blocked functions
+- `AGENTS.md`: updated fengari section — TypeScript ESM conversion, TValue type system, test organization
+- `CONTRIBUTING.md`: updated fengari directory description
+- `KNOWN_LIMITATIONS.md`: updated absorbed fengari references and links
+- `docs/configuration/lua-config.md`: updated absorbed fengari references
 
 ## [0.143.0] - 2026-09-03
 

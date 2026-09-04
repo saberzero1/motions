@@ -8,7 +8,7 @@ For previously fixed issues, see [Resolved Issues](#resolved-issues) at the bott
 
 **Status**: Implemented.
 
-The plugin provides a Lua 5.3 runtime via a browser-only fork of fengari. Configuration is loaded from `init.lua` (or `.obsidian.init.lua`) and supports `vim.keymap.set`, `vim.opt`, `vim.fn`, `vim.api`, and more.
+The plugin provides a Lua 5.3 runtime via a browser-only version of fengari, absorbed into the monorepo at `src/lib/fengari/` and converted to TypeScript ESM. Configuration is loaded from `init.lua` (or `.obsidian.init.lua`) and supports `vim.keymap.set`, `vim.opt`, `vim.fn`, `vim.api`, and more.
 
 **Known limitations**:
 
@@ -1064,7 +1064,7 @@ The surround operator implements the full vim-surround command set: `ds`/`cs`/`y
 
 ## Lua configuration (`init.lua`)
 
-**Status**: Working. Sandboxed Lua 5.3 runtime via [Fengari fork](https://github.com/saberzero1/fengari) (pure JS, browser-only — all Node.js dependencies stripped). ([#46](https://github.com/saberzero1/motions/issues/46))
+**Status**: Working. Sandboxed Lua 5.3 runtime via a browser-only version of fengari, absorbed into the monorepo at `src/lib/fengari/` and converted to TypeScript ESM (originally based on [this fork](https://github.com/saberzero1/fengari)). ([#46](https://github.com/saberzero1/motions/issues/46))
 
 The plugin supports Lua config files (`init.lua`, `.init.lua`, etc. — see [Config file resolution](#config-file-resolution)) as an alternative to vimrc. Enable in **Settings → Vim Motions → Vimrc & key bindings → Configuration mode**.
 
@@ -1589,11 +1589,11 @@ The Escape key follows a symmetric context stack: modal → vim overlay → moda
 
 Lua-defined `d()` snippets registered via `loadLuaConfig` in e2e tests may not appear in the snippet registry because `reloadFeatures()` called after Lua config load is short-circuited by the autocmd manager's `isFiring()` guard. The snippet registry IS rebuilt directly in `loadLuaConfigInternal` (bypassing `reloadFeatures`), but `d()` snippets defined in a test-specific `loadLuaConfig` call may not trigger this path correctly. The `f()` node tests pass because they benefit from the direct registry rebuild added to address this issue. This is a test lifecycle timing issue, not a runtime bug — real users defining `d()` snippets in `.obsidian.init.lua` will have them loaded correctly during normal plugin initialization.
 
-## Fengari fork improvement opportunities
+## Fengari improvement opportunities
 
-The plugin uses a [browser-only fork of fengari](https://github.com/saberzero1/fengari) for the Lua 5.3 runtime. The fork strips all Node.js dependencies but inherits several upstream limitations and introduces its own constraints. This section tracks potential improvements to the fork that would expand the Lua API surface, improve spec compliance, or unlock new features.
+The plugin uses a browser-only version of fengari for the Lua 5.3 runtime, absorbed into the monorepo at `src/lib/fengari/` and converted to TypeScript ESM. The implementation strips all Node.js dependencies but inherits several upstream limitations and introduces its own constraints. This section tracks potential improvements to the runtime that would expand the Lua API surface, improve spec compliance, or unlock new features.
 
-See `~/Repos/fengari/DIFFERENCES.md` for the full list of changes from upstream.
+See `src/lib/fengari/DIFFERENCES.md` for the full list of changes from upstream.
 
 ### 1. Coroutine↔Promise bridge (async Lua execution)
 

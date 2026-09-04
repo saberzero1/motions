@@ -41,6 +41,18 @@ export default defineConfig(
     },
     ...obsidianmd.configs.recommended,
     {
+        files: ['src/lib/fengari/**/*.ts'],
+        rules: {
+            '@typescript-eslint/no-array-delete': 'off',
+            '@typescript-eslint/no-redundant-type-constituents': 'off',
+            '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+            '@typescript-eslint/only-throw-error': 'off',
+            '@typescript-eslint/no-base-to-string': 'off',
+            'no-undef': 'off',
+            'obsidianmd/rule-custom-message': 'off',
+        },
+    },
+    {
         linterOptions: {
             reportUnusedDisableDirectives: 'off',
         },

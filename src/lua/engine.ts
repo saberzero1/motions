@@ -58,7 +58,8 @@ export function withInstructionGuard(
 }
 
 export function createSandboxedState(): lua_State {
-    const L: lua_State = lauxlib.luaL_newstate();
+    const L = lauxlib.luaL_newstate();
+    if (!L) throw new Error('failed to create Lua state');
 
     lauxlib.luaL_requiref(L, to_luastring('_G'), lualib.luaopen_base, 1);
     lua.lua_pop(L, 1);
