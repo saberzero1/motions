@@ -35,12 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/main.ts` (stat-based watch path fallback in initial load, `softReloadVimrc` guard relaxed, `reloadAllConfigs` on-demand resolution)
 - **Removed Lua keymaps persist after config reload** — keymaps registered via `vim.keymap.set()` in `init.lua` were not cleaned up when removed from the config and reloaded. Two root causes: (1) `softReloadLuaConfig` did not unmap old Lua keymaps or undefine old ex commands before re-loading; (2) Lua keymaps were double-registered (eagerly during `loadInitLua` and again via `applyLuaMaps` in `reloadFeatures`), so a single `vim.unmap` only removed one entry. Fixed by adding an unmap loop in `softReloadLuaConfig` that removes all occurrences of each old mapping. ([#168](https://github.com/saberzero1/motions/issues/168))
     - Plugin: `src/main.ts` (`softReloadLuaConfig` unmap/undefineEx cleanup with multi-occurrence loop)
+- **Scroll offset activates during mouse selection** — dragging to select text near the viewport edge triggered the `scrollMargins`-based auto-scroll prematurely because the scrolloff margins expanded the drag auto-scroll trigger zone by `scrolloffLines × lineHeight` pixels. With high scrolloff values (e.g., `scrolloff=999` for centered scrolling), the viewport jumped while the mouse was still well within the editor. Fixed by tracking pointer-down state via a CM6 ViewPlugin with `eventObservers` and returning `null` from the `scrollMargins` callback while a mouse button is held, suppressing the margins during mouse interactions without affecting keyboard navigation. ([#175](https://github.com/saberzero1/motions/issues/175))
+    - Plugin: `src/vim/scrolloff.ts` (added `mouseTracker` ViewPlugin, `pointerdown`/`pointerup` observers, document-level `pointerup` safety listener)
 
 ### Tests
 
 - 3 e2e tests in `test/specs/table-cursor-vanish.e2e.ts` for #167 (stuck state detection, bridge cleanup, automatic keydown safety handler)
 - 2 e2e tests in `test/specs/table-debug-state.e2e.ts` for table debug state instrumentation (#167)
 - 3 additional e2e tests in `test/specs/config-management.e2e.ts` for #168 (removed vimrc mapping cleaned up via reload command; removed vimrc mapping cleaned up on disk change; removed Lua keymap cleaned up via reload command)
+- 2 e2e tests in `test/specs/scrolloff-mouse.e2e.ts` for #175 (mouse drag near viewport edge should not cause scroll drift; keyboard navigation should still trigger scrolloff)
 
 ### Documentation
 
