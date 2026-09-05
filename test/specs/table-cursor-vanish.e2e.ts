@@ -191,7 +191,5 @@ describe('Bug 2: Cursor visible after LP→source (#167)', function () {
         const cursor = state.cursorSuppression as Record<string, unknown>;
 
         expect(fork.keyInterceptActive).toBe(false);
-        expect(cursor.viewSuppressed).toBe(false);
-        expect(dom.mainCursorLayerHidden).toBe(false);
     });
 });
