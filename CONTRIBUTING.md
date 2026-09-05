@@ -68,7 +68,7 @@ src/
     bundled-vim.ts         # Bundled vim fork registration as CM6 extension + editorLivePreviewField wiring + propertiesInDocument source-mode detection via setPropertiesSource + CodeMirrorAdapter bridge (Vim API + isCursorSuppressedForView for test access)
     mode-tracker.ts        # Status bar mode indicator + macro recording + search match counter + native highlight clearing (is-flashing) on Escape via vim-keypress handler
     search-counter.ts      # Search match counter (hlslens-style [3/15])
-    scrolloff.ts           # CSS scroll-padding based scrolloff
+    scrolloff.ts           # Scrolloff enforcement via EditorView.updateListener (manual scrollDOM adjustment)
     options.ts             # Vim option registration (clipboard, tabstop, etc.) — registerVimOptions() returns activation function to defer notify callbacks until after initial settings sync
     neovim-options.ts      # Comprehensive registry of ALL Neovim options with tier classification (hardcoded, noop-platform, noop-deferred, rejected, not-applicable) — used by vimrc loader and Lua vim.opt for tiered logging and typo detection
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)

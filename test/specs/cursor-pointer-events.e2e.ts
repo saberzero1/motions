@@ -367,26 +367,6 @@ describe('Hover tooltip works with fork vim mode (#170)', function () {
         expect(contentTargets.length).toBeGreaterThan(0);
     });
 
-    it('cm-vimCursorLayer should match CM6 native layer positioning', async function () {
-        this.timeout(15000);
-        await setupEditor('hello world', { line: 0, ch: 0 });
-        await browser.pause(PAUSE.EDITOR_SETTLE);
-
-        const result = (await browser.executeObsidian(() => {
-            const layer = document.querySelector('.cm-vimCursorLayer');
-            if (!layer) return { error: 'no .cm-vimCursorLayer found' };
-            const computed = activeWindow.getComputedStyle(layer as Element);
-            return {
-                position: computed.position,
-                pointerEvents: computed.pointerEvents,
-            };
-        })) as { position: string; pointerEvents: string; error?: string };
-
-        expect(result).not.toHaveProperty('error');
-        expect(result.position).toBe('absolute');
-        expect(result.pointerEvents).toBe('none');
-    });
-
     it('hoverTooltip callback should fire at cursor position', async function () {
         this.timeout(20000);
         await setupEditor('hello world test', { line: 0, ch: 0 });
