@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Scroll offset centering misaligns when alternating up/down movement** — with high `scrolloff` values (e.g., `set scrolloff=999` for centered scrolling), the cursor's vertical position drifted ~17px when changing movement direction (move down, stop, move up). Root cause: the `updateListener`-based scrolloff used `if/else if` to enforce only one margin (top or bottom) per update cycle. With centering, both constraints are always violated but only one was corrected, causing direction-dependent asymmetry. Fixed by replacing the `if/else if` with a constraint-based algorithm: convert visual coordinates to document-relative positions, compute `minScroll`/`maxScroll` for both margins simultaneously, clamp `scrollTop` into the valid interval, and use the midpoint when the interval is inverted (high scrolloff centering) for direction-independent symmetric positioning. Also narrowed the update trigger from `selectionSet || viewportChanged` to `selectionSet` only — viewport-only changes (e.g., `zt`/`zz`/`zb` scroll commands) should not trigger scrolloff re-adjustment. A 1px dead zone prevents subpixel oscillation. ([#176](https://github.com/saberzero1/motions/issues/176))
+    - Plugin: `src/vim/scrolloff.ts` (constraint-based dual-margin algorithm with `coordsAtPos` + midpoint, narrowed trigger to `selectionSet` only)
+
+### Tests
+
+- 1 regression test in `test/specs/scrolloff-centering.e2e.ts` for #176 (cursor stays centered when alternating up/down movement with `scrolloff=100`)
+
+### Documentation
+
+- `CHANGELOG.md`
+
 ## [0.146.0] - 2026-09-05
 
 ### Added

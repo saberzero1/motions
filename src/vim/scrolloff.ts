@@ -30,45 +30,56 @@ const mouseTracker = ViewPlugin.define(
     },
 );
 
-/**
- * Enforce scrolloff by adjusting scroll position after cursor moves.
- *
- * Uses `EditorView.updateListener` instead of `EditorView.scrollMargins`
- * because CM6's tooltip plugin treats scroll margins as physical
- * obstructions and hides tooltips whose position falls within the
- * margin zone. Scrolloff is a virtual margin — the text is fully
- * visible and tooltips must appear there normally.
- *
- * The listener fires after every selection change and scrolls the
- * viewport so the cursor stays at least `scrolloffLines` away from
- * the top/bottom edge. Mouse-driven selection (mouseDown) is excluded
- * to avoid fighting the user's scroll intent.
- */
+function clamp(n: number, lo: number, hi: number): number {
+    return Math.max(lo, Math.min(hi, n));
+}
+
 export function createScrolloffExtension(): Extension {
     return [
         mouseTracker,
         EditorView.updateListener.of((update) => {
             if (scrolloffLines <= 0 || mouseActive) return;
-            if (!update.selectionSet && !update.viewportChanged) return;
+            if (!update.selectionSet) return;
 
             const view = update.view;
             const head = view.state.selection.main.head;
             const coords = view.coordsAtPos(head);
             if (!coords) return;
 
-            const scrollRect = view.scrollDOM.getBoundingClientRect();
             const lineHeight = view.defaultLineHeight || 22;
-            const margin = scrolloffLines * lineHeight;
-            const halfViewport = Math.floor(scrollRect.height / 2);
-            const clampedMargin = Math.min(margin, halfViewport);
+            const viewportH = view.scrollDOM.clientHeight;
+            if (viewportH <= 0) return;
 
-            const cursorTop = coords.top - scrollRect.top;
-            const cursorBottom = scrollRect.bottom - coords.bottom;
+            const m = Math.min(scrolloffLines * lineHeight, viewportH / 2);
+            const scrollTop = view.scrollDOM.scrollTop;
+            const scrollRect = view.scrollDOM.getBoundingClientRect();
 
-            if (cursorTop < clampedMargin) {
-                view.scrollDOM.scrollTop -= clampedMargin - cursorTop;
-            } else if (cursorBottom < clampedMargin) {
-                view.scrollDOM.scrollTop += clampedMargin - cursorBottom;
+            // Use visual coordinates to compute document-relative cursor position,
+            // then derive scroll constraints that enforce both margins simultaneously.
+            const cursorDocTop = scrollTop + (coords.top - scrollRect.top);
+            const cursorDocBottom =
+                scrollTop + (coords.bottom - scrollRect.top);
+
+            const minScroll = cursorDocBottom - viewportH + m;
+            const maxScroll = cursorDocTop - m;
+
+            let target: number;
+            if (minScroll <= maxScroll) {
+                target = clamp(scrollTop, minScroll, maxScroll);
+            } else {
+                // Zone smaller than line block (high scrolloff centering):
+                // use midpoint for direction-independent symmetric centering.
+                target = (minScroll + maxScroll) / 2;
+            }
+
+            const maxPossible = Math.max(
+                0,
+                view.scrollDOM.scrollHeight - viewportH,
+            );
+            target = clamp(target, 0, maxPossible);
+
+            if (Math.abs(target - scrollTop) >= 1) {
+                view.scrollDOM.scrollTop = target;
             }
         }),
     ];
