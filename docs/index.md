@@ -31,11 +31,12 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.145.0
+## What's new in 0.146.0
 
-- **[[lua-config|Lua configuration hot-reload]]** — saving `init.lua` now triggers a soft-reload that tears down the old Lua state and re-initializes it without a plugin reload, matching the existing vimrc hot-reload behavior
-- **Configuration management commands** — `Vim Motions: Reload configuration` reloads both vimrc and Lua config files immediately; `Vim Motions: Open configuration in default editor` opens all active config files in the system's default external editor (desktop only)
-- **Non-markdown files in buffer commands** — `:files`, `:buffers`, `]b`/`[b`, `:b`, `:find`, and `:bfirst`/`:blast` now include canvas, base, and other file-backed views instead of only markdown files
-- **`reload-configuration` reliability** — fixed a race where the reload command silently did nothing if the initial vimrc load missed the file, and fixed notification behavior when notifications are disabled or no config files are active
+- **[[tables|Table debug state inspector]]** — new `:tablestate` ex command and `getTableDebugState()` API that snapshots all hidden table interaction state into a single queryable object, making table interaction bugs observable instead of invisible
+- **[[tables|Table-nav fixes]]** — fixed key intercept getting stuck after switching from Live Preview to source mode during table-nav, and added horizontal scrolling support for off-screen columns in wide tables
+- **Scrolloff fixes** — scroll offset no longer activates during mouse selection, and hover tooltips from other plugins are no longer clipped within the scrolloff zone
+- **[[text-objects|Subword motion `dw` fix]]** — `dw` with subword motions enabled no longer deletes across line boundaries; punctuation group boundaries are now detected correctly (verified against Neovim 0.12.5)
+- **Configuration reload reliability** — hot-reload and manual reload no longer fail when the initial config load hits Obsidian's adapter timing race, and removed Lua keymaps are now properly cleaned up on reload
 
 See the [[changelog|full changelog]] for details.

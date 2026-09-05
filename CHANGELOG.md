@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.146.0] - 2026-09-05
+
 ### Added
 
 - **Table debug state inspector** — new `:tablestate` (`:tables`) ex command and `window.CodeMirrorAdapter.getTableDebugState(app)` API that snapshots all hidden table interaction state into a single queryable object. Exposes: table-nav session (WeakMap state, widget connection, scopes, timers), CM6 StateField, mode tracker status, cell editor status, cursor suppression (global, per-view, override count), fork key intercept flag, cell crossing coordination, DOM markers, and table scroll metrics. Designed to make table interaction bugs observable instead of invisible. ([#167](https://github.com/saberzero1/motions/issues/167))
