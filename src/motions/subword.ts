@@ -3,6 +3,8 @@ import { findSubwordBoundaries, findSubwordEnds } from '../util/subword';
 
 const MAX_LINE_LENGTH = 10_000;
 const WORD_SEGMENT_RE = /[\p{L}\p{M}\p{N}]+/gu;
+/** Matches contiguous runs of non-word, non-whitespace characters (punctuation groups), excluding subword separators (_ and -). */
+const PUNCT_GROUP_RE = /[^\p{L}\p{M}\p{N}\s_-]+/gu;
 
 function findWordStarts(text: string): number[] {
     const starts: number[] = [];
@@ -24,18 +26,46 @@ function findWordEnds(text: string): number[] {
     return ends;
 }
 
+/** Find start positions of non-word, non-whitespace (punctuation) groups. */
+function findPunctStarts(text: string): number[] {
+    const starts: number[] = [];
+    let match: RegExpExecArray | null;
+    const re = new RegExp(PUNCT_GROUP_RE.source, PUNCT_GROUP_RE.flags);
+    while ((match = re.exec(text)) !== null) {
+        starts.push(match.index);
+    }
+    return starts;
+}
+
+/** Find end positions of non-word, non-whitespace (punctuation) groups. */
+function findPunctEnds(text: string): number[] {
+    const ends: number[] = [];
+    let match: RegExpExecArray | null;
+    const re = new RegExp(PUNCT_GROUP_RE.source, PUNCT_GROUP_RE.flags);
+    while ((match = re.exec(text)) !== null) {
+        ends.push(match.index + match[0].length);
+    }
+    return ends;
+}
+
+function mergeSorted(a: number[], b: number[]): number[] {
+    const set = new Set(a);
+    for (const v of b) set.add(v);
+    return [...set].sort((x, y) => x - y);
+}
+
 function getLineStarts(line: string): number[] {
     if (line.length > MAX_LINE_LENGTH) {
-        return findWordStarts(line);
+        return mergeSorted(findWordStarts(line), findPunctStarts(line));
     }
-    return findSubwordBoundaries(line);
+    return mergeSorted(findSubwordBoundaries(line), findPunctStarts(line));
 }
 
 function getLineEnds(line: string): number[] {
     if (line.length > MAX_LINE_LENGTH) {
-        return findWordEnds(line);
+        return mergeSorted(findWordEnds(line), findPunctEnds(line));
     }
-    return findSubwordEnds(line);
+    return mergeSorted(findSubwordEnds(line), findPunctEnds(line));
 }
 
 function firstNonWhitespace(line: string): number | null {

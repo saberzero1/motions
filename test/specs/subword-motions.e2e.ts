@@ -86,6 +86,36 @@ describe('Subword motions', function () {
             const content = await getEditorValue();
             expect(content).toBe('newCaseWord');
         });
+
+        it('dw at end of line should not delete across line boundary (#174)', async function () {
+            await setupEditor(
+                'this is the text:\n\ni should not move upon dw above',
+                { line: 0, ch: 12 },
+            );
+            await vimKeys('d', 'w');
+            const content = await getEditorValue();
+            // dw deletes "text" subword; ":" remains as a separate punctuation word
+            expect(content).toBe(
+                'this is the :\n\ni should not move upon dw above',
+            );
+        });
+
+        it('dw on last word of line should delete to end of line only (#174)', async function () {
+            await setupEditor('hello world\nnext line', { line: 0, ch: 6 });
+            await vimKeys('d', 'w');
+            const content = await getEditorValue();
+            expect(content).toBe('hello \nnext line');
+        });
+
+        it('dw on word before trailing punctuation should stop at punctuation (#174)', async function () {
+            await setupEditor('some text: here\nsecond line', {
+                line: 0,
+                ch: 5,
+            });
+            await vimKeys('d', 'w');
+            const content = await getEditorValue();
+            expect(content).toBe('some : here\nsecond line');
+        });
     });
 
     describe('snake_case and kebab-case', function () {

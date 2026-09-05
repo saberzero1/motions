@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/main.ts` (`softReloadLuaConfig` unmap/undefineEx cleanup with multi-occurrence loop)
 - **Scroll offset activates during mouse selection** — dragging to select text near the viewport edge triggered the `scrollMargins`-based auto-scroll prematurely because the scrolloff margins expanded the drag auto-scroll trigger zone by `scrolloffLines × lineHeight` pixels. With high scrolloff values (e.g., `scrolloff=999` for centered scrolling), the viewport jumped while the mouse was still well within the editor. Fixed by tracking pointer-down state via a CM6 ViewPlugin with `eventObservers` and returning `null` from the `scrollMargins` callback while a mouse button is held, suppressing the margins during mouse interactions without affecting keyboard navigation. ([#175](https://github.com/saberzero1/motions/issues/175))
     - Plugin: `src/vim/scrolloff.ts` (added `mouseTracker` ViewPlugin, `pointerdown`/`pointerup` observers, document-level `pointerup` safety listener)
+- **Subword motion `dw` deletes across line boundaries** — with subword motions enabled, `dw` on the last word of a line deleted the newline and text from the next line instead of stopping at end of line. Two root causes: (1) the subword motion `mapCommand` calls were missing `forward: true`/`forward: false` in motionArgs, so the fork's `clipToLine` (which prevents `dw` from crossing line boundaries) was never triggered; (2) the subword motion only recognized word-character boundaries (letters, numbers) and completely skipped non-word non-whitespace characters (`:`, `.`, `!`, etc.), causing `w` to jump past trailing punctuation to the next line instead of stopping at the punctuation group. Verified against Neovim 0.12.5 — all test scenarios now match Neovim's behavior. ([#174](https://github.com/saberzero1/motions/issues/174))
+    - Plugin: `src/motions/register.ts` (added `forward: true` to `w`/`e` and `forward: false` to `b`/`ge` subword motion registrations)
+    - Plugin: `src/motions/subword.ts` (added punctuation group boundary detection via `PUNCT_GROUP_RE`, merged with subword boundaries in `getLineStarts`/`getLineEnds`)
 
 ### Tests
 
@@ -44,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 2 e2e tests in `test/specs/table-debug-state.e2e.ts` for table debug state instrumentation (#167)
 - 3 additional e2e tests in `test/specs/config-management.e2e.ts` for #168 (removed vimrc mapping cleaned up via reload command; removed vimrc mapping cleaned up on disk change; removed Lua keymap cleaned up via reload command)
 - 2 e2e tests in `test/specs/scrolloff-mouse.e2e.ts` for #175 (mouse drag near viewport edge should not cause scroll drift; keyboard navigation should still trigger scrolloff)
+- 3 e2e tests in `test/specs/subword-motions.e2e.ts` for #174 (`dw` at end of line, `dw` on last word, `dw` before trailing punctuation)
 
 ### Documentation
 

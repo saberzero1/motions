@@ -135,16 +135,24 @@ export { registerTableActions };
 
 export function registerSubwordMotions(reg: VimRegistration): void {
     reg.defineMotion('subwordForward', subwordForward);
-    reg.mapCommand('w', 'motion', 'subwordForward', { foldopen: 'hor' });
+    reg.mapCommand('w', 'motion', 'subwordForward', {
+        forward: true,
+        foldopen: 'hor',
+    });
     reg.defineMotion('subwordBackward', subwordBackward);
-    reg.mapCommand('b', 'motion', 'subwordBackward', { foldopen: 'hor' });
+    reg.mapCommand('b', 'motion', 'subwordBackward', {
+        forward: false,
+        foldopen: 'hor',
+    });
     reg.defineMotion('subwordEndForward', subwordEndForward);
     reg.mapCommand('e', 'motion', 'subwordEndForward', {
+        forward: true,
         inclusive: true,
         foldopen: 'hor',
     });
     reg.defineMotion('subwordEndBackward', subwordEndBackward);
     reg.mapCommand('ge', 'motion', 'subwordEndBackward', {
+        forward: false,
         inclusive: true,
         foldopen: 'hor',
     });
