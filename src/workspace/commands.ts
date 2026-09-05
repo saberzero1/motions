@@ -13,6 +13,10 @@ import type { JumpList } from '../vim/jumplist';
 import type { UndoTree } from '../vim/undo-tree';
 import { navigateWithJump, navigateWithJumpSetActive } from './navigate';
 import { getViolations, clearViolations } from '../util/invariant';
+import {
+    getTableDebugState,
+    formatTableDebugState,
+} from '../vim/table-debug-state';
 
 type OpenPicker = (
     source: string,
@@ -1220,6 +1224,15 @@ export function registerExCommands(
     reg.defineEx('violations!', '', () => {
         clearViolations();
         new Notice('Violations cleared.');
+    });
+    reg.defineEx('tablestate', 'tables', () => {
+        const state = getTableDebugState(app);
+        if (!state) {
+            new Notice('No active MarkdownView.');
+            return;
+        }
+        const text = formatTableDebugState(state);
+        new Notice(text, 20000);
     });
 
     if (oilManager) {

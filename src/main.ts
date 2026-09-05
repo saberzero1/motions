@@ -62,7 +62,9 @@ import {
     uninstallVimBridge,
     isBundledVimActive,
     resetBundledVimState,
+    registerTableDebugState,
 } from './vim/bundled-vim';
+import { getTableDebugState } from './vim/table-debug-state';
 import { ExCommandSuggest } from './ui/ex-suggest';
 import { createHintActions } from './ui/hint-mode';
 import {
@@ -247,10 +249,7 @@ import { invariant, devAssert } from './util/invariant';
 import { skipInTableCells } from './util/cell-editor-guard';
 import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
-import {
-    createTableNavExtension,
-    setTableNavEnterCallback,
-} from './vim/table-nav-controller';
+import { createTableNavExtension } from './vim/table-nav-controller';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -791,6 +790,8 @@ export default class VimMotionsPlugin extends Plugin {
         const builtinVimOn = isBuiltinVimEnabled(this.app);
         if (this.settings.vimEnabled && !builtinVimOn) {
             installVimBridge();
+            const appRef = this.app;
+            registerTableDebugState(() => getTableDebugState(appRef));
             const vim = getVimApi();
             if (!vim) {
                 new Notice('Vim Motions: could not initialise Vim layer.');
@@ -2545,8 +2546,6 @@ export default class VimMotionsPlugin extends Plugin {
                 modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
-            const tracker = this.modeTracker;
-            setTableNavEnterCallback(() => tracker.forceMode('normal'));
         }
         this.scrolloffManager = new ScrolloffManager(this);
         this.scrolloffManager.setup(this.settings.scrolloffLines);
@@ -3152,6 +3151,8 @@ export default class VimMotionsPlugin extends Plugin {
         try {
             this.settings.vimEnabled = true;
             installVimBridge();
+            const appRef = this.app;
+            registerTableDebugState(() => getTableDebugState(appRef));
             const vim = getVimApi();
             if (!vim) {
                 new Notice('Vim Motions: could not initialise Vim layer.');
@@ -3413,8 +3414,6 @@ export default class VimMotionsPlugin extends Plugin {
                 modePrompts: this.settings.modePrompts,
             });
             this.modeTracker.attach(this.app);
-            const tracker = this.modeTracker;
-            setTableNavEnterCallback(() => tracker.forceMode('normal'));
         }
 
         this.globalWhichKeyOverlay?.destroy();

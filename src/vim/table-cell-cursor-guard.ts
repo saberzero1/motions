@@ -72,9 +72,14 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
         }
 
         destroy(): void {
-            this.cursorInTable = false;
-            clearCursorSuppressedForView(this.view);
-            resumeAnimatedCursorForView(this.view);
+            if (this.cursorInTable) {
+                this.cursorInTable = false;
+                // Clear per-view override so global state takes effect.
+                // Without this, a stale `true` override persists through
+                // plugin recreation, leaving the cursor permanently hidden.
+                clearCursorSuppressedForView(this.view);
+                resumeAnimatedCursorForView(this.view);
+            }
         }
     },
 );

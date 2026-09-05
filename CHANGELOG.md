@@ -7,8 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Table debug state inspector** — new `:tablestate` (`:tables`) ex command and `window.CodeMirrorAdapter.getTableDebugState(app)` API that snapshots all hidden table interaction state into a single queryable object. Exposes: table-nav session (WeakMap state, widget connection, scopes, timers), CM6 StateField, mode tracker status, cell editor status, cursor suppression (global, per-view, override count), fork key intercept flag, cell crossing coordination, DOM markers, and table scroll metrics. Designed to make table interaction bugs observable instead of invisible. ([#167](https://github.com/saberzero1/motions/issues/167))
+    - Plugin: `src/vim/table-debug-state.ts` (new — snapshot and formatter)
+    - Plugin: `src/vim/table-nav-controller.ts` (`getTableNavSessionSnapshot()` export, `__DEV__` lifecycle logging)
+    - Plugin: `src/vim/table-cell-motions.ts` (`getCrossingState()` export)
+    - Plugin: `src/vim/bundled-vim.ts` (`registerTableDebugState()` lazy registration)
+    - Plugin: `src/workspace/commands.ts` (`:tablestate` ex command)
+    - Plugin: `src/main.ts` (debug state registration at startup and reload)
+    - Plugin: `src/types/codemirror-vim.d.ts` (fork type declarations for new exports)
+    - Fork: `src/block-cursor.ts` (`getViewOverrideCount()`, `isCursorSuppressed()` re-export)
+    - Fork: `src/index.ts` (`isKeyInterceptActive()`, updated exports)
+    - Fork: `DIFFERENCES.md` (documented new exports)
+
 ### Fixed
 
+- **Horizontal scrolling missing in table-nav mode** — navigating to off-screen columns in wide tables left the highlighted cell outside the visible viewport. The table widget had `overflow: visible` which prevented horizontal scrolling entirely — no ancestor element was scrollable. Fixed by changing the table widget's overflow to `overflow-x: auto` during table-nav mode and scrolling the widget element directly in `scrollHighlightedCellIntoView()`. ([#167](https://github.com/saberzero1/motions/issues/167))
+    - Plugin: `src/vim/table-nav-controller.ts` (horizontal scroll logic targeting `s.widgetEl`)
+    - Styles: `styles.css` (`.vim-motions-table-nav-mode`: `overflow-x: auto; overflow-y: visible`)
 - **Hot-reload and manual reload fail intermittently** — when the initial config load hit Obsidian's adapter timing race (file exists on disk but `adapter.read()` returns empty during early lifecycle), `vimrcWatchPath`/`luaWatchPath` were set to null because `found` was derived from the read result, not the stat. This broke both the file watcher (never fires) and the reload command (`softReloadVimrc` bails on null path). Three fixes: (1) watch paths are now resolved via `resolveVimrcPath`/`resolveLuaConfigPath` (stat-based) as a fallback when the read-based load returns `found: false`; (2) `softReloadVimrc` no longer bails on empty commands — an empty parse is a valid reload (clears all vimrc mappings); (3) `reloadAllConfigs` resolves `vimrcWatchPath` on-demand when null. ([#168](https://github.com/saberzero1/motions/issues/168))
     - Plugin: `src/main.ts` (stat-based watch path fallback in initial load, `softReloadVimrc` guard relaxed, `reloadAllConfigs` on-demand resolution)
 - **Removed Lua keymaps persist after config reload** — keymaps registered via `vim.keymap.set()` in `init.lua` were not cleaned up when removed from the config and reloaded. Two root causes: (1) `softReloadLuaConfig` did not unmap old Lua keymaps or undefine old ex commands before re-loading; (2) Lua keymaps were double-registered (eagerly during `loadInitLua` and again via `applyLuaMaps` in `reloadFeatures`), so a single `vim.unmap` only removed one entry. Fixed by adding an unmap loop in `softReloadLuaConfig` that removes all occurrences of each old mapping. ([#168](https://github.com/saberzero1/motions/issues/168))
@@ -16,11 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 2 e2e tests in `test/specs/table-debug-state.e2e.ts` for table debug state instrumentation (#167)
 - 3 additional e2e tests in `test/specs/config-management.e2e.ts` for #168 (removed vimrc mapping cleaned up via reload command; removed vimrc mapping cleaned up on disk change; removed Lua keymap cleaned up via reload command)
 
 ### Documentation
 
 - `CHANGELOG.md`
+- `KNOWN_LIMITATIONS.md`: added horizontal scrolling fix, table debug state documentation
+- `CONTRIBUTING.md`: added `table-debug-state.ts` to file tree, updated `table-nav-controller.ts` and `table-cell-motions.ts` descriptions
+- `AGENTS.md`: updated fork API surface with new diagnostic exports
+- `docs/features/tables.md`: updated viewport scrolling callout to mention horizontal scrolling
 
 ## [0.145.0] - 2026-09-04
 

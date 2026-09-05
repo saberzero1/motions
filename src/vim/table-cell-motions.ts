@@ -417,3 +417,15 @@ export function applyTableCellMotions(
             vim.defineMotion('moveByWords', origMoveByWords);
     };
 }
+
+export function getCrossingState(): {
+    token: number;
+    pendingRaf: boolean;
+    hasOverrides: boolean;
+} {
+    return {
+        token: crossingToken,
+        pendingRaf: pendingCrossingRaf !== 0,
+        hasOverrides: origMoveByLines !== null || origMoveByCharacters !== null,
+    };
+}

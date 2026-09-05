@@ -86,6 +86,19 @@ export function installVimBridge(): void {
     });
 
     win.CodeMirrorAdapter.isCursorSuppressedForView = isCursorSuppressedForView;
+    if (_tableDebugStateFn) {
+        win.CodeMirrorAdapter.getTableDebugState = _tableDebugStateFn;
+    }
+}
+
+let _tableDebugStateFn: (() => unknown) | null = null;
+
+export function registerTableDebugState(fn: () => unknown): void {
+    _tableDebugStateFn = fn;
+    const win = window as unknown as Record<string, Record<string, unknown>>;
+    if (win.CodeMirrorAdapter) {
+        win.CodeMirrorAdapter.getTableDebugState = fn;
+    }
 }
 
 /**
@@ -102,7 +115,9 @@ export function uninstallVimBridge(): void {
     if (win.CodeMirrorAdapter) {
         delete win.CodeMirrorAdapter.Vim;
         delete win.CodeMirrorAdapter.isCursorSuppressedForView;
+        delete win.CodeMirrorAdapter.getTableDebugState;
     }
+    _tableDebugStateFn = null;
 }
 
 /**

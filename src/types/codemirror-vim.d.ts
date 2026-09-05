@@ -52,7 +52,10 @@ declare module '@replit/codemirror-vim' {
     ): void;
     export function clearCursorSuppressedForView(view: EditorView): void;
     export function isCursorSuppressedForView(view: EditorView): boolean;
+    export function isCursorSuppressed(): boolean;
+    export function getViewOverrideCount(): number;
     export function setKeyInterceptActive(active: boolean): void;
+    export function isKeyInterceptActive(): boolean;
     export function resetForkedVimState(): void;
     export function resetCursorState(): void;
     export const Vim: Record<string, unknown>;
