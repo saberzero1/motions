@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Key intercept stuck after switching from Live Preview to source mode during table-nav** — `setKeyInterceptActive(true)` set during table-nav was never cleared when switching LP→source because the `TableNavController` ViewPlugin doesn't receive `update()` calls or `destroy()` during view reconfiguration. All vim key processing was suppressed globally, leaving the editor unresponsive. Fixed with a `window` capture-phase `keydown` safety handler that detects stale key intercept (active but no `.vim-motions-table-nav-mode` in DOM) and clears it. Pressing Escape restores key processing. Cursor suppression and stale Obsidian Scopes remain as a known limitation requiring fork-level fixes. ([#167](https://github.com/saberzero1/motions/issues/167))
+    - Plugin: `src/main.ts` (window keydown safety handler)
+    - Plugin: `src/vim/bundled-vim.ts` (`setKeyInterceptActive` and `clearCursorSuppressedForView` exposed on bridge)
+    - Plugin: `src/vim/table-nav-controller.ts` (`forceTableNavCleanup()` export, `logTableEvent` lifecycle logging)
+    - Plugin: `src/vim/table-debug-state.ts` (event log: `logTableEvent`, `getTableEventLog`, `recentEvents` in state output, `mainCursorLayerHidden` field)
 - **Horizontal scrolling missing in table-nav mode** — navigating to off-screen columns in wide tables left the highlighted cell outside the visible viewport. The table widget had `overflow: visible` which prevented horizontal scrolling entirely — no ancestor element was scrollable. Fixed by changing the table widget's overflow to `overflow-x: auto` during table-nav mode and scrolling the widget element directly in `scrollHighlightedCellIntoView()`. ([#167](https://github.com/saberzero1/motions/issues/167))
     - Plugin: `src/vim/table-nav-controller.ts` (horizontal scroll logic targeting `s.widgetEl`)
     - Styles: `styles.css` (`.vim-motions-table-nav-mode`: `overflow-x: auto; overflow-y: visible`)
@@ -33,13 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 3 e2e tests in `test/specs/table-cursor-vanish.e2e.ts` for #167 (stuck state detection, bridge cleanup, automatic keydown safety handler)
 - 2 e2e tests in `test/specs/table-debug-state.e2e.ts` for table debug state instrumentation (#167)
 - 3 additional e2e tests in `test/specs/config-management.e2e.ts` for #168 (removed vimrc mapping cleaned up via reload command; removed vimrc mapping cleaned up on disk change; removed Lua keymap cleaned up via reload command)
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `KNOWN_LIMITATIONS.md`: added horizontal scrolling fix, table debug state documentation
+- `KNOWN_LIMITATIONS.md`: added horizontal scrolling fix, key intercept stuck limitation, table debug state documentation
 - `CONTRIBUTING.md`: added `table-debug-state.ts` to file tree, updated `table-nav-controller.ts` and `table-cell-motions.ts` descriptions
 - `AGENTS.md`: updated fork API surface with new diagnostic exports
 - `docs/features/tables.md`: updated viewport scrolling callout to mention horizontal scrolling

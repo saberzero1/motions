@@ -16,6 +16,8 @@ import {
     setLivePreviewField,
     setPropertiesSource,
     isCursorSuppressedForView,
+    setKeyInterceptActive,
+    clearCursorSuppressedForView,
 } from '@replit/codemirror-vim';
 import type { CursorShapeConfig } from '@replit/codemirror-vim';
 import { Prec, type Extension } from '@codemirror/state';
@@ -86,6 +88,9 @@ export function installVimBridge(): void {
     });
 
     win.CodeMirrorAdapter.isCursorSuppressedForView = isCursorSuppressedForView;
+    win.CodeMirrorAdapter.setKeyInterceptActive = setKeyInterceptActive;
+    win.CodeMirrorAdapter.clearCursorSuppressedForView =
+        clearCursorSuppressedForView;
     if (_tableDebugStateFn) {
         win.CodeMirrorAdapter.getTableDebugState = _tableDebugStateFn;
     }
@@ -115,6 +120,8 @@ export function uninstallVimBridge(): void {
     if (win.CodeMirrorAdapter) {
         delete win.CodeMirrorAdapter.Vim;
         delete win.CodeMirrorAdapter.isCursorSuppressedForView;
+        delete win.CodeMirrorAdapter.setKeyInterceptActive;
+        delete win.CodeMirrorAdapter.clearCursorSuppressedForView;
         delete win.CodeMirrorAdapter.getTableDebugState;
     }
     _tableDebugStateFn = null;

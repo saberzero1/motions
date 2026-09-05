@@ -13,6 +13,7 @@ import {
 } from '@replit/codemirror-vim';
 import { pushKeymapScope, popKeymapScope } from '../util/keymap';
 import { isBuiltinVimEnabled } from '../util/vault';
+import { logTableEvent } from './table-debug-state';
 import { findTableRanges, cursorInRange, type TableRange } from './table-utils';
 import {
     findTableWidgetElement,
@@ -1156,6 +1157,64 @@ export function createTableNavExtension(
 }
 
 export { isTableNavActive };
+
+export function forceTableNavCleanup(view: EditorView, app: App): void {
+    const s = sessions.get(view);
+    if (!s || s.state === 'inactive') return;
+
+    logTableEvent('forceTableNavCleanup', `state=${s.state}`);
+
+    if (s.navScope) {
+        popKeymapScope(app, s.navScope);
+        s.navScope = null;
+    }
+    if (s.cellEditScope) {
+        popKeymapScope(app, s.cellEditScope);
+        s.cellEditScope = null;
+    }
+    if (s.cellEscapeCleanup) {
+        s.cellEscapeCleanup();
+        s.cellEscapeCleanup = null;
+    }
+    if (s.widgetEl) {
+        s.widgetEl.classList.remove(NAV_MODE_CLASS);
+        s.widgetEl
+            .querySelectorAll('.' + NAV_HIGHLIGHT_CLASS)
+            .forEach((el) => el.classList.remove(NAV_HIGHLIGHT_CLASS));
+    }
+    if (s.hiddenEl) {
+        s.hiddenEl.classList.remove(CELL_HIDDEN_CLASS);
+        s.hiddenEl = null;
+    }
+    if (s.entryTimer !== null) {
+        window.clearTimeout(s.entryTimer);
+        s.entryTimer = null;
+    }
+    if (s.refreshTimer !== null) {
+        window.clearTimeout(s.refreshTimer);
+        s.refreshTimer = null;
+    }
+
+    s.state = 'inactive';
+    s.exitTimestamp = Date.now();
+    s.widgetEl = null;
+    s.dirty = false;
+    resetPendingState();
+
+    setKeyInterceptActive(false);
+    clearCursorSuppressedForView(view);
+    resumeAnimatedCursorForView(view);
+
+    view.scrollDOM
+        .querySelectorAll('.' + CURSOR_LAYER_HIDDEN_CLASS)
+        .forEach((el) => el.classList.remove(CURSOR_LAYER_HIDDEN_CLASS));
+
+    try {
+        view.dispatch({ effects: exitTableNav.of(null) });
+    } catch {
+        /* view may be in an inconsistent state */
+    }
+}
 
 export function getTableNavSessionSnapshot(
     view: EditorView,

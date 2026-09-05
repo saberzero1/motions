@@ -163,6 +163,8 @@ import {
     resetCursorState,
     resetForkedVimState,
     setCursorSuppressed,
+    isKeyInterceptActive,
+    setKeyInterceptActive,
 } from '@replit/codemirror-vim';
 import { loadInitLua, resolveLuaConfigPath } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
@@ -806,6 +808,20 @@ export default class VimMotionsPlugin extends Plugin {
                 `Vim mode conflict: builtinVimOn=${builtinVimOn}, bundledActive=${isBundledVimActive()}`,
             );
         }
+
+        const keyInterceptSafetyHandler = () => {
+            if (!isKeyInterceptActive()) return;
+            if (document.querySelector('.vim-motions-table-nav-mode')) return;
+            setKeyInterceptActive(false);
+        };
+        window.addEventListener('keydown', keyInterceptSafetyHandler, true);
+        this.register(() =>
+            window.removeEventListener(
+                'keydown',
+                keyInterceptSafetyHandler,
+                true,
+            ),
+        );
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf) => {

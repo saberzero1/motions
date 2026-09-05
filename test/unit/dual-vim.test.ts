@@ -6,6 +6,8 @@ vi.mock('@replit/codemirror-vim', () => ({
     getCM: () => null,
     setLivePreviewField: vi.fn(),
     isCursorSuppressedForView: vi.fn(() => false),
+    setKeyInterceptActive: vi.fn(),
+    clearCursorSuppressedForView: vi.fn(),
     foldopenAnnotation: { of: (v: unknown) => v },
 }));
 

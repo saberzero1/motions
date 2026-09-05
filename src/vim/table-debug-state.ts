@@ -14,6 +14,26 @@ import {
 } from './native-table-adapter';
 import { getCrossingState } from './table-cell-motions';
 
+const MAX_LOG_ENTRIES = 50;
+const eventLog: { ts: number; event: string; detail?: string }[] = [];
+
+export function logTableEvent(event: string, detail?: string): void {
+    if (eventLog.length >= MAX_LOG_ENTRIES) eventLog.shift();
+    eventLog.push({ ts: Date.now(), event, detail });
+}
+
+export function getTableEventLog(): readonly {
+    ts: number;
+    event: string;
+    detail?: string;
+}[] {
+    return eventLog;
+}
+
+export function clearTableEventLog(): void {
+    eventLog.length = 0;
+}
+
 export interface TableDebugState {
     nav: Record<string, unknown> | null;
     stateField: TableNavState | null;
@@ -43,6 +63,7 @@ export interface TableDebugState {
         hasNavHighlight: boolean;
         hasNavMode: boolean;
         hasCursorLayerHidden: boolean;
+        mainCursorLayerHidden: boolean;
         hasCellHidden: boolean;
     };
     scroll: {
@@ -55,6 +76,7 @@ export interface TableDebugState {
         wrapperScrollLeft: number | null;
         scrollerScrollLeft: number;
     } | null;
+    recentEvents: readonly { ts: number; event: string; detail?: string }[];
 }
 
 export function getTableDebugState(app: App): TableDebugState | null {
@@ -121,6 +143,18 @@ export function getTableDebugState(app: App): TableDebugState | null {
                 editorView.scrollDOM.querySelector(
                     '.vim-motions-cursor-layer-hidden',
                 ) !== null,
+            mainCursorLayerHidden: (() => {
+                const layers =
+                    editorView.scrollDOM.querySelectorAll('.cm-vimCursorLayer');
+                for (let i = 0; i < layers.length; i++) {
+                    const l = layers[i] as HTMLElement;
+                    if (l.closest('.cm-table-widget')) continue;
+                    return l.classList.contains(
+                        'vim-motions-cursor-layer-hidden',
+                    );
+                }
+                return false;
+            })(),
             hasCellHidden:
                 contentEl.querySelector(
                     '.vim-motions-table-nav-cell-hidden',
@@ -144,6 +178,7 @@ export function getTableDebugState(app: App): TableDebugState | null {
                 scrollerScrollLeft: editorView.scrollDOM.scrollLeft,
             };
         })(),
+        recentEvents: getTableEventLog(),
     };
 }
 
@@ -214,6 +249,19 @@ export function formatTableDebugState(state: TableDebugState): string {
         }
     } else {
         lines.push('  (no table widget)');
+    }
+
+    lines.push('');
+    lines.push('--- Recent Events ---');
+    if (state.recentEvents.length === 0) {
+        lines.push('  (none)');
+    } else {
+        for (const e of state.recentEvents.slice(-15)) {
+            const t = new Date(e.ts).toLocaleTimeString();
+            lines.push(
+                `  [${t}] ${e.event}${e.detail ? ` (${e.detail})` : ''}`,
+            );
+        }
     }
 
     return lines.join('\n');
