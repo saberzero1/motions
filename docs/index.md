@@ -31,12 +31,8 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.146.0
+## What's new in 0.147.0
 
-- **[[tables|Table debug state inspector]]** — new `:tablestate` ex command and `getTableDebugState()` API that snapshots all hidden table interaction state into a single queryable object, making table interaction bugs observable instead of invisible
-- **[[tables|Table-nav fixes]]** — fixed key intercept getting stuck after switching from Live Preview to source mode during table-nav, and added horizontal scrolling support for off-screen columns in wide tables
-- **Scrolloff fixes** — scroll offset no longer activates during mouse selection, and hover tooltips from other plugins are no longer clipped within the scrolloff zone
-- **[[text-objects|Subword motion `dw` fix]]** — `dw` with subword motions enabled no longer deletes across line boundaries; punctuation group boundaries are now detected correctly (verified against Neovim 0.12.5)
-- **Configuration reload reliability** — hot-reload and manual reload no longer fail when the initial config load hits Obsidian's adapter timing race, and removed Lua keymaps are now properly cleaned up on reload
+- **Scrolloff centering fix** — with high `scrolloff` values (e.g., `set scrolloff=999` for centered scrolling), the cursor's vertical position no longer drifts when changing movement direction. The constraint-based algorithm now enforces both top and bottom margins simultaneously for direction-independent symmetric positioning ([#176](https://github.com/saberzero1/motions/issues/176))
 
 See the [[changelog|full changelog]] for details.
