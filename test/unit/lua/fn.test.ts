@@ -112,6 +112,105 @@ function setupState(overrides?: {
     return L;
 }
 
+function setupStateWithExtras(overrides?: {
+    activeFilePath?: string | null;
+    fileExists?: (path: string) => boolean;
+    getVaultFiles?: () => string[];
+    isDirectory?: (path: string) => boolean;
+    getMode?: () => string;
+    getCursorLine?: () => number;
+    getCursorCol?: () => number;
+    getLine?: (line: number) => string | null;
+    getLineCount?: () => number;
+    getLines?: (start: number, end: number) => string[];
+    setLines?: (start: number, end: number, lines: string[]) => void;
+    getGlobal?: (name: string) => unknown;
+    getOption?: (name: string) => unknown;
+    setCursor?: (line: number, col: number) => void;
+    getLastVisualMode?: () => string;
+    getScrollInfo?: () => { topline: number; leftcol: number } | null;
+    setScrollInfo?: (info: { topline: number; leftcol: number }) => void;
+    getFoldRange?: (line: number) => { from: number; to: number } | null;
+    getShiftwidth?: () => number;
+    getKeymaps?: (mode: string) => Array<{
+        lhs: string;
+        rhs?: string;
+        noremap: boolean;
+        desc?: string;
+        expr?: boolean;
+        silent?: boolean;
+    }>;
+    searchBuffer?: (
+        pattern: string,
+        flags: string,
+        cursorLine: number,
+        cursorCol: number,
+        stopline: number | null,
+    ) => { line: number; col: number } | null;
+}): LuaState {
+    const L = createSandboxedState();
+    const autocmdManager = new AutocmdManager(L);
+    injectVimApi(L, {
+        onSettingOverride: () => {},
+        handleExCommand: () => {},
+        getVaultName: () => 'vault',
+        onKeymap: () => {},
+        onKeymapDel: () => {},
+        autocmdManager,
+    });
+    injectVimFn(L, {
+        getActiveFilePath: () =>
+            overrides?.activeFilePath === undefined
+                ? 'folder/note.md'
+                : overrides.activeFilePath,
+        fileExists: overrides?.fileExists ?? ((path) => path === 'existing.md'),
+        getVaultFiles:
+            overrides?.getVaultFiles ??
+            (() => ['note.md', 'plan.md', 'folder/todo.md']),
+        isDirectory:
+            overrides?.isDirectory ?? ((path) => path === 'existing-dir'),
+        getMode: overrides?.getMode ?? (() => 'n'),
+        getCursorLine: overrides?.getCursorLine ?? (() => 0),
+        getCursorCol: overrides?.getCursorCol ?? (() => 0),
+        getLine:
+            overrides?.getLine ??
+            ((line) =>
+                line === 0 ? 'hello world' : line === 1 ? 'second line' : null),
+        getLineCount: overrides?.getLineCount ?? (() => 2),
+        getLines:
+            overrides?.getLines ??
+            ((start, end) => {
+                const lines = ['hello world', 'second line'];
+                return lines.slice(start, end);
+            }),
+        setLines: overrides?.setLines ?? (() => {}),
+        getPlatform: () => ({
+            isMacOS: false,
+            isLinux: true,
+            isWin: false,
+            isMobile: false,
+            isIosApp: false,
+            isAndroidApp: false,
+        }),
+        getObsidianVersion: () => '1.12.7',
+        getGlobal:
+            overrides?.getGlobal ??
+            ((name) => (name === 'mapleader' ? ',' : undefined)),
+        getOption:
+            overrides?.getOption ??
+            ((name) => (name === 'scrolloff' ? 5 : undefined)),
+        setCursor: overrides?.setCursor,
+        getLastVisualMode: overrides?.getLastVisualMode,
+        getScrollInfo: overrides?.getScrollInfo,
+        setScrollInfo: overrides?.setScrollInfo,
+        getFoldRange: overrides?.getFoldRange,
+        getShiftwidth: overrides?.getShiftwidth,
+        getKeymaps: overrides?.getKeymaps,
+        searchBuffer: overrides?.searchBuffer,
+    });
+    return L;
+}
+
 describe('vim.fn', () => {
     it('should implement has()', () => {
         const L = setupState();
@@ -393,6 +492,197 @@ describe('vim.fn', () => {
         ).toBe('a-b-c');
         expect(runLuaString(L, "return vim.fn.join({'a', 'b', 'c'})")).toBe(
             'a b c',
+        );
+        destroyState(L);
+    });
+
+    it('should implement visualmode()', () => {
+        const L = setupStateWithExtras({ getLastVisualMode: () => 'V' });
+        expect(runLuaString(L, 'return vim.fn.visualmode()')).toBe('V');
+        destroyState(L);
+    });
+
+    it('should implement visualmode() returning v by default', () => {
+        const L = setupStateWithExtras({ getLastVisualMode: () => 'v' });
+        expect(runLuaString(L, 'return vim.fn.visualmode()')).toBe('v');
+        destroyState(L);
+    });
+
+    it('should implement winsaveview()', () => {
+        const L = setupStateWithExtras({
+            getCursorLine: () => 5,
+            getCursorCol: () => 3,
+            getScrollInfo: () => ({ topline: 2, leftcol: 0 }),
+        });
+        const lnum = runLuaNumber(L, 'return vim.fn.winsaveview().lnum');
+        expect(lnum).toBe(5);
+        const col = runLuaNumber(L, 'return vim.fn.winsaveview().col');
+        expect(col).toBe(2);
+        const topline = runLuaNumber(L, 'return vim.fn.winsaveview().topline');
+        expect(topline).toBe(2);
+        destroyState(L);
+    });
+
+    it('should implement winrestview()', () => {
+        let setCursorCalled = false;
+        let scrollInfoSet: { topline: number; leftcol: number } | null = null;
+        const L = setupStateWithExtras({
+            getCursorLine: () => 1,
+            getCursorCol: () => 1,
+            setCursor: () => {
+                setCursorCalled = true;
+            },
+            setScrollInfo: (info) => {
+                scrollInfoSet = info;
+            },
+        });
+        const status = runLua(
+            L,
+            'vim.fn.winrestview({lnum=3, col=5, topline=10, leftcol=0})',
+        );
+        expect(status).toBe(lua.LUA_OK);
+        expect(setCursorCalled).toBe(true);
+        expect(scrollInfoSet).toEqual({ topline: 10, leftcol: 0 });
+        destroyState(L);
+    });
+
+    it('should implement foldclosed()', () => {
+        const L = setupStateWithExtras({
+            getFoldRange: (line) => (line === 4 ? { from: 3, to: 7 } : null),
+        });
+        expect(runLuaNumber(L, 'return vim.fn.foldclosed(5)')).toBe(4);
+        expect(runLuaNumber(L, 'return vim.fn.foldclosed(1)')).toBe(-1);
+        destroyState(L);
+    });
+
+    it('should implement foldclosedend()', () => {
+        const L = setupStateWithExtras({
+            getFoldRange: (line) => (line === 4 ? { from: 3, to: 7 } : null),
+        });
+        expect(runLuaNumber(L, 'return vim.fn.foldclosedend(5)')).toBe(8);
+        expect(runLuaNumber(L, 'return vim.fn.foldclosedend(1)')).toBe(-1);
+        destroyState(L);
+    });
+
+    it('should implement shiftwidth()', () => {
+        const L = setupStateWithExtras({ getShiftwidth: () => 2 });
+        expect(runLuaNumber(L, 'return vim.fn.shiftwidth()')).toBe(2);
+        destroyState(L);
+    });
+
+    it('should implement shiftwidth() default', () => {
+        const L = setupStateWithExtras({});
+        expect(runLuaNumber(L, 'return vim.fn.shiftwidth()')).toBe(4);
+        destroyState(L);
+    });
+
+    it('should implement strdisplaywidth()', () => {
+        const L = setupStateWithExtras({});
+        expect(runLuaNumber(L, "return vim.fn.strdisplaywidth('hello')")).toBe(
+            5,
+        );
+        expect(runLuaNumber(L, "return vim.fn.strdisplaywidth('')")).toBe(0);
+        destroyState(L);
+    });
+
+    it('should implement strcharpart()', () => {
+        const L = setupStateWithExtras({});
+        expect(
+            runLuaString(L, "return vim.fn.strcharpart('hello', 1, 3)"),
+        ).toBe('ell');
+        expect(
+            runLuaString(L, "return vim.fn.strcharpart('hello', 0, 2)"),
+        ).toBe('he');
+        expect(runLuaString(L, "return vim.fn.strcharpart('hello', 3)")).toBe(
+            'lo',
+        );
+        destroyState(L);
+    });
+
+    it('should implement maparg() returning empty for unknown mapping', () => {
+        const L = setupStateWithExtras({ getKeymaps: () => [] });
+        expect(runLuaString(L, "return vim.fn.maparg('j', 'n')")).toBe('');
+        destroyState(L);
+    });
+
+    it('should implement maparg() returning rhs for known mapping', () => {
+        const L = setupStateWithExtras({
+            getKeymaps: () => [{ lhs: 'j', rhs: 'gj', noremap: true }],
+        });
+        expect(runLuaString(L, "return vim.fn.maparg('j', 'n')")).toBe('gj');
+        destroyState(L);
+    });
+
+    it('should implement maparg() with dict flag', () => {
+        const L = setupStateWithExtras({
+            getKeymaps: () => [
+                { lhs: 'j', rhs: 'gj', noremap: true, desc: 'down' },
+            ],
+        });
+        expect(
+            runLuaString(L, "return vim.fn.maparg('j', 'n', 0, 1).lhs"),
+        ).toBe('j');
+        expect(
+            runLuaString(L, "return vim.fn.maparg('j', 'n', 0, 1).rhs"),
+        ).toBe('gj');
+        expect(
+            runLuaNumber(L, "return vim.fn.maparg('j', 'n', 0, 1).noremap"),
+        ).toBe(1);
+        expect(
+            runLuaString(L, "return vim.fn.maparg('j', 'n', 0, 1).desc"),
+        ).toBe('down');
+        destroyState(L);
+    });
+
+    it('should implement searchpos() forward search', () => {
+        const L = setupStateWithExtras({
+            getCursorLine: () => 1,
+            getCursorCol: () => 1,
+            searchBuffer: (pattern) => {
+                if (pattern === 'world') return { line: 1, col: 7 };
+                return null;
+            },
+        });
+        const line = runLuaNumber(L, "return vim.fn.searchpos('world')[1]");
+        const col = runLuaNumber(L, "return vim.fn.searchpos('world')[2]");
+        expect(line).toBe(1);
+        expect(col).toBe(7);
+        destroyState(L);
+    });
+
+    it('should implement searchpos() returning {0,0} on no match', () => {
+        const L = setupStateWithExtras({
+            getCursorLine: () => 1,
+            getCursorCol: () => 1,
+            searchBuffer: () => null,
+        });
+        const line = runLuaNumber(
+            L,
+            "return vim.fn.searchpos('nonexistent')[1]",
+        );
+        const col = runLuaNumber(
+            L,
+            "return vim.fn.searchpos('nonexistent')[2]",
+        );
+        expect(line).toBe(0);
+        expect(col).toBe(0);
+        destroyState(L);
+    });
+
+    it('should implement searchpos() with flags', () => {
+        const L = setupStateWithExtras({
+            getCursorLine: () => 3,
+            getCursorCol: () => 5,
+            searchBuffer: (_pattern, flags) => {
+                if (flags.includes('b')) return { line: 1, col: 1 };
+                return { line: 5, col: 3 };
+            },
+        });
+        expect(runLuaNumber(L, "return vim.fn.searchpos('test', '')[1]")).toBe(
+            5,
+        );
+        expect(runLuaNumber(L, "return vim.fn.searchpos('test', 'b')[1]")).toBe(
+            1,
         );
         destroyState(L);
     });

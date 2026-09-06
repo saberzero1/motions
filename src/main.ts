@@ -100,6 +100,7 @@ import {
     yankHighlightExtension,
     showYankHighlight,
 } from './vim/yank-highlight';
+import { extmarkExtension } from './lua/extmarks';
 import {
     foldSyncExtension,
     setFoldAwareNavigation,
@@ -2685,6 +2686,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         this.vimExtensionSlot.push(yankHighlightExtension());
+        this.vimExtensionSlot.push(extmarkExtension());
         this.vimExtensionSlot.push(createTableCellCursorGuard());
         this.vimExtensionSlot.push(
             createTableNavExtension(this.app, this.settings, getVimApi),

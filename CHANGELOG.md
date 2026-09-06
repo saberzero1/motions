@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Massive Lua API expansion (~260 Neovim API functions)** — 65 new functions across `vim.fn`, `vim.api`, `vim.validate`, `vim.version`, and the extmark system. Enables Lua ports of mini.surround, mini.ai, leap.nvim, flash.nvim, and nvim-surround.
+    - Plugin: `src/lua/fn.ts` (12 new `vim.fn.*` functions)
+    - Plugin: `src/lua/api.ts` (16 new `nvim_*` API functions)
+    - Plugin: `src/lua/stdlib.ts` (upgraded `vim.validate`, `vim.keycode`, `vim.notify_once`, `vim.version` namespace with 11 functions, ~30 previously stubbed utilities now real)
+    - Plugin: `src/lua/loader.ts` (callback wiring for all new functions)
+    - Plugin: `src/lua/namespace-stubs.ts` (removed `'version'` — now real implementation)
+    - Plugin: `src/lua/extmarks.ts` (new — Neovim extmark system: StateField, registry, effects, VirtualTextWidget, position tracking, query APIs)
+    - Plugin: `src/ui/input-modal.ts` (new — Obsidian Modal for `vim.fn.input()` prompt)
+    - Plugin: `src/main.ts` (registered extmark extension)
+    - Styles: `styles.css` (`.vim-motions-input-modal-input` styles)
+- **12 new `vim.fn.*` functions** (65 → 77 total): `visualmode`, `winsaveview`/`winrestview`, `foldclosed`/`foldclosedend`, `shiftwidth`, `strdisplaywidth`, `strcharpart`, `maparg`, `getcharstr`/`getchar` (async key input waiting), `searchpos` (regex buffer search), `input` (async user prompt via modal)
+- **16 new `nvim_*` API functions** (43 → 59 total): `nvim_get_mode`, `nvim_strwidth`, `nvim_buf_is_valid`, `nvim_buf_get_text`, `nvim_del_current_line`, `nvim_list_wins`, `nvim_buf_get_keymap`, `nvim_get_vvar`/`nvim_set_vvar`, `nvim_get_option_value`/`nvim_set_option_value`, `nvim_buf_set_extmark`, `nvim_buf_get_extmarks`, `nvim_buf_get_extmark_by_id`, `nvim_buf_del_extmark`, `nvim_buf_clear_namespace`
+- **`vim.version` namespace** — 11 functions: `vim.version()` returns plugin version as `{major, minor, patch}`, `vim.version.parse()`, `vim.version.cmp()`, `vim.version.lt()`/`gt()`/`eq()`, `vim.version.range()` with `has()`, `vim.version.last()`, plus `__tostring`/`__eq`/`__lt` metamethods on version objects
+- **`vim.validate()` full Neovim spec** — both old table form (`vim.validate({ name = { value, "string" } })`) and new positional form (`vim.validate("name", value, "string")`) with `optional` flag support (Neovim 0.11+ compatible)
+- **`vim.keycode()` key code translation** — translates Neovim key notation to readable strings (e.g., `vim.keycode("<CR>")` → `"\r"`, `vim.keycode("<Esc>")` → escape character)
+- **`vim.notify_once()` deduplication** — shows each unique message only once per session
+- **Extmark system** — `nvim_buf_set_extmark` (virtual text with `virt_text`, `virt_text_pos`, `hl_group`, `sign_text`, `priority`), `nvim_buf_get_extmarks` (range queries and full-buffer listing), `nvim_buf_get_extmark_by_id` (single extmark lookup), `nvim_buf_del_extmark` (removal), `nvim_buf_clear_namespace` (bulk clearing). Enables flash.nvim, leap.nvim, and nvim-surround Lua ports.
+- **`vim.fn.getcharstr()`** — async key input waiting that yields the Lua coroutine until a key is pressed. Enables interactive Lua plugins (mini.surround, mini.ai, leap.nvim)
+- **`vim.fn.searchpos()`** — regex buffer search returning `{line, col}` position. Enables flash.nvim, nvim-surround, and leap.nvim Lua ports
+- **`vim.fn.input()`** — async user input prompt via Obsidian modal. Enables nvim-surround and other interactive Lua plugins
+
+### Changed
+
+- **`nvim_create_namespace` returns unique IDs** — previously hardcoded to `0`, now returns unique integer IDs per namespace name, matching Neovim behavior. Required for the extmark system and highlight namespace isolation.
+- **~30 previously stubbed `vim.*` utilities now have real implementations** — functions that were no-op stubs or returned placeholder values now work correctly (e.g., `vim.is_callable`, `vim.stricmp`, `vim.pesc`, etc.)
+
+### Tests
+
+- 20 unit tests in `test/unit/lua/extmarks.test.ts` for extmark engine (set, get, delete, clear, virtual text, position tracking, range queries)
+- 27 new tests in `test/unit/lua/stdlib.test.ts` for `vim.validate`, `vim.version`, `vim.keycode`, `vim.notify_once`
+- 16 new tests in `test/unit/lua/fn.test.ts` for new `vim.fn.*` functions
+- 11 new tests in `test/unit/lua/api.test.ts` for new `nvim_*` API functions
+- 1 updated test in `test/unit/lua/highlight.test.ts` for `nvim_create_namespace` unique IDs
+- Total: 1799 unit tests pass
+
+### Documentation
+
+- `CHANGELOG.md`
+- `AGENTS.md`: new files (`src/lua/extmarks.ts`, `src/ui/input-modal.ts`), `vim.api` function count 43 → 59, `vim.fn` count 65 → 77, `nvim_create_namespace` now returns unique IDs, added `vim.version`, `vim.validate`, `vim.keycode`, `vim.notify_once` to API surface
+- `CONTRIBUTING.md`: new files in `src/` tree, updated function counts
+- `KNOWN_LIMITATIONS.md`: updated `vim.api.nvim_*` count and function list (43 → 59), updated `vim.fn` not-yet-implemented table (removed implemented functions), added extmark limitations, updated `nvim_create_namespace` description
+- `README.md`: updated Lua configuration bullet with new function counts and capabilities
+- `docs/configuration/lua-config.md`: added 12 new `vim.fn.*` entries, added 16 new `nvim_*` entries, added `vim.version` section, added `vim.validate` section, added extmark API section, updated `nvim_create_namespace` docs, updated function count (65 → 77)
+
 ## [0.147.0] - 2026-09-05
 
 ### Fixed

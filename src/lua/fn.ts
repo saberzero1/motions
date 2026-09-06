@@ -58,6 +58,32 @@ export interface VimFnCallbacks {
     setMark?: (name: string, line: number, ch: number) => void;
     setLine?: (line: number, text: string) => void;
     insertLines?: (afterLine: number, lines: string[]) => void;
+    runner?: import('./coroutine-runner').CoroutineRunner;
+    waitForKeypress?: () => Promise<string | null>;
+    showInputPrompt?: (
+        prompt: string,
+        defaultText: string,
+    ) => Promise<string | null>;
+    searchBuffer?: (
+        pattern: string,
+        flags: string,
+        cursorLine: number,
+        cursorCol: number,
+        stopline: number | null,
+    ) => { line: number; col: number } | null;
+    getLastVisualMode?: () => string;
+    getScrollInfo?: () => { topline: number; leftcol: number } | null;
+    setScrollInfo?: (info: { topline: number; leftcol: number }) => void;
+    getFoldRange?: (line: number) => { from: number; to: number } | null;
+    getShiftwidth?: () => number;
+    getKeymaps?: (mode: string) => Array<{
+        lhs: string;
+        rhs?: string;
+        noremap: boolean;
+        desc?: string;
+        expr?: boolean;
+        silent?: boolean;
+    }>;
 }
 
 type VimFnHandler = (L: lua_State) => number;
@@ -1287,13 +1313,245 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         return 1;
     });
 
+    registry.set('visualmode', (state) => {
+        const mode = callbacks.getLastVisualMode?.() ?? '';
+        lua.lua_pushstring(state, to_luastring(mode));
+        return 1;
+    });
+
+    registry.set('winsaveview', (state) => {
+        const line = callbacks.getCursorLine();
+        const col = callbacks.getCursorCol() - 1;
+        const scroll = callbacks.getScrollInfo?.() ?? {
+            topline: 1,
+            leftcol: 0,
+        };
+        lua.lua_newtable(state);
+        const t = lua.lua_gettop(state);
+        lua.lua_pushnumber(state, line);
+        lua.lua_setfield(state, t, to_luastring('lnum'));
+        lua.lua_pushnumber(state, Math.max(0, col));
+        lua.lua_setfield(state, t, to_luastring('col'));
+        lua.lua_pushnumber(state, 0);
+        lua.lua_setfield(state, t, to_luastring('coladd'));
+        lua.lua_pushnumber(state, Math.max(0, col));
+        lua.lua_setfield(state, t, to_luastring('curswant'));
+        lua.lua_pushnumber(state, scroll.topline);
+        lua.lua_setfield(state, t, to_luastring('topline'));
+        lua.lua_pushnumber(state, scroll.leftcol);
+        lua.lua_setfield(state, t, to_luastring('leftcol'));
+        return 1;
+    });
+
+    registry.set('winrestview', (state) => {
+        if (!lua.lua_istable(state, 1)) return 0;
+        lua.lua_getfield(state, 1, to_luastring('lnum'));
+        const lnum = lua.lua_isnumber(state, -1)
+            ? lua.lua_tonumber(state, -1)
+            : null;
+        lua.lua_pop(state, 1);
+        lua.lua_getfield(state, 1, to_luastring('col'));
+        const col = lua.lua_isnumber(state, -1)
+            ? lua.lua_tonumber(state, -1)
+            : null;
+        lua.lua_pop(state, 1);
+        if (lnum !== null && col !== null) {
+            callbacks.setCursor?.(lnum - 1, col);
+        }
+        lua.lua_getfield(state, 1, to_luastring('topline'));
+        const topline = lua.lua_isnumber(state, -1)
+            ? lua.lua_tonumber(state, -1)
+            : null;
+        lua.lua_pop(state, 1);
+        lua.lua_getfield(state, 1, to_luastring('leftcol'));
+        const leftcol = lua.lua_isnumber(state, -1)
+            ? lua.lua_tonumber(state, -1)
+            : null;
+        lua.lua_pop(state, 1);
+        if (topline !== null || leftcol !== null) {
+            callbacks.setScrollInfo?.({
+                topline: topline ?? 1,
+                leftcol: leftcol ?? 0,
+            });
+        }
+        return 0;
+    });
+
+    registry.set('foldclosed', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        const range = callbacks.getFoldRange?.(lnum - 1);
+        lua.lua_pushnumber(state, range ? range.from + 1 : -1);
+        return 1;
+    });
+
+    registry.set('foldclosedend', (state) => {
+        const lnum = lua.lua_tonumber(state, 1);
+        const range = callbacks.getFoldRange?.(lnum - 1);
+        lua.lua_pushnumber(state, range ? range.to + 1 : -1);
+        return 1;
+    });
+
+    registry.set('shiftwidth', (state) => {
+        const sw = callbacks.getShiftwidth?.() ?? 4;
+        lua.lua_pushnumber(state, sw);
+        return 1;
+    });
+
+    registry.set('strdisplaywidth', (state) => {
+        const s = readString(state, 1);
+        let width = 0;
+        for (const ch of s) {
+            const cp = ch.codePointAt(0) ?? 0;
+            if (
+                (cp >= 0x1100 && cp <= 0x115f) ||
+                (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) ||
+                (cp >= 0xac00 && cp <= 0xd7a3) ||
+                (cp >= 0xf900 && cp <= 0xfaff) ||
+                (cp >= 0xfe10 && cp <= 0xfe6f) ||
+                (cp >= 0xff01 && cp <= 0xff60) ||
+                (cp >= 0xffe0 && cp <= 0xffe6) ||
+                (cp >= 0x20000 && cp <= 0x2fffd) ||
+                (cp >= 0x30000 && cp <= 0x3fffd)
+            ) {
+                width += 2;
+            } else if (ch === '\t') {
+                const tabstop =
+                    (callbacks.getOption?.('tabstop') as number) ?? 8;
+                width += tabstop - (width % tabstop);
+            } else {
+                width += 1;
+            }
+        }
+        lua.lua_pushnumber(state, width);
+        return 1;
+    });
+
+    registry.set('strcharpart', (state) => {
+        const s = readString(state, 1);
+        const start = lua.lua_tonumber(state, 2);
+        const chars = [...s];
+        const hasLen = lua.lua_isnumber(state, 3);
+        const len = hasLen ? lua.lua_tonumber(state, 3) : chars.length;
+        const actualStart = Math.max(0, start);
+        const actualLen = Math.max(0, len - Math.max(0, -start));
+        const result = chars
+            .slice(actualStart, actualStart + actualLen)
+            .join('');
+        lua.lua_pushstring(state, to_luastring(result));
+        return 1;
+    });
+
+    registry.set('maparg', (state) => {
+        const name = readString(state, 1);
+        const mode = lua.lua_isstring(state, 2) ? readString(state, 2) : '';
+        const dict = lua.lua_isnumber(state, 4)
+            ? lua.lua_tonumber(state, 4)
+            : 0;
+        const mappings =
+            callbacks.getKeymaps?.(mode === '' ? 'normal' : mode) ?? [];
+        const found = mappings.find((m) => m.lhs === name);
+        if (!found) {
+            if (dict === 1) {
+                lua.lua_newtable(state);
+            } else {
+                lua.lua_pushstring(state, to_luastring(''));
+            }
+            return 1;
+        }
+        if (dict === 1) {
+            lua.lua_newtable(state);
+            const t = lua.lua_gettop(state);
+            lua.lua_pushstring(state, to_luastring(found.lhs));
+            lua.lua_setfield(state, t, to_luastring('lhs'));
+            lua.lua_pushstring(state, to_luastring(found.rhs ?? ''));
+            lua.lua_setfield(state, t, to_luastring('rhs'));
+            lua.lua_pushnumber(state, found.noremap ? 1 : 0);
+            lua.lua_setfield(state, t, to_luastring('noremap'));
+            lua.lua_pushnumber(state, found.silent ? 1 : 0);
+            lua.lua_setfield(state, t, to_luastring('silent'));
+            lua.lua_pushnumber(state, found.expr ? 1 : 0);
+            lua.lua_setfield(state, t, to_luastring('expr'));
+            if (found.desc) {
+                lua.lua_pushstring(state, to_luastring(found.desc));
+                lua.lua_setfield(state, t, to_luastring('desc'));
+            }
+            lua.lua_pushstring(
+                state,
+                to_luastring(mode === '' ? 'n' : mode.charAt(0)),
+            );
+            lua.lua_setfield(state, t, to_luastring('mode'));
+        } else {
+            lua.lua_pushstring(state, to_luastring(found.rhs ?? ''));
+        }
+        return 1;
+    });
+
+    if (callbacks.runner && callbacks.waitForKeypress) {
+        const _runner = callbacks.runner;
+        const _waitForKeypress = callbacks.waitForKeypress;
+        registry.set('getcharstr', (state) => {
+            const promise = _waitForKeypress().then((key) => key ?? '');
+            return _runner.yieldWithPromise(state, promise);
+        });
+        registry.set('getchar', (state) => {
+            const promise = _waitForKeypress().then((key) => {
+                if (!key) return 27;
+                return key.charCodeAt(0);
+            });
+            return _runner.yieldWithPromise(state, promise);
+        });
+    }
+
+    registry.set('searchpos', (state) => {
+        const pattern = readString(state, 1);
+        const flags = lua.lua_isstring(state, 2) ? readString(state, 2) : '';
+        const stopline = lua.lua_isnumber(state, 3)
+            ? lua.lua_tonumber(state, 3)
+            : null;
+        const cursorLine = callbacks.getCursorLine();
+        const cursorCol = callbacks.getCursorCol();
+        const result =
+            callbacks.searchBuffer?.(
+                pattern,
+                flags,
+                cursorLine,
+                cursorCol,
+                stopline,
+            ) ?? null;
+        lua.lua_newtable(state);
+        if (result) {
+            lua.lua_pushnumber(state, result.line);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushnumber(state, result.col);
+            lua.lua_rawseti(state, -2, 2);
+        } else {
+            lua.lua_pushnumber(state, 0);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushnumber(state, 0);
+            lua.lua_rawseti(state, -2, 2);
+        }
+        return 1;
+    });
+
+    if (callbacks.runner && callbacks.showInputPrompt) {
+        const _runner = callbacks.runner;
+        const _showInputPrompt = callbacks.showInputPrompt;
+        registry.set('input', (state) => {
+            const prompt = lua.lua_isstring(state, 1)
+                ? readString(state, 1)
+                : '';
+            const defaultText = lua.lua_isstring(state, 2)
+                ? readString(state, 2)
+                : '';
+            const promise = _showInputPrompt(prompt, defaultText).then(
+                (result) => result ?? '',
+            );
+            return _runner.yieldWithPromise(state, promise);
+        });
+    }
+
     const stringReturnFns = new Set([
-        'getcharstr',
-        'visualmode',
-        'input',
-        'maparg',
         'mapcheck',
-        'strcharpart',
         'getcmdtype',
         'reg_recording',
         'reg_executing',
@@ -1305,15 +1563,10 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'string',
     ]);
     const numberReturnFns = new Set([
-        'foldclosed',
-        'foldclosedend',
-        'getchar',
-        'strdisplaywidth',
         'byte2line',
         'line2byte',
         'search',
         'win_getid',
-        'shiftwidth',
         'setbufline',
         'deletebufline',
         'bufnr',
@@ -1332,13 +1585,7 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'feedkeys',
     ]);
     const booleanReturnFns = new Set(['hasmapto', 'buflisted', 'bufexists']);
-    const tableReturnFns = new Set([
-        'searchpos',
-        'winsaveview',
-        'getwininfo',
-        'getbufline',
-        'json_decode',
-    ]);
+    const tableReturnFns = new Set(['getwininfo', 'getbufline', 'json_decode']);
 
     for (const name of stringReturnFns) {
         registerStub(name, (state) => {
@@ -1368,10 +1615,6 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
             return 1;
         });
     }
-    registerStub('winrestview', (_state) => {
-        warnOnce('winrestview');
-        return 0;
-    });
     registerStub('system', (state) => {
         return lauxlib.luaL_error(
             state,

@@ -320,4 +320,409 @@ describe('vim stdlib', () => {
         expect(runLuaNumber(L, 'return vim.stricmp("Hello", "HELLO")')).toBe(0);
         destroyState(L);
     });
+
+    it('should implement vim.validate with new positional form', () => {
+        const L = setupState();
+        // Valid: no error
+        const ok = runLua(L, "vim.validate('arg1', 'hello', 'string')");
+        expect(ok).toBe(lua.LUA_OK);
+        // Invalid: should error
+        const err = runLuaError(L, "vim.validate('arg1', 5, 'string')");
+        expect(err).toContain('arg1');
+        expect(err).toContain('expected string');
+        expect(err).toContain('got number');
+        destroyState(L);
+    });
+
+    it('should implement vim.validate with old table form', () => {
+        const L = setupState();
+        const ok = runLua(L, "vim.validate{name={'hello', 'string'}}");
+        expect(ok).toBe(lua.LUA_OK);
+        const err = runLuaError(L, "vim.validate{name={5, 'string'}}");
+        expect(err).toContain('expected string');
+        destroyState(L);
+    });
+
+    it('should implement vim.validate optional parameter', () => {
+        const L = setupState();
+        // nil + optional = ok
+        const ok = runLua(L, "vim.validate('arg1', nil, 'string', true)");
+        expect(ok).toBe(lua.LUA_OK);
+        // nil + not optional = error
+        const err = runLuaError(L, "vim.validate('arg1', nil, 'string')");
+        expect(err).toContain('expected string');
+        expect(err).toContain('got nil');
+        destroyState(L);
+    });
+
+    it('should implement vim.validate with function validator', () => {
+        const L = setupState();
+        const ok = runLua(
+            L,
+            "vim.validate('arg1', 4, function(v) return v % 2 == 0 end, 'even number')",
+        );
+        expect(ok).toBe(lua.LUA_OK);
+        const err = runLuaError(
+            L,
+            "vim.validate('arg1', 3, function(v) return v % 2 == 0 end, 'even number')",
+        );
+        expect(err).toContain('expected even number');
+        expect(err).toContain('got 3');
+        destroyState(L);
+    });
+
+    it('should implement vim.validate with table of types', () => {
+        const L = setupState();
+        const ok = runLua(
+            L,
+            "vim.validate('arg1', 'hi', {'string', 'number'})",
+        );
+        expect(ok).toBe(lua.LUA_OK);
+        const err = runLuaError(
+            L,
+            "vim.validate('arg1', true, {'string', 'number'})",
+        );
+        expect(err).toContain('expected string|number');
+        expect(err).toContain('got boolean');
+        destroyState(L);
+    });
+
+    it('should implement vim.keycode', () => {
+        const L = setupState();
+        expect(runLuaNumber(L, "return string.byte(vim.keycode('<CR>'))")).toBe(
+            13,
+        );
+        expect(
+            runLuaNumber(L, "return string.byte(vim.keycode('<Esc>'))"),
+        ).toBe(27);
+        expect(
+            runLuaNumber(L, "return string.byte(vim.keycode('<Tab>'))"),
+        ).toBe(9);
+        expect(runLuaNumber(L, "return string.byte(vim.keycode('<BS>'))")).toBe(
+            8,
+        );
+        expect(runLuaString(L, "return vim.keycode('<Space>')")).toBe(' ');
+        expect(runLuaString(L, "return vim.keycode('<lt>')")).toBe('<');
+        expect(runLuaString(L, "return vim.keycode('<Bar>')")).toBe('|');
+        // Case insensitive
+        expect(runLuaNumber(L, "return string.byte(vim.keycode('<cr>'))")).toBe(
+            13,
+        );
+        // Unknown sequences pass through
+        expect(runLuaString(L, "return vim.keycode('<Unknown>')")).toBe(
+            '<Unknown>',
+        );
+        // Non-bracket text passes through
+        expect(runLuaString(L, "return vim.keycode('hello')")).toBe('hello');
+        destroyState(L);
+    });
+
+    it('should implement vim.notify_once dedup', () => {
+        const L = setupState();
+        expect(runLua(L, "vim.notify_once('test message', 2)")).toBe(
+            lua.LUA_OK,
+        );
+        expect(runLua(L, "vim.notify_once('test message', 2)")).toBe(
+            lua.LUA_OK,
+        );
+        expect(runLua(L, "vim.notify_once('other message', 2)")).toBe(
+            lua.LUA_OK,
+        );
+        destroyState(L);
+    });
+
+    it('should implement vim.version()', () => {
+        const L = setupState();
+        const [major, minor, patch] = runLuaNumbers(
+            L,
+            'local v = vim.version(); return v.major, v.minor, v.patch',
+        );
+        expect(major).toBe(0);
+        expect(minor).toBe(12);
+        expect(patch).toBe(5);
+        destroyState(L);
+    });
+
+    it('should implement vim.version.parse', () => {
+        const L = setupState();
+        const [major, minor, patch] = runLuaNumbers(
+            L,
+            "local v = vim.version.parse('1.2.3'); return v.major, v.minor, v.patch",
+        );
+        expect(major).toBe(1);
+        expect(minor).toBe(2);
+        expect(patch).toBe(3);
+        // Two-part version
+        const [m2, n2, p2] = runLuaNumbers(
+            L,
+            "local v = vim.version.parse('0.10'); return v.major, v.minor, v.patch",
+        );
+        expect(m2).toBe(0);
+        expect(n2).toBe(10);
+        expect(p2).toBe(0);
+        // Invalid returns nil
+        expect(
+            runLuaIsNil(L, "return vim.version.parse('not-a-version')"),
+        ).toBe(true);
+        destroyState(L);
+    });
+
+    it('should implement vim.version.cmp', () => {
+        const L = setupState();
+        expect(
+            runLuaNumber(L, "return vim.version.cmp('1.0.0', '1.0.0')"),
+        ).toBe(0);
+        expect(
+            runLuaNumber(L, "return vim.version.cmp('1.0.0', '2.0.0')"),
+        ).toBe(-1);
+        expect(
+            runLuaNumber(L, "return vim.version.cmp('2.0.0', '1.0.0')"),
+        ).toBe(1);
+        expect(
+            runLuaNumber(L, "return vim.version.cmp('1.2.3', '1.2.4')"),
+        ).toBe(-1);
+        destroyState(L);
+    });
+
+    it('should implement vim.version comparison functions', () => {
+        const L = setupState();
+        expect(
+            runLuaBoolean(L, "return vim.version.eq('1.0.0', '1.0.0')"),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(L, "return vim.version.eq('1.0.0', '2.0.0')"),
+        ).toBe(false);
+        expect(
+            runLuaBoolean(L, "return vim.version.gt('2.0.0', '1.0.0')"),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(L, "return vim.version.gt('1.0.0', '2.0.0')"),
+        ).toBe(false);
+        expect(
+            runLuaBoolean(L, "return vim.version.ge('1.0.0', '1.0.0')"),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(L, "return vim.version.lt('1.0.0', '2.0.0')"),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(L, "return vim.version.le('1.0.0', '1.0.0')"),
+        ).toBe(true);
+        destroyState(L);
+    });
+
+    it('should implement vim.version.range', () => {
+        const L = setupState();
+        expect(
+            runLuaBoolean(
+                L,
+                "return vim.version.range('>=1.0.0'):has('1.2.3')",
+            ),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(
+                L,
+                "return vim.version.range('>=1.0.0'):has('0.9.0')",
+            ),
+        ).toBe(false);
+        expect(
+            runLuaBoolean(
+                L,
+                "return vim.version.range('>=1.0.0 <2.0.0'):has('1.5.0')",
+            ),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(
+                L,
+                "return vim.version.range('>=1.0.0 <2.0.0'):has('2.0.0')",
+            ),
+        ).toBe(false);
+        destroyState(L);
+    });
+
+    it('should implement vim.version.last', () => {
+        const L = setupState();
+        const [major, minor] = runLuaNumbers(
+            L,
+            "local v = vim.version.last({'0.9.0', '1.2.3', '0.10.0'}); return v.major, v.minor",
+        );
+        expect(major).toBe(1);
+        expect(minor).toBe(2);
+        destroyState(L);
+    });
+
+    it('should implement vim.deep_equal', () => {
+        const L = setupState();
+        expect(
+            runLuaBoolean(L, 'return vim.deep_equal({a=1,b=2}, {a=1,b=2})'),
+        ).toBe(true);
+        expect(runLuaBoolean(L, 'return vim.deep_equal({a=1}, {a=2})')).toBe(
+            false,
+        );
+        expect(runLuaBoolean(L, 'return vim.deep_equal(1, 1)')).toBe(true);
+        expect(runLuaBoolean(L, "return vim.deep_equal('a', 'a')")).toBe(true);
+        expect(
+            runLuaBoolean(L, 'return vim.deep_equal({a={b=1}}, {a={b=1}})'),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(L, 'return vim.deep_equal({a={b=1}}, {a={b=2}})'),
+        ).toBe(false);
+        destroyState(L);
+    });
+
+    it('should implement vim.islist and vim.isarray', () => {
+        const L = setupState();
+        expect(runLuaBoolean(L, 'return vim.islist({1, 2, 3})')).toBe(true);
+        expect(runLuaBoolean(L, 'return vim.islist({a=1})')).toBe(false);
+        expect(runLuaBoolean(L, 'return vim.islist({})')).toBe(true);
+        expect(runLuaBoolean(L, "return vim.islist('string')")).toBe(false);
+        // isarray is an alias
+        expect(runLuaBoolean(L, 'return vim.isarray({1, 2})')).toBe(true);
+        destroyState(L);
+    });
+
+    it('should implement vim.list_contains', () => {
+        const L = setupState();
+        expect(
+            runLuaBoolean(L, "return vim.list_contains({'a','b','c'}, 'b')"),
+        ).toBe(true);
+        expect(
+            runLuaBoolean(L, "return vim.list_contains({'a','b','c'}, 'd')"),
+        ).toBe(false);
+        destroyState(L);
+    });
+
+    it('should implement vim.list_slice', () => {
+        const L = setupState();
+        expect(
+            runLuaString(
+                L,
+                "return table.concat(vim.list_slice({1,2,3,4,5}, 2, 4), ',')",
+            ),
+        ).toBe('2,3,4');
+        expect(
+            runLuaString(
+                L,
+                "return table.concat(vim.list_slice({1,2,3}, 2), ',')",
+            ),
+        ).toBe('2,3');
+        destroyState(L);
+    });
+
+    it('should implement vim.empty_dict', () => {
+        const L = setupState();
+        expect(
+            runLuaNumber(
+                L,
+                'local t = vim.empty_dict(); local c = 0; for _ in pairs(t) do c = c + 1 end; return c',
+            ),
+        ).toBe(0);
+        destroyState(L);
+    });
+
+    it('should implement vim.defaulttable', () => {
+        const L = setupState();
+        expect(
+            runLuaNumber(
+                L,
+                'local t = vim.defaulttable(); t.a.b = 42; return t.a.b',
+            ),
+        ).toBe(42);
+        destroyState(L);
+    });
+
+    it('should implement vim.ringbuf', () => {
+        const L = setupState();
+        const [a, b] = runLuaNumbers(
+            L,
+            [
+                'local r = vim.ringbuf(2)',
+                'r:push(1)',
+                'r:push(2)',
+                'r:push(3)',
+                'local top = r:peek()',
+                'local popped = r:pop()',
+                'return top, popped',
+            ].join('\n'),
+        );
+        expect(a).toBe(3);
+        expect(b).toBe(3);
+        destroyState(L);
+    });
+
+    it('should implement vim.spairs', () => {
+        const L = setupState();
+        expect(
+            runLuaString(
+                L,
+                [
+                    'local result = {}',
+                    'for k, v in vim.spairs({c=3, a=1, b=2}) do',
+                    "    table.insert(result, k .. '=' .. v)",
+                    'end',
+                    "return table.concat(result, ',')",
+                ].join('\n'),
+            ),
+        ).toBe('a=1,b=2,c=3');
+        destroyState(L);
+    });
+
+    it('should implement vim.gsplit', () => {
+        const L = setupState();
+        expect(
+            runLuaString(
+                L,
+                [
+                    'local result = {}',
+                    "for part in vim.gsplit('a,b,c', ',') do",
+                    '    table.insert(result, part)',
+                    'end',
+                    "return table.concat(result, '-')",
+                ].join('\n'),
+            ),
+        ).toBe('a-b-c');
+        destroyState(L);
+    });
+
+    it('should implement vim.tbl_flatten', () => {
+        const L = setupState();
+        expect(
+            runLuaString(
+                L,
+                "return table.concat(vim.tbl_flatten({1,{2,{3}},4}), ',')",
+            ),
+        ).toBe('1,2,3,4');
+        destroyState(L);
+    });
+
+    it('should implement vim.schedule_wrap', () => {
+        const L = setupState();
+        expect(
+            runLuaBoolean(
+                L,
+                "return type(vim.schedule_wrap(function() end)) == 'function'",
+            ),
+        ).toBe(true);
+        destroyState(L);
+    });
+
+    it('should implement vim.print', () => {
+        const L = setupState();
+        // vim.print returns its arguments
+        expect(runLuaNumber(L, 'return vim.print(42)')).toBe(42);
+        destroyState(L);
+    });
+
+    it('should implement vim.F.if_nil', () => {
+        const L = setupState();
+        expect(runLuaNumber(L, 'return vim.F.if_nil(nil, 42)')).toBe(42);
+        expect(runLuaNumber(L, 'return vim.F.if_nil(7, 42)')).toBe(7);
+        destroyState(L);
+    });
+
+    it('should implement vim.F.ok_or_nil', () => {
+        const L = setupState();
+        expect(runLuaNumber(L, 'return vim.F.ok_or_nil(true, 42)')).toBe(42);
+        expect(runLuaIsNil(L, 'return vim.F.ok_or_nil(false, 42)')).toBe(true);
+        destroyState(L);
+    });
 });

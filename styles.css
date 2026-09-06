@@ -1653,3 +1653,8 @@ settings:
 .vim-motions-undo-branch-toggle:hover {
     color: var(--text-accent);
 }
+
+.vim-motions-input-modal-input {
+    width: 100%;
+    margin-top: 8px;
+}

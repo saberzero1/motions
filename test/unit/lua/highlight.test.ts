@@ -136,7 +136,7 @@ describe('vim.api highlight integration', () => {
         destroyState(L);
     });
 
-    it('returns 0 from nvim_create_namespace', () => {
+    it('returns unique IDs from nvim_create_namespace', () => {
         const L = createSandboxedState();
         injectVimApi(L, {
             onSettingOverride: () => {},
@@ -152,7 +152,22 @@ describe('vim.api highlight integration', () => {
             to_luastring('return vim.api.nvim_create_namespace("test")'),
         );
         expect(status).toBe(lua.LUA_OK);
-        expect(lua.lua_tonumber(L, -1)).toBe(0);
+        const id1 = lua.lua_tonumber(L, -1);
+        expect(id1).toBeGreaterThan(0);
+
+        const status2 = lauxlib.luaL_dostring(
+            L,
+            to_luastring('return vim.api.nvim_create_namespace("test")'),
+        );
+        expect(status2).toBe(lua.LUA_OK);
+        expect(lua.lua_tonumber(L, -1)).toBe(id1);
+
+        const status3 = lauxlib.luaL_dostring(
+            L,
+            to_luastring('return vim.api.nvim_create_namespace("other")'),
+        );
+        expect(status3).toBe(lua.LUA_OK);
+        expect(lua.lua_tonumber(L, -1)).not.toBe(id1);
         destroyState(L);
     });
 

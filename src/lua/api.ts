@@ -23,6 +23,15 @@ import {
 import { type CoroutineRunner } from './coroutine-runner';
 import { injectObsidianApi } from './obsidian-api';
 import { injectRegex } from './regex';
+import {
+    dispatchSetExtmark,
+    dispatchDelExtmark,
+    dispatchClearNamespace,
+    queryExtmarks,
+    queryExtmarkById,
+    type ExtmarkOpts,
+    type VirtTextChunk,
+} from './extmarks';
 
 const luaRawset = (
     lua as unknown as { lua_rawset: (L: lua_State, index: number) => void }
@@ -273,6 +282,7 @@ export interface VimApiCallbacks {
     setSearchForward?: (value: number) => void;
     getHlSearch?: () => number;
     getCmAdapter?: () => CmAdapter | null;
+    getEditorView?: () => import('@codemirror/view').EditorView | null;
     // Tier 1 — Mark operations (for nvim_buf_get/set/del_mark)
     getMarkPos?: (name: string) => { line: number; ch: number } | null;
     setMark?: (name: string, line: number, ch: number) => void;
@@ -699,13 +709,19 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_get_keymap',
     'nvim_buf_set_keymap',
     'nvim_buf_del_keymap',
+    'nvim_buf_get_keymap',
     'nvim_buf_get_lines',
     'nvim_buf_set_lines',
     'nvim_buf_set_text',
+    'nvim_buf_get_text',
+    'nvim_buf_is_valid',
     'nvim_get_current_buf',
     'nvim_get_current_win',
+    'nvim_list_wins',
     'nvim_get_current_tabpage',
+    'nvim_get_mode',
     'nvim_get_current_line',
+    'nvim_del_current_line',
     'nvim_set_current_line',
     'nvim_buf_get_name',
     'nvim_buf_line_count',
@@ -719,8 +735,18 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_buf_set_var',
     'nvim_buf_get_option',
     'nvim_buf_set_option',
+    'nvim_buf_set_extmark',
+    'nvim_buf_get_extmarks',
+    'nvim_buf_get_extmark_by_id',
+    'nvim_buf_del_extmark',
+    'nvim_buf_clear_namespace',
     'nvim_get_option',
     'nvim_set_option',
+    'nvim_get_option_value',
+    'nvim_set_option_value',
+    'nvim_get_vvar',
+    'nvim_set_vvar',
+    'nvim_strwidth',
     'nvim_command',
     'nvim_feedkeys',
     'nvim_replace_termcodes',
@@ -1018,11 +1044,42 @@ export function injectVimApi(
 ): VimApiState {
     const globals = new Map<string, unknown>();
     const bufferVars = new Map<string, Map<string, unknown>>();
+    const bufferKeymaps = new Map<string, LuaKeymap[]>();
+    const namespacesByName = new Map<string, number>();
+    let nextNamespaceId = 1;
     let operatorfuncName: string | null = null;
     const notifiedMessages = new Set<string>();
     const warnedNamespaceKeys = new Set<string>();
     const warnedApiFunctions = new Set<string>();
     const userEnvMap = new Map<string, string>();
+    const registerBufferKeymap = (
+        filePath: string,
+        keymap: LuaKeymap,
+    ): void => {
+        let maps = bufferKeymaps.get(filePath);
+        if (!maps) {
+            maps = [];
+            bufferKeymaps.set(filePath, maps);
+        }
+        const idx = maps.findIndex(
+            (entry) => entry.mode === keymap.mode && entry.lhs === keymap.lhs,
+        );
+        if (idx !== -1) maps.splice(idx, 1);
+        maps.push(keymap);
+    };
+    const unregisterBufferKeymap = (
+        filePath: string,
+        mode: LuaKeymap['mode'],
+        lhs: string,
+    ): void => {
+        const maps = bufferKeymaps.get(filePath);
+        if (!maps) return;
+        const idx = maps.findIndex(
+            (entry) => entry.mode === mode && entry.lhs === lhs,
+        );
+        if (idx !== -1) maps.splice(idx, 1);
+        if (maps.length === 0) bufferKeymaps.delete(filePath);
+    };
     const getLeaderKey = () => callbacks.getLeaderKey?.() ?? '\\';
     const autocmdManager = callbacks.autocmdManager;
     const defaultVimrcPath = 'init.lua';
@@ -1964,6 +2021,7 @@ export function injectVimApi(
                 callback,
             };
             if (useBufferKeymap && bufferFilePath) {
+                registerBufferKeymap(bufferFilePath, keymap);
                 callbacks.onBufferKeymap?.(bufferFilePath, keymap);
             } else {
                 callbacks.onKeymap(keymap);
@@ -2031,6 +2089,7 @@ export function injectVimApi(
             const leaderKey = getLeaderKey();
             const lhs = replaceLeaderKey(lhsRaw, leaderKey);
             if (useBufferKeymap && bufferFilePath) {
+                unregisterBufferKeymap(bufferFilePath, context, lhs);
                 callbacks.onBufferKeymapDel?.(bufferFilePath, context, lhs);
             } else {
                 callbacks.onKeymapDel({ mode: context, lhs });
@@ -2318,7 +2377,20 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_clear_autocmds'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
-        lua.lua_pushnumber(state, 0);
+        const name = readLuaString(state, 1) ?? '';
+        if (name === '') {
+            // Anonymous namespace — always get a new ID
+            const id = nextNamespaceId++;
+            lua.lua_pushnumber(state, id);
+            return 1;
+        }
+        // Named namespace — return existing or create new
+        let id = namespacesByName.get(name);
+        if (id === undefined) {
+            id = nextNamespaceId++;
+            namespacesByName.set(name, id);
+        }
+        lua.lua_pushnumber(state, id);
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_create_namespace'));
@@ -2397,6 +2469,12 @@ export function injectVimApi(
             );
             return 0;
         }
+        registerBufferKeymap(filePath, {
+            mode: context,
+            lhs,
+            rhs,
+            noremap,
+        });
         callbacks.onBufferKeymap?.(filePath, {
             mode: context,
             lhs,
@@ -2431,10 +2509,54 @@ export function injectVimApi(
             );
             return 0;
         }
+        unregisterBufferKeymap(filePath, context, lhs);
         callbacks.onBufferKeymapDel?.(filePath, context, lhs);
         return 0;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_del_keymap'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_keymap');
+        const mode = readLuaString(state, 2);
+        if (!mode) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_buf_get_keymap: expected mode string'),
+            );
+        }
+        const context = modeToContext(mode);
+        const filePath = callbacks.getActiveFilePath?.() ?? null;
+        const keymaps = filePath ? (bufferKeymaps.get(filePath) ?? []) : [];
+        const contextToMode: Record<string, string> = {
+            normal: 'n',
+            insert: 'i',
+            visual: 'v',
+        };
+        lua.lua_newtable(state);
+        let idx = 1;
+        for (const km of keymaps) {
+            if (context && km.mode !== context) continue;
+            lua.lua_newtable(state);
+            lua.lua_pushstring(state, to_luastring(km.lhs ?? ''));
+            lua.lua_setfield(state, -2, to_luastring('lhs'));
+            lua.lua_pushstring(state, to_luastring(km.rhs ?? ''));
+            lua.lua_setfield(state, -2, to_luastring('rhs'));
+            lua.lua_pushstring(
+                state,
+                to_luastring(contextToMode[km.mode ?? ''] ?? mode),
+            );
+            lua.lua_setfield(state, -2, to_luastring('mode'));
+            lua.lua_pushboolean(state, km.noremap);
+            lua.lua_setfield(state, -2, to_luastring('noremap'));
+            lua.lua_pushboolean(state, Boolean(km.expr));
+            lua.lua_setfield(state, -2, to_luastring('expr'));
+            lua.lua_pushboolean(state, false);
+            lua.lua_setfield(state, -2, to_luastring('silent'));
+            lua.lua_rawseti(state, -2, idx++);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_keymap'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_get_lines');
@@ -2474,6 +2596,34 @@ export function injectVimApi(
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_lines'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_text');
+        const startRow = lua.lua_tonumber(state, 2);
+        const startCol = lua.lua_tonumber(state, 3);
+        const endRow = lua.lua_tonumber(state, 4);
+        const endCol = lua.lua_tonumber(state, 5);
+        const lines = callbacks.getLines?.(startRow, endRow + 1) ?? [];
+        const result: string[] = [];
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i] ?? '';
+            if (i === 0 && i === lines.length - 1) {
+                line = line.substring(startCol, endCol);
+            } else if (i === 0) {
+                line = line.substring(startCol);
+            } else if (i === lines.length - 1) {
+                line = line.substring(0, endCol);
+            }
+            result.push(line);
+        }
+        lua.lua_newtable(state);
+        for (let i = 0; i < result.length; i++) {
+            lua.lua_pushstring(state, to_luastring(result[i] ?? ''));
+            lua.lua_rawseti(state, -2, i + 1);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_text'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_set_lines');
@@ -2532,6 +2682,13 @@ export function injectVimApi(
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_line_count'));
 
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const buf = lua.lua_tonumber(state, 1);
+        lua.lua_pushboolean(state, buf === 0);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_is_valid'));
+
     // --- Wave 1: Cursor + line + marks ---
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
@@ -2541,10 +2698,30 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_win'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_newtable(state);
+        lua.lua_pushinteger(state, 0);
+        lua.lua_rawseti(state, -2, 1);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_list_wins'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
         lua.lua_pushnumber(state, 0);
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_tabpage'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const mode = callbacks.getMode?.() ?? 'n';
+        lua.lua_newtable(state);
+        const tableIndex = lua.lua_gettop(state);
+        lua.lua_pushstring(state, to_luastring(mode));
+        lua.lua_setfield(state, tableIndex, to_luastring('mode'));
+        lua.lua_pushboolean(state, false);
+        lua.lua_setfield(state, tableIndex, to_luastring('blocking'));
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_mode'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const pos = callbacks.getCursorPosition?.();
@@ -2558,6 +2735,15 @@ export function injectVimApi(
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_line'));
+
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        const pos = callbacks.getCursorPosition?.();
+        if (!pos) return 0;
+        const line = pos.line - 1;
+        callbacks.setLines?.(line, line + 1, []);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_del_current_line'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const line = readLuaString(state, 1);
@@ -2574,6 +2760,32 @@ export function injectVimApi(
         return 0;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_current_line'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const text = readLuaString(state, 1) ?? '';
+        let width = 0;
+        for (const ch of text) {
+            const cp = ch.codePointAt(0) ?? 0;
+            if (
+                (cp >= 0x1100 && cp <= 0x115f) ||
+                (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) ||
+                (cp >= 0xac00 && cp <= 0xd7a3) ||
+                (cp >= 0xf900 && cp <= 0xfaff) ||
+                (cp >= 0xfe10 && cp <= 0xfe6f) ||
+                (cp >= 0xff01 && cp <= 0xff60) ||
+                (cp >= 0xffe0 && cp <= 0xffe6) ||
+                (cp >= 0x20000 && cp <= 0x2fffd) ||
+                (cp >= 0x30000 && cp <= 0x3fffd)
+            ) {
+                width += 2;
+            } else {
+                width += 1;
+            }
+        }
+        lua.lua_pushinteger(state, width);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_strwidth'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireWindowZero(state, 1, 'nvim_win_get_cursor');
@@ -2934,6 +3146,36 @@ export function injectVimApi(
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_option'));
 
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        const value = callbacks.getOption?.(name);
+        if (value === undefined || value === null) {
+            lua.lua_pushnil(state);
+        } else {
+            pushLuaValue(state, value);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_option_value'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_set_option_value: expected option name'),
+            );
+        }
+        const value = readLuaValue(state, 2);
+        callbacks.setOption?.(name, value);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_option_value'));
+
     // --- Wave 4: Variables + messaging + text ---
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
@@ -2983,6 +3225,119 @@ export function injectVimApi(
         return 0;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_var'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        switch (name) {
+            case 'count':
+                lua.lua_pushinteger(state, currentVimV.count);
+                return 1;
+            case 'count1':
+                lua.lua_pushinteger(state, currentVimV.count1);
+                return 1;
+            case 'register':
+                lua.lua_pushstring(state, to_luastring(currentVimV.register));
+                return 1;
+            case 'operator':
+                lua.lua_pushstring(state, to_luastring(currentVimV.operator));
+                return 1;
+            case 'searchforward': {
+                const value =
+                    callbacks.getSearchForward?.() ?? currentVimV.searchforward;
+                lua.lua_pushinteger(state, value);
+                return 1;
+            }
+            case 'insertmode':
+                lua.lua_pushstring(state, to_luastring(currentVimV.insertmode));
+                return 1;
+            case 'numbermax':
+                lua.lua_pushinteger(state, 9007199254740991);
+                return 1;
+            case 'numbermin':
+                lua.lua_pushinteger(state, -9007199254740991);
+                return 1;
+            case 'numbersize':
+                lua.lua_pushinteger(state, 53);
+                return 1;
+            case 'true':
+                lua.lua_pushboolean(state, true);
+                return 1;
+            case 'false':
+                lua.lua_pushboolean(state, false);
+                return 1;
+            case 'null':
+                lua.lua_pushnil(state);
+                return 1;
+            case 'foldstart':
+                lua.lua_pushinteger(state, currentVimV.foldstart);
+                return 1;
+            case 'foldend':
+                lua.lua_pushinteger(state, currentVimV.foldend);
+                return 1;
+            case 'foldlevel':
+                lua.lua_pushinteger(state, currentVimV.foldlevel);
+                return 1;
+            case 'folddashes':
+                lua.lua_pushstring(state, to_luastring(currentVimV.folddashes));
+                return 1;
+            case 'lnum':
+                lua.lua_pushinteger(state, currentVimV.lnum);
+                return 1;
+            case 'relnum':
+                lua.lua_pushinteger(state, currentVimV.relnum);
+                return 1;
+            case 'virtnum':
+                lua.lua_pushinteger(state, currentVimV.virtnum);
+                return 1;
+            case 'char':
+                lua.lua_pushstring(state, to_luastring(currentVimV.char));
+                return 1;
+            case 'hlsearch': {
+                const hl = callbacks.getHlSearch?.() ?? currentVimV.hlsearch;
+                lua.lua_pushinteger(state, hl);
+                return 1;
+            }
+            case 'event':
+                if (currentVimV.event === null) {
+                    lua.lua_pushnil(state);
+                } else {
+                    pushLuaAny(state, currentVimV.event);
+                }
+                return 1;
+            default:
+                lua.lua_pushnil(state);
+                return 1;
+        }
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_vvar'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const name = readLuaString(state, 1);
+        if (!name) return 0;
+        if (name === 'searchforward') {
+            const value = lua.lua_isnumber(state, 2)
+                ? lua.lua_tonumber(state, 2)
+                : 0;
+            const nextValue = Number.isNaN(value) ? 0 : value;
+            callbacks.setSearchForward?.(nextValue);
+            currentVimV = { ...currentVimV, searchforward: nextValue };
+            return 0;
+        }
+        if (name === 'char') {
+            const value = readLuaString(state, 2) ?? '';
+            currentVimV = { ...currentVimV, char: value };
+            return 0;
+        }
+        return lauxlib.luaL_error(
+            state,
+            to_luastring(`vim.v.${name} is read-only`),
+        );
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_vvar'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         if (!lua.lua_istable(state, 1)) {
@@ -3040,6 +3395,211 @@ export function injectVimApi(
         return 0;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_text'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_set_extmark');
+        const nsId = lua.lua_tonumber(state, 2);
+        const line = lua.lua_tonumber(state, 3);
+        const col = lua.lua_tonumber(state, 4);
+
+        const opts: ExtmarkOpts = {};
+        if (lua.lua_istable(state, 5)) {
+            const id = readNumberField(state, 5, 'id');
+            if (id !== null) opts.id = id;
+
+            const endRow = readNumberField(state, 5, 'end_row');
+            if (endRow !== null) opts.endLine = endRow;
+
+            const endCol = readNumberField(state, 5, 'end_col');
+            if (endCol !== null) opts.endCol = endCol;
+
+            const hlGroup = readStringField(state, 5, 'hl_group');
+            if (hlGroup) opts.hlGroup = hlGroup;
+
+            const priority = readNumberField(state, 5, 'priority');
+            if (priority !== null) opts.priority = priority;
+
+            const virtTextPos = readStringField(state, 5, 'virt_text_pos');
+            if (virtTextPos) {
+                opts.virtTextPos = virtTextPos as ExtmarkOpts['virtTextPos'];
+            }
+
+            lua.lua_getfield(state, 5, to_luastring('virt_text'));
+            if (lua.lua_istable(state, -1)) {
+                const chunks: VirtTextChunk[] = [];
+                for (let i = 1; ; i++) {
+                    lua.lua_rawgeti(state, -1, i);
+                    if (lua.lua_isnil(state, -1)) {
+                        lua.lua_pop(state, 1);
+                        break;
+                    }
+                    if (lua.lua_istable(state, -1)) {
+                        lua.lua_rawgeti(state, -1, 1);
+                        const text = lua.lua_isstring(state, -1)
+                            ? (readLuaString(state, -1) ?? '')
+                            : '';
+                        lua.lua_pop(state, 1);
+                        lua.lua_rawgeti(state, -1, 2);
+                        const chunkHlGroup = lua.lua_isstring(state, -1)
+                            ? (readLuaString(state, -1) ?? '')
+                            : '';
+                        lua.lua_pop(state, 1);
+                        chunks.push({ text, hlGroup: chunkHlGroup });
+                    }
+                    lua.lua_pop(state, 1);
+                }
+                if (chunks.length > 0) opts.virtText = chunks;
+            }
+            lua.lua_pop(state, 1);
+        }
+
+        const view = callbacks.getEditorView?.();
+        if (!view) {
+            lua.lua_pushinteger(state, 0);
+            return 1;
+        }
+
+        const id = dispatchSetExtmark(view, nsId, line, col, opts);
+        lua.lua_pushinteger(state, id);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_extmark'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_extmarks');
+        const nsId = lua.lua_tonumber(state, 2);
+
+        let startPos: [number, number] = [0, 0];
+        if (lua.lua_istable(state, 3)) {
+            lua.lua_rawgeti(state, 3, 1);
+            const sLine = lua.lua_tonumber(state, -1);
+            lua.lua_pop(state, 1);
+            lua.lua_rawgeti(state, 3, 2);
+            const sCol = lua.lua_tonumber(state, -1);
+            lua.lua_pop(state, 1);
+            startPos = [sLine, sCol];
+        }
+
+        let endPos: [number, number] = [-1, -1];
+        if (lua.lua_istable(state, 4)) {
+            lua.lua_rawgeti(state, 4, 1);
+            const eLine = lua.lua_tonumber(state, -1);
+            lua.lua_pop(state, 1);
+            lua.lua_rawgeti(state, 4, 2);
+            const eCol = lua.lua_tonumber(state, -1);
+            lua.lua_pop(state, 1);
+            endPos = [eLine, eCol];
+        } else if (lua.lua_isnumber(state, 4)) {
+            const val = lua.lua_tonumber(state, 4);
+            if (val === -1) endPos = [-1, -1];
+        }
+
+        let limit: number | undefined;
+        let details = false;
+        if (lua.lua_istable(state, 5)) {
+            const l = readNumberField(state, 5, 'limit');
+            if (l !== null) limit = l;
+            const d = readBooleanField(state, 5, 'details');
+            if (d !== undefined) details = d;
+        }
+
+        const view = callbacks.getEditorView?.();
+        if (!view) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+
+        const results = queryExtmarks(view, nsId, startPos, endPos, {
+            limit,
+            details,
+        });
+
+        lua.lua_newtable(state);
+        for (let i = 0; i < results.length; i++) {
+            const entry = results[i];
+            if (!entry) continue;
+            lua.lua_newtable(state);
+            lua.lua_pushinteger(state, entry[0]);
+            lua.lua_rawseti(state, -2, 1);
+            lua.lua_pushinteger(state, entry[1]);
+            lua.lua_rawseti(state, -2, 2);
+            lua.lua_pushinteger(state, entry[2]);
+            lua.lua_rawseti(state, -2, 3);
+            if (details && entry[3]) {
+                pushLuaValue(state, entry[3]);
+                lua.lua_rawseti(state, -2, 4);
+            }
+            lua.lua_rawseti(state, -2, i + 1);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_extmarks'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_extmark_by_id');
+        const nsId = lua.lua_tonumber(state, 2);
+        const id = lua.lua_tonumber(state, 3);
+        let details = false;
+        if (lua.lua_istable(state, 4)) {
+            const d = readBooleanField(state, 4, 'details');
+            if (d !== undefined) details = d;
+        }
+
+        const view = callbacks.getEditorView?.();
+        if (!view) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+
+        const result = queryExtmarkById(view, nsId, id, { details });
+        if (!result) {
+            lua.lua_newtable(state);
+            return 1;
+        }
+
+        lua.lua_newtable(state);
+        lua.lua_pushinteger(state, result[0]);
+        lua.lua_rawseti(state, -2, 1);
+        lua.lua_pushinteger(state, result[1]);
+        lua.lua_rawseti(state, -2, 2);
+        if (details && result[2]) {
+            pushLuaValue(state, result[2]);
+            lua.lua_rawseti(state, -2, 3);
+        }
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_extmark_by_id'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_del_extmark');
+        const nsId = lua.lua_tonumber(state, 2);
+        const id = lua.lua_tonumber(state, 3);
+
+        const view = callbacks.getEditorView?.();
+        if (!view) {
+            lua.lua_pushboolean(state, false);
+            return 1;
+        }
+
+        const deleted = dispatchDelExtmark(view, nsId, id);
+        lua.lua_pushboolean(state, deleted);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_del_extmark'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_clear_namespace');
+        const nsId = lua.lua_tonumber(state, 2);
+        const lineStart = lua.lua_tonumber(state, 3);
+        const lineEnd = lua.lua_tonumber(state, 4);
+
+        const view = callbacks.getEditorView?.();
+        if (!view) return 0;
+
+        dispatchClearNamespace(view, nsId, lineStart, lineEnd);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_clear_namespace'));
 
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {

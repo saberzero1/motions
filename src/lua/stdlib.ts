@@ -507,8 +507,14 @@ vim.F.ok_or_nil = vim.F.ok_or_nil or function(status, ...)
 end
 
 if not vim.notify_once then
+    local _notify_once_seen = {}
     function vim.notify_once(msg, level, opts)
+        if _notify_once_seen[msg] then
+            return false
+        end
+        _notify_once_seen[msg] = true
         vim.notify(msg, level, opts)
+        return true
     end
 end
 
@@ -533,8 +539,102 @@ if not vim.print then
 end
 
 if not vim.validate then
-    function vim.validate(spec)
-        return true
+    local _validate_type_aliases = {
+        b = 'boolean',
+        c = 'callable',
+        f = 'function',
+        n = 'number',
+        s = 'string',
+        t = 'table',
+    }
+
+    local function _validate_is_type(val, t)
+        return type(val) == t or (t == 'callable' and vim.is_callable(val))
+    end
+
+    local function _validate_is_valid(param_name, val, validator, message, allow_alias)
+        if type(validator) == 'string' then
+            local expected = allow_alias and _validate_type_aliases[validator] or validator
+            if not expected or expected == '' then
+                return string.format('invalid type name: %s', tostring(validator))
+            end
+            if not _validate_is_type(val, expected) then
+                return string.format('%s: expected %s, got %s', param_name, message or expected, type(val))
+            end
+        elseif vim.is_callable(validator) then
+            local valid, opt_msg = validator(val)
+            if not valid then
+                local err_msg = string.format('%s: expected %s, got %s',
+                    param_name, message or '?', tostring(val))
+                if opt_msg then
+                    err_msg = err_msg .. '. Info: ' .. tostring(opt_msg)
+                end
+                return err_msg
+            end
+        elseif type(validator) == 'table' then
+            for _, t in ipairs(validator) do
+                local expected = allow_alias and _validate_type_aliases[t] or t
+                if expected and _validate_is_type(val, expected) then
+                    return nil
+                end
+            end
+            local names = {}
+            for _, t in ipairs(validator) do
+                local expected = allow_alias and _validate_type_aliases[t] or t
+                table.insert(names, expected or t)
+            end
+            return string.format('%s: expected %s, got %s',
+                param_name, table.concat(names, '|'), type(val))
+        else
+            return string.format('invalid validator: %s', tostring(validator))
+        end
+    end
+
+    local function _validate_spec(opt)
+        local report
+        for param_name, spec in pairs(opt) do
+            local err_msg
+            if type(spec) ~= 'table' then
+                err_msg = string.format('opt[%s]: expected table, got %s', param_name, type(spec))
+            else
+                local value, validator = spec[1], spec[2]
+                local msg = type(spec[3]) == 'string' and spec[3] or nil
+                local optional = spec[3] == true
+                if not (optional and value == nil) then
+                    err_msg = _validate_is_valid(param_name, value, validator, msg, true)
+                end
+            end
+            if err_msg then
+                report = report or {}
+                report[param_name] = err_msg
+            end
+        end
+        if report then
+            local sorted_keys = {}
+            for k in pairs(report) do table.insert(sorted_keys, tostring(k)) end
+            table.sort(sorted_keys)
+            if sorted_keys[1] then
+                return report[sorted_keys[1]] or report[tonumber(sorted_keys[1])]
+            end
+        end
+    end
+
+    function vim.validate(name, value, validator, optional, message)
+        local err_msg
+        if validator then
+            local ok = (type(value) == validator) or (value == nil and optional == true)
+            if not ok then
+                local msg = type(optional) == 'string' and optional or message
+                err_msg = _validate_is_valid(name, value, validator, msg, false)
+            end
+        elseif type(name) == 'table' then
+            err_msg = _validate_spec(name)
+        else
+            error('invalid arguments')
+        end
+        if err_msg then
+            error(err_msg, 2)
+        end
     end
 end
 
@@ -674,8 +774,30 @@ if not vim.gsplit then
 end
 
 if not vim.keycode then
+    local _keycode_map = {
+        ["cr"] = string.char(13),
+        ["enter"] = string.char(13),
+        ["return"] = string.char(13),
+        ["nl"] = string.char(10),
+        ["newline"] = string.char(10),
+        ["tab"] = string.char(9),
+        ["esc"] = string.char(27),
+        ["escape"] = string.char(27),
+        ["space"] = " ",
+        ["bs"] = string.char(8),
+        ["backspace"] = string.char(8),
+        ["del"] = string.char(127),
+        ["delete"] = string.char(127),
+        ["lt"] = "<",
+        ["bslash"] = "\\\\",
+        ["bar"] = "|",
+        ["nul"] = string.char(0),
+    }
     function vim.keycode(str)
-        return str
+        return (str:gsub("(<[^>]+>)", function(seq)
+            local name = seq:sub(2, -2):lower()
+            return _keycode_map[name] or seq
+        end))
     end
 end
 
@@ -740,6 +862,199 @@ if not vim.tbl_add_reverse_lookup then
         end
         return t
     end
+end
+
+if not vim.version or type(vim.version) ~= 'table' then
+    vim.version = {}
+end
+
+if not vim.version.parse then
+    local function build_version(major, minor, patch, prerelease)
+        return {
+            major = major,
+            minor = minor,
+            patch = patch,
+            prerelease = prerelease,
+        }
+    end
+
+    local function normalize_version(version)
+        if version == nil then return nil end
+        if type(version) == 'string' then
+            return vim.version.parse(version)
+        end
+        if type(version) ~= 'table' then return nil end
+        local major = tonumber(version.major)
+        local minor = tonumber(version.minor)
+        local patch = tonumber(version.patch)
+        if not major or not minor or not patch then return nil end
+        local prerelease = version.prerelease
+        if prerelease ~= nil and type(prerelease) ~= 'string' then
+            prerelease = tostring(prerelease)
+        end
+        return build_version(major, minor, patch, prerelease)
+    end
+
+    local function compare_identifier(a, b)
+        local anum = tonumber(a)
+        local bnum = tonumber(b)
+        if anum and bnum then
+            if anum == bnum then return 0 end
+            return anum < bnum and -1 or 1
+        end
+        if anum and not bnum then return -1 end
+        if not anum and bnum then return 1 end
+        if a == b then return 0 end
+        return a < b and -1 or 1
+    end
+
+    local function compare_prerelease(a, b)
+        if a == b then return 0 end
+        if a == nil then return 1 end
+        if b == nil then return -1 end
+        local a_parts = vim.split(a, '.', { plain = true })
+        local b_parts = vim.split(b, '.', { plain = true })
+        local max_len = math.max(#a_parts, #b_parts)
+        for i = 1, max_len do
+            local ai = a_parts[i]
+            local bi = b_parts[i]
+            if ai == nil then return -1 end
+            if bi == nil then return 1 end
+            local cmp = compare_identifier(ai, bi)
+            if cmp ~= 0 then return cmp end
+        end
+        return 0
+    end
+
+    function vim.version.parse(str)
+        if type(str) ~= 'string' then return nil end
+        str = vim.trim(str)
+        if str == '' then return nil end
+        local without_build = str:match('^([^%+]+)') or str
+        local core, prerelease = without_build:match('^([^%-]+)%-(.+)$')
+        if not core then core = without_build end
+        local major, minor, patch = core:match('^(%d+)%.(%d+)%.(%d+)$')
+        if not major then
+            major, minor = core:match('^(%d+)%.(%d+)$')
+            if major then patch = '0' end
+        end
+        if not major or not minor or not patch then return nil end
+        return build_version(tonumber(major), tonumber(minor), tonumber(patch), prerelease)
+    end
+
+    function vim.version.cmp(v1, v2)
+        local left = normalize_version(v1)
+        local right = normalize_version(v2)
+        if not left or not right then return nil end
+        if left.major ~= right.major then
+            return left.major < right.major and -1 or 1
+        end
+        if left.minor ~= right.minor then
+            return left.minor < right.minor and -1 or 1
+        end
+        if left.patch ~= right.patch then
+            return left.patch < right.patch and -1 or 1
+        end
+        return compare_prerelease(left.prerelease, right.prerelease)
+    end
+
+    function vim.version.eq(v1, v2)
+        return vim.version.cmp(v1, v2) == 0
+    end
+
+    function vim.version.ge(v1, v2)
+        local cmp = vim.version.cmp(v1, v2)
+        return cmp ~= nil and cmp >= 0
+    end
+
+    function vim.version.gt(v1, v2)
+        local cmp = vim.version.cmp(v1, v2)
+        return cmp ~= nil and cmp > 0
+    end
+
+    function vim.version.le(v1, v2)
+        local cmp = vim.version.cmp(v1, v2)
+        return cmp ~= nil and cmp <= 0
+    end
+
+    function vim.version.lt(v1, v2)
+        local cmp = vim.version.cmp(v1, v2)
+        return cmp ~= nil and cmp < 0
+    end
+
+    local function parse_range(spec)
+        if type(spec) ~= 'string' then return nil end
+        local trimmed = vim.trim(spec)
+        if trimmed == '' then return nil end
+        local parts = {}
+        for token in trimmed:gmatch('%S+') do
+            local op, version_str
+            -- Try two-char operators first, then one-char
+            op, version_str = token:match('^(>=)(.+)$')
+            if not op then op, version_str = token:match('^(<=)(.+)$') end
+            if not op then op, version_str = token:match('^(==)(.+)$') end
+            if not op then op, version_str = token:match('^(>)(.+)$') end
+            if not op then op, version_str = token:match('^(<)(.+)$') end
+            if not op then op, version_str = token:match('^(=)(.+)$') end
+            if not op then
+                op = '='
+                version_str = token
+            end
+            local version = normalize_version(version_str)
+            if not version then return nil end
+            table.insert(parts, { op = op, version = version })
+        end
+        return parts
+    end
+
+    function vim.version.range(spec)
+        if type(spec) == 'table' and type(spec.has) == 'function' then
+            return spec
+        end
+        local parts = parse_range(spec)
+        local range = {}
+        function range:has(version)
+            local current = normalize_version(version)
+            if not current then return false end
+            for _, entry in ipairs(parts or {}) do
+                local cmp = vim.version.cmp(current, entry.version)
+                if cmp == nil then return false end
+                if entry.op == '>=' and cmp < 0 then return false end
+                if entry.op == '>' and cmp <= 0 then return false end
+                if entry.op == '<=' and cmp > 0 then return false end
+                if entry.op == '<' and cmp >= 0 then return false end
+                if (entry.op == '=' or entry.op == '==') and cmp ~= 0 then return false end
+            end
+            return true
+        end
+        return range
+    end
+
+    function vim.version.last(versions)
+        if type(versions) ~= 'table' then return nil end
+        local latest = nil
+        for _, version in ipairs(versions) do
+            local parsed = normalize_version(version)
+            if parsed then
+                if not latest or vim.version.cmp(parsed, latest) == 1 then
+                    latest = parsed
+                end
+            end
+        end
+        return latest
+    end
+
+    function vim.version.intersect(spec, version)
+        local range = vim.version.range(spec)
+        if not range or type(range.has) ~= 'function' then return false end
+        return range:has(version)
+    end
+
+    setmetatable(vim.version, {
+        __call = function()
+            return build_version(0, 12, 5, nil)
+        end,
+    })
 end
 
 if not vim.str_byteindex then

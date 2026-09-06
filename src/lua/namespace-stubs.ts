@@ -7,7 +7,6 @@ const luaRawset = (
 
 const UNIMPLEMENTED_NAMESPACES = [
     'fs',
-    'version',
     'snippet',
     'hl',
     'health',

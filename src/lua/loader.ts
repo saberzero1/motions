@@ -8,9 +8,13 @@ import {
     requestUrl,
     TFile,
 } from 'obsidian';
+import { foldedRanges } from '@codemirror/language';
+import { setKeyInterceptActive } from '@replit/codemirror-vim';
+import type { StateEffect } from '@codemirror/state';
 import type { App } from 'obsidian';
 import type { VimApi } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
+import { showInputModal } from '../ui/input-modal';
 import { getCmAdapter } from '../vim/vim-api';
 import { createSandboxedState, evalLuaAsync } from './engine';
 import {
@@ -634,6 +638,16 @@ export async function loadInitLua(
             const view = app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return null;
             return getCmAdapter(view);
+        },
+        getEditorView: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cm = getCmAdapter(view);
+            if (!cm) return null;
+            return (
+                (cm as { cm6?: import('@codemirror/view').EditorView }).cm6 ??
+                null
+            );
         },
         getMarkPos: (name) => {
             const view = app.workspace.getActiveViewOfType(MarkdownView);
@@ -1421,6 +1435,249 @@ export async function loadInitLua(
             } else {
                 editor.replaceRange(text + '\n', { line: afterLine, ch: 0 });
             }
+        },
+        runner,
+        waitForKeypress: async () => {
+            setKeyInterceptActive(true);
+            try {
+                return await new Promise<string | null>((resolve) => {
+                    const handler = (e: KeyboardEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (e.key.length !== 1 && e.key !== 'Escape') return;
+                        activeDocument.removeEventListener(
+                            'keydown',
+                            handler,
+                            true,
+                        );
+                        resolve(e.key === 'Escape' ? null : e.key);
+                    };
+                    activeDocument.addEventListener('keydown', handler, true);
+                });
+            } finally {
+                setKeyInterceptActive(false);
+            }
+        },
+        showInputPrompt: (prompt, defaultText) => {
+            return showInputModal(app, prompt, defaultText);
+        },
+        searchBuffer: (pattern, flags, cursorLine, cursorCol, stopline) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const editor = view.editor;
+            const lineCount = editor.lineCount();
+
+            try {
+                const re = new RegExp(pattern);
+                const backward = flags.includes('b');
+                const wrapScan = !flags.includes('W');
+
+                if (!backward) {
+                    const startLine = cursorLine - 1;
+                    const startCol = flags.includes('c')
+                        ? cursorCol - 1
+                        : cursorCol;
+                    const maxLine =
+                        stopline !== null
+                            ? Math.min(stopline - 1, lineCount - 1)
+                            : lineCount - 1;
+
+                    for (let i = startLine; i <= maxLine; i++) {
+                        const line = editor.getLine(i);
+                        const searchFrom = i === startLine ? startCol : 0;
+                        const sub = line.substring(searchFrom);
+                        const m = re.exec(sub);
+                        if (m) {
+                            return {
+                                line: i + 1,
+                                col: searchFrom + m.index + 1,
+                            };
+                        }
+                    }
+
+                    if (wrapScan && stopline === null) {
+                        for (let i = 0; i < startLine; i++) {
+                            const line = editor.getLine(i);
+                            const m = re.exec(line);
+                            if (m) {
+                                return { line: i + 1, col: m.index + 1 };
+                            }
+                        }
+                    }
+                } else {
+                    const startLine = cursorLine - 1;
+                    const minLine =
+                        stopline !== null ? Math.max(stopline - 1, 0) : 0;
+
+                    for (let i = startLine; i >= minLine; i--) {
+                        const line = editor.getLine(i);
+                        const searchUpTo =
+                            i === startLine ? cursorCol - 1 : line.length;
+                        const sub = line.substring(0, searchUpTo);
+                        let lastMatch: RegExpExecArray | null = null;
+                        const globalRe = new RegExp(pattern, 'g');
+                        let m: RegExpExecArray | null;
+                        while ((m = globalRe.exec(sub)) !== null) {
+                            lastMatch = m;
+                            if (
+                                !globalRe.lastIndex ||
+                                globalRe.lastIndex === m.index
+                            ) {
+                                break;
+                            }
+                        }
+                        if (lastMatch) {
+                            return { line: i + 1, col: lastMatch.index + 1 };
+                        }
+                    }
+
+                    if (wrapScan && stopline === null) {
+                        for (let i = lineCount - 1; i > startLine; i--) {
+                            const line = editor.getLine(i);
+                            let lastMatch: RegExpExecArray | null = null;
+                            const globalRe = new RegExp(pattern, 'g');
+                            let m: RegExpExecArray | null;
+                            while ((m = globalRe.exec(line)) !== null) {
+                                lastMatch = m;
+                                if (
+                                    !globalRe.lastIndex ||
+                                    globalRe.lastIndex === m.index
+                                ) {
+                                    break;
+                                }
+                            }
+                            if (lastMatch) {
+                                return {
+                                    line: i + 1,
+                                    col: lastMatch.index + 1,
+                                };
+                            }
+                        }
+                    }
+                }
+            } catch {
+                // Invalid regex
+            }
+
+            return null;
+        },
+        getLastVisualMode: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return '';
+            const cm = getCmAdapter(view);
+            if (!cm) return '';
+            const vimState = (
+                cm as {
+                    state?: {
+                        vim?: { lastSelection?: { visualMode?: string } };
+                    };
+                }
+            ).state?.vim;
+            if (!vimState) return '';
+            if (!vimState.lastSelection) return 'v';
+            const sel = vimState.lastSelection as {
+                visualMode?: string;
+                visualLine?: boolean;
+                visualBlock?: boolean;
+            };
+            if (sel.visualLine) return 'V';
+            if (sel.visualBlock) return '\x16';
+            return 'v';
+        },
+        getScrollInfo: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cm = getCmAdapter(view);
+            if (!cm) return null;
+            const cm6 = (cm as { cm6?: import('@codemirror/view').EditorView })
+                .cm6;
+            if (!cm6) return null;
+            const blockInfo = cm6.lineBlockAtHeight(cm6.scrollDOM.scrollTop);
+            const topLine = cm6.state.doc.lineAt(blockInfo.from).number;
+            return {
+                topline: topLine,
+                leftcol: Math.round(cm6.scrollDOM.scrollLeft),
+            };
+        },
+        setScrollInfo: (info) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return;
+            const cm = getCmAdapter(view);
+            if (!cm) return;
+            const cm6 = (cm as { cm6?: import('@codemirror/view').EditorView })
+                .cm6;
+            if (!cm6) return;
+            const lineNumber = Math.max(
+                1,
+                Math.min(info.topline, cm6.state.doc.lines),
+            );
+            const line = cm6.state.doc.line(lineNumber);
+            const editorViewCtor = cm6.constructor as {
+                scrollIntoView?: (
+                    pos: number,
+                    options?: { y?: 'start' | 'center' | 'end' },
+                ) => unknown;
+            };
+            if (editorViewCtor.scrollIntoView) {
+                const effects = editorViewCtor.scrollIntoView(line.from, {
+                    y: 'start',
+                });
+                cm6.dispatch({
+                    effects: effects as
+                        StateEffect<unknown> | readonly StateEffect<unknown>[],
+                });
+            } else {
+                cm6.scrollDOM.scrollTop = line.from;
+            }
+            cm6.scrollDOM.scrollLeft = Math.max(0, info.leftcol);
+        },
+        getFoldRange: (line: number) => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return null;
+            const cm = getCmAdapter(view);
+            if (!cm) return null;
+            const cm6 = (cm as { cm6?: import('@codemirror/view').EditorView })
+                .cm6;
+            if (!cm6) return null;
+            if (line < 0 || line >= cm6.state.doc.lines) return null;
+            const lineInfo = cm6.state.doc.line(line + 1);
+            const folded = foldedRanges(cm6.state);
+            const iter = folded.iter();
+            while (iter.value) {
+                if (iter.from <= lineInfo.from && iter.to >= lineInfo.to) {
+                    const fromLine = cm6.state.doc.lineAt(iter.from).number - 1;
+                    const toLine = cm6.state.doc.lineAt(iter.to).number - 1;
+                    return { from: fromLine, to: toLine };
+                }
+                iter.next();
+            }
+            return null;
+        },
+        getShiftwidth: () => {
+            try {
+                const sw = vim.getOption('shiftwidth');
+                return typeof sw === 'number' ? sw : 4;
+            } catch {
+                return 4;
+            }
+        },
+        getKeymaps: (mode: string) => {
+            const modeMap: Record<string, string> = {
+                n: 'normal',
+                i: 'insert',
+                v: 'visual',
+                x: 'visual',
+                s: 'visual',
+            };
+            const context = modeMap[mode] ?? mode;
+            const keymaps = vim.getKeymap(context);
+            return keymaps.map((km) => ({
+                lhs: km.keys ?? '',
+                rhs: km.toKeys,
+                noremap: km.type !== 'keyToKey',
+                expr: false,
+                silent: false,
+            }));
         },
     });
 

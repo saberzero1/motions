@@ -468,77 +468,134 @@ See [[settings]] for the full list of options and their descriptions.
 
 ## Supported vim.fn functions
 
-65 Neovim `vim.fn.*` functions are available for configuration, buffer manipulation, register access, and platform detection.
+77 Neovim `vim.fn.*` functions are available for configuration, buffer manipulation, register access, async key input, regex search, and platform detection.
 
-| Function                                 | Returns                       | Example                                          |
-| ---------------------------------------- | ----------------------------- | ------------------------------------------------ |
-| `vim.fn.has(feature)`                    | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`                 |
-| `vim.fn.expand("%")`                     | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`        |
-| `vim.fn.expand("%:t")`                   | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`             |
-| `vim.fn.expand("%:e")`                   | Extension only                | `vim.fn.expand("%:e")` → `"md"`                  |
-| `vim.fn.expand("%:r")`                   | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`         |
-| `vim.fn.fnamemodify(path, mods)`         | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"`   |
-| `vim.fn.exists(expr)`                    | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                      |
-| `vim.fn.localtime()`                     | Unix timestamp (seconds)      | `vim.fn.localtime()`                             |
-| `vim.fn.strftime(fmt)`                   | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                    |
-| `vim.fn.filereadable(path)`              | `1` if vault file exists      | `vim.fn.filereadable("config.md")`               |
-| `vim.fn.isdirectory(path)`               | `1` if vault directory exists | `vim.fn.isdirectory("templates")`                |
-| `vim.fn.glob(pattern)`                   | Newline-separated file list   | `vim.fn.glob("*.md")`                            |
-| `vim.fn.mode()`                          | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`            |
-| `vim.fn.line(expr)`                      | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)              |
-| `vim.fn.col(expr)`                       | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)               |
-| `vim.fn.getline(expr)`                   | Line content string           | `vim.fn.getline(".")` (callbacks only)           |
-| `vim.fn.tolower(s)`                      | Lowercase string              | `vim.fn.tolower("Hello")` → `"hello"`            |
-| `vim.fn.toupper(s)`                      | Uppercase string              | `vim.fn.toupper("Hello")` → `"HELLO"`            |
-| `vim.fn.trim(s)`                         | Trimmed string                | `vim.fn.trim("  hi  ")` → `"hi"`                 |
-| `vim.fn.strlen(s)`                       | String length                 | `vim.fn.strlen("hello")` → `5`                   |
-| `vim.fn.strwidth(s)`                     | Display width                 | `vim.fn.strwidth("hello")` → `5`                 |
-| `vim.fn.stridx(s, needle)`               | First index of needle         | `vim.fn.stridx("hello", "ll")` → `2`             |
-| `vim.fn.strridx(s, needle)`              | Last index of needle          | `vim.fn.strridx("abab", "ab")` → `2`             |
-| `vim.fn.strpart(s, start, len?)`         | Substring                     | `vim.fn.strpart("hello", 1, 3)` → `"ell"`        |
-| `vim.fn.substitute(s, pat, sub, flags)`  | Regex replace                 | `vim.fn.substitute("hi", "h", "H", "")` → `"Hi"` |
-| `vim.fn.nr2char(n)`                      | Character from code point     | `vim.fn.nr2char(65)` → `"A"`                     |
-| `vim.fn.char2nr(c)`                      | Code point from character     | `vim.fn.char2nr("A")` → `65`                     |
-| `vim.fn.split(s, sep?)`                  | List (table) of parts         | `vim.fn.split("a,b", ",")`                       |
-| `vim.fn.join(list, sep?)`                | Joined string                 | `vim.fn.join({"a","b"}, "-")` → `"a-b"`          |
-| `vim.fn.setreg(regname, value [, opts])` | (none)                        | `vim.fn.setreg('"', "text", "l")` (linewise)     |
-| `vim.fn.getreg(regname?)`                | Register content string       | `vim.fn.getreg('"')` → `"yanked text"`           |
-| `vim.fn.getregtype(regname?)`            | `"v"`, `"V"`, or `"\x16"`     | `vim.fn.getregtype('"')` → `"V"` (linewise)      |
-| `vim.fn.setline(lnum, text)`             | (none)                        | `vim.fn.setline(1, "new content")`               |
-| `vim.fn.append(lnum, text\|list)`        | (none)                        | `vim.fn.append(0, "first line")`                 |
-| `vim.fn.indent(lnum)`                    | Indent column number          | `vim.fn.indent(1)` → `4`                         |
-| `vim.fn.nextnonblank(lnum)`              | Line number or 0              | `vim.fn.nextnonblank(3)`                         |
-| `vim.fn.prevnonblank(lnum)`              | Line number or 0              | `vim.fn.prevnonblank(3)`                         |
-| `vim.fn.getpos(expr)`                    | `{buf, lnum, col, off}`       | `vim.fn.getpos("'[")` (operatorfunc range)       |
-| `vim.fn.setpos(expr, list)`              | (none)                        | `vim.fn.setpos(".", {0, 5, 1, 0})`               |
-| `vim.fn.cursor(lnum, col)`               | (none)                        | `vim.fn.cursor(5, 1)`                            |
-| `vim.fn.getcurpos()`                     | `{buf, lnum, col, off, want}` | `vim.fn.getcurpos()`                             |
-| `vim.fn.type(expr)`                      | Neovim type number            | `vim.fn.type("s")` → `1` (string)                |
-| `vim.fn.len(expr)`                       | Length of string/list/dict    | `vim.fn.len({1,2,3})` → `3`                      |
-| `vim.fn.empty(expr)`                     | `1` if empty, `0` otherwise   | `vim.fn.empty("")` → `1`                         |
-| `vim.fn.matchstr(s, pat)`                | Matched portion               | `vim.fn.matchstr("abc123", "\\d+")` → `"123"`    |
-| `vim.fn.match(s, pat [, start])`         | Match position or `-1`        | `vim.fn.match("hello", "ll")` → `2`              |
-| `vim.fn.matchlist(s, pat)`               | Match groups list             | `vim.fn.matchlist("ab12", "(\\w+)(\\d+)")`       |
-| `vim.fn.escape(s, chars)`                | Escaped string                | `vim.fn.escape("a.b", ".")` → `"a\\.b"`          |
-| `vim.fn.repeat(s\|list, count)`          | Repeated string/list          | `vim.fn.repeat("-", 5)` → `"-----"`              |
-| `vim.fn.reverse(s\|list)`                | Reversed string/list          | `vim.fn.reverse("abc")` → `"cba"`                |
-| `vim.fn.range(n [, end [, stride]])`     | Number list                   | `vim.fn.range(1, 5)` → `{1, 2, 3, 4, 5}`         |
-| `vim.fn.sort(list)`                      | Sorted list (in-place)        | `vim.fn.sort({"c","a","b"})` → `{"a","b","c"}`   |
-| `vim.fn.uniq(list)`                      | Deduplicated list (in-place)  | `vim.fn.uniq({"a","a","b"})` → `{"a","b"}`       |
-| `vim.fn.max(list)`                       | Maximum number                | `vim.fn.max({3,1,4})` → `4`                      |
-| `vim.fn.min(list)`                       | Minimum number                | `vim.fn.min({3,1,4})` → `1`                      |
-| `vim.fn.abs(n)`                          | Absolute value                | `vim.fn.abs(-5)` → `5`                           |
-| `vim.fn.index(list, item)`               | 0-based index or `-1`         | `vim.fn.index({"a","b"}, "b")` → `1`             |
-| `vim.fn.count(list, val)`                | Occurrence count              | `vim.fn.count({1,2,1}, 1)` → `2`                 |
-| `vim.fn.add(list, item)`                 | Appended list (mutates)       | `vim.fn.add(t, "x")` (same as `table.insert`)    |
-| `vim.fn.remove(list, idx)`               | Removed item (0-based idx)    | `vim.fn.remove(t, 0)` removes first element      |
-| `vim.fn.extend(list1, list2)`            | Merged list (mutates list1)   | `vim.fn.extend(t1, t2)`                          |
-| `vim.fn.copy(expr)`                      | Shallow copy                  | `vim.fn.copy({1,2,3})`                           |
-| `vim.fn.deepcopy(expr)`                  | Deep copy                     | `vim.fn.deepcopy(nested_table)`                  |
-| `vim.fn.keys(dict)`                      | Key list                      | `vim.fn.keys({a=1, b=2})`                        |
-| `vim.fn.values(dict)`                    | Value list                    | `vim.fn.values({a=1, b=2})`                      |
-| `vim.fn.items(dict)`                     | `{{key, val}, ...}` pairs     | `vim.fn.items({a=1})` → `{{"a", 1}}`             |
-| `vim.fn.flatten(list)`                   | Flattened list                | `vim.fn.flatten({{1,2},{3}})` → `{1,2,3}`        |
+| Function                                      | Returns                       | Example                                          |
+| --------------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `vim.fn.has(feature)`                         | `1` or `0`                    | `if vim.fn.has("mac") == 1 then`                 |
+| `vim.fn.expand("%")`                          | Vault-relative file path      | `vim.fn.expand("%")` → `"folder/note.md"`        |
+| `vim.fn.expand("%:t")`                        | Filename only                 | `vim.fn.expand("%:t")` → `"note.md"`             |
+| `vim.fn.expand("%:e")`                        | Extension only                | `vim.fn.expand("%:e")` → `"md"`                  |
+| `vim.fn.expand("%:r")`                        | Path without extension        | `vim.fn.expand("%:r")` → `"folder/note"`         |
+| `vim.fn.fnamemodify(path, mods)`              | Modified path                 | `vim.fn.fnamemodify("a/b.md", ":t:r")` → `"b"`   |
+| `vim.fn.exists(expr)`                         | `1` if exists, `0` otherwise  | `vim.fn.exists("g:my_var")`                      |
+| `vim.fn.localtime()`                          | Unix timestamp (seconds)      | `vim.fn.localtime()`                             |
+| `vim.fn.strftime(fmt)`                        | Formatted date string         | `vim.fn.strftime("%Y-%m-%d")`                    |
+| `vim.fn.filereadable(path)`                   | `1` if vault file exists      | `vim.fn.filereadable("config.md")`               |
+| `vim.fn.isdirectory(path)`                    | `1` if vault directory exists | `vim.fn.isdirectory("templates")`                |
+| `vim.fn.glob(pattern)`                        | Newline-separated file list   | `vim.fn.glob("*.md")`                            |
+| `vim.fn.mode()`                               | Current mode string           | `vim.fn.mode()` → `"n"`, `"i"`, `"v"`            |
+| `vim.fn.line(expr)`                           | Cursor line (1-based)         | `vim.fn.line(".")` (callbacks only)              |
+| `vim.fn.col(expr)`                            | Cursor column (1-based)       | `vim.fn.col(".")` (callbacks only)               |
+| `vim.fn.getline(expr)`                        | Line content string           | `vim.fn.getline(".")` (callbacks only)           |
+| `vim.fn.tolower(s)`                           | Lowercase string              | `vim.fn.tolower("Hello")` → `"hello"`            |
+| `vim.fn.toupper(s)`                           | Uppercase string              | `vim.fn.toupper("Hello")` → `"HELLO"`            |
+| `vim.fn.trim(s)`                              | Trimmed string                | `vim.fn.trim("  hi  ")` → `"hi"`                 |
+| `vim.fn.strlen(s)`                            | String length                 | `vim.fn.strlen("hello")` → `5`                   |
+| `vim.fn.strwidth(s)`                          | Display width                 | `vim.fn.strwidth("hello")` → `5`                 |
+| `vim.fn.stridx(s, needle)`                    | First index of needle         | `vim.fn.stridx("hello", "ll")` → `2`             |
+| `vim.fn.strridx(s, needle)`                   | Last index of needle          | `vim.fn.strridx("abab", "ab")` → `2`             |
+| `vim.fn.strpart(s, start, len?)`              | Substring                     | `vim.fn.strpart("hello", 1, 3)` → `"ell"`        |
+| `vim.fn.substitute(s, pat, sub, flags)`       | Regex replace                 | `vim.fn.substitute("hi", "h", "H", "")` → `"Hi"` |
+| `vim.fn.nr2char(n)`                           | Character from code point     | `vim.fn.nr2char(65)` → `"A"`                     |
+| `vim.fn.char2nr(c)`                           | Code point from character     | `vim.fn.char2nr("A")` → `65`                     |
+| `vim.fn.split(s, sep?)`                       | List (table) of parts         | `vim.fn.split("a,b", ",")`                       |
+| `vim.fn.join(list, sep?)`                     | Joined string                 | `vim.fn.join({"a","b"}, "-")` → `"a-b"`          |
+| `vim.fn.setreg(regname, value [, opts])`      | (none)                        | `vim.fn.setreg('"', "text", "l")` (linewise)     |
+| `vim.fn.getreg(regname?)`                     | Register content string       | `vim.fn.getreg('"')` → `"yanked text"`           |
+| `vim.fn.getregtype(regname?)`                 | `"v"`, `"V"`, or `"\x16"`     | `vim.fn.getregtype('"')` → `"V"` (linewise)      |
+| `vim.fn.setline(lnum, text)`                  | (none)                        | `vim.fn.setline(1, "new content")`               |
+| `vim.fn.append(lnum, text\|list)`             | (none)                        | `vim.fn.append(0, "first line")`                 |
+| `vim.fn.indent(lnum)`                         | Indent column number          | `vim.fn.indent(1)` → `4`                         |
+| `vim.fn.nextnonblank(lnum)`                   | Line number or 0              | `vim.fn.nextnonblank(3)`                         |
+| `vim.fn.prevnonblank(lnum)`                   | Line number or 0              | `vim.fn.prevnonblank(3)`                         |
+| `vim.fn.getpos(expr)`                         | `{buf, lnum, col, off}`       | `vim.fn.getpos("'[")` (operatorfunc range)       |
+| `vim.fn.setpos(expr, list)`                   | (none)                        | `vim.fn.setpos(".", {0, 5, 1, 0})`               |
+| `vim.fn.cursor(lnum, col)`                    | (none)                        | `vim.fn.cursor(5, 1)`                            |
+| `vim.fn.getcurpos()`                          | `{buf, lnum, col, off, want}` | `vim.fn.getcurpos()`                             |
+| `vim.fn.type(expr)`                           | Neovim type number            | `vim.fn.type("s")` → `1` (string)                |
+| `vim.fn.len(expr)`                            | Length of string/list/dict    | `vim.fn.len({1,2,3})` → `3`                      |
+| `vim.fn.empty(expr)`                          | `1` if empty, `0` otherwise   | `vim.fn.empty("")` → `1`                         |
+| `vim.fn.matchstr(s, pat)`                     | Matched portion               | `vim.fn.matchstr("abc123", "\\d+")` → `"123"`    |
+| `vim.fn.match(s, pat [, start])`              | Match position or `-1`        | `vim.fn.match("hello", "ll")` → `2`              |
+| `vim.fn.matchlist(s, pat)`                    | Match groups list             | `vim.fn.matchlist("ab12", "(\\w+)(\\d+)")`       |
+| `vim.fn.escape(s, chars)`                     | Escaped string                | `vim.fn.escape("a.b", ".")` → `"a\\.b"`          |
+| `vim.fn.repeat(s\|list, count)`               | Repeated string/list          | `vim.fn.repeat("-", 5)` → `"-----"`              |
+| `vim.fn.reverse(s\|list)`                     | Reversed string/list          | `vim.fn.reverse("abc")` → `"cba"`                |
+| `vim.fn.range(n [, end [, stride]])`          | Number list                   | `vim.fn.range(1, 5)` → `{1, 2, 3, 4, 5}`         |
+| `vim.fn.sort(list)`                           | Sorted list (in-place)        | `vim.fn.sort({"c","a","b"})` → `{"a","b","c"}`   |
+| `vim.fn.uniq(list)`                           | Deduplicated list (in-place)  | `vim.fn.uniq({"a","a","b"})` → `{"a","b"}`       |
+| `vim.fn.max(list)`                            | Maximum number                | `vim.fn.max({3,1,4})` → `4`                      |
+| `vim.fn.min(list)`                            | Minimum number                | `vim.fn.min({3,1,4})` → `1`                      |
+| `vim.fn.abs(n)`                               | Absolute value                | `vim.fn.abs(-5)` → `5`                           |
+| `vim.fn.index(list, item)`                    | 0-based index or `-1`         | `vim.fn.index({"a","b"}, "b")` → `1`             |
+| `vim.fn.count(list, val)`                     | Occurrence count              | `vim.fn.count({1,2,1}, 1)` → `2`                 |
+| `vim.fn.add(list, item)`                      | Appended list (mutates)       | `vim.fn.add(t, "x")` (same as `table.insert`)    |
+| `vim.fn.remove(list, idx)`                    | Removed item (0-based idx)    | `vim.fn.remove(t, 0)` removes first element      |
+| `vim.fn.extend(list1, list2)`                 | Merged list (mutates list1)   | `vim.fn.extend(t1, t2)`                          |
+| `vim.fn.copy(expr)`                           | Shallow copy                  | `vim.fn.copy({1,2,3})`                           |
+| `vim.fn.deepcopy(expr)`                       | Deep copy                     | `vim.fn.deepcopy(nested_table)`                  |
+| `vim.fn.keys(dict)`                           | Key list                      | `vim.fn.keys({a=1, b=2})`                        |
+| `vim.fn.values(dict)`                         | Value list                    | `vim.fn.values({a=1, b=2})`                      |
+| `vim.fn.items(dict)`                          | `{{key, val}, ...}` pairs     | `vim.fn.items({a=1})` → `{{"a", 1}}`             |
+| `vim.fn.flatten(list)`                        | Flattened list                | `vim.fn.flatten({{1,2},{3}})` → `{1,2,3}`        |
+| `vim.fn.visualmode()`                         | Last visual mode type         | `vim.fn.visualmode()` → `"v"`, `"V"`, `"\x16"`   |
+| `vim.fn.winsaveview()`                        | View state table              | `local view = vim.fn.winsaveview()`              |
+| `vim.fn.winrestview(view)`                    | (none)                        | `vim.fn.winrestview(view)`                       |
+| `vim.fn.foldclosed(lnum)`                     | First line of fold, or `-1`   | `vim.fn.foldclosed(5)` → `3` or `-1`             |
+| `vim.fn.foldclosedend(lnum)`                  | Last line of fold, or `-1`    | `vim.fn.foldclosedend(5)` → `8` or `-1`          |
+| `vim.fn.shiftwidth()`                         | Effective shift width         | `vim.fn.shiftwidth()` → `4`                      |
+| `vim.fn.strdisplaywidth(s)`                   | Display width (CJK-aware)     | `vim.fn.strdisplaywidth("你好")` → `4`           |
+| `vim.fn.strcharpart(s, start, len?)`          | Substring by char index       | `vim.fn.strcharpart("hello", 1, 3)` → `"ell"`    |
+| `vim.fn.maparg(name, mode?)`                  | RHS of mapping or `""`        | `vim.fn.maparg("<leader>w", "n")`                |
+| `vim.fn.getcharstr()`                         | Single keystroke (async)      | `local ch = vim.fn.getcharstr()`                 |
+| `vim.fn.getchar()`                            | Key code number (async)       | `local nr = vim.fn.getchar()`                    |
+| `vim.fn.searchpos(pat, flags?)`               | `{line, col}` or `{0, 0}`     | `vim.fn.searchpos("\\bword\\b")` → `{3, 5}`      |
+| `vim.fn.input(prompt, default?, completion?)` | User input string (async)     | `local name = vim.fn.input("Name: ")`            |
+
+### vim.fn.getcharstr() and vim.fn.getchar()
+
+These functions yield the Lua coroutine and wait for the user to press a key. They are the primary mechanism for interactive Lua plugins (mini.surround, mini.ai, leap.nvim):
+
+```lua
+-- Wait for a character and act on it
+vim.keymap.set("n", "s", function()
+    vim.notify("Press a key...")
+    local ch = vim.fn.getcharstr()
+    vim.notify("You pressed: " .. ch)
+end)
+```
+
+Modifier-only keys (Shift, Ctrl, Alt, Meta) are ignored. Special keys return their vim notation (e.g., `<Esc>`, `<CR>`, `<BS>`). Cannot be used in `{ expr = true }` callbacks or snippet `f()`/`d()` nodes.
+
+### vim.fn.searchpos()
+
+Searches the current buffer for a regex pattern and returns the position:
+
+```lua
+-- Find next occurrence of "TODO"
+local pos = vim.fn.searchpos("TODO")
+if pos[1] > 0 then
+    vim.api.nvim_win_set_cursor(0, pos)
+end
+```
+
+The `flags` parameter supports `"b"` (backward search), `"n"` (no move), `"w"` (wrap around). Default is forward search with wrapping. Returns `{0, 0}` when no match is found.
+
+### vim.fn.input()
+
+Opens an Obsidian modal with a text input field:
+
+```lua
+vim.keymap.set("n", "<leader>r", function()
+    local name = vim.fn.input("Rename to: ", vim.fn.expand("%:t:r"))
+    if name then
+        vim.ob.rename()
+    end
+end)
+```
+
+Returns `nil` if the user cancels (presses Escape). The optional `default` parameter pre-fills the input. The `completion` parameter is accepted but ignored.
 
 ### vim.fn.has() features
 
@@ -901,8 +958,11 @@ Read and modify editor content from Lua callbacks:
 | `vim.api.nvim_buf_get_lines(0, start, end, strict)`                                 | Get lines (0-based, end-exclusive, -1 = EOF) | `vim.api.nvim_buf_get_lines(0, 0, -1, true)`         |
 | `vim.api.nvim_buf_set_lines(0, start, end, strict, lines)`                          | Set lines (empty table = delete)             | `vim.api.nvim_buf_set_lines(0, 0, 0, true, {"new"})` |
 | `vim.api.nvim_buf_set_text(0, start_row, start_col, end_row, end_col, replacement)` | Set text in range (0-indexed)                | `vim.api.nvim_buf_set_text(0, 0, 0, 0, 0, {"hi"})`   |
+| `vim.api.nvim_buf_get_text(0, start_row, start_col, end_row, end_col, opts)`        | Get text in range (0-indexed)                | `vim.api.nvim_buf_get_text(0, 0, 0, 0, 5, {})`       |
 | `vim.api.nvim_get_current_line()`                                                   | Get current line content                     | `local line = vim.api.nvim_get_current_line()`       |
 | `vim.api.nvim_set_current_line(line)`                                               | Set current line content                     | `vim.api.nvim_set_current_line("new")`               |
+| `vim.api.nvim_del_current_line()`                                                   | Delete current line                          | `vim.api.nvim_del_current_line()`                    |
+| `vim.api.nvim_buf_is_valid(buf)`                                                    | Check if buffer handle is valid              | `vim.api.nvim_buf_is_valid(0)` → `true`              |
 | `vim.api.nvim_buf_get_mark(0, name)`                                                | Get mark position `{line, col}` (0-indexed)  | `local pos = vim.api.nvim_buf_get_mark(0, "a")`      |
 | `vim.api.nvim_buf_set_mark(0, name, line, col, opts)`                               | Set mark position (0-indexed)                | `vim.api.nvim_buf_set_mark(0, "a", 5, 0, {})`        |
 | `vim.api.nvim_buf_del_mark(0, name)`                                                | Delete a mark                                | `vim.api.nvim_buf_del_mark(0, "a")`                  |
@@ -923,6 +983,9 @@ Read and modify editor content from Lua callbacks:
 | `vim.api.nvim_win_set_cursor(0, {line, col})` | Set cursor position (0-indexed)               | `vim.api.nvim_win_set_cursor(0, {5, 0})`         |
 | `vim.api.nvim_win_get_buf(0)`                 | Returns 0 (current buffer)                    | `local buf = vim.api.nvim_win_get_buf(0)`        |
 | `vim.api.nvim_get_current_tabpage()`          | Returns 0 (current tabpage)                   | `local tab = vim.api.nvim_get_current_tabpage()` |
+| `vim.api.nvim_list_wins()`                    | Returns `{0}` (list of window handles)        | `local wins = vim.api.nvim_list_wins()`          |
+| `vim.api.nvim_get_mode()`                     | Current mode `{mode, blocking}`               | `vim.api.nvim_get_mode().mode` → `"n"`           |
+| `vim.api.nvim_strwidth(text)`                 | Display width of string                       | `vim.api.nvim_strwidth("hello")` → `5`           |
 
 > [!info] Window and Tabpage handles
 > Only `0` (current) is supported for window and tabpage handles.
@@ -936,6 +999,7 @@ Read and modify editor content from Lua callbacks:
 | `vim.api.nvim_get_keymap(mode)`                        | Get list of global keymaps   | `local maps = vim.api.nvim_get_keymap("n")`         |
 | `vim.api.nvim_buf_set_keymap(0, mode, lhs, rhs, opts)` | Create a buffer-local keymap | `vim.api.nvim_buf_set_keymap(0, "n", "x", "y", {})` |
 | `vim.api.nvim_buf_del_keymap(0, mode, lhs)`            | Remove a buffer-local keymap | `vim.api.nvim_buf_del_keymap(0, "n", "x")`          |
+| `vim.api.nvim_buf_get_keymap(0, mode)`                 | Get buffer-local keymaps     | `local maps = vim.api.nvim_buf_get_keymap(0, "n")`  |
 
 ## Custom ex commands
 
@@ -1526,7 +1590,7 @@ Customize plugin styling from Lua using Neovim's `nvim_set_hl` API:
 
 | Function                              | Description                    | Example                                                |
 | ------------------------------------- | ------------------------------ | ------------------------------------------------------ |
-| `vim.api.nvim_create_namespace(name)` | Returns 0 (global namespace)   | `local ns = vim.api.nvim_create_namespace("my")`       |
+| `vim.api.nvim_create_namespace(name)` | Returns unique namespace ID    | `local ns = vim.api.nvim_create_namespace("my")`       |
 | `vim.api.nvim_set_hl(ns, name, opts)` | Set highlight group attributes | `vim.api.nvim_set_hl(0, "MyHl", { fg = "red" })`       |
 | `vim.api.nvim_get_hl(ns, opts)`       | Get highlight group attributes | `local hl = vim.api.nvim_get_hl(0, { name = "MyHl" })` |
 
@@ -1592,7 +1656,7 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 | `update`            | boolean        | Merge with existing (don't replace)     |
 
 > [!info] Namespace
-> Only `ns_id = 0` (global namespace) is supported. `vim.api.nvim_create_namespace()` always returns `0`.
+> `vim.api.nvim_create_namespace()` returns a unique integer ID per namespace name (matching Neovim). The same name always returns the same ID. Namespace `0` is the global namespace. Namespaces are used for highlight groups, extmarks, and clearing decorations.
 
 > [!info] Underline styles
 > Only one underline style can be active per highlight group. If multiple underline attributes (`undercurl`, `underdouble`, `underdotted`, `underdashed`) are set, only the first one takes effect.
@@ -1605,10 +1669,138 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 
 ## Options
 
-| Function                               | Description             | Example                                     |
-| -------------------------------------- | ----------------------- | ------------------------------------------- |
-| `vim.api.nvim_get_option(name)`        | Get global option value | `local val = vim.api.nvim_get_option("sw")` |
-| `vim.api.nvim_set_option(name, value)` | Set global option value | `vim.api.nvim_set_option("sw", 4)`          |
+| Function                                            | Description                          | Example                                              |
+| --------------------------------------------------- | ------------------------------------ | ---------------------------------------------------- |
+| `vim.api.nvim_get_option(name)`                     | Get global option value (deprecated) | `local val = vim.api.nvim_get_option("sw")`          |
+| `vim.api.nvim_set_option(name, value)`              | Set global option value (deprecated) | `vim.api.nvim_set_option("sw", 4)`                   |
+| `vim.api.nvim_get_option_value(name, opts?)`        | Get option value (preferred)         | `vim.api.nvim_get_option_value("shiftwidth", {})`    |
+| `vim.api.nvim_set_option_value(name, value, opts?)` | Set option value (preferred)         | `vim.api.nvim_set_option_value("shiftwidth", 4, {})` |
+| `vim.api.nvim_get_vvar(name)`                       | Get a `vim.v` variable               | `vim.api.nvim_get_vvar("count")` → `0`               |
+| `vim.api.nvim_set_vvar(name, value)`                | Set a `vim.v` variable               | `vim.api.nvim_set_vvar("searchforward", 0)`          |
+
+## Extmarks
+
+Neovim-compatible extmark API for virtual text, highlights, and sign text. Extmarks are anchored to buffer positions and move with text edits.
+
+| Function                                                             | Description                           | Example                                                                         |
+| -------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| `vim.api.nvim_buf_set_extmark(buf, ns_id, line, col, opts)`          | Create/update an extmark              | `vim.api.nvim_buf_set_extmark(0, ns, 0, 0, { virt_text = {{"→", "Comment"}} })` |
+| `vim.api.nvim_buf_get_extmarks(buf, ns_id, start, end, opts)`        | Get extmarks in range                 | `vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {})`                               |
+| `vim.api.nvim_buf_get_extmark_by_id(buf, ns_id, id, opts)`           | Get single extmark by ID              | `vim.api.nvim_buf_get_extmark_by_id(0, ns, 1, {})`                              |
+| `vim.api.nvim_buf_del_extmark(buf, ns_id, id)`                       | Delete an extmark                     | `vim.api.nvim_buf_del_extmark(0, ns, 1)`                                        |
+| `vim.api.nvim_buf_clear_namespace(buf, ns_id, line_start, line_end)` | Clear all extmarks in namespace/range | `vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)`                                |
+
+### nvim_buf_set_extmark options
+
+| Option          | Type                   | Description                                                                    |
+| --------------- | ---------------------- | ------------------------------------------------------------------------------ |
+| `virt_text`     | `{{text, hl_group}[]}` | Virtual text chunks (list of `{text, highlight_group}` pairs)                  |
+| `virt_text_pos` | string                 | Position: `"overlay"` (on top), `"eol"` (after line), `"inline"` (within text) |
+| `hl_group`      | string                 | Highlight group for the extmark range                                          |
+| `sign_text`     | string                 | Sign text (1-2 chars) shown in the sign column                                 |
+| `priority`      | number                 | Priority for ordering (higher = on top, default: 4096)                         |
+| `id`            | number                 | Reuse an existing extmark ID (update instead of create)                        |
+
+```lua
+local ns = vim.api.nvim_create_namespace("my-plugin")
+
+-- Virtual text at end of line
+vim.api.nvim_buf_set_extmark(0, ns, 0, 0, {
+    virt_text = {{"← cursor here", "Comment"}},
+    virt_text_pos = "eol",
+})
+
+-- Overlay text
+vim.api.nvim_buf_set_extmark(0, ns, 2, 5, {
+    virt_text = {{"FIXME", "WarningMsg"}},
+    virt_text_pos = "overlay",
+})
+
+-- Clear all extmarks in namespace
+vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)
+```
+
+> [!info] Buffer argument
+> Only `buffer = 0` (current buffer) is supported. Extmark positions are 0-indexed (line and column).
+
+> [!info] Supported options subset
+> Only the options listed above are implemented. Other Neovim extmark options (`end_row`, `end_col`, `spell`, `conceal`, `undo_restore`, etc.) are not yet available.
+
+## vim.version
+
+Version parsing and comparison utilities matching Neovim's `vim.version` module.
+
+| Function                     | Returns                                   | Example                                                 |
+| ---------------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| `vim.version()`              | Plugin version as `{major, minor, patch}` | `vim.version()` → `{major=0, minor=147, patch=0}`       |
+| `vim.version.parse(str)`     | Version object or `nil`                   | `vim.version.parse("1.2.3")` → `{major=1, ...}`         |
+| `vim.version.cmp(v1, v2)`    | `-1`, `0`, or `1`                         | `vim.version.cmp("1.0.0", "2.0.0")` → `-1`              |
+| `vim.version.lt(v1, v2)`     | boolean                                   | `vim.version.lt("1.0.0", "2.0.0")` → `true`             |
+| `vim.version.gt(v1, v2)`     | boolean                                   | `vim.version.gt("2.0.0", "1.0.0")` → `true`             |
+| `vim.version.eq(v1, v2)`     | boolean                                   | `vim.version.eq("1.0.0", "1.0.0")` → `true`             |
+| `vim.version.range(spec)`    | Range object with `has(ver)`              | `vim.version.range(">=1.0.0"):has("1.5.0")` → `true`    |
+| `vim.version.last(versions)` | Highest version from list                 | `vim.version.last({"1.0.0", "2.0.0"})` → `{major=2}...` |
+
+Version objects have `__tostring` (`"1.2.3"`), `__eq`, and `__lt` metamethods for natural comparison:
+
+```lua
+local v = vim.version.parse("1.2.3")
+print(v)           -- "1.2.3"
+print(v.major)     -- 1
+print(v >= vim.version.parse("1.0.0"))  -- true
+```
+
+Range specs support `>=`, `>`, `<=`, `<`, `=`, and two-constraint ranges:
+
+```lua
+local r = vim.version.range(">=1.0.0 <2.0.0")
+print(r:has("1.5.0"))  -- true
+print(r:has("2.0.0"))  -- false
+```
+
+## vim.validate
+
+Argument validation matching Neovim's `vim.validate()`. Supports both the old table form and the new positional form (Neovim 0.11+).
+
+### Positional form (recommended)
+
+```lua
+vim.validate("name", name, "string")
+vim.validate("count", count, "number")
+vim.validate("callback", callback, "function", true)  -- optional
+vim.validate("mode", mode, {"string", "table"})        -- multiple types
+```
+
+### Old table form
+
+```lua
+vim.validate({
+    name = { name, "string" },
+    count = { count, "number" },
+    callback = { callback, "function", true },  -- optional
+})
+```
+
+Throws an error with a descriptive message on validation failure:
+
+```lua
+local ok, err = pcall(vim.validate, "x", nil, "string")
+-- err: "x: expected string, got nil"
+```
+
+## vim.keycode
+
+Translates Neovim key notation to the actual key character:
+
+```lua
+vim.keycode("<CR>")   -- "\r" (carriage return)
+vim.keycode("<Esc>")  -- "\x1b" (escape)
+vim.keycode("<Tab>")  -- "\t" (tab)
+vim.keycode("<BS>")   -- "\x08" (backspace)
+vim.keycode("<Space>") -- " "
+```
+
+Useful for comparing keys returned by `vim.fn.getcharstr()` against special key names.
 
 ## When to use Lua vs Vimrc
 
@@ -1632,7 +1824,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `vim.lsp`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.treesitter` is fully implemented — see [[#vim.treesitter]] below for the complete API reference. `vim.api` is partially supported (`nvim_create_user_command`, `nvim_create_autocmd`, `nvim_create_augroup`, `nvim_del_autocmd`, `nvim_del_augroup_by_name`, `nvim_clear_autocmds`, `nvim_set_hl`, `nvim_get_hl`, `nvim_create_namespace`, `nvim_buf_get_lines`, `nvim_buf_set_lines`, `nvim_get_current_buf`, `nvim_buf_get_name`, `nvim_buf_line_count`, `nvim_buf_set_keymap`, and `nvim_buf_del_keymap` work, other functions error with a helpful message). `vim.fn` is partially supported (see above). The Lua runtime is sandboxed: only 7 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`, `os`). The `io`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile` and `loadfile` are disabled. `rawget`, `rawset`, and `rawequal` are available for Neovim compatibility.
+> The following Neovim APIs are not available: `vim.lsp`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.treesitter` is fully implemented — see [[#vim.treesitter]] below for the complete API reference. `vim.api` is partially supported (59 `nvim_*` functions — see sections above for the full list; unimplemented functions error with a helpful message). `vim.fn` is partially supported (77 functions — see above). `vim.version`, `vim.validate`, and `vim.keycode` are fully implemented. The Lua runtime is sandboxed: only 7 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`, `os`). The `io`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile` and `loadfile` are disabled. `rawget`, `rawset`, and `rawequal` are available for Neovim compatibility.
 
 ### `collectgarbage` behavior
 

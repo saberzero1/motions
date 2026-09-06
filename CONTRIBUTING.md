@@ -199,15 +199,16 @@ src/
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
     package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua config file loader
-    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v, vim.cmd, vim.notify, vim.api (43 nvim_* functions: buffer, cursor, marks, keymaps, options, commands, highlights, autocommands, key injection, UI), vim.plugins (add/list with auto-fetch support)
-    fn.ts                  # vim.fn.* function library (65 functions)
+    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v, vim.cmd, vim.notify, vim.api (59 nvim_* functions: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI), vim.plugins (add/list with auto-fetch support)
+    fn.ts                  # vim.fn.* function library (77 functions)
+    extmarks.ts            # Neovim extmark system (StateField + registry + effects + VirtualTextWidget + position tracking + query APIs)
     plugin-fetch.ts        # Plugin archive download and extraction (GitHub tarballs)
     plugin-store.ts        # Atomic plugin storage and lock file management
     tar.ts                 # Synchronous tar archive parser
     buffer.ts              # Buffer-local keymap manager (per-file keymap storage and application)
     autocmd.ts             # Autocommand manager (event registration, group lifecycle, pattern matching)
     highlight.ts           # Highlight group manager (nvim_set_hl/nvim_get_hl CSS variable bridge)
-    stdlib.ts              # vim.tbl_*, vim.split, vim.trim, vim.inspect, vim.json, etc.
+    stdlib.ts              # vim.tbl_*, vim.split, vim.trim, vim.inspect, vim.json, vim.validate, vim.version, vim.keycode, vim.notify_once, etc.
     regex.ts               # vim.regex() — ECMAScript RegExp wrapper (match_str, match_pos, replace, test)
     obsidian-api.ts        # vim.obsidian / vim.ob namespace (including vim.obsidian.im)
     timers.ts              # vim.schedule, vim.defer_fn, vim.uv timers
@@ -297,6 +298,7 @@ src/
     global-which-key.ts    # Which-key overlay outside editor context
     ex-suggest.ts          # Ex command tab completion
     global-ex-command.ts   # Ex command input outside editor context
+    input-modal.ts         # Obsidian Modal for vim.fn.input() prompt (async user input)
     vimrc-file-suggest.ts  # File suggestion for vimrc/Lua config path settings
   util/
     commands.ts            # executeCommand() and getCommandRegistry() — null-safe wrappers for app.commands (typed via obsidian-typings Commands interface, no casts)
