@@ -157,6 +157,7 @@ src/
     vault-search.ts        # :grep vault-wide search implementation
     global-key-handler.ts  # Global key event handling (outside editor) — always installed on desktop, interception gates check focus/modal/leaf-type only (not enableWorkspaceNav); dispatch passes raw count to builtin handlers, sequence timeout restarts on partial match (which-key parity)
     global-mapping-registry.ts  # Registry for global key mappings
+    key-observer.ts        # Physical key observation feeding vim.on_key
     global-defaults.ts     # Default global keybindings — always-on (`:`, hints) vs workspace-nav-conditional (scroll, tabs, panes) split via opts.enableWorkspaceNav; gotoNthTab filters to rootSplit leaves only; gf hint binding for context menu action
   easymotion/
     register.ts            # Wires EasyMotion to keybindings — per-motion motionArgs (inclusive, linewise, forward) for correct operator-pending behavior matching native Vim semantics
@@ -187,6 +188,9 @@ src/
     tree-state.ts          # Shared treesitter state (WeakMap + StateField) — import-chain-safe for non-WASM consumers
     js-api.ts              # JS-side treesitter query helpers for TypeScript feature code (position lookup, ancestor check, inline nodes)
     query.ts               # QueryWrapper: compile .scm queries, iterCaptures/iterMatches with predicate filtering
+    bundled-queries.ts     # Bundled markdown/markdown_inline/html textobjects queries
+    query-files.ts         # Vault .scm snapshot, inheritance, extension modelines, limits
+    named-queries.ts       # Named query precedence, lazy compilation, cache invalidation
     predicates.ts          # 8 built-in predicate handlers with generic #not-*/#any-* prefix dispatch
     directives.ts          # 4 built-in directive handlers (#set!, #offset!, #gsub!, #trim!)
     language-tree.ts       # LanguageTree class: multi-parser management, injection resolution, callbacks
@@ -195,15 +199,19 @@ src/
     wasm.d.ts              # Ambient module declaration for .wasm binary imports
     grammars/              # Vendored grammar .wasm files (tree-sitter-markdown.wasm, tree-sitter-html.wasm)
   lua/
-    engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync
+    engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync, cleanup before Lua close
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
     package.ts             # package table, sandboxed load(), Lua-implemented require()
-    loader.ts              # .obsidian.init.lua config file loader
-    api.ts                 # vim.keymap, vim.opt, vim.g, vim.v, vim.cmd, vim.notify, vim.api (59 nvim_* functions: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI), vim.plugins (add/list with auto-fetch support)
-    fn.ts                  # vim.fn.* function library (77 functions)
+    loader.ts              # .obsidian.init.lua loader; replaces iterator stub, awaits treesitter/query preloading, normalizes returned option Errors
+    api.ts                 # vim.keymap, vim.opt, vim.o/vim.go, shared operatorfunc routes, vim.g, vim.v, vim.cmd, vim.notify, vim.api (60 real nvim_* implementations: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI, current-buffer/window calls, non-floating window config), vim.plugins (add/list with auto-fetch support)
+    fn.ts                  # vim.fn.* function library (79 real implementations, including getwininfo)
+    iter.ts                # Embedded Lua iterator implementation (26 methods)
+    on-key.ts              # vim.on_key namespace registry, dispatch, teardown
+    termcodes.ts           # Neovim key-byte encoder and fork-boundary decoder
+    window-info.ts         # vim.fn.getwininfo CM6 viewport geometry
     extmarks.ts            # Neovim extmark system (StateField + registry + effects + VirtualTextWidget + position tracking + query APIs)
-    plugin-fetch.ts        # Plugin archive download and extraction (GitHub tarballs)
-    plugin-store.ts        # Atomic plugin storage and lock file management
+    plugin-fetch.ts        # GitHub tarball download; retains Lua and queries/{lang}/{name}.scm
+    plugin-store.ts        # Atomic plugin storage, isolated query roots, lock file, query refresh before Lua resumes
     tar.ts                 # Synchronous tar archive parser
     buffer.ts              # Buffer-local keymap manager (per-file keymap storage and application)
     autocmd.ts             # Autocommand manager (event registration, group lifecycle, pattern matching)
@@ -220,7 +228,7 @@ src/
       node.ts              # TSNode fengari userdata (31 methods via __index metatable)
       tree.ts              # TSTree fengari userdata (root, copy, included_ranges)
       language.ts          # vim.treesitter.language namespace (register, get_lang, add, inspect)
-      query-api.ts         # vim.treesitter.query namespace (parse, get, set, iter_captures, iter_matches)
+      query-api.ts         # vim.treesitter.query namespace (parse, get, set, get_files, iter_captures, iter_matches with document source/row arguments)
       language-tree-api.ts # LanguageTree Lua bindings (18 methods)
       range.ts             # Range push/read utilities for Lua
   oil/
@@ -420,6 +428,10 @@ reg.mapCommand('gX', 'action', 'myAction', {});
     All options in `KNOWN_SET_OPTIONS` automatically work across all three code paths: vimrc (`set myoption=value`), Lua (`vim.opt.myoption = value`), and the Settings UI. No additional wiring in `loader.ts` or `lua/api.ts` is needed.
 
 ### New Lua API function
+
+Compatibility modules must preserve injection and teardown order: `injectIterApi()` runs after namespace stubs, and key observers plus owned compiled queries are cleaned up before `lua_close`. `vim.on_key` uses the existing desktop/popout global handler and mobile safety handler, not another global listener; it observes physical keys before mappings and cannot discard keys. Keep Neovim byte encoding in `termcodes.ts` and decode at the notation-based fork boundary.
+
+Lua loading awaits `initTreesitterRuntime(app.vault.adapter)` to preload the query snapshot before synchronous user queries. Named query precedence is `query.set()` → `lua/queries/{lang}/{name}.scm` → `lua/{plugin}/queries/{lang}/{name}.scm` → bundled. Auto-fetched plugin roots use `{owner}__{repo}`. Preserve query modelines, cache invalidation, and resource limits when extending this path; there is no live `.scm` watcher. Global `vim.o`/`vim.go` reads use engine → shadow → defaults → `nil`; `operatorfunc` has shared helpers across all supported option access paths.
 
 1. Add the implementation in the appropriate file under `src/lua/` (e.g., `fn.ts` for `vim.fn.*`, `buffer.ts` for `vim.api.nvim_buf_*`, `api.ts` for top-level `vim.*`).
 
@@ -665,6 +677,8 @@ describe('My feature', function () {
 ### Unit tests
 
 Unit tests use [Vitest](https://vitest.dev/) and live in `test/unit/`. These test pure logic without Obsidian (Lua engine, picker matching, settings migration, etc.).
+
+Lua API compatibility coverage lives in `test/unit/lua/api-compat.test.ts`, `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts`, and `plugin-query-fetch.test.ts`. The query tests compile against real bundled WASM grammars and cover precedence, modelines, cache lifecycle, predicates, plugin query isolation, and resource limits. `fn.test.ts` adds four `getwininfo` geometry/fallback cases; the `api.test.ts` termcode regression expects `"\r"` for `<CR>` rather than preserving the old identity-function bug.
 
 ```bash
 npm run test:unit

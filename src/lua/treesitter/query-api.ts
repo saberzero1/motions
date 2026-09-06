@@ -1,6 +1,9 @@
 import { lua, lauxlib, to_luastring, to_jsstring } from '../../lib/fengari';
 import type { lua_State } from '../../lib/fengari';
 import { QueryWrapper } from '../../treesitter/query';
+import { NamedQueries } from '../../treesitter/named-queries';
+import { getQueryFiles } from '../../treesitter/query-files';
+import { registerStateCleanup } from '../engine';
 import {
     registerPredicate,
     listPredicates,
@@ -38,12 +41,22 @@ function rt(): RuntimeModule {
     return _runtime;
 }
 
-const namedQueryCache = new Map<string, QueryWrapper>();
-
 function readLuaString(L: lua_State, index: number): string | null {
     if (!lua.lua_isstring(L, index)) return null;
     const raw = lua.lua_tolstring(L, index);
     return raw ? to_jsstring(raw) : null;
+}
+
+function readQuerySource(L: lua_State): string {
+    // Neovim: iter_captures/iter_matches(node, source, start?, stop?).
+    // Buffer IDs use the source retained by the parsed node; strings are used
+    // directly. The Query itself has no document source.
+    if (lua.lua_type(L, 3) === lua.LUA_TSTRING)
+        return readLuaString(L, 3) ?? '';
+    lua.lua_getfield(L, 2, to_luastring('_source'));
+    const source = readLuaString(L, -1) ?? '';
+    lua.lua_pop(L, 1);
+    return source;
 }
 
 function pushMetadata(
@@ -78,14 +91,12 @@ const queryMethods: Record<string, (state: lua_State) => number> = {
             );
         }
         const node = extractNode(state, 2);
-        lua.lua_getfield(state, 1, to_luastring('_source'));
-        const source = readLuaString(state, -1) ?? '';
-        lua.lua_pop(state, 1);
+        const source = readQuerySource(state);
 
         let startRow: number | undefined;
         let endRow: number | undefined;
-        if (lua.lua_isnumber(state, 3)) startRow = lua.lua_tonumber(state, 3);
-        if (lua.lua_isnumber(state, 4)) endRow = lua.lua_tonumber(state, 4);
+        if (lua.lua_isnumber(state, 4)) startRow = lua.lua_tonumber(state, 4);
+        if (lua.lua_isnumber(state, 5)) endRow = lua.lua_tonumber(state, 5);
 
         const captures = queryObj.iterCaptures(node, source, {
             startRow,
@@ -119,14 +130,12 @@ const queryMethods: Record<string, (state: lua_State) => number> = {
             );
         }
         const node = extractNode(state, 2);
-        lua.lua_getfield(state, 1, to_luastring('_source'));
-        const source = readLuaString(state, -1) ?? '';
-        lua.lua_pop(state, 1);
+        const source = readQuerySource(state);
 
         let startRow: number | undefined;
         let endRow: number | undefined;
-        if (lua.lua_isnumber(state, 3)) startRow = lua.lua_tonumber(state, 3);
-        if (lua.lua_isnumber(state, 4)) endRow = lua.lua_tonumber(state, 4);
+        if (lua.lua_isnumber(state, 4)) startRow = lua.lua_tonumber(state, 4);
+        if (lua.lua_isnumber(state, 5)) endRow = lua.lua_tonumber(state, 5);
 
         const matches = queryObj.iterMatches(node, source, {
             startRow,
@@ -222,6 +231,8 @@ function pushQueryObject(
 }
 
 export function injectQueryApi(L: lua_State, tsTableIndex: number): void {
+    const namedQueries = new NamedQueries();
+    registerStateCleanup(L, () => namedQueries.dispose());
     lua.lua_newtable(L);
     const queryIndex = lua.lua_gettop(L);
 
@@ -269,8 +280,11 @@ export function injectQueryApi(L: lua_State, tsTableIndex: number): void {
             lua.lua_pushnil(state);
             return 1;
         }
-        const key = `${lang}/${queryName}`;
-        const cached = namedQueryCache.get(key);
+        const cached = namedQueries.get(
+            lang,
+            queryName,
+            _runtime?.getLanguage(lang),
+        );
         if (cached) {
             pushQueryObject(state, cached, '');
             return 1;
@@ -284,26 +298,21 @@ export function injectQueryApi(L: lua_State, tsTableIndex: number): void {
         const lang = readLuaString(state, 1);
         const queryName = readLuaString(state, 2);
         const queryText = readLuaString(state, 3);
-        if (!lang || !queryName || !queryText) return 0;
-
-        const language = rt().getLanguage(lang);
-        if (!language) return 0;
-
-        try {
-            const wrapper = new QueryWrapper(language, queryText);
-            const key = `${lang}/${queryName}`;
-            const existing = namedQueryCache.get(key);
-            if (existing) existing.delete();
-            namedQueryCache.set(key, wrapper);
-        } catch {
-            /* query parse failed */
-        }
+        if (!lang || !queryName || queryText === null) return 0;
+        namedQueries.set(lang, queryName, queryText);
         return 0;
     });
     lua.lua_setfield(L, queryIndex, to_luastring('set'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
-        lua.lua_newtable(state);
+        const lang = readLuaString(state, 1);
+        const name = readLuaString(state, 2);
+        pushLuaAny(
+            state,
+            lang && name
+                ? getQueryFiles(lang, name, lua.lua_toboolean(state, 3))
+                : [],
+        );
         return 1;
     });
     lua.lua_setfield(L, queryIndex, to_luastring('get_files'));

@@ -9,6 +9,7 @@ import {
     loadSingleFileWorkspace,
     PAUSE,
 } from '../helpers';
+import type { JumpList } from '../../src/vim/jumplist';
 
 type VimAdapter = {
     Vim?: {
@@ -343,29 +344,117 @@ describe('Jump list', function () {
 
     describe('File lifecycle', function () {
         it('jump list should handle deleted files gracefully', async function () {
-            await obsidianPage.write('JumpDelA.md', 'Alpha');
-            await obsidianPage.write('JumpDelB.md', 'Beta');
-            await obsidianPage.openFile('JumpDelA.md');
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-            await obsidianPage.openFile('JumpDelB.md');
-            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+            const source = 'fixtures/jump-list/JumpDelA.md';
+            const target = 'fixtures/jump-list/JumpDelB.md';
+            const readState = () =>
+                browser.executeObsidian(({ app }) => {
+                    const plugin = app.plugins.plugins[
+                        'vim-motions'
+                    ] as unknown as {
+                        jumpList: JumpList;
+                    };
+                    return {
+                        active: app.workspace.getActiveFile()?.path,
+                        paths: plugin.jumpList
+                            .getEntries()
+                            .map((entry) => entry.filePath),
+                        index: plugin.jumpList.getIndex(),
+                    };
+                });
 
-            await browser.executeObsidian(async ({ app }) => {
-                const file = app.vault.getAbstractFileByPath('JumpDelA.md');
-                if (file && 'path' in file) {
-                    await app.vault.delete(file);
-                }
+            await obsidianPage.openFile(source);
+            await browser.waitUntil(
+                async () =>
+                    browser.executeObsidian(
+                        ({ app, obsidian }, sourcePath, targetPath) => {
+                            const view = app.workspace.getActiveViewOfType(
+                                obsidian.MarkdownView,
+                            );
+                            return (
+                                view?.file?.path === sourcePath &&
+                                app.metadataCache.getFirstLinkpathDest(
+                                    'JumpDelB',
+                                    sourcePath,
+                                )?.path === targetPath
+                            );
+                        },
+                        source,
+                        target,
+                    ),
+                {
+                    timeoutMsg:
+                        'Jump-list fixtures must be open and their link resolvable',
+                },
+            );
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const plugin = app.plugins.plugins[
+                    'vim-motions'
+                ] as unknown as {
+                    jumpList: JumpList;
+                };
+                plugin.jumpList.clear();
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view)
+                    throw new Error('Jump-list fixture has no MarkdownView');
+                view.editor.setCursor(1, 2);
+                view.editor.focus();
             });
-            await browser.pause(PAUSE.EDITOR_SETTLE);
+            expect((await readState()).paths).toEqual([]);
+            await sendGotoDefinition();
+            await browser.waitUntil(
+                async () => {
+                    const state = await readState();
+                    return state.active === target && state.paths.length === 2;
+                },
+                {
+                    timeoutMsg:
+                        'gd must finish recording the source and destination',
+                },
+            );
+            expect(await readState()).toEqual({
+                active: target,
+                paths: [source, target],
+                index: 1,
+            });
+
+            await browser.executeObsidian(async ({ app }, sourcePath) => {
+                const file = app.vault.getAbstractFileByPath(sourcePath);
+                if (!file) {
+                    throw new Error(
+                        'Jump-list source fixture must exist before deletion',
+                    );
+                }
+                await app.vault.delete(file);
+            }, source);
+            await browser.waitUntil(
+                async () => !(await readState()).paths.includes(source),
+                {
+                    timeoutMsg:
+                        'Vault deletion must remove the source jump entry',
+                },
+            );
+            expect(await readState()).toEqual({
+                active: target,
+                paths: [target],
+                index: 0,
+            });
 
             const before = (await browser.executeObsidian(
                 ({ app }) => app.workspace.getActiveFile()?.path ?? '',
             )) as string;
+            expect(before).toBe(target);
             await sendCtrlJump('<C-o>');
             const after = (await browser.executeObsidian(
                 ({ app }) => app.workspace.getActiveFile()?.path ?? '',
             )) as string;
             expect(after).toBe(before);
+            expect(await readState()).toEqual({
+                active: target,
+                paths: [target],
+                index: 0,
+            });
         });
     });
 });

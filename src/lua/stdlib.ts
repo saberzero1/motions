@@ -831,11 +831,6 @@ if not vim.wait then
     end
 end
 
-if not vim.on_key then
-    function vim.on_key(fn, ns)
-    end
-end
-
 if not vim.tbl_flatten then
     function vim.tbl_flatten(t)
         local result = {}

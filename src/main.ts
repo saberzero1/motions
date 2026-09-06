@@ -170,6 +170,7 @@ import {
 import { loadInitLua, resolveLuaConfigPath } from './lua/loader';
 import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
+import { observeKeyEvent } from './workspace/key-observer';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
 import { injectVimApi } from './lua/api';
 import { injectVimFn } from './lua/fn';
@@ -810,7 +811,10 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
-        const keyInterceptSafetyHandler = () => {
+        const keyInterceptSafetyHandler = (event: KeyboardEvent) => {
+            // Desktop observes via GlobalKeyHandler (including popout windows).
+            // Mobile does not install that handler; reuse this existing one.
+            if (Platform.isMobile) observeKeyEvent(event);
             if (!isKeyInterceptActive()) return;
             if (document.querySelector('.vim-motions-table-nav-mode')) return;
             setKeyInterceptActive(false);

@@ -38,18 +38,31 @@ The `src/` directory is organized into focused modules:
 
 The plugin includes a sandboxed Lua 5.3 runtime via a browser-only fork of [fengari](https://github.com/saberzero1/fengari). The `src/lua/` directory is organized into focused modules:
 
-- `engine.ts`: Lua VM lifecycle — sandboxed state creation, instruction-limit timeout (config load: 1M instructions; runtime callbacks: 500K; snippet nodes: 100K), `withInstructionGuard` helper, throttled error notices, code evaluation.
-- `api.ts`: Registers the `vim.*` API surface — `vim.opt`, `vim.g`, `vim.cmd`, `vim.keymap`, `vim.api` (59 `nvim_*` functions including extmarks), `vim.notify`, `vim.obsidian`/`vim.ob`, `vim.env`, `vim.log.levels`.
-- `fn.ts`: Registers `vim.fn.*` functions (77 functions) with callbacks bridging to Obsidian's vault and editor APIs.
+- `engine.ts`: Lua VM lifecycle — sandboxed state creation, instruction-limit timeout (config load: 1M instructions; runtime callbacks: 500K; snippet nodes: 100K), `withInstructionGuard` helper, throttled error notices, code evaluation, registered cleanup before Lua close.
+- `api.ts`: Registers the `vim.*` API surface — `vim.opt`, `vim.o`/`vim.go` (engine → shadow → defaults), shared `operatorfunc` option routes, `vim.g`, `vim.cmd`, `vim.keymap`, `vim.api` (60 real `nvim_*` implementations including extmarks, current-buffer/window calls, and non-floating window config), `vim.notify`, `vim.obsidian`/`vim.ob`, `vim.env`, `vim.log.levels`.
+- `fn.ts`: Registers `vim.fn.*` functions (79 real implementations) with callbacks bridging to Obsidian's vault and editor APIs.
+- `iter.ts`: Embedded Lua iterator implementation (26 methods); replaces the namespace stub. `rpop`, `count`, and `size` are extensions rather than Neovim 0.12 methods.
+- `on-key.ts`: Namespace-scoped key observer registration, dispatch, and teardown. `src/workspace/key-observer.ts` feeds physical input from existing desktop/popout and mobile listeners. Observation is pre-mapping, with identical `key`/`typed` arguments and no key-discard support.
+- `termcodes.ts`: Neovim key-byte encoder and decoder at the notation-based fork boundary, used by `nvim_replace_termcodes` and `nvim_feedkeys`.
+- `window-info.ts`: CM6 viewport measurements for `vim.fn.getwininfo()` — inclusive visible lines, dimensions, and gutter offset.
 - `stdlib.ts`: Pure-Lua standard library utilities — `vim.tbl_*` (12 table functions), `vim.split`/`vim.trim`/`vim.startswith`/`vim.endswith`/`vim.inspect`, `vim.json` (JS-bridged encode/decode), `vim.validate` (full Neovim spec), `vim.version` (11 functions), `vim.keycode`, `vim.notify_once`.
 - `extmarks.ts`: Neovim extmark system — CM6 StateField-based registry with effects for set/delete/clear, VirtualTextWidget for inline/overlay/EOL decorations, position tracking that survives text edits, range query APIs for `nvim_buf_get_extmarks`.
 - `timers.ts`: Async primitives — `vim.schedule`, `vim.defer_fn`, `vim.uv`/`vim.loop` timer subset. Managed by `TimerManager` for cleanup on plugin unload.
 - `autocmd.ts`: Autocommand system — `AutocmdManager` handles 12 events (`InsertEnter`, `CursorMoved`, `BufWritePre`, etc.) with augroup management and pattern matching.
 - `buffer.ts`: Buffer-local keymaps — `BufferKeymapManager` stores per-file keymaps and swaps them on active leaf change.
 - `highlight.ts`: Highlight group → CSS bridge — `HighlightManager` maps `nvim_set_hl` calls to CSS custom properties (plugin-defined groups) or dynamic CSS classes (user-defined groups).
-- `loader.ts`: Orchestrates Lua config loading — reads `.obsidian.init.lua`, creates the sandboxed state, injects all API modules, evaluates user code, and returns collected keymaps/commands/settings.
+- `loader.ts`: Orchestrates Lua config loading — reads `.obsidian.init.lua`, creates the sandboxed state, injects all API modules, awaits Treesitter/query initialization, evaluates user code, and returns collected keymaps/commands/settings. Normalizes the fork's returned `Error` for unknown options.
 
-The injection order matters: `createSandboxedState()` → `injectVimApi()` → `injectVimFn()` → `injectStdlib()` → `injectTimers()` → `evalLua(userCode)`.
+The injection order matters: `injectIterApi()` must run after `injectNamespaceStubs()` so the real iterator replaces the stub. The loader awaits `initTreesitterRuntime(app.vault.adapter)` before evaluating user code, allowing synchronous named-query calls during configuration. Key observers and owned compiled queries register cleanup before the Lua state closes.
+
+### Named Treesitter queries
+
+- `src/treesitter/bundled-queries.ts`: Bundled `textobjects` constants for Markdown, Markdown inline, and HTML.
+- `src/treesitter/query-files.ts`: Preloaded `.scm` snapshot with user → lexically ordered plugin → bundled precedence, `;; extends`, recursive `;; inherits:`, cycle detection, and resource limits (128 KiB/file, 4 MiB/snapshot, 512 KiB/combined query, 64 sources, 16 inheritance levels).
+- `src/treesitter/named-queries.ts`: Per-Lua-state `query.set()` overrides, lazy compilation, revision-based cache invalidation, and owned-query cleanup.
+- `src/lua/treesitter/query-api.ts`: Lua query bindings; capture/match iterators use the supplied source or parsed node's retained document text for predicates and take row bounds after the source argument.
+
+User queries live at `lua/queries/{lang}/{name}.scm`; plugin queries live at `lua/{plugin}/queries/{lang}/{name}.scm`. Auto-fetch retains `.scm` files under isolated `lua/{owner}__{repo}/queries/` roots and refreshes the snapshot before Lua resumes. Older cached plugins need re-fetching to obtain formerly discarded queries. `.scm` edits require configuration reload, and `query.get_files()` omits bundled constants because they have no physical path. Named queries do not yet drive `LanguageTree` injection loading. See [[lua-config#Query files and resolution]] for user-facing conventions.
 
 ## Feature registration pattern
 

@@ -127,19 +127,36 @@ export function createJumpListWalkOverride(
         const forward = actionArgs.forward === true;
         const count = Math.max(1, actionArgs.repeat || 1);
         const currentFile = app.workspace.getActiveFile()?.path ?? '';
+        let skippedInvalid = false;
+        const isValid = (entry: JumpEntry): boolean => {
+            const valid =
+                app.vault.getAbstractFileByPath(entry.filePath) instanceof
+                TFile;
+            if (!valid) skippedInvalid = true;
+            return valid;
+        };
 
         const candidate = forward
-            ? jumpList.peekNewer(count)
-            : jumpList.peekOlder(count);
+            ? jumpList.peekNewer(count, isValid)
+            : jumpList.peekOlder(count, isValid);
 
-        if (candidate && candidate.filePath !== currentFile) {
+        if (
+            candidate &&
+            (candidate.filePath !== currentFile || skippedInvalid)
+        ) {
             const entry = forward
-                ? jumpList.jumpNewer(count)
-                : jumpList.jumpOlder(count);
+                ? jumpList.jumpNewer(count, isValid)
+                : jumpList.jumpOlder(count, isValid);
             if (entry) {
-                void openJumpEntry(app, entry);
+                void openJumpEntry(app, entry).catch((err: unknown) => {
+                    console.warn(
+                        'Vim Motions: jump list navigation failed:',
+                        err,
+                    );
+                });
             }
-        } else {
+        } else if (!skippedInvalid) {
+            // Dead history must not fall through to the fork's unrelated history.
             original(cm, actionArgs, vim);
         }
     };

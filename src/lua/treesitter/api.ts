@@ -8,6 +8,10 @@ import { injectLanguageApi, setLanguageRuntime } from './language';
 import { injectQueryApi, setQueryRuntime } from './query-api';
 import { setJsApiModules } from '../../treesitter/js-api';
 import type { CoroutineRunner } from '../coroutine-runner';
+import {
+    preloadQueryFiles,
+    type QueryFileAdapter,
+} from '../../treesitter/query-files';
 type LanguageTreeModule = typeof import('../../treesitter/language-tree');
 let _ltreeModule: LanguageTreeModule | null = null;
 
@@ -22,8 +26,10 @@ function runtime(): typeof import('../../treesitter/runtime') {
     return _runtime;
 }
 
-export async function initTreesitterRuntime(): Promise<void> {
-    if (_runtime) return;
+export async function initTreesitterRuntime(
+    adapter?: QueryFileAdapter,
+): Promise<void> {
+    if (adapter) await preloadQueryFiles(adapter);
     _runtime = await import('../../treesitter/runtime');
     _ltreeModule = await import('../../treesitter/language-tree');
     const queryModule = await import('../../treesitter/query');
@@ -32,6 +38,7 @@ export async function initTreesitterRuntime(): Promise<void> {
     setJsApiModules(_runtime, queryModule);
     await _runtime.loadLanguage('markdown');
     await _runtime.loadLanguage('markdown_inline');
+    await _runtime.loadLanguage('html');
 }
 
 const parserCache = new Map<string, { tree: Tree; sourceText: string }>();

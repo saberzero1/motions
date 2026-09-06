@@ -23,6 +23,8 @@ import {
 import { type CoroutineRunner } from './coroutine-runner';
 import { injectObsidianApi } from './obsidian-api';
 import { injectRegex } from './regex';
+import { injectOnKey } from './on-key';
+import { replaceTermcodes, termcodesToNotation } from './termcodes';
 import {
     dispatchSetExtmark,
     dispatchDelExtmark,
@@ -125,6 +127,7 @@ export interface LuaGlobalKeymap {
 }
 
 export interface VimApiCallbacks {
+    observeKeys?: (handler: (key: string) => void) => () => void;
     onSettingOverride: (
         key: string,
         value: unknown,
@@ -416,6 +419,11 @@ export function replaceLeaderKey(input: string, leaderKey: string): string {
     return input.replace(/<leader>/gi, leaderKey);
 }
 
+function readKeyString(L: lua_State, index: number): string | null {
+    const bytes = lua.lua_tolstring(L, index);
+    return bytes ? termcodesToNotation(bytes, true) : null;
+}
+
 function getModeList(L: lua_State, index: number): string[] {
     if (lua.lua_isnil(L, index)) return ['n'];
     const modeStr = readLuaString(L, index);
@@ -694,6 +702,9 @@ function createWarnVarTable(
 }
 
 const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
+    'nvim_buf_call',
+    'nvim_win_call',
+    'nvim_win_get_config',
     'nvim_create_user_command',
     'nvim_del_user_command',
     'nvim_create_autocmd',
@@ -1038,6 +1049,112 @@ export interface VimApiState {
     globals: Map<string, unknown>;
 }
 
+interface OperatorfuncState {
+    name: string | null;
+}
+
+function readOperatorfuncTo(
+    state: lua_State,
+    operatorfunc: OperatorfuncState,
+): number {
+    lua.lua_pushstring(state, to_luastring(operatorfunc.name ?? ''));
+    return 1;
+}
+
+function writeOperatorfuncFrom(
+    state: lua_State,
+    valueIndex: number,
+    L: lua_State,
+    callbacks: VimApiCallbacks,
+    operatorfunc: OperatorfuncState,
+): number {
+    const vimApi = callbacks.getVimApi?.();
+    if (lua.lua_isfunction(state, valueIndex)) {
+        lua.lua_pushvalue(state, valueIndex);
+        const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+        operatorfunc.name = null;
+        const wrapper = (_cm: unknown, type: string) => {
+            void _cm;
+            lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
+            lua.lua_pushstring(state, to_luastring(type));
+            const status = lua.lua_pcall(state, 1, 0, 0);
+            if (status !== lua.LUA_OK) {
+                const msg = lua.lua_tolstring(state, -1);
+                console.error(
+                    `operatorfunc error: ${msg ? to_jsstring(msg) : 'unknown'}`,
+                );
+                lua.lua_pop(state, 1);
+            }
+        };
+        vimApi?.setOperatorfunc?.(wrapper);
+    } else if (lua.lua_isstring(state, valueIndex)) {
+        const fnName = readLuaString(state, valueIndex) ?? '';
+        operatorfunc.name = fnName;
+        const wrapper = (_cm: unknown, type: string) => {
+            const vluaPrefix = 'v:lua.';
+            const luaFn = fnName.startsWith(vluaPrefix)
+                ? fnName.slice(vluaPrefix.length)
+                : fnName;
+            const callCode = `${luaFn}('${type}')`;
+            const callStatus = lauxlib.luaL_dostring(L, to_luastring(callCode));
+            if (callStatus !== lua.LUA_OK) {
+                const msg = lua.lua_tolstring(L, -1);
+                const error = msg ? to_jsstring(msg) : 'unknown';
+                console.error(`Vim Motions: operatorfunc error: ${error}`);
+                lua.lua_pop(L, 1);
+            }
+        };
+        vimApi?.setOperatorfunc?.(wrapper);
+    } else if (lua.lua_isnil(state, valueIndex)) {
+        operatorfunc.name = null;
+        vimApi?.setOperatorfunc?.(null);
+    }
+    return 0;
+}
+
+const globalOptionShadow = new Map<string, unknown>();
+const GLOBAL_OPTION_DEFAULTS = new Map<string, unknown>([
+    ['eventignore', ''],
+    ['selection', 'inclusive'],
+    ['cmdheight', 1],
+    ['columns', 80],
+    ['lines', 24],
+    ['cpo', 'aABceFs'],
+    ['background', 'dark'],
+]);
+
+function readGlobalOption(callbacks: VimApiCallbacks, key: string): unknown {
+    let value: unknown;
+    try {
+        value = callbacks.getOption?.(key);
+    } catch {
+        // The built-in engine may throw for options it does not implement.
+    }
+    if (value !== undefined && value !== null && !(value instanceof Error)) {
+        return value;
+    }
+    if (globalOptionShadow.has(key)) return globalOptionShadow.get(key);
+    if (key === 'background' && typeof document !== 'undefined') {
+        return document.body?.classList.contains('theme-light')
+            ? 'light'
+            : 'dark';
+    }
+    return GLOBAL_OPTION_DEFAULTS.get(key);
+}
+
+function writeGlobalOption(
+    callbacks: VimApiCallbacks,
+    key: string,
+    value: unknown,
+): void {
+    globalOptionShadow.set(key, value);
+    try {
+        callbacks.setOption?.(key, value);
+    } catch {
+        // Retain compatibility values even when the engine rejects them.
+    }
+}
+
 export function injectVimApi(
     L: lua_State,
     callbacks: VimApiCallbacks,
@@ -1047,7 +1164,13 @@ export function injectVimApi(
     const bufferKeymaps = new Map<string, LuaKeymap[]>();
     const namespacesByName = new Map<string, number>();
     let nextNamespaceId = 1;
-    let operatorfuncName: string | null = null;
+    const allocateNamespace = (requested: number): number => {
+        if (requested === 0) return nextNamespaceId++;
+        nextNamespaceId = Math.max(nextNamespaceId, requested + 1);
+        return requested;
+    };
+    const operatorfunc: OperatorfuncState = { name: null };
+    globalOptionShadow.clear();
     const notifiedMessages = new Set<string>();
     const warnedNamespaceKeys = new Set<string>();
     const warnedApiFunctions = new Set<string>();
@@ -1124,6 +1247,7 @@ export function injectVimApi(
 
     lua.lua_newtable(L);
     const vimTableIndex = lua.lua_gettop(L);
+    injectOnKey(L, vimTableIndex, allocateNamespace, callbacks.observeKeys);
 
     lua.lua_newtable(L);
     const optTableIndex = lua.lua_gettop(L);
@@ -1136,12 +1260,7 @@ export function injectVimApi(
             return 1;
         }
         if (key === 'operatorfunc') {
-            if (operatorfuncName) {
-                lua.lua_pushstring(state, to_luastring(operatorfuncName));
-            } else {
-                lua.lua_pushstring(state, to_luastring(''));
-            }
-            return 1;
+            return readOperatorfuncTo(state, operatorfunc);
         }
         const spec = KNOWN_SET_OPTIONS[key];
         if (spec) {
@@ -1166,53 +1285,7 @@ export function injectVimApi(
         const key = readLuaString(state, 2);
         if (!key) return 0;
         if (key === 'operatorfunc') {
-            const vimApi = callbacks.getVimApi?.();
-            if (lua.lua_isfunction(state, 3)) {
-                lua.lua_pushvalue(state, 3);
-                const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
-                operatorfuncName = null;
-                const wrapper = (_cm: unknown, type: string) => {
-                    void _cm;
-                    lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
-                    lua.lua_pushstring(state, to_luastring(type));
-                    const status = lua.lua_pcall(state, 1, 0, 0);
-                    if (status !== lua.LUA_OK) {
-                        const msg = lua.lua_tolstring(state, -1);
-                        console.error(
-                            `operatorfunc error: ${msg ? to_jsstring(msg) : 'unknown'}`,
-                        );
-                        lua.lua_pop(state, 1);
-                    }
-                };
-                vimApi?.setOperatorfunc?.(wrapper);
-            } else if (lua.lua_isstring(state, 3)) {
-                const fnName = to_jsstring(lua.lua_tolstring(state, 3)!);
-                operatorfuncName = fnName;
-                const wrapper = (_cm: unknown, type: string) => {
-                    const vluaPrefix = 'v:lua.';
-                    const luaFn = fnName.startsWith(vluaPrefix)
-                        ? fnName.slice(vluaPrefix.length)
-                        : fnName;
-                    const callCode = `${luaFn}('${type}')`;
-                    const callStatus = lauxlib.luaL_dostring(
-                        L,
-                        to_luastring(callCode),
-                    );
-                    if (callStatus !== lua.LUA_OK) {
-                        const msg = lua.lua_tolstring(L, -1);
-                        const error = msg ? to_jsstring(msg) : 'unknown';
-                        console.error(
-                            `Vim Motions: operatorfunc error: ${error}`,
-                        );
-                        lua.lua_pop(L, 1);
-                    }
-                };
-                vimApi?.setOperatorfunc?.(wrapper);
-            } else if (lua.lua_isnil(state, 3)) {
-                operatorfuncName = null;
-                vimApi?.setOperatorfunc?.(null);
-            }
-            return 0;
+            return writeOperatorfuncFrom(state, 3, L, callbacks, operatorfunc);
         }
         const spec = KNOWN_SET_OPTIONS[key];
         if (!spec) {
@@ -1425,20 +1498,21 @@ export function injectVimApi(
             lua.lua_pushnil(state);
             return 1;
         }
-        const value = callbacks.getOption?.(key);
-        if (value === undefined || value === null) {
-            lua.lua_pushnil(state);
-        } else {
-            pushLuaValue(state, value);
+        if (key === 'operatorfunc') {
+            return readOperatorfuncTo(state, operatorfunc);
         }
+        pushLuaValue(state, readGlobalOption(callbacks, key));
         return 1;
     });
     lua.lua_setfield(L, -2, to_luastring('__index'));
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const key = readLuaString(state, 2);
         if (!key) return 0;
+        if (key === 'operatorfunc') {
+            return writeOperatorfuncFrom(state, 3, L, callbacks, operatorfunc);
+        }
         const value = readLuaValue(state, 3);
-        callbacks.setOption?.(key, value);
+        writeGlobalOption(callbacks, key, value);
         return 0;
     });
     lua.lua_setfield(L, -2, to_luastring('__newindex'));
@@ -1456,20 +1530,21 @@ export function injectVimApi(
             lua.lua_pushnil(state);
             return 1;
         }
-        const value = callbacks.getOption?.(key);
-        if (value === undefined || value === null) {
-            lua.lua_pushnil(state);
-        } else {
-            pushLuaValue(state, value);
+        if (key === 'operatorfunc') {
+            return readOperatorfuncTo(state, operatorfunc);
         }
+        pushLuaValue(state, readGlobalOption(callbacks, key));
         return 1;
     });
     lua.lua_setfield(L, -2, to_luastring('__index'));
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const key = readLuaString(state, 2);
         if (!key) return 0;
+        if (key === 'operatorfunc') {
+            return writeOperatorfuncFrom(state, 3, L, callbacks, operatorfunc);
+        }
         const value = readLuaValue(state, 3);
-        callbacks.setOption?.(key, value);
+        writeGlobalOption(callbacks, key, value);
         return 0;
     });
     lua.lua_setfield(L, -2, to_luastring('__newindex'));
@@ -1852,7 +1927,7 @@ export function injectVimApi(
     const keymapIndex = lua.lua_gettop(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const modes = getModeList(state, 1);
-        const lhsRaw = readLuaString(state, 2);
+        const lhsRaw = readKeyString(state, 2);
         if (!lhsRaw) {
             return lauxlib.luaL_error(
                 state,
@@ -1860,7 +1935,7 @@ export function injectVimApi(
             );
         }
         const rhsIsFn = lua.lua_isfunction(state, 3);
-        const rhsRaw = rhsIsFn ? null : readLuaString(state, 3);
+        const rhsRaw = rhsIsFn ? null : readKeyString(state, 3);
         if (!rhsIsFn && rhsRaw === null) {
             return lauxlib.luaL_error(
                 state,
@@ -1951,9 +2026,7 @@ export function injectVimApi(
                         lua.lua_pop(L, 1);
                         return;
                     }
-                    const returnedKeys = lua.lua_isstring(L, -1)
-                        ? to_jsstring(lua.lua_tolstring(L, -1)!)
-                        : null;
+                    const returnedKeys = readKeyString(L, -1);
                     lua.lua_pop(L, 1);
                     if (!returnedKeys || returnedKeys.length === 0) return;
                     const adapter =
@@ -2045,7 +2118,7 @@ export function injectVimApi(
     lua.lua_setfield(L, keymapIndex, to_luastring('set'));
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const modes = getModeList(state, 1);
-        const lhsRaw = readLuaString(state, 2);
+        const lhsRaw = readKeyString(state, 2);
         if (!lhsRaw) {
             return lauxlib.luaL_error(
                 state,
@@ -2443,8 +2516,8 @@ export function injectVimApi(
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_set_keymap');
         const mode = readLuaString(state, 2);
-        const lhs = readLuaString(state, 3);
-        const rhs = readLuaString(state, 4);
+        const lhs = readKeyString(state, 3);
+        const rhs = readKeyString(state, 4);
         if (!mode || !lhs || rhs === null) {
             return lauxlib.luaL_error(
                 state,
@@ -2488,7 +2561,7 @@ export function injectVimApi(
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_del_keymap');
         const mode = readLuaString(state, 2);
-        const lhs = readLuaString(state, 3);
+        const lhs = readKeyString(state, 3);
         if (!mode || !lhs) {
             return lauxlib.luaL_error(
                 state,
@@ -2910,8 +2983,8 @@ export function injectVimApi(
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const mode = readLuaString(state, 1);
-        const lhs = readLuaString(state, 2);
-        const rhs = readLuaString(state, 3);
+        const lhs = readKeyString(state, 2);
+        const rhs = readKeyString(state, 3);
         if (!mode || !lhs || rhs === null) {
             return lauxlib.luaL_error(
                 state,
@@ -2949,7 +3022,7 @@ export function injectVimApi(
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         const mode = readLuaString(state, 1);
-        const lhs = readLuaString(state, 2);
+        const lhs = readKeyString(state, 2);
         if (!mode || !lhs) {
             return lauxlib.luaL_error(
                 state,
@@ -3010,23 +3083,31 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_keymap'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
-        const str = readLuaString(state, 1);
-        if (str === null) {
+        const str = lua.lua_tolstring(state, 1);
+        if (!str) {
             return lauxlib.luaL_error(
                 state,
                 to_luastring('nvim_replace_termcodes: expected string'),
             );
         }
-        lua.lua_pushstring(state, to_luastring(str));
+        // from_part (argument 2) is a legacy flag, accepted but ignored.
+        lua.lua_pushstring(
+            state,
+            replaceTermcodes(
+                str,
+                lua.lua_toboolean(state, 3),
+                lua.lua_toboolean(state, 4),
+            ),
+        );
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_replace_termcodes'));
 
     const feedkeysWarnedFlags = new Set<string>();
     lua.lua_pushjsfunction(L, (state: lua_State) => {
-        const keys = readLuaString(state, 1);
+        const keys = lua.lua_tolstring(state, 1);
         const mode = readLuaString(state, 2) ?? '';
-        if (keys === null) {
+        if (!keys) {
             return lauxlib.luaL_error(
                 state,
                 to_luastring('nvim_feedkeys: expected keys string'),
@@ -3044,7 +3125,7 @@ export function injectVimApi(
         const vimApi = callbacks.getVimApi?.();
         const adapter = callbacks.getCmAdapter?.();
         if (vimApi?.feedKeys && adapter) {
-            vimApi.feedKeys(adapter, keys, { noremap });
+            vimApi.feedKeys(adapter, termcodesToNotation(keys), { noremap });
         }
         return 0;
     });
@@ -3088,6 +3169,33 @@ export function injectVimApi(
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_get_buf'));
 
+    for (const [name, validate] of [
+        ['nvim_win_call', requireWindowZero],
+        ['nvim_buf_call', requireBufferZero],
+    ] as const) {
+        lua.lua_pushjsfunction(L, (state: lua_State) => {
+            validate(state, 1, name);
+            lauxlib.luaL_checktype(state, 2, lua.LUA_TFUNCTION);
+            lua.lua_settop(state, 2);
+            lua.lua_pushvalue(state, 2);
+            lua.lua_call(state, 0, lua.LUA_MULTRET);
+            return lua.lua_gettop(state) - 2;
+        });
+        lua.lua_setfield(L, apiIndex, to_luastring(name));
+    }
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireWindowZero(state, 1, 'nvim_win_get_config');
+        pushLuaAny(state, {
+            relative: '',
+            focusable: true,
+            external: false,
+            hide: false,
+        });
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_get_config'));
+
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_get_option');
         const name = readLuaString(state, 2);
@@ -3126,6 +3234,9 @@ export function injectVimApi(
                 to_luastring('nvim_get_option: expected option name'),
             );
         }
+        if (name === 'operatorfunc') {
+            return readOperatorfuncTo(state, operatorfunc);
+        }
         const value = callbacks.getOption?.(name);
         pushLuaValue(state, value ?? null);
         return 1;
@@ -3140,6 +3251,9 @@ export function injectVimApi(
                 to_luastring('nvim_set_option: expected option name'),
             );
         }
+        if (name === 'operatorfunc') {
+            return writeOperatorfuncFrom(state, 2, L, callbacks, operatorfunc);
+        }
         const value = readLuaValue(state, 2);
         callbacks.setOption?.(name, value);
         return 0;
@@ -3151,6 +3265,9 @@ export function injectVimApi(
         if (!name) {
             lua.lua_pushnil(state);
             return 1;
+        }
+        if (name === 'operatorfunc') {
+            return readOperatorfuncTo(state, operatorfunc);
         }
         const value = callbacks.getOption?.(name);
         if (value === undefined || value === null) {
@@ -3169,6 +3286,9 @@ export function injectVimApi(
                 state,
                 to_luastring('nvim_set_option_value: expected option name'),
             );
+        }
+        if (name === 'operatorfunc') {
+            return writeOperatorfuncFrom(state, 2, L, callbacks, operatorfunc);
         }
         const value = readLuaValue(state, 2);
         callbacks.setOption?.(name, value);

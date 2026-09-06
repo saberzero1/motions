@@ -1,10 +1,16 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { type App, TFile } from 'obsidian';
+import type { CmAdapter } from '../../src/types/vim-api';
 
 vi.mock('../../src/vim/options', () => ({
     getJumpListSize: () => 200,
+    isJumpListEnabled: () => true,
 }));
+vi.mock('../../src/workspace/navigation', () => ({ executeCommand: vi.fn() }));
+vi.mock('../../src/ui/global-ex-command', () => ({}));
 
-import { JumpList } from '../../src/vim/jumplist';
+import { JumpList, type JumpEntry } from '../../src/vim/jumplist';
+import { createJumpListWalkOverride } from '../../src/workspace/global-defaults';
 
 describe('JumpList', () => {
     let jl: JumpList;
@@ -127,6 +133,95 @@ describe('JumpList', () => {
         });
     });
 
+    describe.each(['older', 'newer'] as const)(
+        'unresolved entries: %s',
+        (direction) => {
+            const isLive = (entry: JumpEntry) => entry.filePath !== 'dead.md';
+
+            function walk(count = 1, isValid = isLive) {
+                return direction === 'older'
+                    ? jl.jumpOlder(count, isValid)
+                    : jl.jumpNewer(count, isValid);
+            }
+
+            function load(paths: string[]) {
+                const ordered =
+                    direction === 'older' ? [...paths].reverse() : paths;
+                jl.deserialize(
+                    ordered.map((filePath, line) => ({
+                        filePath,
+                        line,
+                        ch: 0,
+                    })),
+                );
+                if (direction === 'newer') jl.jumpOlder(ordered.length);
+            }
+
+            it.each([1, 3])(
+                'skips %i dead entries without pruning history',
+                (deadCount) => {
+                    load([
+                        'current.md',
+                        ...Array<string>(deadCount).fill('dead.md'),
+                        'target.md',
+                        'farther.md',
+                    ]);
+                    const history = jl.serialize();
+                    const target = history.find(
+                        (entry) => entry.filePath === 'target.md',
+                    );
+
+                    const index = jl.getIndex();
+                    const peek =
+                        direction === 'older'
+                            ? jl.peekOlder(1, isLive)
+                            : jl.peekNewer(1, isLive);
+                    expect(peek).toEqual(target);
+                    expect(jl.getIndex()).toBe(index);
+                    expect(walk()).toEqual(target);
+                    expect(jl.getEntries()[jl.getIndex()]).toEqual(target);
+                    expect(jl.serialize()).toEqual(history);
+                },
+            );
+
+            it('leaves the index unchanged when only dead entries remain', () => {
+                load(['current.md', 'dead.md', 'dead.md']);
+                const index = jl.getIndex();
+                expect(walk()).toBeNull();
+                expect(walk()).toBeNull();
+                expect(jl.getIndex()).toBe(index);
+            });
+
+            it('terminates for an entirely dead persisted history and a huge count', () => {
+                load(Array<string>(200).fill('dead.md'));
+                const index = jl.getIndex();
+                const isValid = vi.fn(() => false);
+                expect(walk(Number.MAX_SAFE_INTEGER, isValid)).toBeNull();
+                expect(isValid).toHaveBeenCalledTimes(199);
+                expect(jl.getIndex()).toBe(index);
+                expect(jl.getEntries()).toHaveLength(200);
+            });
+
+            it.each([2, 99])(
+                'counts valid destinations and clamps (count=%i)',
+                (count) => {
+                    load([
+                        'current.md',
+                        'dead.md',
+                        'first.md',
+                        'dead.md',
+                        'last.md',
+                        'dead.md',
+                    ]);
+                    expect(walk(count)?.filePath).toBe('last.md');
+                    const index = jl.getIndex();
+                    expect(walk()).toBeNull();
+                    expect(jl.getIndex()).toBe(index);
+                },
+            );
+        },
+    );
+
     describe('handleRename()', () => {
         it('updates filePath for matching entries', () => {
             jl.recordJump('old.md', 5, 0);
@@ -247,4 +342,113 @@ describe('JumpList', () => {
             ]);
         });
     });
+});
+
+describe('jump-list action skips unresolved vault paths', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it.each([
+        { forward: false, deadCount: 1, validTarget: true },
+        { forward: true, deadCount: 1, validTarget: true },
+        { forward: false, deadCount: 3, validTarget: true },
+        { forward: true, deadCount: 3, validTarget: true },
+        { forward: false, deadCount: 200, validTarget: false },
+        { forward: true, deadCount: 200, validTarget: false },
+        {
+            forward: false,
+            deadCount: 1,
+            validTarget: true,
+            returnToCurrent: true,
+        },
+        {
+            forward: true,
+            deadCount: 1,
+            validTarget: true,
+            returnToCurrent: true,
+        },
+        {
+            forward: false,
+            deadCount: 3,
+            validTarget: true,
+            returnToCurrent: true,
+            repeat: 99,
+        },
+        {
+            forward: true,
+            deadCount: 3,
+            validTarget: true,
+            returnToCurrent: true,
+            repeat: 99,
+        },
+    ])(
+        'forward=$forward, dead=$deadCount, valid=$validTarget, sameFile=$returnToCurrent, count=$repeat',
+        async ({
+            forward,
+            deadCount,
+            validTarget,
+            returnToCurrent,
+            repeat = 1,
+        }) => {
+            const current = Object.assign(new TFile(), { path: 'current.md' });
+            const target = Object.assign(new TFile(), { path: 'target.md' });
+            const destination = returnToCurrent ? current : target;
+            const files = new Map([
+                ['current.md', current],
+                ['target.md', target],
+            ]);
+            let active = current;
+            const openFile = vi.fn(async (file: TFile) => {
+                active = file;
+            });
+            const app = {
+                vault: {
+                    getAbstractFileByPath: (path: string) =>
+                        files.get(path) ?? null,
+                },
+                workspace: {
+                    getActiveFile: () => active,
+                    iterateAllLeaves: () => {},
+                    getLeaf: () => ({ openFile }),
+                    getActiveViewOfType: () => null,
+                },
+            } as unknown as App;
+            const jl = new JumpList();
+            const paths = validTarget
+                ? [
+                      'current.md',
+                      ...Array<string>(deadCount).fill('dead.md'),
+                      destination.path,
+                  ]
+                : Array<string>(deadCount).fill('dead.md');
+            if (!forward) paths.reverse();
+            jl.deserialize(
+                paths.map((filePath, line) => ({ filePath, line, ch: 0 })),
+            );
+            if (forward) jl.jumpOlder(paths.length);
+            const originalIndex = jl.getIndex();
+            const original = vi.fn();
+
+            createJumpListWalkOverride(original, app, jl)(
+                {} as CmAdapter,
+                { forward, repeat },
+                {},
+            );
+            await vi.runAllTimersAsync();
+
+            expect(original).not.toHaveBeenCalled();
+            if (validTarget) {
+                expect(openFile).toHaveBeenCalledExactlyOnceWith(destination);
+                expect(active).toBe(destination);
+                expect(jl.getIndex()).toBe(forward ? paths.length - 1 : 0);
+            } else {
+                expect(openFile).not.toHaveBeenCalled();
+                expect(active).toBe(current);
+                expect(jl.getIndex()).toBe(originalIndex);
+            }
+            expect(jl.getEntries().map((entry) => entry.filePath)).toEqual(
+                paths,
+            );
+        },
+    );
 });

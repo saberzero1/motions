@@ -1,4 +1,5 @@
 import type { TarEntry } from './tar';
+import { preloadQueryFiles } from '../treesitter/query-files';
 
 export interface PluginLockEntry {
     repo: string;
@@ -74,6 +75,20 @@ export async function writePluginFiles(
     files: TarEntry[],
     lock: PluginLock,
 ): Promise<void> {
+    // Keep each plugin's query root separate so a plugin cannot overwrite a
+    // user's query (or another plugin's base/extends files).
+    // GitHub owner names cannot contain underscores. Enforcing that makes the
+    // owner__repo separator unambiguous, including for repositories with '__'.
+    if (!/^[a-zA-Z0-9-]+\/[a-zA-Z0-9_-][a-zA-Z0-9_.-]*$/.test(repo)) {
+        throw new Error(`Invalid plugin repository: ${repo}`);
+    }
+    const installedFiles = files.map((file) => {
+        if (!file.path.startsWith('queries/')) return file;
+        if (!/^queries\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.scm$/.test(file.path)) {
+            throw new Error(`Invalid plugin query path: ${file.path}`);
+        }
+        return { ...file, path: `lua/${repo.replace('/', '__')}/${file.path}` };
+    });
     const stagingBase = `${STAGING_DIR}/${repo.replace('/', '__')}`;
 
     try {
@@ -81,13 +96,13 @@ export async function writePluginFiles(
         await ensureDir(adapter, STAGING_DIR);
         await ensureDir(adapter, stagingBase);
 
-        for (const file of files) {
+        for (const file of installedFiles) {
             const stagingPath = `${stagingBase}/${file.path}`;
             await ensureParentDirs(adapter, stagingPath);
             await adapter.write(stagingPath, file.data);
         }
 
-        for (const file of files) {
+        for (const file of installedFiles) {
             const finalPath = file.path;
             await ensureParentDirs(adapter, finalPath);
             const stagingPath = `${stagingBase}/${file.path}`;
@@ -95,13 +110,34 @@ export async function writePluginFiles(
             await adapter.write(finalPath, content);
         }
 
+        const installedPaths = new Set(installedFiles.map((file) => file.path));
+        const queryRoot = `lua/${repo.replace('/', '__')}/queries/`;
+        const previousFiles = lock[repo]?.files;
+        for (const previous of Array.isArray(previousFiles)
+            ? previousFiles
+            : []) {
+            if (
+                typeof previous === 'string' &&
+                previous.startsWith(queryRoot) &&
+                /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.scm$/.test(
+                    previous.slice(queryRoot.length),
+                ) &&
+                !installedPaths.has(previous) &&
+                (await adapter.exists(previous))
+            ) {
+                await adapter.remove(previous);
+            }
+        }
         lock[repo] = {
             repo,
             ref,
-            files: files.map((f) => f.path),
+            files: installedFiles.map((f) => f.path),
             fetchedAt: new Date().toISOString(),
         };
         await writeLockFile(adapter, lock);
+        // Called before vim.plugins.add resumes its Lua coroutine, so plugin
+        // setup can immediately call query.get without yielding itself.
+        await preloadQueryFiles(adapter);
     } finally {
         await cleanupStaging(adapter, stagingBase);
     }

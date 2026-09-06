@@ -34,6 +34,7 @@ import { injectSnippetApi, type LuaSnippetDef } from './snippet-api';
 import { injectTextObjectApi } from './textobject-api';
 import { injectTreesitterApi, initTreesitterRuntime } from './treesitter/api';
 import { injectNamespaceStubs } from './namespace-stubs';
+import { injectIterApi } from './iter';
 import { lua, lauxlib, to_luastring, to_jsstring } from '../lib/fengari';
 import type { lua_State } from '../lib/fengari';
 import type { ImSwitcher } from '../im/im-switcher';
@@ -60,6 +61,7 @@ import {
 } from '../util/commands';
 import { getLeafId, isLeafPinned, getViewFilePath } from '../util/leaf';
 import { navigateWithJump } from '../workspace/navigate';
+import { observeKeys } from '../workspace/key-observer';
 
 export interface LuaLoadResult {
     found: boolean;
@@ -367,6 +369,7 @@ export async function loadInitLua(
     const runner = new CoroutineRunner(L);
     const autocmdManager = new AutocmdManager(L);
     const callbacks: VimApiCallbacks = {
+        observeKeys,
         highlightManager,
         onSettingOverride: (key, value, directive) => {
             commandCount++;
@@ -555,7 +558,8 @@ export async function loadInitLua(
         setLeaderKey: (key) => leaderRegistry?.setLeaderKey(key),
         getOption: (name) => {
             try {
-                return vim.getOption(name);
+                const value = vim.getOption(name);
+                return value instanceof Error ? undefined : value;
             } catch {
                 return undefined;
             }
@@ -1225,8 +1229,11 @@ export async function loadInitLua(
     };
     const { globals } = injectVimApi(L, callbacks);
     injectNamespaceStubs(L);
+    injectIterApi(L);
     injectTextObjectApi(L, callbacks);
-    void initTreesitterRuntime().catch((err) => {
+    // Awaited so the in-memory .scm query snapshot is populated before any
+    // synchronous vim.treesitter.query.get() call runs during user config.
+    await initTreesitterRuntime(app.vault.adapter).catch((err) => {
         console.warn('Vim Motions: treesitter runtime init failed:', err);
     });
     injectTreesitterApi(L, runner, () => {
@@ -1236,6 +1243,7 @@ export async function loadInitLua(
     });
 
     injectVimFn(L, {
+        getCmAdapter: callbacks.getCmAdapter,
         getActiveFilePath: () => app.workspace.getActiveFile()?.path ?? null,
         fileExists: (path) => app.vault.getAbstractFileByPath(path) !== null,
         getVaultFiles: () => app.vault.getFiles().map((file) => file.path),

@@ -63,5 +63,10 @@ export async function fetchPluginTarball(
     const compressed = new Uint8Array(response.arrayBuffer);
     const decompressed = gunzipSync(compressed);
     const allEntries = parseTar(decompressed);
-    return filterLuaFiles(allEntries);
+    return [
+        ...filterLuaFiles(allEntries),
+        ...allEntries.filter((entry) =>
+            /^queries\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.scm$/.test(entry.path),
+        ),
+    ];
 }

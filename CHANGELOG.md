@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lua iterator pipelines** — real `vim.iter` for list-like tables, map-like tables, iterator functions, and callable tables, with 26 methods. `rpop`, `count`, and `size` are extensions beyond Neovim 0.12; `size()` requires a list source and raises on function sources.
+    - Plugin: `src/lua/iter.ts` (embedded Lua implementation), `src/lua/loader.ts` (inject after namespace stubs)
+- **Physical key observation** — `vim.on_key(fn, ns?)` registers, replaces, and removes namespace-scoped callbacks and returns the namespace ID. Observation is pre-mapping, not Neovim's post-mapping hook: both arguments contain the same physical input, mapped expansions/programmatic `feedkeys` are not separately observed, and return values cannot discard keys.
+    - Plugin: `src/lua/on-key.ts` (registry, guarded dispatch, teardown), `src/workspace/key-observer.ts` (physical-key observation)
+    - Plugin: `src/workspace/global-key-handler.ts` (desktop/popout dispatch), `src/main.ts` (mobile dispatch through the existing safety handler)
+    - Plugin: `src/lua/api.ts`, `src/lua/loader.ts` (registration/wiring), `src/lua/engine.ts` (cleanup before Lua close), `src/lua/stdlib.ts` (remove old no-op shim)
+- **Current-editor compatibility APIs** — `vim.fn.getwininfo([winid])` returns CM6 visible lines (1-based inclusive), viewport dimensions, and gutter offset; non-zero handles or no editor return an empty list. `nvim_win_call(0, fn)`/`nvim_buf_call(0, fn)` invoke directly with return/error propagation, and `nvim_win_get_config(0)` reports a non-floating window (`relative = ''`). Authoritative registration totals are 60 real `vim.api` implementations and 79 real `vim.fn` implementations, excluding stubs and correcting earlier documentation counts.
+    - Plugin: `src/lua/window-info.ts`, `src/lua/fn.ts` (viewport geometry and registration), `src/lua/loader.ts` (adapter callback), `src/lua/api.ts` (current-handle APIs)
+- **Named Treesitter query files** — resolve `query.set()` overrides, user `lua/queries/{lang}/{name}.scm`, lexically ordered plugin `lua/{plugin}/queries/{lang}/{name}.scm`, then bundled Markdown/Markdown inline/HTML `textobjects`. Supports `;; extends`, recursive `;; inherits:` with optional `(language)` syntax, cycle detection, lazy compilation, and cache invalidation. `query.get_files()` reports vault-relative physical paths only, omitting bundled constants.
+    - Plugin: `src/treesitter/bundled-queries.ts`, `src/treesitter/query-files.ts`, `src/treesitter/named-queries.ts` (bundled queries, file snapshot, resolution and limits)
+    - Plugin: `src/lua/treesitter/api.ts`, `src/lua/treesitter/query-api.ts`, `src/lua/loader.ts` (query APIs and awaited runtime/query preloading before user config)
 - **Massive Lua API expansion (~260 Neovim API functions)** — 65 new functions across `vim.fn`, `vim.api`, `vim.validate`, `vim.version`, and the extmark system. Enables Lua ports of mini.surround, mini.ai, leap.nvim, flash.nvim, and nvim-surround.
     - Plugin: `src/lua/fn.ts` (12 new `vim.fn.*` functions)
     - Plugin: `src/lua/api.ts` (16 new `nvim_*` API functions)
@@ -19,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/ui/input-modal.ts` (new — Obsidian Modal for `vim.fn.input()` prompt)
     - Plugin: `src/main.ts` (registered extmark extension)
     - Styles: `styles.css` (`.vim-motions-input-modal-input` styles)
-- **12 new `vim.fn.*` functions** (65 → 77 total): `visualmode`, `winsaveview`/`winrestview`, `foldclosed`/`foldclosedend`, `shiftwidth`, `strdisplaywidth`, `strcharpart`, `maparg`, `getcharstr`/`getchar` (async key input waiting), `searchpos` (regex buffer search), `input` (async user prompt via modal)
-- **16 new `nvim_*` API functions** (43 → 59 total): `nvim_get_mode`, `nvim_strwidth`, `nvim_buf_is_valid`, `nvim_buf_get_text`, `nvim_del_current_line`, `nvim_list_wins`, `nvim_buf_get_keymap`, `nvim_get_vvar`/`nvim_set_vvar`, `nvim_get_option_value`/`nvim_set_option_value`, `nvim_buf_set_extmark`, `nvim_buf_get_extmarks`, `nvim_buf_get_extmark_by_id`, `nvim_buf_del_extmark`, `nvim_buf_clear_namespace`
+- **12 new `vim.fn.*` functions**: `visualmode`, `winsaveview`/`winrestview`, `foldclosed`/`foldclosedend`, `shiftwidth`, `strdisplaywidth`, `strcharpart`, `maparg`, `getcharstr`/`getchar` (async key input waiting), `searchpos` (regex buffer search), `input` (async user prompt via modal)
+- **16 new `nvim_*` API functions**: `nvim_get_mode`, `nvim_strwidth`, `nvim_buf_is_valid`, `nvim_buf_get_text`, `nvim_del_current_line`, `nvim_list_wins`, `nvim_buf_get_keymap`, `nvim_get_vvar`/`nvim_set_vvar`, `nvim_get_option_value`/`nvim_set_option_value`, `nvim_buf_set_extmark`, `nvim_buf_get_extmarks`, `nvim_buf_get_extmark_by_id`, `nvim_buf_del_extmark`, `nvim_buf_clear_namespace`
 - **`vim.version` namespace** — 11 functions: `vim.version()` returns plugin version as `{major, minor, patch}`, `vim.version.parse()`, `vim.version.cmp()`, `vim.version.lt()`/`gt()`/`eq()`, `vim.version.range()` with `has()`, `vim.version.last()`, plus `__tostring`/`__eq`/`__lt` metamethods on version objects
 - **`vim.validate()` full Neovim spec** — both old table form (`vim.validate({ name = { value, "string" } })`) and new positional form (`vim.validate("name", value, "string")`) with `optional` flag support (Neovim 0.11+ compatible)
 - **`vim.keycode()` key code translation** — translates Neovim key notation to readable strings (e.g., `vim.keycode("<CR>")` → `"\r"`, `vim.keycode("<Esc>")` → escape character)
@@ -32,26 +43,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Global option fallbacks** — `vim.o`/`vim.go` resolve engine → shared shadow store → defaults (`eventignore`, `selection`, `cmdheight`, `columns`, `lines`, `cpo`, theme-derived `background`) → `nil`. Unsupported writes can be retained as compatibility values without implementing their Neovim behavior.
+    - Plugin: `src/lua/api.ts` (global option reads/writes), `src/lua/loader.ts` (normalize returned `Error` objects for unknown fork options)
+- **Plugin query retention** — downloads retain `.scm` query files under isolated `lua/{owner}__{repo}/queries/` roots and refresh the snapshot before Lua resumes. Older cached plugins must be re-fetched to acquire previously discarded queries; `.scm` edits require a configuration reload. Resolution is bounded to 128 KiB/file, 4 MiB/snapshot, 512 KiB/combined query, 64 sources, and 16 inheritance levels, with diagnostics and affected-content skipping.
+    - Plugin: `src/lua/plugin-fetch.ts`, `src/lua/plugin-store.ts` (archive retention, isolated storage and refresh), `src/treesitter/query-files.ts`, `src/treesitter/named-queries.ts` (limits)
 - **`nvim_create_namespace` returns unique IDs** — previously hardcoded to `0`, now returns unique integer IDs per namespace name, matching Neovim behavior. Required for the extmark system and highlight namespace isolation.
 - **~30 previously stubbed `vim.*` utilities now have real implementations** — functions that were no-op stubs or returned placeholder values now work correctly (e.g., `vim.is_callable`, `vim.stricmp`, `vim.pesc`, etc.)
 
+### Fixed
+
+- **`operatorfunc` option routes** — direct Lua functions, function-name strings, and `nil` clearing now share handling through `vim.opt`, `vim.o`, `vim.go`, `nvim_get/set_option`, and `nvim_get/set_option_value`. The previously advertised `vim.o.operatorfunc` path now works with the fork's `g@` operator.
+    - Plugin: `src/lua/api.ts` (shared operator callback read/write helpers)
+- **Termcode identity-function bug** — `nvim_replace_termcodes` emits real Neovim key bytes (`<CR>` becomes `"\r"`), and `nvim_feedkeys` decodes them back to notation at the fork boundary. Binary termcodes also work in mappings and expression callback results.
+    - Plugin: `src/lua/termcodes.ts` (byte encoder/decoder), `src/lua/api.ts` (key API integration)
+- **Query iterator source and row arguments** — `iter_captures`/`iter_matches` now use supplied or node-retained document text and read row bounds after the source argument, fixing predicates in file-loaded queries.
+    - Plugin: `src/lua/treesitter/query-api.ts` (source selection and argument positions)
+- **Jump list stalled on unresolvable entries** — `<C-o>`/`<C-i>` now skip history entries whose file no longer resolves and land on the nearest valid entry in the direction of travel. Previously the history index advanced _before_ path resolution was checked, so a dead entry aborted navigation and left the cursor on an unrelated file; an exhausted run of dead entries could also fall through to the fork's separate within-buffer history. Dead entries no longer consume the count, the scan is bounded by history length, and the index is left unchanged when no valid destination exists. Navigation skips rather than prunes; `vault.on('delete')` continues to prune eagerly. Affects any persisted history, regardless of whether the entry was recorded by `gd`, the picker, harpoon, oil, or hint mode.
+    - Plugin: `src/vim/jumplist.ts` (validity predicate, bounded scan, count semantics), `src/workspace/global-defaults.ts` (resolve before advancing the index)
+- **Unhandled rejection on failed jump navigation** — `openJumpEntry()` was invoked as a bare floating promise, so a rejecting `leaf.openFile()` produced an unhandled rejection while the history index had already advanced, leaving navigation silently failed with nothing surfaced. Now caught and logged. Skipping past unresolvable entries widened this path's reachability, and its narrow time-of-check/time-of-use window is exactly the deleted-file case.
+    - Plugin: `src/workspace/global-defaults.ts` (rejection handling on the jump opener)
+
 ### Tests
 
+- New unit suites: `test/unit/lua/api-compat.test.ts`, `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts`, and `plugin-query-fetch.test.ts`. Covers option routes, current handles, iterator semantics, observer lifecycle, byte conversion, real WASM query compilation, resolution/modelines, plugin isolation, cache lifecycle, and limits.
+- Four `getwininfo` cases added to `test/unit/lua/fn.test.ts`; corrected `test/unit/lua/api.test.ts` to expect `"\r"`, not `"<CR>"`, from `nvim_replace_termcodes`.
 - 20 unit tests in `test/unit/lua/extmarks.test.ts` for extmark engine (set, get, delete, clear, virtual text, position tracking, range queries)
 - 27 new tests in `test/unit/lua/stdlib.test.ts` for `vim.validate`, `vim.version`, `vim.keycode`, `vim.notify_once`
 - 16 new tests in `test/unit/lua/fn.test.ts` for new `vim.fn.*` functions
 - 11 new tests in `test/unit/lua/api.test.ts` for new `nvim_*` API functions
 - 1 updated test in `test/unit/lua/highlight.test.ts` for `nvim_create_namespace` unique IDs
-- Total: 1799 unit tests pass
+- 22 unit cases in `test/unit/jumplist.test.ts` for unresolvable-entry traversal: both directions past one and several consecutive dead entries, all-dead history, index unchanged on exhaustion, peek consistency, count clamping, and large counts terminating in the current file.
+- Rewrote the deleted-file case in `test/specs/jump-list.e2e.ts`. It previously opened fixtures via `obsidianPage.openFile()`, which does not record a plugin jump, so the scenario was never established and the assertion resolved against history leaked from earlier specs — making it order-dependent and passing for the wrong reasons. It now clears inherited history, navigates with `gd` (which does record), asserts the exact `[A, B]` history before deleting, and deterministically verifies the entry is gone. New fixtures: `test-vault/fixtures/jump-list/`.
+- Current unit-test snapshot: 102 files, 1974 passed, 6 skipped.
 
 ### Documentation
 
 - `CHANGELOG.md`
-- `AGENTS.md`: new files (`src/lua/extmarks.ts`, `src/ui/input-modal.ts`), `vim.api` function count 43 → 59, `vim.fn` count 65 → 77, `nvim_create_namespace` now returns unique IDs, added `vim.version`, `vim.validate`, `vim.keycode`, `vim.notify_once` to API surface
-- `CONTRIBUTING.md`: new files in `src/` tree, updated function counts
-- `KNOWN_LIMITATIONS.md`: updated `vim.api.nvim_*` count and function list (43 → 59), updated `vim.fn` not-yet-implemented table (removed implemented functions), added extmark limitations, updated `nvim_create_namespace` description
-- `README.md`: updated Lua configuration bullet with new function counts and capabilities
-- `docs/configuration/lua-config.md`: added 12 new `vim.fn.*` entries, added 16 new `nvim_*` entries, added `vim.version` section, added `vim.validate` section, added extmark API section, updated `nvim_create_namespace` docs, updated function count (65 → 77)
+- `AGENTS.md`: API counts (60/79), all eight compatibility modules, injection/teardown and query loading architecture, test coverage; retains prior extmark/API documentation.
+- `CONTRIBUTING.md`: synchronized source tree, API counts, compatibility boundaries, and unit-test conventions.
+- `KNOWN_LIMITATIONS.md`: corrected termcodes and `.scm` blocker, corrected the overstated mini.ai claim, documented pre-mapping observation, iterator extensions, query limits/reloads/re-fetching, and remaining Treesitter integration gaps; updated API counts/list; documented navigation-time skipping of unresolvable jump-list entries.
+- `README.md`: corrected advertised `vim.api` count 59 → 60 and `vim.fn` count 77 → 79; expanded the Lua feature bullet and clarified working fork-backed `operatorfunc` support.
+- `docs/configuration/lua-config.md`: documented all nine compatibility items, query directory conventions and limits, option defaults, examples, and API counts alongside the earlier API expansion.
+- `docs/development/architecture.md`: corrected API counts, new compatibility modules, initialization/cleanup ordering, and query loading architecture.
 
 ## [0.147.0] - 2026-09-05
 

@@ -650,7 +650,7 @@ describe('vim api', () => {
             destroyState(L);
         });
 
-        it('nvim_replace_termcodes returns string unchanged', () => {
+        it('nvim_replace_termcodes translates carriage return', () => {
             const L = createSandboxedState();
             injectApi(L, {
                 onSettingOverride: () => {},
@@ -667,7 +667,7 @@ describe('vim api', () => {
             );
             expect(status).toBe(lua.LUA_OK);
             const value = lua.lua_tolstring(L, -1);
-            expect(value ? to_jsstring(value) : '').toBe('<CR>');
+            expect(value ? to_jsstring(value) : '').toBe('\r');
             destroyState(L);
         });
 

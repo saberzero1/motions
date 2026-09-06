@@ -250,7 +250,18 @@ end
     return L;
 }
 
+const stateCleanups = new WeakMap<lua_State, Array<() => void>>();
+
+export function registerStateCleanup(L: lua_State, cleanup: () => void): void {
+    const cleanups = stateCleanups.get(L) ?? [];
+    cleanups.push(cleanup);
+    stateCleanups.set(L, cleanups);
+}
+
 export function destroyState(L: lua_State): void {
+    const cleanups = stateCleanups.get(L) ?? [];
+    stateCleanups.delete(L);
+    for (const cleanup of cleanups) cleanup();
     lua.lua_close(L);
 }
 

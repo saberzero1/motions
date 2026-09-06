@@ -9,6 +9,7 @@ import type {
     GlobalMappingRegistry,
 } from './global-mapping-registry';
 import { normalizeKeyEvent } from './global-mapping-registry';
+import { observeKeyEvent } from './key-observer';
 
 const SEQUENCE_TIMEOUT = 1000;
 
@@ -220,6 +221,9 @@ export class GlobalKeyHandler {
     }
 
     private onKeydown(e: KeyboardEvent, doc: Document): void {
+        // Observe before workspace/editor/hint gates, including insert-mode
+        // text that does not emit the adapter's vim-keypress event.
+        observeKeyEvent(e);
         if (isHintModeActive()) return;
 
         if (

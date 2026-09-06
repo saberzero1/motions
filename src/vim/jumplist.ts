@@ -32,39 +32,60 @@ export class JumpList {
         this.onRecord?.();
     }
 
-    peekOlder(count = 1): JumpEntry | null {
-        if (this.index <= 0) return null;
-        const nextIndex = Math.max(0, this.index - Math.max(1, count));
-        if (nextIndex === this.index) return null;
-        return this.entries[nextIndex] ?? null;
+    peekOlder(
+        count = 1,
+        isValid?: (entry: JumpEntry) => boolean,
+    ): JumpEntry | null {
+        return this.entries[this.findNextIndex(-1, count, isValid)] ?? null;
     }
 
-    peekNewer(count = 1): JumpEntry | null {
-        if (this.index >= this.entries.length - 1) return null;
-        const nextIndex = Math.min(
-            this.entries.length - 1,
-            this.index + Math.max(1, count),
-        );
-        if (nextIndex === this.index) return null;
-        return this.entries[nextIndex] ?? null;
+    peekNewer(
+        count = 1,
+        isValid?: (entry: JumpEntry) => boolean,
+    ): JumpEntry | null {
+        return this.entries[this.findNextIndex(1, count, isValid)] ?? null;
     }
 
-    jumpOlder(count = 1): JumpEntry | null {
-        if (this.index <= 0) return null;
-        const step = Math.max(1, count);
-        const nextIndex = Math.max(0, this.index - step);
-        if (nextIndex === this.index) return null;
+    jumpOlder(
+        count = 1,
+        isValid?: (entry: JumpEntry) => boolean,
+    ): JumpEntry | null {
+        const nextIndex = this.findNextIndex(-1, count, isValid);
+        if (nextIndex < 0) return null;
         this.index = nextIndex;
         return this.entries[this.index] ?? null;
     }
 
-    jumpNewer(count = 1): JumpEntry | null {
-        if (this.index >= this.entries.length - 1) return null;
-        const step = Math.max(1, count);
-        const nextIndex = Math.min(this.entries.length - 1, this.index + step);
-        if (nextIndex === this.index) return null;
+    jumpNewer(
+        count = 1,
+        isValid?: (entry: JumpEntry) => boolean,
+    ): JumpEntry | null {
+        const nextIndex = this.findNextIndex(1, count, isValid);
+        if (nextIndex < 0) return null;
         this.index = nextIndex;
         return this.entries[this.index] ?? null;
+    }
+
+    private findNextIndex(
+        direction: -1 | 1,
+        count: number,
+        isValid?: (entry: JumpEntry) => boolean,
+    ): number {
+        let remaining = Math.max(1, count || 1);
+        let target = -1;
+        // Bound the scan by history length, not count. Missing files do not
+        // consume a step, and an unsuccessful scan leaves the index untouched.
+        for (
+            let i = this.index + direction;
+            i >= 0 && i < this.entries.length;
+            i += direction
+        ) {
+            const entry = this.entries[i];
+            if (!entry || (isValid && !isValid(entry))) continue;
+            target = i;
+            if (--remaining <= 0) break;
+        }
+        return target;
     }
 
     clear(): void {

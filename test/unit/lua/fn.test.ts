@@ -9,6 +9,8 @@ import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
 import { AutocmdManager } from '../../../src/lua/autocmd';
 import { injectVimFn } from '../../../src/lua/fn';
+import type { CmAdapter } from '../../../src/types/vim-api';
+import { EditorState } from '@codemirror/state';
 
 type LuaState = ReturnType<typeof createSandboxedState>;
 
@@ -43,6 +45,7 @@ function runLuaError(L: LuaState, code: string): string {
 }
 
 function setupState(overrides?: {
+    getCmAdapter?: () => CmAdapter | null;
     activeFilePath?: string | null;
     fileExists?: (path: string) => boolean;
     getVaultFiles?: () => string[];
@@ -68,6 +71,7 @@ function setupState(overrides?: {
         autocmdManager,
     });
     injectVimFn(L, {
+        getCmAdapter: overrides?.getCmAdapter,
         getActiveFilePath: () =>
             overrides?.activeFilePath === undefined
                 ? 'folder/note.md'
@@ -111,6 +115,140 @@ function setupState(overrides?: {
     });
     return L;
 }
+
+describe('vim.fn.getwininfo', () => {
+    function mockAdapter() {
+        const state = EditorState.create({
+            doc: 'one\ntwo\nthree\nfour\nfive\nsix',
+        });
+        return {
+            cm6: {
+                state,
+                visibleRanges: [
+                    { from: state.doc.line(2).from, to: state.doc.line(5).to },
+                ],
+                viewport: {
+                    from: state.doc.line(3).from,
+                    to: state.doc.line(4).to,
+                },
+                viewportLineBlocks: [],
+                documentTop: 0,
+                defaultCharacterWidth: 8,
+                defaultLineHeight: 20,
+                scrollDOM: {
+                    clientTop: 0,
+                    clientHeight: 200,
+                    clientWidth: 640,
+                    getBoundingClientRect: () => ({ top: 0 }),
+                },
+                dom: {
+                    querySelector: () => ({
+                        getBoundingClientRect: () => ({ width: 32 }),
+                    }),
+                },
+            },
+            lastLine: () => 5,
+        };
+    }
+
+    it('returns a one-window dict with live visible lines and measured dimensions', () => {
+        const adapter = mockAdapter();
+        const L = setupState({
+            getCmAdapter: () => adapter as unknown as CmAdapter,
+        });
+        try {
+            expect(
+                runLua(
+                    L,
+                    `
+                local wins = vim.fn.getwininfo()
+                assert(#wins == 1)
+                local w = wins[1]
+                assert(w.winid == 0 and w.winnr == 1 and w.bufnr == 0 and w.tabnr == 1)
+                assert(w.winbar == 0)
+                assert(w.topline == 2 and w.botline == 5)
+                assert(w.height == 10 and w.width == 80 and w.textoff == 4)
+                assert(w.winrow == 1 and w.wincol == 1)
+                assert(w.terminal == 0 and w.quickfix == 0 and w.loclist == 0)
+                assert(type(w.variables) == 'table' and next(w.variables) == nil)
+                assert(#vim.fn.getwininfo(0) == 1 and #vim.fn.getwininfo(1) == 0)
+            `,
+                ),
+            ).toBe(lua.LUA_OK);
+            adapter.cm6.visibleRanges = [
+                { from: 0, to: adapter.cm6.state.doc.line(2).to },
+            ];
+            expect(
+                runLua(
+                    L,
+                    `local w = vim.fn.getwininfo()[1]; assert(w.topline == 1 and w.botline == 2)`,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('falls back to viewport and reports zero gutter when absent', () => {
+        const adapter = mockAdapter();
+        adapter.cm6.visibleRanges = [];
+        const cm = {
+            ...adapter,
+            cm6: { ...adapter.cm6, dom: { querySelector: () => null } },
+        } as unknown as CmAdapter;
+        const L = setupState({ getCmAdapter: () => cm });
+        try {
+            expect(
+                runLua(
+                    L,
+                    `local w = vim.fn.getwininfo()[1]; assert(w.topline == 3 and w.botline == 4 and w.textoff == 0)`,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('clips overscan to visible blocks and keeps the final buffer line inclusive', () => {
+        const adapter = mockAdapter();
+        const doc = adapter.cm6.state.doc;
+        const cm = {
+            ...adapter,
+            cm6: {
+                ...adapter.cm6,
+                visibleRanges: [{ from: 0, to: doc.length }],
+                documentTop: -40,
+                scrollDOM: { ...adapter.cm6.scrollDOM, clientHeight: 80 },
+                viewportLineBlocks: Array.from({ length: 6 }, (_, i) => ({
+                    from: doc.line(i + 1).from,
+                    to: doc.line(i + 1).to,
+                    top: i * 20,
+                    bottom: (i + 1) * 20,
+                })),
+            },
+        } as unknown as CmAdapter;
+        const L = setupState({ getCmAdapter: () => cm });
+        try {
+            expect(
+                runLua(
+                    L,
+                    `local w = vim.fn.getwininfo()[1]; assert(w.topline == 3 and w.botline == 6 and w.height == 4)`,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('returns an empty list with no editor', () => {
+        const L = setupState({ getCmAdapter: () => null });
+        try {
+            expect(runLuaNumber(L, 'return #vim.fn.getwininfo()')).toBe(0);
+        } finally {
+            destroyState(L);
+        }
+    });
+});
 
 function setupStateWithExtras(overrides?: {
     activeFilePath?: string | null;

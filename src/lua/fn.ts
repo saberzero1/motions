@@ -3,8 +3,11 @@ import type { lua_State } from '../lib/fengari';
 import type { UndoTree } from '../vim/undo-tree';
 import { pushLuaAny } from './api';
 import { strftime } from './strftime';
+import type { CmAdapter } from '../types/vim-api';
+import { getWindowInfo } from './window-info';
 
 export interface VimFnCallbacks {
+    getCmAdapter?: () => CmAdapter | null;
     getActiveFilePath: () => string | null;
     fileExists: (path: string) => boolean;
     getVaultFiles: () => string[];
@@ -1585,7 +1588,18 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'feedkeys',
     ]);
     const booleanReturnFns = new Set(['hasmapto', 'buflisted', 'bufexists']);
-    const tableReturnFns = new Set(['getwininfo', 'getbufline', 'json_decode']);
+    const tableReturnFns = new Set(['getbufline', 'json_decode']);
+
+    registry.set('getwininfo', (state) => {
+        const winid = lauxlib.luaL_optinteger(state, 1, 0);
+        lua.lua_newtable(state);
+        if (winid !== 0) return 1;
+        const cm = callbacks.getCmAdapter?.();
+        if (!cm?.cm6) return 1;
+        pushLuaAny(state, getWindowInfo(cm));
+        lua.lua_rawseti(state, -2, 1);
+        return 1;
+    });
 
     for (const name of stringReturnFns) {
         registerStub(name, (state) => {

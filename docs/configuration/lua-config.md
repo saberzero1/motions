@@ -130,58 +130,66 @@ On desktop, you can open your active configuration files in your system's defaul
 
 ## Supported APIs
 
-| API                                                  | Description                                        | Example                                     |
-| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------------- |
-| `vim.opt.<name> = value`                             | Set a plugin option (string options accept tables) | `vim.opt.scrolloff = 8`                     |
-| `vim.o.<name> = value`                               | Alias for `vim.opt`                                | `vim.o.scrolloff = 8`                       |
-| `vim.o.operatorfunc`                                 | Function called by the `g@` operator               | see Custom operators                        |
-| `vim.g.mapleader`                                    | Set the leader key                                 | `vim.g.mapleader = " "`                     |
-| `vim.g.<name> = value`                               | Set a user variable                                | `vim.g.my_var = true`                       |
-| `vim.cmd(string)`                                    | Execute an ex command                              | `vim.cmd("set nohlsearch")`                 |
-| `vim.vault_name()`                                   | Returns the current vault name                     | `if vim.vault_name() == "work" then`        |
-| `vim.fn.has(feature)`                                | Platform/feature detection                         | `vim.fn.has("mac")`                         |
-| `vim.fn.expand(expr)`                                | Active file path (vault-relative)                  | `vim.fn.expand("%:t")`                      |
-| `vim.fn.fnamemodify(path, mods)`                     | Path manipulation                                  | `vim.fn.fnamemodify(path, ":t:r")`          |
-| `vim.fn.exists(expr)`                                | Check variable/option existence                    | `vim.fn.exists("g:my_var")`                 |
-| `vim.fn.localtime()`                                 | Unix timestamp                                     | `vim.fn.localtime()`                        |
-| `vim.fn.strftime(fmt)`                               | Format date/time                                   | `vim.fn.strftime("%Y-%m-%d")`               |
-| `vim.fn.filereadable(path)`                          | Check vault file exists                            | `vim.fn.filereadable("config.md")`          |
-| `vim.fn.isdirectory(path)`                           | Check vault directory exists                       | `vim.fn.isdirectory("templates")`           |
-| `vim.fn.glob(pattern)`                               | Find matching vault files                          | `vim.fn.glob("*.md")`                       |
-| `vim.fn.undotree()`                                  | Returns undo tree dictionary                       | `local tree = vim.fn.undotree()`            |
-| `vim.fn.mode()`                                      | Current vim mode                                   | `vim.fn.mode()`                             |
-| `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                   | `vim.fn.line(".")`                          |
-| `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                 | `vim.fn.col(".")`                           |
-| `vim.fn.setreg(regname, value [, opts])`             | Set register content                               | `vim.fn.setreg('"', "text")`                |
-| `vim.fn.getreg(regname)`                             | Get register content                               | `vim.fn.getreg('"')`                        |
-| `vim.fn.getpos(expr)`                                | Get position `[buf, lnum, col, off]`               | `vim.fn.getpos("'[")`                       |
-| `vim.fn.cursor(lnum, col)`                           | Move cursor                                        | `vim.fn.cursor(5, 1)`                       |
-| `vim.notify(msg)`                                    | Show Obsidian notification                         | `vim.notify("Saved!")`                      |
-| `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command                           | see below                                   |
-| `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                               | see Autocommands section                    |
-| `vim.api.nvim_create_augroup(name, opts)`            | Create/get autocommand group                       | see Autocommands section                    |
-| `vim.keymap.set(mode, lhs, rhs, opts?)`              | Create a key mapping                               | see example above                           |
-| `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                               | `vim.keymap.del("n", "Q")`                  |
-| `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap                | see Obsidian namespace                      |
-| `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap                             | see Obsidian namespace                      |
-| `vim.obsidian.pick(source, opts?)`                   | Open the unified picker                            | `vim.obsidian.pick("files")`                |
-| `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                             | see Obsidian namespace                      |
-| `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                          | see Obsidian namespace                      |
-| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                 | see Obsidian namespace                      |
-| `vim.obsidian.oil.parent()`                          | Oil: navigate to parent directory                  | see Obsidian namespace                      |
-| `vim.obsidian.oil.open_entry()`                      | Oil: open file/directory under cursor              | see Obsidian namespace                      |
-| `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                | see Obsidian namespace                      |
-| `vim.obsidian.im.get()`                              | Get current IM identifier (desktop only)           | see Obsidian namespace                      |
-| `vim.obsidian.im.set(id)`                            | Switch to specific IM (desktop only)               | see Obsidian namespace                      |
-| `vim.obsidian.im.save()`                             | Save current IM for active editor view             | see Obsidian namespace                      |
-| `vim.plugins.add(spec)`                              | Register a Neovim plugin                           | see Plugin management                       |
-| `vim.plugins.list()`                                 | List registered plugins                            | `for _, p in ipairs(vim.plugins.list()) do` |
+The registered API surface includes 60 real `vim.api.nvim_*` implementations and 79 real `vim.fn.*` implementations. These totals exclude compatibility stubs; individual APIs still have the limitations described below.
+
+| API                                                  | Description                                                   | Example                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| `vim.opt.<name> = value`                             | Set a plugin option (string options accept tables)            | `vim.opt.scrolloff = 8`                     |
+| `vim.o.<name> = value`                               | Read/write global engine options with compatibility fallbacks | `vim.o.scrolloff = 8`                       |
+| `vim.go.<name> = value`                              | Global option access sharing the `vim.o` store                | `vim.go.eventignore = ""`                   |
+| `vim.iter(source)`                                   | Iterator pipelines over tables or functions                   | `vim.iter({1, 2}):totable()`                |
+| `vim.on_key(fn, ns?)`                                | Observe physical keys before mappings                         | see Key observation                         |
+| `vim.treesitter.query.get(lang, name)`               | Resolve an explicit, vault, plugin, or bundled query          | see vim.treesitter                          |
+| `vim.o.operatorfunc`                                 | Function called by the `g@` operator                          | see Custom operators                        |
+| `vim.g.mapleader`                                    | Set the leader key                                            | `vim.g.mapleader = " "`                     |
+| `vim.g.<name> = value`                               | Set a user variable                                           | `vim.g.my_var = true`                       |
+| `vim.cmd(string)`                                    | Execute an ex command                                         | `vim.cmd("set nohlsearch")`                 |
+| `vim.vault_name()`                                   | Returns the current vault name                                | `if vim.vault_name() == "work" then`        |
+| `vim.fn.has(feature)`                                | Platform/feature detection                                    | `vim.fn.has("mac")`                         |
+| `vim.fn.expand(expr)`                                | Active file path (vault-relative)                             | `vim.fn.expand("%:t")`                      |
+| `vim.fn.fnamemodify(path, mods)`                     | Path manipulation                                             | `vim.fn.fnamemodify(path, ":t:r")`          |
+| `vim.fn.exists(expr)`                                | Check variable/option existence                               | `vim.fn.exists("g:my_var")`                 |
+| `vim.fn.localtime()`                                 | Unix timestamp                                                | `vim.fn.localtime()`                        |
+| `vim.fn.strftime(fmt)`                               | Format date/time                                              | `vim.fn.strftime("%Y-%m-%d")`               |
+| `vim.fn.filereadable(path)`                          | Check vault file exists                                       | `vim.fn.filereadable("config.md")`          |
+| `vim.fn.isdirectory(path)`                           | Check vault directory exists                                  | `vim.fn.isdirectory("templates")`           |
+| `vim.fn.glob(pattern)`                               | Find matching vault files                                     | `vim.fn.glob("*.md")`                       |
+| `vim.fn.undotree()`                                  | Returns undo tree dictionary                                  | `local tree = vim.fn.undotree()`            |
+| `vim.fn.mode()`                                      | Current vim mode                                              | `vim.fn.mode()`                             |
+| `vim.fn.line(expr)`                                  | Cursor line (1-based, callbacks)                              | `vim.fn.line(".")`                          |
+| `vim.fn.col(expr)`                                   | Cursor column (1-based, callbacks)                            | `vim.fn.col(".")`                           |
+| `vim.fn.setreg(regname, value [, opts])`             | Set register content                                          | `vim.fn.setreg('"', "text")`                |
+| `vim.fn.getreg(regname)`                             | Get register content                                          | `vim.fn.getreg('"')`                        |
+| `vim.fn.getpos(expr)`                                | Get position `[buf, lnum, col, off]`                          | `vim.fn.getpos("'[")`                       |
+| `vim.fn.cursor(lnum, col)`                           | Move cursor                                                   | `vim.fn.cursor(5, 1)`                       |
+| `vim.notify(msg)`                                    | Show Obsidian notification                                    | `vim.notify("Saved!")`                      |
+| `vim.api.nvim_create_user_command(name, cmd, opts)`  | Define custom ex command                                      | see below                                   |
+| `vim.api.nvim_create_autocmd(event, opts)`           | Register autocommand                                          | see Autocommands section                    |
+| `vim.api.nvim_create_augroup(name, opts)`            | Create/get autocommand group                                  | see Autocommands section                    |
+| `vim.keymap.set(mode, lhs, rhs, opts?)`              | Create a key mapping                                          | see example above                           |
+| `vim.keymap.del(mode, lhs)`                          | Remove a key mapping                                          | `vim.keymap.del("n", "Q")`                  |
+| `vim.obsidian.keymap.set(lhs, rhs, opts?)`           | Create a global (non-editor) keymap                           | see Obsidian namespace                      |
+| `vim.obsidian.keymap.del(lhs)`                       | Remove a global keymap                                        | see Obsidian namespace                      |
+| `vim.obsidian.pick(source, opts?)`                   | Open the unified picker                                       | `vim.obsidian.pick("files")`                |
+| `vim.obsidian.whichkey.set_group(key, label, opts?)` | Name a which-key group                                        | see Obsidian namespace                      |
+| `vim.obsidian.whichkey.set_label(key, label, opts?)` | Label a which-key binding                                     | see Obsidian namespace                      |
+| `vim.obsidian.whichkey.add(entries)`                 | Batch-add group and command labels                            | see Obsidian namespace                      |
+| `vim.obsidian.oil.parent()`                          | Oil: navigate to parent directory                             | see Obsidian namespace                      |
+| `vim.obsidian.oil.open_entry()`                      | Oil: open file/directory under cursor                         | see Obsidian namespace                      |
+| `vim.obsidian.pick_keymap(table)`                    | Configure picker keyboard shortcuts                           | see Obsidian namespace                      |
+| `vim.obsidian.im.get()`                              | Get current IM identifier (desktop only)                      | see Obsidian namespace                      |
+| `vim.obsidian.im.set(id)`                            | Switch to specific IM (desktop only)                          | see Obsidian namespace                      |
+| `vim.obsidian.im.save()`                             | Save current IM for active editor view                        | see Obsidian namespace                      |
+| `vim.plugins.add(spec)`                              | Register a Neovim plugin                                      | see Plugin management                       |
+| `vim.plugins.list()`                                 | List registered plugins                                       | `for _, p in ipairs(vim.plugins.list()) do` |
 
 ## Custom operators
 
 The `g@` operator calls a function stored in `vim.o.operatorfunc`. The function receives a string argument indicating the motion type: `'line'`, `'char'`, or `'block'`.
 
 The range covered by the motion is marked by the `'[` and `']` marks.
+
+`operatorfunc` uses the same read/write path through `vim.opt`, `vim.o`, `vim.go`, `nvim_get_option`/`nvim_set_option`, and `nvim_get_option_value`/`nvim_set_option_value`. Assign a Lua function, a function-name string (optionally prefixed with `v:lua.`), or `nil` to clear it. Reads return the assigned name for a string assignment, or `""` for a direct function or cleared value; they do not return the Lua function. Execution of `g@` requires the bundled fork's operator callback support.
 
 ```lua
 vim.o.operatorfunc = function(type)
@@ -468,7 +476,7 @@ See [[settings]] for the full list of options and their descriptions.
 
 ## Supported vim.fn functions
 
-77 Neovim `vim.fn.*` functions are available for configuration, buffer manipulation, register access, async key input, regex search, and platform detection.
+79 Neovim `vim.fn.*` functions have real implementations for configuration, buffer manipulation, register access, async key input, regex search, viewport information, and platform detection.
 
 | Function                                      | Returns                       | Example                                          |
 | --------------------------------------------- | ----------------------------- | ------------------------------------------------ |
@@ -552,6 +560,27 @@ See [[settings]] for the full list of options and their descriptions.
 | `vim.fn.getchar()`                            | Key code number (async)       | `local nr = vim.fn.getchar()`                    |
 | `vim.fn.searchpos(pat, flags?)`               | `{line, col}` or `{0, 0}`     | `vim.fn.searchpos("\\bword\\b")` → `{3, 5}`      |
 | `vim.fn.input(prompt, default?, completion?)` | User input string (async)     | `local name = vim.fn.input("Name: ")`            |
+
+### vim.fn.getwininfo(winid?)
+
+Returns a one-window list for the active editor. Omit `winid` or pass `0`; a non-zero handle or no active editor returns `{}`.
+
+| Field                                       | Value                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `topline`, `botline`                        | Visible buffer lines, 1-based and inclusive; clipped to on-screen CM6 blocks |
+| `height`, `width`                           | Viewport dimensions in rows and character columns, measured from CM6         |
+| `textoff`                                   | Gutter width in character columns, rounded up                                |
+| `winid`, `bufnr`                            | `0` (current window/buffer)                                                  |
+| `winnr`, `tabnr`, `winrow`, `wincol`        | `1`                                                                          |
+| `winbar`, `terminal`, `quickfix`, `loclist` | `0`                                                                          |
+| `variables`                                 | Empty table                                                                  |
+
+```lua
+local win = vim.fn.getwininfo()[1]
+if win then
+    print(win.topline, win.botline, win.height, win.width, win.textoff)
+end
+```
 
 ### vim.fn.getcharstr() and vim.fn.getchar()
 
@@ -710,6 +739,37 @@ A subset of Neovim's `vim.*` utility functions is available for table manipulati
 | `vim.pesc(s)`                        | Escape Lua pattern special characters                                                                                                                | `vim.pesc("a.b")` → `"a%.b"`                            |
 | `vim.inspect(value)`                 | Human-readable string representation of any value. Useful for debugging.                                                                             | `print(vim.inspect({1,2,{nested=true}}))`               |
 | `vim.stricmp(a, b)`                  | Case-insensitive string comparison. Returns `-1` (a < b), `0` (equal), or `1` (a > b).                                                               | `vim.stricmp("Hello", "hello")` → `0`                   |
+
+## vim.iter
+
+`vim.iter(source)` creates a real iterator pipeline from a list-like table, a map-like table (key/value pairs), an iterator function, or a callable table. Iterator triples such as `vim.iter(pairs(tbl))` are accepted. List transformations are eager; map-table and function pipelines are lazy. Iterators can also be used in a generic `for` loop.
+
+```lua
+local result = vim.iter({1, 2, 3, 4})
+    :filter(function(n) return n % 2 == 0 end)
+    :map(function(n) return n * 10 end)
+    :totable() -- {20, 40}
+```
+
+The 26 available methods are:
+
+| Methods                                           | Purpose                                                                    |
+| ------------------------------------------------- | -------------------------------------------------------------------------- |
+| `map(fn)`, `filter(fn)`, `flatten(depth?)`        | Transform, filter, or flatten values (`flatten` requires a list)           |
+| `totable()`, `join(separator)`                    | Collect values or join them into a string                                  |
+| `next()`, `peek()`                                | Consume or inspect the next item                                           |
+| `rev()`, `pop()`, `rpeek()`, `rpop()`             | Reverse a list or access its tail; `pop` and `rpop` remove the tail        |
+| `skip(n_or_fn)`, `rskip(n)`, `slice(first, last)` | Skip a prefix, skip a list suffix, or keep an inclusive 1-based list slice |
+| `nth(n)`, `last()`                                | Find an item by position or the last item; negative `nth` requires a list  |
+| `enumerate()`                                     | Add indices to items                                                       |
+| `any(fn)`, `all(fn)`                              | Short-circuit predicate checks                                             |
+| `fold(initial, fn)`, `each(fn)`                   | Accumulate a value or visit items                                          |
+| `take(n_or_fn)`                                   | Limit to a count or a matching prefix                                      |
+| `find(value_or_fn)`, `rfind(value_or_fn)`         | Search forward or backward (`rfind` requires a list)                       |
+| `count()`, `size()`                               | Count by consuming, or inspect the remaining list length without consuming |
+
+> [!info] Compatibility extensions
+> `rpop`, `count`, and `size` are Vim Motions extensions, not Neovim 0.12 methods. `size()` requires a list source and raises on function sources (including map-table and callable-table pipelines). Tail operations and reversal also require list sources. `totable()` on a forward list and `fold()` on a list do not drain the iterator; do not assume all terminal operations consume identically.
 
 ## JSON
 
@@ -915,6 +975,8 @@ require('mini.comment').setup({})
 
 If the plugin files are not found and auto-fetch is disabled, a Notice is shown with download instructions. When auto-fetch is enabled, the plugin is downloaded as a tarball archive and extracted to `lua/`. A lock file at `lua/.plugin-lock.json` tracks installed versions.
 
+Downloads retain `lua/**/*.lua` and `queries/{lang}/{name}.scm`. Query files are isolated under `lua/{owner}__{repo}/queries/` so they cannot overwrite user queries or another plugin's queries. The query cache refresh completes before `vim.plugins.add()` resumes Lua execution. Plugins cached by an older version must be re-fetched to acquire `.scm` files discarded by the old downloader; reloading configuration alone does not download missing query files from an already cached plugin. See [[#Query files and resolution]].
+
 ```lua
 -- List registered plugins
 local plugins = vim.plugins.list()
@@ -974,6 +1036,8 @@ Read and modify editor content from Lua callbacks:
 > [!info] Buffer argument
 > Only `buffer = 0` (current buffer) is supported. These functions operate on the active editor.
 
+`vim.api.nvim_buf_call(0, fn)` calls `fn()` directly in the current buffer, propagating all return values and errors. It does not switch buffers; non-zero handles are rejected.
+
 ## Window and Cursor
 
 | Function                                      | Description                                   | Example                                          |
@@ -989,6 +1053,10 @@ Read and modify editor content from Lua callbacks:
 
 > [!info] Window and Tabpage handles
 > Only `0` (current) is supported for window and tabpage handles.
+
+`vim.api.nvim_win_call(0, fn)` calls `fn()` directly in the current window, propagating all return values and errors. It does not switch windows; non-zero handles are rejected.
+
+`vim.api.nvim_win_get_config(0)` returns `{ relative = "", focusable = true, external = false, hide = false }`. An empty `relative` reports a non-floating window, not a Neovim floating-window implementation. Non-zero handles are rejected. For visible lines and viewport dimensions, use [[#vim.fn.getwininfo(winid?)|vim.fn.getwininfo()]].
 
 ## Keymaps
 
@@ -1044,10 +1112,35 @@ Registered commands are immediately available via `:CommandName` in the ex comma
 
 ## Key injection
 
-| Function                                   | Description                       | Example                                        |
-| ------------------------------------------ | --------------------------------- | ---------------------------------------------- |
-| `vim.api.nvim_feedkeys(keys, mode, remap)` | Inject keystrokes                 | `vim.api.nvim_feedkeys("j", "n", false)`       |
-| `vim.api.nvim_replace_termcodes(str, ...)` | Identity function (returns input) | `vim.api.nvim_replace_termcodes("<Esc>", ...)` |
+| Function                                                         | Description                                           | Example                                                             |
+| ---------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `vim.api.nvim_feedkeys(keys, mode, escape_ks)`                   | Inject literal text or encoded key bytes              | `vim.api.nvim_feedkeys("j", "n", false)`                            |
+| `vim.api.nvim_replace_termcodes(str, from_part, do_lt, special)` | Encode supported Vim key notation as Neovim key bytes | `vim.api.nvim_replace_termcodes("<CR>", true, true, true)` → `"\r"` |
+
+`nvim_replace_termcodes` now emits actual bytes in a Lua string, including internal special-key and modifier sequences; it is not an identity function. Unknown notation remains literal. `from_part` is accepted but ignored. `special` controls special-key conversion and `do_lt` controls `<lt>` conversion. Unlike Neovim, this implementation also expands `<lt>` with `do_lt = true` when `special = false`.
+
+`nvim_feedkeys` decodes these bytes into the fork's notation at the engine boundary. Convert special-key notation before feeding it; plain angle-bracket text passed directly to `nvim_feedkeys` is treated literally. Mode `"n"` disables remapping; `"m"` or `""` enables it. Other mode flags are ignored with a warning.
+
+```lua
+local keys = vim.api.nvim_replace_termcodes("<Esc>j", true, true, true)
+vim.api.nvim_feedkeys(keys, "n", false)
+```
+
+## Key observation
+
+`vim.on_key(fn, ns?)` registers a callback and returns its namespace ID. Omitting `ns` or using `0` allocates an ID; reusing an ID replaces its callback. `vim.on_key(nil, ns)` removes it, and `vim.on_key()` returns the number of registered callbacks. Callbacks receive `(key, typed)` as encoded key-byte strings. A failing callback is logged and removed; all callbacks are detached before the Lua state closes.
+
+```lua
+local ns = vim.api.nvim_create_namespace("my-key-observer")
+vim.on_key(function(key, typed)
+    -- Observe only: both arguments describe the same physical input.
+    print(key, typed)
+end, ns)
+-- Later: vim.on_key(nil, ns)
+```
+
+> [!warning] Pre-mapping observation
+> Unlike Neovim's post-mapping hook, this observes physical key input before mappings. Mapped expansions and programmatic `feedkeys` are not separately observed, both callback arguments carry the same physical input, and callback return values cannot discard keys. Desktop/popout and mobile dispatch reuse existing key listeners; modifier-only and composition events are ignored. Full parity requires changing key processing itself.
 
 ## Autocommands
 
@@ -1669,6 +1762,20 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 
 ## Options
 
+`vim.o` and `vim.go` share global option access. Reads resolve in this order: engine value → compatibility shadow store → defaults below → `nil`. Valid engine values such as `false`, `0`, and `""` remain authoritative. Writes are retained in the shadow store even when the engine does not implement the option; retaining a value does not make the corresponding Neovim feature functional. This fallback behavior applies to `vim.o`/`vim.go`, not generally to `vim.opt` or the option getter functions.
+
+| Option        | Fallback default                                     |
+| ------------- | ---------------------------------------------------- |
+| `eventignore` | `""`                                                 |
+| `selection`   | `"inclusive"`                                        |
+| `cmdheight`   | `1`                                                  |
+| `columns`     | `80`                                                 |
+| `lines`       | `24`                                                 |
+| `cpo`         | `"aABceFs"`                                          |
+| `background`  | `"light"` or `"dark"` from the active Obsidian theme |
+
+`columns` and `lines` are compatibility defaults, not measured viewport dimensions; use `vim.fn.getwininfo()` for geometry. `operatorfunc` is special-cased consistently across `vim.opt`, `vim.o`, `vim.go`, and all four global option functions below; see [[#Custom operators]].
+
 | Function                                            | Description                          | Example                                              |
 | --------------------------------------------------- | ------------------------------------ | ---------------------------------------------------- |
 | `vim.api.nvim_get_option(name)`                     | Get global option value (deprecated) | `local val = vim.api.nvim_get_option("sw")`          |
@@ -1802,6 +1909,59 @@ vim.keycode("<Space>") -- " "
 
 Useful for comparing keys returned by `vim.fn.getcharstr()` against special key names.
 
+## vim.treesitter
+
+The Lua Treesitter API uses bundled `web-tree-sitter` WASM grammars for `markdown`, `markdown_inline`, and `html`, alongside Obsidian's native Lezer parser. Lua configuration loading awaits runtime initialization and query-file preloading so synchronous `query.get()` calls in `init.lua` can use the snapshot immediately. This does not replace native highlighting or implement every Neovim Treesitter UI API; see [[known-limitations#Treesitter integration (`vim.treesitter`)]].
+
+### Named queries
+
+| API                                                        | Behavior                                                                                     |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `vim.treesitter.query.parse(lang, text)`                   | Compile an inline query                                                                      |
+| `vim.treesitter.query.set(lang, name, text)`               | Register a per-Lua-state override; compile lazily on `get()`                                 |
+| `vim.treesitter.query.get(lang, name)`                     | Resolve and cache a named query; return `nil` if unavailable                                 |
+| `vim.treesitter.query.get_files(lang, name, is_included?)` | List resolved vault-relative physical paths; bundled constants have no paths and are omitted |
+| `query:iter_captures(node, source, start?, stop?)`         | Iterate captures using document text and optional row bounds                                 |
+| `query:iter_matches(node, source, start?, stop?)`          | Iterate matches using the same source/row convention                                         |
+
+For query iteration, `source` is a source string or buffer handle `0` (uses the parsed node's retained source). Row bounds follow the source argument. File-loaded queries use this document text for predicates, rather than an empty query-owned source.
+
+### Query files and resolution
+
+Resolution precedence is:
+
+1. `vim.treesitter.query.set(lang, name, text)` overrides.
+2. `<vault>/lua/queries/{lang}/{name}.scm` user queries.
+3. `<vault>/lua/{plugin}/queries/{lang}/{name}.scm` plugin queries, with plugin roots ordered lexically. Auto-fetched plugins use `{owner}__{repo}` as their directory name.
+4. Bundled `textobjects` query constants for `markdown`, `markdown_inline`, and `html`.
+
+The first non-extending file is the base; later ordinary base files are ignored. Leading `;; extends` modelines append a file to the selected base (a user extension can therefore augment the bundled fallback). Leading `;; inherits: language,other_language` modelines load inherited sources recursively before the base and extensions. Optional `(language)` entries apply to direct resolution but are skipped when resolving an included language. `query.get_files(..., true)` uses that included-language behavior. Cycles are diagnosed and skipped. Modelines must be at the start of the file in consecutive comment lines.
+
+An explicit `query.set()` override normally replaces file/bundled content. Its own leading `;; extends` or `;; inherits:` modelines can include file-based sources. Compiled hits and misses are invalidated when the snapshot refreshes; existing returned query objects remain usable until their Lua state closes.
+
+For example, save this as `lua/queries/markdown/textobjects.scm` to extend the bundled query:
+
+```scheme
+;; extends
+(paragraph) @paragraph.outer
+```
+
+After reloading configuration:
+
+```lua
+local query = vim.treesitter.query.get("markdown", "textobjects")
+local files = vim.treesitter.query.get_files("markdown", "textobjects")
+-- files contains vault-relative .scm paths, not bundled constants.
+```
+
+> [!warning] Reloads and cached plugins
+> `.scm` edits require a configuration reload; there is no live query-file watcher. Re-fetch plugins cached before query-file support to obtain previously discarded `.scm` files. A successful plugin fetch refreshes the snapshot before Lua resumes.
+
+> [!info] Resource limits
+> Query resolution allows 128 KiB per file, a 4 MiB snapshot, 512 KiB per combined query, 64 resolved sources, and 16 inheritance levels. Exceeding a limit logs a diagnostic and skips the affected content. Malformed sources are also diagnosed and skipped rather than crashing Lua.
+
+The old `.scm` loading gap affected query-dependent integrations such as nvim-treesitter-textobjects. It did not block the core of mini.ai or mini.surround: their Treesitter textobjects are opt-in and default to `use_nvim_treesitter = false`. Resolving queries does not imply that every API required by those plugins is supported.
+
 ## When to use Lua vs Vimrc
 
 - Use **init.lua** (recommended) when you need conditional logic (per-vault config), function-based keymaps, or prefer Neovim-style Lua syntax
@@ -1824,7 +1984,7 @@ The plugin follows a specific override hierarchy:
 Obsidian is not Neovim. Many Neovim-specific APIs are not available in this sandboxed environment.
 
 > [!info] Obsidian is not Neovim
-> The following Neovim APIs are not available: `vim.lsp`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.treesitter` is fully implemented — see [[#vim.treesitter]] below for the complete API reference. `vim.api` is partially supported (59 `nvim_*` functions — see sections above for the full list; unimplemented functions error with a helpful message). `vim.fn` is partially supported (77 functions — see above). `vim.version`, `vim.validate`, and `vim.keycode` are fully implemented. The Lua runtime is sandboxed: only 7 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`, `os`). The `io`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile` and `loadfile` are disabled. `rawget`, `rawset`, and `rawequal` are available for Neovim compatibility.
+> The following Neovim APIs are not available: `vim.lsp`, `vim.ui`, `vim.diagnostic`. Attempting to use them produces a clear error message. `vim.treesitter` supports parsing and named queries with limitations — see [[#vim.treesitter]]. `vim.api` is partially supported (60 real `nvim_*` implementations), as is `vim.fn` (79 real implementations). Registered compatibility stubs return placeholders; calls outside the registries error. `vim.version`, `vim.validate`, and `vim.keycode` are also available. The Lua runtime is sandboxed: only 7 standard libraries are loaded (`_G`, `string`, `table`, `math`, `coroutine`, `utf8`, `os`). The `io`, `debug`, and `package` libraries are not available (but `package.loaded` and `package.path` are provided by the plugin's `require()` implementation). `require()` loads modules from `lua/` in the vault root. `load(chunk)` compiles string chunks. `dofile` and `loadfile` are disabled. `rawget`, `rawset`, and `rawequal` are available for Neovim compatibility.
 
 ### `collectgarbage` behavior
 
