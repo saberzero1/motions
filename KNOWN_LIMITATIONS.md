@@ -57,6 +57,15 @@ The following `vim.v` variables are registered in the API and return default val
 - **`vim.v.char`** — character typed during `InsertCharPre` autocmd. Currently writable but never set by the plugin. Will be populated when `InsertCharPre` is added to the supported autocmd events (requires a fork hook into insert-mode character input). Not in the current 19-event list.
 - ~~**`vim.v.insertmode`**~~: Fixed. Returns `'i'` for insert mode, `'r'` for replace mode (`R`), `'v'` for virtual replace mode (`gR`), and `''` in normal/visual modes. Available in keymap function callbacks. Autocmd callbacks default to `''` (no adapter context available).
 
+### Module snapshot and `require()`
+
+Every `.lua` file under `lua/` is read into memory when the configuration loads, and `require()` resolves from that snapshot. This is what lets a lazy `require` inside a keymap callback work: those callbacks cannot wait for a vault read. Asynchronous reads remain the fallback, but only for callers that can wait (top-level configuration, autocommands, timers).
+
+- **Files created or edited after the configuration loads need a reload** — the snapshot is a point-in-time copy. Requiring a module added since reports `module '<name>' not present in the configuration snapshot`, naming both paths tried, rather than a generic "not found" that would be indistinguishable from a typo. Saving your main configuration file reloads it, as does the **Vim Motions: Reload configuration** command. There is no live watcher on `lua/`.
+- **The snapshot refreshes on configuration reload and after `vim.plugins.add()`** — a plugin fetch rebuilds it before your Lua resumes, so a freshly fetched plugin is immediately requirable.
+- **Four resource limits apply, and breaches are reported rather than silent** — 512 KiB per file, 16 MiB total, 2,048 files, and 32 directory levels. Anything skipped is named in the developer console with its reason, because a file dropped for exceeding a budget would otherwise present as a missing module. Directories beginning with `.` (including the plugin fetcher's `lua/.staging/`) are not walked.
+- **A module absent from the snapshot is unreachable from synchronous callers even if it exists on disk** — this is the same reload boundary, seen from the other side. From a coroutine caller the asynchronous read still finds it.
+
 ### Lua API limitations
 
 - **`nvim_buf_get_mark` returns character offsets** (0-indexed), not byte offsets as in Neovim. This diverges for multi-byte content (CJK, emoji).

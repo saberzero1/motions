@@ -84,6 +84,27 @@ Modules are cached in `package.loaded` — calling `require("keymaps")` twice re
 
 Security: module names containing `..`, absolute paths (`/`, `\`), or null bytes are rejected.
 
+### require() resolves synchronously
+
+Every `.lua` file under `lua/` is read into memory when the configuration loads. `require()` resolves from that snapshot, so both a `package.loaded` cache hit and a first-time module load complete **synchronously**, without reading from the vault.
+
+This is what makes lazy `require` work — the idiom nearly every Neovim plugin is built on:
+
+```lua
+-- The submodule is not loaded until you press `s`. The callback runs on the
+-- main Lua state and cannot wait for a file read, so it is served from memory.
+vim.keymap.set("n", "s", function()
+    require("myplugin.jump").start()
+end)
+```
+
+Reading from the vault is asynchronous, so it remains available **only** where the caller is able to wait for it: your top-level configuration, autocommand and timer callbacks, and anything else the plugin runs on a coroutine. Keymap callbacks, `:lua`, and expression mappings are not in that group, and are served by the snapshot alone.
+
+The snapshot is rebuilt when the configuration reloads, and again after a successful `vim.plugins.add()` fetch — before your Lua resumes — so a freshly fetched plugin is immediately requirable.
+
+> [!info] Files added after the configuration loads
+> A `.lua` file you create while Obsidian is running is not in the snapshot yet. Requiring it from a keymap callback reports that it is `not present in the configuration snapshot`, naming both paths that were tried. Saving your main configuration file reloads it, or run the **Vim Motions: Reload configuration** command. Editing an existing module is subject to the same boundary. See [[known-limitations#Lua configuration]].
+
 ## Example init.lua
 
 ```lua

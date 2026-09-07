@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`require()` resolves synchronously** — every `.lua` file under `lua/` is read into memory when the configuration loads, and `require()` resolves from that snapshot. This unblocks lazy `require`, which is the idiom nearly the whole modern Neovim plugin ecosystem is built on: `vim.keymap.set('n', 's', function() require('plugin.jump').start() end)` previously failed with `module 'plugin.jump' not found: async APIs can only be called from async-capable callbacks`, because reading from the vault is asynchronous and keymap callbacks run on the main state via a plain `lua_pcall` that cannot yield. Only a cache miss was ever affected — `package.loaded` hits were already synchronous.
+    - Plugin: `src/lua/module-snapshot.ts` (new — walk, index, limits, atomic swap), `src/lua/package.ts` (snapshot-first resolution), `src/lua/coroutine-runner.ts` (`isAsyncCapable`), `src/lua/loader.ts` (awaited rebuild before user config, refresh after plugin fetch, skip reporting)
+    - The asynchronous vault read is retained, but **only** for callers that can wait for it — top-level configuration, autocommands, timers. A synchronous caller that misses the snapshot is told the module is `not present in the configuration snapshot`, naming both paths tried, rather than a generic "not found" indistinguishable from a typo.
+    - Files added or edited after the configuration loads need a reload; there is no live watcher. The snapshot rebuilds on configuration reload and after a `vim.plugins.add()` fetch, before the fetching coroutine resumes, so a freshly fetched plugin is immediately requirable.
+    - Limits are reported, not silently applied: 512 KiB per file, 16 MiB total, 2,048 files, 32 directory levels. Skipped files are named in the console with a reason, because a file dropped for exceeding a budget would otherwise present as a missing module.
+    - The snapshot reader and the async-capability predicate reach the injected `require` chunk as **chunk arguments, not globals**, so sandboxed user Lua has no handle on them.
+    - Measured against the flash.nvim diagnostic: `require_in_callback` went from `blocked: … async APIs …` to `works`, and `Config.get().search.multi_window` from an error to `true`. flash now runs to its LuaJIT FFI dependency, which is architectural and not fixable in a pure-Lua VM.
+
 - **`vim.ui.select` and `vim.ui.input`** — Neovim's UI-hook namespace, backed by the existing Telescope-style picker and input modal. `vim.ui` is a plain mutable table with **no metatable**, so dressing.nvim / telescope-ui-select / snacks can replace and restore its fields, which is the idiom the namespace exists for. Both are **non-blocking**: they return immediately and invoke their callback later on a coroutine thread, so they work from inside a `vim.keymap.set` callback — the most common call site, where a yield-based design would hard-error. `on_choice` receives the **original Lua value** (items are commonly tables) plus a 1-based index; `on_confirm` distinguishes `''` (empty confirm) from `nil` (cancel). `format_item` is applied eagerly, matching Neovim's own default implementation.
     - Plugin: `src/lua/ui-api.ts` (new), `src/lua/loader.ts` (injection + wiring), `src/main.ts` (`openUiSelect` picker binding)
     - Where no selection UI is available, `vim.ui.select` raises rather than settling with `nil` — a caller cannot distinguish a `nil` settle from "the user cancelled".
@@ -123,6 +131,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 9 unit cases in `test/unit/lua/module-snapshot.test.ts` (nested walks, dot-directory exclusion, each limit, unreadable files, atomic replacement, listing failure) and 8 in `test/unit/lua/package-require.test.ts` (snapshot hit bypasses the adapter, resolution from a synchronous caller, `init.lua` fallback, nested submodule, the snapshot-naming miss message, caching across synchronous calls, adapter fallback still reached by an async-capable caller). The first of the 8 is a **negative control** asserting that without a snapshot the synchronous path still fails — if it ever passes, the other seven have stopped discriminating.
+- 1 e2e case in `test/specs/lua-require.e2e.ts` for the reload boundary: a module created at runtime is not requirable, the error names the snapshot and both candidate paths, and a configuration reload makes it resolve. `test/specs/lua-plugin-flash-diagnostic.e2e.ts` had its characterization assertions flipped — they asserted the async-`require` blocker that this work removes.
 - CI pre-fetch gained `dirs` support and commit-SHA pinning, and flash.nvim is now vendored for the diagnostic spec (`scripts/fetch-test-plugins.sh`, `test/fixtures/test-plugins.json`). A missing file or directory now fails the script instead of warning; the fetch step runs before build on Linux, macOS and Windows, so a drifted path fails loudly. `test/specs/lua-plugin-flash-diagnostic.e2e.ts` skips its flash-dependent cases when the fixture is absent.
 
 - 11 e2e cases in `test/specs/lua-vim-ui.e2e.ts` for `vim.ui` (overridability, E7 keymap-callback invocation, non-blocking return, `input` cancel vs empty confirm, `open` contract, reload-while-open teardown, and P1–P4 of the third-party override idiom via `test-vault/lua/uiselect_shim.lua`); 4 unit cases in `test/unit/picker/picker-cancel.test.ts`; 12 in `test/unit/lua/decoration-provider.test.ts`; 6 in `test/unit/lua/extmarks.test.ts`; 4 in `test/unit/lua/api-compat.test.ts`.
@@ -143,6 +153,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`
+- `AGENTS.md`: `require()` resolution rewritten — snapshot-first, async only for runner-managed threads, chunk-argument injection, refresh points; `module-snapshot.ts` added to the Lua compatibility module tree
+- `CONTRIBUTING.md`: `module-snapshot.ts` added to the source tree; `package.ts`, `coroutine-runner.ts`, and `loader.ts` descriptions updated
+- `KNOWN_LIMITATIONS.md`: new "Module snapshot and `require()`" section — the reload boundary, refresh points, the four resource limits and their reporting
+- `README.md`: Lua bullet notes synchronous `require()` resolution
+- `docs/configuration/lua-config.md`: new "require() resolves synchronously" section with the lazy-require example, the async-fallback boundary, and a callout for files added after load
 - `NEOVIM_API_STATUS.md`: corrected registration totals (60/97/157 for `vim.api`, 84/46/130 for `vim.fn`), reclassified the "Unlisted API surface" table with verified plugin reachability (REQUIRED/OPTIONAL/GUARD), documented why an unregistered name is worse than a stub, corrected the stale `vim.o.eventignore`/`selection`/`cmdheight`/`columns`/`cpo` rows that contradicted the documented resolution order, and refreshed the "Next candidates" matrix
 - `AGENTS.md`: `vim.bo` option set, new `vim.wo` scope, `vim.fn` count
 - `CONTRIBUTING.md`: `fn.ts` description and count
