@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { browser, expect } from '@wdio/globals';
 import {
     setupEditor,
@@ -163,13 +164,29 @@ const EAGER_PRELOAD_LUA = [
     `end)`,
 ].join('\n');
 
+// flash is vendored by `scripts/fetch-test-plugins.sh` into a gitignored path.
+// If that step did not run, skip loudly rather than emitting one assertion
+// failure per module — the fetch step failing is the real signal, and 20 red
+// assertions here would bury it.
+const FLASH_FIXTURE = 'test-vault/lua/flash/init.lua';
+const flashVendored = fs.existsSync(FLASH_FIXTURE);
+
 describe('flash.nvim render diagnostic (Phase 0)', function () {
+    before(function () {
+        if (!flashVendored) {
+            console.warn(
+                `SKIP: ${FLASH_FIXTURE} is absent. Run \`bash scripts/fetch-test-plugins.sh\`.`,
+            );
+        }
+    });
+
     afterEach(async function () {
         await sendVimEscape();
         await browser.pause(50);
     });
 
     it('reports which API gap blocks rendering', async function () {
+        if (!flashVendored) return this.skip();
         const probe = await runProbe();
 
         // Always print the evidence table — this is the phase's deliverable.
@@ -205,6 +222,7 @@ describe('flash.nvim render diagnostic (Phase 0)', function () {
     });
 
     it('eager pre-loading every submodule unblocks flash', async function () {
+        if (!flashVendored) return this.skip();
         await loadLuaConfig(EAGER_PRELOAD_LUA);
         await setupEditor('alpha bravo alpha charlie\nalpha delta alpha echo', {
             line: 0,

@@ -123,6 +123,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- CI pre-fetch gained `dirs` support and commit-SHA pinning, and flash.nvim is now vendored for the diagnostic spec (`scripts/fetch-test-plugins.sh`, `test/fixtures/test-plugins.json`). A missing file or directory now fails the script instead of warning; the fetch step runs before build on Linux, macOS and Windows, so a drifted path fails loudly. `test/specs/lua-plugin-flash-diagnostic.e2e.ts` skips its flash-dependent cases when the fixture is absent.
+
 - 11 e2e cases in `test/specs/lua-vim-ui.e2e.ts` for `vim.ui` (overridability, E7 keymap-callback invocation, non-blocking return, `input` cancel vs empty confirm, `open` contract, reload-while-open teardown, and P1–P4 of the third-party override idiom via `test-vault/lua/uiselect_shim.lua`); 4 unit cases in `test/unit/picker/picker-cancel.test.ts`; 12 in `test/unit/lua/decoration-provider.test.ts`; 6 in `test/unit/lua/extmarks.test.ts`; 4 in `test/unit/lua/api-compat.test.ts`.
 
 - 11 unit tests in `test/unit/lua/fn.test.ts` (Unicode index conversion, `wincol`/`winlayout` geometry and fallbacks, plugin-facing stub degradation, `nvim__redraw` guard survival) and `test/unit/lua/api.test.ts` (`vim.bo` write round-trip, `vim.wo` callback/global-fallback/shadow resolution)

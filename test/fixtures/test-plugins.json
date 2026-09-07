@@ -3,5 +3,10 @@
         "repo": "echasnovski/mini.comment",
         "ref": "main",
         "files": ["lua/mini/comment.lua"]
+    },
+    {
+        "repo": "folke/flash.nvim",
+        "ref": "5f0f270fdc7c5b0c21d903ee85b9cb06f2ac636a",
+        "dirs": ["lua/flash"]
     }
 ]
