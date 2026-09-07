@@ -118,7 +118,7 @@ describe('vim.regex', () => {
         expect(
             runLuaNumbers(
                 L,
-                "local s, e = vim.regex('\\\\d+'):match_str('abc 123 def'); return s, e",
+                "local s, e = vim.regex('\\\\d\\\\+'):match_str('abc 123 def'); return s, e",
             ),
         ).toEqual([4, 7]);
         expect(
@@ -163,7 +163,7 @@ describe('vim.regex', () => {
         expect(
             runLuaString(
                 L,
-                "return vim.regex('(\\\\w+)'):replace('hello world', '$1!')",
+                "return vim.regex('\\\\(\\\\w\\\\+\\\\)'):replace('hello world', '$1!')",
             ),
         ).toBe('hello! world');
         expect(

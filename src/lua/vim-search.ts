@@ -1,3 +1,5 @@
+import { vimRegExp } from './vim-regex';
+
 export interface SearchHit {
     line: number;
     col: number;
@@ -11,12 +13,9 @@ export interface SearchDoc {
 /**
  * Buffer search behind `vim.fn.searchpos()`.
  *
- * Extracted from the loader so it can be unit-tested. It is currently a
- * **JavaScript** RegExp search: `pattern` is passed to `new RegExp` unchanged.
- * Callers that supply Vim regex syntax (`\V`, `\c`, `\C`, `\<`, `\>`) will not
- * match — see `.sisyphus/spikes/findings.md`. The tests around this function
- * pin the current dialect so a future Vim-to-JS translation layer can be shown
- * not to disturb patterns that are already JavaScript-compatible.
+ * Extracted from the loader so it can be unit-tested. Patterns are Vim regex,
+ * translated to JavaScript by `vimRegExp` — `searchpos()` is a Vim API, so its
+ * argument follows Vim's magic-level rules, not JavaScript's.
  *
  * Returns 1-based line and column, matching `searchpos()`.
  */
@@ -31,7 +30,7 @@ export function searchBufferLines(
     const lineCount = doc.lineCount();
 
     try {
-        const re = new RegExp(pattern);
+        const re = vimRegExp(pattern);
         const backward = flags.includes('b');
         const wrapScan = !flags.includes('W');
 
@@ -95,7 +94,7 @@ export function searchBufferLines(
 }
 
 function lastMatchIn(pattern: string, text: string): number | null {
-    const globalRe = new RegExp(pattern, 'g');
+    const globalRe = vimRegExp(pattern, { flags: 'g' });
     let lastIndex: number | null = null;
     let m: RegExpExecArray | null;
     while ((m = globalRe.exec(text)) !== null) {

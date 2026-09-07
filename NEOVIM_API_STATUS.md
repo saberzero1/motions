@@ -586,14 +586,14 @@ Writes always record into the shadow store, even when the fork rejects the optio
 
 ### vim.regex
 
-| Function                   | Status | Notes                     | Plugin demand |
-| -------------------------- | ------ | ------------------------- | ------------- |
-| `vim.regex(pattern)`       | ✅     | ECMAScript RegExp wrapper | Low           |
-| `:match_str(str)`          | ✅     | Returns start, end        | Low           |
-| `:match_line(bufnr, lnum)` | ✅     | Alias for match_str       | Low           |
-| `:match_pos(str)`          | ✅     |                           | Low           |
-| `:replace(str, repl)`      | ✅     |                           | Low           |
-| `:test(str)`               | ✅     |                           | Low           |
+| Function                   | Status | Notes                              | Plugin demand |
+| -------------------------- | ------ | ---------------------------------- | ------------- |
+| `vim.regex(pattern)`       | ✅     | Vim patterns, translated to RegExp | Low           |
+| `:match_str(str)`          | ✅     | Returns start, end                 | Low           |
+| `:match_line(bufnr, lnum)` | ✅     | Alias for match_str                | Low           |
+| `:match_pos(str)`          | ✅     |                                    | Low           |
+| `:replace(str, repl)`      | ✅     |                                    | Low           |
+| `:test(str)`               | ✅     |                                    | Low           |
 
 ### vim.json
 

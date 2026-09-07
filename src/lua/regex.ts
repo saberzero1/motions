@@ -1,4 +1,5 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from '../lib/fengari';
+import { vimRegExp } from './vim-regex';
 import type { lua_State } from '../lib/fengari';
 
 const luaPushInteger = (
@@ -42,7 +43,7 @@ export function injectRegex(L: lua_State, vimTableIndex: number): void {
 
         let regex: RegExp;
         try {
-            regex = new RegExp(pattern, flags);
+            regex = vimRegExp(pattern, { flags });
         } catch (e) {
             return lauxlib.luaL_error(
                 state,

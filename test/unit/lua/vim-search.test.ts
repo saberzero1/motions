@@ -4,14 +4,10 @@ import { searchBufferLines, type SearchDoc } from '../../../src/lua/vim-search';
 /**
  * Characterization tests for `vim.fn.searchpos()`'s buffer search.
  *
- * These pin CURRENT behaviour, deliberately including a known defect: the
- * pattern is compiled as a JavaScript RegExp, so Vim regex syntax does not
- * match (`.sisyphus/spikes/findings.md`). Their purpose is to let a future
- * Vim-to-JS translation layer prove it has not disturbed patterns that are
- * already JavaScript-compatible.
- *
- * When that translation lands, the `vim regex dialect` block below should
- * start failing — that is the signal it worked, not a regression.
+ * The first block pins behaviour for patterns that are valid in BOTH dialects,
+ * and existed before Vim-to-JS translation was introduced — its job is to show
+ * the translation did not disturb them. The second block covers Vim syntax that
+ * the translation added support for.
  */
 function doc(...lines: string[]): SearchDoc {
     return {
@@ -106,26 +102,46 @@ describe('searchBufferLines — JavaScript-compatible patterns', () => {
 
 // Deviation from Vim, recorded rather than fixed: without the 'c' flag Vim
 // begins searching after the cursor, whereas this begins at it. Changing that
-// would alter behaviour for every existing caller, so it is out of scope for
-// the extraction and belongs with the regex-translation work.
-describe('searchBufferLines — vim regex dialect (KNOWN GAP)', () => {
-    it('does not match \\V very-nomagic patterns as flash emits them', () => {
-        // flash builds `\Val\C` (search/pattern.lua:87,104). As a JS RegExp
-        // `\V` and `\C` are identity escapes, so this looks for "ValC".
+// would alter behaviour for every existing caller, so it is out of scope here.
+describe('searchBufferLines \u2014 vim regex dialect', () => {
+    it('matches \\V very-nomagic patterns as flash emits them', () => {
+        // flash builds `\Valpha\C` (search/pattern.lua:87,104).
         expect(
             searchBufferLines(sample, '\\Valpha\\C', '', 1, 0, null),
-        ).toBeNull();
+        ).toEqual({
+            line: 1,
+            col: 1,
+        });
     });
 
-    it('does not honour \\c as a case-insensitivity flag', () => {
+    it('treats \\V metacharacters as literal', () => {
         expect(
-            searchBufferLines(sample, '\\cALPHA', '', 1, 0, null),
+            searchBufferLines(sample, '\\Va.pha', '', 1, 0, null),
         ).toBeNull();
     });
 
-    it('does not support \\< \\> word boundaries', () => {
+    it('honours \\c as a case-insensitivity flag', () => {
+        expect(searchBufferLines(sample, '\\cALPHA', '', 1, 0, null)).toEqual({
+            line: 1,
+            col: 1,
+        });
+    });
+
+    it('honours \\C as case-sensitive', () => {
+        expect(
+            searchBufferLines(sample, '\\CALPHA', '', 1, 0, null),
+        ).toBeNull();
+    });
+
+    it('supports \\< \\> word boundaries', () => {
         expect(
             searchBufferLines(sample, '\\<alpha\\>', '', 1, 0, null),
+        ).toEqual({
+            line: 1,
+            col: 1,
+        });
+        expect(
+            searchBufferLines(sample, '\\<lpha\\>', '', 1, 0, null),
         ).toBeNull();
     });
 });

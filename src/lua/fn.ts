@@ -5,6 +5,7 @@ import { pushLuaAny } from './api';
 import { strftime } from './strftime';
 import type { CmAdapter } from '../types/vim-api';
 import { getCursorWinCol, getWindowInfo } from './window-info';
+import { vimRegExp } from './vim-regex';
 
 export interface VimFnCallbacks {
     getCmAdapter?: () => CmAdapter | null;
@@ -1325,8 +1326,7 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
             : '\\s\\+';
         let parts: string[];
         try {
-            const re = new RegExp(sep);
-            parts = s.split(re);
+            parts = s.split(vimRegExp(sep));
         } catch {
             parts = [s];
         }
