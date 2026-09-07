@@ -51,7 +51,7 @@ export interface LuaKeymap {
     callback?: () => void;
 }
 
-interface VimVContext {
+export interface VimVContext {
     count: number;
     count1: number;
     register: string;
@@ -92,14 +92,28 @@ const DEFAULT_VIM_V: VimVContext = {
 let currentVimV: VimVContext = { ...DEFAULT_VIM_V };
 
 /**
- * Replace the current vim.v context for the duration of a callback.
+ * Install a vim.v context for the duration of a callback, returning the one it
+ * displaced. Pass that value to `restoreVimVContext` when the callback ends.
+ *
+ * Callers must restore rather than clear. Resetting to defaults is what allowed
+ * an inner callback's completion to wipe the context of an outer callback that
+ * was still running — the failure mode covered by
+ * `test/unit/lua/vim-v-context.test.ts`.
  */
-export function setVimVContext(ctx: Partial<VimVContext>): void {
+export function setVimVContext(ctx: Partial<VimVContext>): VimVContext {
+    const previous = currentVimV;
     currentVimV = { ...DEFAULT_VIM_V, ...ctx };
+    return previous;
+}
+
+export function restoreVimVContext(previous: VimVContext): void {
+    currentVimV = previous;
 }
 
 /**
- * Reset vim.v context to defaults.
+ * Reset vim.v context to defaults, discarding any nesting.
+ *
+ * For teardown and tests. Callback paths want `restoreVimVContext`.
  */
 export function clearVimVContext(): void {
     currentVimV = { ...DEFAULT_VIM_V };
@@ -2137,9 +2151,13 @@ export function injectVimApi(
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
             if (expr) {
                 callback = (cm?: unknown, actionArgs?: unknown) => {
+                    // Restored, not cleared, and only when this callback
+                    // actually installed one — clearing unconditionally wiped
+                    // the context of an outer callback still in flight.
+                    let savedVimV: VimVContext | null = null;
                     if (actionArgs && typeof actionArgs === 'object') {
                         const args = actionArgs as ActionArgs;
-                        setVimVContext({
+                        savedVimV = setVimVContext({
                             count: args.repeatIsExplicit ? args.repeat : 0,
                             count1: args.repeat,
                             register: args.registerName ?? '"',
@@ -2153,7 +2171,7 @@ export function injectVimApi(
                         EXPR_INSTRUCTION_LIMIT,
                         () => lua.lua_pcall(L, 0, 1, 0),
                     );
-                    clearVimVContext();
+                    if (savedVimV) restoreVimVContext(savedVimV);
                     if (status !== lua.LUA_OK) {
                         const message = lua.lua_tolstring(L, -1);
                         const error = message
@@ -2182,9 +2200,10 @@ export function injectVimApi(
                 };
             } else {
                 callback = (cm?: unknown, actionArgs?: unknown) => {
+                    let savedVimV: VimVContext | null = null;
                     if (actionArgs && typeof actionArgs === 'object') {
                         const args = actionArgs as ActionArgs;
-                        setVimVContext({
+                        savedVimV = setVimVContext({
                             count: args.repeatIsExplicit ? args.repeat : 0,
                             count1: args.repeat,
                             register: args.registerName ?? '"',
@@ -2198,7 +2217,7 @@ export function injectVimApi(
                         CALLBACK_INSTRUCTION_LIMIT,
                         () => lua.lua_pcall(L, 0, 0, 0),
                     );
-                    clearVimVContext();
+                    if (savedVimV) restoreVimVContext(savedVimV);
                     if (status !== lua.LUA_OK) {
                         const message = lua.lua_tolstring(L, -1);
                         const error = message
@@ -2442,7 +2461,7 @@ export function injectVimApi(
             const ref = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
             const callback = runner
                 ? (ev: AutocmdEventData) => {
-                      setVimVContext({
+                      const savedVimV = setVimVContext({
                           insertmode: '',
                           event: {
                               event: ev.event,
@@ -2461,8 +2480,12 @@ export function injectVimApi(
                               },
                               CALLBACK_INSTRUCTION_LIMIT,
                           )
+                          // `finally`, not `then`: a rejection here previously
+                          // left the context installed for every later reader.
+                          .finally(() => {
+                              restoreVimVContext(savedVimV);
+                          })
                           .then((result) => {
-                              clearVimVContext();
                               if (!result.ok) {
                                   console.error(
                                       `Vim Motions: autocmd ${event}: ${result.error}`,
@@ -2474,7 +2497,7 @@ export function injectVimApi(
                           });
                   }
                 : (ev: AutocmdEventData) => {
-                      setVimVContext({
+                      const savedVimV = setVimVContext({
                           insertmode: '',
                           event: {
                               event: ev.event,
@@ -2491,7 +2514,7 @@ export function injectVimApi(
                           CALLBACK_INSTRUCTION_LIMIT,
                           () => lua.lua_pcall(state, 1, 0, 0),
                       );
-                      clearVimVContext();
+                      restoreVimVContext(savedVimV);
                       if (status !== lua.LUA_OK) {
                           const msg = lua.lua_tolstring(state, -1);
                           const error = msg
