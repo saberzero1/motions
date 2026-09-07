@@ -178,7 +178,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.147.0] - 2026-09-05
 
+### Added
+
+- **Automated detection for the defect classes that kept escaping review** — most recent bugs were found by accident during unrelated work, not by the test suite or by plan review. Plan review validates intent; it structurally cannot observe that a method has no caller, that a parameter is ignored, or that a cleanup loop lacks exception isolation. Four blocking gates now cover code-level properties, and each was validated by confirming it fires on a defect that actually shipped.
+    - `@typescript-eslint/no-unused-vars` now reports unused parameters (`args: 'after-used'`); the preset had `args: 'none'`, which is why a parameter accepted and then ignored while the behaviour it should have driven was hardcoded survived review (#177). Vendored `src/lib/fengari/**` is exempt — its signatures mirror the Lua C API.
+    - `npm run format:check` is a CI gate, and Prettier is now a pinned devDependency. It had been resolving through `npx` at whatever version was current, so formatting was never actually enforced.
+    - `.ast-grep/rules/promise-owned-listener.yml` flags a listener installed inside a Promise executor. Verified against the pre-fix `getcharstr` implementation at `src/lua/loader.ts:1601`: the rule fires on it.
+    - `.ast-grep/rules/unguarded-disposer-loop.yml` flags cleanup loops that invoke disposers without isolating exceptions. It found all five instances in the tree, including the `destroyState` loop where a throwing finalizer would also have skipped `lua_close`.
+    - `npm run verify` runs lint, format, and pattern checks together; `npm run lint:patterns` runs the ast-grep scan.
+
 ### Fixed
+
+- **A throwing cleanup callback aborted every later cleanup** — `destroyState` and four other teardown paths invoked disposers in a bare loop, so the first throw skipped every remaining disposer and whatever followed the loop. In `destroyState` that included `lua_close`, meaning one bad finalizer leaked the entire Lua state. All five now run through `runCleanups`, which continues past a failure and reports each one.
+    - Plugin: `src/util/cleanup.ts` (new), `src/lua/engine.ts`, `src/lua/autocmd.ts` (×2), `src/workspace/global-key-handler.ts`, `src/main.ts`
+
+- **Two parameters were accepted and then ignored** — surfaced immediately by the new unused-parameter gate, both the same shape as #177. `parseInlineContent(text, startIndex)` ignored `startIndex` while its only caller passed `inlineNode.startIndex` and separately compensated for the offset itself; the parameter is removed rather than implemented. `recordSearch(..., opts)` threaded a `FlashCharOptions` through three call sites without reading it.
+    - Plugin: `src/treesitter/runtime.ts`, `src/flash/char-mode.ts`
+    - Three genuinely-unused fixed-arity callback parameters were renamed to the `_` convention rather than removed: `src/vim/statuscolumn.ts`, `src/lua/io-shim.ts`, `src/lua/treesitter/language-tree-api.ts`
 
 - **A timed-out `vim.fn.getcharstr()` swallowed the next keystroke** — the key waiter's cleanup lived in the promise the coroutine runner abandons after 10 seconds, so it never ran: the capture-phase listener stayed installed and key interception stayed on until some later key arrived, which was then consumed instead of reaching the editor. Waiting more than ten seconds at a `getcharstr` prompt therefore cost the user a keypress with no visible cause. A new key broker owns exactly one listener and one intercept lease for any number of waiters, and `yieldWithPromise` gained an abandonment hook so the runner releases it on timeout, on destruction, and on the two paths that reject before registering.
     - Plugin: `src/lua/key-broker.ts` (new), `src/lua/coroutine-runner.ts` (`onAbandon`, idempotent release, `AsyncRegistry.abandonAll`), `src/lua/fn.ts` (`getcharstr`/`getchar` pass the abort), `src/lua/loader.ts` (broker construction replaces the inline waiter)

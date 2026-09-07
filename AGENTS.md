@@ -58,11 +58,15 @@ npm run dev
 npm run build
 ```
 
-## Linting
+## Linting and verification gates
 
 - ESLint is preconfigured with `eslint-plugin-obsidianmd` for Obsidian-specific rules.
 - Run `npm run lint` to lint the project.
 - A GitHub Action automatically lints every commit on all branches.
+- **`npm run verify` runs all three static gates**: `lint`, `format:check` (Prettier, pinned as a devDependency), and `lint:patterns` (`ast-grep scan`). All three are blocking in CI.
+- **Unused parameters are reported** (`args: 'after-used'`). Vendored `src/lib/fengari/**` is exempt because its signatures mirror the Lua C API. A parameter you genuinely must accept and ignore — a fixed-arity foreign callback — is prefixed `_`; do not use that prefix to silence a parameter whose behaviour you simply did not implement.
+- **Pattern rules live in `.ast-grep/rules/`** (registered by `sgconfig.yml`) and target defect classes that plan review structurally cannot see: `promise-owned-listener` (a listener released only on the paths that settle its Promise) and `unguarded-disposer-loop` (a cleanup loop that stops at the first throw). Use `runCleanups` from `src/util/cleanup.ts` for disposal, and the single-owner-with-abort shape of `src/lua/key-broker.ts` for anything holding a listener across a wait.
+- A new rule must be shown to fire on a defect that actually shipped before it is trusted. Suppressions must name a plan that owns the fix, and the `// ast-grep-ignore: <rule>` directive must be the **last** comment line before the flagged code.
 
 ## File & folder conventions
 
@@ -99,6 +103,8 @@ npm run build
         bundled-queries.ts     # Bundled markdown/markdown_inline/html textobjects queries
         query-files.ts         # Vault .scm snapshot, inheritance, extension modelines, limits
         named-queries.ts       # Named query precedence, lazy compilation, cache invalidation
+      util/
+        cleanup.ts             # runCleanups: exception-isolated disposal, continues past a failure
       workspace/
         key-observer.ts        # Physical key observation feeding vim.on_key
     ```

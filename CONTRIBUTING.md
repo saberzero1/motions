@@ -22,7 +22,46 @@ npm run build
 npm run lint
 ```
 
-### Testing locally in Obsidian
+### Verification gates
+
+`npm run verify` runs the three static gates together; CI runs each separately and all are blocking.
+
+| Command                 | Checks                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `npm run lint`          | ESLint, including type-aware rules and unused **parameters** (`args: 'after-used'`) |
+| `npm run format:check`  | Prettier, pinned as a devDependency so CI and local agree                           |
+| `npm run lint:patterns` | `ast-grep scan` over `.ast-grep/rules/`                                             |
+
+### Pattern rules
+
+Rules live in `.ast-grep/rules/`, registered by `sgconfig.yml`. They exist because plan review cannot see code-level properties — a method with no caller, a parameter that is ignored, a cleanup loop that stops at the first throw.
+
+Current rules:
+
+- `promise-owned-listener` — an event listener installed inside a Promise executor is released only on the paths that settle it, and nothing settles an abandoned Promise. Give the caller an abort path, as `src/lua/key-broker.ts` does.
+- `unguarded-disposer-loop` — a cleanup loop must isolate exceptions, or the first throw skips every later disposer. Use `runCleanups` from `src/util/cleanup.ts`.
+
+**When adding a rule, prove it fires on a defect that actually shipped.** Extract the pre-fix file from git history into a scratch directory and scan it:
+
+```bash
+git show <commit-before-fix>:src/path/file.ts > /tmp/check/src/path/file.ts
+node_modules/.bin/ast-grep scan --rule .ast-grep/rules/<rule>.yml
+```
+
+A rule that has never been shown to catch a real defect is decoration. Two tree-sitter details cost real time when writing these: `has` matches only direct children unless you set `stopBy: end`, and `this.foo` yields a `property_identifier`, not an `identifier` — missing either silently halves a rule's recall.
+
+### Suppressions
+
+Known instances may be ratcheted so a rule can go blocking immediately, but a suppression must name a plan that owns the fix:
+
+```ts
+// Known instance, tracked by .sisyphus/plans/<plan>.md. <why the correct fix is deferred>
+// ast-grep-ignore: <rule-id>
+```
+
+The directive must be the **last** comment line before the flagged code; ast-grep only reads the immediately preceding line.
+
+## Testing locally in Obsidian
 
 1. Run `npm run build:dev` to produce `main.js` with `__DEV__` runtime assertions enabled (inline sourcemaps, auto-copies to `test-vault/`).
 2. If testing in a different vault, copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/vim-motions/` directory.
