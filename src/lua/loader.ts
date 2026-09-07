@@ -467,6 +467,14 @@ export async function loadInitLua(
         },
         setInterceptActive: setKeyInterceptActive,
     });
+
+    // The runner was never torn down on reload, so a suspended callback could
+    // resume into a closed lua_State. destroyAll must run before the state is
+    // closed, which is what registering it here guarantees.
+    registerStateCleanup(L, () => {
+        keyBroker.abortAll();
+        if (!runner.isDestroyed()) runner.destroyAll();
+    });
     const callbacks: VimApiCallbacks = {
         observeKeys,
         highlightManager,

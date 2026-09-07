@@ -172,7 +172,10 @@ export class CoroutineRunner {
             this.cleanup(thread, threadRef);
             return { ok: false, error };
         } finally {
-            lua.lua_sethook(thread, null, 0, 0);
+            // After destroyAll the Lua state is closed, so touching the thread
+            // here would reach into freed memory. destroyAll already dropped
+            // every hook, so skipping is safe as well as necessary.
+            if (!this.destroyed) lua.lua_sethook(thread, null, 0, 0);
         }
     }
 
