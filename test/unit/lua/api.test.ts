@@ -2432,6 +2432,152 @@ describe('vim api', () => {
             );
             destroyState(L);
         });
+
+        it('should round-trip writes the host cannot persist', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getActiveFilePath: () => 'note.md',
+                getBufferOption: (name) =>
+                    name === 'commentstring' ? '%% %s %%' : undefined,
+                setBufferOption: () => {},
+            });
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    vim.bo.commentstring = '// %s'
+                    vim.bo.fileformat = 'dos'
+                    return vim.bo.commentstring == '// %s'
+                        and vim.bo.fileformat == 'dos'
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+    });
+
+    describe('indexed scope access', () => {
+        it('vim.bo[0] returns the buffer option table', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getBufferOption: (name) =>
+                    name === 'filetype' ? 'markdown' : undefined,
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(`
+                    local buf = 0
+                    return vim.bo[buf].filetype == 'markdown'
+                        and vim.bo[0].filetype == vim.bo.filetype
+                `),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('vim.wo[0] returns the window option table', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getWindowOption: (name) => (name === 'wrap' ? true : undefined),
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.wo[0].wrap == true'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('rejects non-zero buffer handles', () => {
+            const L = createSandboxedState();
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+            });
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.bo[7].filetype'),
+            );
+            expect(status).not.toBe(lua.LUA_OK);
+            destroyState(L);
+        });
+    });
+
+    describe('vim.wo', () => {
+        const injectWithWindowOptions = (L: LuaState) =>
+            injectApi(L, {
+                onSettingOverride: () => {},
+                handleExCommand: () => {},
+                getVaultName: () => 'vault',
+                onKeymap: () => {},
+                onKeymapDel: () => {},
+                getWindowOption: (name) => (name === 'wrap' ? true : undefined),
+                getOption: (name) => (name === 'scrolloff' ? 5 : undefined),
+            });
+
+        it('should read window-local options from the callback', () => {
+            const L = createSandboxedState();
+            injectWithWindowOptions(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring('return vim.wo.wrap'),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should fall back to global scope for unmapped options', () => {
+            const L = createSandboxedState();
+            injectWithWindowOptions(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'return vim.wo.scrolloff == 5 and vim.wo.cmdheight == 1',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
+
+        it('should let writes shadow the resolved value', () => {
+            const L = createSandboxedState();
+            injectWithWindowOptions(L);
+
+            const status = lauxlib.luaL_dostring(
+                L,
+                to_luastring(
+                    'vim.wo.wrap = false; return vim.wo.wrap == false',
+                ),
+            );
+            expect(status).toBe(lua.LUA_OK);
+            expect(lua.lua_toboolean(L, -1)).toBe(true);
+            destroyState(L);
+        });
     });
 
     describe('vim.is_callable', () => {

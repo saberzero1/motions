@@ -458,3 +458,141 @@ describe('extmark engine', () => {
         expect(found).toBe(true);
     });
 });
+
+describe('extmark decoration fidelity', () => {
+    function decorationRanges(state: EditorState) {
+        const set = state.field(extmarkField).decorations;
+        const out: { from: number; to: number; cls: string }[] = [];
+        const iter = set.iter();
+        while (iter.value) {
+            out.push({
+                from: iter.from,
+                to: iter.to,
+                cls: (iter.value.spec as { class?: string }).class ?? '',
+            });
+            iter.next();
+        }
+        return out;
+    }
+
+    function withMarks(
+        marks: {
+            id: number;
+            from: number;
+            to: number;
+            opts: Record<string, unknown>;
+        }[],
+        doc = 'hello world\nsecond line\nthird line',
+    ) {
+        let state = createState(doc);
+        for (const m of marks) {
+            state = state.update({
+                effects: setExtmarkEffect.of({
+                    nsId: 1,
+                    id: m.id,
+                    from: m.from,
+                    to: m.to,
+                    opts: m.opts,
+                }),
+            }).state;
+        }
+        return state;
+    }
+
+    it('hl_eol extends the highlight to end of line', () => {
+        const plain = withMarks([
+            { id: 1, from: 0, to: 5, opts: { hlGroup: 'Search' } },
+        ]);
+        const eol = withMarks([
+            { id: 1, from: 0, to: 5, opts: { hlGroup: 'Search', hlEol: true } },
+        ]);
+        expect(decorationRanges(plain)[0]!.to).toBe(5);
+        // 'hello world' ends at offset 11
+        expect(decorationRanges(eol)[0]!.to).toBe(11);
+    });
+
+    it('hl_eol extends to the end of the line containing the range end', () => {
+        // offset 15 sits inside 'second line', which ends at 23
+        const state = withMarks([
+            { id: 1, from: 0, to: 15, opts: { hlGroup: 'X', hlEol: true } },
+        ]);
+        expect(decorationRanges(state)[0]!.to).toBe(23);
+    });
+
+    it('hl_eol never shrinks a range', () => {
+        const state = withMarks([
+            { id: 1, from: 0, to: 23, opts: { hlGroup: 'X', hlEol: true } },
+        ]);
+        expect(decorationRanges(state)[0]!.to).toBeGreaterThanOrEqual(23);
+    });
+
+    it('clamps out-of-range positions instead of dropping the mark', () => {
+        const state = withMarks([
+            { id: 1, from: 0, to: 9999, opts: { hlGroup: 'X', strict: false } },
+        ]);
+        const ranges = decorationRanges(state);
+        expect(ranges.length).toBe(1);
+        expect(ranges[0]!.to).toBe(createState().doc.length);
+    });
+
+    // Priority controls the ORDER of overlapping marks; it does not yet control
+    // which one wins visually. `Decoration.set(ranges, true)` re-sorts, so CM6's
+    // own comparator has the final say on nesting, and CM6 marks carry no
+    // z-index. These assert what is verified here — that ordering is driven by
+    // priority and is independent of insertion order. Confirming which end CM6
+    // renders innermost needs a DOM check, and is Phase 3 work.
+    it('orders overlapping marks by priority, not insertion order', () => {
+        const lowFirst = decorationRanges(
+            withMarks([
+                {
+                    id: 1,
+                    from: 0,
+                    to: 6,
+                    opts: { hlGroup: 'Low', priority: 1 },
+                },
+                {
+                    id: 2,
+                    from: 0,
+                    to: 6,
+                    opts: { hlGroup: 'High', priority: 100 },
+                },
+            ]),
+        ).map((r) => r.cls);
+        const highFirst = decorationRanges(
+            withMarks([
+                {
+                    id: 1,
+                    from: 0,
+                    to: 6,
+                    opts: { hlGroup: 'High', priority: 100 },
+                },
+                {
+                    id: 2,
+                    from: 0,
+                    to: 6,
+                    opts: { hlGroup: 'Low', priority: 1 },
+                },
+            ]),
+        ).map((r) => r.cls);
+
+        expect(lowFirst).toEqual(highFirst);
+        expect(new Set(lowFirst)).toEqual(
+            new Set(['vim-hl-Low', 'vim-hl-High']),
+        );
+    });
+
+    it('resolves equal priorities deterministically across repeated builds', () => {
+        const build = () =>
+            decorationRanges(
+                withMarks([
+                    { id: 1, from: 0, to: 6, opts: { hlGroup: 'A' } },
+                    { id: 2, from: 0, to: 6, opts: { hlGroup: 'B' } },
+                    { id: 3, from: 0, to: 6, opts: { hlGroup: 'C' } },
+                ]),
+            ).map((r) => r.cls);
+        const first = build();
+        for (let i = 0; i < 100; i++) {
+            expect(build()).toEqual(first);
+        }
+    });
+});

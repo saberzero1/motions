@@ -16,7 +16,11 @@ import type { VimApi } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { showInputModal } from '../ui/input-modal';
 import { getCmAdapter } from '../vim/vim-api';
-import { createSandboxedState, evalLuaAsync } from './engine';
+import {
+    createSandboxedState,
+    evalLuaAsync,
+    registerStateCleanup,
+} from './engine';
 import {
     injectVimApi,
     LuaKeymap,
@@ -27,6 +31,11 @@ import {
 import type { BufferKeymapManager } from './buffer';
 import { AutocmdManager } from './autocmd';
 import { injectVimFn } from './fn';
+import { injectUiApi } from './ui-api';
+import {
+    DecorationProviderManager,
+    setActiveDecorationProviderManager,
+} from './decoration-provider';
 import { injectStdlib } from './stdlib';
 import { injectTimers, TimerManager } from './timers';
 import { HighlightManager } from './highlight';
@@ -124,6 +133,14 @@ const LUA_FALLBACK_PATHS: readonly string[] = [
     '.init.lua',
     'obsidian.init.lua',
 ];
+
+const ENGINE_BACKED_BUFFER_OPTIONS: ReadonlySet<string> = new Set([
+    'expandtab',
+    'shiftwidth',
+    'softtabstop',
+    'tabstop',
+    'textwidth',
+]);
 
 function getLuaFallbackPaths(app: App): readonly string[] {
     const dir = app.vault.configDir;
@@ -227,6 +244,7 @@ export interface LoadInitLuaOptions {
     customPath?: string;
     bufferKeymapManager?: BufferKeymapManager;
     openPicker?: (source: string, opts?: { query?: string }) => void;
+    openSelect?: import('./ui-api').UiCallbacks['openSelect'];
     oilCallbacks?: Pick<
         VimApiCallbacks,
         | 'oilOpen'
@@ -774,11 +792,30 @@ export async function loadInitLua(
                     return '';
                 case 'textwidth':
                     return 0;
+                case 'iminsert':
+                    return 0;
+                case 'fileformat':
+                    return 'unix';
                 default:
                     return undefined;
             }
         },
-        setBufferOption: () => {},
+        setBufferOption: (name, value) => {
+            if (!ENGINE_BACKED_BUFFER_OPTIONS.has(name)) return;
+            try {
+                vim.setOption(name, value);
+            } catch {
+                return;
+            }
+        },
+        getWindowOption: (name) => {
+            if (name !== 'wrap') return undefined;
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return undefined;
+            const cm = getCmAdapter(view);
+            if (!cm?.cm6) return undefined;
+            return cm.cm6.contentDOM.classList.contains('cm-lineWrapping');
+        },
         pluginExists: (name) => {
             const stripped = name.replace(/\.nvim$/, '');
             const asPath = stripped.replace(/\./g, '/');
@@ -1227,7 +1264,38 @@ export async function loadInitLua(
             }
         },
     };
+    const decorationProviders = new DecorationProviderManager(L);
+    setActiveDecorationProviderManager(decorationProviders);
+    registerStateCleanup(L, () => {
+        decorationProviders.dispose();
+        setActiveDecorationProviderManager(null);
+    });
+    callbacks.decorationProviders = decorationProviders;
     const { globals } = injectVimApi(L, callbacks);
+    injectUiApi(
+        L,
+        {
+            openSelect: options.openSelect,
+            openPath: (path) => {
+                if (!Platform.isDesktopApp) {
+                    return 'vim.ui.open: no handler available on this platform';
+                }
+                try {
+                    if (/^https?:\/\//.test(path)) {
+                        activeWindow.open(path, '_blank');
+                    } else {
+                        app.openWithDefaultApp(path);
+                    }
+                    return null;
+                } catch (err) {
+                    return `vim.ui.open: ${String(err)}`;
+                }
+            },
+            showInputPrompt: (prompt, defaultText) =>
+                showInputModal(app, prompt, defaultText),
+        },
+        runner,
+    );
     injectNamespaceStubs(L);
     injectIterApi(L);
     injectTextObjectApi(L, callbacks);

@@ -825,3 +825,202 @@ describe('vim.fn', () => {
         destroyState(L);
     });
 });
+
+describe('vim.fn Unicode index conversion', () => {
+    const accented = 'h\u00e9llo';
+    const composed = 'e\u0301x';
+
+    it('counts characters, with skipcc folding composing marks', () => {
+        const L = setupState();
+        try {
+            expect(
+                runLuaNumber(L, `return vim.fn.strchars('${accented}')`),
+            ).toBe(5);
+            expect(
+                runLuaNumber(L, `return vim.fn.strchars('${composed}')`),
+            ).toBe(3);
+            expect(
+                runLuaNumber(L, `return vim.fn.strchars('${composed}', 1)`),
+            ).toBe(2);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('maps byte offsets to character indices', () => {
+        const L = setupState();
+        try {
+            const charidx = (idx: number, extra = ''): number =>
+                runLuaNumber(
+                    L,
+                    `return vim.fn.charidx('${accented}', ${idx}${extra})`,
+                );
+            expect(charidx(0)).toBe(0);
+            expect(charidx(1)).toBe(1);
+            expect(charidx(2)).toBe(1);
+            expect(charidx(3)).toBe(2);
+            expect(charidx(6)).toBe(5);
+            expect(charidx(7)).toBe(-1);
+            expect(charidx(-1)).toBe(-1);
+            expect(
+                runLuaNumber(L, `return vim.fn.charidx('${composed}', 1)`),
+            ).toBe(0);
+            expect(
+                runLuaNumber(
+                    L,
+                    `return vim.fn.charidx('${composed}', 1, true)`,
+                ),
+            ).toBe(1);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('maps character indices to byte offsets', () => {
+        const L = setupState();
+        try {
+            const byteidx = (nr: number): number =>
+                runLuaNumber(L, `return vim.fn.byteidx('${accented}', ${nr})`);
+            expect(byteidx(0)).toBe(0);
+            expect(byteidx(1)).toBe(1);
+            expect(byteidx(2)).toBe(3);
+            expect(byteidx(5)).toBe(6);
+            expect(byteidx(6)).toBe(-1);
+            expect(byteidx(-1)).toBe(-1);
+            expect(
+                runLuaNumber(L, `return vim.fn.byteidx('${composed}', 1)`),
+            ).toBe(3);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('round-trips byteidx and charidx at the string end', () => {
+        const L = setupState();
+        try {
+            expect(
+                runLua(
+                    L,
+                    `
+                local s = '${accented}'
+                local n = vim.fn.strchars(s, 1)
+                assert(vim.fn.charidx(s, vim.fn.byteidx(s, n)) == n)
+            `,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+});
+
+describe('vim.fn window geometry', () => {
+    function wincolAdapter(overrides?: {
+        charWidth?: number;
+        coords?: { left: number } | null;
+    }): CmAdapter {
+        return {
+            cm6: {
+                state: EditorState.create({ doc: 'hello world' }),
+                defaultCharacterWidth: overrides?.charWidth ?? 8,
+                coordsAtPos: () =>
+                    overrides?.coords === undefined
+                        ? { left: 132 }
+                        : overrides.coords,
+                scrollDOM: {
+                    getBoundingClientRect: () => ({ left: 100 }),
+                },
+            },
+        } as unknown as CmAdapter;
+    }
+
+    it('measures wincol from the window edge so the gutter counts', () => {
+        const L = setupState({ getCmAdapter: () => wincolAdapter() });
+        try {
+            expect(runLuaNumber(L, 'return vim.fn.wincol()')).toBe(5);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('falls back to the cursor column without measurable geometry', () => {
+        const noCm = setupState({ getCursorCol: () => 7 });
+        const noCoords = setupState({
+            getCmAdapter: () => wincolAdapter({ coords: null }),
+        });
+        const noWidth = setupState({
+            getCmAdapter: () => wincolAdapter({ charWidth: 0 }),
+        });
+        try {
+            expect(runLuaNumber(noCm, 'return vim.fn.wincol()')).toBe(8);
+            expect(runLuaNumber(noCoords, 'return vim.fn.wincol()')).toBe(1);
+            expect(runLuaNumber(noWidth, 'return vim.fn.wincol()')).toBe(1);
+        } finally {
+            destroyState(noCm);
+            destroyState(noCoords);
+            destroyState(noWidth);
+        }
+    });
+
+    it('reports a single-leaf window layout matching nvim_list_wins', () => {
+        const L = setupState();
+        try {
+            expect(
+                runLua(
+                    L,
+                    `
+                local layout = vim.fn.winlayout()
+                assert(layout[1] == 'leaf')
+                assert(layout[2] == vim.api.nvim_list_wins()[1])
+            `,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+});
+
+describe('plugin-facing APIs degrade instead of raising', () => {
+    it('resolves flash and leap command-line and mapping probes', () => {
+        const L = setupState();
+        try {
+            expect(
+                runLua(
+                    L,
+                    `
+                assert(vim.fn.getcmdline() == '')
+                assert(vim.fn.getcmdpos() == 0)
+                assert(vim.fn.getcmdwintype() == '')
+                assert(vim.fn.wildmenumode() == 0)
+                assert(vim.fn.histadd('search', 'x') == 0)
+                assert(vim.fn.histdel('search', 'x') == 0)
+                assert(vim.fn.setcmdline('x') == 0)
+                assert(type(vim.fn.complete_info()) == 'table')
+                assert(vim.fn.mapset({}) == nil)
+            `,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+
+    it('reads nvim__redraw as nil so feature probes take the fallback', () => {
+        const L = setupState();
+        try {
+            expect(
+                runLua(
+                    L,
+                    `
+                local probed = vim.api.nvim__redraw
+                assert(probed == nil, 'must be falsy, not a truthy no-op stub')
+                assert(not pcall(vim.api.nvim__redraw, {}))
+            `,
+                ),
+            ).toBe(lua.LUA_OK);
+        } finally {
+            destroyState(L);
+        }
+    });
+});

@@ -262,3 +262,65 @@ describe('Lua API compatibility options and current handles', () => {
         `);
     });
 });
+
+describe('single-handle list APIs', () => {
+    let L: ReturnType<typeof createSandboxedState>;
+
+    beforeEach(() => {
+        L = createSandboxedState();
+        injectVimApi(L, {
+            onSettingOverride: () => {},
+            handleExCommand: () => {},
+            getVaultName: () => 'vault',
+            onKeymap: () => {},
+            onKeymapDel: () => {},
+        });
+    });
+    afterEach(() => {
+        destroyState(L);
+    });
+
+    function run(code: string): void {
+        const status = lauxlib.luaL_dostring(L, to_luastring(code));
+        const raw = status === lua.LUA_OK ? null : lua.lua_tolstring(L, -1);
+        expect(status, raw ? to_jsstring(raw) : code).toBe(lua.LUA_OK);
+    }
+
+    it('nvim_list_bufs reports the single current buffer', () => {
+        run(`
+            local bufs = vim.api.nvim_list_bufs()
+            assert(#bufs == 1, 'expected 1 buffer, got ' .. #bufs)
+            assert(bufs[1] == 0, 'expected buffer 0')
+        `);
+    });
+
+    it('nvim_tabpage_list_wins reports the single current window', () => {
+        run(`
+            for _, arg in ipairs({ 0 }) do
+                local wins = vim.api.nvim_tabpage_list_wins(arg)
+                assert(#wins == 1, 'expected 1 window, got ' .. #wins)
+                assert(wins[1] == 0, 'expected window 0')
+            end
+            local implicit = vim.api.nvim_tabpage_list_wins()
+            assert(#implicit == 1 and implicit[1] == 0)
+        `);
+    });
+
+    it('agrees with nvim_list_wins and the current handles', () => {
+        run(`
+            assert(vim.api.nvim_tabpage_list_wins(0)[1] == vim.api.nvim_list_wins()[1])
+            assert(vim.api.nvim_list_bufs()[1] == vim.api.nvim_get_current_buf())
+            assert(vim.api.nvim_list_wins()[1] == vim.api.nvim_get_current_win())
+        `);
+    });
+
+    it('rejects non-zero tabpage handles', () => {
+        const status = lauxlib.luaL_dostring(
+            L,
+            to_luastring('vim.api.nvim_tabpage_list_wins(3)'),
+        );
+        expect(status).not.toBe(lua.LUA_OK);
+        const raw = lua.lua_tolstring(L, -1);
+        expect(to_jsstring(raw!)).toContain('not supported in Obsidian');
+    });
+});

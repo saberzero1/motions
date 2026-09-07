@@ -101,6 +101,7 @@ import {
     showYankHighlight,
 } from './vim/yank-highlight';
 import { extmarkExtension } from './lua/extmarks';
+import { decorationProviderExtension } from './lua/decoration-provider';
 import {
     foldSyncExtension,
     setFoldAwareNavigation,
@@ -670,6 +671,9 @@ export default class VimMotionsPlugin extends Plugin {
         this.highlightManager?.destroy();
         this.highlightManager = null;
         if (this.luaState) {
+            // An open picker holds a Lua callback ref. Close it before the
+            // state dies, or a late selection invokes into a closed lua_State.
+            PickerModal.closeActive();
             destroyState(this.luaState);
             this.luaState = null;
         }
@@ -2691,6 +2695,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
+        this.vimExtensionSlot.push(decorationProviderExtension());
         this.vimExtensionSlot.push(createTableCellCursorGuard());
         this.vimExtensionSlot.push(
             createTableNavExtension(this.app, this.settings, getVimApi),
@@ -3002,6 +3007,9 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         if (this.luaState) {
+            // An open picker holds a Lua callback ref. Close it before the
+            // state dies, or a late selection invokes into a closed lua_State.
+            PickerModal.closeActive();
             destroyState(this.luaState);
             this.luaState = null;
         }
@@ -4054,6 +4062,9 @@ export default class VimMotionsPlugin extends Plugin {
         this.highlightManager?.destroy();
         this.highlightManager = null;
         if (this.luaState) {
+            // An open picker holds a Lua callback ref. Close it before the
+            // state dies, or a late selection invokes into a closed lua_State.
+            PickerModal.closeActive();
             destroyState(this.luaState);
             this.luaState = null;
         }
@@ -4469,6 +4480,34 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    private openUiSelect(
+        items: import('./lua/ui-api').UiSelectItem[],
+        opts: { prompt?: string; kind?: string },
+        onChoice: (index: number | null) => void,
+    ): import('./lua/ui-api').UiSelectHandle {
+        const matcher = this.matcher;
+        if (!matcher) {
+            onChoice(null);
+            return { close: () => {} };
+        }
+        const source: PickerSource = {
+            name: 'vim-ui-select',
+            displayName: opts.prompt ?? 'Select',
+            placeholder: opts.prompt ?? 'Select an item',
+            items: () =>
+                items.map((it) => ({
+                    id: String(it.index),
+                    label: it.label,
+                })),
+            onSelect: (item) => onChoice(Number(item.id)),
+        };
+        PickerModal.open(this.app, source, matcher, {
+            source: 'vim-ui-select',
+            onCancel: () => onChoice(null),
+        });
+        return { close: () => PickerModal.closeActive() };
+    }
+
     private async loadLuaConfigInternal(
         vim: import('./types/vim-api').VimApi,
         onLuaSettingOverride: (
@@ -4573,6 +4612,8 @@ export default class VimMotionsPlugin extends Plugin {
             globalConfigSearch: this.settings.globalConfigSearch,
             bufferKeymapManager: this.bufferKeymapManager,
             openPicker: this.openPicker ?? undefined,
+            openSelect: (items, opts, onChoice) =>
+                this.openUiSelect(items, opts, onChoice),
             getUndoTree: this.settings.enableUndoTree
                 ? () => this.undoTree.toNeovimDict()
                 : undefined,

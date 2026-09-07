@@ -27,6 +27,8 @@ export interface ExtmarkOpts {
     virtText?: VirtTextChunk[];
     virtTextPos?: 'overlay' | 'eol' | 'inline' | 'right_align';
     priority?: number;
+    hlEol?: boolean;
+    strict?: boolean;
     signText?: string;
     signHlGroup?: string;
 }
@@ -218,22 +220,39 @@ function applyEffects(
     return changed ? { byNs, nextIdByNs } : state;
 }
 
+interface DecorationDoc {
+    length: number;
+    lineAt(pos: number): { to: number };
+}
+
 function buildDecorations(
     state: ExtmarkRegistryState,
-    docLength: number,
+    doc: DecorationDoc,
 ): DecorationSet {
-    const ranges: { from: number; to: number; deco: Decoration }[] = [];
+    const docLength = doc.length;
+    const lineEndAt = (pos: number): number =>
+        doc.lineAt(Math.max(0, Math.min(pos, docLength))).to;
+    const ranges: {
+        from: number;
+        to: number;
+        deco: Decoration;
+        priority?: number;
+    }[] = [];
 
     for (const [, nsMap] of state.byNs) {
         for (const [, mark] of nsMap) {
             // Highlight range (hl_group with end position)
             if (mark.opts.hlGroup && mark.from !== mark.to) {
                 const from = Math.max(0, Math.min(mark.from, docLength));
-                const to = Math.max(from, Math.min(mark.to, docLength));
+                let to = Math.max(from, Math.min(mark.to, docLength));
+                if (mark.opts.hlEol) {
+                    to = Math.max(to, Math.min(lineEndAt(to), docLength));
+                }
                 if (from < to) {
                     ranges.push({
                         from,
                         to,
+                        priority: mark.opts.priority ?? 0,
                         deco: Decoration.mark({
                             class: `vim-hl-${mark.opts.hlGroup}`,
                             inclusive: true,
@@ -293,8 +312,21 @@ function buildDecorations(
         }
     }
 
-    // Sort by from position (required by CM6)
-    ranges.sort((a, b) => a.from - b.from || a.to - b.to);
+    // CM6 requires ascending `from`. Within a position it has no z-index, so
+    // decoration order decides which mark nests innermost: later entries win.
+    // Emitting ascending by priority therefore makes the highest priority the
+    // effective one, matching Neovim. `index` keeps equal priorities stable.
+    ranges.forEach((r, index) => {
+        (r as { index?: number }).index = index;
+    });
+    ranges.sort(
+        (a, b) =>
+            a.from - b.from ||
+            a.to - b.to ||
+            (a.priority ?? 0) - (b.priority ?? 0) ||
+            ((a as { index?: number }).index ?? 0) -
+                ((b as { index?: number }).index ?? 0),
+    );
 
     // Build DecorationSet from sorted ranges
     return Decoration.set(
@@ -336,7 +368,7 @@ export const extmarkField = StateField.define<ExtmarkFieldValue>({
 
         return {
             registry,
-            decorations: buildDecorations(registry, tr.state.doc.length),
+            decorations: buildDecorations(registry, tr.state.doc),
         };
     },
     provide: (f) => EditorView.decorations.from(f, (v) => v.decorations),

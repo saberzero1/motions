@@ -1,6 +1,20 @@
 import type { CmAdapter } from '../types/vim-api';
 import { getVisibleRange } from '../easymotion/targets';
 
+/**
+ * Screen column of the cursor within the window, 1-based, as `wincol()`
+ * defines it: measured from the window edge, so the gutter counts.
+ */
+export function getCursorWinCol(cm: CmAdapter): number {
+    const view = cm.cm6;
+    const charWidth = view.defaultCharacterWidth;
+    if (charWidth <= 0) return 1;
+    const coords = view.coordsAtPos(view.state.selection.main.head);
+    if (!coords) return 1;
+    const scrollLeft = view.scrollDOM.getBoundingClientRect().left;
+    return Math.max(1, Math.round((coords.left - scrollLeft) / charWidth) + 1);
+}
+
 export function getWindowInfo(cm: CmAdapter): Record<string, unknown> {
     const view = cm.cm6;
     const { fromLine, toLine } = getVisibleRange(cm);

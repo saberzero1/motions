@@ -4,7 +4,7 @@ import type { UndoTree } from '../vim/undo-tree';
 import { pushLuaAny } from './api';
 import { strftime } from './strftime';
 import type { CmAdapter } from '../types/vim-api';
-import { getWindowInfo } from './window-info';
+import { getCursorWinCol, getWindowInfo } from './window-info';
 
 export interface VimFnCallbacks {
     getCmAdapter?: () => CmAdapter | null;
@@ -112,6 +112,55 @@ function luaValueToJs(
 function pushBooleanInt(L: lua_State, value: boolean): number {
     lua.lua_pushnumber(L, value ? 1 : 0);
     return 1;
+}
+
+function readOptionalFlag(L: lua_State, index: number): boolean {
+    if (lua.lua_isnumber(L, index)) return lua.lua_tonumber(L, index) !== 0;
+    if (lua.lua_isboolean(L, index)) return !!lua.lua_toboolean(L, index);
+    return false;
+}
+
+const COMBINING_CHAR = /\p{Mn}|\p{Me}/u;
+
+function utf8Size(codePoint: number): number {
+    if (codePoint < 0x80) return 1;
+    if (codePoint < 0x800) return 2;
+    if (codePoint < 0x10000) return 3;
+    return 4;
+}
+
+interface CharSpan {
+    byteStart: number;
+    byteEnd: number;
+}
+
+/**
+ * Maps each Vim "character" of `text` to its UTF-8 byte range.
+ *
+ * Vim's `charidx()`/`byteidx()` fold composing marks into the preceding base
+ * character unless `countComposing` is set, so a span may cover several code
+ * points.
+ */
+function buildCharSpans(text: string, countComposing: boolean): CharSpan[] {
+    const spans: CharSpan[] = [];
+    let byte = 0;
+    for (const ch of text) {
+        const size = utf8Size(ch.codePointAt(0) ?? 0);
+        const previous = spans[spans.length - 1];
+        if (!countComposing && previous && COMBINING_CHAR.test(ch)) {
+            previous.byteEnd = byte + size;
+        } else {
+            spans.push({ byteStart: byte, byteEnd: byte + size });
+        }
+        byte += size;
+    }
+    return spans;
+}
+
+function utf8Length(text: string): number {
+    let total = 0;
+    for (const ch of text) total += utf8Size(ch.codePointAt(0) ?? 0);
+    return total;
 }
 
 function parseMajorMinor(
@@ -1444,6 +1493,70 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         return 1;
     });
 
+    registry.set('strchars', (state) => {
+        const s = readString(state, 1);
+        lua.lua_pushnumber(
+            state,
+            buildCharSpans(s, !readOptionalFlag(state, 2)).length,
+        );
+        return 1;
+    });
+
+    registry.set('charidx', (state) => {
+        const s = readString(state, 1);
+        const byteIndex = lua.lua_tonumber(state, 2);
+        const spans = buildCharSpans(s, readOptionalFlag(state, 3));
+        const totalBytes = utf8Length(s);
+        if (byteIndex < 0 || byteIndex > totalBytes) {
+            lua.lua_pushnumber(state, -1);
+            return 1;
+        }
+        if (byteIndex === totalBytes) {
+            lua.lua_pushnumber(state, spans.length);
+            return 1;
+        }
+        const found = spans.findIndex(
+            (span) => byteIndex >= span.byteStart && byteIndex < span.byteEnd,
+        );
+        lua.lua_pushnumber(state, found);
+        return 1;
+    });
+
+    registry.set('byteidx', (state) => {
+        const s = readString(state, 1);
+        const charIndex = lua.lua_tonumber(state, 2);
+        const spans = buildCharSpans(s, false);
+        if (charIndex < 0 || charIndex > spans.length) {
+            lua.lua_pushnumber(state, -1);
+            return 1;
+        }
+        lua.lua_pushnumber(
+            state,
+            charIndex === spans.length
+                ? utf8Length(s)
+                : (spans[charIndex]?.byteStart ?? -1),
+        );
+        return 1;
+    });
+
+    registry.set('wincol', (state) => {
+        const cm = callbacks.getCmAdapter?.();
+        lua.lua_pushnumber(
+            state,
+            cm?.cm6 ? getCursorWinCol(cm) : callbacks.getCursorCol() + 1,
+        );
+        return 1;
+    });
+
+    registry.set('winlayout', (state) => {
+        lua.lua_newtable(state);
+        lua.lua_pushstring(state, to_luastring('leaf'));
+        lua.lua_rawseti(state, -2, 1);
+        lua.lua_pushnumber(state, 0);
+        lua.lua_rawseti(state, -2, 2);
+        return 1;
+    });
+
     registry.set('maparg', (state) => {
         const name = readString(state, 1);
         const mode = lua.lua_isstring(state, 2) ? readString(state, 2) : '';
@@ -1564,6 +1677,8 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'json_encode',
         'printf',
         'string',
+        'getcmdline',
+        'getcmdwintype',
     ]);
     const numberReturnFns = new Set([
         'byte2line',
@@ -1586,9 +1701,19 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'pumvisible',
         'confirm',
         'feedkeys',
+        'getcmdpos',
+        'setcmdline',
+        'wildmenumode',
+        'histadd',
+        'histdel',
     ]);
     const booleanReturnFns = new Set(['hasmapto', 'buflisted', 'bufexists']);
-    const tableReturnFns = new Set(['getbufline', 'json_decode']);
+    const tableReturnFns = new Set([
+        'getbufline',
+        'json_decode',
+        'complete_info',
+    ]);
+    const voidReturnFns = new Set(['mapset']);
 
     registry.set('getwininfo', (state) => {
         const winid = lauxlib.luaL_optinteger(state, 1, 0);
@@ -1627,6 +1752,12 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
             warnOnce(name);
             lua.lua_newtable(state);
             return 1;
+        });
+    }
+    for (const name of voidReturnFns) {
+        registerStub(name, () => {
+            warnOnce(name);
+            return 0;
         });
     }
     registerStub('system', (state) => {

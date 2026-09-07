@@ -22,6 +22,7 @@ import {
 } from './engine';
 import { type CoroutineRunner } from './coroutine-runner';
 import { injectObsidianApi } from './obsidian-api';
+import type { DecorationProviderManager } from './decoration-provider';
 import { injectRegex } from './regex';
 import { injectOnKey } from './on-key';
 import { replaceTermcodes, termcodesToNotation } from './termcodes';
@@ -303,6 +304,8 @@ export interface VimApiCallbacks {
     ) => void;
     getBufferOption?: (name: string) => unknown;
     setBufferOption?: (name: string, value: unknown) => void;
+    getWindowOption?: (name: string) => unknown;
+    decorationProviders?: DecorationProviderManager;
     pluginExists?: (name: string) => boolean;
     fetchPlugin?: (
         owner: string,
@@ -579,6 +582,28 @@ function requireWindowZero(
     }
 }
 
+function requireTabpageZero(
+    state: lua_State,
+    index: number,
+    fnName: string,
+): void {
+    if (!lua.lua_isnumber(state, index)) {
+        lauxlib.luaL_error(
+            state,
+            to_luastring(`${fnName}: expected tabpage number`),
+        );
+    }
+    const tabpage = lua.lua_tonumber(state, index);
+    if (tabpage !== 0) {
+        lauxlib.luaL_error(
+            state,
+            to_luastring(
+                `${fnName}: tabpage numbers other than 0 are not supported in Obsidian; use tabpage = 0 for current tabpage`,
+            ),
+        );
+    }
+}
+
 function requireNamespaceZero(
     state: lua_State,
     index: number,
@@ -649,6 +674,13 @@ function createWarnStub(
     lua.lua_newtable(L);
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (
+            lua.lua_type(state, 2) === lua.LUA_TNUMBER ||
+            lua.lua_isnil(state, 2)
+        ) {
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
         const key = readLuaString(state, 2) ?? '?';
         const warnKey = `vim.${namespace}.${key}`;
         if (!warned.has(warnKey)) {
@@ -713,6 +745,7 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_del_augroup_by_name',
     'nvim_clear_autocmds',
     'nvim_create_namespace',
+    'nvim_set_decoration_provider',
     'nvim_set_hl',
     'nvim_get_hl',
     'nvim_set_keymap',
@@ -729,6 +762,8 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_get_current_buf',
     'nvim_get_current_win',
     'nvim_list_wins',
+    'nvim_list_bufs',
+    'nvim_tabpage_list_wins',
     'nvim_get_current_tabpage',
     'nvim_get_mode',
     'nvim_get_current_line',
@@ -763,6 +798,17 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_replace_termcodes',
     'nvim_echo',
 ]);
+
+/**
+ * Names a plugin feature-detects with `if vim.api.X then`, where the fallback
+ * branch is something this host supports better than the API itself.
+ *
+ * Reading one yields `nil` rather than raising (which would crash the probe) or
+ * returning a warn-once stub (which is truthy, so the plugin would take the
+ * unsupported branch and silently degrade). `nil` is the honest answer and the
+ * one that routes the plugin onto its working fallback.
+ */
+const ABSENT_NVIM_API_FUNCTIONS = new Set<string>(['nvim__redraw']);
 
 const KNOWN_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_buf_add_highlight',
@@ -1003,7 +1049,6 @@ const NVIM_API_RETURN_TYPES = {
         'nvim_set_current_dir',
         'nvim_set_current_tabpage',
         'nvim_set_current_win',
-        'nvim_set_decoration_provider',
         'nvim_set_hl_ns',
         'nvim_set_hl_ns_fast',
         'nvim_set_var',
@@ -1155,6 +1200,61 @@ function writeGlobalOption(
     }
 }
 
+/**
+ * Neovim allows both `vim.bo.filetype` and `vim.bo[bufnr].filetype`. The
+ * indexed form is common in plugin code — flash reads `vim.bo[buf].filetype`
+ * inside a `vim.tbl_filter` — so a scope proxy that only accepts string keys
+ * resolves the indexed form to nil and the caller fails with
+ * "attempt to index a nil value".
+ *
+ * Returns true when the key is a handle rather than an option name.
+ */
+function isScopeHandleKey(state: lua_State, index: number): boolean {
+    return (
+        lua.lua_type(state, index) === lua.LUA_TNUMBER ||
+        lua.lua_isnil(state, index)
+    );
+}
+
+const bufferOptionShadow = new Map<string, Map<string, unknown>>();
+
+function readBufferOption(callbacks: VimApiCallbacks, key: string): unknown {
+    const filePath = callbacks.getActiveFilePath?.() ?? '';
+    const shadow = bufferOptionShadow.get(filePath);
+    if (shadow?.has(key)) return shadow.get(key);
+    return callbacks.getBufferOption?.(key);
+}
+
+function writeBufferOption(
+    callbacks: VimApiCallbacks,
+    key: string,
+    value: unknown,
+): void {
+    const filePath = callbacks.getActiveFilePath?.() ?? '';
+    let shadow = bufferOptionShadow.get(filePath);
+    if (!shadow) {
+        shadow = new Map();
+        bufferOptionShadow.set(filePath, shadow);
+    }
+    shadow.set(key, value);
+    try {
+        callbacks.setBufferOption?.(key, value);
+    } catch {
+        // Retain compatibility values even when the engine rejects them.
+    }
+}
+
+const windowOptionShadow = new Map<string, unknown>();
+
+function readWindowOption(callbacks: VimApiCallbacks, key: string): unknown {
+    if (windowOptionShadow.has(key)) return windowOptionShadow.get(key);
+    const value = callbacks.getWindowOption?.(key);
+    if (value !== undefined && value !== null) return value;
+    // Single-window model: every remaining window-local option resolves to the
+    // global scope, matching Neovim where `:setlocal` falls back to the global.
+    return readGlobalOption(callbacks, key);
+}
+
 export function injectVimApi(
     L: lua_State,
     callbacks: VimApiCallbacks,
@@ -1171,6 +1271,8 @@ export function injectVimApi(
     };
     const operatorfunc: OperatorfuncState = { name: null };
     globalOptionShadow.clear();
+    bufferOptionShadow.clear();
+    windowOptionShadow.clear();
     const notifiedMessages = new Set<string>();
     const warnedNamespaceKeys = new Set<string>();
     const warnedApiFunctions = new Set<string>();
@@ -1419,6 +1521,11 @@ export function injectVimApi(
     const bTableIndex = lua.lua_gettop(L);
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (isScopeHandleKey(state, 2)) {
+            requireBufferZero(state, 2, 'vim.b');
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
         const key = readLuaString(state, 2);
         if (!key) {
             lua.lua_pushnil(state);
@@ -1462,12 +1569,17 @@ export function injectVimApi(
     const boTableIndex = lua.lua_gettop(L);
     lua.lua_newtable(L);
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (isScopeHandleKey(state, 2)) {
+            requireBufferZero(state, 2, 'vim.bo');
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
         const key = readLuaString(state, 2);
         if (!key) {
             lua.lua_pushnil(state);
             return 1;
         }
-        const value = callbacks.getBufferOption?.(key);
+        const value = readBufferOption(callbacks, key);
         if (value === undefined || value === null) {
             lua.lua_pushnil(state);
         } else {
@@ -1480,7 +1592,7 @@ export function injectVimApi(
         const key = readLuaString(state, 2);
         if (!key) return 0;
         const value = readLuaValue(state, 3);
-        callbacks.setBufferOption?.(key, value);
+        writeBufferOption(callbacks, key, value);
         return 0;
     });
     lua.lua_setfield(L, -2, to_luastring('__newindex'));
@@ -1553,8 +1665,35 @@ export function injectVimApi(
     lua.lua_setfield(L, vimTableIndex, to_luastring('go'));
     lua.lua_pop(L, 1);
 
-    createWarnVarTable(L, 'wo', warnedNamespaceKeys);
+    lua.lua_newtable(L);
+    const woTableIndex = lua.lua_gettop(L);
+    lua.lua_newtable(L);
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (isScopeHandleKey(state, 2)) {
+            requireWindowZero(state, 2, 'vim.wo');
+            lua.lua_pushvalue(state, 1);
+            return 1;
+        }
+        const key = readLuaString(state, 2);
+        if (!key) {
+            lua.lua_pushnil(state);
+            return 1;
+        }
+        pushLuaValue(state, readWindowOption(callbacks, key));
+        return 1;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__index'));
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const key = readLuaString(state, 2);
+        if (!key) return 0;
+        windowOptionShadow.set(key, readLuaValue(state, 3));
+        return 0;
+    });
+    lua.lua_setfield(L, -2, to_luastring('__newindex'));
+    lua.lua_setmetatable(L, woTableIndex);
+    lua.lua_pushvalue(L, woTableIndex);
     lua.lua_setfield(L, vimTableIndex, to_luastring('wo'));
+    lua.lua_pop(L, 1);
 
     createWarnVarTable(L, 'w', warnedNamespaceKeys);
     lua.lua_setfield(L, vimTableIndex, to_luastring('w'));
@@ -2779,6 +2918,66 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_list_wins'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_newtable(state);
+        lua.lua_pushinteger(state, 0);
+        lua.lua_rawseti(state, -2, 1);
+        return 1;
+    });
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const manager = callbacks.decorationProviders;
+        if (!manager) return 0;
+        const nsId = lauxlib.luaL_checkinteger(state, 1);
+        if (!lua.lua_istable(state, 2)) {
+            manager.remove(nsId);
+            return 0;
+        }
+        for (const unsupported of ['on_line', 'on_range']) {
+            lua.lua_getfield(state, 2, to_luastring(unsupported));
+            const present = !lua.lua_isnil(state, -1);
+            lua.lua_pop(state, 1);
+            if (present) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring(
+                        `nvim_set_decoration_provider: '${unsupported}' is not supported in Obsidian; per-line decoration callbacks are not implemented`,
+                    ),
+                );
+            }
+        }
+        const refs: Record<string, number | undefined> = {};
+        const fields: [string, string][] = [
+            ['on_start', 'onStart'],
+            ['on_buf', 'onBuf'],
+            ['on_win', 'onWin'],
+            ['on_end', 'onEnd'],
+        ];
+        for (const [luaName, key] of fields) {
+            lua.lua_getfield(state, 2, to_luastring(luaName));
+            if (lua.lua_isfunction(state, -1)) {
+                refs[key] = lauxlib.luaL_ref(state, lua.LUA_REGISTRYINDEX);
+            } else {
+                lua.lua_pop(state, 1);
+            }
+        }
+        manager.register(nsId, refs);
+        return 0;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_set_decoration_provider'));
+
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_list_bufs'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        if (lua.lua_gettop(state) >= 1 && !lua.lua_isnil(state, 1)) {
+            requireTabpageZero(state, 1, 'nvim_tabpage_list_wins');
+        }
+        lua.lua_newtable(state);
+        lua.lua_pushinteger(state, 0);
+        lua.lua_rawseti(state, -2, 1);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_tabpage_list_wins'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
         lua.lua_pushnumber(state, 0);
         return 1;
     });
@@ -3539,6 +3738,24 @@ export function injectVimApi(
             const priority = readNumberField(state, 5, 'priority');
             if (priority !== null) opts.priority = priority;
 
+            lua.lua_getfield(state, 5, to_luastring('ephemeral'));
+            const ephemeral = !lua.lua_isnil(state, -1);
+            lua.lua_pop(state, 1);
+            if (ephemeral) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring(
+                        "nvim_buf_set_extmark: 'ephemeral' extmarks are not supported in Obsidian; they require a decoration provider redraw cycle",
+                    ),
+                );
+            }
+
+            const hlEol = readBooleanField(state, 5, 'hl_eol');
+            if (hlEol !== undefined) opts.hlEol = hlEol;
+
+            const strict = readBooleanField(state, 5, 'strict');
+            if (strict !== undefined) opts.strict = strict;
+
             const virtTextPos = readStringField(state, 5, 'virt_text_pos');
             if (virtTextPos) {
                 opts.virtTextPos = virtTextPos as ExtmarkOpts['virtTextPos'];
@@ -3726,6 +3943,10 @@ export function injectVimApi(
         const fnName = readLuaString(state, 2);
         if (fnName && SUPPORTED_NVIM_API_FUNCTIONS.has(fnName)) {
             lua.lua_getfield(state, 1, to_luastring(fnName));
+            return 1;
+        }
+        if (fnName && ABSENT_NVIM_API_FUNCTIONS.has(fnName)) {
+            lua.lua_pushnil(state);
             return 1;
         }
         if (fnName && KNOWN_NVIM_API_FUNCTIONS.has(fnName)) {
