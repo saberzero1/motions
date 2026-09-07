@@ -12,6 +12,7 @@ import {
     showMatchHighlights,
 } from '../easymotion/overlay';
 import { FlashLabeler } from './labeler';
+import { captureKeys } from '../util/key-capture';
 import { getJumpListInstance } from '../workspace/navigate';
 
 function computeSkipChars(
@@ -64,83 +65,81 @@ export function createFlashJumpMotion(
 
         setFlashActive(true);
 
-        return new Promise<VimPos | null>((resolve) => {
-            let pattern = '';
-            const labeler = new FlashLabeler();
-            let currentOverlay: OverlayHandle | null = null;
-            let labelPrefix = '';
+        let pattern = '';
+        const labeler = new FlashLabeler();
+        let currentOverlay: OverlayHandle | null = null;
+        let labelPrefix = '';
 
-            const cleanup = () => {
-                activeDocument.removeEventListener('keydown', handler, true);
+        return captureKeys<VimPos | null>({
+            abortValue: null,
+            // Runs on every exit path, so the overlay and the active flag can
+            // no longer outlive an abandoned jump.
+            release: () => {
                 currentOverlay?.cleanup();
                 currentOverlay = null;
                 setFlashActive(false);
-            };
+            },
+            onKey: (e, settle) => {
+                const updateDisplay = () => {
+                    currentOverlay?.cleanup();
+                    currentOverlay = null;
+                    labelPrefix = '';
 
-            const updateDisplay = () => {
-                currentOverlay?.cleanup();
-                currentOverlay = null;
-                labelPrefix = '';
+                    if (!pattern) return;
 
-                if (!pattern) return;
+                    const rawTargets = findSubstringTargets(
+                        cm,
+                        pattern,
+                        'bidirectional',
+                    );
+                    const targets = filterVisibleTargets(cm, rawTargets);
 
-                const rawTargets = findSubstringTargets(
-                    cm,
-                    pattern,
-                    'bidirectional',
-                );
-                const targets = filterVisibleTargets(cm, rawTargets);
+                    if (targets.length === 0) {
+                        settle(null);
+                        return;
+                    }
 
-                if (targets.length === 0) {
-                    cleanup();
-                    resolve(null);
-                    return;
-                }
+                    const minLen = opts.minPatternLength();
+                    if ([...pattern].length < minLen) {
+                        currentOverlay = showMatchHighlights(cm, targets);
+                        return;
+                    }
 
-                const minLen = opts.minPatternLength();
-                if ([...pattern].length < minLen) {
-                    currentOverlay = showMatchHighlights(cm, targets);
-                    return;
-                }
+                    if (targets.length === 1) {
+                        const target = targets[0]!;
+                        maybeRecordJump(opts.app, cm, target);
+                        settle({ line: target.line, ch: target.ch });
+                        return;
+                    }
 
-                if (targets.length === 1) {
-                    const target = targets[0]!;
-                    cleanup();
-                    maybeRecordJump(opts.app, cm, target);
-                    resolve({ line: target.line, ch: target.ch });
-                    return;
-                }
+                    const cursor = cm.getCursor();
+                    const skipChars = computeSkipChars(
+                        cm,
+                        targets,
+                        pattern,
+                        opts.labels(),
+                    );
+                    const labeled = labeler.assign(
+                        targets,
+                        opts.labels(),
+                        cursor.line,
+                        cursor.ch,
+                        skipChars,
+                    );
 
-                const cursor = cm.getCursor();
-                const skipChars = computeSkipChars(
-                    cm,
-                    targets,
-                    pattern,
-                    opts.labels(),
-                );
-                const labeled = labeler.assign(
-                    targets,
-                    opts.labels(),
-                    cursor.line,
-                    cursor.ch,
-                    skipChars,
-                );
+                    currentOverlay = showOverlay(cm, labeled, {
+                        shade: opts.dimming(),
+                        fontSize: opts.fontSize(),
+                        matchFontSize: opts.matchFontSize(),
+                    });
+                };
 
-                currentOverlay = showOverlay(cm, labeled, {
-                    shade: opts.dimming(),
-                    fontSize: opts.fontSize(),
-                    matchFontSize: opts.matchFontSize(),
-                });
-            };
-
-            const handler = (e: KeyboardEvent) => {
                 if (e.isComposing) return;
                 e.preventDefault();
                 e.stopPropagation();
 
                 if (e.key === 'Escape') {
-                    cleanup();
-                    resolve(null);
+                    settle(null);
                     return;
                 }
 
@@ -153,12 +152,10 @@ export function createFlashJumpMotion(
                     const targets = filterVisibleTargets(cm, rawTargets);
                     if (targets.length > 0) {
                         const target = targets[0]!;
-                        cleanup();
                         maybeRecordJump(opts.app, cm, target);
-                        resolve({ line: target.line, ch: target.ch });
+                        settle({ line: target.line, ch: target.ch });
                     } else {
-                        cleanup();
-                        resolve(null);
+                        settle(null);
                     }
                     return;
                 }
@@ -211,9 +208,8 @@ export function createFlashJumpMotion(
                         const typed = labelPrefix + e.key;
                         const exact = labeled.find((t) => t.label === typed);
                         if (exact) {
-                            cleanup();
                             maybeRecordJump(opts.app, cm, exact);
-                            resolve({ line: exact.line, ch: exact.ch });
+                            settle({ line: exact.line, ch: exact.ch });
                             return;
                         }
 
@@ -231,14 +227,8 @@ export function createFlashJumpMotion(
                 labelPrefix = '';
                 pattern += e.key;
                 updateDisplay();
-            };
-
-            // Known instance, tracked by .sisyphus/plans/lifetime-ownership.md. The
-            // correct fix is a single owner with an abort path, as src/lua/key-broker.ts
-            // does for getcharstr; five ad-hoc AbortSignals here would be undone by it.
-            // ast-grep-ignore: promise-owned-listener
-            activeDocument.addEventListener('keydown', handler, true);
-        });
+            },
+        }).promise;
     };
 }
 

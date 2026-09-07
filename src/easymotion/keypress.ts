@@ -1,42 +1,34 @@
 import type { LabeledTarget } from './types';
+import { captureKeys, type KeyCaptureHandle } from '../util/key-capture';
 
-export function waitForKey(): Promise<string | null> {
-    return new Promise((resolve) => {
-        const handler = (e: KeyboardEvent) => {
+export function waitForKey(): KeyCaptureHandle<string | null> {
+    return captureKeys<string | null>({
+        abortValue: null,
+        onKey: (e, settle) => {
             e.preventDefault();
             e.stopPropagation();
 
             if (e.key.length !== 1 && e.key !== 'Escape') return;
 
-            activeDocument.removeEventListener('keydown', handler, true);
-            if (e.key === 'Escape') {
-                resolve(null);
-            } else {
-                resolve(e.key);
-            }
-        };
-        // Known instance, tracked by .sisyphus/plans/lifetime-ownership.md. The
-        // correct fix is a single owner with an abort path, as src/lua/key-broker.ts
-        // does for getcharstr; five ad-hoc AbortSignals here would be undone by it.
-        // ast-grep-ignore: promise-owned-listener
-        activeDocument.addEventListener('keydown', handler, true);
+            settle(e.key === 'Escape' ? null : e.key);
+        },
     });
 }
 
 export function waitForLabel(
     labels: LabeledTarget[],
     onNarrow: (remaining: LabeledTarget[]) => void,
-): Promise<LabeledTarget | null> {
-    return new Promise((resolve) => {
-        let prefix = '';
+): KeyCaptureHandle<LabeledTarget | null> {
+    let prefix = '';
 
-        const handler = (e: KeyboardEvent) => {
+    return captureKeys<LabeledTarget | null>({
+        abortValue: null,
+        onKey: (e, settle) => {
             e.preventDefault();
             e.stopPropagation();
 
             if (e.key === 'Escape') {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(null);
+                settle(null);
                 return;
             }
 
@@ -53,8 +45,7 @@ export function waitForLabel(
             const typed = prefix + e.key;
             const exact = labels.find((t) => t.label === typed);
             if (exact) {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(exact);
+                settle(exact);
                 return;
             }
 
@@ -63,11 +54,6 @@ export function waitForLabel(
                 prefix = typed;
                 onNarrow(remaining);
             }
-        };
-        // Known instance, tracked by .sisyphus/plans/lifetime-ownership.md. The
-        // correct fix is a single owner with an abort path, as src/lua/key-broker.ts
-        // does for getcharstr; five ad-hoc AbortSignals here would be undone by it.
-        // ast-grep-ignore: promise-owned-listener
-        activeDocument.addEventListener('keydown', handler, true);
+        },
     });
 }

@@ -1,4 +1,5 @@
 import type { LabeledTarget } from '../easymotion/types';
+import { captureKeys, type KeyCaptureHandle } from '../util/key-capture';
 
 /**
  * Wait for the user to type a label character sequence, supporting
@@ -13,17 +14,17 @@ import type { LabeledTarget } from '../easymotion/types';
 export function waitForFlashLabel(
     labels: LabeledTarget[],
     onNarrow: (remaining: LabeledTarget[]) => void,
-): Promise<LabeledTarget | null> {
-    return new Promise((resolve) => {
-        let prefix = '';
+): KeyCaptureHandle<LabeledTarget | null> {
+    let prefix = '';
 
-        const handler = (e: KeyboardEvent) => {
+    return captureKeys<LabeledTarget | null>({
+        abortValue: null,
+        onKey: (e, settle) => {
             e.preventDefault();
             e.stopPropagation();
 
             if (e.key === 'Escape') {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(null);
+                settle(null);
                 return;
             }
 
@@ -40,8 +41,7 @@ export function waitForFlashLabel(
             const typed = prefix + e.key;
             const exact = labels.find((t) => t.label === typed);
             if (exact) {
-                activeDocument.removeEventListener('keydown', handler, true);
-                resolve(exact);
+                settle(exact);
                 return;
             }
 
@@ -50,12 +50,6 @@ export function waitForFlashLabel(
                 prefix = typed;
                 onNarrow(remaining);
             }
-        };
-
-        // Known instance, tracked by .sisyphus/plans/lifetime-ownership.md. The
-        // correct fix is a single owner with an abort path, as src/lua/key-broker.ts
-        // does for getcharstr; five ad-hoc AbortSignals here would be undone by it.
-        // ast-grep-ignore: promise-owned-listener
-        activeDocument.addEventListener('keydown', handler, true);
+        },
     });
 }

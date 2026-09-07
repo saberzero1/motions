@@ -60,21 +60,21 @@ afterEach(() => {
 describe('waitForKey (issue #84)', () => {
     it('should resolve with a single character key', async () => {
         const { waitForKey } = await import('../../src/easymotion/keypress');
-        const promise = waitForKey();
+        const promise = waitForKey().promise;
         fireKeydown('a');
         expect(await promise).toBe('a');
     });
 
     it('should resolve null on Escape', async () => {
         const { waitForKey } = await import('../../src/easymotion/keypress');
-        const promise = waitForKey();
+        const promise = waitForKey().promise;
         fireKeydown('Escape');
         expect(await promise).toBeNull();
     });
 
     it('should ignore Shift and resolve with the following character', async () => {
         const { waitForKey } = await import('../../src/easymotion/keypress');
-        const promise = waitForKey();
+        const promise = waitForKey().promise;
         fireKeydown('Shift', { shiftKey: true });
         fireKeydown('F', { shiftKey: true });
         expect(await promise).toBe('F');
@@ -82,7 +82,7 @@ describe('waitForKey (issue #84)', () => {
 
     it('should ignore Control and resolve with the following character', async () => {
         const { waitForKey } = await import('../../src/easymotion/keypress');
-        const promise = waitForKey();
+        const promise = waitForKey().promise;
         fireKeydown('Control');
         fireKeydown('x');
         expect(await promise).toBe('x');
@@ -90,7 +90,7 @@ describe('waitForKey (issue #84)', () => {
 
     it('should ignore Alt and resolve with the following character', async () => {
         const { waitForKey } = await import('../../src/easymotion/keypress');
-        const promise = waitForKey();
+        const promise = waitForKey().promise;
         fireKeydown('Alt');
         fireKeydown('j');
         expect(await promise).toBe('j');
@@ -98,7 +98,7 @@ describe('waitForKey (issue #84)', () => {
 
     it('should ignore Meta and resolve with the following character', async () => {
         const { waitForKey } = await import('../../src/easymotion/keypress');
-        const promise = waitForKey();
+        const promise = waitForKey().promise;
         fireKeydown('Meta');
         fireKeydown('k');
         expect(await promise).toBe('k');

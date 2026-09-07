@@ -202,7 +202,7 @@ export function createFlashCharMotion(
         return waitForFlashLabel(labeled, (remaining) =>
             overlay.updateLabels(remaining),
         )
-            .then((match) => {
+            .promise.then((match) => {
                 overlay.cleanup();
                 setFlashActive(false);
                 if (!match) return null;

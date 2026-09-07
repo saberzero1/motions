@@ -2,6 +2,7 @@ import { MarkdownView, Notice, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import { setKeyInterceptActive } from '@replit/codemirror-vim';
+import { captureKeys, type KeyCaptureHandle } from '../util/key-capture';
 import { findLinkAtCursor } from '../motions/goto-definition';
 import { navigateWithJump } from '../workspace/navigate';
 
@@ -222,19 +223,28 @@ interface HintResult {
     shiftKey: boolean;
 }
 
-function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
-    return new Promise((resolve) => {
-        let firstChar = '';
-        hintModeActive = true;
-        setKeyInterceptActive(true);
+function waitForHintKey(targets: HintTarget[]): KeyCaptureHandle<HintResult> {
+    let firstChar = '';
 
-        const cleanup = () => {
+    return captureKeys<HintResult>({
+        // Balanced by construction: captureKeys runs `release` on every exit
+        // path, so the intercept lease cannot outlive the listener.
+        acquire: () => {
+            hintModeActive = true;
+            setKeyInterceptActive(true);
+        },
+        release: () => {
             hintModeActive = false;
             setKeyInterceptActive(false);
-            activeDocument.removeEventListener('keydown', handler, true);
-        };
-
-        const handler = (e: KeyboardEvent) => {
+        },
+        abortValue: {
+            target: null,
+            ctrlKey: false,
+            altKey: false,
+            metaKey: false,
+            shiftKey: false,
+        },
+        onKey: (e, settle) => {
             if (
                 e.key === 'Shift' ||
                 e.key === 'Control' ||
@@ -250,8 +260,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
             e.stopPropagation();
 
             if (e.key === 'Escape') {
-                cleanup();
-                resolve({
+                settle({
                     target: null,
                     ctrlKey: false,
                     altKey: false,
@@ -268,8 +277,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
 
                 const anyMatch = targets.some((t) => t.label.startsWith(key));
                 if (!anyMatch) {
-                    cleanup();
-                    resolve({
+                    settle({
                         target: null,
                         ctrlKey: false,
                         altKey: false,
@@ -288,8 +296,7 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
 
                 const exactMatch = targets.find((t) => t.label === firstChar);
                 if (exactMatch) {
-                    cleanup();
-                    resolve({
+                    settle({
                         target: exactMatch,
                         ctrlKey: e.ctrlKey,
                         altKey: e.altKey,
@@ -308,23 +315,16 @@ function waitForHintKey(targets: HintTarget[]): Promise<HintResult> {
                 return;
             }
 
-            cleanup();
             const fullLabel = firstChar + key;
             const match = targets.find((t) => t.label === fullLabel);
-            resolve({
+            settle({
                 target: match ?? null,
                 ctrlKey: e.ctrlKey,
                 altKey: e.altKey,
                 metaKey: e.metaKey,
                 shiftKey: e.shiftKey,
             });
-        };
-
-        // Known instance, tracked by .sisyphus/plans/lifetime-ownership.md. The
-        // correct fix is a single owner with an abort path, as src/lua/key-broker.ts
-        // does for getcharstr; five ad-hoc AbortSignals here would be undone by it.
-        // ast-grep-ignore: promise-owned-listener
-        activeDocument.addEventListener('keydown', handler, true);
+        },
     });
 }
 
@@ -745,7 +745,7 @@ function createHintAction(
         const originalLeaf =
             count && count > 1 ? app.workspace.getMostRecentLeaf() : null;
 
-        void waitForHintKey(targets).then(async (result) => {
+        void waitForHintKey(targets).promise.then(async (result) => {
             container.remove();
             if (!result.target) return;
             if (!result.target.element.isConnected) {

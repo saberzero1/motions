@@ -63,7 +63,7 @@ function createMotionTrigger(
             try {
                 const match = await waitForLabel(labeled, (remaining) => {
                     overlay.updateLabels(remaining);
-                });
+                }).promise;
                 return match ? { line: match.line, ch: match.ch } : null;
             } finally {
                 overlay.cleanup();
@@ -84,7 +84,7 @@ function createCharMotionTrigger(
         easyMotionActive = true;
         setKeyInterceptActive(true);
         try {
-            const charKey = await waitForKey();
+            const charKey = await waitForKey().promise;
             if (!charKey || charKey.length !== 1) return null;
 
             const targets = filterVisibleTargets(cm, findTargets(cm, charKey));
@@ -101,7 +101,7 @@ function createCharMotionTrigger(
             try {
                 const match = await waitForLabel(labeled, (remaining) => {
                     overlay.updateLabels(remaining);
-                });
+                }).promise;
                 return match ? { line: match.line, ch: match.ch } : null;
             } finally {
                 overlay.cleanup();
