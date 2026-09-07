@@ -50,6 +50,7 @@ import type { lua_State } from '../lib/fengari';
 import type { ImSwitcher } from '../im/im-switcher';
 import { CoroutineRunner } from './coroutine-runner';
 import { injectPackageAndRequire } from './package';
+import { LuaModuleSnapshot } from './module-snapshot';
 import { injectIoShim } from './io-shim';
 import { getTarballUrl, fetchPluginTarball } from './plugin-fetch';
 import {
@@ -146,6 +147,17 @@ const ENGINE_BACKED_BUFFER_OPTIONS: ReadonlySet<string> = new Set([
 function getLuaFallbackPaths(app: App): readonly string[] {
     const dir = app.vault.configDir;
     return [...LUA_FALLBACK_PATHS, `${dir}.init.lua`, 'obsidian.lua'];
+}
+
+// A file dropped for exceeding a snapshot budget would otherwise surface as
+// "module not found", which is indistinguishable from a typo in the require.
+function reportSnapshotSkips(snapshot: LuaModuleSnapshot): void {
+    const { skipped } = snapshot.getStats();
+    if (skipped.length === 0) return;
+    console.warn(
+        `Vim Motions: ${skipped.length} Lua file(s) left out of the module snapshot and will not be requirable:`,
+        skipped.map(({ path, reason }) => `${path} (${reason})`).join(', '),
+    );
 }
 
 async function fileExists(app: App, path: string): Promise<boolean> {
@@ -387,6 +399,9 @@ export async function loadInitLua(
     const L = createSandboxedState();
     const runner = new CoroutineRunner(L);
     const autocmdManager = new AutocmdManager(L);
+    // Declared here rather than at its injection site below so `fetchPlugin`
+    // can refresh it. Populated before user config runs; see the rebuild call.
+    const moduleSnapshot = new LuaModuleSnapshot();
     const callbacks: VimApiCallbacks = {
         observeKeys,
         highlightManager,
@@ -852,6 +867,11 @@ export async function loadInitLua(
                 throw new Error(`No lua files found in ${repo}`);
             }
             await writePluginFiles(adapter, repo, ref, files, lock);
+            // Before the caller's coroutine resumes, mirroring how the query
+            // snapshot is refreshed, so the just-fetched plugin is requirable
+            // from synchronous callbacks without waiting for a reload.
+            await moduleSnapshot.rebuild(app.vault.adapter);
+            reportSnapshotSkips(moduleSnapshot);
             return { files: files.map((f) => f.path) };
         },
         onGlobalKeymap: (map) => {
@@ -1731,7 +1751,16 @@ export async function loadInitLua(
         },
     });
     const timerManager = injectTimers(L, runner);
-    injectPackageAndRequire(L, app.vault.configDir);
+    // Awaited so vault Lua sources are in memory before user config runs, for
+    // the same reason initTreesitterRuntime is: a later lookup must not yield.
+    await moduleSnapshot.rebuild(app.vault.adapter).catch((err) => {
+        console.warn('Vim Motions: Lua module snapshot failed:', err);
+    });
+    reportSnapshotSkips(moduleSnapshot);
+    injectPackageAndRequire(L, app.vault.configDir, {
+        snapshot: moduleSnapshot,
+        isAsyncCapable: (state) => runner.isAsyncCapable(state),
+    });
     const luaSnippets = injectSnippetApi(L);
 
     vim.defineEx('lua', '', (_cm, params) => {

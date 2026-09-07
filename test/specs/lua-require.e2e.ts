@@ -1,6 +1,13 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { loadLuaConfig, getPluginSetting, PAUSE } from '../helpers';
+import {
+    loadLuaConfig,
+    getPluginSetting,
+    setupEditor,
+    vimRawKeys,
+    getEditorValue,
+    PAUSE,
+} from '../helpers';
 
 type PluginRef = {
     vimrcLoaded?: boolean;
@@ -36,6 +43,30 @@ async function removeVaultFile(path: string): Promise<void> {
     }, path);
 }
 
+async function reloadLuaConfigInPlace(): Promise<void> {
+    await browser.executeObsidian(async ({ app }) => {
+        const p = (
+            app as unknown as {
+                plugins: { plugins: Record<string, PluginRef> };
+            }
+        ).plugins.plugins['vim-motions'];
+        await p?.loadLuaConfigForTest?.();
+    });
+
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(({ app }) => {
+                const p = (
+                    app as unknown as {
+                        plugins: { plugins: Record<string, PluginRef> };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return p?.luaLoaded === true;
+            })) as boolean,
+        { timeout: 10000, interval: 200 },
+    );
+}
+
 async function loadLuaConfigWithModules(
     modules: Record<string, string>,
     luaContent: string,
@@ -64,27 +95,7 @@ async function loadLuaConfigWithModules(
         await app.vault.adapter.write(`${app.vault.configDir}.init.lua`, lua);
     }, luaContent);
 
-    await browser.executeObsidian(async ({ app }) => {
-        const p = (
-            app as unknown as {
-                plugins: { plugins: Record<string, PluginRef> };
-            }
-        ).plugins.plugins['vim-motions'];
-        await p?.loadLuaConfigForTest?.();
-    });
-
-    await browser.waitUntil(
-        async () =>
-            (await browser.executeObsidian(({ app }) => {
-                const p = (
-                    app as unknown as {
-                        plugins: { plugins: Record<string, PluginRef> };
-                    }
-                ).plugins.plugins['vim-motions'];
-                return p?.luaLoaded === true;
-            })) as boolean,
-        { timeout: 10000, interval: 200 },
-    );
+    await reloadLuaConfigInPlace();
 }
 
 describe('Lua require() — functional behavior', function () {
@@ -269,5 +280,56 @@ describe('Lua require() — sandbox security', function () {
                 'if not ok and err:find("not found") then vim.opt.scrolloff = 91 end',
         );
         expect(await getPluginSetting('scrolloffLines')).toBe(91);
+    });
+});
+
+describe('Lua require() — the snapshot reload boundary', function () {
+    const LATE_MODULE = 'lua/late_addition.lua';
+
+    // Requires from a keymap callback, which runs on the main state and cannot
+    // yield — so it is served by the snapshot alone, never by a vault read.
+    const PROBE_LUA = [
+        `vim.keymap.set('n', 'Q', function()`,
+        `  local ok, res = pcall(require, 'late_addition')`,
+        `  local out`,
+        `  if ok then out = 'ok:' .. tostring(res.marker)`,
+        `  else out = 'err:' .. tostring(res) end`,
+        `  vim.api.nvim_buf_set_lines(0, 0, -1, false, { out })`,
+        `end)`,
+    ].join('\n');
+
+    async function pressProbe(): Promise<string> {
+        await setupEditor('placeholder', { line: 0, ch: 0 });
+        await vimRawKeys('Q');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        return (await getEditorValue()).trim();
+    }
+
+    after(async function () {
+        await removeVaultFile(LATE_MODULE);
+    });
+
+    it('takes a reload to see a file created after the snapshot', async function () {
+        await removeVaultFile(LATE_MODULE);
+        await loadLuaConfigWithModules({}, PROBE_LUA);
+
+        expect(await pressProbe()).toContain('err:');
+
+        await writeVaultFile(LATE_MODULE, 'return { marker = "late" }');
+        await browser.pause(300);
+
+        // The file is on disk now. It is still not requirable, and the message
+        // names the snapshot rather than claiming the module does not exist —
+        // that distinction is what makes the reload boundary discoverable.
+        const afterWrite = await pressProbe();
+        expect(afterWrite).toContain(
+            'not present in the configuration snapshot',
+        );
+        expect(afterWrite).toContain(LATE_MODULE);
+        expect(afterWrite).toContain('lua/late_addition/init.lua');
+
+        await reloadLuaConfigInPlace();
+
+        expect(await pressProbe()).toBe('ok:late');
     });
 });

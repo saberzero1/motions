@@ -26,11 +26,11 @@ interface Probe {
     extmarks?: number | string;
 }
 
-// `require()` uses the coroutine<->Promise bridge to read vault files, so it is
-// an async API. Config load is async-capable; a `vim.keymap.set` callback is
-// not (plain `lua_pcall`). So every module must be required at load time and
-// captured, or the callback errors with "async APIs can only be called from
-// async-capable callbacks". This split is itself a Phase 0 finding.
+// The load-time capture below is no longer required: since the module snapshot
+// (`.sisyphus/plans/lua-module-snapshot.md` Phase 2) `require` resolves from
+// memory, so a `vim.keymap.set` callback can require lazily despite running on
+// a plain `lua_pcall` that cannot yield. It is kept because `require_in_callback`
+// below is what proves that, and it must probe a module nothing else has loaded.
 const PROBE_LUA = [
     `local L = {}`,
     `L.ok_flash, L.Flash = pcall(require, 'flash')`,
@@ -202,23 +202,24 @@ describe('flash.nvim render diagnostic (Phase 0)', function () {
         }));
         console.log('PHASE 0 DOM: ' + JSON.stringify(domCounts, null, 2));
 
-        // flash must at least load and construct state; anything else is a
-        // blocker we have not accounted for.
-        // Characterization, not aspiration. flash's top-level modules load at
-        // config time, but its lazy-require proxy pulls submodules from
-        // runtime callbacks, where `require` is not async-capable. When that
-        // is fixed this assertion fails on purpose — update it then.
         expect(probe.loaded).toMatchObject({
             flash: true,
             config: true,
             state: true,
         });
-        expect(String(probe.require_in_callback)).toContain(
-            'async APIs can only be called from async-capable callbacks',
-        );
-        expect(String(probe.state)).toContain(
-            'async APIs can only be called from async-capable callbacks',
-        );
+
+        // Each of these three read "async APIs can only be called from
+        // async-capable callbacks" until the module snapshot landed. They are
+        // the evidence that lazy `require` from a synchronous callback works.
+        expect(String(probe.require_in_callback)).toBe('works');
+        expect(probe.multiwin).toBe(true);
+
+        // flash now reaches its terminal blocker instead: `get_end_pos` reads
+        // Neovim's internal `search_match_endcol` through LuaJIT FFI, because
+        // `searchpos()` reports only where a match starts. Those symbols belong
+        // to the Neovim binary and do not exist in Obsidian, so this one is not
+        // fixable in any Lua runtime — it is not a gap to close later.
+        expect(String(probe.state)).toContain("module 'ffi' is not available");
     });
 
     it('eager pre-loading every submodule unblocks flash', async function () {

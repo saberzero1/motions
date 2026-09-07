@@ -194,6 +194,19 @@ export class CoroutineRunner {
         return lua.lua_yieldk(L, 0, 0, continuation);
     }
 
+    /**
+     * Whether `L` may yield for a Promise — the precondition of
+     * `yieldWithPromise`, asked before rather than after the fact.
+     *
+     * Keymap callbacks run on the main state via plain `lua_pcall`, so they are
+     * never capable. `require` asks so it can report that a module is absent
+     * from the snapshot rather than surfacing an async-capability error.
+     */
+    isAsyncCapable(L: lua_State): boolean {
+        if (this.destroyed || this.asyncBlocked) return false;
+        return this.threadRefByState.has(L);
+    }
+
     setAsyncBlocked(blocked: boolean): void {
         this.asyncBlocked = blocked;
     }

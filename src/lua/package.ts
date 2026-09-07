@@ -1,9 +1,18 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from '../lib/fengari';
 import type { lua_State } from '../lib/fengari';
+import type { LuaModuleSnapshot } from './module-snapshot';
+
+export interface RequireDeps {
+    /** Consulted before the adapter. Omitted: every miss goes to the adapter. */
+    snapshot?: LuaModuleSnapshot;
+    /** Whether the calling state may yield. Omitted: assumed yes. */
+    isAsyncCapable?: (L: lua_State) => boolean;
+}
 
 export function injectPackageAndRequire(
     L: lua_State,
     _configDir: string,
+    deps: RequireDeps = {},
 ): void {
     const basePath = 'lua';
 
@@ -25,7 +34,7 @@ export function injectPackageAndRequire(
     lua.lua_setglobal(L, to_luastring('package'));
 
     injectSandboxedLoad(L);
-    injectRequireFunction(L, basePath);
+    injectRequireFunction(L, basePath, deps);
 }
 
 function injectSandboxedLoad(L: lua_State): void {
@@ -56,12 +65,17 @@ function injectSandboxedLoad(L: lua_State): void {
     lua.lua_setglobal(L, to_luastring('load'));
 }
 
-function injectRequireFunction(L: lua_State, basePath: string): void {
+function injectRequireFunction(
+    L: lua_State,
+    basePath: string,
+    deps: RequireDeps,
+): void {
     const escapedBasePath = basePath
         .replace(/\\/g, '\\\\')
         .replace(/'/g, "\\'");
 
     const requireLua = `
+local _snapshot_read, _async_capable = ...
 local _base_path = '${escapedBasePath}'
 local _NATIVE_UNAVAILABLE = {
     ffi = 'the FFI library',
@@ -94,23 +108,49 @@ function require(modname)
 
     local rel_path = modname:gsub("%.", "/")
     local file_path = _base_path .. "/" .. rel_path .. ".lua"
+    local init_path = _base_path .. "/" .. rel_path .. "/init.lua"
 
     package.loaded[modname] = true
 
-    local read_ok, source = pcall(vim.ob.fs.read, file_path)
-    if not read_ok then
-        local init_path = _base_path .. "/" .. rel_path .. "/init.lua"
-        read_ok, source = pcall(vim.ob.fs.read, init_path)
-        if read_ok then
-            file_path = init_path
+    -- The snapshot resolves without yielding, which is the whole point: a lazy
+    -- require from a keymap callback runs on the main state and cannot yield.
+    local chunk_path = file_path
+    local source = _snapshot_read(file_path)
+    if source == nil then
+        source = _snapshot_read(init_path)
+        if source ~= nil then
+            chunk_path = init_path
         end
     end
-    if not read_ok then
-        package.loaded[modname] = nil
-        error("module '" .. modname .. "' not found: " .. tostring(source), 2)
+
+    if source == nil then
+        if not _async_capable() then
+            package.loaded[modname] = nil
+            error(
+                "module '" .. modname .. "' not present in the configuration snapshot" ..
+                " (looked for " .. file_path .. " and " .. init_path .. "). The snapshot" ..
+                " is built when the configuration loads, so reload the configuration if" ..
+                " the file was added since, and check the developer console for files" ..
+                " skipped against the snapshot's size limits.",
+                2
+            )
+        end
+
+        local read_ok
+        read_ok, source = pcall(vim.ob.fs.read, file_path)
+        if not read_ok then
+            read_ok, source = pcall(vim.ob.fs.read, init_path)
+            if read_ok then
+                chunk_path = init_path
+            end
+        end
+        if not read_ok then
+            package.loaded[modname] = nil
+            error("module '" .. modname .. "' not found: " .. tostring(source), 2)
+        end
     end
 
-    local chunk, compile_err = load(source, "@" .. file_path)
+    local chunk, compile_err = load(source, "@" .. chunk_path)
     if not chunk then
         package.loaded[modname] = nil
         error("error loading module '" .. modname .. "': " .. tostring(compile_err), 2)
@@ -130,13 +170,48 @@ function require(modname)
 end
 `;
 
-    const status = lauxlib.luaL_dostring(L, to_luastring(requireLua));
-    if (status !== lua.LUA_OK) {
-        const msg = lua.lua_tolstring(L, -1);
-        console.error(
-            'Vim Motions: failed to inject require:',
-            msg ? to_jsstring(msg) : 'unknown error',
-        );
-        lua.lua_pop(L, 1);
+    const loadStatus = lauxlib.luaL_loadstring(L, to_luastring(requireLua));
+    if (loadStatus !== lua.LUA_OK) {
+        reportInjectionFailure(L);
+        return;
     }
+
+    // Passed as chunk arguments rather than set as globals, so the sandbox
+    // never sees them and user code cannot reach the snapshot.
+    const { snapshot, isAsyncCapable } = deps;
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        const pathBytes = lua.lua_tolstring(state, 1);
+        const source =
+            pathBytes && snapshot
+                ? snapshot.get(to_jsstring(pathBytes))
+                : undefined;
+        if (source === undefined) {
+            lua.lua_pushnil(state);
+        } else {
+            lua.lua_pushstring(state, to_luastring(source));
+        }
+        return 1;
+    });
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
+        lua.lua_pushboolean(
+            state,
+            isAsyncCapable ? isAsyncCapable(state) : true,
+        );
+        return 1;
+    });
+
+    if (lua.lua_pcall(L, 2, 0, 0) !== lua.LUA_OK) {
+        reportInjectionFailure(L);
+    }
+}
+
+function reportInjectionFailure(L: lua_State): void {
+    const msg = lua.lua_tolstring(L, -1);
+    console.error(
+        'Vim Motions: failed to inject require:',
+        msg ? to_jsstring(msg) : 'unknown error',
+    );
+    lua.lua_pop(L, 1);
 }
