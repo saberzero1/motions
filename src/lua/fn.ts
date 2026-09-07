@@ -5,6 +5,7 @@ import { pushLuaAny } from './api';
 import { strftime } from './strftime';
 import type { CmAdapter } from '../types/vim-api';
 import { getCursorWinCol, getWindowInfo } from './window-info';
+import type { KeyWait } from './key-broker';
 import { vimRegExp } from './vim-regex';
 
 export interface VimFnCallbacks {
@@ -63,7 +64,7 @@ export interface VimFnCallbacks {
     setLine?: (line: number, text: string) => void;
     insertLines?: (afterLine: number, lines: string[]) => void;
     runner?: import('./coroutine-runner').CoroutineRunner;
-    waitForKeypress?: () => Promise<string | null>;
+    waitForKeypress?: () => KeyWait;
     showInputPrompt?: (
         prompt: string,
         defaultText: string,
@@ -1605,16 +1606,24 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     if (callbacks.runner && callbacks.waitForKeypress) {
         const _runner = callbacks.runner;
         const _waitForKeypress = callbacks.waitForKeypress;
+        // `wait.abort` is handed to the runner so a timed-out or destroyed
+        // await releases the key listener. Without it the listener outlives the
+        // wait and swallows the user's next keystroke.
         registry.set('getcharstr', (state) => {
-            const promise = _waitForKeypress().then((key) => key ?? '');
-            return _runner.yieldWithPromise(state, promise);
+            const wait = _waitForKeypress();
+            return _runner.yieldWithPromise(
+                state,
+                wait.promise.then((key) => key ?? ''),
+                wait.abort,
+            );
         });
         registry.set('getchar', (state) => {
-            const promise = _waitForKeypress().then((key) => {
-                if (!key) return 27;
-                return key.charCodeAt(0);
-            });
-            return _runner.yieldWithPromise(state, promise);
+            const wait = _waitForKeypress();
+            return _runner.yieldWithPromise(
+                state,
+                wait.promise.then((key) => (key ? key.charCodeAt(0) : 27)),
+                wait.abort,
+            );
         });
     }
 

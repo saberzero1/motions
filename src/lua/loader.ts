@@ -51,6 +51,7 @@ import type { ImSwitcher } from '../im/im-switcher';
 import { CoroutineRunner } from './coroutine-runner';
 import { injectPackageAndRequire } from './package';
 import { LuaModuleSnapshot, type SnapshotAdapter } from './module-snapshot';
+import { KeyBroker } from './key-broker';
 import { injectIoShim } from './io-shim';
 import { getTarballUrl, fetchPluginTarball } from './plugin-fetch';
 import {
@@ -451,6 +452,21 @@ export async function loadInitLua(
     const moduleSnapshot = new LuaModuleSnapshot();
     const moduleRoots = getModuleRoots(path);
     const snapshotAdapter = createSnapshotAdapter(app);
+
+    const keyBroker = new KeyBroker({
+        listen: (handler) => {
+            const domHandler = (e: KeyboardEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.key.length !== 1 && e.key !== 'Escape') return;
+                handler(e.key === 'Escape' ? null : e.key);
+            };
+            activeDocument.addEventListener('keydown', domHandler, true);
+            return () =>
+                activeDocument.removeEventListener('keydown', domHandler, true);
+        },
+        setInterceptActive: setKeyInterceptActive,
+    });
     const callbacks: VimApiCallbacks = {
         observeKeys,
         highlightManager,
@@ -1583,27 +1599,7 @@ export async function loadInitLua(
             }
         },
         runner,
-        waitForKeypress: async () => {
-            setKeyInterceptActive(true);
-            try {
-                return await new Promise<string | null>((resolve) => {
-                    const handler = (e: KeyboardEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.key.length !== 1 && e.key !== 'Escape') return;
-                        activeDocument.removeEventListener(
-                            'keydown',
-                            handler,
-                            true,
-                        );
-                        resolve(e.key === 'Escape' ? null : e.key);
-                    };
-                    activeDocument.addEventListener('keydown', handler, true);
-                });
-            } finally {
-                setKeyInterceptActive(false);
-            }
-        },
+        waitForKeypress: () => keyBroker.wait(),
         showInputPrompt: (prompt, defaultText) => {
             return showInputModal(app, prompt, defaultText);
         },

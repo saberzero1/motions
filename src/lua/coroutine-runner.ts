@@ -29,19 +29,36 @@ interface PromiseResult {
     error?: string;
 }
 
-export class AsyncRegistry {
-    private pending = new Map<number, Promise<unknown>>();
+interface PendingAwait {
+    promise: Promise<unknown>;
+    /**
+     * Releases whatever the promise is holding when the runner stops caring
+     * about it. A timed-out or destroyed await abandons its promise, which
+     * never settles, so anything the producer allocated is released here or
+     * not at all.
+     */
+    onAbandon?: () => void;
+}
 
-    store(threadRef: number, promise: Promise<unknown>): void {
-        this.pending.set(threadRef, promise);
+export class AsyncRegistry {
+    private pending = new Map<number, PendingAwait>();
+
+    store(threadRef: number, entry: PendingAwait): void {
+        this.pending.set(threadRef, entry);
     }
 
-    retrieve(threadRef: number): Promise<unknown> | undefined {
+    retrieve(threadRef: number): PendingAwait | undefined {
         return this.pending.get(threadRef);
     }
 
     clear(threadRef: number): void {
         this.pending.delete(threadRef);
+    }
+
+    /** Releases every registered await, for teardown. */
+    abandonAll(): void {
+        for (const entry of this.pending.values()) entry.onAbandon?.();
+        this.pending.clear();
     }
 
     clearAll(): void {
@@ -97,8 +114,8 @@ export class CoroutineRunner {
             let status = lua.lua_resume(thread, this.mainState, nargs);
 
             while (status === lua.LUA_YIELD) {
-                const promise = this.registry.retrieve(threadRef);
-                if (!promise) {
+                const pending = this.registry.retrieve(threadRef);
+                if (!pending) {
                     this.cleanup(thread, threadRef);
                     return {
                         ok: false,
@@ -111,7 +128,7 @@ export class CoroutineRunner {
                 let rejected = false;
                 try {
                     result = await this.awaitWithTimeout(
-                        promise,
+                        pending.promise,
                         threadRef,
                         thread,
                         instructionLimit,
@@ -119,9 +136,13 @@ export class CoroutineRunner {
                 } catch (err) {
                     rejected = true;
                     result = err instanceof Error ? err.message : String(err);
+                    // The promise is abandoned from here on; this is its only
+                    // chance to release what it holds.
+                    pending.onAbandon?.();
                 }
 
                 if (this.destroyed) {
+                    pending.onAbandon?.();
                     return {
                         ok: false,
                         error: 'Lua state destroyed during async operation',
@@ -155,8 +176,16 @@ export class CoroutineRunner {
         }
     }
 
-    yieldWithPromise(L: lua_State, promise: Promise<unknown>): number {
+    yieldWithPromise(
+        L: lua_State,
+        promise: Promise<unknown>,
+        onAbandon?: () => void,
+    ): number {
+        // Both rejections below abandon the promise before it is ever
+        // registered, so they must release too — otherwise a caller that
+        // allocated a resource leaks it exactly as a timeout would.
         if (this.asyncBlocked) {
+            onAbandon?.();
             return lauxlib.luaL_error(
                 L,
                 to_luastring('async APIs cannot be called from snippet nodes'),
@@ -165,6 +194,7 @@ export class CoroutineRunner {
 
         const threadRef = this.threadRefByState.get(L);
         if (threadRef === undefined) {
+            onAbandon?.();
             return lauxlib.luaL_error(
                 L,
                 to_luastring(
@@ -173,7 +203,19 @@ export class CoroutineRunner {
             );
         }
 
-        this.registry.store(threadRef, promise);
+        // Guarded because the abandonment routes overlap: a destroy rejects the
+        // await *and* sets `destroyed`, so both the catch and the destroyed
+        // check would otherwise fire the same release.
+        let released = false;
+        const release = onAbandon
+            ? () => {
+                  if (released) return;
+                  released = true;
+                  onAbandon();
+              }
+            : undefined;
+
+        this.registry.store(threadRef, { promise, onAbandon: release });
 
         const continuation = (
             contState: lua_State,
@@ -229,7 +271,7 @@ export class CoroutineRunner {
             );
         }
         this.handles.clear();
-        this.registry.clearAll();
+        this.registry.abandonAll();
         this.threadRefByState.clear();
     }
 

@@ -284,4 +284,94 @@ describe('CoroutineRunner', () => {
         expect(result.ok).toBe(false);
         expect(result.error).toContain('timed out');
     });
+
+    // P3a / D1 of `.sisyphus/plans/async-keymap-callbacks.md`. An abandoned
+    // await never settles, so `onAbandon` is the only chance a producer gets to
+    // release what it allocated — the key listener, in production.
+    describe('abandoned awaits release their producer', () => {
+        it('P3a: destroyAll releases a pending await', async () => {
+            const released: string[] = [];
+            lua.lua_pushjsfunction(L, (state: lua_State) => {
+                return runner.yieldWithPromise(
+                    state,
+                    new Promise<string>(() => {
+                        /* never settles */
+                    }),
+                    () => released.push('destroyed'),
+                );
+            });
+            lua.lua_setglobal(L, to_luastring('async_fn'));
+
+            const ref = loadAndRef(L, 'return async_fn()');
+            const pending = runner.invokeAsyncCapable(ref, () => 0, 500_000);
+            await Promise.resolve();
+
+            runner.destroyAll();
+            await pending;
+
+            expect(released).toEqual(['destroyed']);
+        });
+
+        it('a timed-out await releases its producer', async () => {
+            vi.useFakeTimers();
+            const released: string[] = [];
+            lua.lua_pushjsfunction(L, (state: lua_State) => {
+                return runner.yieldWithPromise(
+                    state,
+                    new Promise<string>(() => {
+                        /* never settles */
+                    }),
+                    () => released.push('timed out'),
+                );
+            });
+            lua.lua_setglobal(L, to_luastring('async_fn'));
+
+            const ref = loadAndRef(L, 'return async_fn()');
+            const pending = runner.invokeAsyncCapable(ref, () => 0, 500_000);
+            await vi.advanceTimersByTimeAsync(11_000);
+            await pending;
+
+            expect(released).toEqual(['timed out']);
+            vi.useRealTimers();
+        });
+
+        it('a rejected async-capability check releases its producer', () => {
+            const released: string[] = [];
+            // The main state is not runner-managed, so this raises rather than
+            // suspending — and must still release.
+            expect(() =>
+                runner.yieldWithPromise(
+                    L,
+                    new Promise<string>(() => {
+                        /* never settles */
+                    }),
+                    () => released.push('rejected'),
+                ),
+            ).toThrow();
+
+            expect(released).toEqual(['rejected']);
+        });
+
+        it('a settled await does not release', async () => {
+            const released: string[] = [];
+            lua.lua_pushjsfunction(L, (state: lua_State) => {
+                return runner.yieldWithPromise(
+                    state,
+                    Promise.resolve('ok'),
+                    () => released.push('should not happen'),
+                );
+            });
+            lua.lua_setglobal(L, to_luastring('async_fn'));
+
+            const ref = loadAndRef(L, 'return async_fn()');
+            const result = await runner.invokeAsyncCapable(
+                ref,
+                () => 0,
+                500_000,
+            );
+
+            expect(result.ok).toBe(true);
+            expect(released).toEqual([]);
+        });
+    });
 });
