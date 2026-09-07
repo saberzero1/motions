@@ -84,14 +84,9 @@ export function getAllNodesOfType(
 }
 
 let _runtimeModule: typeof import('./runtime') | null = null;
-let _queryModule: typeof import('./query') | null = null;
 
-export function setJsApiModules(
-    runtime: typeof import('./runtime'),
-    query: typeof import('./query'),
-): void {
+export function setJsApiModules(runtime: typeof import('./runtime')): void {
     _runtimeModule = runtime;
-    _queryModule = query;
 }
 
 export function isTreeAvailable(view: EditorView): boolean {

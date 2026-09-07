@@ -840,36 +840,6 @@ class TableNavController implements PluginValue {
         }
     }
 
-    private clickElement(el: HTMLElement): void {
-        const rect = el.getBoundingClientRect();
-        const clientX = rect.left + rect.width / 2;
-        const clientY = rect.top + rect.height / 2;
-        el.dispatchEvent(
-            new PointerEvent('pointerdown', {
-                bubbles: true,
-                cancelable: true,
-                clientX,
-                clientY,
-            }),
-        );
-        el.dispatchEvent(
-            new PointerEvent('pointerup', {
-                bubbles: true,
-                cancelable: true,
-                clientX,
-                clientY,
-            }),
-        );
-        el.dispatchEvent(
-            new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                clientX,
-                clientY,
-            }),
-        );
-    }
-
     private hideCellEditor(editMode?: EditMode | null): void {
         const s = this.session;
         const em = editMode ?? getEditModeForView(this.view);

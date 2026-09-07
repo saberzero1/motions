@@ -992,55 +992,6 @@ const errfile = function (
     return LUA_ERRFILE;
 };
 
-let getc!: (lf: { n: number; buff: Uint8Array }) => number | null;
-
-const utf8_bom = [0xef, 0xbb, 0xbf]; /* UTF-8 BOM mark */
-const skipBOM = function (lf: { n: number; buff: Uint8Array }): number | null {
-    lf.n = 0;
-    let c;
-    let p = 0;
-    do {
-        c = getc(lf);
-        if (c === null || c !== utf8_bom[p]) return c;
-        p++;
-        lf.buff[lf.n++] = c; /* to be read by the parser */
-    } while (p < utf8_bom.length);
-    lf.n = 0; /* prefix matched; discard it */
-    return getc(lf); /* return next character */
-};
-
-/*
- ** reads the first character of file 'f' and skips an optional BOM mark
- ** in its beginning plus its first line if it starts with '#'. Returns
- ** true if it skipped the first line.  In any case, '*cp' has the
- ** first "valid" character of the file (after the optional BOM and
- ** a first-line comment).
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for upstream parity
-const _skipcomment = function (lf: { n: number; buff: Uint8Array }): {
-    skipped: boolean;
-    c: number | null;
-} {
-    let c = skipBOM(lf);
-    if (c === 35 /* '#'.charCodeAt(0) */) {
-        /* first line is a comment (Unix exec. file)? */
-        do {
-            /* skip first line */
-            c = getc(lf);
-        } while (c && c !== 10 /* '\n'.charCodeAt(0) */);
-
-        return {
-            skipped: true,
-            c: getc(lf) /* skip end-of-line, if present */,
-        };
-    } else {
-        return {
-            skipped: false,
-            c: c,
-        };
-    }
-};
-
 const luaL_loadfilex = function (
     L: lua_State,
     filename: Uint8Array | null,

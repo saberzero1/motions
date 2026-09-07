@@ -133,6 +133,20 @@ Blocked functions (intentionally disabled for safety):
 - Library name strings inlined directly (no longer imported from `lualib.ts`) to break the `linit`↔`lualib` circular dependency.
 - `luaL_openlibs` now opens: `_G` (base), `coroutine`, `table`, `os` (safe subset), `string`, `math`, `utf8`, `debug` (minus `debug.debug()`), `fengari`.
 
+## Dead file-loading helpers removed
+
+`lauxlib.ts` no longer carries `getc`, `utf8_bom`, `skipBOM`, or `_skipcomment`.
+They supported `luaL_loadfilex`'s BOM and shebang handling, which this fork does
+not reach because file-based loading is stripped. `_skipcomment` had been kept
+with an "upstream parity" comment and an ESLint suppression; `skipBOM` and
+`utf8_bom` were reachable only from it, and `getc` only from those.
+
+They were removed so `noUnusedLocals` could be enabled repository-wide. That flag
+is the only checker that sees unused **private class members** — ESLint does not
+analyse class members and knip has no class-member analysis — and TypeScript does
+not honour the `^_` convention for locals the way it does for parameters, so the
+suppression that satisfied ESLint could not satisfy `tsc`.
+
 ## Dependencies removed
 
 | Package         | Was used by                                     | Reason                          |

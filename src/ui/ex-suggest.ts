@@ -22,7 +22,6 @@ export class ExCommandSuggest {
     private commands: string[] = [];
     private selectedIdx = -1;
     private items: string[] = [];
-    private editorContainer: HTMLElement | null = null;
 
     constructor(commands: string[]) {
         this.commands = [
@@ -31,7 +30,6 @@ export class ExCommandSuggest {
     }
 
     attach(container: HTMLElement): void {
-        this.editorContainer = container;
         this.observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 for (const node of Array.from(mutation.addedNodes)) {

@@ -32,10 +32,9 @@ export async function initTreesitterRuntime(
     if (adapter) await preloadQueryFiles(adapter);
     _runtime = await import('../../treesitter/runtime');
     _ltreeModule = await import('../../treesitter/language-tree');
-    const queryModule = await import('../../treesitter/query');
     setLanguageRuntime(_runtime);
     setQueryRuntime(_runtime);
-    setJsApiModules(_runtime, queryModule);
+    setJsApiModules(_runtime);
     await _runtime.loadLanguage('markdown');
     await _runtime.loadLanguage('markdown_inline');
     await _runtime.loadLanguage('html');

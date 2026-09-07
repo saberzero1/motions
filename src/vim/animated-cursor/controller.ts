@@ -90,8 +90,6 @@ class CursorController implements Tickable {
     private readonly isCell: boolean;
     private readonly isAboveCanvas: boolean;
 
-    private crossingToken: number | null = null;
-
     private cellTransitionActive = false;
 
     constructor(private view: EditorView) {
@@ -122,7 +120,6 @@ class CursorController implements Tickable {
         if (this.isCell) {
             const token = getPendingCrossingToken();
             if (token !== null) {
-                this.crossingToken = token;
                 clearPendingCrossingToken();
                 const mgr = getAnimatedCursorManager();
                 const seedRect = mgr.consumeCrossingHandoff(token);

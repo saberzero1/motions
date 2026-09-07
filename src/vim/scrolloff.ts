@@ -94,7 +94,7 @@ export function getScrolloffMargin(view: EditorView): number {
 }
 
 export class ScrolloffManager {
-    constructor(private plugin: Plugin) {
+    constructor(plugin: Plugin) {
         plugin.registerDomEvent(
             activeDocument,
             'pointerup',
