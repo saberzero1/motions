@@ -635,18 +635,29 @@ end
 
 ### vim.fn.getcharstr() and vim.fn.getchar()
 
-These functions yield the Lua coroutine and wait for the user to press a key. They are the primary mechanism for interactive Lua plugins (mini.surround, mini.ai, leap.nvim):
+These functions yield the Lua coroutine and wait for the user to press a key.
 
-```lua
--- Wait for a character and act on it
-vim.keymap.set("n", "s", function()
-    vim.notify("Press a key...")
-    local ch = vim.fn.getcharstr()
-    vim.notify("You pressed: " .. ch)
-end)
-```
+> [!warning] They cannot be called directly from a keymap callback
+> A `vim.keymap.set` callback runs on the main Lua state and cannot yield, so calling `getcharstr()` there raises `async APIs can only be called from async-capable callbacks`. Schedule the work instead — a scheduled callback runs on a coroutine and can wait:
+>
+> ```lua
+> vim.keymap.set("n", "<leader>k", function()
+>     vim.schedule(function()
+>         vim.notify("Press a key...")
+>         local ch = vim.fn.getcharstr()
+>         vim.notify("You pressed: " .. ch)
+>     end)
+> end)
+> ```
+>
+> The same applies to `vim.fn.input()`. Lifting this restriction is tracked in the project's plan for async-capable keymap callbacks.
 
 Modifier-only keys (Shift, Ctrl, Alt, Meta) are ignored. Special keys return their vim notation (e.g., `<Esc>`, `<CR>`, `<BS>`). Cannot be used in `{ expr = true }` callbacks or snippet `f()`/`d()` nodes.
+
+Concurrent waiters are served in call order: one keypress resolves exactly one of them.
+
+> [!info] Ten-second bound
+> The wait is subject to the coroutine runner's 10-second await limit, so a longer human pause fails the call with `async operation timed out`. The key listener is released when that happens, so a timeout costs no keystroke — but a prompt you expect a user to think about for longer than ten seconds is not currently supportable.
 
 ### vim.fn.searchpos()
 

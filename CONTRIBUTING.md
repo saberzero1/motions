@@ -200,7 +200,8 @@ src/
     grammars/              # Vendored grammar .wasm files (tree-sitter-markdown.wasm, tree-sitter-html.wasm)
   lua/
     engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync, cleanup before Lua close
-    coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry); isAsyncCapable() reports whether a state may yield
+    coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry); isAsyncCapable() reports whether a state may yield; awaits carry an onAbandon release for timeout/teardown
+    key-broker.ts          # Single owner of the getcharstr/getchar key listener and intercept lease; FIFO delivery, abortable
     package.ts             # package table, sandboxed load(), Lua-implemented require() resolving from the module snapshot across all search roots
     module-snapshot.ts     # In-memory Lua sources for every search root so require() resolves synchronously; limits reported, not silent
     loader.ts              # .obsidian.init.lua loader; replaces iterator stub, awaits treesitter/query and Lua module snapshot preloading, normalizes returned option Errors
@@ -679,7 +680,7 @@ describe('My feature', function () {
 
 Unit tests use [Vitest](https://vitest.dev/) and live in `test/unit/`. These test pure logic without Obsidian (Lua engine, picker matching, settings migration, etc.).
 
-Lua API compatibility coverage lives in `test/unit/lua/api-compat.test.ts`, `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts`, and `plugin-query-fetch.test.ts`. The query tests compile against real bundled WASM grammars and cover precedence, modelines, cache lifecycle, predicates, plugin query isolation, and resource limits. `fn.test.ts` adds four `getwininfo` geometry/fallback cases; the `api.test.ts` termcode regression expects `"\r"` for `<CR>` rather than preserving the old identity-function bug.
+Lua API compatibility coverage lives in `test/unit/lua/api-compat.test.ts`, `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts`, and `plugin-query-fetch.test.ts`. `key-broker.test.ts` covers single-listener ownership, FIFO key delivery, and lease release on abort; `vim-v-context.test.ts` covers the callback context stack. Both end with a negative control that reproduces the defect they replaced — if a fix is reverted, those flip rather than passing quietly. The query tests compile against real bundled WASM grammars and cover precedence, modelines, cache lifecycle, predicates, plugin query isolation, and resource limits. `fn.test.ts` adds four `getwininfo` geometry/fallback cases; the `api.test.ts` termcode regression expects `"\r"` for `<CR>` rather than preserving the old identity-function bug.
 
 ```bash
 npm run test:unit
