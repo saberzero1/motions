@@ -162,7 +162,7 @@ export function createFlashCharMotion(
 
         if (targets.length === 1) {
             const target = targets[0]!;
-            recordSearch(cm, char, forward, isTill, opts);
+            recordSearch(cm, char, forward, isTill);
             setLastFlashSearch(char, forward, isTill);
             maybeRecordJump(opts.app, cm, target);
             return { line: target.line, ch: target.ch };
@@ -174,7 +174,7 @@ export function createFlashCharMotion(
         if (motionArgs.repeat > 1) {
             const idx = Math.min(motionArgs.repeat, targets.length) - 1;
             const target = targets[idx]!;
-            recordSearch(cm, char, forward, isTill, opts);
+            recordSearch(cm, char, forward, isTill);
             setLastFlashSearch(char, forward, isTill);
             maybeRecordJump(opts.app, cm, target);
             return { line: target.line, ch: target.ch };
@@ -206,7 +206,7 @@ export function createFlashCharMotion(
                 overlay.cleanup();
                 setFlashActive(false);
                 if (!match) return null;
-                recordSearch(cm, char, forward, isTill, opts);
+                recordSearch(cm, char, forward, isTill);
                 setLastFlashSearch(char, forward, isTill);
                 maybeRecordJump(opts.app, cm, match);
                 return { line: match.line, ch: match.ch };
@@ -224,7 +224,6 @@ function recordSearch(
     char: string,
     forward: boolean,
     isTill: boolean,
-    opts: FlashCharOptions,
 ): void {
     const vim = (
         window as unknown as {

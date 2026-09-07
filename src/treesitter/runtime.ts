@@ -105,10 +105,7 @@ export function parseString(
     return tree;
 }
 
-export function parseInlineContent(
-    text: string,
-    startIndex: number,
-): Tree | null {
+export function parseInlineContent(text: string): Tree | null {
     if (!isLanguageLoaded('markdown_inline')) return null;
     const parser = getOrCreateParser('markdown_inline');
     return parser.parse(text) ?? null;
@@ -144,7 +141,7 @@ export function getInlineNodeAtPosition(
         inlineNode.startIndex,
         inlineNode.endIndex,
     );
-    const inlineTree = parseInlineContent(inlineText, inlineNode.startIndex);
+    const inlineTree = parseInlineContent(inlineText);
     if (!inlineTree) return null;
 
     const localCol = col - inlineNode.startPosition.column;

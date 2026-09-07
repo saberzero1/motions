@@ -396,7 +396,7 @@ function createStatusColumnGutter(
                 )
             );
         },
-        initialSpacer(view) {
+        initialSpacer(_view) {
             const spacerKey = segments
                 .map((s) => s.type + (s.text ?? ''))
                 .join('|');

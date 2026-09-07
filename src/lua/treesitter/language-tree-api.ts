@@ -262,7 +262,7 @@ const ltreeMethods: Record<string, (state: lua_State) => number> = {
                     'changedtree' | 'bytes' | 'child_added' | 'child_removed';
                 ltree.registerCbs(
                     {
-                        [cbKey]: (...args: unknown[]) => {
+                        [cbKey]: (..._args: unknown[]) => {
                             lua.lua_rawgeti(state, lua.LUA_REGISTRYINDEX, ref);
                             lua.lua_pcall(state, 0, 0, 0);
                         },

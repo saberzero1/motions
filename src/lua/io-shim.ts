@@ -259,7 +259,7 @@ function registerHandleMethods(
     });
     lua.lua_setfield(L, tblIndex, to_luastring('seek'));
 
-    lua.lua_pushjsfunction(L, (state: lua_State) => {
+    lua.lua_pushjsfunction(L, (_state: lua_State) => {
         return 0;
     });
     lua.lua_setfield(L, tblIndex, to_luastring('flush'));
