@@ -43,7 +43,3 @@ export function getLastFlashSearch(): LastFlashSearch | null {
     }
     return lastFlashSearch;
 }
-
-export function clearLastFlashSearch(): void {
-    lastFlashSearch = null;
-}

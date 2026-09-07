@@ -14,13 +14,7 @@ import {
 } from './native-table-adapter';
 import { getCrossingState } from './table-cell-motions';
 
-const MAX_LOG_ENTRIES = 50;
 const eventLog: { ts: number; event: string; detail?: string }[] = [];
-
-export function logTableEvent(event: string, detail?: string): void {
-    if (eventLog.length >= MAX_LOG_ENTRIES) eventLog.shift();
-    eventLog.push({ ts: Date.now(), event, detail });
-}
 
 export function getTableEventLog(): readonly {
     ts: number;
@@ -28,10 +22,6 @@ export function getTableEventLog(): readonly {
     detail?: string;
 }[] {
     return eventLog;
-}
-
-export function clearTableEventLog(): void {
-    eventLog.length = 0;
 }
 
 export interface TableDebugState {

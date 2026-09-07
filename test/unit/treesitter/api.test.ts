@@ -4,7 +4,7 @@ import {
     lauxlib,
     to_jsstring,
     to_luastring,
-} from '../../../../src/lib/fengari';
+} from '../../../src/lib/fengari';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { Parser, Language } from 'web-tree-sitter';

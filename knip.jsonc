@@ -1,0 +1,64 @@
+{
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+
+    "entry": [
+        "src/main.ts",
+        "test/**/*.test.ts",
+        "test/specs/**/*.e2e.ts",
+        "test/neovim/record-golden.ts",
+        "test/neovim/smoke.ts",
+        "test/coverage-report.ts",
+        "esbuild.config.mjs",
+        "version-bump.mjs",
+        "wdio.conf.mts",
+        "vitest.config.ts",
+        "eslint.config.mts",
+    ],
+    "project": ["src/**/*.ts", "test/**/*.ts"],
+
+    // A symbol used inside its own file is over-exported, not dead. That is
+    // worth tidying eventually but is a different, much noisier finding than
+    // "nothing references this at all", which is what this gate is for.
+    "ignoreExportsUsedInFile": true,
+
+    "ignore": [
+        // Vendored upstream. Its export surface mirrors the Lua C API and is
+        // deliberately larger than this plugin consumes.
+        "src/lib/fengari/**",
+
+        // FINDING, not dead-code cleanup: `createBridgeExtension` has no caller
+        // anywhere, so the treesitter per-view incremental-parsing ViewPlugin is
+        // never installed. tree-state's three exports are unused only as a
+        // consequence of that. Whether to wire the bridge up or delete it is a
+        // product decision, so these are held rather than removed. See the
+        // "unwired treesitter bridge" note in AGENTS.md.
+        "src/treesitter/bridge.ts",
+        "src/treesitter/tree-state.ts",
+
+        // Ambient `declare global` for the esbuild-injected __DEV__ constant.
+        // Nothing imports it by design; TypeScript picks it up from `include`.
+        "src/types/globals.ts",
+    ],
+
+    "ignoreDependencies": [
+        // Selected by name in wdio.conf.mts (`framework: 'mocha'`), never imported.
+        "mocha",
+        // Selected by name in wdio.conf.mts (`reporters: ['obsidian']`). knip's
+        // wdio plugin infers the official `@wdio/obsidian-reporter` spelling
+        // rather than this community package, so it reports both a stale
+        // dependency and an unlisted one for the same single use.
+        "wdio-obsidian-reporter",
+        "@wdio/obsidian-reporter",
+        // Selected by name in wdio.conf.mts (`runner: 'local'`), never imported.
+        "@wdio/local-runner",
+        // Ambient describe/it types for the WDIO e2e specs; used by the type
+        // system rather than by an import.
+        "@types/mocha",
+    ],
+
+    "ignoreBinaries": [
+        // External binary, resolved from PATH by the Neovim golden harness.
+        // Not an npm dependency and deliberately optional.
+        "nvim",
+    ],
+}

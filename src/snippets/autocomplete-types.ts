@@ -10,7 +10,6 @@ import type {
     EditorState,
     EditorSelection,
     Extension,
-    StateCommand,
     StateEffectType,
     StateField,
     Transaction,
@@ -99,24 +98,6 @@ export const snippetCompletion = mod['snippetCompletion'] as (
 export const snippetState = mod[
     'snippetState'
 ] as StateField<ActiveSnippet | null>;
-
-export const hasNextSnippetField = mod['hasNextSnippetField'] as (
-    state: EditorState,
-) => boolean;
-
-export const hasPrevSnippetField = mod['hasPrevSnippetField'] as (
-    state: EditorState,
-) => boolean;
-
-export const clearSnippet = mod['clearSnippet'] as StateCommand;
-
-export const nextSnippetField = mod['nextSnippetField'] as StateCommand;
-
-export const prevSnippetField = mod['prevSnippetField'] as StateCommand;
-
-export const cycleSnippetChoice = mod['cycleSnippetChoice'] as (
-    dir: 1 | -1,
-) => StateCommand;
 
 export const setActive = mod[
     'setActive'

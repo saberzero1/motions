@@ -1,4 +1,4 @@
-import type { App, MarkdownView } from 'obsidian';
+import type { MarkdownView } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import {
@@ -6,7 +6,6 @@ import {
     getBundledVimApi,
     getBundledCmAdapter,
 } from './bundled-vim';
-import { isBuiltinVimEnabled } from '../util/vault';
 
 let warnedMissing = false;
 
@@ -54,9 +53,4 @@ export function getCmAdapter(view: MarkdownView): CmAdapter | null {
     } catch {
         return null;
     }
-}
-
-export function isVimEnabled(app: App): boolean {
-    if (isBundledVimActive()) return true;
-    return isBuiltinVimEnabled(app);
 }

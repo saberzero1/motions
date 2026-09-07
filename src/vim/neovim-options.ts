@@ -1223,14 +1223,6 @@ export function getNeovimOption(name: string): NeovimOptionEntry | undefined {
 }
 
 /**
- * Returns true if the option's tier means it should be silently accepted
- * (no console output at all).
- */
-export function isNoopSilent(entry: NeovimOptionEntry): boolean {
-    return entry.tier === 'noop-platform' || entry.tier === 'not-applicable';
-}
-
-/**
  * Returns true if the option's tier means it should log an info-level note.
  */
 export function isNoopLogged(entry: NeovimOptionEntry): boolean {

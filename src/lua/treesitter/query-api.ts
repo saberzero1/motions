@@ -7,13 +7,11 @@ import { registerStateCleanup } from '../engine';
 import {
     registerPredicate,
     listPredicates,
-    clearCustomPredicates,
     type PredicateHandler,
 } from '../../treesitter/predicates';
 import {
     registerDirective,
     listDirectives,
-    clearCustomDirectives,
     type DirectiveHandler,
 } from '../../treesitter/directives';
 import { pushTSNode, extractNode } from './node';
@@ -412,9 +410,4 @@ export function injectQueryApi(L: lua_State, tsTableIndex: number): void {
     lua.lua_setfield(L, queryIndex, to_luastring('omnifunc'));
 
     lua.lua_setfield(L, tsTableIndex, to_luastring('query'));
-}
-
-export function clearQueryState(): void {
-    clearCustomPredicates();
-    clearCustomDirectives();
 }

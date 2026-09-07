@@ -102,10 +102,6 @@ export function splitCellsEscapeAware(line: string): string[] {
     return cells;
 }
 
-function findCellBoundariesLocal(line: string): number[] {
-    return findUnescapedPipes(line);
-}
-
 export type Alignment = 'left' | 'center' | 'right' | 'none';
 
 export function parseAlignments(line: string): Alignment[] {
@@ -180,53 +176,6 @@ export function realignTableLines(lines: string[]): string[] {
         const cells = colWidths.map((w, col) => (row[col] ?? '').padEnd(w));
         return `| ${cells.join(' | ')} |`;
     });
-}
-
-/**
- * Find the bounds (start/end line numbers) of the table containing `lineNum`.
- * Works on CM6 doc-like objects with `.line(n)` and `.lines`.
- */
-export function findTableBounds(
-    doc: { line(n: number): { text: string }; lines: number },
-    lineNum: number,
-): { start: number; end: number } | null {
-    const lineObj = doc.line(lineNum);
-    if (!TABLE_RE.test(lineObj.text)) return null;
-
-    let start = lineNum;
-    while (start > 1 && TABLE_RE.test(doc.line(start - 1).text)) start--;
-
-    let end = lineNum;
-    while (end < doc.lines && TABLE_RE.test(doc.line(end + 1).text)) end++;
-
-    return { start, end };
-}
-
-export function getCellDocumentRange(
-    doc: { line(n: number): { from: number; text: string } },
-    tableFromLine: number,
-    row: number,
-    col: number,
-): { from: number; to: number; text: string } | null {
-    // row is 0-indexed within the table lines (0 = header, 1 = separator, 2+ = data)
-    const line = doc.line(tableFromLine + row);
-    const pipes = findCellBoundariesLocal(line.text);
-    if (col < 0 || col >= pipes.length - 1) return null;
-    const leftPipe = pipes[col]!;
-    const rightPipe = pipes[col + 1]!;
-    // Cell content is between leftPipe+1 and rightPipe (exclusive)
-    const rawContent = line.text.substring(leftPipe + 1, rightPipe);
-    // Trim leading/trailing space but track positions
-    const text = rawContent.trim();
-    if (text.length === 0) {
-        const mid =
-            line.from + leftPipe + 1 + Math.floor(rawContent.length / 2);
-        return { from: mid, to: mid, text: '' };
-    }
-    const leadingSpace = rawContent.match(/^\s*/)?.[0].length ?? 0;
-    const contentFrom = line.from + leftPipe + 1 + leadingSpace;
-    const contentTo = contentFrom + text.length;
-    return { from: contentFrom, to: contentTo, text };
 }
 
 /**

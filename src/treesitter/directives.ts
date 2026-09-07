@@ -94,7 +94,3 @@ export function applyDirective(
     if (!handler) return;
     handler(operands, metadata, captureId, captureNames);
 }
-
-export function clearCustomDirectives(): void {
-    customDirectives.clear();
-}

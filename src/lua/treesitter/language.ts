@@ -28,10 +28,6 @@ const langToFiletypes: LangFiletypeMap = new Map([
     ['html', new Set(['html'])],
 ]);
 
-export function getRegisteredLang(filetype: string): string | undefined {
-    return filetypeToLang.get(filetype);
-}
-
 export function injectLanguageApi(
     L: lua_State,
     tsTableIndex: number,
@@ -220,13 +216,4 @@ export function injectLanguageApi(
     lua.lua_setfield(L, langIndex, to_luastring('inspect'));
 
     lua.lua_setfield(L, tsTableIndex, to_luastring('language'));
-}
-
-export function resetLanguageRegistry(): void {
-    filetypeToLang.clear();
-    langToFiletypes.clear();
-    filetypeToLang.set('markdown', 'markdown');
-    filetypeToLang.set('html', 'html');
-    langToFiletypes.set('markdown', new Set(['markdown']));
-    langToFiletypes.set('html', new Set(['html']));
 }

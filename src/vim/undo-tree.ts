@@ -51,8 +51,6 @@ export interface NeovimUndoEntry {
     alt?: NeovimUndoEntry[];
 }
 
-export type UndoTreeCommandFn = () => UndoNode | null;
-
 export class UndoTree {
     private root: UndoNode;
     private current: UndoNode;
@@ -633,12 +631,4 @@ export class UndoTree {
         this.nodeMap.delete(node.seq);
         this.nodeCount -= 1;
     }
-}
-
-export function createOlderUndoCommand(undoTree: UndoTree): UndoTreeCommandFn {
-    return () => undoTree.navigateOlder();
-}
-
-export function createNewerUndoCommand(undoTree: UndoTree): UndoTreeCommandFn {
-    return () => undoTree.navigateNewer();
 }

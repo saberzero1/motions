@@ -32,12 +32,6 @@ function getEditMode(app: App): EditMode | null {
     return editMode;
 }
 
-export function getActiveTableEditor(app: App): TableEditor | null {
-    const editMode = getEditMode(app);
-    if (!editMode?.tableCell) return null;
-    return editMode.tableCell.table;
-}
-
 export function getActiveTableCell(app: App): TableCell | null {
     const editMode = getEditMode(app);
     if (!editMode?.tableCell) return null;
@@ -56,17 +50,6 @@ export function hasActiveTableCell(app: App): boolean {
     return editMode?.tableCell != null;
 }
 
-export function destroyActiveTableCell(app: App): void {
-    const editMode = getEditMode(app);
-    if (!editMode?.tableCell) return;
-    editMode.destroyTableCell();
-}
-
-export function isNativeTableEditorAvailable(app: App): boolean {
-    const editMode = getEditMode(app);
-    return editMode !== null;
-}
-
 export function getTableEditorFromWidgetEl(
     widgetEl: HTMLElement,
 ): TableEditor | null {
@@ -75,12 +58,6 @@ export function getTableEditorFromWidgetEl(
     const widget = cmTile?.widget as TableEditor | undefined;
     if (!widget || typeof widget.getCellAt !== 'function') return null;
     return widget;
-}
-
-export function isInLivePreview(app: App): boolean {
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) return false;
-    return view.getMode() === 'source' && !view.editMode.sourceMode;
 }
 
 // -- View-local EditMode access (split-view safe) --
@@ -100,22 +77,6 @@ export function getEditModeForView(view: EditorView): EditMode | null {
 }
 
 // -- TableEditor registry (WeakMap keyed by containerEl) --
-
-const tableEditorRegistry = new WeakMap<HTMLElement, TableEditor>();
-
-export function registerTableEditor(
-    containerEl: HTMLElement,
-    table: TableEditor,
-): void {
-    tableEditorRegistry.set(containerEl, table);
-}
-
-export function getTableEditorFromRegistry(
-    containerEl: HTMLElement,
-): TableEditor | null {
-    if (!containerEl.isConnected) return null;
-    return tableEditorRegistry.get(containerEl) ?? null;
-}
 
 export function findTableWidgetElement(
     view: EditorView,
@@ -141,13 +102,4 @@ export function findTableWidgetElement(
         }
     }
     return bestEl;
-}
-
-export function getTableEditorForPosition(
-    view: EditorView,
-    tableFrom: number,
-): TableEditor | null {
-    const widgetEl = findTableWidgetElement(view, tableFrom);
-    if (!widgetEl) return null;
-    return getTableEditorFromWidgetEl(widgetEl);
 }

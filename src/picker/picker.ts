@@ -34,10 +34,6 @@ export function getLastSession() {
     return lastSession;
 }
 
-export function clearLastSession(): void {
-    lastSession = null;
-}
-
 export class PickerModal extends Modal {
     static activeInstance: PickerModal | null = null;
     private didConfirm = false;

@@ -190,7 +190,3 @@ export function evaluatePredicate(
     const result = handler(operands, captures, source);
     return shouldMatch ? result : !result;
 }
-
-export function clearCustomPredicates(): void {
-    customPredicates.clear();
-}

@@ -650,14 +650,6 @@ function refocusEditor(app: App): void {
     }, 150);
 }
 
-export function createHintModeAction(
-    app: App,
-    hintChars?: string,
-    fontSize?: () => number,
-): () => void {
-    return createHintActions(app, hintChars, fontSize).activate;
-}
-
 function createHintAction(
     app: App,
     actionName: 'activate' | 'openNew' | 'yank' | 'close' | 'contextMenu',

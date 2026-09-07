@@ -269,10 +269,6 @@ class PickerAPIImpl implements PickerAPI {
 let apiInstance: PickerAPIImpl | null = null;
 let installed = false;
 
-export function getPickerAPI(): PickerAPI | null {
-    return apiInstance;
-}
-
 export function installPickerAPI(): PickerAPI {
     if (installed && apiInstance) return apiInstance;
 

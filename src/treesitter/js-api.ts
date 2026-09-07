@@ -1,10 +1,6 @@
 import type { EditorView } from '@codemirror/view';
-import type { Node, Tree } from 'web-tree-sitter';
+import type { Node } from 'web-tree-sitter';
 import { getTreeForView } from './tree-state';
-
-export function getTree(view: EditorView): Tree | null {
-    return getTreeForView(view);
-}
 
 export function getRootNode(view: EditorView): Node | null {
     return getTreeForView(view)?.rootNode ?? null;
@@ -18,16 +14,6 @@ export function getNodeAtPosition(
     const root = getRootNode(view);
     if (!root) return null;
     return root.descendantForPosition({ row, column: col });
-}
-
-export function getNamedNodeAtPosition(
-    view: EditorView,
-    row: number,
-    col: number,
-): Node | null {
-    const root = getRootNode(view);
-    if (!root) return null;
-    return root.namedDescendantForPosition({ row, column: col });
 }
 
 export function hasAncestorOfType(node: Node, type: string): boolean {
@@ -48,18 +34,6 @@ export function findAncestorOfType(node: Node, type: string): Node | null {
     return null;
 }
 
-export function isInsideNodeType(
-    view: EditorView,
-    row: number,
-    col: number,
-    type: string,
-): boolean {
-    const node = getNodeAtPosition(view, row, col);
-    if (!node) return false;
-    if (node.type === type) return true;
-    return hasAncestorOfType(node, type);
-}
-
 export function findContainingNodeOfType(
     view: EditorView,
     row: number,
@@ -70,44 +44,6 @@ export function findContainingNodeOfType(
     if (!node) return null;
     if (node.type === type) return node;
     return findAncestorOfType(node, type);
-}
-
-export type ScanDirection = 'forward' | 'backward';
-
-export function findNextNodeOfType(
-    view: EditorView,
-    row: number,
-    col: number,
-    type: string | string[],
-    direction: ScanDirection,
-): Node | null {
-    const root = getRootNode(view);
-    if (!root) return null;
-
-    const types = Array.isArray(type) ? type : [type];
-    const cursor = root.walk();
-    const results: Node[] = [];
-
-    let moved = cursor.gotoFirstChild();
-    while (moved) {
-        collectNodesOfType(cursor, types, results);
-        moved = cursor.gotoNextSibling();
-    }
-
-    if (direction === 'forward') {
-        for (const n of results) {
-            const sp = n.startPosition;
-            if (sp.row > row || (sp.row === row && sp.column > col)) return n;
-        }
-    } else {
-        for (let i = results.length - 1; i >= 0; i--) {
-            const n = results[i]!;
-            const sp = n.startPosition;
-            if (sp.row < row || (sp.row === row && sp.column < col)) return n;
-        }
-    }
-
-    return null;
 }
 
 function collectNodesOfType(
@@ -158,33 +94,6 @@ export function setJsApiModules(
     _queryModule = query;
 }
 
-export function queryCaptures(
-    view: EditorView,
-    querySource: string,
-    lang = 'markdown',
-): Array<{ name: string; node: Node }> {
-    const tree = getTreeForView(view);
-    if (!tree || !_runtimeModule || !_queryModule) return [];
-
-    const language = _runtimeModule.getLanguage(lang);
-    if (!language) return [];
-
-    const docText = view.state.doc.toString();
-
-    try {
-        const wrapper = new _queryModule.QueryWrapper(language, querySource);
-        const captures = wrapper.iterCaptures(tree.rootNode, docText);
-        const result = captures.map((c) => ({
-            name: c.captureName,
-            node: c.node,
-        }));
-        wrapper.delete();
-        return result;
-    } catch {
-        return [];
-    }
-}
-
 export function isTreeAvailable(view: EditorView): boolean {
     return getTreeForView(view) !== null;
 }
@@ -224,8 +133,4 @@ export function isInsideInlineNodeType(
     type: string,
 ): boolean {
     return findContainingInlineNodeOfType(view, row, col, type) !== null;
-}
-
-export function getNodeText(view: EditorView, node: Node): string {
-    return view.state.doc.sliceString(node.startIndex, node.endIndex);
 }

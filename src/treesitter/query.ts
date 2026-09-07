@@ -241,22 +241,3 @@ export class QueryWrapper {
         return result;
     }
 }
-
-const queryCache = new Map<string, QueryWrapper>();
-
-export function getCachedQuery(
-    language: Language,
-    source: string,
-    cacheKey: string,
-): QueryWrapper {
-    const existing = queryCache.get(cacheKey);
-    if (existing) return existing;
-    const wrapper = new QueryWrapper(language, source);
-    queryCache.set(cacheKey, wrapper);
-    return wrapper;
-}
-
-export function clearQueryCache(): void {
-    for (const q of queryCache.values()) q.delete();
-    queryCache.clear();
-}

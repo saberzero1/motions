@@ -1,8 +1,6 @@
 import { StateEffect, StateField, type Extension } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView } from '@codemirror/view';
 
-export type YankHighlightMode = 'off' | 'solid' | 'fade';
-
 interface YankHighlightPayload {
     ranges: { from: number; to: number }[];
     mode: 'solid' | 'fade';

@@ -120,10 +120,6 @@ export function resolveEditorPrototype(app: App): ScrollableMarkdownEditorCtor {
     return resolvedCtor;
 }
 
-export function resetEditorPrototype(): void {
-    resolvedCtor = null;
-}
-
 // -- Vim idle detection --
 
 /** Vim state shape used by {@link isVimIdle}. */

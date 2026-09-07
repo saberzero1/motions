@@ -31,6 +31,7 @@ npm run lint
 | `npm run lint`          | ESLint, including type-aware rules and unused **parameters** (`args: 'after-used'`) |
 | `npm run format:check`  | Prettier, pinned as a devDependency so CI and local agree                           |
 | `npm run lint:patterns` | `ast-grep scan` over `.ast-grep/rules/`                                             |
+| `npm run lint:deadcode` | `knip` — unreferenced files, exports, types, and dependencies                       |
 
 ### Pattern rules
 
@@ -49,6 +50,17 @@ node_modules/.bin/ast-grep scan --rule .ast-grep/rules/<rule>.yml
 ```
 
 A rule that has never been shown to catch a real defect is decoration. Two tree-sitter details cost real time when writing these: `has` matches only direct children unless you set `stopBy: end`, and `this.foo` yields a `property_identifier`, not an `identifier` — missing either silently halves a rule's recall.
+
+### Dead-code gate
+
+`knip.jsonc` configures the reachability analysis. Every ignore entry carries an inline reason; JSONC is used specifically so those reasons live next to what they exempt.
+
+Two limits are worth knowing before trusting it:
+
+- **It does not analyse class members.** A public method with zero call sites — the shape of the `destroyAll()` defect — is invisible to it. `tsc --noUnusedLocals` catches the `private` case only. There is currently no gate for the public case.
+- **Dynamically reached code looks dead.** Anything invoked by string name (a wdio `framework`/`reporters` entry) or through a test-only dynamic import needs an ignore entry with a reason, not deletion.
+
+When knip reports something, choose between three outcomes rather than defaulting to the allowlist: delete it, wire it up, or ignore it with a reason. An ignore entry without a real reason is how the gate stops meaning anything.
 
 ### Suppressions
 

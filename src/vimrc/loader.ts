@@ -13,7 +13,7 @@ import {
 import { setAnimatedCursorConfig } from '../vim/animated-cursor/config';
 import { setFoldopen } from '../vim/fold-sync';
 import { setCursorSuppressed } from '@replit/codemirror-vim';
-import { parseLine, parseVimrc } from './parser';
+import { parseVimrc } from './parser';
 import type { VimrcCommand } from './parser';
 import {
     isAbsolutePath,
@@ -851,46 +851,6 @@ export function registerVimrcExCommands(vim: VimApi): void {
             vim.handleEx(cm2, rest);
         });
     });
-}
-
-export async function resolveLeaderKey(
-    app: App,
-    leaderRegistry: LeaderRegistry,
-    customPath?: string,
-): Promise<void> {
-    const { path, found } = await resolveVimrcPath(app, customPath);
-    if (found) {
-        await resolveLeaderFromFile(app, path, leaderRegistry);
-    }
-}
-
-async function resolveLeaderFromFile(
-    app: App,
-    path: string,
-    leaderRegistry: LeaderRegistry,
-): Promise<void> {
-    const content = await readVimrcFile(app, path);
-    if (content === null) return;
-
-    for (const rawLine of content.split('\n')) {
-        const trimmed = rawLine.trim();
-        if (!trimmed || trimmed.startsWith('"')) continue;
-
-        const parsed = parseLine(trimmed);
-
-        if (
-            parsed?.type === 'let' &&
-            parsed.key === 'mapleader' &&
-            parsed.value
-        ) {
-            leaderRegistry.setLeaderKey(parsed.value);
-            continue;
-        }
-
-        if (parsed?.type === 'source' && parsed.path) {
-            await resolveLeaderFromFile(app, parsed.path, leaderRegistry);
-        }
-    }
 }
 
 export interface VimrcLoadResult {

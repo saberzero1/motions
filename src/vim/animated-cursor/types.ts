@@ -43,12 +43,3 @@ export interface AnimatedCursorConfig {
     damping: number;
     maxLength: number;
 }
-
-/** Position cache entry from coordsAtPos. */
-export interface CachedPosition {
-    rect: CursorRect;
-    scrollTop: number;
-    scrollLeft: number;
-    timestamp: number;
-    docPos: number;
-}

@@ -469,7 +469,7 @@ export function unsupported(
     it.skip(`[UNSUPPORTED] ${description} — ${reason}`, fn);
 }
 
-export function deviation(
+function deviation(
     description: string,
     neovimBehavior: string,
     fn: () => Promise<void>,
@@ -652,7 +652,7 @@ export async function getLeaderBindings(): Promise<
     })) as Array<{ key: string; command: string; source: string }>;
 }
 
-export async function getLeaderKey(): Promise<string> {
+async function getLeaderKey(): Promise<string> {
     return (await browser.executeObsidian(({ app }) => {
         const plugin = (
             app as unknown as {

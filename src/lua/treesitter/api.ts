@@ -406,10 +406,3 @@ export function injectTreesitterApi(
     lua.lua_setfield(L, vimIndex, to_luastring('treesitter'));
     lua.lua_pop(L, 1);
 }
-
-export function clearTreesitterCache(): void {
-    for (const entry of parserCache.values()) {
-        entry.tree.delete();
-    }
-    parserCache.clear();
-}
