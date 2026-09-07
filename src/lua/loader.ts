@@ -32,6 +32,7 @@ import type { BufferKeymapManager } from './buffer';
 import { AutocmdManager } from './autocmd';
 import { injectVimFn } from './fn';
 import { injectUiApi } from './ui-api';
+import { searchBufferLines } from './vim-search';
 import {
     DecorationProviderManager,
     setActiveDecorationProviderManager,
@@ -1541,101 +1542,17 @@ export async function loadInitLua(
             const view = app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return null;
             const editor = view.editor;
-            const lineCount = editor.lineCount();
-
-            try {
-                const re = new RegExp(pattern);
-                const backward = flags.includes('b');
-                const wrapScan = !flags.includes('W');
-
-                if (!backward) {
-                    const startLine = cursorLine - 1;
-                    const startCol = flags.includes('c')
-                        ? cursorCol - 1
-                        : cursorCol;
-                    const maxLine =
-                        stopline !== null
-                            ? Math.min(stopline - 1, lineCount - 1)
-                            : lineCount - 1;
-
-                    for (let i = startLine; i <= maxLine; i++) {
-                        const line = editor.getLine(i);
-                        const searchFrom = i === startLine ? startCol : 0;
-                        const sub = line.substring(searchFrom);
-                        const m = re.exec(sub);
-                        if (m) {
-                            return {
-                                line: i + 1,
-                                col: searchFrom + m.index + 1,
-                            };
-                        }
-                    }
-
-                    if (wrapScan && stopline === null) {
-                        for (let i = 0; i < startLine; i++) {
-                            const line = editor.getLine(i);
-                            const m = re.exec(line);
-                            if (m) {
-                                return { line: i + 1, col: m.index + 1 };
-                            }
-                        }
-                    }
-                } else {
-                    const startLine = cursorLine - 1;
-                    const minLine =
-                        stopline !== null ? Math.max(stopline - 1, 0) : 0;
-
-                    for (let i = startLine; i >= minLine; i--) {
-                        const line = editor.getLine(i);
-                        const searchUpTo =
-                            i === startLine ? cursorCol - 1 : line.length;
-                        const sub = line.substring(0, searchUpTo);
-                        let lastMatch: RegExpExecArray | null = null;
-                        const globalRe = new RegExp(pattern, 'g');
-                        let m: RegExpExecArray | null;
-                        while ((m = globalRe.exec(sub)) !== null) {
-                            lastMatch = m;
-                            if (
-                                !globalRe.lastIndex ||
-                                globalRe.lastIndex === m.index
-                            ) {
-                                break;
-                            }
-                        }
-                        if (lastMatch) {
-                            return { line: i + 1, col: lastMatch.index + 1 };
-                        }
-                    }
-
-                    if (wrapScan && stopline === null) {
-                        for (let i = lineCount - 1; i > startLine; i--) {
-                            const line = editor.getLine(i);
-                            let lastMatch: RegExpExecArray | null = null;
-                            const globalRe = new RegExp(pattern, 'g');
-                            let m: RegExpExecArray | null;
-                            while ((m = globalRe.exec(line)) !== null) {
-                                lastMatch = m;
-                                if (
-                                    !globalRe.lastIndex ||
-                                    globalRe.lastIndex === m.index
-                                ) {
-                                    break;
-                                }
-                            }
-                            if (lastMatch) {
-                                return {
-                                    line: i + 1,
-                                    col: lastMatch.index + 1,
-                                };
-                            }
-                        }
-                    }
-                }
-            } catch {
-                // Invalid regex
-            }
-
-            return null;
+            return searchBufferLines(
+                {
+                    lineCount: () => editor.lineCount(),
+                    getLine: (index) => editor.getLine(index),
+                },
+                pattern,
+                flags,
+                cursorLine,
+                cursorCol,
+                stopline,
+            );
         },
         getLastVisualMode: () => {
             const view = app.workspace.getActiveViewOfType(MarkdownView);
