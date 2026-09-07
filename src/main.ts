@@ -346,6 +346,7 @@ export default class VimMotionsPlugin extends Plugin {
     private hintWindowDocs = new Set<Document>();
     private initializing = true;
     private vimExtensionSlot: Extension[] = [];
+    private treesitterExtensionSlot: Extension[] = [];
     private toggleInProgress = false;
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
@@ -687,6 +688,40 @@ export default class VimMotionsPlugin extends Plugin {
         this.captureConfigOverrides();
     }
 
+    /**
+     * Installs the treesitter CM6 bridge once its grammar is loaded.
+     *
+     * The bridge's ViewPlugin calls `getOrCreateParser` in its constructor, and
+     * that throws when the language has not finished loading — which would take
+     * down every editor view. So the extension is pushed into its slot only
+     * after `loadLanguage` resolves, using the same mutable-array-plus-
+     * `updateOptions()` swap the vim toggle uses.
+     *
+     * Until this resolves, `getTreeForView` returns null and every consumer
+     * takes the Lezer or regex path it already had. That is also what happens
+     * permanently if the WASM fails to load, which is why the failure is a
+     * warning rather than a thrown error.
+     */
+    private async enableTreesitterBridge(): Promise<void> {
+        try {
+            const { loadLanguage } = await import('./treesitter/runtime');
+            await loadLanguage('markdown');
+
+            const { createBridgeExtension } =
+                await import('./treesitter/bridge');
+            this.treesitterExtensionSlot.push(
+                createBridgeExtension('markdown'),
+            );
+            this.app.workspace.updateOptions();
+        } catch (err) {
+            console.warn(
+                'Vim Motions: treesitter bridge unavailable; ' +
+                    'syntax-aware paths will use their fallbacks:',
+                err,
+            );
+        }
+    }
+
     async onload() {
         await this.loadSettings();
         this.activeUndoFilePath =
@@ -795,6 +830,8 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registerEditorExtension(this.vimExtensionSlot);
+        this.registerEditorExtension(this.treesitterExtensionSlot);
+        void this.enableTreesitterBridge();
 
         const builtinVimOn = isBuiltinVimEnabled(this.app);
         if (this.settings.vimEnabled && !builtinVimOn) {
