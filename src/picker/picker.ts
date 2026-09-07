@@ -40,6 +40,7 @@ export function clearLastSession(): void {
 
 export class PickerModal extends Modal {
     static activeInstance: PickerModal | null = null;
+    private didConfirm = false;
 
     private matcher: PickerMatcher;
     private source: PickerSource;
@@ -507,6 +508,9 @@ export class PickerModal extends Modal {
             this.frecencyStore.recordAccess(item.id);
             this.options?.onFrecencyUpdate?.();
         }
+        // Set before close(): close() synchronously invokes onClose(), which
+        // reads this flag to decide whether the picker was cancelled.
+        this.didConfirm = true;
         this.close();
         window.setTimeout(() => {
             try {
@@ -697,8 +701,13 @@ export class PickerModal extends Modal {
         });
     }
 
+    static closeActive(): void {
+        PickerModal.activeInstance?.close();
+    }
+
     onClose(): void {
         PickerModal.activeInstance = null;
+        if (!this.didConfirm) this.options?.onCancel?.();
         lastSession = {
             source: this.source.name,
             query: this.inputEl?.value ?? '',

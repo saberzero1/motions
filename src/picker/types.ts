@@ -61,6 +61,14 @@ export interface PickerOptions {
     query?: string;
     resumeSelectedId?: string;
     onFrecencyUpdate?: () => void;
+    /**
+     * Fires exactly once when the picker closes WITHOUT a selection.
+     *
+     * On the `onSelect` path this must not fire: `confirmSelection` closes the
+     * modal before dispatching the selection, so `onClose` runs first and a
+     * naive "close means cancel" reading would report both.
+     */
+    onCancel?: () => void;
 }
 
 export interface PickerMatcher {
