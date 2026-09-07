@@ -1117,9 +1117,31 @@ Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across a
 
 `getModeState()` returns global state reflecting the most recent mode event from any view, not per-view state. `vim.obsidian.mode()` reads the active leaf's mode, not the event source's mode — if a popover fires `InsertEnter`, `vim.obsidian.mode()` may still return `'n'` if the active leaf is in normal mode.
 
+### Decoration provider is a coalesced approximation
+
+`nvim_set_decoration_provider` supports `on_start`, `on_buf`, `on_win`, and `on_end`. `on_line` and `on_range` are **not** implemented and raise a Lua error at registration — CodeMirror has no per-visible-line redraw callback, and silently accepting them would let a plugin believe its per-line decorations were drawn.
+
+`ephemeral = true` extmarks raise an error for the same reason: without a real redraw cycle they would persist, accumulating stale decorations.
+
+The cycle runs once per animation frame after a document, viewport, geometry, selection, or focus change, so it lags Neovim by up to one frame. It runs only in bundled fork mode; with Obsidian's built-in vim mode the whole Lua CodeMirror extension set (including extmarks) is not registered. Providers see a single window and buffer, both handle `0`.
+
+### `vim.ui_attach` is not implemented
+
+`vim.ui.select`, `input`, `open`, and `progress_status` are available. `vim.ui_attach`/`vim.ui_detach` are not, and are deliberately absent rather than stubbed.
+
+`ext_messages` is an ownership _transfer_, not a subscription: a UI that attaches takes over rendering, and Neovim stops. A partial event stream would therefore cause a consumer such as noice.nvim to suppress real notifications and render nothing in their place — invisible message loss, which is worse than the feature being missing. Even a complete stream would not deliver noice, which renders into floating windows that remain stubs.
+
+`vim.ui.open` is desktop-only; on mobile it returns `nil, errmsg`, which is Neovim's own no-handler shape. `opts.cmd` is rejected.
+
+### Extmark priority does not control visual precedence### Extmark priority does not control visual precedence
+
+`nvim_buf_set_extmark`'s `priority` orders overlapping decorations deterministically, but does not decide which one is rendered innermost. CodeMirror 6 mark decorations have no z-index, and `Decoration.set(ranges, true)` re-sorts the input, so CM6's comparator has the final say on nesting. Two overlapping `hl_group` marks therefore render in a stable, priority-derived order, but the higher-priority group is not guaranteed to be the visible one. Plugins that layer highlights (flash.nvim layers backdrop / match / label / cursor) may show the wrong colour on overlap.
+
+`sign_text`, `conceal`, `hl_mode`, `virt_lines`, and `url` are modelled or absent and are not populated from Lua.
+
 ### `vim.fn.*` subset
 
-65 Neovim `vim.fn.*` functions are implemented. See `docs/configuration/lua-config.md` for the full list. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported `vim.fn.*` functions produce an error listing the available set. `vim.fn.line('.')`, `vim.fn.col('.')`, and `vim.fn.getline('.')` return 0/empty at config-load time and are only meaningful inside function callbacks.
+84 Neovim `vim.fn.*` functions are implemented. See `docs/configuration/lua-config.md` for the full list. Additionally, `vim.notify(msg)` shows an Obsidian notification. Unsupported `vim.fn.*` functions produce an error listing the available set. `vim.fn.line('.')`, `vim.fn.col('.')`, and `vim.fn.getline('.')` return 0/empty at config-load time and are only meaningful inside function callbacks.
 
 ### Hybrid loading
 
@@ -1194,7 +1216,7 @@ Fengari fork adds +201KB minified / +65KB gzipped (reduced from +238KB / +79KB a
 
 ### vim.fn functions not yet implemented
 
-79 `vim.fn` functions have real implementations, including `getwininfo()` for active-editor viewport geometry. The following functions are not yet available. They are feasible to implement but have limited applicability in Obsidian's single-buffer editing model or are niche:
+84 `vim.fn` functions have real implementations, including `getwininfo()` and `wincol()` for active-editor viewport geometry, and `strchars()`/`charidx()`/`byteidx()` for Vim-accurate Unicode index conversion. The following functions are not yet available. They are feasible to implement but have limited applicability in Obsidian's single-buffer editing model or are niche:
 
 | Function                              | Notes                                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------------------ |

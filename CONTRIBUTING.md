@@ -203,8 +203,8 @@ src/
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry)
     package.ts             # package table, sandboxed load(), Lua-implemented require()
     loader.ts              # .obsidian.init.lua loader; replaces iterator stub, awaits treesitter/query preloading, normalizes returned option Errors
-    api.ts                 # vim.keymap, vim.opt, vim.o/vim.go, shared operatorfunc routes, vim.g, vim.v, vim.cmd, vim.notify, vim.api (60 real nvim_* implementations: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI, current-buffer/window calls, non-floating window config), vim.plugins (add/list with auto-fetch support)
-    fn.ts                  # vim.fn.* function library (79 real implementations, including getwininfo)
+    api.ts                 # vim.keymap, vim.opt, vim.o/vim.go, shared operatorfunc routes, vim.g, vim.v, vim.cmd, vim.notify, vim.api (63 real nvim_* implementations: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI, current-buffer/window calls, non-floating window config), vim.plugins (add/list with auto-fetch support)
+    fn.ts                  # vim.fn.* function library (84 real implementations, including getwininfo, wincol, winlayout, strchars/charidx/byteidx)
     iter.ts                # Embedded Lua iterator implementation (26 methods)
     on-key.ts              # vim.on_key namespace registry, dispatch, teardown
     termcodes.ts           # Neovim key-byte encoder and fork-boundary decoder

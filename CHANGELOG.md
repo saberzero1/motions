@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`vim.ui.select` and `vim.ui.input`** — Neovim's UI-hook namespace, backed by the existing Telescope-style picker and input modal. `vim.ui` is a plain mutable table with **no metatable**, so dressing.nvim / telescope-ui-select / snacks can replace and restore its fields, which is the idiom the namespace exists for. Both are **non-blocking**: they return immediately and invoke their callback later on a coroutine thread, so they work from inside a `vim.keymap.set` callback — the most common call site, where a yield-based design would hard-error. `on_choice` receives the **original Lua value** (items are commonly tables) plus a 1-based index; `on_confirm` distinguishes `''` (empty confirm) from `nil` (cancel). `format_item` is applied eagerly, matching Neovim's own default implementation.
+    - Plugin: `src/lua/ui-api.ts` (new), `src/lua/loader.ts` (injection + wiring), `src/main.ts` (`openUiSelect` picker binding)
+    - Where no selection UI is available, `vim.ui.select` raises rather than settling with `nil` — a caller cannot distinguish a `nil` settle from "the user cancelled".
+    - `vim.ui.open(path, opts?)` opens `http(s)://` targets in a new window and everything else with the system handler, returning Neovim's `vim.SystemObj|nil, nil|string` shape. On mobile, or with no handler, `nil, errmsg` is the _correct_ answer rather than a fudge. `opts.cmd` is rejected outright — arbitrary command execution is against the plugin's security posture.
+    - `vim.ui.progress_status()` returns `''`, which is exactly what Neovim returns when no progress is active.
+    - An open picker is closed before the Lua state is destroyed, so a late selection cannot invoke into a closed `lua_State`.
+    - Design validated before implementation by `test/specs/spikes/spike-ui-callback-context.e2e.ts`, which proves a keymap callback cannot yield but a callback it schedules can.
+
+- **Picker reports cancellation** — `PickerOptions.onCancel` fires exactly once when the picker closes without a selection, and `PickerModal.closeActive()` closes a live picker. Needed by any caller that must distinguish "chose nothing" from "chose something", such as a Neovim-style `vim.ui.select`. `confirmSelection` closes the modal _before_ dispatching the selection, so `onClose` runs first; a `didConfirm` flag set synchronously before `close()` keeps a successful selection from also reporting a cancel.
+    - Plugin: `src/picker/picker.ts` (`didConfirm`, `onClose` cancel dispatch, `closeActive`), `src/picker/types.ts` (`onCancel`)
+
+- **`nvim_set_decoration_provider(ns, opts)`** — real implementation of Neovim's per-redraw decoration callbacks (`on_start` → `on_buf` → `on_win` → `on_end`), backed by a CodeMirror `ViewPlugin` that coalesces work into one `requestAnimationFrame` per frame rather than dispatching from inside `update()` (which CodeMirror rejects). Guarded by a transaction annotation, a re-entrancy flag, a per-view rAF handle, a runtime generation counter, a 100k instruction limit per callback, and a fault counter that disables a provider after 8 consecutive errors. `on_win` returning `false` skips the rest of that provider's cycle, matching Neovim.
+    - Plugin: `src/lua/decoration-provider.ts` (new — manager + CM6 extension), `src/lua/api.ts` (handler), `src/lua/loader.ts` (wiring + `registerStateCleanup`), `src/main.ts` (extension registration)
+    - `on_line` and `on_range` raise a Lua error naming the unsupported key rather than being silently accepted; `ephemeral` extmarks likewise. Erroring is closer to Neovim than silently persisting, and avoids the accumulating-stale-decoration failure.
+    - Mechanism validated before implementation by `test/specs/spikes/spike-decoration-provider-raf.e2e.ts` (Phase 0b): 7 assertions including two negative controls that reproduced the re-entrancy error and a synthetic feedback loop.
+
+- **Extmark `hl_eol`, `strict`, and priority ordering** — `nvim_buf_set_extmark` now parses `hl_eol` (extends the highlight to the end of the line containing the range end) and `strict` (out-of-range positions clamp instead of dropping the mark). Overlapping marks are ordered by `priority`, deterministically and independently of insertion order.
+    - Plugin: `src/lua/api.ts` (opts parsing), `src/lua/extmarks.ts` (`hlEol`/`strict` in `ExtmarkOpts`, line-aware `buildDecorations`, priority-aware sort)
+    - Known gap: `priority` orders decorations but does not yet decide which wins _visually_ — CM6 marks carry no z-index and `Decoration.set(..., true)` re-sorts. Recorded in `KNOWN_LIMITATIONS.md`.
+
+- **Indexed scope access: `vim.bo[buf]`, `vim.b[buf]`, `vim.wo[win]`, `vim.w[win]`, `vim.t[tab]`** — Neovim allows both `vim.bo.filetype` and `vim.bo[bufnr].filetype`, and plugin code uses the indexed form freely. Our proxies accepted string keys only, so an indexed access resolved to `nil` and the caller failed with `attempt to index a nil value`. A numeric or nil key is now validated as handle `0` and returns the scope table. This closed the last of three blockers preventing flash.nvim from rendering: `flash/cache.lua` reads `vim.bo[buf].filetype` and `vim.b[buf].changedtick`, and with both fixed `flash.state.new{...}` completes and writes extmarks into the document.
+    - Plugin: `src/lua/api.ts` (`isScopeHandleKey`, indexed branch on all five scope proxies)
+
+- **`nvim_list_bufs()` and `nvim_tabpage_list_wins()`** — both previously warn-once stubs returning an empty list, which is never a valid answer: there is always at least the current buffer and window. Each now returns `{0}`, consistent with `nvim_list_wins()` and the current-handle APIs. `nvim_tabpage_list_wins` validates its argument through a new `requireTabpageZero` guard. Measured impact: flash.nvim's `Cache:_update_wins()` overwrites `state.wins` with the filtered result of `nvim_tabpage_list_wins`, so an empty list left it with zero windows, zero matches, and nothing rendered.
+    - Plugin: `src/lua/api.ts` (`requireTabpageZero`, both implementations, promoted into `SUPPORTED_NVIM_API_FUNCTIONS`)
+
+- **Unicode index conversion for `vim.fn`** — `strchars(s, skipcc?)`, `charidx(s, byteidx, countcc?)`, and `byteidx(s, nr)` convert between UTF-8 byte offsets and Vim character indices. `strchars` counts composing marks separately unless `skipcc` is set; `charidx` and `byteidx` fold them into the preceding base character, matching Vim. All three are on flash.nvim's default label-positioning path.
+    - Plugin: `src/lua/fn.ts` (`buildCharSpans` byte-span mapping, three registrations)
+- **`vim.fn.wincol()` and `vim.fn.winlayout()`** — `wincol()` reports the cursor's screen column measured from the window edge, so the gutter counts, derived from CodeMirror geometry with a cursor-column fallback when geometry is unmeasurable. `winlayout()` reports a single leaf whose window handle matches `nvim_list_wins()`. `wincol` is on leap.nvim's search path; `winlayout` is on flash.nvim's window-layout save path.
+    - Plugin: `src/lua/window-info.ts` (`getCursorWinCol`), `src/lua/fn.ts` (registrations)
+- **Window-local option scope (`vim.wo`)** — replaces the warn-and-return-`nil` placeholder with a real proxy. `wrap` reports CodeMirror's line-wrapping state; writes shadow the resolved value; every other key falls back to the global scope, matching Neovim where an unset `:setlocal` value resolves to the global one. Required by leap.nvim's core search loop.
+    - Plugin: `src/lua/api.ts` (`readWindowOption`, window-option shadow, `vim.wo` proxy), `src/lua/loader.ts` (`getWindowOption` callback)
+- **`vim.bo.iminsert` and `vim.bo.fileformat`** — buffer-local options read by flash.nvim and leap.nvim on every invocation, and by nvim-surround.
+    - Plugin: `src/lua/loader.ts` (`getBufferOption` cases)
+
+### Fixed
+
+- **`vim.bo` writes were silently discarded** — `setBufferOption` was an empty function, so every `vim.bo.x = y` assignment did nothing and the next read returned the computed default. Writes now round-trip through a per-file shadow store, and `expandtab`, `shiftwidth`, `softtabstop`, `tabstop`, and `textwidth` are forwarded to the vim engine. Plugins that save and restore a buffer-local option around an operation now observe their own value.
+    - Plugin: `src/lua/api.ts` (`readBufferOption`/`writeBufferOption` shadow store), `src/lua/loader.ts` (`ENGINE_BACKED_BUFFER_OPTIONS` forwarding)
+- **Guarded `nvim__redraw` probes crashed instead of degrading** — the `vim.api` dispatch metatable raises on property _read_ for unregistered names, so flash.nvim's `if vim.api.nvim__redraw then` and leap.nvim's `pcall(vim.api.nvim__redraw, ...)` both errored at the guard itself rather than falling back. Added a third dispatch tier, `ABSENT_NVIM_API_FUNCTIONS`, whose members read as `nil`: not raising (which crashes the probe) and not a warn-once stub (which is truthy, so flash would take the branch meant for hosts that have the API and silently lose the cursor highlight its `else` branch draws via `nvim_buf_set_extmark`). `nil` is also what leap's `pcall` expects on a Neovim build without the API.
+    - Plugin: `src/lua/api.ts` (`ABSENT_NVIM_API_FUNCTIONS`, dispatch metatable)
+- **Command-line, history, and mapping probes raised instead of degrading** — `getcmdline`, `setcmdline`, `getcmdpos`, `getcmdwintype`, `wildmenumode`, `complete_info`, `histadd`, `histdel`, and `mapset` were unregistered, so calls raised a Lua error. Registered as warn-once stubs. For the read-only probes the placeholder is exactly what Neovim returns when no command line, wildmenu, or completion popup is active.
+    - Plugin: `src/lua/fn.ts` (stub sets, new `voidReturnFns` set for `mapset`)
+
 - **Lua iterator pipelines** — real `vim.iter` for list-like tables, map-like tables, iterator functions, and callable tables, with 26 methods. `rpop`, `count`, and `size` are extensions beyond Neovim 0.12; `size()` requires a list source and raises on function sources.
     - Plugin: `src/lua/iter.ts` (embedded Lua implementation), `src/lua/loader.ts` (inject after namespace stubs)
 - **Physical key observation** — `vim.on_key(fn, ns?)` registers, replaces, and removes namespace-scoped callbacks and returns the namespace ID. Observation is pre-mapping, not Neovim's post-mapping hook: both arguments contain the same physical input, mapped expansions/programmatic `feedkeys` are not separately observed, and return values cannot discard keys.
@@ -65,6 +109,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 11 e2e cases in `test/specs/lua-vim-ui.e2e.ts` for `vim.ui` (overridability, E7 keymap-callback invocation, non-blocking return, `input` cancel vs empty confirm, `open` contract, reload-while-open teardown, and P1–P4 of the third-party override idiom via `test-vault/lua/uiselect_shim.lua`); 4 unit cases in `test/unit/picker/picker-cancel.test.ts`; 12 in `test/unit/lua/decoration-provider.test.ts`; 6 in `test/unit/lua/extmarks.test.ts`; 4 in `test/unit/lua/api-compat.test.ts`.
+
+- 11 unit tests in `test/unit/lua/fn.test.ts` (Unicode index conversion, `wincol`/`winlayout` geometry and fallbacks, plugin-facing stub degradation, `nvim__redraw` guard survival) and `test/unit/lua/api.test.ts` (`vim.bo` write round-trip, `vim.wo` callback/global-fallback/shadow resolution)
+
 - New unit suites: `test/unit/lua/api-compat.test.ts`, `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts`, and `plugin-query-fetch.test.ts`. Covers option routes, current handles, iterator semantics, observer lifecycle, byte conversion, real WASM query compilation, resolution/modelines, plugin isolation, cache lifecycle, and limits.
 - Four `getwininfo` cases added to `test/unit/lua/fn.test.ts`; corrected `test/unit/lua/api.test.ts` to expect `"\r"`, not `"<CR>"`, from `nvim_replace_termcodes`.
 - 20 unit tests in `test/unit/lua/extmarks.test.ts` for extmark engine (set, get, delete, clear, virtual text, position tracking, range queries)
@@ -74,11 +122,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1 updated test in `test/unit/lua/highlight.test.ts` for `nvim_create_namespace` unique IDs
 - 22 unit cases in `test/unit/jumplist.test.ts` for unresolvable-entry traversal: both directions past one and several consecutive dead entries, all-dead history, index unchanged on exhaustion, peek consistency, count clamping, and large counts terminating in the current file.
 - Rewrote the deleted-file case in `test/specs/jump-list.e2e.ts`. It previously opened fixtures via `obsidianPage.openFile()`, which does not record a plugin jump, so the scenario was never established and the assertion resolved against history leaked from earlier specs — making it order-dependent and passing for the wrong reasons. It now clears inherited history, navigates with `gd` (which does record), asserts the exact `[A, B]` history before deleting, and deterministically verifies the entry is gone. New fixtures: `test-vault/fixtures/jump-list/`.
-- Current unit-test snapshot: 102 files, 1974 passed, 6 skipped.
+- Current unit-test snapshot: 102 files, 1987 passed, 6 skipped.
 
 ### Documentation
 
 - `CHANGELOG.md`
+- `NEOVIM_API_STATUS.md`: corrected registration totals (60/97/157 for `vim.api`, 84/46/130 for `vim.fn`), reclassified the "Unlisted API surface" table with verified plugin reachability (REQUIRED/OPTIONAL/GUARD), documented why an unregistered name is worse than a stub, corrected the stale `vim.o.eventignore`/`selection`/`cmdheight`/`columns`/`cpo` rows that contradicted the documented resolution order, and refreshed the "Next candidates" matrix
+- `AGENTS.md`: `vim.bo` option set, new `vim.wo` scope, `vim.fn` count
+- `CONTRIBUTING.md`: `fn.ts` description and count
+- `README.md`: `vim.fn` count
+- `KNOWN_LIMITATIONS.md`: reconciled two contradictory `vim.fn` counts (65 and 79) against the authoritative registry total
+- `docs/configuration/lua-config.md`: new `vim.fn` rows, `vim.bo` table additions and write semantics, new "Window-local options (`vim.wo`)" section, registered-surface counts
 - `AGENTS.md`: API counts (60/79), all eight compatibility modules, injection/teardown and query loading architecture, test coverage; retains prior extmark/API documentation.
 - `CONTRIBUTING.md`: synchronized source tree, API counts, compatibility boundaries, and unit-test conventions.
 - `KNOWN_LIMITATIONS.md`: corrected termcodes and `.scm` blocker, corrected the overstated mini.ai claim, documented pre-mapping observation, iterator extensions, query limits/reloads/re-fetching, and remaining Treesitter integration gaps; updated API counts/list; documented navigation-time skipping of unresolvable jump-list entries.
