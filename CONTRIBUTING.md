@@ -241,6 +241,7 @@ src/
     engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync, cleanup before Lua close
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry); isAsyncCapable() reports whether a state may yield; awaits carry an onAbandon release for timeout/teardown
     key-broker.ts          # Single owner of the getcharstr/getchar key listener and intercept lease; FIFO delivery, abortable
+    ../util/key-capture.ts # Single owner for modal key capture (EasyMotion, flash, hint mode); {promise, abort}
     package.ts             # package table, sandboxed load(), Lua-implemented require() resolving from the module snapshot across all search roots
     module-snapshot.ts     # In-memory Lua sources for every search root so require() resolves synchronously; limits reported, not silent
     loader.ts              # .obsidian.init.lua loader; replaces iterator stub, awaits treesitter/query and Lua module snapshot preloading, normalizes returned option Errors

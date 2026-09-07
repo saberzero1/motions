@@ -107,6 +107,7 @@ npm run build
         named-queries.ts       # Named query precedence, lazy compilation, cache invalidation
       util/
         cleanup.ts             # runCleanups: exception-isolated disposal, continues past a failure
+        key-capture.ts         # Single owner of a modal keydown listener; releases on resolve, abort, and teardown
       workspace/
         key-observer.ts        # Physical key observation feeding vim.on_key
     ```
