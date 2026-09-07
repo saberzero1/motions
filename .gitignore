@@ -41,3 +41,5 @@ test-vault/lua/mini/
 # Sisyphus plans
 .sisyphus/
 .omc/
+test-vault/lua/flash/
+!test-vault/lua/uiselect_shim.lua
