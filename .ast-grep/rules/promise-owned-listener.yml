@@ -1,0 +1,40 @@
+id: promise-owned-listener
+language: typescript
+severity: error
+message: Event listener is owned by a Promise that may be abandoned.
+note: |
+    A listener installed inside a Promise executor is released only on the paths
+    that settle it. Nothing settles an abandoned Promise, so the listener — and
+    any global flag taken alongside it — outlives the wait and silently consumes
+    the user's next event.
+
+    This shipped in vim.fn.getcharstr(): the coroutine runner drops an await after
+    ten seconds, the executor's cleanup never ran, and the leaked capture listener
+    ate the next keystroke.
+
+    Give the caller a way to cancel, and release on that path too:
+
+        function wait(): { promise: Promise<T>; abort: () => void } { ... }
+
+    Precedent: src/lua/key-broker.ts owns one listener for all waiters and
+    releases it on resolution, abort, and teardown alike.
+files:
+    - 'src/**/*.ts'
+ignores:
+    - 'src/lib/fengari/**'
+rule:
+    pattern: $TARGET.addEventListener($$$ARGS)
+    inside:
+        stopBy: end
+        kind: new_expression
+        has:
+            stopBy: end
+            kind: identifier
+            regex: '^Promise$'
+    # An AbortSignal is released by whoever owns the controller, so a listener
+    # passed one is not orphaned by abandonment.
+    not:
+        has:
+            stopBy: end
+            kind: property_identifier
+            regex: '^signal$'

@@ -1,0 +1,51 @@
+id: unguarded-disposer-loop
+language: typescript
+severity: error
+message: Cleanup loop invokes disposers without isolating exceptions.
+note: |
+    One throwing disposer aborts the loop, so every later cleanup is skipped and
+    any work after the loop never runs. This shipped in destroyState, where a
+    throwing cleanup would also have skipped lua_close and leaked the whole Lua
+    state.
+
+    Wrap the invocation in try/catch so each disposer runs independently:
+
+        for (const cleanup of cleanups) {
+            try {
+                cleanup();
+            } catch (err) {
+                console.error('Vim Motions: cleanup failed:', err);
+            }
+        }
+
+    Precedent: src/vim/registration.ts and src/lua/buffer.ts already isolate.
+files:
+    - 'src/**/*.ts'
+ignores:
+    - 'src/lib/fengari/**'
+rule:
+    any:
+        # for (const x of <cleanup-ish>) x();  — single unprotected statement
+        - pattern: 'for (const $D of $$$) $D();'
+        - pattern: |
+              for (const $D of $$$) {
+                $D();
+              }
+        # <cleanup-ish>.forEach(d => d())
+        - pattern: '$$$.forEach($D => $D())'
+        - pattern: |
+              $$$.forEach($D => {
+                $D();
+              })
+    # Only loops over collections whose name says they hold disposers. Keeps the
+    # rule precise: iterating callbacks to *notify* them is a different thing.
+    # `stopBy: end` because the collection is often a member expression
+    # (`this.cleanups`), which puts the name below the direct children — and it
+    # is a `property_identifier` there, not an `identifier`. Matching only one
+    # of the two kinds silently halves this rule's recall.
+    has:
+        stopBy: end
+        any:
+            - kind: identifier
+            - kind: property_identifier
+        regex: '(?i)(cleanup|disposer|dispose|unsubscribe|teardown|listener|handler)'

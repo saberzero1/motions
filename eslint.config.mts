@@ -46,6 +46,22 @@ export default defineConfig(
             reportUnusedDisableDirectives: 'off',
         },
         rules: {
+            // The preset sets `args: 'none'`, which is how a parameter that was
+            // accepted and then ignored while the behaviour it should have
+            // driven was hardcoded survived review (#177). `after-used` keeps
+            // leading placeholder parameters legal for fixed-arity foreign
+            // callbacks, while flagging a trailing parameter nothing consumes.
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    args: 'after-used',
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                    caughtErrors: 'all',
+                    caughtErrorsIgnorePattern: '^_',
+                    ignoreRestSiblings: true,
+                },
+            ],
             'import/no-nodejs-modules': [
                 'error',
                 {
@@ -117,6 +133,15 @@ export default defineConfig(
                 '@lezer/highlight',
                 '@lezer/lr',
             ],
+        },
+    },
+
+    {
+        // Vendored upstream code. Its unused parameters come from the Lua C API
+        // signatures it mirrors and are not ours to rename.
+        files: ['src/lib/fengari/**/*.ts'],
+        rules: {
+            '@typescript-eslint/no-unused-vars': 'off',
         },
     },
 );
