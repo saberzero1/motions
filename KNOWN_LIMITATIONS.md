@@ -1117,6 +1117,14 @@ Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across a
 
 `getModeState()` returns global state reflecting the most recent mode event from any view, not per-view state. `vim.obsidian.mode()` reads the active leaf's mode, not the event source's mode — if a popover fires `InsertEnter`, `vim.obsidian.mode()` may still return `'n'` if the active leaf is in normal mode.
 
+### Lua dialect: 5.3 here, LuaJIT (5.1) in Neovim
+
+Neovim documents Lua 5.1 as its permanent plugin interface; this runtime is fengari, a Lua 5.3 VM. Where 5.3 offers more than 5.1 (`utf8`, `string.pack`, an integer subtype, `__gc` on tables) the difference is harmless — plugins simply do not use it. What breaks plugins is the reverse: things LuaJIT has that 5.3 removed.
+
+Shimmed in `src/lua/engine.ts`: the global `unpack`, `loadstring`, `string.gfind`, `table.maxn`/`getn`, `coroutine.isyieldable`, a partial `jit` table, and the `bit` library.
+
+`getfenv`/`setfenv` remain stubs — `getfenv` returns `_G` and `setfenv` does nothing. They cannot be emulated faithfully in 5.3, which replaced the function-environment model with `_ENV`. A plugin relying on `setfenv` to sandbox a chunk will silently not be sandboxed.
+
 ### LuaJIT FFI is not available
 
 Neovim ships LuaJIT, so `require("ffi")` works there and plugin authors use it freely to reach internal C symbols the API does not expose. This runtime is fengari, a pure-Lua VM, so there is no FFI to provide and no way to implement one. `require("ffi")` and `require("jit")` fail with a message naming LuaJIT rather than reporting a file-read failure.

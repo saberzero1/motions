@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/api.ts` (opts parsing), `src/lua/extmarks.ts` (`hlEol`/`strict` in `ExtmarkOpts`, line-aware `buildDecorations`, priority-aware sort)
     - Known gap: `priority` orders decorations but does not yet decide which wins _visually_ — CM6 marks carry no z-index and `Decoration.set(..., true)` re-sorts. Recorded in `KNOWN_LIMITATIONS.md`.
 
+- **LuaJIT `bit` library** — Neovim runs LuaJIT, which Neovim documents as its permanent plugin interface, so plugins reach for `bit.band`/`bor`/`lshift` rather than Lua 5.3's native `&`/`|` operators. The library was absent entirely; it is now available with LuaJIT's semantics, including signed 32-bit results (`bit.bnot(0)` is `-1`, not `4294967295`) and the distinction between logical `rshift` and arithmetic `arshift`. Implemented arithmetically rather than with native operators: Lua 5.3's `&` requires an exact integer representation, and this VM widens integers to 53 bits, so a value arriving as a float raised "number has no integer representation".
+    - Plugin: `src/lua/engine.ts` (`luaCompatShims`)
+
 - **`require("ffi")` fails with an accurate message** — LuaJIT-only natives previously fell through to the module file read and surfaced whatever that failed with, which described the wrong problem. They now report that the module requires LuaJIT and that this runtime is a pure-Lua VM. Ordinary missing modules are unaffected.
     - Plugin: `src/lua/package.ts`
 

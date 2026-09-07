@@ -154,66 +154,95 @@ math.frexp = function(x)
 end
 math.ldexp = function(m, e) return m * 2^e end
 
--- LuaJIT bit library (wrapping Lua 5.3 native bitwise operators)
+-- LuaJIT's bit library. Neovim runs LuaJIT, so plugins use bit.band/bor/...
+-- rather than Lua 5.3's native & | operators. Every result is normalised to a
+-- SIGNED 32-bit integer, which is what LuaJIT returns: bit.bnot(0) is -1, not
+-- 4294967295.
+--
+-- Implemented with arithmetic rather than the native operators on purpose.
+-- Lua 5.3's & requires both operands to have an exact integer representation,
+-- and this VM widens integers to 53 bits, so a value that arrived as a float
+-- raises "number has no integer representation". Arithmetic sidesteps the
+-- integer subtype entirely; 32 iterations is irrelevant at these call rates.
 if not bit then
-    bit = {}
-    bit.band   = function(a, b) return a & b end
-    bit.bor    = function(a, b) return a | b end
-    bit.bxor   = function(a, b) return a ~ b end
-    bit.bnot   = function(a) return ~a end
-    bit.lshift = function(a, n) return (a << n) & 0xFFFFFFFF end
-    bit.rshift = function(a, n) return (a & 0xFFFFFFFF) >> n end
-    bit.arshift = function(a, n)
-        a = a & 0xFFFFFFFF
-        if a >= 0x80000000 then a = a - 0x100000000 end
-        if n >= 32 then return a < 0 and -1 or 0 end
-        return math.floor(a / 2^n)
+    local function norm(x)
+        x = tonumber(x) or 0
+        x = x >= 0 and math.floor(x) or -math.floor(-x)
+        x = x % 4294967296
+        if x >= 2147483648 then x = x - 4294967296 end
+        return x
     end
-    bit.rol = function(a, n)
-        a = a & 0xFFFFFFFF
-        n = n % 32
-        return ((a << n) | (a >> (32 - n))) & 0xFFFFFFFF
-    end
-    bit.ror = function(a, n)
-        a = a & 0xFFFFFFFF
-        n = n % 32
-        return ((a >> n) | (a << (32 - n))) & 0xFFFFFFFF
-    end
-    bit.tobit = function(a)
-        a = a & 0xFFFFFFFF
-        if a >= 0x80000000 then return a - 0x100000000 end
-        return a
-    end
-    bit.tohex = function(a, n)
-        n = n or 8
-        a = a & 0xFFFFFFFF
-        return string.format('%0' .. math.abs(n) .. (n > 0 and 'x' or 'X'), a)
-    end
-    bit.bswap = function(a)
-        a = a & 0xFFFFFFFF
-        return ((a & 0xFF) << 24) | (((a >> 8) & 0xFF) << 16) |
-               (((a >> 16) & 0xFF) << 8) | ((a >> 24) & 0xFF)
-    end
-end
+    local function u32(x) return norm(x) % 4294967296 end
 
--- LuaJIT jit.* stubs (no-op to prevent crashes)
-if not jit then
-    jit = {
-        on = function() end,
-        off = function() end,
-        flush = function() end,
-        status = function() return false end,
-        version = 'fengari',
-        version_num = 0,
-        os = 'Other',
-        arch = 'portable',
+    local function apply(a, b, f)
+        local r, place = 0, 1
+        a, b = u32(a), u32(b)
+        for _ = 1, 32 do
+            local abit, bbit = a % 2, b % 2
+            if f(abit, bbit) == 1 then r = r + place end
+            a = (a - abit) / 2
+            b = (b - bbit) / 2
+            place = place * 2
+        end
+        return norm(r)
+    end
+
+    local function variadic(f)
+        return function(x, ...)
+            local r = norm(x)
+            for i = 1, select('#', ...) do
+                r = apply(r, (select(i, ...)), f)
+            end
+            return norm(r)
+        end
+    end
+
+    local AND = function(a, b) return (a == 1 and b == 1) and 1 or 0 end
+    local OR = function(a, b) return (a == 1 or b == 1) and 1 or 0 end
+    local XOR = function(a, b) return a ~= b and 1 or 0 end
+
+    bit = {
+        tobit = norm,
+        band = variadic(AND),
+        bor = variadic(OR),
+        bxor = variadic(XOR),
+        bnot = function(x) return norm(-u32(x) - 1) end,
+        lshift = function(x, n)
+            n = n % 32
+            return norm(u32(x) * (2 ^ n))
+        end,
+        rshift = function(x, n)
+            n = n % 32
+            return norm(math.floor(u32(x) / (2 ^ n)))
+        end,
+        arshift = function(x, n)
+            n = n % 32
+            return norm(math.floor(norm(x) / (2 ^ n)))
+        end,
+        bswap = function(x)
+            local u = u32(x)
+            local b0 = u % 256
+            local b1 = math.floor(u / 256) % 256
+            local b2 = math.floor(u / 65536) % 256
+            local b3 = math.floor(u / 16777216) % 256
+            return norm(b0 * 16777216 + b1 * 65536 + b2 * 256 + b3)
+        end,
     }
-end
-
--- getfenv/setfenv stubs (removed in Lua 5.3, can't be perfectly emulated)
-if not getfenv then
-    getfenv = function() return _G end
-    setfenv = function() end
+    bit.rol = function(x, n)
+        n = n % 32
+        if n == 0 then return norm(x) end
+        local u = u32(x)
+        return norm((u * (2 ^ n)) % 4294967296 + math.floor(u / (2 ^ (32 - n))))
+    end
+    bit.ror = function(x, n) return bit.rol(x, 32 - (n % 32)) end
+    bit.tohex = function(x, n)
+        n = n or 8
+        local upper = n < 0
+        n = math.min(math.abs(n), 8)
+        local s = string.format('%08x', u32(x))
+        s = s:sub(-n)
+        return upper and s:upper() or s
+    end
 end
 
 -- coroutine.isyieldable (not in 5.1)
