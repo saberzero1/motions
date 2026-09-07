@@ -235,4 +235,32 @@ describe('flash.nvim render diagnostic (Phase 0)', function () {
         expect(probe.preload_failed).toEqual([]);
         expect(probe.multiwin).toBe(true);
     });
+
+    it('reports LuaJIT-only natives as unavailable, not as a read failure', async function () {
+        await loadLuaConfig(
+            [
+                `local ok_ffi, err_ffi = pcall(require, 'ffi')`,
+                `local ok_jit, err_jit = pcall(require, 'jit')`,
+                `local ok_real, err_real = pcall(require, 'no_such_module_xyz')`,
+                `result = table.concat({`,
+                `  tostring(ok_ffi),`,
+                `  tostring(err_ffi):find('requires LuaJIT') and 'named' or 'unnamed',`,
+                `  tostring(ok_jit),`,
+                `  tostring(ok_real),`,
+                `  tostring(err_real):find('requires LuaJIT') and 'wrong' or 'ok',`,
+                `}, '|')`,
+                `vim.keymap.set('n', 'Q', function()`,
+                `  vim.api.nvim_buf_set_lines(0, 0, -1, false, { result })`,
+                `end)`,
+            ].join('\n'),
+        );
+        await setupEditor('x\n', { line: 0, ch: 0 });
+        await vimRawKeys('Q');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        // ffi and jit fail with a message naming LuaJIT; an ordinary missing
+        // module still reports as a plain not-found.
+        expect((await getEditorValue()).trim()).toBe(
+            'false|named|false|false|ok',
+        );
+    });
 });

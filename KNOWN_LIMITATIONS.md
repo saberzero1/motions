@@ -1117,6 +1117,12 @@ Mode events (`InsertEnter`, `InsertLeave`, `ModeChanged`) fire per-view across a
 
 `getModeState()` returns global state reflecting the most recent mode event from any view, not per-view state. `vim.obsidian.mode()` reads the active leaf's mode, not the event source's mode — if a popover fires `InsertEnter`, `vim.obsidian.mode()` may still return `'n'` if the active leaf is in normal mode.
 
+### LuaJIT FFI is not available
+
+Neovim ships LuaJIT, so `require("ffi")` works there and plugin authors use it freely to reach internal C symbols the API does not expose. This runtime is fengari, a pure-Lua VM, so there is no FFI to provide and no way to implement one. `require("ffi")` and `require("jit")` fail with a message naming LuaJIT rather than reporting a file-read failure.
+
+In practice FFI use is rare and concentrated in "reach past the API" corners — flash.nvim quarantines its uses in `hacks.lua`. Where a plugin guards the call, it degrades. Where it does not, that code path is unavailable. flash's `get_end_pos` is an example: `searchpos()` reports where a match starts, and flash reads Neovim's internal `search_match_endcol` to find where it ends.
+
 ### Decoration provider is a coalesced approximation
 
 `nvim_set_decoration_provider` supports `on_start`, `on_buf`, `on_win`, and `on_end`. `on_line` and `on_range` are **not** implemented and raise a Lua error at registration — CodeMirror has no per-visible-line redraw callback, and silently accepting them would let a plugin believe its per-line decorations were drawn.

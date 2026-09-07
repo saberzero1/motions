@@ -1006,16 +1006,19 @@ describe('plugin-facing APIs degrade instead of raising', () => {
         }
     });
 
-    it('reads nvim__redraw as nil so feature probes take the fallback', () => {
+    it('keeps nvim__redraw truthy so guarded probes take the no-op branch', () => {
         const L = setupState();
         try {
             expect(
                 runLua(
                     L,
                     `
-                local probed = vim.api.nvim__redraw
-                assert(probed == nil, 'must be falsy, not a truthy no-op stub')
-                assert(not pcall(vim.api.nvim__redraw, {}))
+                -- flash guards with \`if vim.api.nvim__redraw then\`. Truthy is
+                -- deliberate: its else-branch reaches LuaJIT FFI, which this
+                -- runtime cannot provide, on an unguarded per-keystroke path.
+                assert(vim.api.nvim__redraw, 'must be truthy')
+                assert(vim.api.nvim__redraw({ valid = true }) == nil)
+                assert(pcall(vim.api.nvim__redraw, {}))
             `,
                 ),
             ).toBe(lua.LUA_OK);

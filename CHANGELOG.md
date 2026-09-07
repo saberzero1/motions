@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/api.ts` (opts parsing), `src/lua/extmarks.ts` (`hlEol`/`strict` in `ExtmarkOpts`, line-aware `buildDecorations`, priority-aware sort)
     - Known gap: `priority` orders decorations but does not yet decide which wins _visually_ — CM6 marks carry no z-index and `Decoration.set(..., true)` re-sorts. Recorded in `KNOWN_LIMITATIONS.md`.
 
+- **`require("ffi")` fails with an accurate message** — LuaJIT-only natives previously fell through to the module file read and surfaced whatever that failed with, which described the wrong problem. They now report that the module requires LuaJIT and that this runtime is a pure-Lua VM. Ordinary missing modules are unaffected.
+    - Plugin: `src/lua/package.ts`
+
+- **`nvim__redraw` is a warn-once stub again, deliberately truthy** — it briefly read as `nil` so that flash's `if vim.api.nvim__redraw then` probe would take its fallback. That was right for `highlight.cursor`, whose fallback is `nvim_buf_set_extmark`, but wrong for `hacks.setcursor`, whose fallback is LuaJIT FFI and which is called unguarded on every keystroke through `Util.get_char`. One name, two opposite correct answers; the truthy stub avoids throwing on the hot path, at the cost of `highlight.cursor` no longer drawing its cursor highlight. The `nil`-reading dispatch tier introduced for it has been removed rather than left with no members.
+    - Plugin: `src/lua/api.ts`
+
 - **Vim regex translation** — `vim.fn.searchpos`, `vim.fn.split` and `vim.regex` compiled their pattern with `new RegExp`, so Vim syntax silently matched nothing: `\V` and `\C` are identity escapes in JavaScript, making `\Valpha\C` a search for the literal `ValC`. A shared translator now handles magic levels (`\v`, `\m`, `\M`, `\V`), the case flags `\c`/`\C`, `\zs`/`\ze` as lookbehind/lookahead, `\<`/`\>` word boundaries, `\%(` non-capturing groups, and the Vim character classes.
     - Plugin: `src/lua/vim-regex.ts` (new), `src/lua/vim-search.ts`, `src/lua/fn.ts` (`split`), `src/lua/regex.ts`
     - **Breaking**: these three now take **Vim** patterns rather than JavaScript ones, which is what Neovim documents them to take. At the default magic level `+`, `?`, `(`, `)` and `|` are literal, so a JavaScript pattern such as `\d+` must be written `\d\+`. `NEOVIM_API_STATUS.md` previously recorded the ECMAScript behaviour as a known deviation.

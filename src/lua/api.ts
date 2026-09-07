@@ -799,18 +799,16 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_echo',
 ]);
 
-/**
- * Names a plugin feature-detects with `if vim.api.X then`, where the fallback
- * branch is something this host supports better than the API itself.
- *
- * Reading one yields `nil` rather than raising (which would crash the probe) or
- * returning a warn-once stub (which is truthy, so the plugin would take the
- * unsupported branch and silently degrade). `nil` is the honest answer and the
- * one that routes the plugin onto its working fallback.
- */
-const ABSENT_NVIM_API_FUNCTIONS = new Set<string>(['nvim__redraw']);
-
 const KNOWN_NVIM_API_FUNCTIONS = new Set<string>([
+    // Private API. A warn-once stub is truthy, so plugins that probe with
+    // `if vim.api.nvim__redraw then` take the branch meant for hosts that have
+    // it. That is deliberate: flash's fallbacks are worse for us than the
+    // no-op. `hacks.setcursor` falls back to LuaJIT FFI, which fengari cannot
+    // provide, and it is called unguarded on every keystroke via
+    // `Util.get_char`. The cost is that `highlight.cursor` also takes the
+    // no-op branch and stops drawing its cursor highlight — a cosmetic loss
+    // traded for not throwing on the hot path.
+    'nvim__redraw',
     'nvim_buf_add_highlight',
     'nvim_buf_attach',
     'nvim_buf_call',
@@ -1041,6 +1039,7 @@ const NVIM_API_RETURN_TYPES = {
         'nvim_tabpage_list_wins',
     ]),
     void: new Set([
+        'nvim__redraw',
         'nvim_chan_send',
         'nvim_del_current_line',
         'nvim_del_var',
@@ -3943,10 +3942,6 @@ export function injectVimApi(
         const fnName = readLuaString(state, 2);
         if (fnName && SUPPORTED_NVIM_API_FUNCTIONS.has(fnName)) {
             lua.lua_getfield(state, 1, to_luastring(fnName));
-            return 1;
-        }
-        if (fnName && ABSENT_NVIM_API_FUNCTIONS.has(fnName)) {
-            lua.lua_pushnil(state);
             return 1;
         }
         if (fnName && KNOWN_NVIM_API_FUNCTIONS.has(fnName)) {

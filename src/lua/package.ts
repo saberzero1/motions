@@ -63,6 +63,10 @@ function injectRequireFunction(L: lua_State, basePath: string): void {
 
     const requireLua = `
 local _base_path = '${escapedBasePath}'
+local _NATIVE_UNAVAILABLE = {
+    ffi = 'the FFI library',
+    jit = 'the jit namespace',
+}
 
 function require(modname)
     if type(modname) ~= "string" then
@@ -75,6 +79,17 @@ function require(modname)
 
     if package.loaded[modname] ~= nil then
         return package.loaded[modname]
+    end
+
+    -- LuaJIT-only natives. Without this they fall through to the file read and
+    -- surface whatever that fails with, which describes the wrong problem.
+    if _NATIVE_UNAVAILABLE[modname] then
+        error(
+            "module '" .. modname .. "' is not available: " ..
+            _NATIVE_UNAVAILABLE[modname] ..
+            " requires LuaJIT, and this runtime is a pure-Lua VM",
+            2
+        )
     end
 
     local rel_path = modname:gsub("%.", "/")
