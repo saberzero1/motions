@@ -11,6 +11,7 @@ import { Notice, Platform } from 'obsidian';
 import type { CoroutineRunner } from './coroutine-runner';
 import { invariant } from '../util/invariant';
 
+import { runCleanups } from '../util/cleanup';
 setPlatformProvider({
     isDesktop: Platform.isDesktop,
     requireModule: (window as Window & { require?: (module: string) => object })
@@ -290,7 +291,7 @@ export function registerStateCleanup(L: lua_State, cleanup: () => void): void {
 export function destroyState(L: lua_State): void {
     const cleanups = stateCleanups.get(L) ?? [];
     stateCleanups.delete(L);
-    for (const cleanup of cleanups) cleanup();
+    runCleanups(cleanups, 'Lua state');
     lua.lua_close(L);
 }
 

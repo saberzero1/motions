@@ -5,6 +5,7 @@ import type { CmAdapter, VimModeChange } from '../types/vim-api';
 import { getDialogPrefix } from '../vim/mode-tracker';
 import { simpleGlobMatch } from './fn';
 
+import { runCleanups } from '../util/cleanup';
 export interface AutocmdEntry {
     id: number;
     event: string;
@@ -446,7 +447,7 @@ export class AutocmdManager {
             window.clearTimeout(this.leafEnterDebounceTimer);
             this.leafEnterDebounceTimer = null;
         }
-        for (const cleanup of this.globalCleanups) cleanup();
+        runCleanups(this.globalCleanups, 'autocmd global');
         this.globalCleanups = [];
         this.callbacks = null;
         this.clearAll();
@@ -494,7 +495,7 @@ export class AutocmdManager {
     }
 
     private detachAdapter(): void {
-        for (const cleanup of this.adapterCleanups) cleanup();
+        runCleanups(this.adapterCleanups, 'autocmd adapter');
         this.adapterCleanups = [];
         this.currentAdapter = null;
     }

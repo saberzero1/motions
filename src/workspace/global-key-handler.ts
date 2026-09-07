@@ -11,6 +11,7 @@ import type {
 import { normalizeKeyEvent } from './global-mapping-registry';
 import { observeKeyEvent } from './key-observer';
 
+import { runCleanups } from '../util/cleanup';
 const SEQUENCE_TIMEOUT = 1000;
 
 const GLOBAL_NAV_VIEW_TYPES = new Set([
@@ -104,7 +105,7 @@ export class GlobalKeyHandler {
 
     destroy(): void {
         this.resetSequence();
-        for (const fn of this.cleanups) fn();
+        runCleanups(this.cleanups, 'global key handler');
         this.cleanups = [];
         this.docs.clear();
     }

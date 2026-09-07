@@ -271,6 +271,7 @@ import {
 import { snippetState } from './snippets/autocomplete-types';
 import { setJumpListInstance } from './workspace/navigate';
 
+import { runCleanups } from './util/cleanup';
 const MAX_PERSISTED_UNDO_TREES = 50;
 
 export default class VimMotionsPlugin extends Plugin {
@@ -4384,7 +4385,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     private cleanupHintModeWindows(): void {
-        for (const cleanup of this.hintWindowCleanups) cleanup();
+        runCleanups(this.hintWindowCleanups, 'hint window');
         this.hintWindowCleanups = [];
         this.hintWindowDocs.clear();
     }
