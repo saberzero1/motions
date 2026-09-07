@@ -233,6 +233,10 @@ export function createFlashJumpMotion(
                 updateDisplay();
             };
 
+            // Known instance, tracked by .sisyphus/plans/lifetime-ownership.md. The
+            // correct fix is a single owner with an abort path, as src/lua/key-broker.ts
+            // does for getcharstr; five ad-hoc AbortSignals here would be undone by it.
+            // ast-grep-ignore: promise-owned-listener
             activeDocument.addEventListener('keydown', handler, true);
         });
     };
