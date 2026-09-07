@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     loadLuaConfig,
     getPluginSetting,
+    setPluginSetting,
     setupEditor,
     vimRawKeys,
     getEditorValue,
@@ -280,6 +281,94 @@ describe('Lua require() — sandbox security', function () {
                 'if not ok and err:find("not found") then vim.opt.scrolloff = 91 end',
         );
         expect(await getPluginSetting('scrolloffLines')).toBe(91);
+    });
+});
+
+describe('Lua require() — modules beside a custom init.lua (#177)', function () {
+    const CONFIG_DIR = 'issue177';
+    const CONFIG_PATH = `${CONFIG_DIR}/init.lua`;
+    const MODULE_PATH = `${CONFIG_DIR}/lua/regex.lua`;
+    const NESTED_MODULE_PATH = `${CONFIG_DIR}/lua/deep/nested.lua`;
+
+    async function loadFromCustomPath(configBody: string): Promise<void> {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(({ app }) => {
+                    const p = (
+                        app as unknown as {
+                            plugins: { plugins: Record<string, PluginRef> };
+                        }
+                    ).plugins.plugins['vim-motions'];
+                    return p?.vimrcLoaded === true;
+                })) as boolean,
+            { timeout: 10000, interval: 200 },
+        );
+
+        await writeVaultFile(CONFIG_PATH, configBody);
+        await writeVaultFile(MODULE_PATH, 'return { val = 42 }');
+        await writeVaultFile(NESTED_MODULE_PATH, 'return { val = 43 }');
+        await browser.pause(300);
+
+        await setPluginSetting('luaConfigPath', CONFIG_PATH);
+        // A sentinel distinct from every value the modules set, so the
+        // assertions cannot pass on a stale value left by an earlier spec.
+        await setPluginSetting('scrolloffLines', 3);
+        await reloadLuaConfigInPlace();
+    }
+
+    after(async function () {
+        await setPluginSetting('luaConfigPath', '');
+        await removeVaultFile(MODULE_PATH);
+        await removeVaultFile(NESTED_MODULE_PATH);
+        await removeVaultFile(CONFIG_PATH);
+    });
+
+    it('resolves a module from the configured init.lua directory', async function () {
+        await loadFromCustomPath(
+            'local m = require("regex")\nvim.opt.scrolloff = m.val',
+        );
+        expect(await getPluginSetting('scrolloffLines')).toBe(42);
+    });
+
+    it('resolves a dot-separated submodule from that directory', async function () {
+        await loadFromCustomPath(
+            'local m = require("deep.nested")\nvim.opt.scrolloff = m.val',
+        );
+        expect(await getPluginSetting('scrolloffLines')).toBe(43);
+    });
+
+    it('still resolves vault-root modules when a custom path is set', async function () {
+        await loadFromCustomPath(
+            'local m = require("rootmod")\nvim.opt.scrolloff = m.val',
+        );
+        // Written after the load above, so this needs its own reload.
+        await writeVaultFile('lua/rootmod.lua', 'return { val = 44 }');
+        await browser.pause(300);
+        await reloadLuaConfigInPlace();
+        try {
+            expect(await getPluginSetting('scrolloffLines')).toBe(44);
+        } finally {
+            await removeVaultFile('lua/rootmod.lua');
+        }
+    });
+
+    it('serves the config directory to a synchronous keymap callback', async function () {
+        await loadFromCustomPath(
+            [
+                `vim.keymap.set('n', 'Q', function()`,
+                `  local ok, m = pcall(require, 'regex')`,
+                `  local out = ok and ('ok:' .. tostring(m.val)) or ('err:' .. tostring(m))`,
+                `  vim.api.nvim_buf_set_lines(0, 0, -1, false, { out })`,
+                `end)`,
+            ].join('\n'),
+        );
+
+        await setupEditor('placeholder', { line: 0, ch: 0 });
+        await vimRawKeys('Q');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        expect((await getEditorValue()).trim()).toBe('ok:42');
     });
 });
 

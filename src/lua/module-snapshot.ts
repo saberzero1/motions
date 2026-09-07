@@ -61,13 +61,17 @@ export class LuaModuleSnapshot {
     }
 
     /**
-     * Rebuilds from `root`, swapping the result in atomically.
+     * Rebuilds from every root, swapping the result in atomically.
      *
      * The replacement map is built to one side and assigned only on success, so
      * a partially-walked tree is never observable — a half-built snapshot would
-     * report real modules as missing.
+     * report real modules as missing. Roots share one budget, and are walked in
+     * order, so an earlier root cannot be starved by a later one.
      */
-    async rebuild(adapter: SnapshotAdapter, root = 'lua'): Promise<void> {
+    async rebuild(
+        adapter: SnapshotAdapter,
+        roots: readonly string[] = ['lua'],
+    ): Promise<void> {
         const next = new Map<string, string>();
         const stats: SnapshotStats = { files: 0, bytes: 0, skipped: [] };
 
@@ -131,7 +135,9 @@ export class LuaModuleSnapshot {
             }
         };
 
-        await walk(root, 0);
+        for (const root of roots) {
+            await walk(root, 0);
+        }
 
         this.sources = next;
         this.stats = stats;

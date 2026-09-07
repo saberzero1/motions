@@ -7,6 +7,8 @@ export interface RequireDeps {
     snapshot?: LuaModuleSnapshot;
     /** Whether the calling state may yield. Omitted: assumed yes. */
     isAsyncCapable?: (L: lua_State) => boolean;
+    /** Module search roots, tried in order. Omitted: vault-root `lua` only. */
+    roots?: readonly string[];
 }
 
 export function injectPackageAndRequire(
@@ -14,7 +16,8 @@ export function injectPackageAndRequire(
     _configDir: string,
     deps: RequireDeps = {},
 ): void {
-    const basePath = 'lua';
+    const roots =
+        deps.roots && deps.roots.length > 0 ? [...deps.roots] : ['lua'];
 
     lua.lua_newtable(L);
     const packageIndex = lua.lua_gettop(L);
@@ -24,7 +27,9 @@ export function injectPackageAndRequire(
 
     lua.lua_pushstring(
         L,
-        to_luastring(`${basePath}/?.lua;${basePath}/?/init.lua`),
+        to_luastring(
+            roots.map((root) => `${root}/?.lua;${root}/?/init.lua`).join(';'),
+        ),
     );
     lua.lua_setfield(L, packageIndex, to_luastring('path'));
 
@@ -34,7 +39,7 @@ export function injectPackageAndRequire(
     lua.lua_setglobal(L, to_luastring('package'));
 
     injectSandboxedLoad(L);
-    injectRequireFunction(L, basePath, deps);
+    injectRequireFunction(L, roots, deps);
 }
 
 function injectSandboxedLoad(L: lua_State): void {
@@ -67,16 +72,16 @@ function injectSandboxedLoad(L: lua_State): void {
 
 function injectRequireFunction(
     L: lua_State,
-    basePath: string,
+    roots: readonly string[],
     deps: RequireDeps,
 ): void {
-    const escapedBasePath = basePath
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'");
+    const rootsLiteral = roots
+        .map((root) => `'${root.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`)
+        .join(', ');
 
     const requireLua = `
 local _snapshot_read, _async_capable = ...
-local _base_path = '${escapedBasePath}'
+local _roots = { ${rootsLiteral} }
 local _NATIVE_UNAVAILABLE = {
     ffi = 'the FFI library',
     jit = 'the jit namespace',
@@ -107,19 +112,27 @@ function require(modname)
     end
 
     local rel_path = modname:gsub("%.", "/")
-    local file_path = _base_path .. "/" .. rel_path .. ".lua"
-    local init_path = _base_path .. "/" .. rel_path .. "/init.lua"
+
+    -- Every root, in order, each tried as both name.lua and name/init.lua.
+    -- The first root is the configured init.lua's own directory, so a module
+    -- beside the config wins over a same-named one at the vault root.
+    local candidates = {}
+    for i = 1, #_roots do
+        candidates[#candidates + 1] = _roots[i] .. "/" .. rel_path .. ".lua"
+        candidates[#candidates + 1] = _roots[i] .. "/" .. rel_path .. "/init.lua"
+    end
 
     package.loaded[modname] = true
 
     -- The snapshot resolves without yielding, which is the whole point: a lazy
     -- require from a keymap callback runs on the main state and cannot yield.
-    local chunk_path = file_path
-    local source = _snapshot_read(file_path)
-    if source == nil then
-        source = _snapshot_read(init_path)
-        if source ~= nil then
-            chunk_path = init_path
+    local source, chunk_path
+    for i = 1, #candidates do
+        local found = _snapshot_read(candidates[i])
+        if found ~= nil then
+            source = found
+            chunk_path = candidates[i]
+            break
         end
     end
 
@@ -128,7 +141,7 @@ function require(modname)
             package.loaded[modname] = nil
             error(
                 "module '" .. modname .. "' not present in the configuration snapshot" ..
-                " (looked for " .. file_path .. " and " .. init_path .. "). The snapshot" ..
+                " (looked for " .. table.concat(candidates, ", ") .. "). The snapshot" ..
                 " is built when the configuration loads, so reload the configuration if" ..
                 " the file was added since, and check the developer console for files" ..
                 " skipped against the snapshot's size limits.",
@@ -136,17 +149,18 @@ function require(modname)
             )
         end
 
-        local read_ok
-        read_ok, source = pcall(vim.ob.fs.read, file_path)
-        if not read_ok then
-            read_ok, source = pcall(vim.ob.fs.read, init_path)
+        local read_ok, read_err
+        for i = 1, #candidates do
+            read_ok, read_err = pcall(vim.ob.fs.read, candidates[i])
             if read_ok then
-                chunk_path = init_path
+                source = read_err
+                chunk_path = candidates[i]
+                break
             end
         end
         if not read_ok then
             package.loaded[modname] = nil
-            error("module '" .. modname .. "' not found: " .. tostring(source), 2)
+            error("module '" .. modname .. "' not found: " .. tostring(read_err), 2)
         end
     end
 

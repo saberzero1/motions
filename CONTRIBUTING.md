@@ -201,8 +201,8 @@ src/
   lua/
     engine.ts              # Fengari Lua 5.3 VM setup, library loading, evalLuaAsync, cleanup before Lua close
     coroutine-runner.ts    # Coroutine↔Promise bridge (CoroutineRunner + AsyncRegistry); isAsyncCapable() reports whether a state may yield
-    package.ts             # package table, sandboxed load(), Lua-implemented require() resolving from the module snapshot
-    module-snapshot.ts     # In-memory vault Lua sources so require() resolves synchronously; limits reported, not silent
+    package.ts             # package table, sandboxed load(), Lua-implemented require() resolving from the module snapshot across all search roots
+    module-snapshot.ts     # In-memory Lua sources for every search root so require() resolves synchronously; limits reported, not silent
     loader.ts              # .obsidian.init.lua loader; replaces iterator stub, awaits treesitter/query and Lua module snapshot preloading, normalizes returned option Errors
     api.ts                 # vim.keymap, vim.opt, vim.o/vim.go, shared operatorfunc routes, vim.g, vim.v, vim.cmd, vim.notify, vim.api (63 real nvim_* implementations: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI, current-buffer/window calls, non-floating window config), vim.plugins (add/list with auto-fetch support)
     fn.ts                  # vim.fn.* function library (84 real implementations, including getwininfo, wincol, winlayout, strchars/charidx/byteidx)

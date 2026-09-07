@@ -121,6 +121,45 @@ export async function readExternalDir(
 }
 
 /**
+ * List a directory at an absolute filesystem path, split into files and
+ * folders and returned as full paths — the shape Obsidian's vault adapter
+ * uses, so both can back the same walk.
+ *
+ * Separate from `readExternalDir`, which returns bare names and cannot
+ * distinguish a subdirectory. Guarded by `Platform.isDesktop`.
+ */
+export async function listExternalDir(
+    dirPath: string,
+): Promise<{ files: string[]; folders: string[] } | null> {
+    if (!Platform.isDesktop) return null;
+
+    const resolved = expandTilde(dirPath);
+    try {
+        const fs = getFs();
+        const entries = await (
+            fs as unknown as {
+                readdir(
+                    path: string,
+                    options: { withFileTypes: true },
+                ): Promise<{ name: string; isDirectory(): boolean }[]>;
+            }
+        ).readdir(resolved, { withFileTypes: true });
+
+        const base = dirPath.replace(/[\\/]+$/, '');
+        const files: string[] = [];
+        const folders: string[] = [];
+        for (const entry of entries) {
+            const full = `${base}/${entry.name}`;
+            if (entry.isDirectory()) folders.push(full);
+            else files.push(full);
+        }
+        return { files, folders };
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Check whether a file exists at an absolute filesystem path.
  * Guarded by `Platform.isDesktop` — returns `false` on mobile.
  */

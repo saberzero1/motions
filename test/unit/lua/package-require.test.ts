@@ -46,9 +46,10 @@ function fakeVault(tree: Record<string, string>): SnapshotAdapter {
 
 async function snapshotOf(
     tree: Record<string, string>,
+    roots?: readonly string[],
 ): Promise<LuaModuleSnapshot> {
     const snapshot = new LuaModuleSnapshot();
-    await snapshot.rebuild(fakeVault(tree));
+    await snapshot.rebuild(fakeVault(tree), roots);
     return snapshot;
 }
 
@@ -582,6 +583,112 @@ describe('require()', () => {
         lua.lua_getglobal(L, to_luastring('COUNT'));
         expect(lua.lua_tonumber(L, -1)).toBe(1);
         lua.lua_pop(L, 1);
+
+        runner.destroyAll();
+        lua.lua_close(L);
+    });
+
+    it('resolves from a root that is not the vault root', async () => {
+        const L = newState();
+        const runner = new CoroutineRunner(L);
+        setupFsRead(L, runner, {});
+        injectPackageAndRequire(L, '.obsidian', {
+            snapshot: await snapshotOf(
+                {
+                    'cfg/lua/beside.lua': 'return { where = "beside" }',
+                },
+                ['cfg/lua', 'lua'],
+            ),
+            isAsyncCapable: () => false,
+            roots: ['cfg/lua', 'lua'],
+        });
+
+        const outcome = runSynchronously(L, 'W = require("beside").where');
+        expect(outcome.error).toBeNull();
+        expect(readGlobalString(L, 'W')).toBe('beside');
+
+        runner.destroyAll();
+        lua.lua_close(L);
+    });
+
+    it('prefers the earlier root when both define the same module', async () => {
+        const L = newState();
+        const runner = new CoroutineRunner(L);
+        setupFsRead(L, runner, {});
+        injectPackageAndRequire(L, '.obsidian', {
+            snapshot: await snapshotOf(
+                {
+                    'cfg/lua/dup.lua': 'return { where = "config" }',
+                    'lua/dup.lua': 'return { where = "vault" }',
+                },
+                ['cfg/lua', 'lua'],
+            ),
+            isAsyncCapable: () => false,
+            roots: ['cfg/lua', 'lua'],
+        });
+
+        const outcome = runSynchronously(L, 'W = require("dup").where');
+        expect(outcome.error).toBeNull();
+        expect(readGlobalString(L, 'W')).toBe('config');
+
+        runner.destroyAll();
+        lua.lua_close(L);
+    });
+
+    it('falls through to a later root', async () => {
+        const L = newState();
+        const runner = new CoroutineRunner(L);
+        setupFsRead(L, runner, {});
+        injectPackageAndRequire(L, '.obsidian', {
+            snapshot: await snapshotOf(
+                {
+                    'lua/only_at_root.lua': 'return { where = "vault" }',
+                },
+                ['cfg/lua', 'lua'],
+            ),
+            isAsyncCapable: () => false,
+            roots: ['cfg/lua', 'lua'],
+        });
+
+        const outcome = runSynchronously(
+            L,
+            'W = require("only_at_root").where',
+        );
+        expect(outcome.error).toBeNull();
+        expect(readGlobalString(L, 'W')).toBe('vault');
+
+        runner.destroyAll();
+        lua.lua_close(L);
+    });
+
+    it('names every candidate across every root when a module is missing', async () => {
+        const L = newState();
+        const runner = new CoroutineRunner(L);
+        setupFsRead(L, runner, {});
+        injectPackageAndRequire(L, '.obsidian', {
+            snapshot: await snapshotOf({}),
+            isAsyncCapable: () => false,
+            roots: ['cfg/lua', 'lua'],
+        });
+
+        const outcome = runSynchronously(
+            L,
+            `
+            local ok, err = pcall(require, "ghost")
+            ERR = tostring(err)
+            `,
+        );
+        expect(outcome.error).toBeNull();
+
+        const err = readGlobalString(L, 'ERR');
+        for (const candidate of [
+            'cfg/lua/ghost.lua',
+            'cfg/lua/ghost/init.lua',
+            'lua/ghost.lua',
+            'lua/ghost/init.lua',
+        ]) {
+            expect(err).toContain(candidate);
+        }
 
         runner.destroyAll();
         lua.lua_close(L);

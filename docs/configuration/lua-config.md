@@ -46,7 +46,7 @@ Neither option is available on mobile.
 
 ## Multi-file configs with require()
 
-Split your configuration across multiple files by placing Lua modules in a `lua/` directory at the vault root. The plugin supports both `lua/name.lua` and `lua/name/init.lua` patterns:
+Split your configuration across multiple files by placing Lua modules in a `lua/` directory. The plugin supports both `lua/name.lua` and `lua/name/init.lua` patterns:
 
 ```
 <vault>/
@@ -84,9 +84,31 @@ Modules are cached in `package.loaded` — calling `require("keymaps")` twice re
 
 Security: module names containing `..`, absolute paths (`/`, `\`), or null bytes are rejected.
 
+### Where modules are searched
+
+Two directories are searched, in this order:
+
+1. `lua/` **beside the configured `init.lua`** — if **Settings → Vim Motions → Keybindings → Lua config path** points at `folder/vim/init.lua`, that is `folder/vim/lua/`.
+2. `lua/` at the **vault root**.
+
+So a configuration kept in its own folder can carry its modules with it, while an existing vault-root `lua/` keeps working unchanged. When both define the same module name, the one beside the configuration wins.
+
+```
+<vault>/
+  folder/vim/
+    init.lua          # Lua config path points here
+    lua/
+      regex.lua       # require("regex")      — found first
+  lua/
+    shared.lua        # require("shared")     — still found
+```
+
+> [!info] Configurations outside the vault
+> If your configuration lives at an absolute path outside the vault, its neighbouring `lua/` directory is searched too, read through the filesystem rather than the vault. This is **desktop only** — on mobile that directory contributes nothing, the same as the out-of-vault configuration file itself.
+
 ### require() resolves synchronously
 
-Every `.lua` file under `lua/` is read into memory when the configuration loads. `require()` resolves from that snapshot, so both a `package.loaded` cache hit and a first-time module load complete **synchronously**, without reading from the vault.
+Every `.lua` file under the search roots above is read into memory when the configuration loads. `require()` resolves from that snapshot, so both a `package.loaded` cache hit and a first-time module load complete **synchronously**, without reading from disk.
 
 This is what makes lazy `require` work — the idiom nearly every Neovim plugin is built on:
 
@@ -98,12 +120,12 @@ vim.keymap.set("n", "s", function()
 end)
 ```
 
-Reading from the vault is asynchronous, so it remains available **only** where the caller is able to wait for it: your top-level configuration, autocommand and timer callbacks, and anything else the plugin runs on a coroutine. Keymap callbacks, `:lua`, and expression mappings are not in that group, and are served by the snapshot alone.
+Reading from disk is asynchronous, so it remains available **only** where the caller is able to wait for it: your top-level configuration, autocommand and timer callbacks, and anything else the plugin runs on a coroutine. Keymap callbacks, `:lua`, and expression mappings are not in that group, and are served by the snapshot alone.
 
 The snapshot is rebuilt when the configuration reloads, and again after a successful `vim.plugins.add()` fetch — before your Lua resumes — so a freshly fetched plugin is immediately requirable.
 
 > [!info] Files added after the configuration loads
-> A `.lua` file you create while Obsidian is running is not in the snapshot yet. Requiring it from a keymap callback reports that it is `not present in the configuration snapshot`, naming both paths that were tried. Saving your main configuration file reloads it, or run the **Vim Motions: Reload configuration** command. Editing an existing module is subject to the same boundary. See [[known-limitations#Lua configuration]].
+> A `.lua` file you create while Obsidian is running is not in the snapshot yet. Requiring it from a keymap callback reports that it is `not present in the configuration snapshot`, naming every path that was tried across both search roots. Saving your main configuration file reloads it, or run the **Vim Motions: Reload configuration** command. Editing an existing module is subject to the same boundary. See [[known-limitations#Lua configuration]].
 
 ## Example init.lua
 

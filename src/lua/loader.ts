@@ -50,7 +50,7 @@ import type { lua_State } from '../lib/fengari';
 import type { ImSwitcher } from '../im/im-switcher';
 import { CoroutineRunner } from './coroutine-runner';
 import { injectPackageAndRequire } from './package';
-import { LuaModuleSnapshot } from './module-snapshot';
+import { LuaModuleSnapshot, type SnapshotAdapter } from './module-snapshot';
 import { injectIoShim } from './io-shim';
 import { getTarballUrl, fetchPluginTarball } from './plugin-fetch';
 import {
@@ -63,6 +63,7 @@ import {
 import {
     isAbsolutePath,
     readExternalFile,
+    listExternalDir,
     externalFileExists,
     getObsidianUserDataDir,
 } from '../util/external-fs';
@@ -147,6 +148,52 @@ const ENGINE_BACKED_BUFFER_OPTIONS: ReadonlySet<string> = new Set([
 function getLuaFallbackPaths(app: App): readonly string[] {
     const dir = app.vault.configDir;
     return [...LUA_FALLBACK_PATHS, `${dir}.init.lua`, 'obsidian.lua'];
+}
+
+function parentDirOf(filePath: string): string {
+    const cut = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+    return cut === -1 ? '' : filePath.slice(0, cut);
+}
+
+/**
+ * Module search roots for `require`, in precedence order.
+ *
+ * A `lua/` directory beside the configured `init.lua` comes first, so a config
+ * kept in its own folder can carry its modules with it (#177). The vault root
+ * stays in the list, so moving a config never breaks an existing `require`.
+ */
+function getModuleRoots(configPath: string): string[] {
+    const dir = parentDirOf(configPath);
+    if (dir === '') return ['lua'];
+    const configRoot = `${dir}/lua`;
+    return configRoot === 'lua' ? ['lua'] : [configRoot, 'lua'];
+}
+
+/**
+ * Backs the module snapshot with the vault for in-vault roots and Node for
+ * absolute ones, so a config outside the vault can carry modules too.
+ *
+ * The external half is desktop-only: `listExternalDir` returns `null` on
+ * mobile, which surfaces here as a throw and leaves that root contributing
+ * nothing — the same outcome as an out-of-vault config itself, which cannot be
+ * read on mobile either.
+ */
+function createSnapshotAdapter(app: App): SnapshotAdapter {
+    return {
+        list: async (dir) => {
+            if (!isAbsolutePath(dir)) return await app.vault.adapter.list(dir);
+            const listed = await listExternalDir(dir);
+            if (!listed) throw new Error(`cannot list ${dir}`);
+            return listed;
+        },
+        read: async (path) => {
+            if (!isAbsolutePath(path))
+                return await app.vault.adapter.read(path);
+            const content = await readExternalFile(path);
+            if (content === null) throw new Error(`cannot read ${path}`);
+            return content;
+        },
+    };
 }
 
 // A file dropped for exceeding a snapshot budget would otherwise surface as
@@ -402,6 +449,8 @@ export async function loadInitLua(
     // Declared here rather than at its injection site below so `fetchPlugin`
     // can refresh it. Populated before user config runs; see the rebuild call.
     const moduleSnapshot = new LuaModuleSnapshot();
+    const moduleRoots = getModuleRoots(path);
+    const snapshotAdapter = createSnapshotAdapter(app);
     const callbacks: VimApiCallbacks = {
         observeKeys,
         highlightManager,
@@ -870,7 +919,7 @@ export async function loadInitLua(
             // Before the caller's coroutine resumes, mirroring how the query
             // snapshot is refreshed, so the just-fetched plugin is requirable
             // from synchronous callbacks without waiting for a reload.
-            await moduleSnapshot.rebuild(app.vault.adapter);
+            await moduleSnapshot.rebuild(snapshotAdapter, moduleRoots);
             reportSnapshotSkips(moduleSnapshot);
             return { files: files.map((f) => f.path) };
         },
@@ -1753,13 +1802,14 @@ export async function loadInitLua(
     const timerManager = injectTimers(L, runner);
     // Awaited so vault Lua sources are in memory before user config runs, for
     // the same reason initTreesitterRuntime is: a later lookup must not yield.
-    await moduleSnapshot.rebuild(app.vault.adapter).catch((err) => {
+    await moduleSnapshot.rebuild(snapshotAdapter, moduleRoots).catch((err) => {
         console.warn('Vim Motions: Lua module snapshot failed:', err);
     });
     reportSnapshotSkips(moduleSnapshot);
     injectPackageAndRequire(L, app.vault.configDir, {
         snapshot: moduleSnapshot,
         isAsyncCapable: (state) => runner.isAsyncCapable(state),
+        roots: moduleRoots,
     });
     const luaSnippets = injectSnippetApi(L);
 

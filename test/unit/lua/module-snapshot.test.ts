@@ -141,6 +141,59 @@ describe('LuaModuleSnapshot', () => {
         expect(snap.has('lua/a.lua')).toBe(false);
     });
 
+    it('indexes every root it is given', async () => {
+        const snap = new LuaModuleSnapshot();
+        await snap.rebuild(
+            fakeVault({
+                'cfg/lua/beside.lua': 'a',
+                'cfg/lua/deep/nested.lua': 'b',
+                'lua/root.lua': 'c',
+                'elsewhere/ignored.lua': 'd',
+            }),
+            ['cfg/lua', 'lua'],
+        );
+        expect(snap.get('cfg/lua/beside.lua')).toBe('a');
+        expect(snap.get('cfg/lua/deep/nested.lua')).toBe('b');
+        expect(snap.get('lua/root.lua')).toBe('c');
+        expect(snap.has('elsewhere/ignored.lua')).toBe(false);
+        expect(snap.getStats().files).toBe(3);
+    });
+
+    it('keeps the earlier root when a later one breaches the shared budget', async () => {
+        const tree: Record<string, string> = {};
+        for (let i = 0; i < MAX_MODULE_FILES; i++) {
+            tree[`first/lua/m${i}.lua`] = 'x';
+        }
+        tree['lua/late.lua'] = 'y';
+
+        const snap = new LuaModuleSnapshot();
+        await snap.rebuild(fakeVault(tree), ['first/lua', 'lua']);
+
+        expect(snap.has('first/lua/m0.lua')).toBe(true);
+        expect(snap.has('lua/late.lua')).toBe(false);
+        expect(snap.getStats().skipped).toContainEqual({
+            path: 'lua/late.lua',
+            reason: `file count exceeds ${MAX_MODULE_FILES}`,
+        });
+    });
+
+    it('a root that cannot be listed does not sink the others', async () => {
+        const vault = fakeVault({ 'lua/ok.lua': '1' });
+        const snap = new LuaModuleSnapshot();
+        await snap.rebuild(
+            {
+                list: async (dir) => {
+                    if (dir === '/outside/lua') throw new Error('no such dir');
+                    return await vault.list(dir);
+                },
+                read: vault.read,
+            },
+            ['/outside/lua', 'lua'],
+        );
+        expect(snap.get('lua/ok.lua')).toBe('1');
+        expect(snap.getStats().files).toBe(1);
+    });
+
     it('clear() empties both sources and stats', async () => {
         const snap = new LuaModuleSnapshot();
         await snap.rebuild(fakeVault({ 'lua/a.lua': '1' }));
