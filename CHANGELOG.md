@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.149.0] - 2026-09-08
+
 ### Added
 
 - **Non-Markdown picker previews are configurable** (`pickerNonMarkdownPreview`, `set pickerpreview`, `vim.opt.pickerpreview`) — `rendered` (default), `hidden`, or `raw`. Markdown is always previewed and is unaffected by the setting. Requested in [#172](https://github.com/saberzero1/motions/issues/172).
