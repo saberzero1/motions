@@ -260,9 +260,14 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const cmView = require('@codemirror/view');
 
-            const observerTracker = {
+            const observerTracker: {
+                keydownCount: number;
+                destroyCount: number;
+                lastView: unknown;
+            } = {
                 keydownCount: 0,
                 destroyCount: 0,
+                lastView: null,
             };
             (
                 window as unknown as Record<string, unknown>
@@ -276,12 +281,22 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
                 },
                 {
                     eventObservers: {
-                        keydown: () => {
+                        // The view is captured because "which view fired this"
+                        // is half the diagnosis; the active editor is not
+                        // necessarily the one the click and keypress landed on.
+                        keydown: (_e: KeyboardEvent, firingView: unknown) => {
                             observerTracker.keydownCount++;
+                            observerTracker.lastView = firingView;
                         },
                     },
                 },
             );
+
+            const win = window as unknown as Record<string, unknown>;
+            win.__spikeObserverPlugin = observerPlugin;
+            win.__spikeActiveCm = (
+                view.editor as unknown as Record<string, unknown>
+            ).cm;
 
             const slot2: unknown[] = [observerPlugin];
             (window as unknown as Record<string, unknown>).__spikeObserverSlot =
@@ -314,12 +329,16 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
         await browser.pause(PAUSE.RENDER);
 
         const beforeRemove = await browser.executeObsidian(() => {
+            // Read field by field, not by spreading: the tracker also holds an
+            // EditorView, which WebDriver cannot serialise.
+            const tracker = (window as unknown as Record<string, unknown>)
+                .__spikeObserverTracker as {
+                keydownCount: number;
+                destroyCount: number;
+            };
             return {
-                ...((window as unknown as Record<string, unknown>)
-                    .__spikeObserverTracker as {
-                    keydownCount: number;
-                    destroyCount: number;
-                }),
+                keydownCount: tracker.keydownCount,
+                destroyCount: tracker.destroyCount,
             };
         });
 
@@ -361,51 +380,66 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
 
         await browser.executeObsidian(() => {
             const tracker = (window as unknown as Record<string, unknown>)
-                .__spikeObserverTracker as { keydownCount: number };
+                .__spikeObserverTracker as {
+                keydownCount: number;
+                lastView: unknown;
+            };
             tracker.keydownCount = 0;
+            // Cleared together: the view captured during the pre-removal
+            // keypress would otherwise be read as evidence about a keydown
+            // that never happened after the removal.
+            tracker.lastView = null;
         });
 
         await el.click();
         await browser.keys('b');
         await browser.pause(PAUSE.RENDER);
 
-        const afterRemove = await browser.executeObsidian(
-            ({ app, obsidian }) => {
-                // This assertion fails only on Windows CI and cannot be reproduced
-                // on Linux, so the failure has to carry its own diagnosis. CM6
-                // recomputes `inputState.handlers` whenever the plugin set changes
-                // and drops the native listener when the last handler for a type
-                // goes, so a surviving observer means either the reconfigured state
-                // still lists the plugin, or the key reached a different view.
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                const cm = (view?.editor as unknown as Record<string, unknown>)
-                    ?.cm as
-                    | {
-                          inputState?: {
-                              handlers?: Record<
-                                  string,
-                                  { observers?: unknown[] }
-                              >;
-                          };
-                          plugins?: unknown[];
-                      }
-                    | undefined;
-                return {
-                    ...((window as unknown as Record<string, unknown>)
-                        .__spikeObserverTracker as {
-                        keydownCount: number;
-                        destroyCount: number;
-                    }),
-                    liveKeydownObservers:
-                        cm?.inputState?.handlers?.keydown?.observers?.length ??
-                        -1,
-                    livePluginCount: cm?.plugins?.length ?? -1,
-                    editorCount: document.querySelectorAll('.cm-editor').length,
+        const afterRemove = await browser.executeObsidian(() => {
+            // Three outcomes are possible and the plain counter cannot tell
+            // them apart. `EditorView.plugin()` answers whether the firing
+            // view still has the plugin in its configuration, and comparing
+            // the firing view with the active one answers whether the key
+            // even went where the reconfiguration was checked.
+            const win = window as unknown as Record<string, unknown>;
+            const tracker = win.__spikeObserverTracker as {
+                keydownCount: number;
+                destroyCount: number;
+                lastView: unknown;
+            };
+            const firing = tracker.lastView as {
+                plugin: (p: unknown) => unknown;
+                dom: HTMLElement;
+                inputState?: {
+                    handlers?: Record<string, { observers?: unknown[] }>;
                 };
-            },
-        );
+            } | null;
+
+            let verdict = 'no-keydown-observed';
+            if (firing) {
+                const stillConfigured =
+                    firing.plugin(win.__spikeObserverPlugin) != null;
+                const isActive = firing === win.__spikeActiveCm;
+                verdict = stillConfigured
+                    ? isActive
+                        ? 'plugin-still-in-active-view'
+                        : 'plugin-still-in-other-view'
+                    : isActive
+                      ? 'handler-map-stale-in-active-view'
+                      : 'handler-map-stale-in-other-view';
+            }
+
+            return {
+                keydownCount: tracker.keydownCount,
+                destroyCount: tracker.destroyCount,
+                verdict,
+                firingViewAttached: firing ? firing.dom.isConnected : false,
+                firingViewObservers:
+                    firing?.inputState?.handlers?.keydown?.observers?.length ??
+                    -1,
+                editorCount: document.querySelectorAll('.cm-editor').length,
+            };
+        });
 
         console.log(
             'Observer after remove:',
@@ -413,9 +447,9 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
         );
 
         expect(
-            `keydown=${afterRemove.keydownCount} liveObservers=${afterRemove.liveKeydownObservers} plugins=${afterRemove.livePluginCount} editors=${afterRemove.editorCount}`,
+            `keydown=${afterRemove.keydownCount} verdict=${afterRemove.verdict} attached=${afterRemove.firingViewAttached} observers=${afterRemove.firingViewObservers} editors=${afterRemove.editorCount}`,
         ).toBe(
-            `keydown=0 liveObservers=${afterRemove.liveKeydownObservers} plugins=${afterRemove.livePluginCount} editors=${afterRemove.editorCount}`,
+            `keydown=0 verdict=no-keydown-observed attached=false observers=-1 editors=${afterRemove.editorCount}`,
         );
         expect(afterRemove.destroyCount).toBeGreaterThanOrEqual(1);
     });
