@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Table navigation shared its pending-key state across split panes** — `pendingD` and the count buffer lived at module scope while `TableNavController` is a CodeMirror `ViewPlugin`, instantiated once per `EditorView`. Pressing `d` in one pane and then a key in another consumed the first pane's pending state, so `d` followed by `d` in a different table deleted a row immediately instead of starting its own `dd`. A count typed in one pane applied to the next motion in another. Both now live per handler. Dot-repeat is deliberately left at module scope: Vim's `.` replays the last change across buffers.
+    - Plugin: `src/vim/table-nav-keymap.ts` (per-handler state, `resetPending`), `src/vim/table-nav-controller.ts` (holds its own handler)
+- **Picker source timeouts leaked a live timer per call** — `Promise.race` settles but does not cancel the loser, so every `items()`, `search()` and `preview()` call against an external source left a 5-second timer holding its closure. `search()` runs on every keystroke. The timer is now cleared whichever side wins.
+    - Plugin: `src/picker/api.ts` (`withTimeout`)
+- **Visual-line pending selection lost its expiry in split panes** — the selection was stored per `EditorView` in a `WeakMap` but guarded by a single module-scope TTL timer, so the second view to store a selection cleared the first view's timer and that entry never expired. The timer is now stored beside the selection it expires.
+    - Plugin: `src/vim/visual-line-command-fix.ts`
 - **Treesitter-backed Markdown text objects** — validate exact opening and closing delimiter runs and continue to enclosing nodes when a candidate does not match. This fixes nested strikethrough ranges, single/double dollar confusion, and asterisk/underscore aliasing. Inner objects reject cursor positions on their delimiters. Blockquotes exclude lazy continuation lines below the cursor's quote depth and reuse depth-aware prefix and newline handling.
     - Plugin: `src/text-objects/delimiter.ts`, `src/text-objects/blockquote.ts`, `src/treesitter/js-api.ts`, `src/treesitter/runtime.ts`
 
