@@ -26,6 +26,16 @@
         // deliberately larger than this plugin consumes.
         "src/lib/fengari/**",
 
+        // FINDING, not dead-code cleanup: `createBridgeExtension` has no caller
+        // anywhere, so the treesitter per-view incremental-parsing ViewPlugin is
+        // never installed. tree-state's three exports are unused only as a
+        // consequence of that. Whether to wire the bridge up or delete it is a
+        // product decision, so these are held rather than removed. See the
+        // "unwired treesitter bridge" note in AGENTS.md, which also records the
+        // incremental-edit defect that must be fixed before wiring it up.
+        "src/treesitter/bridge.ts",
+        "src/treesitter/tree-state.ts",
+
         // Ambient `declare global` for the esbuild-injected __DEV__ constant.
         // Nothing imports it by design; TypeScript picks it up from `include`.
         "src/types/globals.ts",

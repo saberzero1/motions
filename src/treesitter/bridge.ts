@@ -115,3 +115,9 @@ export function createBridgeExtension(langName: string): Extension {
         }, {}),
     ];
 }
+
+export {
+    getTreeForView,
+    hasTreeForView,
+    treeSitterTreeField,
+} from './tree-state';

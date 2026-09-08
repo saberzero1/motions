@@ -14,13 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `knip.jsonc` is JSONC specifically so every ignore entry carries its reason inline. The four categories are: vendored fengari, dependencies selected by string name in `wdio.conf.mts` (`framework: 'mocha'`, `reporters: ['obsidian']`, `runner: 'local'`), the ambient `__DEV__` declaration, and the unwired treesitter bridge below.
     - Fixed three test files importing `../../../../src/lib/fengari`, one level above the repository root. Vite resolved it leniently so the tests passed; knip did not.
 
-### Fixed
-
-- **The treesitter CM6 bridge was never installed** — `createBridgeExtension` had no caller anywhere, so the per-view incremental-parsing `ViewPlugin` never ran. `js-api.ts` has no parse-on-demand fallback: every one of its functions reads `getTreeForView`, which only the bridge populates, so `isTreeAvailable()` always returned false. The syntax-aware branches in `motions/headings.ts`, `text-objects/code-block.ts`, `text-objects/delimiter.ts`, `text-objects/blockquote.ts`, `snippets/context.ts` and `isInsideInlineNodeType` had therefore **never executed in production** — they guard correctly and fell back to Lezer or regex, so nothing was visibly broken, but the treesitter path they were written for was inert. Found by the new dead-code gate.
-    - Plugin: `src/main.ts` (`enableTreesitterBridge`, treesitter extension slot), `src/treesitter/bridge.ts`, `src/treesitter/tree-state.ts`
-    - The bridge is installed only after `loadLanguage('markdown')` resolves, using the mutable-slot-plus-`updateOptions()` swap the vim toggle already uses. Registering it directly would throw in every editor view, because the `ViewPlugin` constructor calls `getOrCreateParser`, which raises until the grammar is loaded. A WASM failure now degrades to the previous fallback behaviour with a console warning rather than breaking the editor.
-    - The Lua `vim.treesitter` API was never affected; it has its own parser cache and parses on demand.
-
 ### Known findings surfaced by the new gate
 
 - **The treesitter CM6 bridge is not wired up.** `createBridgeExtension` in `src/treesitter/bridge.ts` has no caller anywhere, so the per-view incremental-parsing `ViewPlugin` is never installed; `src/treesitter/tree-state.ts` is unused only as a consequence. Treesitter itself still works — `js-api.ts` and the Lua `vim.treesitter` API parse on demand — so this is a missing optimisation rather than a broken feature. Both files are held in `knip.jsonc` rather than deleted, because wiring it up or removing it is a product decision rather than cleanup.

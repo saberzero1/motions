@@ -27,3 +27,7 @@ export function deleteTreeForView(view: EditorView): void {
 export function getTreeForView(view: EditorView): Tree | null {
     return viewTrees.get(view) ?? null;
 }
+
+export function hasTreeForView(view: EditorView): boolean {
+    return viewTrees.has(view);
+}
