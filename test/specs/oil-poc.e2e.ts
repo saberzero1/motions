@@ -973,7 +973,7 @@ describe('Oil explorer', function () {
             const rootContent = await getOilContent();
             expect(rootContent).toContain('oil-nav-sub');
 
-            await browser.executeObsidian(({ app }) => {
+            await browser.executeObsidian(async ({ app }) => {
                 const plugin = (
                     app as unknown as {
                         plugins?: {
@@ -982,7 +982,7 @@ describe('Oil explorer', function () {
                     }
                 ).plugins?.plugins?.['vim-motions'];
                 if (!plugin?.oilManager) return;
-                (
+                await (
                     plugin.oilManager as {
                         navigateToDirectory?: (path: string) => Promise<void>;
                     }
@@ -1068,7 +1068,7 @@ describe('Oil explorer', function () {
             })) as string;
             expect(rootDisplay).toBe('vault root');
 
-            await browser.executeObsidian(({ app }) => {
+            await browser.executeObsidian(async ({ app }) => {
                 const plugin = (
                     app as unknown as {
                         plugins?: {
@@ -1077,7 +1077,7 @@ describe('Oil explorer', function () {
                     }
                 ).plugins?.plugins?.['vim-motions'];
                 if (!plugin?.oilManager) return;
-                (
+                await (
                     plugin.oilManager as {
                         navigateToDirectory?: (path: string) => Promise<void>;
                     }
@@ -1118,7 +1118,7 @@ describe('Oil explorer', function () {
             })) as string;
             expect(subDisplay).toBe('oil-title-back');
 
-            await browser.executeObsidian(({ app }) => {
+            await browser.executeObsidian(async ({ app }) => {
                 const plugin = (
                     app as unknown as {
                         plugins?: {
@@ -1127,7 +1127,7 @@ describe('Oil explorer', function () {
                     }
                 ).plugins?.plugins?.['vim-motions'];
                 if (!plugin?.oilManager) return;
-                (
+                await (
                     plugin.oilManager as {
                         navigateToDirectory?: (path: string) => Promise<void>;
                     }

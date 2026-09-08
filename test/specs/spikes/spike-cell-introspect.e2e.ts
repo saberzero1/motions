@@ -6,13 +6,13 @@ const TABLE_DOC =
     'Line above\n\n| AA | BB |\n|-----|-----|\n| cc | dd |\n\nLine below';
 
 async function ensureLivePreview(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    await browser.executeObsidian(async ({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return;
         const state = view.getState();
         state.mode = 'source';
         state.source = false;
-        view.setState(state, { history: false });
+        await view.setState(state, { history: false });
     });
     await browser.pause(PAUSE.SETTLE * 2);
 }
@@ -23,7 +23,7 @@ describe('Spike: cell editor introspection', function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
         await ensureLivePreview();
-        await browser.executeObsidian(({ app }) => {
+        await browser.executeObsidian(async ({ app }) => {
             const p = (
                 app as unknown as {
                     plugins: {
@@ -40,7 +40,7 @@ describe('Spike: cell editor introspection', function () {
             ).plugins.plugins['vim-motions'];
             if (p) {
                 p.settings.enableTableNav = false;
-                p.saveSettings();
+                await p.saveSettings();
                 p.reloadFeatures();
             }
         });

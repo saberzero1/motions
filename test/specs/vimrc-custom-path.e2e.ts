@@ -3,7 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import { setupEditor, vimKeys, getCursorPos, sendVimEscape } from '../helpers';
 
 async function setVimrcPath(path: string): Promise<void> {
-    await browser.executeObsidian(({ app }, vimrcPath: string) => {
+    await browser.executeObsidian(async ({ app }, vimrcPath: string) => {
         const plugin = (
             app as unknown as {
                 plugins: {
@@ -19,7 +19,7 @@ async function setVimrcPath(path: string): Promise<void> {
         ).plugins.plugins['vim-motions'];
         if (!plugin) return;
         plugin.settings.vimrcPath = vimrcPath;
-        plugin.saveSettings();
+        await plugin.saveSettings();
     }, path);
 }
 

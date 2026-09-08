@@ -99,7 +99,7 @@ async function waitForHintOverlay(timeout = 2000): Promise<boolean> {
 async function findHintLabelForLink(
     textMatch: string,
 ): Promise<HintLabelForLink | null> {
-    return (await browser.executeObsidian(({}, text: string) => {
+    return (await browser.executeObsidian((_ctx, text: string) => {
         const doc = document;
         const overlay = doc.querySelector('.vim-motions-hint-overlay');
         if (!overlay) return null;

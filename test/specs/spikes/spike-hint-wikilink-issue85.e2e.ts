@@ -54,7 +54,7 @@ async function isLivePreview(): Promise<boolean> {
 async function ensureLivePreview(): Promise<void> {
     const isLP = await isLivePreview();
     if (!isLP) {
-        await browser.executeObsidian(({ app, obsidian }) => {
+        await browser.executeObsidian(async ({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
             );
@@ -62,20 +62,20 @@ async function ensureLivePreview(): Promise<void> {
             const state = view.getState();
             state.mode = 'source';
             state.source = false;
-            view.setState(state, { history: false });
+            await view.setState(state, { history: false });
         });
         await browser.pause(PAUSE.EDITOR_SETTLE * 2);
     }
 }
 
 async function ensureSourceMode(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    await browser.executeObsidian(async ({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return;
         const state = view.getState();
         state.mode = 'source';
         state.source = true;
-        view.setState(state, { history: false });
+        await view.setState(state, { history: false });
     });
     await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 }

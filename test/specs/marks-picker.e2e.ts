@@ -212,7 +212,7 @@ describe('Marks picker', function () {
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(PAUSE.OBSIDIAN_LOAD);
 
-            await browser.executeObsidian(({ app }) => {
+            await browser.executeObsidian(async ({ app }) => {
                 const plugin = (
                     app as unknown as {
                         plugins: {
@@ -232,7 +232,7 @@ describe('Marks picker', function () {
                 if (!plugin) return;
                 plugin.settings.persistedMarks = [];
                 plugin.markStore?.load([]);
-                plugin.saveSettings();
+                await plugin.saveSettings();
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
         });

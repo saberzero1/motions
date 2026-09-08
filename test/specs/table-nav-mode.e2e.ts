@@ -35,7 +35,7 @@ async function ensureLivePreview(): Promise<void> {
         return state.mode === 'source' && state.source !== true;
     })) as boolean;
     if (!isLP) {
-        await browser.executeObsidian(({ app, obsidian }) => {
+        await browser.executeObsidian(async ({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
             );
@@ -43,7 +43,7 @@ async function ensureLivePreview(): Promise<void> {
             const state = view.getState();
             state.mode = 'source';
             state.source = false;
-            view.setState(state, { history: false });
+            await view.setState(state, { history: false });
         });
         await browser.pause(PAUSE.EDITOR_SETTLE * 2);
     }
@@ -217,28 +217,31 @@ async function enterTableNav(): Promise<void> {
 async function setPluginSettings(
     settings: Record<string, unknown>,
 ): Promise<void> {
-    await browser.executeObsidian(({ app }, s: Record<string, unknown>) => {
-        const plugin = (
-            app as unknown as {
-                plugins: {
-                    plugins: Record<
-                        string,
-                        {
-                            settings: Record<string, unknown>;
-                            saveSettings: () => Promise<void>;
-                            reloadFeatures: () => void;
-                        }
-                    >;
-                };
+    await browser.executeObsidian(
+        async ({ app }, s: Record<string, unknown>) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: Record<string, unknown>;
+                                saveSettings: () => Promise<void>;
+                                reloadFeatures: () => void;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (!plugin) return;
+            for (const [k, v] of Object.entries(s)) {
+                plugin.settings[k] = v;
             }
-        ).plugins.plugins['vim-motions'];
-        if (!plugin) return;
-        for (const [k, v] of Object.entries(s)) {
-            plugin.settings[k] = v;
-        }
-        plugin.saveSettings();
-        plugin.reloadFeatures();
-    }, settings);
+            await plugin.saveSettings();
+            plugin.reloadFeatures();
+        },
+        settings,
+    );
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 

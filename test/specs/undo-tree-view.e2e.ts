@@ -3,12 +3,12 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import { setupEditor, vimKeys, sendVimEscape, PAUSE } from '../helpers';
 
 async function openSidebar(): Promise<void> {
-    await browser.executeObsidian(({ app }) => {
+    await browser.executeObsidian(async ({ app }) => {
         if (app.workspace.getLeavesOfType('undo-tree').length > 0) return;
         const leaf = app.workspace.getRightLeaf(false);
         if (leaf) {
-            leaf.setViewState({ type: 'undo-tree', active: true });
-            app.workspace.revealLeaf(leaf);
+            await leaf.setViewState({ type: 'undo-tree', active: true });
+            await app.workspace.revealLeaf(leaf);
         }
     });
     await browser.pause(PAUSE.EDITOR_SETTLE * 2);

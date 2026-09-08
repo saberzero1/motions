@@ -129,7 +129,7 @@ function triggerHintOpenNewViaCommand(): Promise<void> {
 async function findHintLabelForInternalLink(
     textMatch: string,
 ): Promise<string | null> {
-    return (await browser.executeObsidian(({}, text: string) => {
+    return (await browser.executeObsidian((_ctx, text: string) => {
         const overlay = activeDocument.querySelector(
             '.vim-motions-hint-overlay',
         );
@@ -415,7 +415,7 @@ describe('Hint mode', function () {
 
         it('all labels should be lowercase characters of consistent length', async function () {
             const testElementCount = 5;
-            await browser.executeObsidian(({}, count: number) => {
+            await browser.executeObsidian((_ctx, count: number) => {
                 const testContainer = activeDocument.createElement('div');
                 testContainer.id = 'hint-mode-test-container';
                 for (let i = 0; i < count; i++) {

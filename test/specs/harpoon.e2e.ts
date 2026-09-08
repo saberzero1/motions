@@ -64,7 +64,7 @@ async function closePicker(): Promise<void> {
 }
 
 async function clearHarpoonPins(): Promise<void> {
-    await browser.executeObsidian(({ app }) => {
+    await browser.executeObsidian(async ({ app }) => {
         const plugin = (
             app as unknown as {
                 plugins: {
@@ -84,7 +84,7 @@ async function clearHarpoonPins(): Promise<void> {
         if (!plugin) return;
         plugin.harpoonStore?.load([]);
         plugin.settings.harpoonPins = [];
-        plugin.saveSettings();
+        await plugin.saveSettings();
     });
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }

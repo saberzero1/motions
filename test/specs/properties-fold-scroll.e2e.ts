@@ -163,7 +163,9 @@ describe('Properties fold observer scroll behavior (Issue #89)', function () {
                     '.metadata-container',
                 ) as HTMLElement | null;
                 if (metadata) {
-                    metadata.className = metadata.className;
+                    // Emit an attribute mutation without toggling is-collapsed:
+                    // the observer must not scroll for an unchanged class value.
+                    metadata.setAttribute('class', metadata.className);
                 }
             });
             await browser.pause(SETTLE_MS);

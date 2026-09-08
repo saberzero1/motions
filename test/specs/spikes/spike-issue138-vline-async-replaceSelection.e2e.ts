@@ -265,8 +265,9 @@ describe('Spike: Issue #138 — V-LINE async replaceSelection', function () {
                 );
                 if (!view) return;
 
-                // Fire-and-forget async (like Note Refactor's editModeGuard)
-                (async () => {
+                // Do not await: reproduce Note Refactor's editModeGuard returning
+                // before async replacement; awaiting would change the scenario.
+                void (async () => {
                     const sel = view.editor.getSelection();
                     console.log(
                         '[spike138-direct] Selection:',

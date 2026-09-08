@@ -6,13 +6,13 @@ const PAUSE = { SETTLE: 500, RENDER: 2000 } as const;
 const TABLE_DOC = 'Line above\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\nLine below';
 
 async function ensureLivePreview(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    await browser.executeObsidian(async ({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return;
         const state = view.getState();
         state.mode = 'source';
         state.source = false;
-        view.setState(state, { history: false });
+        await view.setState(state, { history: false });
     });
     await browser.pause(PAUSE.SETTLE * 2);
 }

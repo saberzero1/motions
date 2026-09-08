@@ -60,7 +60,7 @@ async function getSuppressionState(): Promise<SuppressionState> {
 }
 
 async function enableAnimatedCursor(): Promise<void> {
-    await browser.executeObsidian(({ app }) => {
+    await browser.executeObsidian(async ({ app }) => {
         const plugin = (
             app as unknown as {
                 plugins?: {
@@ -77,13 +77,13 @@ async function enableAnimatedCursor(): Promise<void> {
         if (plugin?.settings) {
             plugin.settings.animatedCursor = true;
         }
-        plugin?.reloadFeatures?.();
+        await plugin?.reloadFeatures?.();
     });
     await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 }
 
 async function disableAnimatedCursor(): Promise<void> {
-    await browser.executeObsidian(({ app }) => {
+    await browser.executeObsidian(async ({ app }) => {
         const plugin = (
             app as unknown as {
                 plugins?: {
@@ -100,7 +100,7 @@ async function disableAnimatedCursor(): Promise<void> {
         if (plugin?.settings) {
             plugin.settings.animatedCursor = false;
         }
-        plugin?.reloadFeatures?.();
+        await plugin?.reloadFeatures?.();
     });
     await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 }
@@ -215,7 +215,7 @@ describe('Cursor suppression after table interaction (#127)', function () {
     });
 
     it('textarea vim overlay cursor is not suppressed (#127 comment)', async function () {
-        await browser.executeObsidian(({ app }) => {
+        await browser.executeObsidian(async ({ app }) => {
             const plugin = (
                 app as unknown as {
                     plugins?: {
@@ -232,7 +232,7 @@ describe('Cursor suppression after table interaction (#127)', function () {
             if (plugin?.settings) {
                 plugin.settings.enableVimTextareas = true;
             }
-            plugin?.reloadFeatures?.();
+            await plugin?.reloadFeatures?.();
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -305,7 +305,7 @@ describe('Cursor suppression after table interaction (#127)', function () {
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
-        await browser.executeObsidian(({ app }) => {
+        await browser.executeObsidian(async ({ app }) => {
             const plugin = (
                 app as unknown as {
                     plugins?: {
@@ -322,7 +322,7 @@ describe('Cursor suppression after table interaction (#127)', function () {
             if (plugin?.settings) {
                 plugin.settings.enableVimTextareas = false;
             }
-            plugin?.reloadFeatures?.();
+            await plugin?.reloadFeatures?.();
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
     });
@@ -352,7 +352,7 @@ describe('Cursor stays suppressed during table-nav navigation (#135)', function 
         await obsidianPage.openFile('Welcome.md');
         await ensureLivePreview();
         // Enable table-nav (the feature under test)
-        await browser.executeObsidian(({ app }) => {
+        await browser.executeObsidian(async ({ app }) => {
             const p = (
                 app as unknown as {
                     plugins: {
@@ -370,7 +370,7 @@ describe('Cursor stays suppressed during table-nav navigation (#135)', function 
             if (p) {
                 p.settings.enableTableNav = true;
                 p.settings.tableWidgetMode = 'native';
-                p.saveSettings();
+                await p.saveSettings();
                 p.reloadFeatures();
             }
         });
@@ -379,7 +379,7 @@ describe('Cursor stays suppressed during table-nav navigation (#135)', function 
 
     after(async function () {
         // Restore default table-nav setting
-        await browser.executeObsidian(({ app }) => {
+        await browser.executeObsidian(async ({ app }) => {
             const p = (
                 app as unknown as {
                     plugins: {
@@ -396,7 +396,7 @@ describe('Cursor stays suppressed during table-nav navigation (#135)', function 
             ).plugins.plugins['vim-motions'];
             if (p) {
                 p.settings.enableTableNav = true;
-                p.saveSettings();
+                await p.saveSettings();
                 p.reloadFeatures();
             }
         });

@@ -19,13 +19,13 @@ const TABLE_3x3 =
 const TABLE_EMPTY_CELLS = 'Top\n\n|  |  |\n|--|--|\n|  |  |\n\nBottom';
 
 async function ensureLivePreview(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    await browser.executeObsidian(async ({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return;
         const state = view.getState();
         state.mode = 'source';
         state.source = false;
-        view.setState(state, { history: false });
+        await view.setState(state, { history: false });
     });
     await browser.pause(PAUSE.SETTLE * 2);
 }

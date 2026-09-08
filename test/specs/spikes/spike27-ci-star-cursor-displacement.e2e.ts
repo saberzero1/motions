@@ -368,7 +368,7 @@ describe('Spike 27: ci* cursor displacement in Live Preview', function () {
     describe('Source mode control test', function () {
         it('should test ci* in source mode (no Live Preview decorations)', async function () {
             // Force source mode
-            await browser.executeObsidian(({ app, obsidian }) => {
+            await browser.executeObsidian(async ({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,
                 );
@@ -376,7 +376,7 @@ describe('Spike 27: ci* cursor displacement in Live Preview', function () {
                 const state = view.getState();
                 state.mode = 'source';
                 state.source = true;
-                view.setState(state, { history: false });
+                await view.setState(state, { history: false });
             });
             await browser.pause(500);
 
@@ -407,7 +407,7 @@ describe('Spike 27: ci* cursor displacement in Live Preview', function () {
             }
 
             // Restore Live Preview
-            await browser.executeObsidian(({ app, obsidian }) => {
+            await browser.executeObsidian(async ({ app, obsidian }) => {
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,
                 );
@@ -415,7 +415,7 @@ describe('Spike 27: ci* cursor displacement in Live Preview', function () {
                 const state = view.getState();
                 state.mode = 'source';
                 state.source = false;
-                view.setState(state, { history: false });
+                await view.setState(state, { history: false });
             });
             await browser.pause(500);
         });

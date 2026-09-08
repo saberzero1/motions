@@ -546,13 +546,13 @@ const FRONTMATTER_DOC = [
 ].join('\n');
 
 async function forceSourceMode(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
+    await browser.executeObsidian(async ({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return;
         const state = view.getState();
         state.mode = 'source';
         state.source = true;
-        view.setState(state, { history: false });
+        await view.setState(state, { history: false });
     });
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
@@ -701,7 +701,7 @@ describe('Frontmatter fold in source mode (#80)', function () {
     });
 
     after(async function () {
-        await browser.executeObsidian(({ app, obsidian }) => {
+        await browser.executeObsidian(async ({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
             );
@@ -709,7 +709,7 @@ describe('Frontmatter fold in source mode (#80)', function () {
             const state = view.getState();
             state.mode = 'source';
             state.source = false;
-            view.setState(state, { history: false });
+            await view.setState(state, { history: false });
         });
         await browser.pause(PAUSE.EDITOR_SETTLE);
     });

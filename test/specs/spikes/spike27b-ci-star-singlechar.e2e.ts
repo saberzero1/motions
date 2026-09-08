@@ -21,7 +21,7 @@ describe('Spike 27b: ci* single-char in source vs Live Preview', function () {
     });
 
     it('ci* single-char in source mode', async function () {
-        await browser.executeObsidian(({ app, obsidian }) => {
+        await browser.executeObsidian(async ({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
             );
@@ -29,7 +29,7 @@ describe('Spike 27b: ci* single-char in source vs Live Preview', function () {
             const state = view.getState();
             state.mode = 'source';
             state.source = true;
-            view.setState(state, { history: false });
+            await view.setState(state, { history: false });
         });
         await browser.pause(500);
 
@@ -51,7 +51,7 @@ describe('Spike 27b: ci* single-char in source vs Live Preview', function () {
     });
 
     it('di* single-char verifies text object works', async function () {
-        await browser.executeObsidian(({ app, obsidian }) => {
+        await browser.executeObsidian(async ({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
             );
@@ -59,7 +59,7 @@ describe('Spike 27b: ci* single-char in source vs Live Preview', function () {
             const state = view.getState();
             state.mode = 'source';
             state.source = false;
-            view.setState(state, { history: false });
+            await view.setState(state, { history: false });
         });
         await browser.pause(500);
 
