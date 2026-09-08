@@ -346,6 +346,7 @@ export default class VimMotionsPlugin extends Plugin {
     private hintWindowDocs = new Set<Document>();
     private initializing = true;
     private vimExtensionSlot: Extension[] = [];
+    private treesitterExtensionSlot: Extension[] = [];
     private toggleInProgress = false;
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
@@ -687,6 +688,40 @@ export default class VimMotionsPlugin extends Plugin {
         this.captureConfigOverrides();
     }
 
+    /**
+     * The bridge's ViewPlugin constructor needs a loaded grammar, so it cannot
+     * be registered directly — `getOrCreateParser` throws until `loadLanguage`
+     * resolves, which would take down every editor view. It goes into a mutable
+     * slot afterwards instead, the same swap the vim toggle uses.
+     *
+     * Until this resolves, and permanently if the WASM fails, `getTreeForView`
+     * returns null and every consumer keeps the Lezer or regex path it already
+     * had. Hence a warning rather than a throw.
+     */
+    private async enableTreesitterBridge(): Promise<void> {
+        try {
+            const runtime = await import('./treesitter/runtime');
+            await runtime.loadLanguage('markdown');
+            await runtime.loadLanguage('markdown_inline');
+
+            const { setJsApiModules } = await import('./treesitter/js-api');
+            setJsApiModules(runtime);
+
+            const { createBridgeExtension } =
+                await import('./treesitter/bridge');
+            this.treesitterExtensionSlot.push(
+                createBridgeExtension('markdown'),
+            );
+            this.app.workspace.updateOptions();
+        } catch (err) {
+            console.warn(
+                'Vim Motions: treesitter bridge unavailable; ' +
+                    'syntax-aware paths will use their fallbacks:',
+                err,
+            );
+        }
+    }
+
     async onload() {
         await this.loadSettings();
         this.activeUndoFilePath =
@@ -795,6 +830,8 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registerEditorExtension(this.vimExtensionSlot);
+        this.registerEditorExtension(this.treesitterExtensionSlot);
+        void this.enableTreesitterBridge();
 
         const builtinVimOn = isBuiltinVimEnabled(this.app);
         if (this.settings.vimEnabled && !builtinVimOn) {
@@ -1753,7 +1790,7 @@ export default class VimMotionsPlugin extends Plugin {
         if (__DEV__) {
             void (async () => {
                 try {
-                    const { loadLanguage, parseString, destroyAll } =
+                    const { loadLanguage, parseString } =
                         await import('./treesitter/runtime');
                     await loadLanguage('markdown');
                     const tree = parseString(
@@ -1767,7 +1804,6 @@ export default class VimMotionsPlugin extends Plugin {
                             `(root=${root.type}, children=${root.childCount})`,
                     );
                     tree.delete();
-                    destroyAll();
                 } catch (e) {
                     console.error(
                         '[vim-motions] treesitter WASM smoke: FAIL',
