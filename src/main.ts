@@ -347,6 +347,7 @@ export default class VimMotionsPlugin extends Plugin {
     private initializing = true;
     private vimExtensionSlot: Extension[] = [];
     private treesitterExtensionSlot: Extension[] = [];
+    private animatedCursorSlot: Extension[] = [];
     private toggleInProgress = false;
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
@@ -2894,24 +2895,11 @@ export default class VimMotionsPlugin extends Plugin {
         setCursorShapes(
             this.settings.cursorShapes as unknown as Record<string, string>,
         );
-        setCursorSuppressed(this.settings.animatedCursor);
-        if (this.settings.animatedCursor) {
-            setAnimatedCursorConfig({
-                enabled: true,
-                smoothCursor: this.settings.smoothCursor,
-                smoothness: this.settings.cursorSmoothness,
-                smearTrail: this.settings.smearTrail,
-                stiffness: this.settings.smearStiffness,
-                trailingStiffness: this.settings.smearTrailingStiffness,
-                damping: this.settings.smearDamping,
-                maxLength: this.settings.smearMaxLength,
-            });
-            this.vimExtensionSlot.push(
-                skipInTableCells(createAnimatedCursorExtension()),
-            );
-        } else {
-            setAnimatedCursorConfig({ enabled: false });
-        }
+        // The nested slot is a stable member of vimExtensionSlot; only its
+        // contents change at runtime. Rebuilding the outer slot instead would
+        // mean re-running this whole method, which is not idempotent.
+        this.vimExtensionSlot.push(this.animatedCursorSlot);
+        this.applyAnimatedCursorSlot();
         this.vimExtensionSlot.push(
             skipInTableCells(
                 createFoldColumnExtension(this.settings.foldcolumn),
@@ -3255,6 +3243,50 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    /**
+     * Brings the animated-cursor extension slot in line with the setting.
+     *
+     * Ordering matters in both directions. The fork's own cursor is hidden
+     * whenever the animated cursor is on, so the canvas must be installed
+     * before suppression is applied and removed only after suppression is
+     * lifted — otherwise the editor is left with no cursor at all in the gap.
+     */
+    private applyAnimatedCursorSlot(): void {
+        if (this.settings.animatedCursor) {
+            setAnimatedCursorConfig({
+                enabled: true,
+                smoothCursor: this.settings.smoothCursor,
+                smoothness: this.settings.cursorSmoothness,
+                smearTrail: this.settings.smearTrail,
+                stiffness: this.settings.smearStiffness,
+                trailingStiffness: this.settings.smearTrailingStiffness,
+                damping: this.settings.smearDamping,
+                maxLength: this.settings.smearMaxLength,
+            });
+            if (this.animatedCursorSlot.length === 0) {
+                this.animatedCursorSlot.push(
+                    skipInTableCells(createAnimatedCursorExtension()),
+                );
+            }
+            setCursorSuppressed(true);
+        } else {
+            setCursorSuppressed(false);
+            setAnimatedCursorConfig({ enabled: false });
+            this.animatedCursorSlot.length = 0;
+        }
+    }
+
+    /**
+     * Applies runtime setting changes that decide which editor extensions are
+     * installed. `setupVimSubsystems()` cannot be re-run for this — it is not
+     * idempotent — so each affected feature owns a nested slot whose contents
+     * are swapped in place, followed by a single `updateOptions()`.
+     */
+    private refreshRuntimeExtensionSlots(): void {
+        this.applyAnimatedCursorSlot();
+        this.app.workspace.updateOptions();
+    }
+
     reloadFeatures(): void {
         if (!this.settings.vimEnabled) return;
         if (this.autocmdManager?.isFiring()) {
@@ -3262,7 +3294,7 @@ export default class VimMotionsPlugin extends Plugin {
             return;
         }
         this.attachYankHighlight();
-        setCursorSuppressed(this.settings.animatedCursor);
+        this.refreshRuntimeExtensionSlots();
         this.modeTracker?.destroy();
         this.modeTracker = null;
         this.hintActions = null;
