@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.148.0] - 2026-09-08
+
 ### Added
 
 - **Dead-code gate** — `npm run lint:deadcode` (knip) is blocking in CI, and `npm run verify` now runs four static gates. It removed **70 unreferenced declarations across 24 files** plus one dead file, each confirmed independently by knip and by type-aware ESLint before deletion, and each deletion cascaded until both tools reached a fixpoint. Nothing was allowlisted that could simply be deleted.

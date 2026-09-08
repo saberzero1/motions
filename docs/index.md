@@ -31,8 +31,13 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 0.147.0
+## What's new in 0.148.0
 
-- **Scrolloff centering fix** — with high `scrolloff` values (e.g., `set scrolloff=999` for centered scrolling), the cursor's vertical position no longer drifts when changing movement direction. The constraint-based algorithm now enforces both top and bottom margins simultaneously for direction-independent symmetric positioning ([#176](https://github.com/saberzero1/motions/issues/176))
+- **Lazy `require()` now works** — every `lua/` module is read into memory when the configuration loads, so `require('plugin.module')` resolves synchronously from inside a `vim.keymap.set` callback, the idiom nearly the whole modern Neovim plugin ecosystem is built on ([[lua-config#require() resolves synchronously|Lua configuration]]) ([#177](https://github.com/saberzero1/motions/issues/177))
+- **`vim.ui.select`, `vim.ui.input`, and `vim.ui.open`** — Neovim's UI-hook namespace, backed by the built-in [[picker-api|picker]] and an input modal. Both are non-blocking, so they work from a keymap callback, and `vim.ui` is a plain mutable table that dressing.nvim-style plugins can replace and restore
+- **Large Neovim API expansion** — LuaJIT's `bit` library, `nvim_set_decoration_provider`, extmark `hl_eol`/`strict`/priority ordering, indexed scope access (`vim.bo[buf]`, `vim.wo[win]`, `vim.t[tab]`, …), real window-local options via `vim.wo`, `vim.fn.wincol`/`winlayout`, Unicode index conversion (`strchars`/`charidx`/`byteidx`), and working `nvim_list_bufs`/`nvim_tabpage_list_wins`
+- **Vim patterns in `vim.regex`, `vim.fn.searchpos`, and `vim.fn.split`** — these compiled their pattern as a JavaScript regex, so Vim syntax such as `\V`, `\zs`, or `\<` silently matched nothing. **Breaking**: at the default magic level `+`, `?`, `(`, `)` and `|` are literal, so a pattern written as `\d+` must become `\d\+`
+- **Text object, surround, and mapping fixes** — `di(`/`di{`/`di[` find the next pair ahead of the cursor like Neovim ([[text-objects|text objects]], [#178](https://github.com/saberzero1/motions/issues/178)), `ys` reaches every registered Markdown text object (`ysi$`, `ysa$`, `ysi=`, …) including dot-repeat ([[surround|surround]], [#179](https://github.com/saberzero1/motions/issues/179)), and `vim.keymap.set("", …)` now maps normal, visual, select, and operator-pending instead of normal only ([#180](https://github.com/saberzero1/motions/issues/180))
+- **[[animated-cursor|Animated cursor]] follows the text while scrolling** — no phantom character left behind, and the cursor returns in ~55 ms instead of stalling. Animated cursor, cursor shape, snippet, and undo tree settings also apply without restarting Obsidian ([#181](https://github.com/saberzero1/motions/issues/181))
 
 See the [[changelog|full changelog]] for details.
