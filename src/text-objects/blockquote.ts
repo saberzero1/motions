@@ -14,9 +14,7 @@ function treesitterBlockquoteRange(
     cursorCh: number,
 ): {
     startLine: number;
-    startCol: number;
     endLine: number;
-    endCol: number;
 } | null {
     const view = (
         cm as unknown as { cm6?: import('@codemirror/view').EditorView }
@@ -31,20 +29,27 @@ function treesitterBlockquoteRange(
     );
     if (!node) return null;
 
+    // The outer quote supplies structural bounds even when the cursor is on
+    // a prefix marker. Vim selects the explicit depth of the cursor's line,
+    // not CommonMark's lazy paragraph continuations within those bounds.
+    let outer = node;
+    for (let parent = node.parent; parent; parent = parent.parent) {
+        if (parent.type === 'block_quote') outer = parent;
+    }
     const endRow =
-        node.endPosition.column === 0
-            ? node.endPosition.row - 1
-            : node.endPosition.row;
+        outer.endPosition.column === 0
+            ? outer.endPosition.row - 1
+            : outer.endPosition.row;
 
-    return {
-        startLine: node.startPosition.row,
-        startCol: node.startPosition.column,
-        endLine: endRow,
-        endCol:
-            node.endPosition.column === 0
-                ? cm.getLine(endRow).length
-                : node.endPosition.column,
-    };
+    const depth = quoteDepth(cm.getLine(cursorLine));
+    if (depth === 0) return null;
+    return findBlockRange(
+        cm,
+        cursorLine,
+        (line) => quoteDepth(line) >= depth,
+        outer.startPosition.row,
+        endRow,
+    );
 }
 
 function isQuoteLine(lineText: string): boolean {
@@ -86,16 +91,17 @@ function findBlockRange(
     cm: { getLine: (n: number) => string; lastLine: () => number },
     cursorLine: number,
     matchFn: (line: string) => boolean,
+    first = 0,
+    last = cm.lastLine(),
 ): { startLine: number; endLine: number } | null {
     if (!matchFn(cm.getLine(cursorLine))) return null;
 
     let startLine = cursorLine;
-    while (startLine > 0 && matchFn(cm.getLine(startLine - 1))) {
+    while (startLine > first && matchFn(cm.getLine(startLine - 1))) {
         startLine--;
     }
 
     let endLine = cursorLine;
-    const last = cm.lastLine();
     while (endLine < last && matchFn(cm.getLine(endLine + 1))) {
         endLine++;
     }
@@ -133,38 +139,15 @@ function stripQuotePrefix(lineText: string): string {
 }
 
 export const blockquoteInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
-    const tsRange = treesitterBlockquoteRange(cm, head.line, head.ch);
-    if (tsRange) {
-        const firstContentLine = tsRange.startLine;
-        const markerLine = cm.getLine(firstContentLine);
-        const markerMatch = /^(\s*>\s*)/.exec(markerLine);
-        const prefixLen = markerMatch
-            ? markerMatch[1]!.length
-            : tsRange.startCol + 2;
-
-        const lastLine = cm.getLine(tsRange.endLine);
-        const lastMarkerMatch = /^(\s*>\s*)/.exec(lastLine);
-        const lastPrefixLen = lastMarkerMatch ? lastMarkerMatch[1]!.length : 0;
-
-        return adjustRangeForVisualMode(
-            [
-                createPos(firstContentLine, prefixLen),
-                createPos(
-                    tsRange.endLine,
-                    lastPrefixLen + lastLine.substring(lastPrefixLen).length,
-                ),
-            ],
-            vim,
-        );
-    }
-
     const cursorDepth = quoteDepth(cm.getLine(head.line));
     if (cursorDepth === 0) return null;
-    const range = findBlockRange(
-        cm,
-        head.line,
-        (line) => quoteDepth(line) >= cursorDepth,
-    );
+    const range =
+        treesitterBlockquoteRange(cm, head.line, head.ch) ??
+        findBlockRange(
+            cm,
+            head.line,
+            (line) => quoteDepth(line) >= cursorDepth,
+        );
     if (!range) return null;
 
     const prefixLen = quotePrefixLength(
@@ -185,25 +168,15 @@ export const blockquoteInnerTextObject: MotionFn = (cm, head, _ma, vim) => {
 };
 
 export const blockquoteAroundTextObject: MotionFn = (cm, head, _ma, vim) => {
-    const tsRange = treesitterBlockquoteRange(cm, head.line, head.ch);
-    if (tsRange) {
-        const lastLineText = cm.getLine(tsRange.endLine);
-        return adjustRangeForVisualMode(
-            [
-                createPos(tsRange.startLine, tsRange.startCol),
-                createPos(tsRange.endLine, lastLineText.length),
-            ],
-            vim,
-        );
-    }
-
     const cursorDepth = quoteDepth(cm.getLine(head.line));
     if (cursorDepth === 0) return null;
-    const range = findBlockRange(
-        cm,
-        head.line,
-        (line) => quoteDepth(line) >= cursorDepth,
-    );
+    const range =
+        treesitterBlockquoteRange(cm, head.line, head.ch) ??
+        findBlockRange(
+            cm,
+            head.line,
+            (line) => quoteDepth(line) >= cursorDepth,
+        );
     if (!range) return null;
 
     const last = cm.lastLine();
