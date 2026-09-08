@@ -969,6 +969,9 @@ vim.keymap.set("i", "jk", "<Esc>", { desc = "Exit insert mode" })
 -- Multiple modes
 vim.keymap.set({"n", "v"}, "<leader>y", '"+y', { desc = "Yank to clipboard" })
 
+-- Normal, visual, select and operator-pending at once
+vim.keymap.set("", "j", "h", { desc = "Shift home row left" })
+
 -- Function callback
 vim.keymap.set("n", "<leader>e", function()
     vim.cmd("obcommand file-explorer:reveal-active-file")
@@ -977,6 +980,20 @@ end, { desc = "Reveal in explorer" })
 -- Remove default mapping
 vim.keymap.del("n", "Q")
 ```
+
+### Mode strings
+
+The `mode` argument accepts a single string, a multi-character string (`"nv"`), or a table (`{"n", "v"}`). It follows Neovim's `:h map-modes`:
+
+| Mode | Applies to                                   |
+| ---- | -------------------------------------------- |
+| `n`  | Normal                                       |
+| `v`  | Visual                                       |
+| `x`  | Visual                                       |
+| `s`  | Select                                       |
+| `o`  | Operator-pending                             |
+| `i`  | Insert                                       |
+| `""` | Normal, Visual, Select, and Operator-pending |
 
 > [!tip] Choosing between `vim.cmd()` and `vim.obsidian.leader.add()`
 > For leader-prefixed commands that execute Obsidian commands, `vim.obsidian.leader.add()` is the simplest approach — it automatically registers which-key labels. `vim.keymap.set` with function callbacks gives you more flexibility (conditional logic, `vim.fn` checks, `vim.notify`) but requires an explicit `desc` option for which-key labels.

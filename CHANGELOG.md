@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`vim.keymap.set("", lhs, rhs)` only mapped normal mode** — Neovim's `:h map-modes` defines the empty mode string as Normal + Visual + Select + Operator-pending, but `getModeList()` collapsed it to `['n']`, the same value it uses for a missing mode argument. A config shifting the home row (`vim.keymap.set('', 'j', 'h')`) worked in normal mode and silently reverted to the default motion the moment the user pressed `v` or an operator. The empty string now expands to `n`, `v`, `s`, `o`, and an empty string appearing as a table entry (`{""}`) expands the same way instead of contributing nothing. Insert mode is deliberately excluded, matching Neovim. ([#180](https://github.com/saberzero1/motions/issues/180))
+    - Plugin: `src/lua/api.ts` (`getModeList`, `EMPTY_MODE_EXPANSION`) — affects both `vim.keymap.set` and `vim.keymap.del`
 - **Table navigation shared its pending-key state across split panes** — `pendingD` and the count buffer lived at module scope while `TableNavController` is a CodeMirror `ViewPlugin`, instantiated once per `EditorView`. Pressing `d` in one pane and then a key in another consumed the first pane's pending state, so `d` followed by `d` in a different table deleted a row immediately instead of starting its own `dd`. A count typed in one pane applied to the next motion in another. Both now live per handler. Dot-repeat is deliberately left at module scope: Vim's `.` replays the last change across buffers.
     - Plugin: `src/vim/table-nav-keymap.ts` (per-handler state, `resetPending`), `src/vim/table-nav-controller.ts` (holds its own handler)
 - **Picker source timeouts leaked a live timer per call** — `Promise.race` settles but does not cancel the loser, so every `items()`, `search()` and `preview()` call against an external source left a 5-second timer holding its closure. `search()` runs on every keystroke. The timer is now cleared whichever side wins.
@@ -158,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 5 e2e cases in `test/specs/lua-keymap-modes.e2e.ts` for #180, written before the fix. The visual case failed with `line` 1 instead of 0 and the operator-pending case deleted both lines (`Received: ""` instead of `"hell world\nsecond line"`); both pass with the fix. Two of the five are negative controls that pass on the unfixed code — normal mode with `""`, proving the mapping loaded at all, and an explicit `"n"` mapping still leaving visual-mode `j` as the default down motion, proving the expansion did not leak into mode-specific mappings.
 - **A vacuous assertion in `test/unit/fengari/53bit-integers.test.ts`**, found by `no-useless-escape` once `test/` began being linted. The Lua lives in a JS template literal, so `[[\"]]` collapsed to `[["]]` before Lua ever saw it and `q:find` searched for a bare `"` — which `string.format("%q", …)` always adds as wrapping quotes. The assertion that `%q` _escapes_ inner quotes had never run. Confirmed by sabotage (`assertion failed!` at Lua line 24), then restored.
 - The `expect-expect` and `no-floating-promise` fixes were verified across 31 e2e specs (31/31 passing, 18m23s) and the full unit suite. 60 of the repaired unit assertions were individually inverted and observed failing before restoration.
 - 16 real-WASM regression cases in `test/unit/treesitter/text-object-ranges.test.ts` cover delimiter identity/width, enclosing same-type candidates, all four bold delimiter positions, and blockquote depth/newline boundaries. All 16 were observed failing with candidate filtering and the blockquote fix reverted, including `trik` instead of `strike` and unwanted `after` / `more outer` selection.
@@ -186,6 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- `docs/configuration/lua-config.md`: new "Mode strings" table for `vim.keymap.set`, documenting every accepted mode character and the `""` expansion, plus a mapping example using it
 - `docs/features/text-objects.md`, `KNOWN_LIMITATIONS.md`: delimiter cursor semantics and depth-aware blockquote boundaries also apply to tree-backed selections.
 - `AGENTS.md`, `CONTRIBUTING.md`: fold metadata module and tree lifetime contract; corrected the stale pre-rewrite bridge description.
 - `docs/features/workspace-navigation.md`: parsed heading boundaries, indented headings, fenced-code exclusion and regex fallback.
