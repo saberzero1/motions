@@ -286,6 +286,70 @@ describe('Built-in text objects (Tier 1)', function () {
         });
     });
 
+    // Expected values recorded against `nvim --clean`; Neovim applies the
+    // same forward pair search to both the `i` and the `a` variant.
+    describe('inner bracket from outside the pair (#178)', function () {
+        it('di{ before the pair should delete inside the next braces', async function () {
+            await setupEditor('this is a test. {a test}', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 'i', '{');
+            expect(await getEditorValue()).toBe('this is a test. {}');
+        });
+
+        it('di( before the pair should delete inside the next parens', async function () {
+            await setupEditor('this is a test. (a test)', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 'i', '(');
+            expect(await getEditorValue()).toBe('this is a test. ()');
+        });
+
+        it('di[ before the pair should delete inside the next brackets', async function () {
+            await setupEditor('this is a test. [a test]', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 'i', '[');
+            expect(await getEditorValue()).toBe('this is a test. []');
+        });
+
+        it('dib before the pair should delete inside the next parens', async function () {
+            await setupEditor('this is a test. (a test)', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 'i', 'b');
+            expect(await getEditorValue()).toBe('this is a test. ()');
+        });
+
+        it('da{ before the pair should still delete the whole pair', async function () {
+            await setupEditor('this is a test. {a test}', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 'a', '{');
+            expect(await getEditorValue()).toBe('this is a test. ');
+        });
+
+        it('di( should find a pair on a later line', async function () {
+            await setupEditor('first line\nsecond (paren) line', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('d', 'i', '(');
+            expect(await getEditorValue()).toBe('first line\nsecond () line');
+        });
+
+        it('di( after the pair with no further pair should do nothing', async function () {
+            await setupEditor('aaa (bbb) ccc', { line: 0, ch: 11 });
+            await vimKeys('d', 'i', '(');
+            expect(await getEditorValue()).toBe('aaa (bbb) ccc');
+        });
+    });
+
     describe('i[ / a[ edge cases', function () {
         it('di[ with nested brackets should delete innermost', async function () {
             await setupEditor('[outer [inner] more]', { line: 0, ch: 10 });

@@ -631,6 +631,35 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
         });
     });
 
+    describe('ys with plugin-registered text objects — #179', function () {
+        it('ysi$b should surround inline math contents with parens', async function () {
+            await setupEditor('text $1 + 1 = 2$ more', { line: 0, ch: 8 });
+            await vimKeys('y', 's', 'i', '$', 'b');
+            expect(await getEditorValue()).toBe('text $(1 + 1 = 2)$ more');
+        });
+
+        it('ysa$b should surround inline math including delimiters', async function () {
+            await setupEditor('text $1 + 1 = 2$ more', { line: 0, ch: 8 });
+            await vimKeys('y', 's', 'a', '$', 'b');
+            expect(await getEditorValue()).toBe('text ($1 + 1 = 2$) more');
+        });
+
+        it('ysi=b should surround highlight contents with parens', async function () {
+            await setupEditor('text ==marked== more', { line: 0, ch: 9 });
+            await vimKeys('y', 's', 'i', '=', 'b');
+            expect(await getEditorValue()).toBe('text ==(marked)== more');
+        });
+
+        it('ysi$b then . should repeat on another math span', async function () {
+            await setupEditor('$one$ and $two$', { line: 0, ch: 2 });
+            await vimKeys('y', 's', 'i', '$', 'b');
+            expect(await getEditorValue()).toBe('$(one)$ and $two$');
+            await vimKeys('$', 'h', 'h');
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe('$(one)$ and $(two)$');
+        });
+    });
+
     describe('<C-G>s — insert mode surround', function () {
         it('<C-G>s" should surround typed text with quotes', async function () {
             await setupEditor('hello world', { line: 0, ch: 5 });
