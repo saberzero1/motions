@@ -36,11 +36,16 @@ function coordsToRect(view: EditorView, pos: number): CursorRect | null {
     if (!coords) return null;
 
     const pane = view.scrollDOM.getBoundingClientRect();
+    // Vertically this is an intersection test, not a containment test: while
+    // scrolling, the caret line is routinely half-clipped by the pane edge.
+    // `draw()` clips to the same pane, so a partially visible cursor renders
+    // correctly — rejecting it here would make the cursor blink out at the
+    // top and bottom of every scroll.
     if (
         coords.left < pane.left - 1 ||
         coords.left > pane.right + 1 ||
-        coords.top < pane.top - 1 ||
-        coords.bottom > pane.bottom + 1
+        coords.bottom < pane.top - 1 ||
+        coords.top > pane.bottom + 1
     ) {
         return null;
     }
@@ -75,6 +80,7 @@ class CursorController implements Tickable {
     private cachedRect: CursorRect | null = null;
     private cachedShapeRect: CursorRect | null = null;
     private cachedDocPos = -1;
+    private cachedSelectionHead = -1;
     private cachedScrollTop = 0;
     private cachedScrollLeft = 0;
     private cachedTime = 0;
@@ -114,6 +120,9 @@ class CursorController implements Tickable {
             'compositionend',
             this.onCompositionEnd,
         );
+        view.scrollDOM.addEventListener('scroll', this.onScroll, {
+            passive: true,
+        });
 
         this.accentColor = resolveAccentColor(view.dom);
 
@@ -140,6 +149,30 @@ class CursorController implements Tickable {
     private onCompositionEnd = (): void => {
         this.composing = false;
         this.needsPositionUpdate = true;
+        getAnimatedCursorManager().wake();
+    };
+
+    // Scrolling within the already-rendered viewport produces no CodeMirror
+    // transaction, so `update()` never runs and the cursor would stay pinned
+    // to its last screen position until the 500 ms staleness fallback fires.
+    private onScroll = (): void => {
+        if (this.destroyed) return;
+        const scrollTop = this.view.scrollDOM.scrollTop;
+        const scrollLeft = this.view.scrollDOM.scrollLeft;
+        if (
+            scrollTop === this.cachedScrollTop &&
+            scrollLeft === this.cachedScrollLeft
+        ) {
+            return;
+        }
+        this.needsPositionUpdate = true;
+        this.active = true;
+        // A scroll that does not also move the caret through the document is
+        // pure viewport translation; animating towards the new screen position
+        // would smear the cursor across the page.
+        if (this.view.state.selection.main.head === this.cachedSelectionHead) {
+            this.snapOnNextTick = true;
+        }
         getAnimatedCursorManager().wake();
     };
 
@@ -459,8 +492,16 @@ class CursorController implements Tickable {
                 const line = this.view.state.doc.lineAt(pos);
                 if (pos > line.from) pos--;
             }
+            this.cachedSelectionHead = sel.head;
             const rect = coordsToRect(this.view, pos);
-            if (!rect) return;
+            if (!rect) {
+                // The caret has scrolled out of the pane. Dropping the rect
+                // stops `tick()` from repainting the last known position as a
+                // phantom cursor that never gets cleared.
+                this.cachedRect = null;
+                this.cachedShapeRect = null;
+                return;
+            }
 
             this.cachedRect = rect;
             this.cachedDocPos = pos;
@@ -573,6 +614,7 @@ class CursorController implements Tickable {
             'compositionend',
             this.onCompositionEnd,
         );
+        this.view.scrollDOM.removeEventListener('scroll', this.onScroll);
     }
 }
 
