@@ -7,6 +7,7 @@ import {
     getVimMode,
     vimKeys,
     sendVimEscape,
+    describeEditors,
     PAUSE,
 } from '../helpers';
 
@@ -29,21 +30,24 @@ async function executeToggleCommand(
 // vim ViewPlugin, which sits in the extension slot `disableVim()` clears. If a
 // reconfiguration ever stopped removing it, vim would keep seeing keys while
 // disabled, and repeated cycles would stack duplicate observers. CM6 recomputes
-// this map whenever the plugin set changes, so the count is the direct evidence.
+// this map whenever the plugin set changes, so the count is direct evidence.
+//
+// Summed across every reconfigurable editor, not just the active one. Windows
+// CI runs with two editors present, and a spike there caught one holding a
+// configuration the active editor had already dropped — a defect that a
+// single-editor sample reports as clean.
 async function keydownObserverCount(): Promise<number> {
-    return (await browser.executeObsidian(({ app, obsidian }) => {
-        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        const cm = (view?.editor as unknown as Record<string, unknown>)?.cm as
-            | {
-                  inputState?: {
-                      handlers?: Record<string, { observers?: unknown[] }>;
-                  };
-              }
-            | undefined;
-        const handlers = cm?.inputState?.handlers;
-        if (!handlers) return -1;
-        return handlers.keydown?.observers?.length ?? 0;
-    })) as number;
+    const editors = await describeEditors();
+    return editors
+        .filter((e) => e.reconfigurable)
+        .reduce((sum, e) => sum + Math.max(e.keydownObservers, 0), 0);
+}
+
+async function editorInventory(): Promise<string> {
+    const editors = await describeEditors();
+    return editors
+        .map((e) => `${e.tag}(found=${e.viewFound},kd=${e.keydownObservers})`)
+        .join(' ');
 }
 
 async function isVimActive(): Promise<boolean> {
@@ -175,9 +179,11 @@ describe('Vim toggle command', function () {
             }
 
             // Compared as one string so a failure reports the whole sequence:
-            // a leak and a duplicate look identical from a single sample.
-            expect(seen.join(' ')).toBe(
-                `off:0 on:${enabled} off:0 on:${enabled}`,
+            // a leak and a duplicate look identical from a single sample. The
+            // editor inventory rides along so a failure also says which editor
+            // kept the observer, rather than only that some editor did.
+            expect(`${seen.join(' ')} | ${await editorInventory()}`).toBe(
+                `off:0 on:${enabled} off:0 on:${enabled} | ${await editorInventory()}`,
             );
         });
 

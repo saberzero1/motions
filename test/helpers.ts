@@ -829,3 +829,66 @@ export async function ensureSourceMode(): Promise<void> {
         .catch(() => {});
     await browser.pause(PAUSE.MODE_SWITCH);
 }
+
+export interface EditorObserverInfo {
+    /** `leaf:<view-type>` for a workspace editor, otherwise where it is embedded. */
+    tag: string;
+    /** False when CodeMirror does not recognise the element as one of its views. */
+    viewFound: boolean;
+    keydownObservers: number;
+    /**
+     * Whether `registerEditorExtension` + `workspace.updateOptions()` is
+     * expected to govern this editor. Embedded editors receive vim through
+     * `StateEffect.appendConfig` instead, so a surviving extension there is by
+     * design rather than a leaked one.
+     */
+    reconfigurable: boolean;
+}
+
+/**
+ * Every CodeMirror editor currently in the document, with its keydown observer
+ * count.
+ *
+ * Written after a Windows-only failure showed a second editor holding a
+ * configuration the active one had already dropped: any assertion that samples
+ * only the active editor cannot see that, which is the whole point here.
+ */
+export async function describeEditors(): Promise<EditorObserverInfo[]> {
+    return (await browser.executeObsidian(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const cmView = require('@codemirror/view') as {
+            EditorView: { findFromDOM(dom: HTMLElement): unknown };
+        };
+        return Array.from(document.querySelectorAll('.cm-editor')).map((el) => {
+            const dom = el as HTMLElement;
+            const view = cmView.EditorView.findFromDOM(dom) as
+                | {
+                      inputState?: {
+                          handlers?: Record<string, { observers?: unknown[] }>;
+                      };
+                  }
+                | null
+                | undefined;
+            const embedded =
+                (dom.closest('.cm-table-widget') && 'table-widget') ||
+                (dom.closest('.popover') && 'popover') ||
+                (dom.closest('.modal-container') && 'modal') ||
+                (dom.closest('.vim-motions-textarea-overlay') && 'textarea');
+            const leafType = dom
+                .closest('.workspace-leaf-content')
+                ?.getAttribute('data-type');
+            return {
+                tag: embedded
+                    ? `embedded:${embedded}`
+                    : leafType
+                      ? `leaf:${leafType}`
+                      : 'detached',
+                viewFound: !!view,
+                keydownObservers:
+                    view?.inputState?.handlers?.keydown?.observers?.length ??
+                    -1,
+                reconfigurable: !embedded && !!leafType,
+            };
+        });
+    })) as EditorObserverInfo[];
+}

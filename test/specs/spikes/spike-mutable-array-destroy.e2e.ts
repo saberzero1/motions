@@ -438,6 +438,34 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
                     firing?.inputState?.handlers?.keydown?.observers?.length ??
                     -1,
                 editorCount: document.querySelectorAll('.cm-editor').length,
+                // Names every editor present. `plugin-still-in-other-view`
+                // says a second editor kept the configuration; this says what
+                // that editor is, which decides whether it was ever governed
+                // by registerEditorExtension at all — embedded editors receive
+                // extensions through StateEffect.appendConfig instead.
+                editorTags: Array.from(document.querySelectorAll('.cm-editor'))
+                    .map((el) => {
+                        const dom = el as HTMLElement;
+                        const embedded =
+                            (dom.closest('.cm-table-widget') &&
+                                'table-widget') ||
+                            (dom.closest('.popover') && 'popover') ||
+                            (dom.closest('.modal-container') && 'modal') ||
+                            (dom.closest('.vim-motions-textarea-overlay') &&
+                                'textarea');
+                        const leafType = dom
+                            .closest('.workspace-leaf-content')
+                            ?.getAttribute('data-type');
+                        const isFiring = firing ? dom === firing.dom : false;
+                        return `${
+                            embedded
+                                ? 'embedded:' + embedded
+                                : leafType
+                                  ? 'leaf:' + leafType
+                                  : 'detached'
+                        }${isFiring ? '*' : ''}`;
+                    })
+                    .join(','),
             };
         });
 
@@ -447,9 +475,9 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
         );
 
         expect(
-            `keydown=${afterRemove.keydownCount} verdict=${afterRemove.verdict} attached=${afterRemove.firingViewAttached} observers=${afterRemove.firingViewObservers} editors=${afterRemove.editorCount}`,
+            `keydown=${afterRemove.keydownCount} verdict=${afterRemove.verdict} attached=${afterRemove.firingViewAttached} observers=${afterRemove.firingViewObservers} editors=[${afterRemove.editorTags}]`,
         ).toBe(
-            `keydown=0 verdict=no-keydown-observed attached=false observers=-1 editors=${afterRemove.editorCount}`,
+            `keydown=0 verdict=no-keydown-observed attached=false observers=-1 editors=[${afterRemove.editorTags}]`,
         );
         expect(afterRemove.destroyCount).toBeGreaterThanOrEqual(1);
     });
