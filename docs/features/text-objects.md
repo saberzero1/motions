@@ -23,6 +23,8 @@ The following text objects operate on inline Markdown delimiters:
 
 These objects support multi-line scanning, allowing you to select content that spans across line breaks. To maintain performance, the scanner skips lines within fenced code blocks.
 
+Inner objects require the cursor to be inside the content, not on the opening or closing delimiter. Around objects also work with the cursor on a delimiter. Tree-backed matching checks the actual delimiter character and width, so `$...$` is not mistaken for `$$...$$`, and `~~...~~` includes both tildes on each side.
+
 > [!note] Smart asterisk disambiguation
 > `i*` tries to match `**bold**` first, then falls back to `*italic*`. In cases of nested formatting like `***bold italic***`, the `**` pair is matched first. Use `i_` for underscore italic to select the italic portion specifically.
 
@@ -48,6 +50,8 @@ Block text objects operate on structural Markdown elements:
 - **Code blocks** (`iC` / `aC`): Fenced code blocks starting and ending with ` ``` `.
 - **Blockquotes** (`iB` / `aB`): Lines prefixed with `>`.
 - **Callouts** (`io` / `ao`): Obsidian callouts (`> [!type]`).
+
+Blockquotes select contiguous lines at the cursor line's nesting depth or deeper, supporting both `>>` and `> >` prefixes. Unmarked continuation lines and shallower outer quote lines are excluded, even when the Markdown parser includes them in the same paragraph. Inner selections preserve the full opening quote prefix; around selections remove nested quote lines without leaving an extra empty line between adjacent quote lines.
 
 The scanner for these blocks skips lines within fenced code blocks to avoid false positives. Note that fenced code blocks inside blockquotes (` > ``` `) are currently not detected as separate blocks.
 

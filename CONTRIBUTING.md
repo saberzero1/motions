@@ -230,13 +230,14 @@ src/
     motions.ts             # Fold navigation motions + shared utilities (findNextFoldable, findEnclosingFoldable, foldedRangesWithin, foldableRegionsWithin)
     fold-enable.ts         # Fold enable/disable state (foldEnableField, isFoldingEnabled, zn/zN/zi)
     provider.ts            # Fold providers (frontmatter, callouts, headings — heading provider trims trailing blank lines)
+    metadata.ts            # Immutable heading ranges/titles and fence languages keyed by exact EditorState
     persistence.ts         # Cross-session fold persistence
     placeholder.ts         # Descriptive fold placeholder text
     fold-level.ts          # Fold level tracking + reapply (zx/zX)
   treesitter/
     runtime.ts             # web-tree-sitter WASM init, parser/language cache, grammar loading
     bridge.ts              # CM6 ViewPlugin for per-view incremental treesitter parsing
-    tree-state.ts          # Shared treesitter state (WeakMap + StateField) — import-chain-safe for non-WASM consumers
+    tree-state.ts          # Per-view tree WeakMap only; bridge publish() owns tree lifetime
     js-api.ts              # JS-side treesitter query helpers for TypeScript feature code (position lookup, ancestor check, inline nodes)
     query.ts               # QueryWrapper: compile .scm queries, iterCaptures/iterMatches with predicate filtering
     bundled-queries.ts     # Bundled markdown/markdown_inline/html textobjects queries
@@ -596,6 +597,14 @@ Vimrc/Lua setting overrides are persisted in a `configOverrides` block in `data.
 4. Settings UI changes call `clearSettingOverride(key)` to remove from all override stores
 
 ## Testing
+
+### Every test must be shown to fail
+
+A passing test proves nothing on its own. Before a test is accepted, break the behaviour it describes and confirm the test fails — then restore the code and record the observed values (actual vs expected, not "it failed").
+
+This applies to **every** new or modified test, not only bug reproductions: unit tests written alongside a feature, tests added for existing code, and tests touched during a refactor are all covered. `.agents/skills/negative-control/SKILL.md` has the techniques and the vacuity checklist; `.agents/skills/issue-repro/SKILL.md` remains the issue-specific workflow and keeps its own must-fail-first requirement.
+
+`npm run lint` gates the syntactic subset (`@vitest/eslint-plugin` on `test/unit/**`, `eslint-plugin-wdio` on `test/specs/**`), but `expect-expect` trusts any helper named in `assertFunctionNames` without inspecting it, so it cannot see a test that asserts confidently about the wrong thing. Never silence a finding with `expect(true).toBe(true)`, an `eslint-disable`, or by widening `assertFunctionNames`.
 
 ### Test infrastructure
 

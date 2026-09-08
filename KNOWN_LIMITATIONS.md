@@ -977,11 +977,11 @@ These were found by translating edge-case tests from Neovim's legacy test suite 
 
 ### ~~`iB` does not scope to innermost blockquote nesting level~~
 
-**Status**: Fixed. The blockquote text object now uses depth-aware scanning.
+**Status**: Fixed. Both tree-backed and fallback blockquote text objects select contiguous lines at or above the cursor line's explicit quote depth. Tree-backed selections exclude CommonMark lazy continuations at lower depth, strip the full nested prefix for inner selections, and preserve the fallback's newline handling for around selections.
 
 ### ~~`di*` operates when cursor is on the delimiter~~
 
-**Status**: Fixed. The delimiter scanner now excludes cursor positions on the delimiter characters.
+**Status**: Fixed. Both tree-backed and fallback inner delimiter objects exclude cursor positions on the delimiter characters; around objects still include them. Tree-backed matching validates the exact delimiter character and run length at both ends and walks outward past incompatible nodes, including the grammar's nested single-tilde node inside `~~text~~`.
 
 ### ~~Dot-repeat of `cw` + typed text unreliable~~ (Fixed)
 

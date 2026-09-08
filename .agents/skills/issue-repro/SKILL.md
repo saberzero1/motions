@@ -17,6 +17,9 @@ argument-hint: '<issue-url-or-number> [issue-url-or-number...]'
 
 Given one or more GitHub issues, write e2e tests that faithfully reproduce the reported behavior (the tests MUST fail before the fix), then implement the minimal fix so the tests pass. This test-first approach was adopted because about half of agent-written e2e tests were found to not actually test anything meaningful despite passing.
 
+> [!important]
+> The "must fail first" requirement below is this skill's instance of a **general** obligation that applies to every test in the repository, not only issue reproductions — see `.agents/skills/negative-control/SKILL.md`. Unit tests written alongside a feature, tests added for existing code, and tests touched during a refactor are all covered there. Follow the workflow below for issues; follow `negative-control` for everything else. Neither replaces the other.
+
 ## When to Activate
 
 Activate when the user provides GitHub issue URLs or numbers and asks to fix them. Typical phrasings:
@@ -103,6 +106,8 @@ For each issue:
 - Write the e2e test BEFORE implementing the fix.
 - Verify the test FAILS before the fix is applied.
 - Verify the test PASSES after the fix is applied.
+- Record the observed failure concretely — actual vs expected values, not "it failed". A failure for the wrong reason (import error, timeout, syntax error) is not a reproduction.
+- Run the vacuity checklist in `.agents/skills/negative-control/SKILL.md` before accepting the test.
 - Use project test helpers (`test/helpers.ts`) instead of inline `executeObsidian` boilerplate.
 - Follow test file organization conventions (Tier 1 vs Tier 2, correct directory).
 - Run `lsp_diagnostics` on changed source files.
