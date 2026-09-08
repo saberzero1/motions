@@ -441,11 +441,16 @@ function readKeyString(L: lua_State, index: number): string | null {
     return bytes ? termcodesToNotation(bytes, true) : null;
 }
 
+// Neovim `:h map-modes`: "" means Normal + Visual + Select + Operator-pending.
+const EMPTY_MODE_EXPANSION = ['n', 'v', 's', 'o'];
+
 function getModeList(L: lua_State, index: number): string[] {
     if (lua.lua_isnil(L, index)) return ['n'];
     const modeStr = readLuaString(L, index);
     if (modeStr !== null) {
-        return modeStr.length > 0 ? modeStr.split('') : ['n'];
+        return modeStr.length > 0
+            ? modeStr.split('')
+            : [...EMPTY_MODE_EXPANSION];
     }
     if (!lua.lua_istable(L, index)) return [];
     const modes: string[] = [];
@@ -457,7 +462,11 @@ function getModeList(L: lua_State, index: number): string[] {
         }
         const entry = readLuaString(L, -1);
         lua.lua_pop(L, 1);
-        if (!entry) continue;
+        if (entry === null) continue;
+        if (entry.length === 0) {
+            modes.push(...EMPTY_MODE_EXPANSION);
+            continue;
+        }
         for (const ch of entry.split('')) modes.push(ch);
     }
     return modes.length > 0 ? modes : ['n'];
