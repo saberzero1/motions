@@ -17,6 +17,7 @@
  */
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
+import { focusEditor } from '../../helpers';
 
 const PAUSE = { SETTLE: 500, RENDER: 300 } as const;
 
@@ -284,7 +285,24 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
                         // The view is captured because "which view fired this"
                         // is half the diagnosis; the active editor is not
                         // necessarily the one the click and keypress landed on.
+                        // Only editors that `registerEditorExtension` +
+                        // `updateOptions()` actually governs are counted.
+                        // Embedded editors — table cells, popovers, textarea
+                        // overlays — are handed extensions when they are
+                        // constructed and are never reconfigured afterwards,
+                        // so an extension surviving there is by design and not
+                        // what this spike is about. Windows exposed this by
+                        // having a table cell editor open where Linux did not.
                         keydown: (_e: KeyboardEvent, firingView: unknown) => {
+                            const dom = (firingView as { dom: HTMLElement })
+                                .dom;
+                            if (
+                                dom.closest(
+                                    '.cm-table-widget, .popover, .modal-container, .vim-motions-textarea-overlay',
+                                )
+                            ) {
+                                return;
+                            }
                             observerTracker.keydownCount++;
                             observerTracker.lastView = firingView;
                         },
@@ -323,8 +341,7 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
 
         await browser.pause(PAUSE.SETTLE);
 
-        const el = await browser.$('.cm-editor .cm-content');
-        await el.click();
+        await focusEditor();
         await browser.keys('a');
         await browser.pause(PAUSE.RENDER);
 
@@ -391,7 +408,7 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
             tracker.lastView = null;
         });
 
-        await el.click();
+        await focusEditor();
         await browser.keys('b');
         await browser.pause(PAUSE.RENDER);
 
