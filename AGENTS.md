@@ -254,6 +254,7 @@ For viewport-dependent behavior (H/M/L, scroll, folds), use regular `it()` block
 - Create a GitHub release whose tag exactly matches `manifest.json`'s `version`. Do not use a leading `v`.
 - Attach `manifest.json`, `main.js`, and `styles.css` (if present) to the release as individual assets.
 - After the initial release, follow the process to add/update your plugin in the community catalog as required.
+- **`CHANGELOG.md` sections run `Added` → `Changed` → `Removed` → `Fixed` → `Tests` → `Documentation`, at most one of each per release.** The first four are Keep a Changelog; `Tests` and `Documentation` are this project's additions and always come last. Append to the existing section — never open a second block with the same name, and never invent a heading outside that set. A heading inserted into the middle of an existing list silently re-parents every entry below it: `### Known findings surfaced by the new gate` landed mid-`Added` and orphaned 15 release entries under a label that misdescribed them. `.github/workflows/docs.yml` publishes the file verbatim, so a mislabelled entry ships to the docs site. Releases below 0.100 predate the convention and deviate freely; that is history, not a defect — leave them alone.
 
 ## Security, privacy, and compliance
 

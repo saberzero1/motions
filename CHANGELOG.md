@@ -13,14 +13,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Deleted: superseded table manipulation helpers (Obsidian's native `TableEditor` actions supersede them), unused treesitter JS-API and query-cache surface, snippet autocomplete helpers, and `src/vim/jumplist-bridge.ts`, whose `createJumpListBridge()` had no caller — the jump list works through the `JumpList` class instead.
     - `knip.jsonc` is JSONC specifically so every ignore entry carries its reason inline. The categories are: vendored fengari, dependencies selected by string name in `wdio.conf.mts` (`framework: 'mocha'`, `reporters: ['obsidian']`, `runner: 'local'`), and the ambient `__DEV__` declaration. The bridge ignores were removed when it was wired up.
     - Fixed three test files importing `../../../../src/lib/fengari`, one level above the repository root. Vite resolved it leniently so the tests passed; knip did not.
-
 - **Test-quality gate** — `test/` was in ESLint's `globalIgnores`, so 346 files and 4,259 test blocks had never been linted at all. `@vitest/eslint-plugin` now covers `test/unit/**` and `eslint-plugin-wdio` covers `test/specs/**`, both blocking. It surfaced **166 findings**, all fixed rather than suppressed — no `eslint-disable` was added.
     - 46 `wdio/no-floating-promise`: an async browser assertion that is built but never awaited resolves to a pending Promise, is truthy, and never throws, so the test passes regardless of what the browser did. `wdio/await-expect` ships **off** in the plugin's own recommended set and is forced on here.
     - 57 `vitest/expect-expect`, 13 `no-conditional-expect`, 10 `no-identical-title`, 7 `valid-expect`, 2 `no-standalone-expect`, plus one tautological self-comparison and one constant-folded `null ?? {}` that made a test a silent duplicate of the next one.
     - `wdio/no-pause` is off (2902 occurrences of an established `browser.pause()` idiom — a flakiness question, not a vacuity one), and the general lint backlog in `test/` is switched off there and separately owned. Neither is suppressed for `src`.
     - `expect-expect` is syntactic and trusts any helper named in `assertFunctionNames` without inspecting it, so it proves a test asserts _something_, never that it asserts the right thing. `luaExpectOk` and `run` were added only after reading their definitions and a call site; `run` is scoped to `test/unit/lua/**` and `test/unit/fengari/**` because the name is generic enough that trusting it suite-wide would let any future function so named satisfy the rule.
-
 - **`negative-control` skill** (`.agents/skills/negative-control/SKILL.md`) — generalises the "the test MUST fail first" requirement from `issue-repro`, which only applied to GitHub-issue bug fixes and mandated e2e tests. It now covers every new or modified test: unit tests written alongside a feature, tests added for existing code, and tests touched during a refactor. Ranks three techniques (red-first, sabotage the subject, invert the assertion), requires concrete observed failure values rather than "I verified it fails", and carries a nine-item vacuity checklist. `issue-repro` keeps its own workflow and the two cross-reference each other.
+- **`require()` resolves synchronously** — every `.lua` file under `lua/` is read into memory when the configuration loads, and `require()` resolves from that snapshot. This unblocks lazy `require`, which is the idiom nearly the whole modern Neovim plugin ecosystem is built on: `vim.keymap.set('n', 's', function() require('plugin.jump').start() end)` previously failed with `module 'plugin.jump' not found: async APIs can only be called from async-capable callbacks`, because reading from the vault is asynchronous and keymap callbacks run on the main state via a plain `lua_pcall` that cannot yield. Only a cache miss was ever affected — `package.loaded` hits were already synchronous.
+    - Plugin: `src/lua/module-snapshot.ts` (new — walk, index, limits, atomic swap), `src/lua/package.ts` (snapshot-first resolution), `src/lua/coroutine-runner.ts` (`isAsyncCapable`), `src/lua/loader.ts` (awaited rebuild before user config, refresh after plugin fetch, skip reporting)
+    - The asynchronous vault read is retained, but **only** for callers that can wait for it — top-level configuration, autocommands, timers. A synchronous caller that misses the snapshot is told the module is `not present in the configuration snapshot`, naming both paths tried, rather than a generic "not found" indistinguishable from a typo.
+    - Files added or edited after the configuration loads need a reload; there is no live watcher. The snapshot rebuilds on configuration reload and after a `vim.plugins.add()` fetch, before the fetching coroutine resumes, so a freshly fetched plugin is immediately requirable.
+    - Limits are reported, not silently applied: 512 KiB per file, 16 MiB total, 2,048 files, 32 directory levels. Skipped files are named in the console with a reason, because a file dropped for exceeding a budget would otherwise present as a missing module.
+    - The snapshot reader and the async-capability predicate reach the injected `require` chunk as **chunk arguments, not globals**, so sandboxed user Lua has no handle on them.
+    - Measured against the flash.nvim diagnostic: `require_in_callback` went from `blocked: … async APIs …` to `works`, and `Config.get().search.multi_window` from an error to `true`. flash now runs to its LuaJIT FFI dependency, which is architectural and not fixable in a pure-Lua VM.
+- **`vim.ui.select` and `vim.ui.input`** — Neovim's UI-hook namespace, backed by the existing Telescope-style picker and input modal. `vim.ui` is a plain mutable table with **no metatable**, so dressing.nvim / telescope-ui-select / snacks can replace and restore its fields, which is the idiom the namespace exists for. Both are **non-blocking**: they return immediately and invoke their callback later on a coroutine thread, so they work from inside a `vim.keymap.set` callback — the most common call site, where a yield-based design would hard-error. `on_choice` receives the **original Lua value** (items are commonly tables) plus a 1-based index; `on_confirm` distinguishes `''` (empty confirm) from `nil` (cancel). `format_item` is applied eagerly, matching Neovim's own default implementation.
+    - Plugin: `src/lua/ui-api.ts` (new), `src/lua/loader.ts` (injection + wiring), `src/main.ts` (`openUiSelect` picker binding)
+    - Where no selection UI is available, `vim.ui.select` raises rather than settling with `nil` — a caller cannot distinguish a `nil` settle from "the user cancelled".
+    - `vim.ui.open(path, opts?)` opens `http(s)://` targets in a new window and everything else with the system handler, returning Neovim's `vim.SystemObj|nil, nil|string` shape. On mobile, or with no handler, `nil, errmsg` is the _correct_ answer rather than a fudge. `opts.cmd` is rejected outright — arbitrary command execution is against the plugin's security posture.
+    - `vim.ui.progress_status()` returns `''`, which is exactly what Neovim returns when no progress is active.
+    - An open picker is closed before the Lua state is destroyed, so a late selection cannot invoke into a closed `lua_State`.
+    - Design validated before implementation by `test/specs/spikes/spike-ui-callback-context.e2e.ts`, which proves a keymap callback cannot yield but a callback it schedules can.
+- **Picker reports cancellation** — `PickerOptions.onCancel` fires exactly once when the picker closes without a selection, and `PickerModal.closeActive()` closes a live picker. Needed by any caller that must distinguish "chose nothing" from "chose something", such as a Neovim-style `vim.ui.select`. `confirmSelection` closes the modal _before_ dispatching the selection, so `onClose` runs first; a `didConfirm` flag set synchronously before `close()` keeps a successful selection from also reporting a cancel.
+    - Plugin: `src/picker/picker.ts` (`didConfirm`, `onClose` cancel dispatch, `closeActive`), `src/picker/types.ts` (`onCancel`)
+- **`nvim_set_decoration_provider(ns, opts)`** — real implementation of Neovim's per-redraw decoration callbacks (`on_start` → `on_buf` → `on_win` → `on_end`), backed by a CodeMirror `ViewPlugin` that coalesces work into one `requestAnimationFrame` per frame rather than dispatching from inside `update()` (which CodeMirror rejects). Guarded by a transaction annotation, a re-entrancy flag, a per-view rAF handle, a runtime generation counter, a 100k instruction limit per callback, and a fault counter that disables a provider after 8 consecutive errors. `on_win` returning `false` skips the rest of that provider's cycle, matching Neovim.
+    - Plugin: `src/lua/decoration-provider.ts` (new — manager + CM6 extension), `src/lua/api.ts` (handler), `src/lua/loader.ts` (wiring + `registerStateCleanup`), `src/main.ts` (extension registration)
+    - `on_line` and `on_range` raise a Lua error naming the unsupported key rather than being silently accepted; `ephemeral` extmarks likewise. Erroring is closer to Neovim than silently persisting, and avoids the accumulating-stale-decoration failure.
+    - Mechanism validated before implementation by `test/specs/spikes/spike-decoration-provider-raf.e2e.ts` (Phase 0b): 7 assertions including two negative controls that reproduced the re-entrancy error and a synthetic feedback loop.
+- **Extmark `hl_eol`, `strict`, and priority ordering** — `nvim_buf_set_extmark` now parses `hl_eol` (extends the highlight to the end of the line containing the range end) and `strict` (out-of-range positions clamp instead of dropping the mark). Overlapping marks are ordered by `priority`, deterministically and independently of insertion order.
+    - Plugin: `src/lua/api.ts` (opts parsing), `src/lua/extmarks.ts` (`hlEol`/`strict` in `ExtmarkOpts`, line-aware `buildDecorations`, priority-aware sort)
+    - Known gap: `priority` orders decorations but does not yet decide which wins _visually_ — CM6 marks carry no z-index and `Decoration.set(..., true)` re-sorts. Recorded in `KNOWN_LIMITATIONS.md`.
+- **LuaJIT `bit` library** — Neovim runs LuaJIT, which Neovim documents as its permanent plugin interface, so plugins reach for `bit.band`/`bor`/`lshift` rather than Lua 5.3's native `&`/`|` operators. The library was absent entirely; it is now available with LuaJIT's semantics, including signed 32-bit results (`bit.bnot(0)` is `-1`, not `4294967295`) and the distinction between logical `rshift` and arithmetic `arshift`. Implemented arithmetically rather than with native operators: Lua 5.3's `&` requires an exact integer representation, and this VM widens integers to 53 bits, so a value arriving as a float raised "number has no integer representation".
+    - Plugin: `src/lua/engine.ts` (`luaCompatShims`)
+- **`require("ffi")` fails with an accurate message** — LuaJIT-only natives previously fell through to the module file read and surfaced whatever that failed with, which described the wrong problem. They now report that the module requires LuaJIT and that this runtime is a pure-Lua VM. Ordinary missing modules are unaffected.
+    - Plugin: `src/lua/package.ts`
+- **`nvim__redraw` is a warn-once stub again, deliberately truthy** — it briefly read as `nil` so that flash's `if vim.api.nvim__redraw then` probe would take its fallback. That was right for `highlight.cursor`, whose fallback is `nvim_buf_set_extmark`, but wrong for `hacks.setcursor`, whose fallback is LuaJIT FFI and which is called unguarded on every keystroke through `Util.get_char`. One name, two opposite correct answers; the truthy stub avoids throwing on the hot path, at the cost of `highlight.cursor` no longer drawing its cursor highlight. The `nil`-reading dispatch tier introduced for it has been removed rather than left with no members.
+    - Plugin: `src/lua/api.ts`
+- **Vim regex translation** — `vim.fn.searchpos`, `vim.fn.split` and `vim.regex` compiled their pattern with `new RegExp`, so Vim syntax silently matched nothing: `\V` and `\C` are identity escapes in JavaScript, making `\Valpha\C` a search for the literal `ValC`. A shared translator now handles magic levels (`\v`, `\m`, `\M`, `\V`), the case flags `\c`/`\C`, `\zs`/`\ze` as lookbehind/lookahead, `\<`/`\>` word boundaries, `\%(` non-capturing groups, and the Vim character classes.
+    - Plugin: `src/lua/vim-regex.ts` (new), `src/lua/vim-search.ts`, `src/lua/fn.ts` (`split`), `src/lua/regex.ts`
+    - **Breaking**: these three now take **Vim** patterns rather than JavaScript ones, which is what Neovim documents them to take. At the default magic level `+`, `?`, `(`, `)` and `|` are literal, so a JavaScript pattern such as `\d+` must be written `\d\+`. `NEOVIM_API_STATUS.md` previously recorded the ECMAScript behaviour as a known deviation.
+    - Found by auditing flash.nvim's API usage rather than by hitting it: `vim.fn.split(s, "\zs")` is Vim's split-into-characters idiom and flash uses it to build label lists, so default label generation was broken independently of the search.
+- **Indexed scope access: `vim.bo[buf]`, `vim.b[buf]`, `vim.wo[win]`, `vim.w[win]`, `vim.t[tab]`** — Neovim allows both `vim.bo.filetype` and `vim.bo[bufnr].filetype`, and plugin code uses the indexed form freely. Our proxies accepted string keys only, so an indexed access resolved to `nil` and the caller failed with `attempt to index a nil value`. A numeric or nil key is now validated as handle `0` and returns the scope table. This closed the last of three blockers preventing flash.nvim from rendering: `flash/cache.lua` reads `vim.bo[buf].filetype` and `vim.b[buf].changedtick`, and with both fixed `flash.state.new{...}` completes and writes extmarks into the document.
+    - Plugin: `src/lua/api.ts` (`isScopeHandleKey`, indexed branch on all five scope proxies)
+- **`nvim_list_bufs()` and `nvim_tabpage_list_wins()`** — both previously warn-once stubs returning an empty list, which is never a valid answer: there is always at least the current buffer and window. Each now returns `{0}`, consistent with `nvim_list_wins()` and the current-handle APIs. `nvim_tabpage_list_wins` validates its argument through a new `requireTabpageZero` guard. Measured impact: flash.nvim's `Cache:_update_wins()` overwrites `state.wins` with the filtered result of `nvim_tabpage_list_wins`, so an empty list left it with zero windows, zero matches, and nothing rendered.
+    - Plugin: `src/lua/api.ts` (`requireTabpageZero`, both implementations, promoted into `SUPPORTED_NVIM_API_FUNCTIONS`)
+- **Unicode index conversion for `vim.fn`** — `strchars(s, skipcc?)`, `charidx(s, byteidx, countcc?)`, and `byteidx(s, nr)` convert between UTF-8 byte offsets and Vim character indices. `strchars` counts composing marks separately unless `skipcc` is set; `charidx` and `byteidx` fold them into the preceding base character, matching Vim. All three are on flash.nvim's default label-positioning path.
+    - Plugin: `src/lua/fn.ts` (`buildCharSpans` byte-span mapping, three registrations)
+- **`vim.fn.wincol()` and `vim.fn.winlayout()`** — `wincol()` reports the cursor's screen column measured from the window edge, so the gutter counts, derived from CodeMirror geometry with a cursor-column fallback when geometry is unmeasurable. `winlayout()` reports a single leaf whose window handle matches `nvim_list_wins()`. `wincol` is on leap.nvim's search path; `winlayout` is on flash.nvim's window-layout save path.
+    - Plugin: `src/lua/window-info.ts` (`getCursorWinCol`), `src/lua/fn.ts` (registrations)
+- **Window-local option scope (`vim.wo`)** — replaces the warn-and-return-`nil` placeholder with a real proxy. `wrap` reports CodeMirror's line-wrapping state; writes shadow the resolved value; every other key falls back to the global scope, matching Neovim where an unset `:setlocal` value resolves to the global one. Required by leap.nvim's core search loop.
+    - Plugin: `src/lua/api.ts` (`readWindowOption`, window-option shadow, `vim.wo` proxy), `src/lua/loader.ts` (`getWindowOption` callback)
+- **`vim.bo.iminsert` and `vim.bo.fileformat`** — buffer-local options read by flash.nvim and leap.nvim on every invocation, and by nvim-surround.
+    - Plugin: `src/lua/loader.ts` (`getBufferOption` cases)
 
 ### Changed
 
@@ -30,6 +73,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/lua/plugin-fetch.ts`, `src/lua/plugin-store.ts` (archive retention, isolated storage and refresh), `src/treesitter/query-files.ts`, `src/treesitter/named-queries.ts` (limits)
 - **`nvim_create_namespace` returns unique IDs** — previously hardcoded to `0`, now returns unique integer IDs per namespace name, matching Neovim behavior. Required for the extmark system and highlight namespace isolation.
 - **~30 previously stubbed `vim.*` utilities now have real implementations** — functions that were no-op stubs or returned placeholder values now work correctly (e.g., `vim.is_callable`, `vim.stricmp`, `vim.pesc`, etc.)
+- **Settings that decide which editor extensions are installed now apply without a restart** — `reloadFeatures()` never touched `vimExtensionSlot`, which only `setupVimSubsystems()` populates, and that runs from `onload()` and `enableVim()` only. `animatedCursor`, `enableSnippets`, `snippetTriggerMode` and `enableUndoTree` were therefore restart-only, and `enableUndoTree` never reached a reload path at all. Re-running `setupVimSubsystems()` is not an option — it is a one-shot builder that registers global handlers and constructs managers, Lua and autocmd state — and `teardownVimSubsystems()` is far too destructive for a settings change. Each gated feature now owns a nested `Extension[]` that is pushed into `vimExtensionSlot` once and whose contents are swapped in place, followed by a single `workspace.updateOptions()`. Built extensions are cached so their identity is stable, which is what allows CodeMirror to keep existing ViewPlugin instances alive across an unrelated reload. The snippet runtime sits in its own slot, separate from the completion and tab integrations, so changing `snippetTriggerMode` leaves an in-progress snippet session intact. ([#181](https://github.com/saberzero1/motions/issues/181))
+    - Plugin: `src/main.ts` (`setSlotEnabled`, `populateRuntimeSlots`, `refreshRuntimeExtensionSlots`, five feature slots, extension builders extracted from `setupVimSubsystems`), `src/settings.ts` (`enableUndoTree` added to `RELOAD_KEYS` and to the imperative handler)
+- **Cursor shape changes now reach the animated cursor without a restart** — `cursorShapes` has two independent consumers, and only one was broken. The fork reads `state.vim.cursorShapes` live on every render and already tracked settings changes at runtime. The animated cursor keeps its own copy, made by `setCursorShapes()`, which only `setupVimSubsystems()` called — so with the animated cursor enabled a shape change did nothing until Obsidian restarted. A slot cannot fix this: the bundled vim extension is never gated, so the reload path re-pushes the value instead. ([#181](https://github.com/saberzero1/motions/issues/181))
+    - Plugin: `src/main.ts` (`reloadFeatures()` re-applies `setCursorShapes`)
+- **The animated cursor could stay missing after scrolling back to the caret** — caught by CI on Windows, where it never returned; on Linux it came back after ~650 ms, which the original "not null" assertion accepted. Three faults stacked. `wake()` was not sticky: one arriving while a frame was in flight returned early on `running`, and that frame then parked the loop, discarding it. The blink's dark half is 600 ms and the warm gear also ticks every 600 ms, so a parked loop can land on the dark half of every blink and draw nothing indefinitely — a scroll now counts as movement for blink purposes and shows the cursor solid, as Neovim does. And the scroll listener deduplicated against `cachedScrollTop`, which stops advancing while the caret is off-pane, so scrolling back to exactly the last resolved offset looked like no change and skipped the wake. Measured 645 ms → 55 ms. ([#181](https://github.com/saberzero1/motions/issues/181))
+    - Plugin: `src/vim/animated-cursor/manager.ts` (`wakeRequested` consumed by `scheduleNext`), `src/vim/animated-cursor/controller.ts` (`lastSeenScrollTop`/`Left`, `positionRetryUntil`, blink reset on scroll)
+    - The spec now bounds how long the cursor may take to come back rather than only that it does. "It came back eventually" is what hid all three behind the 600 ms warm frame that rescued Linux and not Windows. Each fault was reverted separately and observed failing the bound at 659 ms and 647 ms.
+- **Teardown no longer resurrects the animated-cursor manager** — `teardownVimSubsystems()` destroys the manager, but CodeMirror destroys the controllers only on the later `updateOptions()`, so `CursorController.destroy()` called `getAnimatedCursorManager()` after teardown and built a replacement purely to deregister from it. The replacement had no canvas, rAF loop or listeners, so this leaked an object rather than causing a visible fault. `destroy()` now uses `peekAnimatedCursorManager()`, which never creates — correct regardless of which order the two steps happen in, unlike reordering teardown would be. ([#181](https://github.com/saberzero1/motions/issues/181))
+    - Plugin: `src/vim/animated-cursor/manager.ts` (`peekAnimatedCursorManager`), `src/vim/animated-cursor/controller.ts` (`destroy()`)
 
 ### Fixed
 
@@ -51,17 +103,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/visual-line-command-fix.ts`
 - **Treesitter-backed Markdown text objects** — validate exact opening and closing delimiter runs and continue to enclosing nodes when a candidate does not match. This fixes nested strikethrough ranges, single/double dollar confusion, and asterisk/underscore aliasing. Inner objects reject cursor positions on their delimiters. Blockquotes exclude lazy continuation lines below the cursor's quote depth and reuse depth-aware prefix and newline handling.
     - Plugin: `src/text-objects/delimiter.ts`, `src/text-objects/blockquote.ts`, `src/treesitter/js-api.ts`, `src/treesitter/runtime.ts`
-
 - **Treesitter-backed fold metadata** — heading fold ranges and heading/code placeholder labels now read immutable plain data keyed by exact editor state, replacing unreachable tree-field lookups. Selection-only states retain metadata; heading-like lines inside fences do not trigger the regex heading fallback when metadata is present. Column-zero exclusive section ends exclude the following same-level heading, with trailing blank lines trimmed and nested sections retained. Frontmatter/callout precedence and placeholder formats are unchanged.
     - Plugin: `src/fold/metadata.ts` (new extraction and state cache), `src/treesitter/bridge.ts` (publication), `src/fold/provider.ts`, `src/fold/placeholder.ts` (metadata consumers), `src/treesitter/tree-state.ts` (removed obsolete tree field/effect)
-
+    - The CM6 bridge is now actually installed. `createBridgeExtension` had no caller anywhere, so the per-view incremental-parsing `ViewPlugin` had never run — treesitter worked only because `js-api.ts` and the Lua `vim.treesitter` API parse on demand. `main.ts` installs it through `enableTreesitterBridge()` after the Markdown grammars load, via a mutable extension slot and `workspace.updateOptions()`. JS syntax-aware consumers keep their existing fallbacks for the window before it is available, and the Lua API keeps its own parser cache.
+        - Plugin: `src/main.ts` (`enableTreesitterBridge`), `src/treesitter/bridge.ts` (`createBridgeExtension`)
 - **`vim.bo` writes were silently discarded** — `setBufferOption` was an empty function, so every `vim.bo.x = y` assignment did nothing and the next read returned the computed default. Writes now round-trip through a per-file shadow store, and `expandtab`, `shiftwidth`, `softtabstop`, `tabstop`, and `textwidth` are forwarded to the vim engine. Plugins that save and restore a buffer-local option around an operation now observe their own value.
     - Plugin: `src/lua/api.ts` (`readBufferOption`/`writeBufferOption` shadow store), `src/lua/loader.ts` (`ENGINE_BACKED_BUFFER_OPTIONS` forwarding)
 - **Guarded `nvim__redraw` probes crashed instead of degrading** — the `vim.api` dispatch metatable raises on property _read_ for unregistered names, so flash.nvim's `if vim.api.nvim__redraw then` and leap.nvim's `pcall(vim.api.nvim__redraw, ...)` both errored at the guard itself rather than falling back. Added a third dispatch tier, `ABSENT_NVIM_API_FUNCTIONS`, whose members read as `nil`: not raising (which crashes the probe) and not a warn-once stub (which is truthy, so flash would take the branch meant for hosts that have the API and silently lose the cursor highlight its `else` branch draws via `nvim_buf_set_extmark`). `nil` is also what leap's `pcall` expects on a Neovim build without the API.
     - Plugin: `src/lua/api.ts` (`ABSENT_NVIM_API_FUNCTIONS`, dispatch metatable)
 - **Command-line, history, and mapping probes raised instead of degrading** — `getcmdline`, `setcmdline`, `getcmdpos`, `getcmdwintype`, `wildmenumode`, `complete_info`, `histadd`, `histdel`, and `mapset` were unregistered, so calls raised a Lua error. Registered as warn-once stubs. For the read-only probes the placeholder is exactly what Neovim returns when no command line, wildmenu, or completion popup is active.
     - Plugin: `src/lua/fn.ts` (stub sets, new `voidReturnFns` set for `mapset`)
-
 - **Lua iterator pipelines** — real `vim.iter` for list-like tables, map-like tables, iterator functions, and callable tables, with 26 methods. `rpop`, `count`, and `size` are extensions beyond Neovim 0.12; `size()` requires a list source and raises on function sources.
     - Plugin: `src/lua/iter.ts` (embedded Lua implementation), `src/lua/loader.ts` (inject after namespace stubs)
 - **Physical key observation** — `vim.on_key(fn, ns?)` registers, replaces, and removes namespace-scoped callbacks and returns the namespace ID. Observation is pre-mapping, not Neovim's post-mapping hook: both arguments contain the same physical input, mapped expansions/programmatic `feedkeys` are not separately observed, and return values cannot discard keys.
@@ -104,80 +155,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unhandled rejection on failed jump navigation** — `openJumpEntry()` was invoked as a bare floating promise, so a rejecting `leaf.openFile()` produced an unhandled rejection while the history index had already advanced, leaving navigation silently failed with nothing surfaced. Now caught and logged. Skipping past unresolvable entries widened this path's reachability, and its narrow time-of-check/time-of-use window is exactly the deleted-file case.
     - Plugin: `src/workspace/global-defaults.ts` (rejection handling on the jump opener)
 
-### Known findings surfaced by the new gate
-
-- **The treesitter CM6 bridge was not wired up (resolved).** The gate originally found no caller for `createBridgeExtension`. The bridge now installs after grammar loading and maintains per-view incremental trees; fold consumers use immutable state-keyed metadata rather than retaining mutable trees in editor states. JS syntax-aware consumers use the bridge with their existing fallbacks; the Lua `vim.treesitter` API has its own parser cache.
-- **A public method with zero call sites is still undetected.** That was the `destroyAll()` shape. Measured: `tsc --noUnusedLocals` catches only `private` members, knip has no class-member analysis at all, and ESLint does not analyse class members. `noUnusedLocals` is not currently enabled; turning it on reports 6 findings, 5 of them real, blocked on one unused local in vendored fengari.
-
-- **`require()` resolves synchronously** — every `.lua` file under `lua/` is read into memory when the configuration loads, and `require()` resolves from that snapshot. This unblocks lazy `require`, which is the idiom nearly the whole modern Neovim plugin ecosystem is built on: `vim.keymap.set('n', 's', function() require('plugin.jump').start() end)` previously failed with `module 'plugin.jump' not found: async APIs can only be called from async-capable callbacks`, because reading from the vault is asynchronous and keymap callbacks run on the main state via a plain `lua_pcall` that cannot yield. Only a cache miss was ever affected — `package.loaded` hits were already synchronous.
-    - Plugin: `src/lua/module-snapshot.ts` (new — walk, index, limits, atomic swap), `src/lua/package.ts` (snapshot-first resolution), `src/lua/coroutine-runner.ts` (`isAsyncCapable`), `src/lua/loader.ts` (awaited rebuild before user config, refresh after plugin fetch, skip reporting)
-    - The asynchronous vault read is retained, but **only** for callers that can wait for it — top-level configuration, autocommands, timers. A synchronous caller that misses the snapshot is told the module is `not present in the configuration snapshot`, naming both paths tried, rather than a generic "not found" indistinguishable from a typo.
-    - Files added or edited after the configuration loads need a reload; there is no live watcher. The snapshot rebuilds on configuration reload and after a `vim.plugins.add()` fetch, before the fetching coroutine resumes, so a freshly fetched plugin is immediately requirable.
-    - Limits are reported, not silently applied: 512 KiB per file, 16 MiB total, 2,048 files, 32 directory levels. Skipped files are named in the console with a reason, because a file dropped for exceeding a budget would otherwise present as a missing module.
-    - The snapshot reader and the async-capability predicate reach the injected `require` chunk as **chunk arguments, not globals**, so sandboxed user Lua has no handle on them.
-    - Measured against the flash.nvim diagnostic: `require_in_callback` went from `blocked: … async APIs …` to `works`, and `Config.get().search.multi_window` from an error to `true`. flash now runs to its LuaJIT FFI dependency, which is architectural and not fixable in a pure-Lua VM.
-
-- **`vim.ui.select` and `vim.ui.input`** — Neovim's UI-hook namespace, backed by the existing Telescope-style picker and input modal. `vim.ui` is a plain mutable table with **no metatable**, so dressing.nvim / telescope-ui-select / snacks can replace and restore its fields, which is the idiom the namespace exists for. Both are **non-blocking**: they return immediately and invoke their callback later on a coroutine thread, so they work from inside a `vim.keymap.set` callback — the most common call site, where a yield-based design would hard-error. `on_choice` receives the **original Lua value** (items are commonly tables) plus a 1-based index; `on_confirm` distinguishes `''` (empty confirm) from `nil` (cancel). `format_item` is applied eagerly, matching Neovim's own default implementation.
-    - Plugin: `src/lua/ui-api.ts` (new), `src/lua/loader.ts` (injection + wiring), `src/main.ts` (`openUiSelect` picker binding)
-    - Where no selection UI is available, `vim.ui.select` raises rather than settling with `nil` — a caller cannot distinguish a `nil` settle from "the user cancelled".
-    - `vim.ui.open(path, opts?)` opens `http(s)://` targets in a new window and everything else with the system handler, returning Neovim's `vim.SystemObj|nil, nil|string` shape. On mobile, or with no handler, `nil, errmsg` is the _correct_ answer rather than a fudge. `opts.cmd` is rejected outright — arbitrary command execution is against the plugin's security posture.
-    - `vim.ui.progress_status()` returns `''`, which is exactly what Neovim returns when no progress is active.
-    - An open picker is closed before the Lua state is destroyed, so a late selection cannot invoke into a closed `lua_State`.
-    - Design validated before implementation by `test/specs/spikes/spike-ui-callback-context.e2e.ts`, which proves a keymap callback cannot yield but a callback it schedules can.
-
-- **Picker reports cancellation** — `PickerOptions.onCancel` fires exactly once when the picker closes without a selection, and `PickerModal.closeActive()` closes a live picker. Needed by any caller that must distinguish "chose nothing" from "chose something", such as a Neovim-style `vim.ui.select`. `confirmSelection` closes the modal _before_ dispatching the selection, so `onClose` runs first; a `didConfirm` flag set synchronously before `close()` keeps a successful selection from also reporting a cancel.
-    - Plugin: `src/picker/picker.ts` (`didConfirm`, `onClose` cancel dispatch, `closeActive`), `src/picker/types.ts` (`onCancel`)
-
-- **`nvim_set_decoration_provider(ns, opts)`** — real implementation of Neovim's per-redraw decoration callbacks (`on_start` → `on_buf` → `on_win` → `on_end`), backed by a CodeMirror `ViewPlugin` that coalesces work into one `requestAnimationFrame` per frame rather than dispatching from inside `update()` (which CodeMirror rejects). Guarded by a transaction annotation, a re-entrancy flag, a per-view rAF handle, a runtime generation counter, a 100k instruction limit per callback, and a fault counter that disables a provider after 8 consecutive errors. `on_win` returning `false` skips the rest of that provider's cycle, matching Neovim.
-    - Plugin: `src/lua/decoration-provider.ts` (new — manager + CM6 extension), `src/lua/api.ts` (handler), `src/lua/loader.ts` (wiring + `registerStateCleanup`), `src/main.ts` (extension registration)
-    - `on_line` and `on_range` raise a Lua error naming the unsupported key rather than being silently accepted; `ephemeral` extmarks likewise. Erroring is closer to Neovim than silently persisting, and avoids the accumulating-stale-decoration failure.
-    - Mechanism validated before implementation by `test/specs/spikes/spike-decoration-provider-raf.e2e.ts` (Phase 0b): 7 assertions including two negative controls that reproduced the re-entrancy error and a synthetic feedback loop.
-
-- **Extmark `hl_eol`, `strict`, and priority ordering** — `nvim_buf_set_extmark` now parses `hl_eol` (extends the highlight to the end of the line containing the range end) and `strict` (out-of-range positions clamp instead of dropping the mark). Overlapping marks are ordered by `priority`, deterministically and independently of insertion order.
-    - Plugin: `src/lua/api.ts` (opts parsing), `src/lua/extmarks.ts` (`hlEol`/`strict` in `ExtmarkOpts`, line-aware `buildDecorations`, priority-aware sort)
-    - Known gap: `priority` orders decorations but does not yet decide which wins _visually_ — CM6 marks carry no z-index and `Decoration.set(..., true)` re-sorts. Recorded in `KNOWN_LIMITATIONS.md`.
-
-- **LuaJIT `bit` library** — Neovim runs LuaJIT, which Neovim documents as its permanent plugin interface, so plugins reach for `bit.band`/`bor`/`lshift` rather than Lua 5.3's native `&`/`|` operators. The library was absent entirely; it is now available with LuaJIT's semantics, including signed 32-bit results (`bit.bnot(0)` is `-1`, not `4294967295`) and the distinction between logical `rshift` and arithmetic `arshift`. Implemented arithmetically rather than with native operators: Lua 5.3's `&` requires an exact integer representation, and this VM widens integers to 53 bits, so a value arriving as a float raised "number has no integer representation".
-    - Plugin: `src/lua/engine.ts` (`luaCompatShims`)
-
-- **`require("ffi")` fails with an accurate message** — LuaJIT-only natives previously fell through to the module file read and surfaced whatever that failed with, which described the wrong problem. They now report that the module requires LuaJIT and that this runtime is a pure-Lua VM. Ordinary missing modules are unaffected.
-    - Plugin: `src/lua/package.ts`
-
-- **`nvim__redraw` is a warn-once stub again, deliberately truthy** — it briefly read as `nil` so that flash's `if vim.api.nvim__redraw then` probe would take its fallback. That was right for `highlight.cursor`, whose fallback is `nvim_buf_set_extmark`, but wrong for `hacks.setcursor`, whose fallback is LuaJIT FFI and which is called unguarded on every keystroke through `Util.get_char`. One name, two opposite correct answers; the truthy stub avoids throwing on the hot path, at the cost of `highlight.cursor` no longer drawing its cursor highlight. The `nil`-reading dispatch tier introduced for it has been removed rather than left with no members.
-    - Plugin: `src/lua/api.ts`
-
-- **Vim regex translation** — `vim.fn.searchpos`, `vim.fn.split` and `vim.regex` compiled their pattern with `new RegExp`, so Vim syntax silently matched nothing: `\V` and `\C` are identity escapes in JavaScript, making `\Valpha\C` a search for the literal `ValC`. A shared translator now handles magic levels (`\v`, `\m`, `\M`, `\V`), the case flags `\c`/`\C`, `\zs`/`\ze` as lookbehind/lookahead, `\<`/`\>` word boundaries, `\%(` non-capturing groups, and the Vim character classes.
-    - Plugin: `src/lua/vim-regex.ts` (new), `src/lua/vim-search.ts`, `src/lua/fn.ts` (`split`), `src/lua/regex.ts`
-    - **Breaking**: these three now take **Vim** patterns rather than JavaScript ones, which is what Neovim documents them to take. At the default magic level `+`, `?`, `(`, `)` and `|` are literal, so a JavaScript pattern such as `\d+` must be written `\d\+`. `NEOVIM_API_STATUS.md` previously recorded the ECMAScript behaviour as a known deviation.
-    - Found by auditing flash.nvim's API usage rather than by hitting it: `vim.fn.split(s, "\zs")` is Vim's split-into-characters idiom and flash uses it to build label lists, so default label generation was broken independently of the search.
-
-- **Indexed scope access: `vim.bo[buf]`, `vim.b[buf]`, `vim.wo[win]`, `vim.w[win]`, `vim.t[tab]`** — Neovim allows both `vim.bo.filetype` and `vim.bo[bufnr].filetype`, and plugin code uses the indexed form freely. Our proxies accepted string keys only, so an indexed access resolved to `nil` and the caller failed with `attempt to index a nil value`. A numeric or nil key is now validated as handle `0` and returns the scope table. This closed the last of three blockers preventing flash.nvim from rendering: `flash/cache.lua` reads `vim.bo[buf].filetype` and `vim.b[buf].changedtick`, and with both fixed `flash.state.new{...}` completes and writes extmarks into the document.
-    - Plugin: `src/lua/api.ts` (`isScopeHandleKey`, indexed branch on all five scope proxies)
-
-- **`nvim_list_bufs()` and `nvim_tabpage_list_wins()`** — both previously warn-once stubs returning an empty list, which is never a valid answer: there is always at least the current buffer and window. Each now returns `{0}`, consistent with `nvim_list_wins()` and the current-handle APIs. `nvim_tabpage_list_wins` validates its argument through a new `requireTabpageZero` guard. Measured impact: flash.nvim's `Cache:_update_wins()` overwrites `state.wins` with the filtered result of `nvim_tabpage_list_wins`, so an empty list left it with zero windows, zero matches, and nothing rendered.
-    - Plugin: `src/lua/api.ts` (`requireTabpageZero`, both implementations, promoted into `SUPPORTED_NVIM_API_FUNCTIONS`)
-
-- **Unicode index conversion for `vim.fn`** — `strchars(s, skipcc?)`, `charidx(s, byteidx, countcc?)`, and `byteidx(s, nr)` convert between UTF-8 byte offsets and Vim character indices. `strchars` counts composing marks separately unless `skipcc` is set; `charidx` and `byteidx` fold them into the preceding base character, matching Vim. All three are on flash.nvim's default label-positioning path.
-    - Plugin: `src/lua/fn.ts` (`buildCharSpans` byte-span mapping, three registrations)
-- **`vim.fn.wincol()` and `vim.fn.winlayout()`** — `wincol()` reports the cursor's screen column measured from the window edge, so the gutter counts, derived from CodeMirror geometry with a cursor-column fallback when geometry is unmeasurable. `winlayout()` reports a single leaf whose window handle matches `nvim_list_wins()`. `wincol` is on leap.nvim's search path; `winlayout` is on flash.nvim's window-layout save path.
-    - Plugin: `src/lua/window-info.ts` (`getCursorWinCol`), `src/lua/fn.ts` (registrations)
-- **Window-local option scope (`vim.wo`)** — replaces the warn-and-return-`nil` placeholder with a real proxy. `wrap` reports CodeMirror's line-wrapping state; writes shadow the resolved value; every other key falls back to the global scope, matching Neovim where an unset `:setlocal` value resolves to the global one. Required by leap.nvim's core search loop.
-    - Plugin: `src/lua/api.ts` (`readWindowOption`, window-option shadow, `vim.wo` proxy), `src/lua/loader.ts` (`getWindowOption` callback)
-- **`vim.bo.iminsert` and `vim.bo.fileformat`** — buffer-local options read by flash.nvim and leap.nvim on every invocation, and by nvim-surround.
-    - Plugin: `src/lua/loader.ts` (`getBufferOption` cases)
-
-### Changed
-
-- **Settings that decide which editor extensions are installed now apply without a restart** — `reloadFeatures()` never touched `vimExtensionSlot`, which only `setupVimSubsystems()` populates, and that runs from `onload()` and `enableVim()` only. `animatedCursor`, `enableSnippets`, `snippetTriggerMode` and `enableUndoTree` were therefore restart-only, and `enableUndoTree` never reached a reload path at all. Re-running `setupVimSubsystems()` is not an option — it is a one-shot builder that registers global handlers and constructs managers, Lua and autocmd state — and `teardownVimSubsystems()` is far too destructive for a settings change. Each gated feature now owns a nested `Extension[]` that is pushed into `vimExtensionSlot` once and whose contents are swapped in place, followed by a single `workspace.updateOptions()`. Built extensions are cached so their identity is stable, which is what allows CodeMirror to keep existing ViewPlugin instances alive across an unrelated reload. The snippet runtime sits in its own slot, separate from the completion and tab integrations, so changing `snippetTriggerMode` leaves an in-progress snippet session intact. ([#181](https://github.com/saberzero1/motions/issues/181))
-    - Plugin: `src/main.ts` (`setSlotEnabled`, `populateRuntimeSlots`, `refreshRuntimeExtensionSlots`, five feature slots, extension builders extracted from `setupVimSubsystems`), `src/settings.ts` (`enableUndoTree` added to `RELOAD_KEYS` and to the imperative handler)
-- **Cursor shape changes now reach the animated cursor without a restart** — `cursorShapes` has two independent consumers, and only one was broken. The fork reads `state.vim.cursorShapes` live on every render and already tracked settings changes at runtime. The animated cursor keeps its own copy, made by `setCursorShapes()`, which only `setupVimSubsystems()` called — so with the animated cursor enabled a shape change did nothing until Obsidian restarted. A slot cannot fix this: the bundled vim extension is never gated, so the reload path re-pushes the value instead. ([#181](https://github.com/saberzero1/motions/issues/181))
-    - Plugin: `src/main.ts` (`reloadFeatures()` re-applies `setCursorShapes`)
-- **The animated cursor could stay missing after scrolling back to the caret** — caught by CI on Windows, where it never returned; on Linux it came back after ~650 ms, which the original "not null" assertion accepted. Three faults stacked. `wake()` was not sticky: one arriving while a frame was in flight returned early on `running`, and that frame then parked the loop, discarding it. The blink's dark half is 600 ms and the warm gear also ticks every 600 ms, so a parked loop can land on the dark half of every blink and draw nothing indefinitely — a scroll now counts as movement for blink purposes and shows the cursor solid, as Neovim does. And the scroll listener deduplicated against `cachedScrollTop`, which stops advancing while the caret is off-pane, so scrolling back to exactly the last resolved offset looked like no change and skipped the wake. Measured 645 ms → 55 ms. ([#181](https://github.com/saberzero1/motions/issues/181))
-    - Plugin: `src/vim/animated-cursor/manager.ts` (`wakeRequested` consumed by `scheduleNext`), `src/vim/animated-cursor/controller.ts` (`lastSeenScrollTop`/`Left`, `positionRetryUntil`, blink reset on scroll)
-    - The spec now bounds how long the cursor may take to come back rather than only that it does. "It came back eventually" is what hid all three behind the 600 ms warm frame that rescued Linux and not Windows. Each fault was reverted separately and observed failing the bound at 659 ms and 647 ms.
-- **Teardown no longer resurrects the animated-cursor manager** — `teardownVimSubsystems()` destroys the manager, but CodeMirror destroys the controllers only on the later `updateOptions()`, so `CursorController.destroy()` called `getAnimatedCursorManager()` after teardown and built a replacement purely to deregister from it. The replacement had no canvas, rAF loop or listeners, so this leaked an object rather than causing a visible fault. `destroy()` now uses `peekAnimatedCursorManager()`, which never creates — correct regardless of which order the two steps happen in, unlike reordering teardown would be. ([#181](https://github.com/saberzero1/motions/issues/181))
-    - Plugin: `src/vim/animated-cursor/manager.ts` (`peekAnimatedCursorManager`), `src/vim/animated-cursor/controller.ts` (`destroy()`)
-
 ### Tests
 
 - 4 e2e cases in `test/specs/animated-cursor-runtime-toggle.e2e.ts`. Three failed on the unfixed build with no canvas ever created. The load-bearing one is the third: it stashes the canvas element, reloads an unrelated setting, and asserts the element is the same object — the manager drops its canvas when the last controller deregisters, so surviving element identity is evidence that `updateOptions()` left existing ViewPlugin instances alone rather than rebuilding them. The fourth extends that across `enableUndoTree`, `enableSnippets` and `snippetTriggerMode` to show the slots are independent. The first case's precondition, that no canvas exists while the setting is off, passes either way and keeps the rest attributable to the toggle.
@@ -206,11 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - The spec cannot use `reloadFeatures()` to enable the animated cursor the way `test/specs/animated-cursor.e2e.ts` does: `reloadFeatures()` does not rebuild the editor-extension slot, so the canvas `ViewPlugin` is never installed and no canvas exists. It persists the settings and reloads the plugin instead.
     - The tracking case gained a painted-height assertion after the delta check was found insufficient. The block shape and the character inside it derive their screen positions independently, so a glyph stranded at the pre-scroll position still satisfies a comparison of bounding-box tops — it only extends the box downwards. Observed at **56 px** of painted height against a 19 px caret line before the glyph fix.
 - CI pre-fetch gained `dirs` support and commit-SHA pinning, and flash.nvim is now vendored for the diagnostic spec (`scripts/fetch-test-plugins.sh`, `test/fixtures/test-plugins.json`). A missing file or directory now fails the script instead of warning; the fetch step runs before build on Linux, macOS and Windows, so a drifted path fails loudly. `test/specs/lua-plugin-flash-diagnostic.e2e.ts` skips its flash-dependent cases when the fixture is absent.
-
 - 11 e2e cases in `test/specs/lua-vim-ui.e2e.ts` for `vim.ui` (overridability, E7 keymap-callback invocation, non-blocking return, `input` cancel vs empty confirm, `open` contract, reload-while-open teardown, and P1–P4 of the third-party override idiom via `test-vault/lua/uiselect_shim.lua`); 4 unit cases in `test/unit/picker/picker-cancel.test.ts`; 12 in `test/unit/lua/decoration-provider.test.ts`; 6 in `test/unit/lua/extmarks.test.ts`; 4 in `test/unit/lua/api-compat.test.ts`.
-
 - 11 unit tests in `test/unit/lua/fn.test.ts` (Unicode index conversion, `wincol`/`winlayout` geometry and fallbacks, plugin-facing stub degradation, `nvim__redraw` guard survival) and `test/unit/lua/api.test.ts` (`vim.bo` write round-trip, `vim.wo` callback/global-fallback/shadow resolution)
-
 - New unit suites: `test/unit/lua/api-compat.test.ts`, `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts`, and `plugin-query-fetch.test.ts`. Covers option routes, current handles, iterator semantics, observer lifecycle, byte conversion, real WASM query compilation, resolution/modelines, plugin isolation, cache lifecycle, and limits.
 - Four `getwininfo` cases added to `test/unit/lua/fn.test.ts`; corrected `test/unit/lua/api.test.ts` to expect `"\r"`, not `"<CR>"`, from `nvim_replace_termcodes`.
 - 20 unit tests in `test/unit/lua/extmarks.test.ts` for extmark engine (set, get, delete, clear, virtual text, position tracking, range queries)
@@ -496,6 +470,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.141.0] - 2026-09-03
 
+### Changed
+
+- **E2E test Obsidian version pinned to 1.13.7** — `wdio.conf.mts` `browserVersion` changed from `'latest'` to `'1.13.7'`. Obsidian 1.13.8 is a mobile-only release (APK only, no desktop asar), causing the test runner to fail with "No compatible installers available."
+
 ### Fixed
 
 - **Disabling workspace navigation disables all global keybindings** — turning off **Settings → Vim Motions → Navigation → Workspace navigation** also disabled the `:` ex command line in reading view, `vim.obsidian.keymap.set` mappings, and hint mode global hotkeys. Root cause: the `GlobalKeyHandler` and `GlobalMappingRegistry` were only instantiated when `enableWorkspaceNav` was true, and all three interception gates (`shouldInterceptContent`, `shouldInterceptHints`, `shouldInterceptStructural`) returned false when the setting was disabled. Fixed by always creating the global key handler on desktop and moving the `enableWorkspaceNav` guard from the interception layer to the mapping registration layer — only scroll, tab, and pane navigation keys are conditional on the setting; `:`, hint mode, and user global keymaps are always registered. ([#164](https://github.com/saberzero1/motions/issues/164))
@@ -513,10 +491,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/visual-line-command-fix.ts` (skip `withExpandedSelection` for `checkCallback(true)`)
 - **Stale visual-line selection cache causes RangeError** — `lastVisualLineSel` and `pendingVisualLineSel` cached line numbers from a previous visual-line selection could exceed the document length after the editor content was replaced with a shorter document (e.g., between e2e tests or `:e` commands). The stale cache caused `doc.line(N)` to throw `RangeError: Invalid line number N in M-line document`. Fixed by validating cached selection line numbers against the current document length before use; stale caches are invalidated instead of producing errors.
     - Plugin: `src/vim/visual-line-command-fix.ts` (`isSelInBounds` validation in `somethingSelected`, `getSelection`, `replaceSelection`)
-
-### Changed
-
-- **E2E test Obsidian version pinned to 1.13.7** — `wdio.conf.mts` `browserVersion` changed from `'latest'` to `'1.13.7'`. Obsidian 1.13.8 is a mobile-only release (APK only, no desktop asar), causing the test runner to fail with "No compatible installers available."
 
 ### Tests
 
@@ -765,9 +739,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Editing**: `joinspaces`/`js` (default off — `J` inserts double space after `.!?`), `shiftround`/`sr` (default off — `>>`/`<<` round to shiftwidth), `nrformats`/`nf` (default `bin,hex` — `<C-a>`/`<C-x>` format support, octal now available)
     - Fork: `~/Repos/codemirror-vim/src/vim.js` (12 `defineOption()` calls, search call sites updated, hlsearch gating, incsearch gating, wrapscan boundary messages, gdefault inversion, startofline in H/M/L/G/gg, whichwrap in moveByCharacters, virtualedit in clipCursorToContent, joinspaces in joinLines, shiftround in indent operator, nrformats with parseNumberMatch helper)
     - Plugin: `src/vimrc/loader.ts` (12 options registered in `KNOWN_SET_OPTIONS` with `_fork:` prefix settingsKey)
-
-### Added
-
 - **Oil preview window** (`<C-p>`) — toggle a side-by-side preview split showing the file under the cursor. Auto-updates on cursor movement via `EditorView.updateListener`. Second `<C-p>` closes the preview. Closes automatically when oil closes. New ex command `:oilpreview` (`:oilpre`).
     - Plugin: `src/oil/manager.ts` (`togglePreview()`, `closePreview()`, `installPreviewCursorListener()`)
     - Plugin: `src/oil/keybindings.ts` (`<C-p>` mapping + `oilPreview` action)
@@ -1329,14 +1300,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.120.0] - 2026-08-21
 
-### Fixed
-
-- **Table cell cursor bounce-back on macOS (continued)** — the `MessageChannel`-based `scheduleCrossing()` from 0.119.0 still raced with Obsidian's table widget focus handlers on macOS Electron. Replaced with `requestAnimationFrame`, which defers the cross-cell focus change until after the full event dispatch cycle and paint frame complete — guaranteeing Obsidian's table widget keydown handlers have finished before the plugin changes cell focus. ([#136](https://github.com/saberzero1/motions/issues/136))
-    - Plugin: `src/vim/table-cell-motions.ts` (`scheduleCrossing` now uses `requestAnimationFrame` instead of `MessageChannel`)
-- **Table-nav viewport does not follow cursor in long tables** — when navigating down through a table taller than the viewport with `enableTableNav=true`, the highlighted cell went off-screen because `navigate()` only updated the CSS highlight class without scrolling. CM6 treats the native table widget as an opaque block decoration and cannot scroll to positions within it. Fixed by registering an `EditorView.scrollHandler` facet that intercepts scroll requests during table-nav mode, reads the highlighted cell's DOM bounding rect, and adjusts `scrollDOM.scrollTop` directly — the CM6-sanctioned mechanism for custom scroll behavior that is not overridden by viewport reconciliation. Added `overflow: visible` CSS override on the table widget during nav mode to prevent the widget's `overflow: auto hidden` from blocking `scrollIntoView` propagation. ([#136](https://github.com/saberzero1/motions/issues/136))
-    - Plugin: `src/vim/table-nav-controller.ts` (`syncCursorToActiveCell`, `tableNavScrollHandler` extension)
-    - Styles: `styles.css` (`overflow: visible` on `.vim-motions-table-nav-mode.cm-table-widget`)
-
 ### Added
 
 - **Vim/Neovim built-in gap coverage** — systematic effort to close ~50 gaps in vim/neovim built-in command coverage across 8 implementation batches.
@@ -1381,6 +1344,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/workspace/commands.ts`
 - **No-op crash guards** — 21 commands registered as no-ops to prevent crashes on unrecognized keys: window commands (`<C-w>=`, `<C-w>_`, `<C-w>|`, `<C-w>r`, `<C-w>R`, `<C-w>x`), spelling (`]s`, `[s`, `z=`, `zg`, `zw`), normal `U`, `<C-l>`, `g<C-a>`, `g<C-x>`, insert `<C-r>=`, `<C-k>`, `<C-v>`, `<C-x>` family.
     - Plugin: `src/workspace/navigation.ts`
+
+### Fixed
+
+- **Table cell cursor bounce-back on macOS (continued)** — the `MessageChannel`-based `scheduleCrossing()` from 0.119.0 still raced with Obsidian's table widget focus handlers on macOS Electron. Replaced with `requestAnimationFrame`, which defers the cross-cell focus change until after the full event dispatch cycle and paint frame complete — guaranteeing Obsidian's table widget keydown handlers have finished before the plugin changes cell focus. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-cell-motions.ts` (`scheduleCrossing` now uses `requestAnimationFrame` instead of `MessageChannel`)
+- **Table-nav viewport does not follow cursor in long tables** — when navigating down through a table taller than the viewport with `enableTableNav=true`, the highlighted cell went off-screen because `navigate()` only updated the CSS highlight class without scrolling. CM6 treats the native table widget as an opaque block decoration and cannot scroll to positions within it. Fixed by registering an `EditorView.scrollHandler` facet that intercepts scroll requests during table-nav mode, reads the highlighted cell's DOM bounding rect, and adjusts `scrollDOM.scrollTop` directly — the CM6-sanctioned mechanism for custom scroll behavior that is not overridden by viewport reconciliation. Added `overflow: visible` CSS override on the table widget during nav mode to prevent the widget's `overflow: auto hidden` from blocking `scrollIntoView` propagation. ([#136](https://github.com/saberzero1/motions/issues/136))
+    - Plugin: `src/vim/table-nav-controller.ts` (`syncCursorToActiveCell`, `tableNavScrollHandler` extension)
+    - Styles: `styles.css` (`overflow: visible` on `.vim-motions-table-nav-mode.cm-table-widget`)
 
 ### Tests
 
@@ -1431,14 +1402,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.118.0] - 2026-08-20
 
+### Changed
+
+- **Cross-cell motions now respect `enableTableNav`** — `h`/`j`/`k`/`l` crossing cell boundaries in native table mode was previously always active regardless of `enableTableNav`. Cross-cell motions now only activate when `enableTableNav` is `true`. When disabled, Obsidian's native table cell editor handles cell boundary navigation directly.
+
 ### Fixed
 
 - **Table movement broken when `enableTableNav=false` (macOS)** — `applyTableCellMotions()` overrode `moveByLines`, `moveByCharacters`, and `moveByDisplayLines` globally whenever `tableWidgetMode` was `native`, regardless of `enableTableNav`. When table nav was disabled, these overrides still intercepted `j`/`k` (and `gj`/`gk`) inside native table cells, calling `scheduleCrossing()` with `setTimeout(0)` which raced with Obsidian's native cell focus management on macOS — producing cursor bounce-back. Users with `j→gj` / `k→gk` remappings (common vimrc/Lua pattern) were especially affected because the remapping routes through `moveByDisplayLines`. Fixed by gating `applyTableCellMotions()` on `enableTableNav` — when the user disables table nav, the motion overrides are not installed. Obsidian's native table cell editor handles cross-cell navigation on its own. ([#136](https://github.com/saberzero1/motions/issues/136))
     - Plugin: `src/main.ts` (added `enableTableNav` check to both `applyTableCellMotions` registration sites)
-
-### Changed
-
-- **Cross-cell motions now respect `enableTableNav`** — `h`/`j`/`k`/`l` crossing cell boundaries in native table mode was previously always active regardless of `enableTableNav`. Cross-cell motions now only activate when `enableTableNav` is `true`. When disabled, Obsidian's native table cell editor handles cell boundary navigation directly.
 
 ### Tests
 
@@ -1592,6 +1563,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.112.0] - 2026-08-16
 
+### Changed
+
+- **Internal API type safety — obsidian-typings migration (round 2)** — eliminated 23 additional `as unknown as` casts across 16 source files by leveraging `@obsidian-typings/obsidian-public-latest` v6.32.0 typed APIs. Total `as unknown as` count reduced from 90 → 67. The remaining 67 casts are inherent to plugin architecture (dynamic settings indexing, codemirror-vim fork adapter access, external plugin window globals, fengari Lua bridge, minAppVersion compatibility guards).
+    - `src/util/commands.ts`: `app.commands.executeCommandById()` and `app.commands.commands` accessed directly via typed `Commands` interface; custom `ObsidianCommand` narrowed to `Pick<Command, 'id' | 'name'>`
+    - `src/util/leaf.ts`: `leaf.id` and `leaf.pinned` used directly (required properties via `WorkspaceItem`/`WorkspaceLeaf` augmentation); `getViewFilePath()`/`getViewFileBasename()` use `instanceof FileView` guard instead of `as unknown as { file? }` cast
+    - `src/util/vault.ts`: `ConfigItem` imported from `@obsidian-typings/obsidian-public-latest` replacing custom `VaultConfigKey` type inference
+    - `src/workspace/global-defaults.ts`: `mdView.getMode()` called directly (typed as `MarkdownViewModeType`)
+    - `src/editors/embeddable-editor.ts`: `app.embedRegistry` accessed directly; `editorApp.scope` accessed directly (official API); `workspace.activeEditor` assignment typed via `MarkdownFileInfo`
+    - `src/oil/keybindings.ts`, `src/oil/manager.ts`: `app.internalPlugins.getEnabledPluginById('file-explorer')` returns typed `FileExplorerPluginInstance` with `revealInFolder(item: TAbstractFile)`
+    - `src/oil/oil-view.ts`: `this.leaf.updateHeader()` called directly (typed on `WorkspaceLeaf` augmentation)
+    - `src/oil/manager.ts`: `app.openWithDefaultApp(path)` called directly (typed on `App` augmentation)
+    - `src/vim/native-table-adapter.ts`: `EditMode` type extends `MarkdownEditView` instead of `Record<string, unknown>`; `view.editMode` accessed directly; `isInLivePreview()` uses `view.getMode()` + `editMode.sourceMode` instead of `getState()` cast; `getEditModeForView()` uses `instanceof MarkdownView` guard
+    - `src/vim/table-cell-cursor-guard.ts`: `mdView.editor.cm` accessed directly (typed as `EditorView` via `Editor` augmentation)
+    - `src/ui/global-ex-command.ts`: `this.inputEl` accessed directly (official `SuggestModal.inputEl`)
+    - `src/lua/loader.ts`: `view.getViewType()` called directly (official `View` API) — 3 instances
+    - `src/settings.ts`: `this.display()` and `this.refreshDomState()` — reverted, casts retained to bypass `obsidianmd/no-unsupported-api` and `@typescript-eslint/no-deprecated` lint rules (plugin `minAppVersion` is 1.7.2; these APIs require/deprecate at 1.13.0)
+    - `src/picker/sources/tasks.ts`: `app.plugins.plugins['obsidian-tasks-plugin']` accessed directly via typed `Plugins` interface
+
 ### Fixed
 
 - **Cursor shape dropdowns always disabled in Settings UI** — the 5 cursor shape dropdowns (Normal, Insert, Visual, Replace, Operator-pending) on the Appearance page were permanently disabled even when Obsidian's built-in Vim mode was off. Root cause: Obsidian's `addSettingTab()` immediately calls `getSettingDefinitions()` and caches the result for rendering and search indexing. In `onload()`, `addSettingTab()` ran before `createBundledVimExtension()`, so the `disabled` callbacks closed over `forkActive = false` (a `const` captured at the top of `getSettingDefinitions()`). The callbacks always returned `true` (disabled) regardless of the actual fork activation state. Fixed by replacing the captured `forkActive` const in all 5 `disabled` callbacks with a direct `isBundledVimActive()` call, so Obsidian's `refreshDomState()` always evaluates the current state. Additionally, `this.declarativeSettingTab.update()` is now called after `createBundledVimExtension()` to refresh the cached `getSettingDefinitions()` result — this updates the static description text which cannot use a callback. ([#128](https://github.com/saberzero1/motions/issues/128))
@@ -1614,24 +1603,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/vim/animated-cursor/controller.ts` (`isAboveCanvas` flag, per-view un-suppression for popover/modal editors, `tick()` early return)
 - **Stale cursor suppression after animated cursor toggle** — when animated cursor was disabled at runtime, `CursorController.update()` returned early without clearing the per-view suppression override set in the constructor, leaving the fork's vim cursor hidden. Also, the constructor unconditionally suppressed the cursor regardless of `config.enabled`. Fixed by gating constructor suppression on `config.enabled` and calling `clearCursorSuppressedForView()` in the disabled early-return path. ([#130](https://github.com/saberzero1/motions/issues/130))
     - Plugin: `src/vim/animated-cursor/controller.ts` (constructor gates on `config.enabled`, `update()` clears per-view override when disabled)
-
-### Changed
-
-- **Internal API type safety — obsidian-typings migration (round 2)** — eliminated 23 additional `as unknown as` casts across 16 source files by leveraging `@obsidian-typings/obsidian-public-latest` v6.32.0 typed APIs. Total `as unknown as` count reduced from 90 → 67. The remaining 67 casts are inherent to plugin architecture (dynamic settings indexing, codemirror-vim fork adapter access, external plugin window globals, fengari Lua bridge, minAppVersion compatibility guards).
-    - `src/util/commands.ts`: `app.commands.executeCommandById()` and `app.commands.commands` accessed directly via typed `Commands` interface; custom `ObsidianCommand` narrowed to `Pick<Command, 'id' | 'name'>`
-    - `src/util/leaf.ts`: `leaf.id` and `leaf.pinned` used directly (required properties via `WorkspaceItem`/`WorkspaceLeaf` augmentation); `getViewFilePath()`/`getViewFileBasename()` use `instanceof FileView` guard instead of `as unknown as { file? }` cast
-    - `src/util/vault.ts`: `ConfigItem` imported from `@obsidian-typings/obsidian-public-latest` replacing custom `VaultConfigKey` type inference
-    - `src/workspace/global-defaults.ts`: `mdView.getMode()` called directly (typed as `MarkdownViewModeType`)
-    - `src/editors/embeddable-editor.ts`: `app.embedRegistry` accessed directly; `editorApp.scope` accessed directly (official API); `workspace.activeEditor` assignment typed via `MarkdownFileInfo`
-    - `src/oil/keybindings.ts`, `src/oil/manager.ts`: `app.internalPlugins.getEnabledPluginById('file-explorer')` returns typed `FileExplorerPluginInstance` with `revealInFolder(item: TAbstractFile)`
-    - `src/oil/oil-view.ts`: `this.leaf.updateHeader()` called directly (typed on `WorkspaceLeaf` augmentation)
-    - `src/oil/manager.ts`: `app.openWithDefaultApp(path)` called directly (typed on `App` augmentation)
-    - `src/vim/native-table-adapter.ts`: `EditMode` type extends `MarkdownEditView` instead of `Record<string, unknown>`; `view.editMode` accessed directly; `isInLivePreview()` uses `view.getMode()` + `editMode.sourceMode` instead of `getState()` cast; `getEditModeForView()` uses `instanceof MarkdownView` guard
-    - `src/vim/table-cell-cursor-guard.ts`: `mdView.editor.cm` accessed directly (typed as `EditorView` via `Editor` augmentation)
-    - `src/ui/global-ex-command.ts`: `this.inputEl` accessed directly (official `SuggestModal.inputEl`)
-    - `src/lua/loader.ts`: `view.getViewType()` called directly (official `View` API) — 3 instances
-    - `src/settings.ts`: `this.display()` and `this.refreshDomState()` — reverted, casts retained to bypass `obsidianmd/no-unsupported-api` and `@typescript-eslint/no-deprecated` lint rules (plugin `minAppVersion` is 1.7.2; these APIs require/deprecate at 1.13.0)
-    - `src/picker/sources/tasks.ts`: `app.plugins.plugins['obsidian-tasks-plugin']` accessed directly via typed `Plugins` interface
 
 ### Documentation
 
@@ -1919,21 +1890,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.104.0] - 2026-08-10
 
-### Fixed
-
-- **Flash labels missing from top half of viewport with frontmatter scrolled off-screen** — in Live Preview mode, when YAML frontmatter properties (~10-15 lines) were collapsed into a widget and scrolled off-screen, flash `f`/`F`/`t`/`T` labels only appeared in the bottom half of the viewport. The number of missing lines matched the frontmatter line count. Root cause: `getVisibleRange()` in `src/easymotion/targets.ts` used `view.lineBlockAtHeight()` which relies on CM6's height map — when the collapsed frontmatter widget was off-screen, height estimation errors caused `coordsAtPos()` to return `null` for targets near the viewport top, and `filterVisibleTargets()` dropped them. Fixed by using `view.visibleRanges` (actually-rendered document ranges) instead of `lineBlockAtHeight`. Also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))
-    - Plugin: `src/easymotion/targets.ts` (`getVisibleRange` — replaced `lineBlockAtHeight` with `view.visibleRanges`)
-    - Plugin: `test/unit/flash-targets.test.ts` (updated CM6 stub to provide `visibleRanges`)
-- **`v$d` cursor off-by-one** — visual-mode `v$d` left cursor at ch:5 instead of ch:4 after deleting to end of line. Root cause: `clipCursorToContent` in the delete operator ran while `vim.visualMode` was still `true` (allowing `ch = text.length`), and `exitVisualMode` ran after the operator returned without re-clamping. Fixed by re-clipping `operatorMoveTo` through `clipCursorToContent` after `exitVisualMode` in `applyOperator`.
-    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`applyOperator` — re-clip cursor after `exitVisualMode`)
-    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual operator cursor re-clamping after exitVisualMode" section)
-- **`s` substitute consumed by flash jump in Tier 1 tests** — the `s` key did nothing in `normal-editing.e2e.ts` because the test vault had `flashJumpEnabled: true`, which mapped `s` to flash jump mode instead of the built-in substitute (`cl`). Flash jump tests explicitly enable this setting in their own `before()` hooks. Fixed by setting `flashJumpEnabled: false` in `data.json` and adding a defensive disable in the test's `before()` hook.
-    - Plugin: `test-vault/.obsidian/plugins/vim-motions/data.json` (`flashJumpEnabled: false`)
-    - Plugin: `test/specs/vim-builtin/normal-editing.e2e.ts` (defensive flash disable in `before()`)
-- **`vt.d` on multi-dot content consumed by flash labels** — `vt.d` on content with 2+ dot characters (e.g., `foo.bar.baz`) deleted only 1 character because flash motions showed labels for the multiple `.` matches, consuming the `d` key as a label character. Not a fork bug — flash working as designed (same as flash.nvim in Neovim). Fixed by setting `enableFlash: false` in test vault `data.json` and disabling flash in `visual-mode.e2e.ts` `before()` hook. Flash-specific behavior is tested in dedicated test files.
-    - Plugin: `test-vault/.obsidian/plugins/vim-motions/data.json` (`enableFlash: false`)
-    - Plugin: `test/specs/vim-builtin/visual-mode.e2e.ts` (defensive flash disable in `before()`)
-
 ### Added
 
 - **`vimHandleKeys` test helper** — new helper in `test/helpers.ts` that dispatches all keys synchronously through `Vim.handleKey()` in a single `executeObsidian` callback, bypassing DOM event timing. Used for visual-mode compound operations that fail with `vimRawKeys` DOM dispatch.
@@ -1960,6 +1916,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **E2E test assertions strengthened** — 35 tests that previously only checked `mode === 'normal'` or `assertPluginLoaded()` now have content, cursor, or behavioral assertions. 16 workspace-layout ex-command tests renamed with `[crash-guard]` prefix. 1 tautological assertion fixed (`toBeGreaterThanOrEqual(0)` → `toBe(0)`).
     - Plugin: `test/specs/undo-tree.e2e.ts`, `test/specs/undo-tree-navigation.e2e.ts`, `test/specs/vim-builtin/ex-commands-expanded.e2e.ts`, `test/specs/vimrc.e2e.ts`
 - **Deviation count reduced** — 6 visual-mode infra-limitation deviations resolved via `useHandleKey` (V3j+J, vip+d, v+r, v+aw+d, vt.+d, v$+d). 1 deviation resolved via key-string fix (`lua nmap change word` — `<Esc>` literal → `\x1b` byte). 1 reclassified from `infra-limitation` to `upstream-bug` (`lua leader key mapping`).
+
+### Fixed
+
+- **Flash labels missing from top half of viewport with frontmatter scrolled off-screen** — in Live Preview mode, when YAML frontmatter properties (~10-15 lines) were collapsed into a widget and scrolled off-screen, flash `f`/`F`/`t`/`T` labels only appeared in the bottom half of the viewport. The number of missing lines matched the frontmatter line count. Root cause: `getVisibleRange()` in `src/easymotion/targets.ts` used `view.lineBlockAtHeight()` which relies on CM6's height map — when the collapsed frontmatter widget was off-screen, height estimation errors caused `coordsAtPos()` to return `null` for targets near the viewport top, and `filterVisibleTargets()` dropped them. Fixed by using `view.visibleRanges` (actually-rendered document ranges) instead of `lineBlockAtHeight`. Also affected EasyMotion target scanning. ([#114](https://github.com/saberzero1/motions/issues/114))
+    - Plugin: `src/easymotion/targets.ts` (`getVisibleRange` — replaced `lineBlockAtHeight` with `view.visibleRanges`)
+    - Plugin: `test/unit/flash-targets.test.ts` (updated CM6 stub to provide `visibleRanges`)
+- **`v$d` cursor off-by-one** — visual-mode `v$d` left cursor at ch:5 instead of ch:4 after deleting to end of line. Root cause: `clipCursorToContent` in the delete operator ran while `vim.visualMode` was still `true` (allowing `ch = text.length`), and `exitVisualMode` ran after the operator returned without re-clamping. Fixed by re-clipping `operatorMoveTo` through `clipCursorToContent` after `exitVisualMode` in `applyOperator`.
+    - Fork: `~/Repos/codemirror-vim/src/vim.js` (`applyOperator` — re-clip cursor after `exitVisualMode`)
+    - Fork: `~/Repos/codemirror-vim/DIFFERENCES.md` (added "Visual operator cursor re-clamping after exitVisualMode" section)
+- **`s` substitute consumed by flash jump in Tier 1 tests** — the `s` key did nothing in `normal-editing.e2e.ts` because the test vault had `flashJumpEnabled: true`, which mapped `s` to flash jump mode instead of the built-in substitute (`cl`). Flash jump tests explicitly enable this setting in their own `before()` hooks. Fixed by setting `flashJumpEnabled: false` in `data.json` and adding a defensive disable in the test's `before()` hook.
+    - Plugin: `test-vault/.obsidian/plugins/vim-motions/data.json` (`flashJumpEnabled: false`)
+    - Plugin: `test/specs/vim-builtin/normal-editing.e2e.ts` (defensive flash disable in `before()`)
+- **`vt.d` on multi-dot content consumed by flash labels** — `vt.d` on content with 2+ dot characters (e.g., `foo.bar.baz`) deleted only 1 character because flash motions showed labels for the multiple `.` matches, consuming the `d` key as a label character. Not a fork bug — flash working as designed (same as flash.nvim in Neovim). Fixed by setting `enableFlash: false` in test vault `data.json` and disabling flash in `visual-mode.e2e.ts` `before()` hook. Flash-specific behavior is tested in dedicated test files.
+    - Plugin: `test-vault/.obsidian/plugins/vim-motions/data.json` (`enableFlash: false`)
+    - Plugin: `test/specs/vim-builtin/visual-mode.e2e.ts` (defensive flash disable in `before()`)
 
 ### Tests
 
@@ -5315,6 +5286,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `test/coverage-report.ts` — replaced broken regex YAML parser with proper YAML parsing via the `yaml` package, fixing `npm run test:coverage` which previously reported 0/0 on the multi-line manifest format.
+
 #### Neovim deviation closure
 
 - `di*`/`da*` with cursor on delimiter now correctly no-ops — previously the delimiter scanner treated the delimiter position as "inside", operating on the text. Matches Neovim behavior.
@@ -5330,6 +5303,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `test/neovim/deviations.ts` reduced from 28 to 19 entries (9 removed, 3 new cursor-position deviations added for Ex commands where content is correct but cursor placement differs from Neovim).
 - `KNOWN_LIMITATIONS.md` behavioral deviations table expanded with 5 entries for confirmed upstream constraints (`dG`, `>>`, `V+>`, `d0`, `<<`) that cannot be intercepted via `mapCommand` due to codemirror-vim's operator-pending dispatch architecture.
+- Replaced `js-yaml` dependency with [`yaml`](https://github.com/eemeli/yaml) — better maintained, YAML 1.2 spec-compliant, ships its own types.
+- All 16 Tier 1 test files (`test/specs/vim-builtin/*.e2e.ts`) now use `testWithNeovim()` as the primary test format alongside existing `it()` blocks. Neovim lifecycle hooks (`startNvim`/`stopNvim`) added to top-level `before`/`after`.
+- `test/helpers.ts` — added `vimRawKeys()` for raw byte key sequences (supports `\x1b` for Escape, `\x01`-`\x1a` for Ctrl keys, `\n` for Enter).
 
 ### Added
 
@@ -5359,16 +5335,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repeat edge cases: `.` after `dw`/`>>`/`cw+text`, `3.` with count.
 - Search edge cases: `*`/`#` wrap-around.
 - Mark edge cases: mark persistence after edit, `'.` jump to last change.
-
-### Fixed
-
-- `test/coverage-report.ts` — replaced broken regex YAML parser with proper YAML parsing via the `yaml` package, fixing `npm run test:coverage` which previously reported 0/0 on the multi-line manifest format.
-
-### Changed
-
-- Replaced `js-yaml` dependency with [`yaml`](https://github.com/eemeli/yaml) — better maintained, YAML 1.2 spec-compliant, ships its own types.
-- All 16 Tier 1 test files (`test/specs/vim-builtin/*.e2e.ts`) now use `testWithNeovim()` as the primary test format alongside existing `it()` blocks. Neovim lifecycle hooks (`startNvim`/`stopNvim`) added to top-level `before`/`after`.
-- `test/helpers.ts` — added `vimRawKeys()` for raw byte key sequences (supports `\x1b` for Escape, `\x01`-`\x1a` for Ctrl keys, `\n` for Enter).
 
 ### Documentation
 
