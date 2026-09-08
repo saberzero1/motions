@@ -10,6 +10,7 @@ import {
 } from './renderer';
 import {
     getAnimatedCursorManager,
+    peekAnimatedCursorManager,
     getPendingCrossingToken,
     clearPendingCrossingToken,
     isThemeDirty,
@@ -612,14 +613,14 @@ class CursorController implements Tickable {
         );
         this.destroyed = true;
 
-        const mgr = getAnimatedCursorManager();
+        const mgr = peekAnimatedCursorManager();
         const token = getPendingCrossingToken();
-        if (this.isCell && token !== null && this.cachedShapeRect) {
+        if (mgr && this.isCell && token !== null && this.cachedShapeRect) {
             mgr.storeCrossingHandoff(token, this.cachedShapeRect);
         }
 
         clearCursorSuppressedForView(this.view);
-        mgr.deregister(this);
+        mgr?.deregister(this);
         this.view.scrollDOM.removeEventListener(
             'compositionstart',
             this.onCompositionStart,

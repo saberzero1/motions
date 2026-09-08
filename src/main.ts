@@ -3360,6 +3360,11 @@ export default class VimMotionsPlugin extends Plugin {
             return;
         }
         this.attachYankHighlight();
+        // The animated cursor keeps its own copy of the shape map, so unlike
+        // the fork it does not see settings mutations by reference.
+        setCursorShapes(
+            this.settings.cursorShapes as unknown as Record<string, string>,
+        );
         this.refreshRuntimeExtensionSlots();
         this.modeTracker?.destroy();
         this.modeTracker = null;

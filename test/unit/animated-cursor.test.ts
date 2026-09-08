@@ -476,4 +476,29 @@ describe('AnimatedCursorManager', () => {
         warnSpy.mockRestore();
         restoreDoc();
     });
+
+    it('peek does not resurrect the singleton after teardown', async () => {
+        vi.resetModules();
+        const {
+            getAnimatedCursorManager,
+            peekAnimatedCursorManager,
+            destroyAnimatedCursorManager,
+        } = await import('../../src/vim/animated-cursor/manager');
+
+        expect(peekAnimatedCursorManager()).toBeNull();
+
+        const created = getAnimatedCursorManager();
+        expect(peekAnimatedCursorManager()).toBe(created);
+
+        destroyAnimatedCursorManager();
+
+        // A controller destroyed after teardown reaches for the manager to
+        // deregister. Through `peek` that is a no-op; through `get` it would
+        // build a replacement that nothing ever tears down again.
+        expect(peekAnimatedCursorManager()).toBeNull();
+        expect(getAnimatedCursorManager()).not.toBe(created);
+
+        destroyAnimatedCursorManager();
+        restoreDoc();
+    });
 });

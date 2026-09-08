@@ -417,6 +417,19 @@ export function getAnimatedCursorManager(): AnimatedCursorManager {
     return managerInstance;
 }
 
+/**
+ * The manager if one exists, without creating it.
+ *
+ * Teardown destroys the manager before CodeMirror destroys the controllers:
+ * `teardownVimSubsystems()` runs ahead of the `updateOptions()` that removes
+ * the extension. A controller's `destroy()` therefore runs after the manager
+ * is gone, and reaching for `getAnimatedCursorManager()` there would build a
+ * fresh one purely to deregister from it.
+ */
+export function peekAnimatedCursorManager(): AnimatedCursorManager | null {
+    return managerInstance;
+}
+
 export function destroyAnimatedCursorManager(): void {
     managerInstance?.destroy();
     managerInstance = null;
