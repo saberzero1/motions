@@ -41,6 +41,7 @@ interface PhantomProbe {
     caretOnScreen: boolean;
     scrolledBy: number;
     repainted: PaintedBounds | null;
+    repaintedAfterMs: number;
     caretTopOnReturn: number;
 }
 
@@ -138,6 +139,7 @@ describe('Animated cursor scrolling (#181)', function () {
                     caretOnScreen: false,
                     scrolledBy: 0,
                     repainted: null,
+                    repaintedAfterMs: -1,
                     caretTopOnReturn: 0,
                 });
 
@@ -262,16 +264,20 @@ describe('Animated cursor scrolling (#181)', function () {
 
                 // Scrolling back must bring the cursor back — clearing the
                 // stale rect must not permanently kill the cursor.
+                const returnAt = performance.now();
                 cm.scrollDOM.scrollTop = 0;
                 let repainted: typeof empty | null = null;
-                for (let i = 0; i < 16; i++) {
-                    await sleep(90);
+                let repaintedAfterMs = -1;
+                for (let i = 0; i < 30; i++) {
+                    await sleep(45);
                     const sample = scan();
                     if (sample.painted) {
                         repainted = sample;
+                        repaintedAfterMs = performance.now() - returnAt;
                         break;
                     }
                 }
+
                 const returnCoords = cm.coordsAtPos(
                     cm.state.selection.main.head,
                     1,
@@ -286,6 +292,7 @@ describe('Animated cursor scrolling (#181)', function () {
                     caretOnScreen,
                     scrolledBy,
                     repainted,
+                    repaintedAfterMs,
                     caretTopOnReturn: returnCoords ? returnCoords.top : -1,
                 };
             },
@@ -310,6 +317,15 @@ describe('Animated cursor scrolling (#181)', function () {
         // Scrolling back must bring the real cursor back at the caret, not
         // leave the editor with no cursor at all.
         expect(probe.repainted).not.toBeNull();
+
+        // Promptly, not eventually. "It came back at some point" hid two
+        // defects behind the 600 ms warm frame that happened to rescue it on
+        // Linux and did not on Windows: a wake dropped because it landed while
+        // a frame was in flight, and a blink whose dark half is exactly the
+        // warm-gear period, so a parked loop can skip every draw.
+        expect(probe.repaintedAfterMs).toBeGreaterThanOrEqual(0);
+        expect(probe.repaintedAfterMs).toBeLessThan(400);
+
         expect(probe.caretTopOnReturn).toBeGreaterThan(0);
         const returnOffset = Math.abs(
             (probe.repainted?.top ?? -1000) - probe.caretTopOnReturn,

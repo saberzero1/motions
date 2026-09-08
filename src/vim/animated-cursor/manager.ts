@@ -52,6 +52,7 @@ export class AnimatedCursorManager {
     private lastLoopTime = 0;
     private lastFrameTime = 0;
     private running = false;
+    private wakeRequested = false;
     private gear: Gear = 'stopped';
     private warmTimerId: number | null = null;
     private canvas: HTMLCanvasElement | null = null;
@@ -97,6 +98,12 @@ export class AnimatedCursorManager {
 
     wake(): void {
         this.cancelWarmTimer();
+        // A wake arriving while a frame is in flight would otherwise be lost:
+        // `running` is still true so this returns early, and that frame then
+        // parks the loop because nothing was active when it ticked — before
+        // the state the wake announced had been read. The flag survives into
+        // `scheduleNext()` and buys one more frame.
+        this.wakeRequested = true;
         if (this.running) return;
         this.gear = 'hot';
         this.running = true;
@@ -308,6 +315,10 @@ export class AnimatedCursorManager {
     }
 
     private scheduleNext(anyActive: boolean, anyNeedsBlink: boolean): void {
+        if (this.wakeRequested) {
+            this.wakeRequested = false;
+            anyActive = true;
+        }
         if (anyActive) {
             this.gear = 'hot';
             this.rafId = window.requestAnimationFrame((t) => this.loop(t));

@@ -32,6 +32,17 @@ import { invariant, devAssert } from '../../util/invariant';
 
 const STALE_THRESHOLD_MS = 500;
 
+/**
+ * How long the controller keeps asking for frames after a scroll it could not
+ * yet resolve a position for.
+ *
+ * A scroll event fires before CodeMirror has necessarily re-rendered, so the
+ * first tick after a large jump can find no coordinates. Going idle there
+ * hands recovery to the next blink frame 600 ms later, or to nothing at all
+ * once the loop parks.
+ */
+const POSITION_RETRY_MS = 500;
+
 function coordsToRect(view: EditorView, pos: number): CursorRect | null {
     const coords = view.coordsAtPos(pos, 1);
     if (!coords) return null;
@@ -84,6 +95,9 @@ class CursorController implements Tickable {
     private cachedSelectionHead = -1;
     private cachedScrollTop = 0;
     private cachedScrollLeft = 0;
+    private lastSeenScrollTop = -1;
+    private lastSeenScrollLeft = -1;
+    private positionRetryUntil = 0;
     private cachedTime = 0;
     private needsPositionUpdate = true;
     private lastMoveTime = 0;
@@ -157,16 +171,31 @@ class CursorController implements Tickable {
     // Scrolling within the already-rendered viewport produces no CodeMirror
     // transaction, so `update()` never runs and the cursor would stay pinned
     // to its last screen position until the 500 ms staleness fallback fires.
+    //
+    // Deduplicated against the last offset this listener saw, never against
+    // `cachedScrollTop`: that field records where the caret was last resolved
+    // successfully, so it stops advancing while the caret is off-pane, and
+    // scrolling back to exactly that offset would look like "no change".
     private onScroll = (): void => {
         if (this.destroyed) return;
         const scrollTop = this.view.scrollDOM.scrollTop;
         const scrollLeft = this.view.scrollDOM.scrollLeft;
         if (
-            scrollTop === this.cachedScrollTop &&
-            scrollLeft === this.cachedScrollLeft
+            scrollTop === this.lastSeenScrollTop &&
+            scrollLeft === this.lastSeenScrollLeft
         ) {
             return;
         }
+        this.lastSeenScrollTop = scrollTop;
+        this.lastSeenScrollLeft = scrollLeft;
+        const now = performance.now();
+        this.positionRetryUntil = now + POSITION_RETRY_MS;
+        // Scrolling moves the cursor on screen, so treat it as movement for
+        // blink purposes and show it solid. Without this the cursor can stay
+        // invisible after a scroll: the warm gear ticks every 600 ms and the
+        // blink half-cycle is also 600 ms, so a parked loop can land on the
+        // dark half of every blink and never draw.
+        this.lastMoveTime = now;
         this.needsPositionUpdate = true;
         this.active = true;
         // A scroll that does not also move the caret through the document is
@@ -282,7 +311,7 @@ class CursorController implements Tickable {
         if (!this.cachedRect) {
             this.refreshTarget();
             if (!this.cachedRect) {
-                this.active = false;
+                this.active = performance.now() < this.positionRetryUntil;
                 return;
             }
         }
