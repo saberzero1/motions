@@ -25,6 +25,27 @@ async function executeToggleCommand(
     await browser.pause(TOGGLE_SETTLE);
 }
 
+// The fork processes keys through a CM6 `eventObservers.keydown` living on the
+// vim ViewPlugin, which sits in the extension slot `disableVim()` clears. If a
+// reconfiguration ever stopped removing it, vim would keep seeing keys while
+// disabled, and repeated cycles would stack duplicate observers. CM6 recomputes
+// this map whenever the plugin set changes, so the count is the direct evidence.
+async function keydownObserverCount(): Promise<number> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        const cm = (view?.editor as unknown as Record<string, unknown>)?.cm as
+            | {
+                  inputState?: {
+                      handlers?: Record<string, { observers?: unknown[] }>;
+                  };
+              }
+            | undefined;
+        const handlers = cm?.inputState?.handlers;
+        if (!handlers) return -1;
+        return handlers.keydown?.observers?.length ?? 0;
+    })) as number;
+}
+
 async function isVimActive(): Promise<boolean> {
     return (await browser.executeObsidian(() => {
         return !!document.querySelector('.cm-vimMode');
@@ -136,6 +157,28 @@ describe('Vim toggle command', function () {
             await vimKeys('j');
             const pos = await getCursorPos();
             expect(pos.line).toBe(1);
+        });
+
+        it('the fork keydown observer is removed on disable and not duplicated on re-enable', async function () {
+            this.timeout(30000);
+            await setupEditor('aaa\nbbb\nccc', { line: 0, ch: 0 });
+
+            const enabled = await keydownObserverCount();
+            expect(enabled).toBeGreaterThan(0);
+
+            const seen: string[] = [];
+            for (let cycle = 1; cycle <= 2; cycle++) {
+                await executeToggleCommand('disable-vim-mode');
+                seen.push(`off:${await keydownObserverCount()}`);
+                await executeToggleCommand('enable-vim-mode');
+                seen.push(`on:${await keydownObserverCount()}`);
+            }
+
+            // Compared as one string so a failure reports the whole sequence:
+            // a leak and a duplicate look identical from a single sample.
+            expect(seen.join(' ')).toBe(
+                `off:0 on:${enabled} off:0 on:${enabled}`,
+            );
         });
 
         it('vim is functional after on-off-on cycle', async function () {
