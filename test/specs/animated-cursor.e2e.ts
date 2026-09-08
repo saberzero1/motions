@@ -21,6 +21,82 @@ async function setAnimatedCursor(enabled: boolean): Promise<void> {
     await browser.pause(1000);
 }
 
+// These assertions read the canvas because every cheaper proxy in this file —
+// the setting value, the caret position — was satisfied by a build where the
+// cursor extension was never installed and no canvas existed at all (#181).
+async function paintedCursorBounds(): Promise<{
+    painted: boolean;
+    left: number;
+    top: number;
+    bottom: number;
+}> {
+    return (await browser.execute(() => {
+        const empty = { painted: false, left: 0, top: 0, bottom: 0 };
+        const canvas = document.querySelector(
+            '.vim-motions-animated-cursor-canvas',
+        ) as HTMLCanvasElement | null;
+        if (!canvas) return empty;
+        const ctx = canvas.getContext('2d');
+        if (!ctx || canvas.width === 0) return empty;
+        const w = canvas.width;
+        const h = canvas.height;
+        const d = ctx.getImageData(0, 0, w, h).data;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+        for (let y = 0; y < h; y++) {
+            const row = y * w * 4;
+            for (let x = 0; x < w; x++) {
+                if (d[row + x * 4 + 3] > 8) {
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        if (minX === Infinity) return empty;
+        const scale = w / (parseFloat(canvas.style.width) || w) || 1;
+        return {
+            painted: true,
+            left: minX / scale,
+            top: minY / scale,
+            bottom: (maxY + 1) / scale,
+        };
+    })) as { painted: boolean; left: number; top: number; bottom: number };
+}
+
+async function pollPaintedCursor(): Promise<{
+    painted: boolean;
+    left: number;
+    top: number;
+    bottom: number;
+}> {
+    let last = await paintedCursorBounds();
+    for (let i = 0; i < 20 && !last.painted; i++) {
+        await browser.pause(90);
+        last = await paintedCursorBounds();
+    }
+    return last;
+}
+
+async function caretScreenTop(): Promise<number> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return -1;
+        const cm = (view.editor as unknown as Record<string, unknown>).cm as
+            | {
+                  state: { selection: { main: { head: number } } };
+                  coordsAtPos: (
+                      p: number,
+                      s?: number,
+                  ) => { top: number } | null;
+              }
+            | undefined;
+        if (!cm) return -1;
+        return cm.coordsAtPos(cm.state.selection.main.head, 1)?.top ?? -1;
+    })) as number;
+}
+
 async function getPluginSetting(key: string): Promise<unknown> {
     return browser.executeObsidian(({ app }, k: string) => {
         const plugin = (
@@ -94,17 +170,45 @@ describe('Animated cursor', function () {
     });
 
     it('cursor follows cursor movement', async function () {
+        this.timeout(60000);
         await setAnimatedCursor(true);
+        await setPluginSettings({
+            animatedCursor: true,
+            smoothCursor: false,
+            smearTrail: false,
+        });
         await setupEditor('line one\nline two\nline three\nline four', {
             line: 0,
             ch: 0,
         });
+
+        expect((await pollPaintedCursor()).painted).toBe(true);
 
         await vimKeys('j', 'j', 'j');
         await browser.pause(PAUSE.OBSIDIAN_LOAD);
 
         const pos = await getCursorPos();
         expect(pos.line).toBe(3);
+
+        // The caret moving is not evidence that the cursor moved with it: the
+        // canvas is a separate surface, and it renders nothing at all when the
+        // extension is missing. Compared in absolute viewport coordinates —
+        // the canvas is shared between tests, so a delta against an earlier
+        // sample can be measured against paint left behind by another one.
+        const endPainted = await pollPaintedCursor();
+        const endCaretTop = await caretScreenTop();
+        expect(endPainted.painted).toBe(true);
+        expect(endCaretTop).toBeGreaterThan(0);
+        expect(Math.abs(endPainted.top - endCaretTop)).toBeLessThanOrEqual(4);
+    });
+
+    it('no canvas cursor is painted while the feature is disabled', async function () {
+        this.timeout(60000);
+        await setAnimatedCursor(false);
+        await setupEditor('line one\nline two', { line: 0, ch: 0 });
+        await browser.pause(PAUSE.OBSIDIAN_LOAD);
+
+        expect((await paintedCursorBounds()).painted).toBe(false);
     });
 
     it('idle rAF rate is dramatically lower than continuous 60fps', async function () {
