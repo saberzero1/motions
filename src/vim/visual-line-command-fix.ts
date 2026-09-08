@@ -48,31 +48,47 @@ interface VisualLineState {
  * Cleared on first successful use by `replaceSelection`, or after a 30 s TTL
  * to prevent stale replacements when a modal is cancelled.
  */
-const pendingVisualLineSel = new WeakMap<EditorView, VimSel>();
-let pendingSelTimer: number | null = null;
+const pendingVisualLineSel = new WeakMap<
+    EditorView,
+    { sel: VimSel; timer: number }
+>();
 
+/**
+ * The TTL timer is stored beside the selection it expires. A single
+ * module-scope timer would be cleared by the next view to store a selection,
+ * leaving the earlier view's entry with no expiry at all.
+ */
 function setPendingSel(editorView: EditorView, sel: VimSel): void {
-    pendingVisualLineSel.set(editorView, {
-        anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
-        head: { line: sel.head.line, ch: sel.head.ch },
-    });
-    if (pendingSelTimer !== null) window.clearTimeout(pendingSelTimer);
-    pendingSelTimer = window.setTimeout(() => {
+    clearPendingSel(editorView);
+    const timer = window.setTimeout(() => {
         pendingVisualLineSel.delete(editorView);
-        pendingSelTimer = null;
     }, 30_000);
+    pendingVisualLineSel.set(editorView, {
+        sel: {
+            anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
+            head: { line: sel.head.line, ch: sel.head.ch },
+        },
+        timer,
+    });
+}
+
+function peekPendingSel(editorView: EditorView): VimSel | null {
+    return pendingVisualLineSel.get(editorView)?.sel ?? null;
+}
+
+function clearPendingSel(editorView: EditorView): void {
+    const pending = pendingVisualLineSel.get(editorView);
+    if (!pending) return;
+    window.clearTimeout(pending.timer);
+    pendingVisualLineSel.delete(editorView);
 }
 
 function consumePendingSel(editorView: EditorView): VimSel | null {
-    const sel = pendingVisualLineSel.get(editorView) ?? null;
-    if (sel) {
-        pendingVisualLineSel.delete(editorView);
-        if (pendingSelTimer !== null) {
-            window.clearTimeout(pendingSelTimer);
-            pendingSelTimer = null;
-        }
-    }
-    return sel;
+    const pending = pendingVisualLineSel.get(editorView);
+    if (!pending) return null;
+    window.clearTimeout(pending.timer);
+    pendingVisualLineSel.delete(editorView);
+    return pending.sel;
 }
 
 function getActiveVisualLineState(app: App): VisualLineState | null {
@@ -292,7 +308,7 @@ class VisualLineSomethingSelectedPatch {
             if (getVisualLineSel() !== null) return true;
             if (lastVisualLineSel !== null && isSelInBounds(lastVisualLineSel))
                 return true;
-            const pending = pendingVisualLineSel.get(editorView);
+            const pending = peekPendingSel(editorView);
             if (pending && isSelInBounds(pending)) return true;
             return false;
         };
@@ -313,10 +329,7 @@ class VisualLineSomethingSelectedPatch {
             if (nativeSel) return nativeSel;
             const vim = getVisualLineSel();
             let sel: VimSel | null =
-                vim?.sel ??
-                lastVisualLineSel ??
-                pendingVisualLineSel.get(editorView) ??
-                null;
+                vim?.sel ?? lastVisualLineSel ?? peekPendingSel(editorView);
             if (sel && !isSelInBounds(sel)) {
                 lastVisualLineSel = null;
                 sel = null;
