@@ -38,8 +38,8 @@ import type { VimApi, CmAdapter } from '../types/vim-api';
 import { getScrolloffMargin } from './scrolloff';
 import {
     createTableNavKeyHandler,
-    resetPendingState,
     clearLastStructuralAction,
+    type TableNavKeyHandler,
     type TableNavActions,
 } from './table-nav-keymap';
 
@@ -130,6 +130,7 @@ class TableNavController implements PluginValue {
     private readonly isEmbedded: boolean;
     private readonly forkAvailable: boolean;
     private session: TableNavSession;
+    private navKeyHandler: TableNavKeyHandler | null = null;
 
     constructor(
         view: EditorView,
@@ -598,7 +599,7 @@ class TableNavController implements PluginValue {
 
         s.widgetEl = null;
         s.dirty = false;
-        resetPendingState();
+        this.navKeyHandler?.resetPending();
 
         this.view.dispatch({ effects: exitTableNav.of(null) });
 
@@ -870,12 +871,12 @@ class TableNavController implements PluginValue {
         const actions: TableNavActions = {
             navigate: (d, c, w) => this.navigate(d, c, w),
             enterCellEdit: (m) => {
-                resetPendingState();
+                this.navKeyHandler?.resetPending();
                 clearLastStructuralAction();
                 this.enterCellEdit(m);
             },
             exitTableNav: (p) => {
-                resetPendingState();
+                this.navKeyHandler?.resetPending();
                 this.exitTable(p);
             },
             addRowAfter: () => this.addRowAfter(),
@@ -891,6 +892,7 @@ class TableNavController implements PluginValue {
             realign: () => this.realign(),
         };
         const handler = createTableNavKeyHandler(actions);
+        this.navKeyHandler = handler;
 
         const scope = new Scope(this.app.scope);
         scope.register(null, null, (evt: KeyboardEvent) => {

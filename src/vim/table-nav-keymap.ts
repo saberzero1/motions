@@ -21,30 +21,43 @@ export interface TableNavActions {
     realign(): void;
 }
 
-let pendingD = false;
-let countBuffer = '';
+/**
+ * Dot-repeat is deliberately module-scope: Vim's `.` replays the last change
+ * across buffers, so a single most-recent action is the correct semantics.
+ * Mid-command state is not — see below.
+ */
 let lastStructuralAction: (() => void) | null = null;
-
-export function resetPendingState(): void {
-    pendingD = false;
-    countBuffer = '';
-}
 
 export function clearLastStructuralAction(): void {
     lastStructuralAction = null;
 }
 
-function consumeCount(): number {
-    if (!countBuffer) return 1;
-    const n = parseInt(countBuffer, 10);
-    countBuffer = '';
-    return Number.isNaN(n) || n < 1 ? 1 : n;
+export interface TableNavKeyHandler {
+    (e: KeyboardEvent): boolean;
+    resetPending(): void;
 }
 
+/**
+ * `pendingD` and the count buffer live per handler, and a handler belongs to
+ * one `TableNavController`, which CodeMirror instantiates per `EditorView`.
+ * Held at module scope they were shared by every split pane: a `d` left
+ * pending in one pane was consumed by the next keystroke in another, deleting
+ * a row from the wrong table.
+ */
 export function createTableNavKeyHandler(
     actions: TableNavActions,
-): (e: KeyboardEvent) => boolean {
-    return (e: KeyboardEvent): boolean => {
+): TableNavKeyHandler {
+    let pendingD = false;
+    let countBuffer = '';
+
+    const consumeCount = (): number => {
+        if (!countBuffer) return 1;
+        const n = parseInt(countBuffer, 10);
+        countBuffer = '';
+        return Number.isNaN(n) || n < 1 ? 1 : n;
+    };
+
+    const handle = (e: KeyboardEvent): boolean => {
         if (e.ctrlKey || e.altKey || e.metaKey) return false;
         if (document.querySelector('.modal-container')) return false;
 
@@ -165,4 +178,11 @@ export function createTableNavKeyHandler(
                 return false;
         }
     };
+
+    return Object.assign(handle, {
+        resetPending: (): void => {
+            pendingD = false;
+            countBuffer = '';
+        },
+    });
 }
