@@ -5,6 +5,30 @@ import { pickerRegistry } from './registry';
 const EXTERNAL_SOURCE_TIMEOUT = 5000;
 const EXTERNAL_SOURCE_MAX_ITEMS = 10000;
 
+/**
+ * Races `work` against a timeout, cancelling the timer whichever side wins.
+ *
+ * `Promise.race` settles but does not cancel the loser, so an uncleared timer
+ * stays live for the full duration holding its closure — once per call, and
+ * `search()` runs on every keystroke.
+ */
+export function withTimeout<T>(work: Promise<T>, label: string): Promise<T> {
+    let timer: number | undefined;
+    const expiry = new Promise<never>((_, reject) => {
+        timer = window.setTimeout(() => {
+            reject(
+                new Error(
+                    `${label} timed out after ${EXTERNAL_SOURCE_TIMEOUT}ms`,
+                ),
+            );
+        }, EXTERNAL_SOURCE_TIMEOUT);
+    });
+
+    return Promise.race([work, expiry]).finally(() => {
+        if (timer !== undefined) window.clearTimeout(timer);
+    });
+}
+
 export interface PickerAPISourceMeta {
     name: string;
     displayName?: string;
@@ -155,20 +179,10 @@ class PickerAPIImpl implements PickerAPI {
         app: App,
     ): Promise<PickerItem[]> {
         try {
-            const result = await Promise.race([
+            const result = await withTimeout(
                 Promise.resolve(source.items(app)),
-                new Promise<never>((_, reject) =>
-                    window.setTimeout(
-                        () =>
-                            reject(
-                                new Error(
-                                    `Source "${source.name}" items() timed out after ${EXTERNAL_SOURCE_TIMEOUT}ms`,
-                                ),
-                            ),
-                        EXTERNAL_SOURCE_TIMEOUT,
-                    ),
-                ),
-            ]);
+                `Source "${source.name}" items()`,
+            );
             if (result.length > EXTERNAL_SOURCE_MAX_ITEMS) {
                 console.warn(
                     `[vim-motions] Source "${source.name}" returned ${result.length} items, truncating to ${EXTERNAL_SOURCE_MAX_ITEMS}`,
@@ -191,20 +205,10 @@ class PickerAPIImpl implements PickerAPI {
         app: App,
     ): Promise<PickerItem[]> {
         try {
-            const result = await Promise.race([
+            const result = await withTimeout(
                 Promise.resolve(source.search!(query, app)),
-                new Promise<never>((_, reject) =>
-                    window.setTimeout(
-                        () =>
-                            reject(
-                                new Error(
-                                    `Source "${source.name}" search() timed out after ${EXTERNAL_SOURCE_TIMEOUT}ms`,
-                                ),
-                            ),
-                        EXTERNAL_SOURCE_TIMEOUT,
-                    ),
-                ),
-            ]);
+                `Source "${source.name}" search()`,
+            );
             if (result.length > EXTERNAL_SOURCE_MAX_ITEMS) {
                 console.warn(
                     `[vim-motions] Source "${source.name}" returned ${result.length} items, truncating to ${EXTERNAL_SOURCE_MAX_ITEMS}`,
@@ -242,20 +246,10 @@ class PickerAPIImpl implements PickerAPI {
         app: App,
     ): Promise<PreviewReturn> {
         try {
-            return await Promise.race([
+            return await withTimeout(
                 Promise.resolve(source.preview!(item, app)),
-                new Promise<never>((_, reject) =>
-                    window.setTimeout(
-                        () =>
-                            reject(
-                                new Error(
-                                    `Source "${source.name}" preview() timed out after ${EXTERNAL_SOURCE_TIMEOUT}ms`,
-                                ),
-                            ),
-                        EXTERNAL_SOURCE_TIMEOUT,
-                    ),
-                ),
-            ]);
+                `Source "${source.name}" preview()`,
+            );
         } catch (e) {
             console.error(
                 `[vim-motions] Source "${source.name}" preview() failed:`,
