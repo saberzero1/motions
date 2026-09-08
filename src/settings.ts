@@ -543,6 +543,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'snippetDirectory',
         'snippetTriggerMode',
         'animatedCursor',
+        'enableUndoTree',
     ]);
 
     constructor(app: App, plugin: VimMotionsPlugin) {
@@ -5555,6 +5556,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.enableUndoTree = value;
                         await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
                         this.syncVisibilityClass(
                             containerEl,
                             'vim-motions-undo-tree-on',

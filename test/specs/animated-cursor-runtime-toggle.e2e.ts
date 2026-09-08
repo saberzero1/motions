@@ -162,4 +162,36 @@ describe('Animated cursor runtime toggle (#181)', function () {
 
         await setPluginSettingAndReload('scrolloffLines', 0);
     });
+
+    it('snippet and undo-tree toggles do not disturb the cursor canvas (#181)', async function () {
+        this.timeout(60000);
+
+        await setPluginSettingAndReload('animatedCursor', true);
+        await setupEditor('alpha bravo charlie', { line: 0, ch: 2 });
+        expect((await canvasIdentity()).exists).toBe(true);
+        await stashCanvas();
+
+        // These three now mutate their own slots through the same refresh. If
+        // any of them rebuilt the shared slot instead, the cursor controller
+        // would be torn down with it and the canvas would be a new element.
+        for (const [key, value] of [
+            ['enableUndoTree', false],
+            ['enableSnippets', false],
+            ['snippetTriggerMode', 'tab'],
+        ] as [string, unknown][]) {
+            await setPluginSettingAndReload(key, value);
+            const state = await canvasIdentity();
+            expect(`${key}:${state.exists}:${state.matchesStashed}`).toBe(
+                `${key}:true:true`,
+            );
+        }
+
+        await setPluginSettingAndReload('enableSnippets', true);
+        await setPluginSettingAndReload('snippetTriggerMode', 'both');
+        await setPluginSettingAndReload('enableUndoTree', true);
+
+        const restored = await canvasIdentity();
+        expect(restored.exists).toBe(true);
+        expect(restored.matchesStashed).toBe(true);
+    });
 });

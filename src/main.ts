@@ -348,6 +348,11 @@ export default class VimMotionsPlugin extends Plugin {
     private vimExtensionSlot: Extension[] = [];
     private treesitterExtensionSlot: Extension[] = [];
     private animatedCursorSlot: Extension[] = [];
+    private undoTreeSlot: Extension[] = [];
+    private snippetCompletionSlot: Extension[] = [];
+    private snippetTabSlot: Extension[] = [];
+    private snippetRuntimeSlot: Extension[] = [];
+    private slotExtensionCache = new Map<string, Extension>();
     private toggleInProgress = false;
     private vimrcLoading = false;
     private vimrcMaps: VimrcLoadResult['maps'] = [];
@@ -2676,60 +2681,7 @@ export default class VimMotionsPlugin extends Plugin {
             }),
         );
 
-        if (this.settings.enableUndoTree) {
-            const refreshViews = () => this.refreshUndoTreeViews();
-            this.vimExtensionSlot.push(
-                EditorView.updateListener.of((update) => {
-                    if (!update.docChanged) return;
-
-                    const undoTree = this.undoTree;
-                    if (undoTree.isNavigating()) return;
-
-                    for (const tr of update.transactions) {
-                        const isUndo = tr.isUserEvent('undo');
-                        const isRedo = tr.isUserEvent('redo');
-
-                        if (isUndo) {
-                            undoTree.undo();
-                            this.markUndoTreeDirty();
-                            refreshViews();
-                            return;
-                        }
-                        if (isRedo) {
-                            undoTree.redo();
-                            this.markUndoTreeDirty();
-                            refreshViews();
-                            return;
-                        }
-                    }
-
-                    let changes = ChangeSet.empty(update.startState.doc.length);
-                    for (const tr of update.transactions) {
-                        if (tr.docChanged) {
-                            changes = changes.compose(tr.changes);
-                        }
-                    }
-                    const inverse = changes.invert(update.startState.doc);
-
-                    let inserted = 0;
-                    let deleted = 0;
-                    changes.iterChanges((_fromA, _toA, _fromB, _toB, ins) => {
-                        inserted += ins.length;
-                    });
-                    changes.iterChanges((fromA, toA) => {
-                        deleted += toA - fromA;
-                    });
-
-                    undoTree.recordEdit(
-                        { inserted, deleted },
-                        changes,
-                        inverse,
-                    );
-                    this.markUndoTreeDirty();
-                    refreshViews();
-                }),
-            );
-        }
+        this.vimExtensionSlot.push(this.undoTreeSlot);
 
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
@@ -2767,98 +2719,9 @@ export default class VimMotionsPlugin extends Plugin {
             ),
         );
 
-        if (this.settings.enableSnippets) {
-            const triggerMode = this.settings.snippetTriggerMode;
-            if (triggerMode === 'completion' || triggerMode === 'both') {
-                this.vimExtensionSlot.push(
-                    autocompletion({
-                        override: [
-                            createSnippetCompletionSource(
-                                () => this.snippetRegistry,
-                                () => this.getSnippetPreprocessContext(),
-                            ),
-                        ],
-                        activateOnTyping: true,
-                        defaultKeymap: false,
-                    }),
-                );
-                this.vimExtensionSlot.push(
-                    ViewPlugin.define((view) => {
-                        let observer: MutationObserver | null = null;
-
-                        function nudgeTooltip(editorView: EditorView): void {
-                            const el =
-                                editorView.dom.ownerDocument.querySelector(
-                                    '.cm-tooltip-autocomplete',
-                                );
-                            if (
-                                !(el instanceof HTMLElement) ||
-                                el.style.top !== '-10000px'
-                            )
-                                return;
-                            const pos = editorView.state.selection.main.head;
-                            const coords = editorView.coordsAtPos(pos);
-                            if (!coords) return;
-                            const parent = el.offsetParent ?? el.parentElement;
-                            if (!parent) return;
-                            const parentRect = parent.getBoundingClientRect();
-                            el.style.top = `${coords.bottom - parentRect.top}px`;
-                            el.style.left = `${coords.left - parentRect.left}px`;
-                        }
-
-                        observer = new MutationObserver(() =>
-                            nudgeTooltip(view),
-                        );
-                        observer.observe(view.dom.parentElement ?? view.dom, {
-                            childList: true,
-                            subtree: true,
-                            attributes: true,
-                            attributeFilter: ['style'],
-                        });
-
-                        return {
-                            destroy() {
-                                observer?.disconnect();
-                                observer = null;
-                            },
-                        };
-                    }),
-                );
-            }
-            if (triggerMode === 'tab' || triggerMode === 'both') {
-                this.vimExtensionSlot.push(
-                    createSnippetTabKeymap(
-                        () => this.snippetRegistry,
-                        () => this.getSnippetPreprocessContext(),
-                        () => {
-                            const mdView =
-                                this.app.workspace.getActiveViewOfType(
-                                    MarkdownView,
-                                );
-                            if (!mdView) return false;
-                            const adapter = getCmAdapter(mdView);
-                            if (!adapter) return false;
-                            const vimState = adapter.state.vim as
-                                Record<string, unknown> | undefined;
-                            return !!vimState?.insertMode;
-                        },
-                        () => this.settings.enableSnippets,
-                    ),
-                );
-            }
-            this.vimExtensionSlot.push(
-                createDynamicSnippetPlugin(() => getActiveDynamicContext()),
-            );
-            this.vimExtensionSlot.push(
-                EditorView.updateListener.of((update) => {
-                    const prev = update.startState.field(snippetState, false);
-                    const curr = update.state.field(snippetState, false);
-                    if (prev && !curr) {
-                        setActiveDynamicContext(null);
-                    }
-                }),
-            );
-        }
+        this.vimExtensionSlot.push(this.snippetCompletionSlot);
+        this.vimExtensionSlot.push(this.snippetTabSlot);
+        this.vimExtensionSlot.push(this.snippetRuntimeSlot);
 
         this.vimExtensionSlot.push(
             skipInTableCells(
@@ -2899,7 +2762,7 @@ export default class VimMotionsPlugin extends Plugin {
         // contents change at runtime. Rebuilding the outer slot instead would
         // mean re-running this whole method, which is not idempotent.
         this.vimExtensionSlot.push(this.animatedCursorSlot);
-        this.applyAnimatedCursorSlot();
+        this.populateRuntimeSlots();
         this.vimExtensionSlot.push(
             skipInTableCells(
                 createFoldColumnExtension(this.settings.foldcolumn),
@@ -3277,14 +3140,217 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     /**
+     * Adds or removes a feature's extension from its slot.
+     *
+     * The built extension is cached and reused, so a slot that stays occupied
+     * across a reload keeps the identity CodeMirror uses to decide whether a
+     * ViewPlugin survives reconfiguration. Rebuilding it would destroy and
+     * recreate the plugin — and any live state it holds — on every unrelated
+     * settings change.
+     */
+    private setSlotEnabled(
+        slot: Extension[],
+        key: string,
+        enabled: boolean,
+        build: () => Extension,
+    ): void {
+        if (!enabled) {
+            slot.length = 0;
+            return;
+        }
+        if (slot.length > 0) return;
+        let ext = this.slotExtensionCache.get(key);
+        if (!ext) {
+            ext = build();
+            this.slotExtensionCache.set(key, ext);
+        }
+        slot.push(ext);
+    }
+
+    private applyUndoTreeSlot(): void {
+        this.setSlotEnabled(
+            this.undoTreeSlot,
+            'undoTree',
+            this.settings.enableUndoTree,
+            () => this.buildUndoTreeExtension(),
+        );
+    }
+
+    /**
+     * The snippet runtime is kept in its own slot, separate from the two
+     * trigger integrations. Switching `snippetTriggerMode` then adds or removes
+     * only the completion or tab extension and leaves an in-progress snippet
+     * session intact; disabling snippets altogether removes the runtime too,
+     * which ends the session deliberately.
+     */
+    private applySnippetSlots(): void {
+        const on = this.settings.enableSnippets;
+        const mode = this.settings.snippetTriggerMode;
+        this.setSlotEnabled(
+            this.snippetCompletionSlot,
+            'snippetCompletion',
+            on && (mode === 'completion' || mode === 'both'),
+            () => this.buildSnippetCompletionExtension(),
+        );
+        this.setSlotEnabled(
+            this.snippetTabSlot,
+            'snippetTab',
+            on && (mode === 'tab' || mode === 'both'),
+            () => this.buildSnippetTabExtension(),
+        );
+        this.setSlotEnabled(this.snippetRuntimeSlot, 'snippetRuntime', on, () =>
+            this.buildSnippetRuntimeExtension(),
+        );
+    }
+
+    private buildUndoTreeExtension(): Extension {
+        const refreshViews = () => this.refreshUndoTreeViews();
+        return EditorView.updateListener.of((update) => {
+            if (!update.docChanged) return;
+
+            const undoTree = this.undoTree;
+            if (undoTree.isNavigating()) return;
+
+            for (const tr of update.transactions) {
+                if (tr.isUserEvent('undo')) {
+                    undoTree.undo();
+                    this.markUndoTreeDirty();
+                    refreshViews();
+                    return;
+                }
+                if (tr.isUserEvent('redo')) {
+                    undoTree.redo();
+                    this.markUndoTreeDirty();
+                    refreshViews();
+                    return;
+                }
+            }
+
+            let changes = ChangeSet.empty(update.startState.doc.length);
+            for (const tr of update.transactions) {
+                if (tr.docChanged) {
+                    changes = changes.compose(tr.changes);
+                }
+            }
+            const inverse = changes.invert(update.startState.doc);
+
+            let inserted = 0;
+            let deleted = 0;
+            changes.iterChanges((_fromA, _toA, _fromB, _toB, ins) => {
+                inserted += ins.length;
+            });
+            changes.iterChanges((fromA, toA) => {
+                deleted += toA - fromA;
+            });
+
+            undoTree.recordEdit({ inserted, deleted }, changes, inverse);
+            this.markUndoTreeDirty();
+            refreshViews();
+        });
+    }
+
+    private buildSnippetCompletionExtension(): Extension {
+        return [
+            autocompletion({
+                override: [
+                    createSnippetCompletionSource(
+                        () => this.snippetRegistry,
+                        () => this.getSnippetPreprocessContext(),
+                    ),
+                ],
+                activateOnTyping: true,
+                defaultKeymap: false,
+            }),
+            ViewPlugin.define((view) => {
+                let observer: MutationObserver | null = null;
+
+                function nudgeTooltip(editorView: EditorView): void {
+                    const el = editorView.dom.ownerDocument.querySelector(
+                        '.cm-tooltip-autocomplete',
+                    );
+                    if (
+                        !(el instanceof HTMLElement) ||
+                        el.style.top !== '-10000px'
+                    )
+                        return;
+                    const pos = editorView.state.selection.main.head;
+                    const coords = editorView.coordsAtPos(pos);
+                    if (!coords) return;
+                    const parent = el.offsetParent ?? el.parentElement;
+                    if (!parent) return;
+                    const parentRect = parent.getBoundingClientRect();
+                    el.style.top = `${coords.bottom - parentRect.top}px`;
+                    el.style.left = `${coords.left - parentRect.left}px`;
+                }
+
+                observer = new MutationObserver(() => nudgeTooltip(view));
+                observer.observe(view.dom.parentElement ?? view.dom, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style'],
+                });
+
+                return {
+                    destroy() {
+                        observer?.disconnect();
+                        observer = null;
+                    },
+                };
+            }),
+        ];
+    }
+
+    private buildSnippetTabExtension(): Extension {
+        return createSnippetTabKeymap(
+            () => this.snippetRegistry,
+            () => this.getSnippetPreprocessContext(),
+            () => {
+                const mdView =
+                    this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!mdView) return false;
+                const adapter = getCmAdapter(mdView);
+                if (!adapter) return false;
+                const vimState = adapter.state.vim as
+                    Record<string, unknown> | undefined;
+                return !!vimState?.insertMode;
+            },
+            () => this.settings.enableSnippets,
+        );
+    }
+
+    private buildSnippetRuntimeExtension(): Extension {
+        return [
+            createDynamicSnippetPlugin(() => getActiveDynamicContext()),
+            EditorView.updateListener.of((update) => {
+                const prev = update.startState.field(snippetState, false);
+                const curr = update.state.field(snippetState, false);
+                if (prev && !curr) {
+                    setActiveDynamicContext(null);
+                }
+            }),
+        ];
+    }
+
+    /**
      * Applies runtime setting changes that decide which editor extensions are
      * installed. `setupVimSubsystems()` cannot be re-run for this — it is not
      * idempotent — so each affected feature owns a nested slot whose contents
      * are swapped in place, followed by a single `updateOptions()`.
+     *
+     * A setting that gates an extension must be handled here AND appear in a
+     * reload path in both settings implementations, or its toggle silently
+     * does nothing until Obsidian restarts.
      */
     private refreshRuntimeExtensionSlots(): void {
-        this.applyAnimatedCursorSlot();
+        this.populateRuntimeSlots();
         this.app.workspace.updateOptions();
+    }
+
+    private populateRuntimeSlots(): void {
+        this.applyAnimatedCursorSlot();
+        this.applyUndoTreeSlot();
+        this.applySnippetSlots();
     }
 
     reloadFeatures(): void {

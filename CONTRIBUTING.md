@@ -581,6 +581,8 @@ The plugin supports toggling vim mode at runtime without a reload. Feature regis
 
 When adding a new setting toggle, wire it in both `onload()` and `reloadFeatures()` in `main.ts`, and call `this.plugin.reloadFeatures()` in the setting's `onChange` handler.
 
+If the setting decides whether a **CodeMirror extension is installed**, that is not enough. `reloadFeatures()` does not rebuild `vimExtensionSlot`; only `setupVimSubsystems()` populates it, from `onload()` and `enableVim()`. Give the feature its own nested `Extension[]`, push it into `vimExtensionSlot` once in `setupVimSubsystems()`, and add an `apply*Slot()` call to `populateRuntimeSlots()`. Build the extension through `setSlotEnabled()`, which caches it — a stable extension identity is what lets CodeMirror keep existing ViewPlugin instances and their live state alive when an unrelated setting is reloaded. Do not re-run `setupVimSubsystems()`: it is a one-shot builder, and `teardownVimSubsystems()` closes pickers, destroys the Lua state and detaches Oil leaves.
+
 ### Settings override cleanup
 
 When a user changes a setting via the Settings UI, the override must be cleared from all three override stores. Use `this.plugin.clearSettingOverride(key)` — this deletes from `vimrcOverrides`, `luaOverrides`, and `configOverrides` in one call. Never call `this.plugin.vimrcOverrides?.delete(key)` directly.
