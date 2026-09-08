@@ -1,6 +1,9 @@
 import type { EditorView } from '@codemirror/view';
 import type { Node } from 'web-tree-sitter';
 import { getTreeForView } from './tree-state';
+import type { InlineNodeRange } from './runtime';
+
+export type { InlineNodeRange };
 
 export function getRootNode(view: EditorView): Node | null {
     return getTreeForView(view)?.rootNode ?? null;
@@ -93,32 +96,24 @@ export function isTreeAvailable(view: EditorView): boolean {
     return getTreeForView(view) !== null;
 }
 
-export function getInlineNodeAtPosition(
-    view: EditorView,
-    row: number,
-    col: number,
-): Node | null {
-    const tree = getTreeForView(view);
-    if (!tree || !_runtimeModule) return null;
-    const docText = view.state.doc.toString();
-    return _runtimeModule.getInlineNodeAtPosition(tree, docText, row, col);
-}
-
 export function findContainingInlineNodeOfType(
     view: EditorView,
     row: number,
     col: number,
     type: string,
-): Node | null {
-    const node = getInlineNodeAtPosition(view, row, col);
-    if (!node) return null;
-    if (node.type === type) return node;
-    let current: Node | null = node.parent;
-    while (current) {
-        if (current.type === type) return current;
-        current = current.parent;
-    }
-    return null;
+    accept?: (range: InlineNodeRange) => boolean,
+): InlineNodeRange | null {
+    const tree = getTreeForView(view);
+    if (!tree || !_runtimeModule) return null;
+    const docText = view.state.doc.toString();
+    return _runtimeModule.findInlineNodeRange(
+        tree,
+        docText,
+        row,
+        col,
+        type,
+        accept,
+    );
 }
 
 export function isInsideInlineNodeType(

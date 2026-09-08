@@ -37,22 +37,46 @@ function treesitterDelimiterRange(
             head.line,
             head.ch,
             nodeType,
+            ({ startRow, startColumn, endRow, endColumn }) => {
+                const openingLine = cm.getLine(startRow);
+                const closingLine = cm.getLine(endRow);
+                const innerStart = startColumn + delimiter.length;
+                const innerEnd = endColumn - delimiter.length;
+                const char = delimiter[0];
+
+                // Node types are shared by different delimiters, and the grammar
+                // nests a single-tilde node inside a double-tilde node. Check the
+                // complete source runs, not just the node type or its own text.
+                if (
+                    openingLine.slice(startColumn, innerStart) !== delimiter ||
+                    closingLine.slice(innerEnd, endColumn) !== delimiter ||
+                    openingLine[startColumn - 1] === char ||
+                    openingLine[innerStart] === char ||
+                    closingLine[innerEnd - 1] === char ||
+                    closingLine[endColumn] === char
+                )
+                    return false;
+
+                if (!inner) return true;
+                if (startRow === endRow && innerStart >= innerEnd) return false;
+                return (
+                    (head.line > startRow || head.ch >= innerStart) &&
+                    (head.line < endRow || head.ch < innerEnd)
+                );
+            },
         );
         if (!node) continue;
 
-        const startRow = node.startPosition.row;
-        const startCol = node.startPosition.column;
-        const endRow = node.endPosition.row;
-        const endCol = node.endPosition.column;
+        const { startRow, startColumn, endRow, endColumn } = node;
 
         if (inner) {
             const delimLen = delimiter.length;
             return [
-                createPos(startRow, startCol + delimLen),
-                createPos(endRow, endCol - delimLen),
+                createPos(startRow, startColumn + delimLen),
+                createPos(endRow, endColumn - delimLen),
             ];
         }
-        return [createPos(startRow, startCol), createPos(endRow, endCol)];
+        return [createPos(startRow, startColumn), createPos(endRow, endColumn)];
     }
 
     return null;

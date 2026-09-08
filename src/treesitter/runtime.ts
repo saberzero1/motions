@@ -111,31 +111,85 @@ export function parseInlineContent(text: string): Tree | null {
     return parser.parse(text) ?? null;
 }
 
-export function getInlineNodeAtPosition(
-    blockTree: Tree,
-    docText: string,
+/**
+ * A resolved inline node, in **document** coordinates.
+ *
+ * `markdown_inline` parses a standalone fragment, so its nodes carry
+ * fragment-relative positions; everything here has been rebased. It is a
+ * plain record rather than a `Node` because the fragment tree is freed
+ * before returning, which would leave a `Node` backed by freed memory.
+ */
+export interface InlineNodeRange {
+    type: string;
+    startRow: number;
+    startColumn: number;
+    endRow: number;
+    endColumn: number;
+}
+
+/**
+ * Only the fragment's first row starts partway into a document line, so only
+ * that row takes the column offset; later rows begin at column 0 in both
+ * coordinate spaces. Applying the offset unconditionally is the bug this
+ * replaces.
+ */
+function toDocumentPosition(
+    position: { row: number; column: number },
+    origin: { row: number; column: number },
+): { row: number; column: number } {
+    return {
+        row: origin.row + position.row,
+        column:
+            position.row === 0
+                ? origin.column + position.column
+                : position.column,
+    };
+}
+
+function toFragmentPosition(
     row: number,
     col: number,
-): Node | null {
+    origin: { row: number; column: number },
+): { row: number; column: number } {
+    const localRow = row - origin.row;
+    return {
+        row: localRow,
+        column: localRow === 0 ? col - origin.column : col,
+    };
+}
+
+function findEnclosingInlineNode(blockTree: Tree, row: number, col: number) {
     const blockNode = blockTree.rootNode.descendantForPosition({
         row,
         column: col,
     });
     if (!blockNode) return null;
 
-    let inlineNode: Node | null = null;
     let current: Node | null = blockNode;
     while (current) {
-        if (current.type === 'inline') {
-            inlineNode = current;
-            break;
-        }
+        if (current.type === 'inline') return current;
         current = current.parent;
     }
-    if (!inlineNode) {
-        if (blockNode.type === 'inline') inlineNode = blockNode;
-        else return null;
-    }
+    return null;
+}
+
+/**
+ * Find the innermost inline node of `type` containing a document position.
+ *
+ * Returns document coordinates, or null when the position is not inside a
+ * node of that type. The temporary fragment tree is always freed.
+ * If `accept` rejects a candidate, continue to the next enclosing match.
+ */
+export function findInlineNodeRange(
+    blockTree: Tree,
+    docText: string,
+    row: number,
+    col: number,
+    type: string,
+    accept?: (range: InlineNodeRange) => boolean,
+): InlineNodeRange | null {
+    const inlineNode = findEnclosingInlineNode(blockTree, row, col);
+    if (!inlineNode) return null;
 
     const inlineText = docText.slice(
         inlineNode.startIndex,
@@ -144,14 +198,31 @@ export function getInlineNodeAtPosition(
     const inlineTree = parseInlineContent(inlineText);
     if (!inlineTree) return null;
 
-    const localCol = col - inlineNode.startPosition.column;
-    const localRow = row - inlineNode.startPosition.row;
-    const result = inlineTree.rootNode.descendantForPosition({
-        row: localRow,
-        column: localCol,
-    });
+    try {
+        const origin = inlineNode.startPosition;
+        const local = toFragmentPosition(row, col, origin);
+        let node: Node | null =
+            inlineTree.rootNode.descendantForPosition(local);
 
-    return result;
+        while (node) {
+            if (node.type === type) {
+                const start = toDocumentPosition(node.startPosition, origin);
+                const end = toDocumentPosition(node.endPosition, origin);
+                const range: InlineNodeRange = {
+                    type: node.type,
+                    startRow: start.row,
+                    startColumn: start.column,
+                    endRow: end.row,
+                    endColumn: end.column,
+                };
+                if (!accept || accept(range)) return range;
+            }
+            node = node.parent;
+        }
+        return null;
+    } finally {
+        inlineTree.delete();
+    }
 }
 
 export { Parser, Language, type Tree, type Node };

@@ -26,9 +26,11 @@ describe('tree-sitter WASM runtime', () => {
 
     it('Parser.init() succeeds with wasmBinary', async () => {
         const wasmBinary = readFileSync(runtimeWasmPath);
-        await Parser.init({
-            wasmBinary: wasmBinary.buffer,
-        } as Record<string, unknown>);
+        await expect(
+            Parser.init({
+                wasmBinary: wasmBinary.buffer,
+            } as Record<string, unknown>),
+        ).resolves.toBeUndefined();
     });
 
     it('Language.load() loads markdown grammar', async () => {
@@ -81,18 +83,17 @@ describe('tree-sitter WASM runtime', () => {
     });
 
     it('node navigation works (parent, children, siblings)', () => {
-        const tree = parser.parse('# One\n\n## Two\n\nText');
+        const tree = parser.parse('# One\n\n# Two\n\nText');
         const root = tree!.rootNode;
 
         const first = root.child(0);
         expect(first).not.toBeNull();
         expect(first!.parent?.type).toBe('document');
 
-        if (root.childCount > 1) {
-            const second = root.child(1);
-            expect(second).not.toBeNull();
-            expect(first!.nextSibling?.equals(second!)).toBe(true);
-        }
+        expect(root.childCount).toBe(2);
+        const second = root.child(1);
+        expect(second).not.toBeNull();
+        expect(first!.nextSibling?.equals(second!)).toBe(true);
 
         tree!.delete();
     });
