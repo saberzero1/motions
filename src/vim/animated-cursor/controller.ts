@@ -92,6 +92,7 @@ class CursorController implements Tickable {
     private destroyed = false;
     private cachedBlockChar: BlockCharInfo | undefined;
     private cachedBlockCharPos: number = -1;
+    private cachedBlockCharTop: number = Number.NaN;
 
     private readonly isCell: boolean;
     private readonly isAboveCanvas: boolean;
@@ -404,8 +405,20 @@ class CursorController implements Tickable {
         return phase < 0.5 ? 1 : 0;
     }
 
-    private resolveBlockChar(pos: number): BlockCharInfo | undefined {
-        if (pos === this.cachedBlockCharPos && !isThemeDirty()) {
+    // `charTop`/`charHeight` are viewport coordinates, so the document position
+    // alone does not identify them: scrolling moves the glyph without changing
+    // `pos`. Keyed on position only, the cached baseline survives a scroll and
+    // the character is painted where the caret used to be, outside the dirty
+    // rect the block shape reports — a letter stranded on the page.
+    private resolveBlockChar(
+        pos: number,
+        rectTop: number,
+    ): BlockCharInfo | undefined {
+        if (
+            pos === this.cachedBlockCharPos &&
+            rectTop === this.cachedBlockCharTop &&
+            !isThemeDirty()
+        ) {
             return this.cachedBlockChar;
         }
         try {
@@ -455,6 +468,7 @@ class CursorController implements Tickable {
             const result = { char, font, textColor, charTop, charHeight };
             this.cachedBlockChar = result;
             this.cachedBlockCharPos = pos;
+            this.cachedBlockCharTop = rectTop;
             return result;
         } catch {
             return undefined;
@@ -513,7 +527,7 @@ class CursorController implements Tickable {
             const newShape = getCursorShapeForMode(vimMode);
             const shapeChanged = newShape !== this.currentShape;
             this.currentShape = newShape;
-            this.blockChar = this.resolveBlockChar(pos);
+            this.blockChar = this.resolveBlockChar(pos, rect.top);
 
             const shapeRect = this.shapeAdjustedRect(rect, this.currentShape);
             this.cachedShapeRect = shapeRect;

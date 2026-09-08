@@ -51,6 +51,7 @@ interface TrackingProbe {
     paintedAfter: PaintedBounds;
     caretTopBefore: number;
     caretTopAfter: number;
+    caretHeightAfter: number;
     elapsedSinceCaretMove: number;
 }
 
@@ -340,6 +341,7 @@ describe('Animated cursor scrolling (#181)', function () {
                     paintedAfter: empty,
                     caretTopBefore: 0,
                     caretTopAfter: 0,
+                    caretHeightAfter: 0,
                     elapsedSinceCaretMove: 0,
                 });
 
@@ -457,6 +459,7 @@ describe('Animated cursor scrolling (#181)', function () {
                     paintedAfter,
                     caretTopBefore: coordsBefore.top,
                     caretTopAfter: coordsAfter.top,
+                    caretHeightAfter: coordsAfter.bottom - coordsAfter.top,
                     elapsedSinceCaretMove: performance.now() - caretMovedAt,
                 };
             },
@@ -482,5 +485,13 @@ describe('Animated cursor scrolling (#181)', function () {
         // offset between the drawn shape and the reported caret coordinates.
         const paintedDelta = probe.paintedAfter.top - probe.paintedBefore.top;
         expect(Math.abs(paintedDelta - caretDelta)).toBeLessThanOrEqual(3);
+
+        // The whole cursor must move, not just its box. The block shape and the
+        // character drawn inside it derive their positions independently, so a
+        // stale glyph left at the pre-scroll position still satisfies the delta
+        // check above — it only widens the painted box downwards.
+        const paintedHeight =
+            probe.paintedAfter.bottom - probe.paintedAfter.top;
+        expect(paintedHeight).toBeLessThanOrEqual(probe.caretHeightAfter + 6);
     });
 });
