@@ -338,7 +338,26 @@ describe('Spike: mutable array + updateOptions() destroy lifecycle', function ()
             ).updateOptions();
         });
 
-        await browser.pause(PAUSE.SETTLE);
+        // Wait for the reconfiguration to be observable rather than sleeping a
+        // fixed interval. A timed pause cannot distinguish "the observer was
+        // never detached" from "the reconfigure had not landed yet on a slower
+        // runner", which is the open question behind this spec's Windows
+        // failures.
+        await browser.waitUntil(
+            async () =>
+                (await browser.executeObsidian(() => {
+                    const tracker = (
+                        window as unknown as Record<string, unknown>
+                    ).__spikeObserverTracker as { destroyCount: number };
+                    return tracker.destroyCount;
+                })) >= 1,
+            {
+                timeout: 10_000,
+                timeoutMsg:
+                    'ViewPlugin.destroy() never fired after clearing the ' +
+                    'extension slot and calling updateOptions()',
+            },
+        );
 
         await browser.executeObsidian(() => {
             const tracker = (window as unknown as Record<string, unknown>)
