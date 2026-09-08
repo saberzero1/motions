@@ -437,15 +437,16 @@ describe('jump-list action skips unresolved vault paths', () => {
             await vi.runAllTimersAsync();
 
             expect(original).not.toHaveBeenCalled();
-            if (validTarget) {
-                expect(openFile).toHaveBeenCalledExactlyOnceWith(destination);
-                expect(active).toBe(destination);
-                expect(jl.getIndex()).toBe(forward ? paths.length - 1 : 0);
-            } else {
-                expect(openFile).not.toHaveBeenCalled();
-                expect(active).toBe(current);
-                expect(jl.getIndex()).toBe(originalIndex);
-            }
+            expect(openFile.mock.calls).toEqual(
+                validTarget ? [[destination]] : [],
+            );
+            expect(active).toBe(validTarget ? destination : current);
+            const expectedIndex = validTarget
+                ? forward
+                    ? paths.length - 1
+                    : 0
+                : originalIndex;
+            expect(jl.getIndex()).toBe(expectedIndex);
             expect(jl.getEntries().map((entry) => entry.filePath)).toEqual(
                 paths,
             );

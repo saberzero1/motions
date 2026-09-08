@@ -117,7 +117,7 @@ test('string.byte', () => {
     expect(lua.lua_tointeger(L, -1)).toBe(108);
 });
 
-test('string.format', () => {
+test('string.format escapes percent and zero-pads decimal integers', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 
@@ -135,7 +135,7 @@ test('string.format', () => {
     expect(lua.lua_tojsstring(L, -1)).toBe('%10 0000000023');
 });
 
-test('string.format', () => {
+test('string.format uses uppercase hexadecimal digits', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 
@@ -153,7 +153,7 @@ test('string.format', () => {
     expect(lua.lua_tojsstring(L, -1)).toBe('FFFFFFF');
 });
 
-test('string.format', () => {
+test('string.format quotes strings and escapes embedded quotes and newlines', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 

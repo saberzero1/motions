@@ -85,11 +85,10 @@ describe.each(engines)('%s matcher', (_name, factory) => {
             const results = matcher.search('set', items);
             const matchedLabels = results.map((r) => r.item.label);
             expect(matchedLabels).toContain('settings');
-            if (matchedLabels.includes('my-settings')) {
-                const settingsIdx = matchedLabels.indexOf('settings');
-                const mySettingsIdx = matchedLabels.indexOf('my-settings');
-                expect(settingsIdx).toBeLessThan(mySettingsIdx);
-            }
+            expect(matchedLabels).toContain('my-settings');
+            const settingsIdx = matchedLabels.indexOf('settings');
+            const mySettingsIdx = matchedLabels.indexOf('my-settings');
+            expect(settingsIdx).toBeLessThan(mySettingsIdx);
         });
     });
 

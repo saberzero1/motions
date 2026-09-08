@@ -274,11 +274,9 @@ describe('new option entries', () => {
                 type: opt.type,
                 settingsKey: opt.settingsKey,
             });
-            if (opt.validValues) {
-                expect(
-                    (entry as { validValues?: string[] }).validValues,
-                ).toEqual(opt.validValues);
-            }
+            expect((entry as { validValues?: string[] }).validValues).toEqual(
+                opt.validValues,
+            );
         });
     }
 

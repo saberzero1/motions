@@ -88,7 +88,7 @@ test('math.log', () => {
 });
 
 /* Node.js 6 has incorrect results for Math.exp */
-(parseInt(process.versions.node) > 6 ? test : test.skip)('math.exp', () => {
+test.skipIf(parseInt(process.versions.node) <= 6)('math.exp', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 
@@ -141,14 +141,14 @@ test('math.random', () => {
     }
 
     {
-        let r = expect(lua.lua_tonumber(L, -2));
-        r.toBeGreaterThanOrEqual(0);
-        r.toBeLessThanOrEqual(1);
+        const value = lua.lua_tonumber(L, -2);
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThanOrEqual(1);
     }
     {
-        let r = expect(lua.lua_tonumber(L, -1));
-        r.toBeGreaterThanOrEqual(10);
-        r.toBeLessThanOrEqual(15);
+        const value = lua.lua_tonumber(L, -1);
+        expect(value).toBeGreaterThanOrEqual(10);
+        expect(value).toBeLessThanOrEqual(15);
     }
 });
 

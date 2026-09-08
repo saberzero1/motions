@@ -68,14 +68,6 @@ function isGoldenTest(entry: GoldenEntry): entry is GoldenTest {
     return 'type' in entry;
 }
 
-function hasDynamicNodes(snippet: string): boolean {
-    return (
-        /\bf\s*\(/.test(snippet) ||
-        /\bd\s*\(/.test(snippet) ||
-        /\br\s*\(/.test(snippet)
-    );
-}
-
 function toStaticText(body: string): string {
     const withPlaceholders = body.replace(
         /\$\{(\d+):([^}]*)\}/g,
@@ -93,10 +85,6 @@ function toStaticText(body: string): string {
     return withChoices.replace(/\$(\d+)/g, '');
 }
 
-function hasEmptyChoice(body: string): boolean {
-    return /\$\{\d+\|,/.test(body);
-}
-
 const goldenData = JSON.parse(
     readFileSync(new URL('./luasnip-golden.json', import.meta.url), 'utf-8'),
 ) as GoldenEntry[];
@@ -105,6 +93,23 @@ const goldenTests = goldenData.filter(isGoldenTest);
 const luaDslTests = goldenTests.filter(
     (entry): entry is GoldenTest => entry.type === 'lua_dsl',
 );
+
+// The static compiler does not evaluate f()/d() callbacks or flatten nested
+// choice nodes. These are exact fallback bodies, not LuaSnip expansion goldens.
+// Keep the distinction in test titles instead of silently skipping comparison.
+const staticCompilerFallbacks = new Map<string, string>([
+    ['tests/integration/function_spec.lua:L27', ''],
+    ['tests/integration/function_spec.lua:L49', '${1:a} ->  == '],
+    ['tests/integration/dynamic_spec.lua:L27', ''],
+    ['tests/integration/dynamic_spec.lua:L46', ''],
+    ['tests/integration/dynamic_spec.lua:L71', '${1:preset}'],
+    ['tests/integration/dynamic_spec.lua:L122', '${1:a}${2:b}'],
+    ['tests/integration/dynamic_spec.lua:L168', '${1:a}'],
+    ['tests/integration/dynamic_spec.lua:L214', ''],
+    ['tests/integration/dynamic_spec.lua:L234', '${1:a}'],
+    ['tests/integration/choice_spec.lua:L55', '${1|,b|}'],
+    ['tests/integration/choice_spec.lua:L166', '${1:a}${2|,none|}'],
+]);
 
 describe('LuaSnip golden comparison', () => {
     let L: LuaState;
@@ -121,7 +126,12 @@ describe('LuaSnip golden comparison', () => {
     });
 
     for (const test of luaDslTests) {
-        it(test.name, () => {
+        const fallbackBody = staticCompilerFallbacks.get(test.source);
+        const title =
+            fallbackBody === undefined
+                ? `initial static text: ${test.name}`
+                : `static compiler fallback: ${test.name}`;
+        it(title, () => {
             snippetDefs.length = 0;
 
             const code = `vim.snippet.add("test", ${test.snippet})`;
@@ -142,14 +152,10 @@ describe('LuaSnip golden comparison', () => {
             const bodyStr = Array.isArray(body)
                 ? body.join('\n')
                 : (body ?? '');
-            const expectedStr = (test.staticText ?? []).join('\n');
-            const staticBodyStr = toStaticText(bodyStr);
-
-            if (hasDynamicNodes(test.snippet) || hasEmptyChoice(bodyStr)) {
-                expect(bodyStr).toBeDefined();
-            } else {
-                expect(staticBodyStr).toBe(expectedStr);
-            }
+            const actual =
+                fallbackBody === undefined ? toStaticText(bodyStr) : bodyStr;
+            const expected = fallbackBody ?? (test.staticText ?? []).join('\n');
+            expect(actual).toBe(expected);
         });
     }
 });

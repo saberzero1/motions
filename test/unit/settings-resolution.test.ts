@@ -20,7 +20,7 @@ describe('DEFAULT_SETTINGS', () => {
 
 describe('settings merge', () => {
     it('Object.assign with null data equals DEFAULT_SETTINGS', () => {
-        const result = Object.assign({}, DEFAULT_SETTINGS, null ?? {});
+        const result = Object.assign({}, DEFAULT_SETTINGS, null);
         expect(result).toEqual(DEFAULT_SETTINGS);
     });
 

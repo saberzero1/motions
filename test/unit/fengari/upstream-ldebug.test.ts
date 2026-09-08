@@ -4,7 +4,7 @@ import * as lauxlib from '../../../src/lib/fengari/lauxlib.js';
 import * as lualib from '../../../src/lib/fengari/lualib.js';
 import { to_luastring } from '../../../src/lib/fengari/fengaricore.js';
 
-test('luaG_typeerror', () => {
+test('luaG_typeerror for length of a boolean', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 
@@ -25,7 +25,7 @@ test('luaG_typeerror', () => {
     );
 });
 
-test('luaG_typeerror', () => {
+test('luaG_typeerror for reading a boolean field', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 
@@ -46,28 +46,7 @@ test('luaG_typeerror', () => {
     );
 });
 
-test('luaG_typeerror', () => {
-    let L = lauxlib.luaL_newstate();
-    if (!L) throw Error('failed to create lua state');
-
-    let luaCode = `
-        local a = true
-        return a.yo
-    `;
-    {
-        lualib.luaL_openlibs(L);
-        expect(lauxlib.luaL_loadstring(L, to_luastring(luaCode))).toBe(
-            lua.LUA_OK,
-        );
-        lua.lua_pcall(L, 0, -1, 0);
-    }
-
-    expect(lua.lua_tojsstring(L, -1)).toMatch(
-        "attempt to index a boolean value (local 'a')",
-    );
-});
-
-test('luaG_typeerror', () => {
+test('luaG_typeerror for writing a boolean field', () => {
     let L = lauxlib.luaL_newstate();
     if (!L) throw Error('failed to create lua state');
 

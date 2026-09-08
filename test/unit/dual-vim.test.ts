@@ -93,7 +93,14 @@ describe('bundled-vim', () => {
         const mod = await import('../../src/vim/bundled-vim');
         mod.installVimBridge();
         mod.uninstallVimBridge();
-        mod.uninstallVimBridge();
+        expect(() => mod.uninstallVimBridge()).not.toThrow();
+        const win = window as unknown as Record<
+            string,
+            Record<string, unknown>
+        >;
+        expect(
+            Object.getOwnPropertyDescriptor(win.CodeMirrorAdapter, 'Vim'),
+        ).toBeUndefined();
     });
 
     it('bridge getter returns Vim singleton', async () => {

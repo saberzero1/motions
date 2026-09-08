@@ -63,17 +63,16 @@ describe('Flash labeler — FlashLabeler class', () => {
         const labeler = new FlashLabeler();
         const targets = [target(0, 5), target(0, 10)];
         const first = labeler.assign(targets, 'abcdef', 0, 0);
-        const labelMap = new Map(
-            first.map((t) => [`${t.line}:${t.ch}`, t.label]),
-        );
-
-        const second = labeler.assign(targets, 'abcdef', 0, 0);
-        for (const t of second) {
-            const prev = labelMap.get(`${t.line}:${t.ch}`);
-            if (prev) {
-                expect(t.label).toBe(prev);
-            }
-        }
+        expect(first).toEqual([
+            { line: 0, ch: 5, label: 'a' },
+            { line: 0, ch: 10, label: 'b' },
+        ]);
+        // Moving the cursor reverses distance order, but must not swap labels.
+        const second = labeler.assign(targets, 'abcdef', 0, 10);
+        expect(second).toEqual([
+            { line: 0, ch: 10, label: 'b' },
+            { line: 0, ch: 5, label: 'a' },
+        ]);
     });
 
     it('clears reuse state on reset', () => {

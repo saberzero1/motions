@@ -83,37 +83,37 @@ describe('to_jsstring fails on invalid unicode', () => {
         );
     });
 
-    test('invalid continuation byte', () => {
+    test('invalid continuation byte 2 in a 2-byte sequence', () => {
         expect(() => defs.to_jsstring(defs.luastring_of(208, 60))).toThrow(
             RangeError,
         );
     });
 
-    test('invalid continuation byte', () => {
+    test('invalid continuation byte 2 in a 3-byte sequence', () => {
         expect(() => defs.to_jsstring(defs.luastring_of(225, 60, 145))).toThrow(
             RangeError,
         );
     });
 
-    test('invalid continuation byte', () => {
+    test('invalid continuation byte 3 in a 3-byte sequence', () => {
         expect(() => defs.to_jsstring(defs.luastring_of(225, 145, 60))).toThrow(
             RangeError,
         );
     });
 
-    test('invalid continuation byte', () => {
+    test('invalid continuation byte 2 in a 4-byte sequence', () => {
         expect(() =>
             defs.to_jsstring(defs.luastring_of(242, 60, 145, 145)),
         ).toThrow(RangeError);
     });
 
-    test('invalid continuation byte', () => {
+    test('invalid continuation byte 3 in a 4-byte sequence', () => {
         expect(() =>
             defs.to_jsstring(defs.luastring_of(242, 145, 60, 145)),
         ).toThrow(RangeError);
     });
 
-    test('invalid continuation byte', () => {
+    test('invalid continuation byte 4 in a 4-byte sequence', () => {
         expect(() =>
             defs.to_jsstring(defs.luastring_of(242, 145, 145, 60)),
         ).toThrow(RangeError);

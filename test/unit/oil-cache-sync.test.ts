@@ -133,8 +133,7 @@ describe('cache ID synchronization', () => {
         const entries = cache.loadDirectory('', rawEntries);
         const bufferContent = entriesToBufferText(entries);
 
-        const comparisonResult = bufferContent === bufferContent;
-        expect(comparisonResult).toBe(true);
+        expect(bufferContent).toBe('/001 d docs\n/002 f readme.md');
     });
 
     it('multiple renderDirectoryToBuffer calls keep cache in sync', () => {

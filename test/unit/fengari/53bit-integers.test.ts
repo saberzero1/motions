@@ -50,7 +50,7 @@ test('string.format sprintf-js replacement', () => {
 
         local q = string.format("%q", 'hello "world"')
         assert(q:sub(1, 1) == '"' and q:sub(-1) == '"')
-        assert(q:find([[\"]], 1, true))
+        assert(q:find([[\\"]], 1, true))
 
         local spi = string.format("%.14g", math.pi)
         assert(spi == "3.14159265359" or spi == "3.1415926535898")
