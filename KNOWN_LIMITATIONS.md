@@ -353,6 +353,12 @@ This approach is decoration-source-agnostic — it works for any type of hidden 
 
 Label collision detection in `renderLabels()` ensures that labels for nearby visible targets do not overlap. When a new label's bounding box intersects a previously placed label, it is offset vertically below it. Label dimensions are estimated from the CSS (14px monospace font, 1px 3px padding).
 
+## Bracket text objects outside the pair
+
+`i(`/`i{`/`i[`/`i<` (and their `b`/`B` aliases) search forward for the next pair when the cursor is not already inside one, matching Neovim (`:h v_i(`: "when the cursor is not inside a () block, find the next '('"). The search is not limited to the current line — `di(` on a line above the pair deletes the pair's contents further down. It only looks forward: with the cursor past the last pair in the document, the object matches nothing and the operator is a no-op.
+
+Until [#178](https://github.com/saberzero1/motions/issues/178) this fallback ran only for the `a` variant, so `da(` worked from outside the pair while `di(` silently did nothing.
+
 ## Smart asterisk disambiguation
 
 `i*` tries `**bold**` first, then falls back to `*italic*`. In the case of `***bold italic***`, the `**` pair is always matched first, making it impossible to select only the italic portion with `i*`. Use `i_` for underscore italic as a workaround.
@@ -929,6 +935,7 @@ These commands exist but behave differently from Neovim:
 - Visual block `$ S}` — now surrounds each line individually instead of wrapping entire block
 - `dsf` (delete surrounding function call) — implemented with regex-based function name detection
 - `csbBysaBb` chain — `ys` with text object motions (`aB`, `iw`) after `cs` now works. The `ys_motion` handler directly evaluates text object motions instead of dispatching through the fragile `handleKey` → `evalInput` path where `clearInputState` would lose the `selectedCharacter`.
+- `ys` with the plugin's Markdown text objects — `ysi$`, `ysa$`, `ysi=`, `ysi~`, `ysi_`, `ysil`, `ysiC`, `ysio`, `ysi,` and the rest now work. The `ys_motion` handler previously called the fork's built-in text object function directly, which only knows the built-in objects (``( ) { } [ ] < > ' " ` b B w W p t s``); anything else cancelled the operation and cleared the pending `ysi` from the chord display. Resolution now matches normal operator-pending — the exact key sequence is looked up in the keymap first, with the built-in object as a fallback, so a registered object that shadows a built-in one (`aB` is the blockquote object, not the `{}` block) only wins where it actually matches. ([#179](https://github.com/saberzero1/motions/issues/179))
 
 **Remaining deviations** (3 cases):
 

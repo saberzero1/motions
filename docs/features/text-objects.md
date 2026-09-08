@@ -25,6 +25,9 @@ These objects support multi-line scanning, allowing you to select content that s
 
 Inner objects require the cursor to be inside the content, not on the opening or closing delimiter. Around objects also work with the cursor on a delimiter. Tree-backed matching checks the actual delimiter character and width, so `$...$` is not mistaken for `$$...$$`, and `~~...~~` includes both tildes on each side.
 
+> [!note] Bracket objects search forward
+> The bracket objects `i(` / `i{` / `i[` / `i<` (and `ib` / `iB`) find the next pair ahead of the cursor when the cursor is not already inside one, matching Neovim. The search is not limited to the current line, and it never looks backwards — past the last pair in the document, the operator is a no-op.
+
 > [!note] Smart asterisk disambiguation
 > `i*` tries to match `**bold**` first, then falls back to `*italic*`. In cases of nested formatting like `***bold italic***`, the `**` pair is matched first. Use `i_` for underscore italic to select the italic portion specifically.
 

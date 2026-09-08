@@ -52,6 +52,12 @@ The `f` and `F` targets in replacement position allow you to wrap text in a func
 
 `dsf` and `csf` use `findSurroundingFunction` which scans the current line for `identifier(` patterns. Nested calls, method chains (`obj.method()`), and no-arg functions (`func()`) are supported. Multi-line function calls are not detected (single-line only).
 
+## Markdown text objects as the motion
+
+`ys` accepts every text object the plugin registers, not just the built-in ones — `ysi$b` wraps the contents of `$1 + 1 = 2$` in parentheses, `ysa$b` wraps the whole expression including the `$` delimiters, and the same applies to `i=`, `i~`, `i_`, `` i` ``, `il`, `iC`, `io`, `i,` and the rest. See [[text-objects]] for the full list.
+
+Where a Markdown object shares a key with a built-in one, the Markdown object is tried first and the built-in is the fallback: `ysaB` surrounds the enclosing blockquote inside one, and the enclosing `{}` block elsewhere.
+
 ## Count-prefix
 
 Markdown formatting marks use a count-prefix to distinguish between single and double delimiters.
