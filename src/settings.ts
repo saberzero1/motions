@@ -123,6 +123,7 @@ export interface VimMotionsSettings {
     picker: boolean;
     pickerLeaderMappings: boolean;
     pickerMatcherEngine: 'ufuzzy' | 'obsidian';
+    pickerNonMarkdownPreview: 'rendered' | 'hidden' | 'raw';
     pickerOmnisearch: boolean;
     pickerTasks: boolean;
     pickerDataview: boolean;
@@ -271,6 +272,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     picker: true,
     pickerLeaderMappings: true,
     pickerMatcherEngine: 'ufuzzy',
+    pickerNonMarkdownPreview: 'rendered',
     pickerOmnisearch: true,
     pickerTasks: true,
     pickerDataview: true,
@@ -874,6 +876,19 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     options: {
                                         ufuzzy: 'uFuzzy',
                                         obsidian: 'Obsidian built-in',
+                                    },
+                                },
+                            },
+                            {
+                                name: 'Non-Markdown file previews',
+                                desc: 'How the picker previews files that are not Markdown. Rendered embeds images and shows a summary card for PDFs and media. Raw shows file text. Hidden disables them. Markdown files are always previewed.',
+                                control: {
+                                    type: 'dropdown' as const,
+                                    key: 'pickerNonMarkdownPreview',
+                                    options: {
+                                        rendered: 'Rendered',
+                                        hidden: 'Hidden',
+                                        raw: 'Raw',
                                     },
                                 },
                             },
@@ -3418,6 +3433,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             'ufuzzy' | 'obsidian';
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Non-Markdown file previews')
+            .setDesc(
+                'How the picker previews files that are not Markdown. Rendered embeds images and shows a summary card for PDFs and media. Raw shows file text. Hidden disables them. Markdown files are always previewed.',
+            )
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions({
+                        rendered: 'Rendered',
+                        hidden: 'Hidden',
+                        raw: 'Raw',
+                    })
+                    .setValue(this.plugin.settings.pickerNonMarkdownPreview)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pickerNonMarkdownPreview =
+                            value as VimMotionsSettings['pickerNonMarkdownPreview'];
+                        await this.plugin.saveSettings();
                     }),
             );
 

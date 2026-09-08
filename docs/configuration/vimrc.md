@@ -248,6 +248,7 @@ Use `set <option>=<value>`.
 | `snippetdir`            | —        | Path to user snippet JSON directory                              | (off)                                                                      |
 | `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)                 | `both`                                                                     |
 | `pickermatcher`         | —        | Picker match engine (`ufuzzy`/`obsidian`)                        | `ufuzzy`                                                                   |
+| `pickerpreview`         | —        | Non-Markdown picker previews (`rendered`/`hidden`/`raw`)         | `rendered`                                                                 |
 | `ripgreppath`           | —        | Path to ripgrep binary                                           | (off)                                                                      |
 | `ripgrepargs`           | —        | Additional ripgrep arguments                                     | (off)                                                                      |
 | `grepmode`              | —        | Grep backend (`ripgrep`/`grep`)                                  | `ripgrep`                                                                  |

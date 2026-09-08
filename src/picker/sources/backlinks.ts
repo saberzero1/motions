@@ -2,6 +2,7 @@ import { App, Notice } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import type { NonMarkdownPreviewMode } from './preview-utils';
 import { getResolvedLinks } from '../../util/metadata';
 import { navigateWithJump } from '../../workspace/navigate';
 
@@ -33,7 +34,9 @@ function getBacklinks(app: App): BacklinkItem[] {
     return items.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function createBacklinksSource(): PickerSource {
+export function createBacklinksSource(
+    getNonMarkdownPreview: () => NonMarkdownPreviewMode,
+): PickerSource {
     return {
         name: 'backlinks',
         placeholder: 'Filter backlinks…',
@@ -62,7 +65,7 @@ export function createBacklinksSource(): PickerSource {
         },
         async preview(item, app) {
             const data = item.data as { path: string };
-            return readFilePreview(app, data.path);
+            return readFilePreview(app, data.path, getNonMarkdownPreview());
         },
     };
 }

@@ -2151,17 +2151,29 @@ export default class VimMotionsPlugin extends Plugin {
                       mode: this.settings.grepMode,
                   }
                 : undefined;
-        pickerRegistry.register(createFilesSource(), true);
-        pickerRegistry.register(createBuffersSource(), true);
+        pickerRegistry.register(
+            createFilesSource(() => this.settings.pickerNonMarkdownPreview),
+            true,
+        );
+        pickerRegistry.register(
+            createBuffersSource(() => this.settings.pickerNonMarkdownPreview),
+            true,
+        );
         pickerRegistry.register(createCommandsSource(), true);
         pickerRegistry.register(createHeadingsSource(), true);
         pickerRegistry.register(createOutlineSource(), true);
-        pickerRegistry.register(createBacklinksSource(), true);
+        pickerRegistry.register(
+            createBacklinksSource(() => this.settings.pickerNonMarkdownPreview),
+            true,
+        );
         pickerRegistry.register(
             createTagsSource(matcher, () => this.settings.pickerKeymap),
             true,
         );
-        pickerRegistry.register(createRecentSource(), true);
+        pickerRegistry.register(
+            createRecentSource(() => this.settings.pickerNonMarkdownPreview),
+            true,
+        );
         pickerRegistry.register(
             createMarksSource([
                 new VimBufferMarkProvider(),
@@ -3991,7 +4003,10 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.pickerDataview,
             isDataviewAvailable(this.app),
             'dataview',
-            createDataviewSource,
+            () =>
+                createDataviewSource(
+                    () => this.settings.pickerNonMarkdownPreview,
+                ),
         );
     }
 

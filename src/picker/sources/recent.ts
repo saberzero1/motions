@@ -1,6 +1,7 @@
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJump } from '../../workspace/navigate';
 
 const MAX_RECENTS = 50;
@@ -18,7 +19,9 @@ export function trackRecentFile(path: string): void {
     }
 }
 
-export function createRecentSource(): PickerSource {
+export function createRecentSource(
+    getNonMarkdownPreview: () => NonMarkdownPreviewMode,
+): PickerSource {
     return {
         name: 'recent',
         placeholder: 'Recent files…',
@@ -46,7 +49,7 @@ export function createRecentSource(): PickerSource {
         },
         async preview(item, app) {
             const data = item.data as { path: string };
-            return readFilePreview(app, data.path);
+            return readFilePreview(app, data.path, getNonMarkdownPreview());
         },
     };
 }

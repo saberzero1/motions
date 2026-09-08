@@ -1,9 +1,12 @@
 import type { PickerSource, SplitDirection } from '../types';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJump } from '../../workspace/navigate';
 
-export function createFilesSource(): PickerSource {
+export function createFilesSource(
+    getNonMarkdownPreview: () => NonMarkdownPreviewMode,
+): PickerSource {
     return {
         name: 'files',
         placeholder: 'Find files…',
@@ -31,7 +34,7 @@ export function createFilesSource(): PickerSource {
         },
         async preview(item, app) {
             const data = item.data as { path: string };
-            return readFilePreview(app, data.path);
+            return readFilePreview(app, data.path, getNonMarkdownPreview());
         },
     };
 }

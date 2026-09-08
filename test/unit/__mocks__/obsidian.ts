@@ -61,7 +61,29 @@ export class AbstractInputSuggest<T> {
 }
 export class TFile {
     path = '';
+    name = '';
+    basename = '';
+    extension = '';
+    stat = { size: 0, ctime: 0, mtime: 0 };
 }
+export class Component {
+    loaded = false;
+    load() {
+        this.loaded = true;
+    }
+    unload() {
+        this.loaded = false;
+    }
+}
+export const MarkdownRenderer = {
+    render: async (
+        _app: unknown,
+        _markdown: string,
+        _el: HTMLElement,
+        _sourcePath: string,
+        _component: unknown,
+    ): Promise<void> => undefined,
+};
 export function setIcon(_el: HTMLElement, _icon: string): void {}
 export const Platform = {
     isMacOS: false,

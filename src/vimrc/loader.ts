@@ -344,6 +344,11 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         settingsKey: 'pickerMatcherEngine',
         validValues: ['ufuzzy', 'obsidian'],
     },
+    pickerpreview: {
+        type: 'string',
+        settingsKey: 'pickerNonMarkdownPreview',
+        validValues: ['rendered', 'hidden', 'raw'],
+    },
     pickeromnisearch: { type: 'boolean', settingsKey: 'pickerOmnisearch' },
     pickertasks: { type: 'boolean', settingsKey: 'pickerTasks' },
     pickerdataview: { type: 'boolean', settingsKey: 'pickerDataview' },

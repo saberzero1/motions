@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Non-Markdown picker previews are configurable** (`pickerNonMarkdownPreview`, `set pickerpreview`, `vim.opt.pickerpreview`) — `rendered` (default), `hidden`, or `raw`. Markdown is always previewed and is unaffected by the setting. Requested in [#172](https://github.com/saberzero1/motions/issues/172).
+    - Plugin: `src/picker/sources/preview-utils.ts` (policy), `src/settings.ts` (both settings implementations), `src/vimrc/loader.ts` (`KNOWN_SET_OPTIONS`), `src/main.ts` and the five file-previewing sources (live getter threading)
+    - `rendered` embeds images/`svg`/`canvas` natively, and shows a name/type/size card for PDFs, video and audio. The card is deliberate, not a shortcut: Obsidian instantiates a PDF.js viewer per embed, and there is no released version in which repeated create/destroy is known to release that memory — the 1.9 load/unload rework was announced but the thread was closed for non-reproduction, and no changelog entry through 1.14.0 documents a PDF lifecycle or memory fix. `minAppVersion` is 1.7.2, below even that, so version-gating was not an option.
+    - The setting is a live getter, so it takes effect without a reload or an Obsidian restart.
+
+### Fixed
+
+- **The picker no longer reads binary files to preview them.** `readFilePreview` called `vault.cachedRead()` on every `TFile` regardless of type or size, so scrolling past a multi-megabyte PDF decoded the whole binary as UTF-8 — and Obsidian caches that string, so memory grew with the total size of every binary encountered. The 50 KB truncation ran _after_ the read, bounding rendering cost but not read or memory cost. Size is now checked from file metadata before any read, in every mode.
+- **Preview rendering is debounced.** `updatePreview()` coalesced only within a single `requestAnimationFrame` (~16 ms), but OS key repeat is ~30 ms, so every keystroke issued its own read and render — roughly 30 previews per second of held `j`. It now uses a 100 ms leading-plus-trailing debounce, matching `OilManager.previewDebounceTimer`: an isolated keypress still previews immediately, while a burst collapses to two.
+- **The preview pane no longer leaks `Component` instances.** Only `renderMarkdownPreview()` unloaded the previous component, so the raw-string, `null`, loading, and error paths all replaced pane content while leaving embeds, images and transclusions registered. A single `clearPreview()` now owns unload → null → empty and is called on every transition, including `onClose()`.
+- **Synchronous throws from a picker source's `preview()` are caught.** `Promise.resolve(source.preview(...))` evaluated the provider _before_ the promise wrapped it, so a synchronous throw escaped the `.catch` unhandled — despite `docs/development/picker-api.md` documenting that exceptions in `preview()` are caught. The call now runs inside the chain.
+- **Stale previews are rejected by generation, not by item id.** The previous guard compared `currentMatches[selectedIndex].item.id`, which passes if the selection moves away and returns to the same item, letting a superseded in-flight result render. Replaced with a monotonic `previewGeneration`, following the existing `searchGeneration` convention in the same file.
+
+### Tests
+
+- `test/unit/picker/preview-policy.test.ts` (13 cases) pins the read policy: no `cachedRead` for PDFs, images or video in any mode, size refusal above the byte budget, and Markdown exempt in all three modes. Verified red first — before the fix, `cachedRead` was called once on a 5,000,000-byte PDF in `rendered`, `hidden` _and_ `raw`.
+- `test/unit/picker/preview-lifecycle.test.ts` (6 cases) covers the debounce, leading edge, component teardown, synchronous throws, and stale-result rejection. Verified red first (10 preview calls where ≤2 are expected; components left loaded; `Loading…` left in place by an escaped provider error), and re-confirmed by sabotage: forcing the leading-edge guard true reproduced "expected 10 to be less than or equal to 2".
+
+### Documentation
+
+- **`configuration/settings.md` listed three picker settings as unavailable via vimrc when all three have had `set` options.** `picker`, `pickerLeaderMappings` and `pickerMatcherEngine` were under "Settings not available via vimrc" and showed `—` in their Lua and Vimrc columns, while `configuration/vimrc.md` documented `set picker`, `set pickerleadermappings` and `set pickermatcher` correctly — the two pages contradicted each other. The stale entries are removed and the columns now name the real options. Noticed while adding `set pickerpreview` alongside them.
+
 ## [0.148.0] - 2026-09-08
 
 ### Added

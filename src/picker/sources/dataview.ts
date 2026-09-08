@@ -1,6 +1,7 @@
 import type { App, Plugin } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readFilePreview } from './preview-utils';
+import type { NonMarkdownPreviewMode } from './preview-utils';
 import { openInSplit } from './split-open';
 import { navigateWithJump } from '../../workspace/navigate';
 
@@ -45,7 +46,9 @@ export function isDataviewAvailable(app: App): boolean {
     return getDataviewApi(app) !== undefined;
 }
 
-export function createDataviewSource(): PickerSource {
+export function createDataviewSource(
+    getNonMarkdownPreview: () => NonMarkdownPreviewMode,
+): PickerSource {
     return {
         name: 'dataview',
         placeholder: 'Browse pages…',
@@ -104,7 +107,7 @@ export function createDataviewSource(): PickerSource {
 
         async preview(item, app) {
             const data = item.data as { path: string };
-            return readFilePreview(app, data.path);
+            return readFilePreview(app, data.path, getNonMarkdownPreview());
         },
     };
 }

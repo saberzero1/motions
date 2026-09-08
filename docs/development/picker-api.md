@@ -154,8 +154,14 @@ Plugin load order in Obsidian is undefined. Use both patterns to handle all scen
 The API wraps external source methods with safety layers:
 
 - `items()` and `search()` have a 5-second timeout
-- Exceptions in `items()`, `onSelect()`, or `preview()` are caught (picker shows empty results, error logged to console)
+- Exceptions in `items()`, `onSelect()`, or `preview()` are caught (picker shows empty results, error logged to console). This includes exceptions thrown **synchronously**, before the returned promise is created.
 - Results are capped at 10,000 items
+
+### Preview scheduling
+
+- `preview()` is debounced by 100 ms with a leading edge. An isolated selection change calls it immediately; a rapid burst of selection changes collapses to two calls — the first item and the final one. Your source will not be called once per keystroke.
+- Each call is tagged with a generation counter. If the selection changes while your `preview()` promise is still in flight, the resolved value is discarded and never rendered. The promise itself is not cancelled, so avoid starting unbounded work — return early rather than relying on the picker to stop you.
+- The preview pane owns an Obsidian `Component` that is unloaded on every transition. Anything you render through it is torn down when the selection moves, so register child components on it rather than leaking your own.
 
 ## Example: Omnisearch integration
 

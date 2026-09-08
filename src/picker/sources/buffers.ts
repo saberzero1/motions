@@ -2,9 +2,12 @@ import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { FileView } from 'obsidian';
 import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
+import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJumpSetActive } from '../../workspace/navigate';
 
-export function createBuffersSource(): PickerSource {
+export function createBuffersSource(
+    getNonMarkdownPreview: () => NonMarkdownPreviewMode,
+): PickerSource {
     return {
         name: 'buffers',
         placeholder: 'Switch buffers…',
@@ -55,7 +58,7 @@ export function createBuffersSource(): PickerSource {
         },
         async preview(item, app) {
             const data = item.data as { path: string };
-            return readFilePreview(app, data.path);
+            return readFilePreview(app, data.path, getNonMarkdownPreview());
         },
     };
 }

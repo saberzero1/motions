@@ -1,8 +1,79 @@
 import { App, TFile } from 'obsidian';
-import type { PreviewResult } from '../types';
+import type { PreviewResult, PreviewReturn } from '../types';
 
 const MAX_PREVIEW_LINES = 500;
 const MAX_PREVIEW_BYTES = 50000;
+
+export type NonMarkdownPreviewMode = 'rendered' | 'hidden' | 'raw';
+
+const EMBEDDABLE_EXTENSIONS = new Set([
+    'png',
+    'jpg',
+    'jpeg',
+    'gif',
+    'bmp',
+    'svg',
+    'webp',
+    'avif',
+    'canvas',
+]);
+
+/**
+ * Types whose Obsidian embed instantiates a stateful viewer (PDF.js, a media
+ * element). Repeatedly creating and destroying those while the selection moves
+ * retains memory, so they get a metadata card instead of `![[...]]`.
+ */
+const VIEWER_EXTENSIONS = new Map<string, string>([
+    ['pdf', 'PDF document'],
+    ['mp4', 'Video'],
+    ['webm', 'Video'],
+    ['mov', 'Video'],
+    ['mkv', 'Video'],
+    ['ogv', 'Video'],
+    ['mp3', 'Audio'],
+    ['wav', 'Audio'],
+    ['m4a', 'Audio'],
+    ['ogg', 'Audio'],
+    ['flac', 'Audio'],
+    ['3gp', 'Audio'],
+]);
+
+function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let value = bytes / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit++;
+    }
+    return `${value.toFixed(1)} ${units[unit]}`;
+}
+
+function truncateForPreview(content: string): string {
+    if (content.length > MAX_PREVIEW_BYTES) {
+        return (
+            content.slice(0, MAX_PREVIEW_BYTES) +
+            '\n\n[File too large for preview]'
+        );
+    }
+    const lines = content.split('\n');
+    return lines.length > MAX_PREVIEW_LINES
+        ? lines.slice(0, MAX_PREVIEW_LINES).join('\n') + '\n\n[Truncated]'
+        : content;
+}
+
+function metadataCard(file: TFile, kind: string): PreviewResult {
+    return {
+        markdown: [
+            `### ${file.name}`,
+            '',
+            `- **Type:** ${kind}`,
+            `- **Size:** ${formatBytes(file.stat.size)}`,
+        ].join('\n'),
+        sourcePath: file.path,
+    };
+}
 
 /**
  * Detect YAML frontmatter and return the index of the first line after it.
@@ -19,24 +90,31 @@ function getFrontmatterEnd(lines: string[]): number {
 export async function readFilePreview(
     app: App,
     path: string,
-): Promise<PreviewResult | null> {
+    mode: NonMarkdownPreviewMode = 'rendered',
+): Promise<PreviewReturn> {
     const file = app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) return null;
-    const content = await app.vault.cachedRead(file);
-    let markdown: string;
-    if (content.length > MAX_PREVIEW_BYTES) {
-        markdown =
-            content.slice(0, MAX_PREVIEW_BYTES) +
-            '\n\n[File too large for preview]';
-    } else {
-        const lines = content.split('\n');
-        markdown =
-            lines.length > MAX_PREVIEW_LINES
-                ? lines.slice(0, MAX_PREVIEW_LINES).join('\n') +
-                  '\n\n[Truncated]'
-                : content;
+
+    if (file.extension === 'md') {
+        const content = await app.vault.cachedRead(file);
+        return { markdown: truncateForPreview(content), sourcePath: path };
     }
-    return { markdown, sourcePath: path };
+
+    if (mode === 'hidden') return null;
+
+    if (mode === 'rendered') {
+        if (EMBEDDABLE_EXTENSIONS.has(file.extension)) {
+            return { markdown: `![[${path}]]`, sourcePath: path };
+        }
+        const viewerKind = VIEWER_EXTENSIONS.get(file.extension);
+        if (viewerKind) return metadataCard(file, viewerKind);
+    }
+
+    // Anything left is treated as text. The size is checked against the file
+    // metadata so an oversized binary is never decoded just to be truncated.
+    if (file.stat.size > MAX_PREVIEW_BYTES) return null;
+    const content = await app.vault.cachedRead(file);
+    return truncateForPreview(content);
 }
 
 export async function readLinesAroundPosition(

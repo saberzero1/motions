@@ -49,7 +49,8 @@ export class PickerModal extends Modal {
     private resultsEl: HTMLElement | null = null;
     private previewEl: HTMLElement | null = null;
     private itemElements: HTMLElement[] = [];
-    private previewFrame: number | null = null;
+    private previewTimer: number | null = null;
+    private previewGeneration = 0;
     private previewComponent: Component | null = null;
     private isDynamic = false;
     private searchGeneration = 0;
@@ -554,11 +555,14 @@ export class PickerModal extends Modal {
     }
 
     private updatePreview(): void {
+        this.previewGeneration += 1;
         if (!this.previewEl) return;
-        if (this.previewFrame !== null) {
-            window.cancelAnimationFrame(this.previewFrame);
-            this.previewFrame = null;
+        const leading = this.previewTimer === null;
+        if (this.previewTimer !== null) {
+            window.clearTimeout(this.previewTimer);
+            this.previewTimer = null;
         }
+        this.clearPreview();
 
         const match = this.currentMatches[this.selectedIndex];
         const item = match?.item;
@@ -570,21 +574,16 @@ export class PickerModal extends Modal {
             return;
         }
 
-        const currentId = item.id;
+        const generation = this.previewGeneration;
         this.showPreviewMessage(
             'Loading…',
             'vim-motions-picker-preview-loading',
         );
-        this.previewFrame = window.requestAnimationFrame(() => {
-            this.previewFrame = null;
-            Promise.resolve(this.source.preview?.(item, this.app))
+        const runPreview = () => {
+            Promise.resolve()
+                .then(() => this.source.preview?.(item, this.app))
                 .then((raw: PreviewReturn | undefined) => {
-                    if (
-                        this.currentMatches[this.selectedIndex]?.item.id !==
-                        currentId
-                    ) {
-                        return;
-                    }
+                    if (this.previewGeneration !== generation) return;
                     if (!this.previewEl) return;
                     if (raw == null) {
                         this.showPreviewMessage(
@@ -595,7 +594,7 @@ export class PickerModal extends Modal {
                     }
 
                     if (typeof raw === 'string') {
-                        this.previewEl.empty();
+                        this.clearPreview();
                         const pre = this.previewEl.createEl('pre');
                         pre.createEl('code', { text: raw });
                         return;
@@ -604,6 +603,7 @@ export class PickerModal extends Modal {
                     this.renderMarkdownPreview(raw);
                 })
                 .catch((error: unknown) => {
+                    if (this.previewGeneration !== generation) return;
                     if (!this.previewEl) return;
                     const message =
                         error instanceof Error ? error.message : String(error);
@@ -612,17 +612,20 @@ export class PickerModal extends Modal {
                         'vim-motions-picker-preview-empty',
                     );
                 });
-        });
+        };
+        this.previewTimer = window.setTimeout(() => {
+            this.previewTimer = null;
+            if (!leading) runPreview();
+        }, 100);
+        if (leading) runPreview();
     }
 
     private renderMarkdownPreview(result: PreviewResult): void {
         if (!this.previewEl) return;
 
-        this.previewComponent?.unload();
+        this.clearPreview();
         this.previewComponent = new Component();
         this.previewComponent.load();
-
-        this.previewEl.empty();
 
         const { lineRange } = result;
 
@@ -678,9 +681,15 @@ export class PickerModal extends Modal {
         }
     }
 
+    private clearPreview(): void {
+        this.previewComponent?.unload();
+        this.previewComponent = null;
+        this.previewEl?.empty();
+    }
+
     private showPreviewMessage(text: string, className: string): void {
+        this.clearPreview();
         if (!this.previewEl) return;
-        this.previewEl.empty();
         this.previewEl.createDiv({
             cls: className,
             text,
@@ -702,6 +711,7 @@ export class PickerModal extends Modal {
     }
 
     onClose(): void {
+        this.previewGeneration += 1;
         PickerModal.activeInstance = null;
         if (!this.didConfirm) this.options?.onCancel?.();
         lastSession = {
@@ -713,12 +723,11 @@ export class PickerModal extends Modal {
             window.clearTimeout(this.searchTimer);
             this.searchTimer = null;
         }
-        if (this.previewFrame !== null) {
-            window.cancelAnimationFrame(this.previewFrame);
-            this.previewFrame = null;
+        if (this.previewTimer !== null) {
+            window.clearTimeout(this.previewTimer);
+            this.previewTimer = null;
         }
-        this.previewComponent?.unload();
-        this.previewComponent = null;
+        this.clearPreview();
         this.previewEl = null;
         this.modalEl.removeClass('vim-motions-picker-with-preview');
         this.contentEl.empty();
