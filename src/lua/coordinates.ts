@@ -1,4 +1,5 @@
 import type { CmAdapter } from '../types/vim-api';
+import type { Text } from '@codemirror/state';
 import { getWindowDimensions } from './window-info';
 
 const COMBINING_CHAR = /\p{Mn}|\p{Me}/u;
@@ -526,6 +527,48 @@ export function createNeovimCoordinateAdapter(
         });
     }
     return {
+        extmarkColumnToHost(
+            doc: Text,
+            row: number,
+            col: number,
+            name: 'col' | 'end_col',
+        ): CoordinateResult<Utf16Col> {
+            // Preserve the extmark engine's existing row handling. Columns,
+            // unlike readText, reject past EOL before any conversion/clamping.
+            const text = doc.line(
+                Math.max(1, Math.min(row + 1, doc.lines)),
+            ).text;
+            if (!Number.isInteger(col) || col < 0 || col > utf8Length(text))
+                return error(`Invalid '${name}': out of range`);
+            // Extmark deviation, beside D4/D5: CM6 cannot store UTF-8 byte
+            // remainders. Start down, exclusive end up, without a shadow.
+            if (name === 'end_col') {
+                const span = buildCharSpans(text, true).find(
+                    (entry) => col > entry.byteStart && col < entry.byteEnd,
+                );
+                if (span) return value(utf16Column(span.utf16End));
+            }
+            return value(byteToUtf16(text, byteColumn(col)));
+        },
+        extmarkColumnToByte(doc: Text, row: number, col: number): ByteCol {
+            return utf16ToByte(doc.line(row + 1).text, utf16Column(col));
+        },
+        extmarkDetailsToBytes(
+            doc: Text,
+            details: Record<string, unknown>,
+        ): Record<string, unknown> {
+            const row = details.end_row;
+            const col = details.end_col;
+            return typeof row === 'number' && typeof col === 'number'
+                ? {
+                      ...details,
+                      end_col: utf16ToByte(
+                          doc.line(row + 1).text,
+                          utf16Column(col),
+                      ),
+                  }
+                : details;
+        },
         readLegacyPosition(
             expr: string,
             current = false,

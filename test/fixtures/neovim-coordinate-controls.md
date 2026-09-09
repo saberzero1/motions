@@ -1999,3 +1999,121 @@ boundary rule **10 passed**; complete demand audit **156 passed**. Both plugin
 verdicts remain BLOCKED with the L6 lists, confirming the only blocker delta
 is `getpos-bytes`. The full unit suite, static gates, development build and
 two-spec e2e gate are separately required for final completion.
+
+## Remaining seams Phase 3 — extmark columns (2026-09-09)
+
+### Interior-byte decision and serialization prerequisite
+
+Native `nvim --clean --headless -i NONE` confirmed the plan's five cases:
+`col=5,end_col=9` reports `5..9`; `col=6` reports `6`; EOL `14`
+is accepted; `col=15` and `end_col=99` error with the named column out
+of range. The CM6 document has length 7 UTF-16 units, not 14 bytes.
+Enumerating integer UTF-16 prefix offsets with `EditorState` and encoding
+their strings produced byte lengths `[0,2,5,8,9,12,13,14]`. The `8` is a
+replacement-encoded lone surrogate, not an exact UTF-8 byte position in the
+original document; in particular no host offset represents byte 6.
+
+**Deviation beside D4/D5:** normalize start down and exclusive end up,
+without retaining a byte-remainder shadow. Native interior `col=6` becomes
+byte 5 / host offset 2; native `5..6` becomes `5..9` / host `2..4`.
+The end-up ruling supersedes the initially proposed both-down policy.
+No shared callbacks or text get/set bounds policies changed.
+
+The first red-first run (17:54:17; 34 failures across contract and manifest)
+also exposed both getters' scalar-only `pushLuaValue` turning their modeled
+details object into nil. Execution halted and the user authorized the narrow
+prerequisite. The fix uses the existing recursive `pushLuaAny` only at those
+two getter call sites, serializing the fields already populated by the engine.
+No new extmark options or option parsing were added.
+
+### Observed negative controls
+
+All mutations below were applied and restored with `apply_patch`, never git
+restore/checkout/reset. Each invocation exited 1. The fixture's setter result
+is `id;hostFrom:hostTo;byIdRow:col:endRow:endCol;listRow:col:endRow:endCol`.
+Getter fixtures seed the real CM6 engine in host units independently of the
+Lua setter, so matching ingress/egress mistakes cannot cancel each other.
+
+Common command prefix:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts
+```
+
+| Control / time          | Mutation and test filter                                                                       | Observed                                                                                                  | Required                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| E1 / 17:57:01           | `extmarkColumnToByte` returned its UTF-16 column; `-t 'extmark.*astral'` (8 failed)            | Byte-5 mark reported **2**, both getters: `1;2:4;0:2:0:9;0:2:0:9`; independently seeded getters `0:2:0:9` | Reported **5**: `1;2:4;0:5:0:9;0:5:0:9`, getters `0:5:0:9`                  |
+| E2 / 17:57:15           | Bounds failure returned clamped host column; `-t 'extmark.*(past EOL                           | negative)'` (8 failed)                                                                                    | `col=15`, `end_col=99`, and negative columns each returned **`success: 1`** | `Invalid 'col': out of range` / `Invalid 'end_col': out of range` |
+| E3 / 17:57:26           | Removed `opts.endCol = hostEndCol.value`; `-t 'extmark.*astral span with implicit'` (2 failed) | Asymmetric **`5..14`**, host **`2..7`**: `1;2:7;0:5:0:14;0:5:0:14`                                        | **`5..9`**, host **`2..4`**: `1;2:4;0:5:0:9;0:5:0:9`                        |
+| E4 / 17:57:36           | Removed end-up branch (both-down); `-t 'extmark.*interior end'` (4 failed)                     | `end_col=6` became empty **`5..5`**, host **`2..2`**: `1;2:2;0:5:0:5;0:5:0:5`. End 8 also reported 5      | **`5..9`**, host **`2..4`**. End 8 reports 9                                |
+| E5 / 17:57:48           | Restored scalar-only `pushLuaValue` at both getters; `-t 'extmark.*(host                       | empty line                                                                                                | EOL byte                                                                    | interior start)'` (20 failed)                                     | **`details=nil`** from both getters, including host-seeded astral/EOL/multiline spans | Table with byte `end_col`: astral `0:5:0:9`, EOL `0:14:0:14`, multiline `0:5:1:6`; setter roundtrips retain their full tuples |
+| E5 continued / 17:58:03 | Same scalar-only mutation; `-t 'extmark.*end column uses                                       | requires exactly twenty-three'`                                                                           | Multiline setter: `1;2:11;details=nil;details=nil`                          | `1;2:11;0:5:1:6;0:5:1:6`                                          |
+| E6 / 17:58:03           | Removed `nvim_buf_get_extmark_by_id` manifest entry with the preceding filter                  | `missing: ['vim.api.nvim_buf_get_extmark_by_id']`                                                         | `missing: []`                                                               |
+
+All five required mutations plus the manifest omission have been restored.
+Together they exercised every added fixture assertion in both test suites.
+
+### Demand facts, not assertions
+
+At 17:58:21, `npx vitest run test/unit/lua/plugin-api-demand.test.ts -t
+'category mini.splitjoin'` reported **2 failed / 31 passed / 123 skipped**.
+Only `nvim_buf_set_extmark` and `nvim_buf_get_extmark_by_id` changed: observed
+`{category:'real',result:'[0,13]',warnings:0}`, previously `[0,7]`.
+Updated only those two recorded results/dispositions and removed the
+`extmark-columns` blocker record/list entry. Audit assertions are unchanged.
+The blocker delta is exactly **`extmark-columns`**: mini.splitjoin retains
+load `string-expr-mapping` and core `local-comments`; mini.surround retains
+`surround-highlight`, `echospace`, `getchar-context`, `input-context-and-form`
+after its existing live string promotions. Both verdicts remain BLOCKED.
+
+### Restored Phase 3 QA
+
+After restoring every control, ran the plan's manifest command (exit 0,
+**23/23 APIs exercised; 0 missing; 0 mismatches**) and extmark-columns contract
+command (exit 0, **18 passed / 432 skipped**). The complete `npm run test:unit`
+also exited 0: **Test Files 127 passed (127)**;
+**Tests 3265 passed | 6 skipped (3271)**. This includes the unchanged demand
+audit assertions with only the recorded extmark facts updated.
+
+### E7 — authorized modeled `virt_text` shape correction
+
+Final review found that the now-visible `virt_text` was still the engine's
+keyed `{text,hlGroup}` representation. Execution halted; the user measured
+native `nvim --clean` and authorized positional two-element chunk arrays.
+Only the two getters' already-modeled `virt_text` field is reshaped. No option
+parsing, new native detail fields, stored chunks, or rendering was changed.
+
+Two real-Lua/CM6 regressions set `{{'A','ErrorMsg'},{'B','WarningMsg'}}` and
+read through each public getter. They assert outer type/count, each chunk's
+type/length, both positional fields, and absence of the keyed `.text` field.
+Red-first (18:05:58), then explicitly restoring the keyed shape after adding
+the fix (18:06:25), each ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'serializes virt_text'
+```
+
+Both runs exited 1 with **2 failed / 450 skipped**. Observed in both getters:
+`#virt_text=2`, but `#chunk1=0`, `chunk1[1]=nil` (required **`'A'`**),
+`chunk1[2]=nil` (required **`'ErrorMsg'`**), `chunk1.text='A'` (required nil).
+Chunk 2 likewise had length 0 and nil positional fields instead of length 2,
+`'B'`, `'WarningMsg'`. Required lengths are **2** for both chunks.
+
+### E8 — multi-chunk discrimination
+
+Temporarily kept only the first correctly shaped chunk with `.slice(0,1)`
+in both getters. The same command at 18:06:34 exited 1, **2 failed / 450 skipped**:
+observed **`#virt_text=1` vs 2**, chunk 1 correctly `{'A','ErrorMsg'}`,
+and chunk 2 absent vs required `{'B','WarningMsg'}`. This isolates outer-array
+cardinality from the E7 keyed-chunk error. Both mutations were restored using
+`apply_patch`; no negative-control mutation remains.
+
+Restored shape acceptance: the full `npm run test:unit` at 18:07:16 exited 0:
+**Test Files 127 passed (127)**; **Tests 3267 passed | 6 skipped (3273)**.
+The two additional tests pass with `#virt_text=2`, both chunks length 2,
+positional `A/ErrorMsg` and `B/WarningMsg`, and no keyed `.text` field.
+Manifest remains **23/23 APIs exercised; 0 missing; 0 mismatches**.
+The unchanged demand assertions still report mini.surround BLOCKED with the
+same four core blockers and mini.splitjoin BLOCKED with load
+`string-expr-mapping` / core `local-comments`; no blocker besides
+`extmark-columns` has moved in Phase 3. The focused review now passes.

@@ -8,6 +8,7 @@ import {
 } from '../../fixtures/neovim-coordinate-api-manifest';
 import { COORD_LINE } from '../../fixtures/neovim-coordinate-contract';
 import { observeStringCoordinate } from './string-coordinate-harness';
+import { observeExtmarkCoordinate } from './extmark-coordinate-harness';
 import {
     createCoordinateState,
     runLuaError,
@@ -17,6 +18,9 @@ import {
 } from './coordinate-harness';
 
 const REQUIRED = [
+    'vim.api.nvim_buf_set_extmark',
+    'vim.api.nvim_buf_get_extmarks',
+    'vim.api.nvim_buf_get_extmark_by_id',
     'vim.fn.getpos',
     'vim.fn.getcurpos',
     'vim.fn.setpos',
@@ -88,7 +92,7 @@ function generateCoordinateCases() {
 }
 
 describe('coordinate manifest coverage', () => {
-    it('requires exactly twenty real registrations with complete metadata', () => {
+    it('requires exactly twenty-three real registrations with complete metadata', () => {
         expect(assertCoordinateManifestCoverage()).toEqual({
             missing: [],
             extra: [],
@@ -109,10 +113,25 @@ describe('coordinate manifest conformance', () => {
             REQUIRED.every((name) => exercised.has(name))
         )
             process.stdout.write(
-                'coordinate manifest: 20/20 APIs exercised; 0 missing; 0 mismatches\n',
+                'coordinate manifest: 23/23 APIs exercised; 0 missing; 0 mismatches\n',
             );
     });
     for (const row of generateCoordinateCases()) {
+        if (row.api.includes('extmark')) {
+            it(row.title, () => {
+                expect(
+                    observeExtmarkCoordinate(row.api, {
+                        ...row,
+                        expected: String(row.expected),
+                    }),
+                ).toEqual(
+                    row.error ? containing(String(row.expected)) : row.expected,
+                );
+                exercised.add(row.api);
+                completed++;
+            });
+            continue;
+        }
         if (row.api.startsWith('vim.str_')) {
             it(row.title, () => {
                 expect(observeStringCoordinate(row.api.slice(4), row)).toEqual({

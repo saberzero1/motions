@@ -3841,7 +3841,28 @@ export function injectVimApi(
             return 1;
         }
 
-        const id = dispatchSetExtmark(view, nsId, line, col, opts);
+        const hostCol = coordinates.extmarkColumnToHost(
+            view.state.doc,
+            line,
+            col,
+            'col',
+        );
+        if (hostCol.kind === 'error')
+            return pushCoordinateResult(state, hostCol);
+        if (opts.endCol !== undefined) {
+            const endLine = opts.endLine ?? line;
+            const hostEndCol = coordinates.extmarkColumnToHost(
+                view.state.doc,
+                endLine,
+                opts.endCol,
+                'end_col',
+            );
+            if (hostEndCol.kind === 'error')
+                return pushCoordinateResult(state, hostEndCol);
+            opts.endLine = endLine;
+            opts.endCol = hostEndCol.value;
+        }
+        const id = dispatchSetExtmark(view, nsId, line, hostCol.value, opts);
         lua.lua_pushinteger(state, id);
         return 1;
     });
@@ -3905,10 +3926,20 @@ export function injectVimApi(
             lua.lua_rawseti(state, -2, 1);
             lua.lua_pushinteger(state, entry[1]);
             lua.lua_rawseti(state, -2, 2);
-            lua.lua_pushinteger(state, entry[2]);
+            lua.lua_pushinteger(
+                state,
+                coordinates.extmarkColumnToByte(
+                    view.state.doc,
+                    entry[1],
+                    entry[2],
+                ),
+            );
             lua.lua_rawseti(state, -2, 3);
             if (details && entry[3]) {
-                pushLuaValue(state, entry[3]);
+                pushLuaAny(
+                    state,
+                    coordinates.extmarkDetailsToBytes(view.state.doc, entry[3]),
+                );
                 lua.lua_rawseti(state, -2, 4);
             }
             lua.lua_rawseti(state, -2, i + 1);
@@ -3942,10 +3973,20 @@ export function injectVimApi(
         lua.lua_newtable(state);
         lua.lua_pushinteger(state, result[0]);
         lua.lua_rawseti(state, -2, 1);
-        lua.lua_pushinteger(state, result[1]);
+        lua.lua_pushinteger(
+            state,
+            coordinates.extmarkColumnToByte(
+                view.state.doc,
+                result[0],
+                result[1],
+            ),
+        );
         lua.lua_rawseti(state, -2, 2);
         if (details && result[2]) {
-            pushLuaValue(state, result[2]);
+            pushLuaAny(
+                state,
+                coordinates.extmarkDetailsToBytes(view.state.doc, result[2]),
+            );
             lua.lua_rawseti(state, -2, 3);
         }
         return 1;

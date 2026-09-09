@@ -476,7 +476,9 @@ export function queryExtmarks(
                 const detailObj: Record<string, unknown> = {};
                 if (mark.opts.hlGroup) detailObj.hl_group = mark.opts.hlGroup;
                 if (mark.opts.virtText)
-                    detailObj.virt_text = mark.opts.virtText;
+                    detailObj.virt_text = mark.opts.virtText.map(
+                        ({ text, hlGroup }) => [text, hlGroup],
+                    );
                 if (mark.opts.priority !== undefined)
                     detailObj.priority = mark.opts.priority;
                 const endPos = offsetToLineCol(doc, mark.to);
@@ -510,7 +512,10 @@ export function queryExtmarkById(
     if (opts?.details) {
         const detailObj: Record<string, unknown> = {};
         if (mark.opts.hlGroup) detailObj.hl_group = mark.opts.hlGroup;
-        if (mark.opts.virtText) detailObj.virt_text = mark.opts.virtText;
+        if (mark.opts.virtText)
+            detailObj.virt_text = mark.opts.virtText.map(
+                ({ text, hlGroup }) => [text, hlGroup],
+            );
         const endPos = offsetToLineCol(doc, mark.to);
         detailObj.end_row = endPos[0];
         detailObj.end_col = endPos[1];

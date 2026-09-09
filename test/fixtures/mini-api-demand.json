@@ -547,7 +547,7 @@
             "verdict": "BLOCKED",
             "loadResult": "error:vim.keymap.set: string expr mappings are not supported (requires Vimscript evaluation). Use a Lua function instead: function() return vim.v.count == 0 and \"gk\" or \"k\" end",
             "loadBlockers": ["string-expr-mapping"],
-            "coreBlockers": ["local-comments", "extmark-columns"],
+            "coreBlockers": ["local-comments"],
             "optionalBlockers": [],
             "demands": {
                 "vim.api.nvim_buf_clear_namespace": [
@@ -572,7 +572,7 @@
                     [1009, 1019],
                     "(0,ns,id,{}) -> {row,byteCol}",
                     "REQUIRED: moving split/join positions and cursor",
-                    "extmark-columns"
+                    "allow"
                 ],
                 "vim.api.nvim_buf_get_lines": [
                     "real",
@@ -604,7 +604,7 @@
                     [1003],
                     "(0,ns,row,byteCol,{})",
                     "REQUIRED: default split/join tracked positions",
-                    "extmark-columns"
+                    "allow"
                 ],
                 "vim.api.nvim_buf_set_text": [
                     "real",
@@ -888,19 +888,6 @@
             "required": "synchronous-path prompt result and dictionary prompt/default semantics",
             "test": "plugin API-demand audit category mini.surround vim.fn.input"
         },
-        "extmark-columns": {
-            "names": [
-                "vim.api.nvim_buf_set_extmark",
-                "vim.api.nvim_buf_get_extmark_by_id"
-            ],
-            "owner": "Deferred extmark byte-coordinate follow-up; no extmark options changed",
-            "shim": "src/lua/extmarks.ts:383-387,498-543",
-            "fixture": "S = é→𝄞界\tZ; requested byte column 13",
-            "call": "set_extmark(0,ns,0,13,{}) then get_extmark_by_id(0,ns,id,{})",
-            "observed": "[0,7]: byte 13 is clamped as UTF-16 to line length 7",
-            "required": "[0,13] and underlying host offset 6",
-            "test": "plugin API-demand audit category mini.splitjoin vim.api.nvim_buf_set_extmark / vim.api.nvim_buf_get_extmark_by_id"
-        },
         "local-comments": {
             "names": ["vim.opt_local.comments"],
             "owner": "Deferred local option proxy / comments option",
@@ -935,12 +922,12 @@
     "liveResults": {
         "vim.api.nvim_buf_clear_namespace": "0",
         "vim.api.nvim_buf_del_extmark": "true",
-        "vim.api.nvim_buf_get_extmark_by_id": "[0,7]",
+        "vim.api.nvim_buf_get_extmark_by_id": "[0,13]",
         "vim.api.nvim_buf_get_lines": "[\"é→𝄞界\\tZ\"]",
         "vim.api.nvim_buf_get_mark": "[3,13]",
         "vim.api.nvim_buf_get_text": "[\"𝄞\"]",
         "vim.api.nvim_buf_line_count": "3",
-        "vim.api.nvim_buf_set_extmark": "[0,7]",
+        "vim.api.nvim_buf_set_extmark": "[0,13]",
         "vim.api.nvim_buf_set_text": "é→é界\tZ",
         "vim.api.nvim_create_augroup": "1",
         "vim.api.nvim_create_autocmd": "1",

@@ -4,6 +4,10 @@ import {
 } from './neovim-coordinate-contract';
 import { STRING_COORDINATE_CASES } from './neovim-string-coordinate-contract';
 import {
+    EXTMARK_WRITE_CASES,
+    EXTMARK_READ_CASES,
+} from './neovim-extmark-coordinate-contract';
+import {
     TEXT_READ_CASES,
     TEXT_WRITE_CASES,
 } from './neovim-text-coordinate-contract';
@@ -19,6 +23,7 @@ interface CoordinateCase {
     rawBytes?: boolean;
     lines?: readonly string[];
     goal?: number;
+    hostMark?: readonly [number, number, number, number];
     host?: 'unloaded' | 'empty' | 'linewise';
 }
 
@@ -79,6 +84,53 @@ const columnCases = (unit: 'byte' | 'character'): CoordinateCase[] => [
 ];
 
 export const COORDINATE_API_MANIFEST: CoordinateApiEntry[] = [
+    ...(
+        [
+            'nvim_buf_set_extmark',
+            'nvim_buf_get_extmarks',
+            'nvim_buf_get_extmark_by_id',
+        ] as const
+    ).map((name): CoordinateApiEntry => ({
+        name: `vim.api.${name}`,
+        forms:
+            name === 'nvim_buf_set_extmark'
+                ? ['buffer,namespace,row,col,opts.end_col']
+                : ['buffer,namespace,query,opts.details'],
+        inputUnit:
+            name === 'nvim_buf_set_extmark'
+                ? 'UTF-8 byte columns'
+                : 'namespace and query',
+        outputUnit:
+            name === 'nvim_buf_set_extmark'
+                ? 'id and host UTF-16 span'
+                : 'UTF-8 byte columns including details.end_col',
+        bases: { input: [0, 0], output: [0, 0] },
+        direction:
+            name === 'nvim_buf_set_extmark'
+                ? 'Lua bytes to host UTF-16'
+                : 'host UTF-16 to Lua bytes',
+        invalid:
+            'set columns outside 0..byte length inclusive error, never clamp',
+        typeError: 'numeric columns required',
+        empty: 'column zero is valid',
+        unloaded: 'existing no-view return unchanged',
+        sentinel:
+            'interior bytes normalize start down, end up; CM6 cannot represent byte remainders (D4/D5 rationale)',
+        operation:
+            name === 'nvim_buf_set_extmark'
+                ? 'extmarkColumnToHost'
+                : 'extmarkColumnToByte',
+        cases:
+            name === 'nvim_buf_set_extmark'
+                ? EXTMARK_WRITE_CASES
+                : EXTMARK_READ_CASES.map((row) => ({
+                      ...row,
+                      args:
+                          name === 'nvim_buf_get_extmarks'
+                              ? '0,1,0,-1,{details=true}'
+                              : '0,1,1,{details=true}',
+                  })),
+    })),
     ...(['getpos', 'getcurpos', 'setpos'] as const).map(
         (name): CoordinateApiEntry => ({
             name: `vim.fn.${name}`,

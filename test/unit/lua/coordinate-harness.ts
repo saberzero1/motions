@@ -11,6 +11,7 @@ import { AutocmdManager } from '../../../src/lua/autocmd';
 import { injectStdlib } from '../../../src/lua/stdlib';
 import { COORD_LINES } from '../../fixtures/neovim-coordinate-contract';
 import type { CmAdapter } from '../../../src/types/vim-api';
+import type { EditorView } from '@codemirror/view';
 
 type LuaState = ReturnType<typeof createSandboxedState>;
 
@@ -24,6 +25,7 @@ export function createCoordinateState(
         loaded: true,
         visualMode: 'v',
         cm: null as CmAdapter | null,
+        editorView: null as EditorView | null,
         cursor: { line: 1, col: 1 },
         marks: new Map<string, { line: number; ch: number }>(),
     };
@@ -42,6 +44,7 @@ export function createCoordinateState(
     };
     try {
         const api = injectVimApi(L, {
+            getEditorView: () => host.editorView,
             getCmAdapter: () => host.cm,
             onSettingOverride: () => {},
             handleExCommand: () => {},

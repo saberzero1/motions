@@ -5,6 +5,14 @@ import type { CmAdapter } from '../../../src/types/vim-api';
 import { destroyState } from '../../../src/lua/engine';
 import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
 import { searchBufferLines } from '../../../src/lua/vim-search';
+import {
+    EXTMARK_WRITE_CASES,
+    EXTMARK_READ_CASES,
+} from '../../fixtures/neovim-extmark-coordinate-contract';
+import {
+    observeExtmarkCoordinate,
+    observeExtmarkVirtText,
+} from './extmark-coordinate-harness';
 import { STRING_COORDINATE_CASES } from '../../fixtures/neovim-string-coordinate-contract';
 import { observeStringCoordinate } from './string-coordinate-harness';
 import {
@@ -29,6 +37,39 @@ import {
     readBuffer,
     observeTextCoordinate,
 } from './coordinate-harness';
+
+describe('coordinate contract extmark columns', () => {
+    it.each([
+        'vim.api.nvim_buf_get_extmarks',
+        'vim.api.nvim_buf_get_extmark_by_id',
+    ])('%s serializes virt_text as two positional chunks', (api) => {
+        expect(observeExtmarkVirtText(api)).toEqual([
+            'table',
+            '2',
+            'table',
+            '2',
+            'A',
+            'ErrorMsg',
+            'nil',
+            'table',
+            '2',
+            'B',
+            'WarningMsg',
+            'nil',
+        ]);
+    });
+    for (const [api, cases] of [
+        ['vim.api.nvim_buf_set_extmark', EXTMARK_WRITE_CASES],
+        ['vim.api.nvim_buf_get_extmarks', EXTMARK_READ_CASES],
+        ['vim.api.nvim_buf_get_extmark_by_id', EXTMARK_READ_CASES],
+    ] as const) {
+        it.each(cases)(`${api} $name`, (row) => {
+            const expectedError = expect.stringContaining(row.expected);
+            const expected = row.error ? expectedError : row.expected;
+            expect(observeExtmarkCoordinate(api, row)).toEqual(expected);
+        });
+    }
+});
 
 describe('coordinate contract legacy positions', () => {
     let state: ReturnType<typeof createCoordinateState>;
