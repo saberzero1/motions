@@ -3,6 +3,10 @@ import {
     DISPLAY_LOOKUPS,
 } from './neovim-coordinate-contract';
 import { STRING_COORDINATE_CASES } from './neovim-string-coordinate-contract';
+import {
+    TEXT_READ_CASES,
+    TEXT_WRITE_CASES,
+} from './neovim-text-coordinate-contract';
 
 interface CoordinateCase {
     name: string;
@@ -12,6 +16,8 @@ interface CoordinateCase {
     tuple?: boolean;
     multiple?: boolean;
     error?: boolean;
+    rawBytes?: boolean;
+    lines?: readonly string[];
     host?: 'unloaded' | 'empty' | 'linewise';
 }
 
@@ -72,6 +78,35 @@ const columnCases = (unit: 'byte' | 'character'): CoordinateCase[] => [
 ];
 
 export const COORDINATE_API_MANIFEST: CoordinateApiEntry[] = [
+    ...(['get', 'set'] as const).map((operation): CoordinateApiEntry => ({
+        name: `vim.api.nvim_buf_${operation}_text`,
+        forms: [
+            'buffer,start_row,start_col,end_row,end_col,' +
+                (operation === 'get' ? 'opts' : 'replacement'),
+        ],
+        inputUnit: 'UTF-8 byte columns',
+        outputUnit:
+            operation === 'get' ? 'raw Lua byte strings' : 'host UTF-16 text',
+        bases: { input: [0, 0, 0, 0, 0], output: [0] },
+        direction:
+            operation === 'get'
+                ? 'host UTF-8 encoding to Lua'
+                : 'Lua byte range to host UTF-16 range',
+        invalid:
+            operation === 'get'
+                ? 'columns past EOL clamp'
+                : 'columns past EOL error',
+        typeError: 'integer coordinate required',
+        empty:
+            operation === 'get' ? 'one empty string' : 'zero-column insertion',
+        unloaded: 'row out of range',
+        sentinel:
+            operation === 'get'
+                ? 'interior bytes preserved (native match)'
+                : 'D5 deviation: interior start down, end up',
+        operation: operation === 'get' ? 'readText' : 'writeText',
+        cases: operation === 'get' ? TEXT_READ_CASES : TEXT_WRITE_CASES,
+    })),
     ...[
         'str_byteindex',
         'str_utfindex',
@@ -551,8 +586,6 @@ for (const entry of COORDINATE_API_MANIFEST) {
 }
 
 export const DEFERRED_COORDINATE_APIS = [
-    'nvim_buf_get_text',
-    'nvim_buf_set_text',
     'nvim_buf_set_mark',
     'getpos',
     'setpos',

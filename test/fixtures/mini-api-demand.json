@@ -41,8 +41,7 @@
                 "surround-highlight",
                 "echospace",
                 "getchar-context",
-                "input-context-and-form",
-                "set-text-bytes"
+                "input-context-and-form"
             ],
             "optionalBlockers": [
                 "treesitter-range-shape",
@@ -87,7 +86,7 @@
                     [2035],
                     "pcall(fn,0,startRow,startByte,endRow,endByte,lines)",
                     "REQUIRED: sa/sd/sr region replacement; errors swallowed by upstream pcall",
-                    "set-text-bytes"
+                    "allow"
                 ],
                 "vim.api.nvim_create_augroup": [
                     "real",
@@ -550,11 +549,10 @@
             "loadBlockers": ["string-expr-mapping"],
             "coreBlockers": [
                 "local-comments",
-                "set-text-bytes",
                 "getpos-bytes",
                 "extmark-columns"
             ],
-            "optionalBlockers": ["get-text-bytes"],
+            "optionalBlockers": [],
             "demands": {
                 "vim.api.nvim_buf_clear_namespace": [
                     "real",
@@ -594,7 +592,7 @@
                     [930],
                     "(0,startRow,startByte,endRow,endByte,{})",
                     "OPTIONAL: H.is_positions_inside_brackets called only by nondefault generated hooks at 469/514/555",
-                    "get-text-bytes"
+                    "allow"
                 ],
                 "vim.api.nvim_buf_line_count": [
                     "real",
@@ -618,7 +616,7 @@
                     [1116],
                     "pcall(fn,0,startRow,startByte,endRow,endByte,replacement)",
                     "REQUIRED: default splitting/joining and indentation",
-                    "set-text-bytes"
+                    "allow"
                 ],
                 "vim.api.nvim_create_namespace": [
                     "real",
@@ -894,26 +892,6 @@
             "required": "synchronous-path prompt result and dictionary prompt/default semantics",
             "test": "plugin API-demand audit category mini.surround vim.fn.input"
         },
-        "set-text-bytes": {
-            "names": ["vim.api.nvim_buf_set_text"],
-            "owner": "Separately approved adjacent byte-text boundary follow-up",
-            "shim": "src/lua/api.ts:3770-3791 replaceRange forwarding",
-            "fixture": "S = é→𝄞界\tZ",
-            "call": "nvim_buf_set_text(0,0,5,0,9,{'é'})",
-            "observed": "é→𝄞界é",
-            "required": "é→é界\tZ",
-            "test": "plugin API-demand audit category mini.surround / mini.splitjoin vim.api.nvim_buf_set_text"
-        },
-        "get-text-bytes": {
-            "names": ["vim.api.nvim_buf_get_text"],
-            "owner": "Separately approved adjacent byte-text boundary follow-up",
-            "shim": "src/lua/api.ts:2857-2901 get-text host slicing",
-            "fixture": "S = é→𝄞界\tZ",
-            "call": "nvim_buf_get_text(0,0,5,0,9,{})",
-            "observed": "['\tZ']",
-            "required": "['𝄞']",
-            "test": "plugin API-demand audit category mini.splitjoin vim.api.nvim_buf_get_text; OPTIONAL generated hooks only"
-        },
         "getpos-bytes": {
             "names": ["vim.fn.getpos"],
             "owner": "Separately approved legacy position boundary follow-up",
@@ -974,10 +952,10 @@
         "vim.api.nvim_buf_get_extmark_by_id": "[0,7]",
         "vim.api.nvim_buf_get_lines": "[\"é→𝄞界\\tZ\"]",
         "vim.api.nvim_buf_get_mark": "[3,13]",
-        "vim.api.nvim_buf_get_text": "[\"\\tZ\"]",
+        "vim.api.nvim_buf_get_text": "[\"𝄞\"]",
         "vim.api.nvim_buf_line_count": "3",
         "vim.api.nvim_buf_set_extmark": "[0,7]",
-        "vim.api.nvim_buf_set_text": "é→𝄞界é",
+        "vim.api.nvim_buf_set_text": "é→é界\tZ",
         "vim.api.nvim_create_augroup": "1",
         "vim.api.nvim_create_autocmd": "1",
         "vim.api.nvim_create_namespace": "true",

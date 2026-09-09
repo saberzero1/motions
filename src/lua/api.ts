@@ -29,6 +29,7 @@ import { replaceTermcodes, termcodesToNotation } from './termcodes';
 import { createNeovimCoordinateAdapter, MAXCOL } from './coordinates';
 import {
     readCoordinateArgument,
+    readTextCoordinates,
     pushCoordinateResult,
     pushCoordinateTuple,
 } from './coordinate-wire';
@@ -2862,29 +2863,11 @@ export function injectVimApi(
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_get_text');
-        const startRow = lua.lua_tonumber(state, 2);
-        const startCol = lua.lua_tonumber(state, 3);
-        const endRow = lua.lua_tonumber(state, 4);
-        const endCol = lua.lua_tonumber(state, 5);
-        const lines = callbacks.getLines?.(startRow, endRow + 1) ?? [];
-        const result: string[] = [];
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i] ?? '';
-            if (i === 0 && i === lines.length - 1) {
-                line = line.substring(startCol, endCol);
-            } else if (i === 0) {
-                line = line.substring(startCol);
-            } else if (i === lines.length - 1) {
-                line = line.substring(0, endCol);
-            }
-            result.push(line);
-        }
-        lua.lua_newtable(state);
-        for (let i = 0; i < result.length; i++) {
-            lua.lua_pushstring(state, to_luastring(result[i] ?? ''));
-            lua.lua_rawseti(state, -2, i + 1);
-        }
-        return 1;
+        const [startRow, startCol, endRow, endCol] = readTextCoordinates(state);
+        return pushCoordinateResult(
+            state,
+            coordinates.readText(startRow, startCol, endRow, endCol),
+        );
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_text'));
 
@@ -3768,27 +3751,12 @@ export function injectVimApi(
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_set_text');
-        if (
-            !lua.lua_isnumber(state, 2) ||
-            !lua.lua_isnumber(state, 3) ||
-            !lua.lua_isnumber(state, 4) ||
-            !lua.lua_isnumber(state, 5)
-        ) {
-            return lauxlib.luaL_error(
-                state,
-                to_luastring(
-                    'nvim_buf_set_text: expected start_row, start_col, end_row, end_col numbers',
-                ),
-            );
-        }
-        const startRow = lua.lua_tonumber(state, 2);
-        const startCol = lua.lua_tonumber(state, 3);
-        const endRow = lua.lua_tonumber(state, 4);
-        const endCol = lua.lua_tonumber(state, 5);
+        const [startRow, startCol, endRow, endCol] = readTextCoordinates(state);
         const lines = getStringList(state, 6);
-        const text = lines.join('\n');
-        callbacks.replaceRange?.(text, startRow, startCol, endRow, endCol);
-        return 0;
+        return pushCoordinateResult(
+            state,
+            coordinates.writeText(startRow, startCol, endRow, endCol, lines),
+        );
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_set_text'));
 

@@ -7,6 +7,10 @@ import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
 import { STRING_COORDINATE_CASES } from '../../fixtures/neovim-string-coordinate-contract';
 import { observeStringCoordinate } from './string-coordinate-harness';
 import {
+    TEXT_READ_CASES,
+    TEXT_WRITE_CASES,
+} from '../../fixtures/neovim-text-coordinate-contract';
+import {
     COORD_LINE,
     COORD_LINES,
     COORD_SPANS,
@@ -22,7 +26,30 @@ import {
     runLuaString,
     runLuaError,
     readBuffer,
+    observeTextCoordinate,
 } from './coordinate-harness';
+
+describe('coordinate contract text bytes', () => {
+    for (const [api, cases] of [
+        ['vim.api.nvim_buf_get_text', TEXT_READ_CASES],
+        ['vim.api.nvim_buf_set_text', TEXT_WRITE_CASES],
+    ] as const) {
+        it.each(cases)('$name', (row) => {
+            const state = createCoordinateState(row.lines ?? [COORD_LINE]);
+            try {
+                const actual = row.error
+                    ? runLuaError(state.L, `return ${api}(${row.args})`)
+                    : observeTextCoordinate(state, api, row.args, row.rawBytes);
+                const expectedError = expect.stringContaining(row.expected);
+                expect(actual).toEqual(
+                    row.error ? expectedError : row.expected,
+                );
+            } finally {
+                destroyState(state.L);
+            }
+        });
+    }
+});
 
 describe('coordinate contract str family', () => {
     function containing(message: string) {

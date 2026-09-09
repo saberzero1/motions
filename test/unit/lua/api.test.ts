@@ -974,6 +974,8 @@ describe('vim api', () => {
                 onKeymap: () => {},
                 onKeymapDel: () => {},
                 replaceRange,
+                getLineCount: () => 1,
+                getLines: () => ['world'],
             });
             const status = lauxlib.luaL_dostring(
                 L,
@@ -2898,6 +2900,7 @@ describe('vim api', () => {
             getVaultName: () => 'vault',
             onKeymap: () => {},
             onKeymapDel: () => {},
+            getLineCount: () => 3,
             getLines: (start: number, end: number) => {
                 const lines = ['hello world', 'second line', 'third line'];
                 return lines.slice(start, end);

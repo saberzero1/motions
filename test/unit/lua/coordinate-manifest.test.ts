@@ -12,9 +12,12 @@ import {
     runLuaError,
     runLuaNumber,
     runLuaString,
+    observeTextCoordinate,
 } from './coordinate-harness';
 
 const REQUIRED = [
+    'vim.api.nvim_buf_get_text',
+    'vim.api.nvim_buf_set_text',
     'vim.api.nvim_buf_get_offset',
     'vim.fn.line2byte',
     'vim.fn.byte2line',
@@ -81,7 +84,7 @@ function generateCoordinateCases() {
 }
 
 describe('coordinate manifest coverage', () => {
-    it('requires exactly fifteen real registrations with complete metadata', () => {
+    it('requires exactly seventeen real registrations with complete metadata', () => {
         expect(assertCoordinateManifestCoverage()).toEqual({
             missing: [],
             extra: [],
@@ -102,7 +105,7 @@ describe('coordinate manifest conformance', () => {
             REQUIRED.every((name) => exercised.has(name))
         )
             process.stdout.write(
-                'coordinate manifest: 15/15 APIs exercised; 0 missing; 0 mismatches\n',
+                'coordinate manifest: 17/17 APIs exercised; 0 missing; 0 mismatches\n',
             );
     });
     for (const row of generateCoordinateCases()) {
@@ -121,6 +124,10 @@ describe('coordinate manifest conformance', () => {
         }
         it(row.title, () => {
             const state = createCoordinateState();
+            const textApi =
+                row.api.endsWith('nvim_buf_get_text') ||
+                row.api.endsWith('nvim_buf_set_text');
+            if (textApi) state.host.lines = [...(row.lines ?? [COORD_LINE])];
             state.host.cursor = { line: 3, col: 7 };
             for (const mark of ['a', '[', ']', '<', '>'])
                 state.host.marks.set(mark, { line: 2, ch: 6 });
@@ -134,6 +141,13 @@ describe('coordinate manifest conformance', () => {
                 let actual: string | number;
                 if (row.error) {
                     actual = runLuaError(state.L, `return ${call}`);
+                } else if (textApi) {
+                    actual = observeTextCoordinate(
+                        state,
+                        row.api,
+                        row.args,
+                        row.rawBytes,
+                    );
                 } else if (row.api.endsWith('nvim_win_set_cursor')) {
                     runLuaString(state.L, `${call}; return 'set'`);
                     actual = `${state.host.cursor.line}:${state.host.cursor.col}`;

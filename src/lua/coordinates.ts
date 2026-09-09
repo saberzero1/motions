@@ -198,6 +198,13 @@ export function displayToByteColumn(
 }
 
 interface CoordinateHost {
+    replaceRange?: (
+        text: string,
+        fromLine: number,
+        fromCol: number,
+        toLine: number,
+        toCol: number,
+    ) => void;
     getLines?: (start: number, end: number) => string[];
     getLineCount?: () => number;
     getCursorPosition?: () => { line: number; col: number } | null;
@@ -453,7 +460,120 @@ export function createNeovimCoordinateAdapter(
     }
     const eolBytes = () =>
         options.getBufferOption?.('fileformat') === 'dos' ? 2 : 1;
+    function textRange(
+        startRow: number,
+        startCol: number,
+        endRow: number,
+        endCol: number,
+        write: boolean,
+    ) {
+        for (const [name, index] of Object.entries({
+            start_row: startRow,
+            start_col: startCol,
+            end_row: endRow,
+            end_col: endCol,
+        })) {
+            if (!Number.isInteger(index))
+                return error(`Invalid '${name}': Number is not integral`);
+        }
+        const count = lineCount();
+        if (startRow < 0) startRow += count;
+        if (endRow < 0) endRow += count;
+        for (const [name, row] of [
+            ['start_row', startRow],
+            ['end_row', endRow],
+        ] as const) {
+            if (row < 0 || row >= count)
+                return error(
+                    write
+                        ? `Invalid '${name}': out of range`
+                        : 'Index out of bounds',
+                );
+        }
+        const lines = host.getLines?.(startRow, endRow + 1) ?? [];
+        const first = lines[0] ?? '';
+        const last = lines[lines.length - 1] ?? '';
+        const firstBytes = utf8Length(first);
+        const lastBytes = utf8Length(last);
+        if (startCol < 0) startCol += firstBytes + 1;
+        if (endCol < 0) endCol += lastBytes + 1;
+        // Reads clamp; writes MUST reject before converting to a host range.
+        if (write) {
+            if (startCol < 0 || startCol > firstBytes)
+                return error("Invalid 'start_col': out of range");
+            if (endCol < 0 || endCol > lastBytes)
+                return error("Invalid 'end_col': out of range");
+        } else {
+            startCol = Math.max(0, Math.min(startCol, firstBytes));
+            endCol = Math.max(0, Math.min(endCol, lastBytes));
+        }
+        if (startRow > endRow || (startRow === endRow && startCol > endCol))
+            return error(
+                write
+                    ? "'start' is higher than 'end'"
+                    : 'start_col must be less than or equal to end_col',
+            );
+        return value({
+            startRow,
+            startCol: byteColumn(startCol),
+            endRow,
+            endCol: byteColumn(endCol),
+            lines,
+            first,
+            last,
+        });
+    }
     return {
+        readText(
+            startRow: number,
+            startCol: number,
+            endRow: number,
+            endCol: number,
+        ): CoordinateResult<Uint8Array[]> {
+            const result = textRange(startRow, startCol, endRow, endCol, false);
+            if (result.kind === 'error') return result;
+            const range = result.value;
+            return value(
+                range.lines.map((line, index) => {
+                    const bytes = new TextEncoder().encode(line);
+                    return bytes.slice(
+                        index === 0 ? range.startCol : 0,
+                        index === range.lines.length - 1
+                            ? range.endCol
+                            : bytes.length,
+                    );
+                }),
+            );
+        },
+        writeText(
+            startRow: number,
+            startCol: number,
+            endRow: number,
+            endCol: number,
+            replacement: string[],
+        ): CoordinateResult<null> {
+            const result = textRange(startRow, startCol, endRow, endCol, true);
+            if (result.kind === 'error') return result;
+            const range = result.value;
+            const from = byteToUtf16(range.first, range.startCol);
+            // D5 deviation: expand an interior exclusive end to the end of its
+            // code point. Exact boundaries (including empty insertions) stay put.
+            const endSpan = buildCharSpans(range.last, true).find(
+                (span) =>
+                    range.endCol > span.byteStart &&
+                    range.endCol < span.byteEnd,
+            );
+            const to =
+                endSpan?.utf16End ?? byteToUtf16(range.last, range.endCol);
+            host.replaceRange?.(
+                replacement.join('\n'),
+                range.startRow,
+                from,
+                range.endRow,
+                to,
+            );
+            return value(null);
+        },
         stringByteIndex,
         stringUtfIndex,
         stringUtfStart(text: string, index: number): CoordinateResult<number> {

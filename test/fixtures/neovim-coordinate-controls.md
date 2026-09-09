@@ -1658,3 +1658,157 @@ released-content change is the permitted in-place historical 0.148.0 sentence
 correction (old line 250), not an appended feature or a duplicate heading.
 Final static/build/waiver command outcomes are reported by the executor after
 execution, not predicted here.
+
+## Remaining seams — Phase 1 text bytes (2026-09-09)
+
+Baseline: clean `19e807b`. Scope: text get/set only; D5 is binding. The literal
+fixtures are in `neovim-text-coordinate-contract.ts`. Each row is exercised
+through real Lua dispatch in both `coordinate-contract.test.ts` and the
+generated `coordinate-manifest.test.ts`; the same controls killed both copies.
+`F` below means `é→𝄞界\tZ`, with a literal tab. Ordinary write cases start with
+`[F]`; multiline cases start with `[F, '', F]`. No expected value is computed
+through the adapter. Raw reads are observed with Lua `string.byte` and rendered
+as hex, not decoded into a JS string.
+
+Commands (all from the repository root; all mutations applied and removed with
+`apply_patch`, never git undo):
+
+```bash
+# T0: original UTF-16 handlers, after adding the tests and host replacement mock
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'text bytes|nvim_buf_(get|set)_text'
+# T1: decode/re-encode byte slices; off-by-one read clamps
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'get_text.*(interior|past EOL)'
+# T2: write uses read bounds; raw byte splice instead of D5 normalization
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'set_text.*(D5|past EOL)'
+# T3: ASCII read begins one byte late, host write ends one unit early;
+# both manifest text names temporarily suffixed _MISSING
+npx vitest run test/unit/lua/api.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'nvim_buf_set_text calls replaceRange|should implement nvim_buf_get_text|requires exactly seventeen'
+# T4: adapter textRange line count temporarily zero
+npx vitest run test/unit/lua/api.test.ts -t 'nvim_buf_set_text calls replaceRange|should implement nvim_buf_get_text'
+```
+
+### Per-assertion observations
+
+The names below are the full fixture case names minus their `get_text` or
+`set_text` prefix. Every row is a separate assertion, so failures do not mask
+other parameter rows. T0 exited 1: **28 failed / 4 passed** (two copies of 16
+cases). T1 killed the two read-clamp cases that passed T0 as well as the raw read:
+**6 failed**, exit 1. T2: **10 failed**, exit 1.
+
+| API / case                                            | Control | Observed actual                                                     | Expected                                           |
+| ----------------------------------------------------- | ------- | ------------------------------------------------------------------- | -------------------------------------------------- |
+| get / native match accented byte span                 | T0      | `é→`                                                                | `é`                                                |
+| get / native match arrow byte span                    | T0      | `𝄞界`                                                               | `→`                                                |
+| get / native match astral byte span                   | T0      | `\tZ`                                                               | `𝄞`                                                |
+| get / interior raw bytes are a native match           | T0; T1  | hex `e28692eda0b4`; hex `efbfbdefbfbd` (two replacement characters) | hex `a9e2`                                         |
+| get / past EOL clamps natively unlike set_text        | T1      | `é→𝄞界\t`                                                           | `é→𝄞界\tZ`                                         |
+| get / native match multiline byte endpoints           | T0      | `\tZ\n\né→𝄞界\tZ`                                                   | `𝄞界\tZ\n\né→𝄞`                                    |
+| get / native match start past EOL clamps              | T1      | `Z`                                                                 | empty string                                       |
+| set / native match replaces accented span             | T0      | `X𝄞界\tZ`                                                           | `X→𝄞界\tZ`                                         |
+| set / native match empty range inserts                | T0      | `é→𝄞界X\tZ`                                                         | `é→X𝄞界\tZ`                                        |
+| set / past EOL errors natively unlike get_text        | T0; T2  | `success: nil`; T2 replaced the whole line with `X` (raw hex `58`)  | error contains `Invalid 'end_col': out of range`   |
+| set / native match exact byte length is valid         | T0      | `é→𝄞界\tZX`                                                         | `é→𝄞界\tX`                                         |
+| set / D5 deviation normalizes both interior endpoints | T0; T2  | `éX\udd1e界\tZ`; T2 host `\ufffdX\ufffd\ufffd𝄞界\tZ`                | `X𝄞界\tZ`                                          |
+| set / D5 deviation rounds interior start down         | T0; T2  | `é→𝄞界\tX`; T2 host `é→\ufffdX界\tZ`                                | `é→X界\tZ`                                         |
+| set / D5 deviation rounds interior end up             | T0; T2  | `é→𝄞界X`; T2 host `é→X\ufffd界\tZ`                                  | `é→X界\tZ`                                         |
+| set / native match multiline byte endpoints           | T0      | `é→𝄞界X\nY`                                                         | `é→X\nY界\tZ`                                      |
+| set / native match start past EOL errors              | T0; T2  | `success: nil`; T2 appended `X` to F                                | error contains `Invalid 'start_col': out of range` |
+
+T2 logged the actual invalid byte sequence before the host write:
+`c3588692f09d849ee7958c095a` for `(1,3)`,
+`c3a9e28692f058e7958c095a` for `(6,9)`, and
+`c3a9e28692589ee7958c095a` for `(5,8)`. The mutation passed these bytes through
+`TextDecoder` to `replaceRange`; the observed host strings above contain U+FFFD.
+This is the unrepresentability D5 addresses, **not** a claim that JS stored raw
+invalid UTF-8. The final implementation never takes that lossy path.
+
+T3 exited 1 with **3 failures**: ASCII replacement callback actually received
+`['hello',0,0,0,4]` versus `['hello',0,0,0,5]`; ASCII read returned `orld` versus
+`world`; manifest coverage actually had both text names in `missing` and their
+`_MISSING` variants in `extra`, versus empty lists. T4 exited 1 with **2 failures**:
+both existing API tests observed Lua status `2` versus expected `0`, independently
+of the content/callback assertions tested by T3. The existing ASCII tests only
+needed realistic `getLines`/`getLineCount` callbacks added; expectations stayed.
+
+### Restored results
+
+After restoring T0/T1, exact T0 ran at 17:02:02: **32 passed**, exit 0.
+After restoring T2, exact T2 ran at 17:02:33: **10 passed**, exit 0.
+After restoring T3, exact T3 ran at 17:02:58: **3 passed**, exit 0.
+After restoring T4, exact T4 ran at 17:03:29: **2 passed**, exit 0.
+No control mutations remain. Required final manifest/text/static/build/e2e gates
+are reported by the executor after execution, not predicted here.
+
+Additional native probes used `nvim --headless -u NONE -l /dev/stdin`, buffer
+`[F,'',F]`: get `(0,5,2,9)` returned `{'𝄞界\tZ','','é→𝄞'}`; get start/end 99
+returned `{''}` while set errored on `start_col`. Negative rows count from the
+end; negative columns add byte length plus one. Further probes showed get
+columns `-99` clamp to zero while set rejects them, and nonintegral columns
+raise `Invalid 'end_col': Number is not integral`. These measurements informed
+adapter bounds handling; they do not change any pinned plan contract.
+
+### T5 — strict numeric marshalling (review follow-up)
+
+Native 0.12.5 probes for both APIs confirmed start columns `nil`, `false`,
+`"0"`, and `{}` raise `Invalid 'start_col': Expected Lua number`, while `1.5`
+raises `Invalid 'start_col': Number is not integral`. Ten literal cases were
+added (five per API), each generated in both suites.
+
+Mutation: replace `readTextCoordinates`' scalar reader with
+`Math.trunc(lua.lua_tonumber(L,index))`, removing the Lua-type check and
+truncating fractions. Exact command:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'text bytes|rejects start_col'
+```
+
+At 17:06:33, **20 failed / 16 passed**, exit 1. Each of the ten new cases
+observed `success: nil`, versus the corresponding native error above; both
+generated copies failed. After restoring via `apply_patch`, exact command at
+17:06:43: **36 passed**, exit 0. Strict type checking belongs to the wire;
+integer and range validation remain in the coordinate adapter.
+
+### T6 — stale demand-audit text expectations (Phase 1 completion)
+
+The full-unit-suite follow-up exposed stale recorded semantic results, not
+additional implementation defects. Before editing the artifact, the complete
+`npx vitest run test/unit/lua/plugin-api-demand.test.ts` at 17:14:11 reported
+**3 failed / 153 passed**. Only `nvim_buf_set_text` (both plugins) and
+`nvim_buf_get_text` (mini.splitjoin) differed. Their categories remained `real`
+and their warning counts remained zero; no other name's status/result changed.
+
+Updated only those demand dispositions to `allow`, their literal `liveResults`,
+and the corresponding blocker records/lists in `mini-api-demand.json`. The
+existing test assertions, comparisons, source-site inventory, historical
+five-string-helper promotion checks, and BLOCKED verdicts are unchanged.
+
+For the negative control, restored the two stale `liveResults` via `apply_patch`
+while retaining the corrected dispositions and blocker lists. Re-ran the same
+complete audit command at 17:14:47: **3 failed / 153 passed**, exit 1. The guard
+still rejects wrong recorded results even when the declared blocker lists agree.
+
+| Assertion                                    | Observed actual                                    | Stale expected                                     |
+| -------------------------------------------- | -------------------------------------------------- | -------------------------------------------------- |
+| mini.surround / `vim.api.nvim_buf_set_text`  | `{category:'real', result:'é→é界\tZ', warnings:0}` | `{category:'real', result:'é→𝄞界é', warnings:0}`   |
+| mini.splitjoin / `vim.api.nvim_buf_set_text` | `{category:'real', result:'é→é界\tZ', warnings:0}` | `{category:'real', result:'é→𝄞界é', warnings:0}`   |
+| mini.splitjoin / `vim.api.nvim_buf_get_text` | `{category:'real', result:'["𝄞"]', warnings:0}`    | `{category:'real', result:'["\\tZ"]', warnings:0}` |
+
+Restored the corrected literals with `apply_patch`. Restoration is checked by
+the mandatory **full** `npm run test:unit` run, followed by `npm run verify`
+and `npm run build:dev`; final outcomes are reported after execution.
+
+Observed effective blocker lists (after the existing Phase 5b promotions):
+
+- mini.surround core before: `surround-highlight`, `echospace`, `getchar-context`,
+  `input-context-and-form`, `set-text-bytes`; after: `surround-highlight`,
+  `echospace`, `getchar-context`, `input-context-and-form`. No load blockers;
+  optional blockers unchanged. Verdict remains **BLOCKED**.
+- mini.splitjoin core before: `local-comments`, `set-text-bytes`, `getpos-bytes`,
+  `extmark-columns`; after: `local-comments`, `getpos-bytes`, `extmark-columns`.
+  Load blocker remains `string-expr-mapping`; verdict remains **BLOCKED**.
+  The same authorized `nvim_buf_get_text` correction removes its separately named
+  **optional** `get-text-bytes` blocker; no other optional blocker changes.
+
+Thus the **core** blocker delta is exactly `set-text-bytes` for each plugin.
+Full units are required before declaring any remaining phase complete;
+targeted tests plus `verify` do not substitute for the full suite.

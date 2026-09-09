@@ -53,6 +53,15 @@ export function createCoordinateState(
             getLineCount,
             getLines,
             setLines,
+            replaceRange: (text, fromLine, fromCol, toLine, toCol) => {
+                const before = (host.lines[fromLine] ?? '').slice(0, fromCol);
+                const after = (host.lines[toLine] ?? '').slice(toCol);
+                host.lines.splice(
+                    fromLine,
+                    toLine - fromLine + 1,
+                    ...(before + text + after).split('\n'),
+                );
+            },
             getCursorPosition: () => (host.loaded ? host.cursor : null),
             setCursorPosition: (line, col) => {
                 host.cursor = { line, col };
@@ -145,4 +154,23 @@ export function readBuffer(
     state: ReturnType<typeof createCoordinateState>,
 ): string[] {
     return [...state.host.lines];
+}
+
+export function observeTextCoordinate(
+    state: ReturnType<typeof createCoordinateState>,
+    api: string,
+    args: string,
+    rawBytes = false,
+): string {
+    const call = `${api}(${args})`;
+    if (api.endsWith('nvim_buf_set_text')) {
+        runLuaString(state.L, `${call}; return 'set'`);
+        return readBuffer(state).join('\n');
+    }
+    return runLuaString(
+        state.L,
+        rawBytes
+            ? `local s=table.concat(${call}, '\\n'); local bytes={}; for i=1,#s do bytes[i]=string.format('%02x',string.byte(s,i)) end; return table.concat(bytes)`
+            : `return table.concat(${call}, '\\n')`,
+    );
 }
