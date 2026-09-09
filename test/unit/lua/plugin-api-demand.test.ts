@@ -22,6 +22,7 @@ import {
 import { initTreesitterRuntime } from '../../../src/lua/treesitter/api';
 import { runLuaString } from './coordinate-harness';
 import { COORD_LINE } from '../../fixtures/neovim-coordinate-contract';
+import { STRING_COORDINATE_AUDIT_RESULTS } from '../../fixtures/neovim-string-coordinate-contract';
 
 type DemandRow = [
     Category,
@@ -58,6 +59,10 @@ const artifact = JSON.parse(
 ) as Artifact;
 const control = process.env.COORD_DEMAND_CONTROL;
 const sorted = (values: Iterable<string>) => [...values].sort();
+const originalSurroundBlockers = [
+    ...artifact.plugins['mini.surround']!.coreBlockers,
+];
+const stringObservations = new Map<string, ReturnType<typeof observeDemand>>();
 
 vi.mock(
     '../../../node_modules/web-tree-sitter/web-tree-sitter.wasm',
@@ -77,6 +82,75 @@ vi.mock(
 );
 beforeAll(async () => {
     await initTreesitterRuntime();
+    // Keep the committed Phase 5 artifact as historical evidence. Project only
+    // these five measured promotions into the live audit, and only when the
+    // real dispatch agrees with native values AND emits no warning. Neither
+    // callable presence nor a manually shortened blocker list can pass this.
+    for (const [name, native] of Object.entries(
+        STRING_COORDINATE_AUDIT_RESULTS,
+    )) {
+        const observed = observeDemand(
+            name,
+            silentProbes[name]!.probe,
+            control === 'promotions'
+                ? `${name}=function() return 0 end`
+                : undefined,
+        );
+        stringObservations.set(name, observed);
+        if (
+            observed.category !== 'real' ||
+            observed.result !== native ||
+            observed.warnings !== 0
+        )
+            continue;
+        const inventory = artifact.silentInventory[name]!;
+        inventory[0] = observed.category;
+        inventory[1] = observed.result;
+        artifact.liveResults[name] = observed.result;
+        for (const audit of Object.values(artifact.plugins)) {
+            const row = audit.demands[name];
+            if (!row) continue;
+            const blocker = row[5];
+            row[0] = observed.category;
+            row[5] = 'allow';
+            const stillRequired = Object.values(artifact.plugins).some(
+                (plugin) =>
+                    Object.values(plugin.demands).some(
+                        (demand) => demand[5] === blocker,
+                    ),
+            );
+            if (!stillRequired) {
+                delete artifact.blockers[blocker];
+                audit.coreBlockers = audit.coreBlockers.filter(
+                    (id) => id !== blocker,
+                );
+            }
+        }
+    }
+});
+
+describe('plugin API-demand audit Phase 5b promotions', () => {
+    for (const [name, result] of Object.entries(
+        STRING_COORDINATE_AUDIT_RESULTS,
+    )) {
+        it(name, () => {
+            expect(stringObservations.get(name)).toEqual({
+                category: 'real',
+                result,
+                warnings: 0,
+            });
+        });
+    }
+    it('removes exactly the two UTF core blockers', () => {
+        expect(
+            originalSurroundBlockers.filter(
+                (id) =>
+                    !artifact.plugins['mini.surround']!.coreBlockers.includes(
+                        id,
+                    ),
+            ),
+        ).toEqual(['utf-byteindex', 'utf-utfindex']);
+    });
 });
 
 function requireGo(verdict: string, unresolved: number, blockers: string[]) {
@@ -493,7 +567,7 @@ it('plugin API-demand audit exact blocker name sets', () => {
             ),
         ]),
     );
-    if (control === 'checklist') observed['utf-byteindex'] = [];
+    if (control === 'checklist') observed['set-text-bytes'] = [];
     expect(observed).toEqual(
         Object.fromEntries(
             Object.entries(artifact.blockers).map(([id, blocker]) => [
@@ -702,21 +776,20 @@ it('plugin API-demand audit rejects unrecognized registration syntax', () => {
 
 it('plugin API-demand audit source-derived silent candidates', () => {
     const candidates = collectSilentCandidates();
-    const expected = Object.entries(silentProbes).map(([name, entry]) => {
-        const path = entry.source.split(':')[0];
-        const member =
-            name === 'vim.treesitter.query.add_directive'
-                ? 'DirectiveHandler'
-                : path === 'src/lua/stdlib.ts'
-                  ? name
-                  : name.split('.').pop();
-        return `${path}#${member}`;
-    });
+    const expected = Object.entries(silentProbes)
+        .filter(([name]) => artifact.silentInventory[name]?.[0] === 'silent')
+        .map(([name, entry]) => {
+            const path = entry.source.split(':')[0];
+            const member =
+                name === 'vim.treesitter.query.add_directive'
+                    ? 'DirectiveHandler'
+                    : path === 'src/lua/stdlib.ts'
+                      ? name
+                      : name.split('.').pop();
+            return `${path}#${member}`;
+        });
     expected.push(...Object.keys(artifact.intentionalConstantCandidates));
     if (control === 'registry')
-        expected.splice(
-            expected.indexOf('src/lua/stdlib.ts#vim.str_utfindex'),
-            1,
-        );
+        expected.splice(expected.indexOf('src/lua/stdlib.ts#vim.iconv'), 1);
     expect(candidates).toEqual(sorted(expected));
 });

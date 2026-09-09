@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import type { CmAdapter } from '../../../src/types/vim-api';
 import { destroyState } from '../../../src/lua/engine';
 import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
+import { STRING_COORDINATE_CASES } from '../../fixtures/neovim-string-coordinate-contract';
+import { observeStringCoordinate } from './string-coordinate-harness';
 import {
     COORD_LINE,
     COORD_LINES,
@@ -21,6 +23,24 @@ import {
     runLuaError,
     readBuffer,
 } from './coordinate-harness';
+
+describe('coordinate contract str family', () => {
+    function containing(message: string) {
+        return expect.stringContaining(message);
+    }
+    for (const [name, rows] of Object.entries(STRING_COORDINATE_CASES)) {
+        for (const row of rows) {
+            it(`${name} ${row.name}`, () => {
+                expect(observeStringCoordinate(name, row)).toEqual({
+                    actual: row.error
+                        ? containing(String(row.expected))
+                        : row.expected,
+                    warnings: 0,
+                });
+            });
+        }
+    }
+});
 
 interface OracleColumns {
     col: number;

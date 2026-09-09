@@ -2,6 +2,7 @@ import {
     COLUMN_BOUNDARIES,
     DISPLAY_LOOKUPS,
 } from './neovim-coordinate-contract';
+import { STRING_COORDINATE_CASES } from './neovim-string-coordinate-contract';
 
 interface CoordinateCase {
     name: string;
@@ -9,6 +10,7 @@ interface CoordinateCase {
     expected: number | string;
     setup?: string;
     tuple?: boolean;
+    multiple?: boolean;
     error?: boolean;
     host?: 'unloaded' | 'empty' | 'linewise';
 }
@@ -70,6 +72,93 @@ const columnCases = (unit: 'byte' | 'character'): CoordinateCase[] => [
 ];
 
 export const COORDINATE_API_MANIFEST: CoordinateApiEntry[] = [
+    ...[
+        'str_byteindex',
+        'str_utfindex',
+        'str_utf_start',
+        'str_utf_end',
+        'str_utf_pos',
+    ].map((name): CoordinateApiEntry => ({
+        name: `vim.${name}`,
+        forms:
+            name === 'str_byteindex'
+                ? ['s,index[,use_utf16]', 's,encoding,index[,strict_indexing]']
+                : name === 'str_utfindex'
+                  ? [
+                        's[,byte_index] -> utf32,utf16',
+                        's,encoding[,byte_index[,strict_indexing]]',
+                    ]
+                  : name === 'str_utf_pos'
+                    ? ['s; extra arguments ignored']
+                    : ['s,byte_index; extra arguments ignored'],
+        inputUnit:
+            name === 'str_utf_pos'
+                ? 'UTF-8 string'
+                : name === 'str_byteindex'
+                  ? 'UTF-8 bytes / UTF-16 units / UTF-32 code points'
+                  : 'UTF-8 string and byte index',
+        outputUnit:
+            name === 'str_utfindex'
+                ? 'UTF-32 then UTF-16 in old form; selected encoding in modern form'
+                : name === 'str_utf_pos'
+                  ? 'code point byte starts'
+                  : 'bytes',
+        bases: {
+            input:
+                name === 'str_utf_pos'
+                    ? []
+                    : [
+                          name === 'str_utf_start' || name === 'str_utf_end'
+                              ? 1
+                              : 0,
+                      ],
+            output:
+                name === 'str_utfindex'
+                    ? [0, 0]
+                    : [name === 'str_utf_pos' ? 1 : 0],
+        },
+        direction:
+            name === 'str_utf_pos'
+                ? 'string to code point byte-start list'
+                : name === 'str_byteindex'
+                  ? 'encoding index to byte'
+                  : name === 'str_utfindex'
+                    ? 'byte to encoding index'
+                    : 'byte to relative code point boundary displacement',
+        invalid:
+            name === 'str_utf_pos'
+                ? 'no index argument'
+                : name === 'str_utf_start' || name === 'str_utf_end'
+                  ? 'bounds error; no strict-indexing argument'
+                  : 'bounds error; modern strict=false returns end; utf-8 negative identity',
+        typeError:
+            name === 'str_utf_pos'
+                ? 'string expected'
+                : name === 'str_utf_start' || name === 'str_utf_end'
+                  ? 'string/number expected'
+                  : 'string/number/encoding/strict-indexing validation errors',
+        empty:
+            name === 'str_utf_pos'
+                ? 'empty list'
+                : name === 'str_utf_start' || name === 'str_utf_end'
+                  ? 'bounds error'
+                  : 'index zero returns zero (two zeros in old utfindex)',
+        unloaded: 'string-only; buffer independent',
+        sentinel:
+            name === 'str_utf_pos'
+                ? 'none; EOL is not a code point start'
+                : name === 'str_utf_start' || name === 'str_utf_end'
+                  ? 'relative displacement, not absolute offset'
+                  : 'no sentinel; conversion rounds interior indices up',
+        operation: {
+            str_byteindex: 'stringByteIndex',
+            str_utfindex: 'stringUtfIndex',
+            str_utf_start: 'stringUtfStart',
+            str_utf_end: 'stringUtfEnd',
+            str_utf_pos: 'stringUtfPositions',
+        }[name]!,
+        cases: STRING_COORDINATE_CASES[name]!,
+    })),
     {
         name: 'vim.api.nvim_buf_get_offset',
         forms: ['buffer,index'],

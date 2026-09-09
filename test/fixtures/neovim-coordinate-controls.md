@@ -1337,3 +1337,204 @@ without async callbacks. Of the fn placeholders, 37 warn once; `system` and
 `systemlist` intentionally reject. Three API fallbacks have implicit nil
 return types (`nvim_buf_add_highlight`, `nvim_del_augroup_by_id`,
 `nvim_set_extmark`); they still warn once, not silently.
+
+# Phase 5b string-coordinate controls
+
+Executed 2026-09-09 from `/home/saberzero1/Repos/motions`, baseline `5ad6784`.
+Only Phase 5b is implemented. Phase 6/7 remain blocked; Phase 8 owns public
+documentation. The historical Phase 5 JSON artifact is deliberately unchanged.
+
+## Native contract and red-first evidence
+
+Native `nvim --headless -u NONE -i NONE` reported **0.12.5**. Measurements used
+`pcall(vim[name], s, unpack(args))` and preserved all return values in a table.
+The reviewed results were added to the plan's shared fixture specification
+**before implementing** any of the five handlers. Fixture **S** is
+`é→𝄞界\tZ`; **E** is its empty second line; **C** is S plus U+0301.
+
+- `str_utf_start(S,1..14)` → `[0,-1,0,-1,-2,0,-1,-2,-3,0,-1,-2,0,0]`.
+- `str_utf_end(S,1..14)` → `[1,0,2,1,0,3,2,1,0,2,1,0,0,0]`.
+- Both take **1-based bytes**, return **relative byte displacements**, reject
+  `-1/0/15/99` and E's index 1, accept numeric string `'7'`, truncate 1.5,
+  and ignore extra arguments (including `false`; it is not strictness).
+- `str_utf_pos(S)` → `[1,3,6,10,13,14]`, **1-based byte starts** of code points;
+  extra encoding/index arguments are ignored, E → `[]`, C →
+  `[1,3,6,10,13,14,15]`. No input index/base exists for this API.
+- Modern conversion strict=false maps negative/out-of-range UTF-16/32 indices
+  to the end; UTF-8 preserves negative identity. Old forms remain strict;
+  old byteindex's third argument selects UTF-16, not strictness. String
+  interior indices round **up**, unlike D4's editor cursor ingress.
+
+`npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'str family'`
+ran against the actual old stdlib placeholders: exit **1**, **182 failed,
+36 passed**, 161 unrelated cases excluded. Every observed warning count was
+**0**. Scalar placeholders produced 0, old multi-return cases produced the
+single value `"0"`, pos produced `""` (empty list). Invalid scalar calls
+produced `"success: 0"` instead of errors; pos's invalid-text call produced
+`"success: nil"`. The 36 zero/empty cases were subsequently killed by R below,
+not counted as red-first proof.
+
+`npx vitest run test/unit/lua/coordinate-manifest.test.ts -t 'coordinate manifest coverage'`
+exited **1** before JS registrations existed: unregistered was
+`['vim.str_byteindex','vim.str_utfindex','vim.str_utf_start','vim.str_utf_end','vim.str_utf_pos']`,
+expected `[]`. No missing/import errors were used as feature evidence.
+
+## Reproducible mutation commands
+
+All mutations below are confined to freshly injected, disposable Lua states;
+`finally` destroys the state and restores the warning spy after each row.
+No production sabotage is retained. Restoration is the same command without
+the `COORD_*_CONTROL` assignment; its results are recorded below.
+
+```bash
+# P: exact original silent placeholder; then restore by omitting the env assignment
+COORD_STR_CONTROL=placeholder npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'str_utfindex old byte 13 returns two values'
+# A: discard the old form's second return
+COORD_STR_CONTROL=single npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'str_utfindex old byte 13 returns two values'
+# U: send modern UTF-16 calls to UTF-32 instead
+COORD_STR_CONTROL=conflated npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'str_byteindex utf-16 unit 5'
+# R: replace each targeted handler with return 999 (or {999} for list rows)
+COORD_STR_CONTROL=results npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'str family|vim.str_' --reporter=json --outputFile=/tmp/opencode/phase5b-results.json
+# W: add one warning independently of the real result
+COORD_STR_CONTROL=warnings npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'str family|vim.str_' --reporter=json --outputFile=/tmp/opencode/phase5b-warnings.json
+# RW restoration (executed after each R and W run)
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'str family|vim.str_'
+# D: prevent all five live promotions via a disposable return-0 replacement
+COORD_DEMAND_CONTROL=promotions npx vitest run test/unit/lua/plugin-api-demand.test.ts -t 'Phase 5b promotions'
+# K: delete actual API bindings while retaining expected native classifications
+COORD_DEMAND_CONTROL=categories npx vitest run test/unit/lua/plugin-api-demand.test.ts -t 'vim.str_' --reporter=json --outputFile=/tmp/opencode/phase5b-categories.json
+# G: omit a still-silent candidate (iconv is NOT implemented in this phase)
+COORD_DEMAND_CONTROL=registry npx vitest run test/unit/lua/plugin-api-demand.test.ts -t 'source-derived silent candidates'
+# B: omit a still-required blocker name (set-text is NOT fixed in this phase)
+COORD_DEMAND_CONTROL=checklist npx vitest run test/unit/lua/plugin-api-demand.test.ts -t 'exact blocker name sets'
+# D/K/G/B restoration
+npx vitest run test/unit/lua/plugin-api-demand.test.ts -t 'plugin API-demand audit'
+```
+
+An initial P invocation used `-t 'str family > str_utfindex old byte 13 returns two values'`;
+Vitest's filter does not include `>` separators, so it selected **zero** tests.
+That invocation is **not evidence**. The corrected exact commands above ran
+the named assertions and failed as shown here.
+
+| Full case under `coordinate contract str family` | Fixture | Assertion                       | Observed actual        | Expected                | Command / exit | Restored result                           |
+| ------------------------------------------------ | ------- | ------------------------------- | ---------------------- | ----------------------- | -------------- | ----------------------------------------- |
+| `str_utfindex old byte 13 returns two values`    | S       | old return tuple and no warning | `"0"`, warnings **0**  | `"5:6"`, warnings **0** | P / 1          | same filter without env: 1 passed, exit 0 |
+| `str_utfindex old byte 13 returns two values`    | S       | both old returns retained       | `"5"`, warnings **0**  | `"5:6"`, warnings **0** | A / 1          | same filter without env: 1 passed, exit 0 |
+| `str_byteindex utf-16 unit 5`                    | S       | UTF-16 is not code points       | **13**, warnings **0** | **12**, warnings **0**  | U / 1          | same filter without env: 1 passed, exit 0 |
+
+## Every generated row: R and W records
+
+Both test files execute the **same 218 named fixture rows**, independently:
+
+- `test/unit/lua/coordinate-contract.test.ts` → `coordinate contract str family <API> <row.name>`.
+- `test/unit/lua/coordinate-manifest.test.ts` → `coordinate manifest conformance vim.<API> <row.name>`.
+
+`<API>`, each complete `row.name`, the exact S/E/C argument expression, and the
+literal expected result are recorded in `STRING_COORDINATE_CASES` in
+`test/fixtures/neovim-string-coordinate-contract.ts`. The following compact
+parameter-family records enumerate those names and literal values; numeric
+ranges denote **separate executed tests**, never a loop hidden behind an early
+assertion. Each row compares `{actual, warnings}` in one assertion.
+
+R exited **1**, **436 failed / 0 passed**; each scalar observed **999**, each
+old-return or list row observed **`"999"`**, each error row observed
+**`"success: 999"`**; all warning counts remained **0**. W exited **1**,
+**436 failed / 0 passed**: actual values matched the native values below, but
+each observed warning count was **1**, expected **0**. Both RW restorations
+exited **0**, **436 passed**, no selected case skipped. Reports reside at the
+explicit paths in R/W commands; the durable observations are the tables here.
+
+| API / full parameter-name family                                                    | Fixture / indices                                            | Expected values in parameter order (R actual as above; W actual equals this column)                                          |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `str_utfindex old omitted returns two values`                                       | S                                                            | `6:7`                                                                                                                        |
+| `str_utfindex old byte {i} returns two values`                                      | S, i=0..14                                                   | `0:0, 1:1, 1:1, 2:2, 2:2, 2:2, 3:4, 3:4, 3:4, 3:4, 4:5, 4:5, 4:5, 5:6, 6:7`                                                  |
+| `str_utfindex utf-16 byte {i}`                                                      | S, i=0..14                                                   | `[0,1,1,2,2,2,4,4,4,4,5,5,5,6,7]`                                                                                            |
+| `str_utfindex utf-32 byte {i}`                                                      | S, i=0..14                                                   | `[0,1,1,2,2,2,3,3,3,3,4,4,4,5,6]`                                                                                            |
+| `str_utfindex empty old` / `fractional old`                                         | E / S,1.5                                                    | `0:0` / `1:1`                                                                                                                |
+| `str_byteindex old code point {i}` / `old false code point {i}` / `utf-32 unit {i}` | S, i=0..6, each form separately                              | `[0,2,5,9,12,13,14]`                                                                                                         |
+| `str_byteindex old true UTF-16 unit {i}` / `utf-16 unit {i}`                        | S, i=0..7, each form separately                              | `[0,2,5,9,9,12,13,14]`                                                                                                       |
+| `str_byteindex empty old` / `fractional old`                                        | E / S,1.5                                                    | 0 / 2                                                                                                                        |
+| both converters: `{encoding} bounds {i} strict {flag}`                              | S; enc=utf-8/16/32; i=-1/99; flag=true/false, all 12 per API | true: `index out of range`, except utf-8,-1 → -1. false: byteindex → 14, utfindex utf-8/16/32 → 14/7/6, except utf-8,-1 → -1 |
+| both converters: `{encoding} omitted index`                                         | S; utf-8/16/32                                               | utfindex → 14/7/6; byteindex → error contains `index: expected number`                                                       |
+| both converters: `{encoding} empty`                                                 | E; utf-8/16/32,0                                             | 0                                                                                                                            |
+| both converters: `utf-8 identity {i}`                                               | S; i=0,1,6,13,14                                             | `[0,1,6,13,14]`                                                                                                              |
+| both converters: `old strict bounds {i}` / `default strict bounds`                  | S; i=-1/99; modern utf-16,99                                 | error contains `index out of range`                                                                                          |
+| both converters: `invalid encoding` / `invalid index` / `invalid strict`            | S; bad,1 / utf-16,false / utf-16,1,0                         | errors contain `invalid encoding` / `index: expected number` / `strict_indexing: expected boolean`                           |
+| both converters: `zero bypasses encoding` / `negative fraction`                     | S; bad,0 / utf-16,-0.5                                       | 0 / 0                                                                                                                        |
+| both converters: `fractional modern`                                                | S; utf-16,1.5                                                | utfindex → 1; byteindex → 2                                                                                                  |
+| `str_utf_start byte {i}`                                                            | S; i=1..14                                                   | `[0,-1,0,-1,-2,0,-1,-2,-3,0,-1,-2,0,0]`                                                                                      |
+| `str_utf_end byte {i}`                                                              | S; i=1..14                                                   | `[1,0,2,1,0,3,2,1,0,2,1,0,0,0]`                                                                                              |
+| start/end: `bounds {args}`                                                          | `S,-1`; `S,0`; `S,15`; `S,99`; `'',1`; `S .. '́',17`          | error contains `index out of range`, each                                                                                    |
+| start/end: `invalid index {args}` / `invalid text`                                  | `S`; `S,true`; `S,{}` / `{},1`                               | `number expected` / `string expected`                                                                                        |
+| start/end: `numeric string` / `extra false is ignored`                              | `S,'7'` / `S,7,false`                                        | start → -1; end → 2                                                                                                          |
+| start/end: `fraction truncates`                                                     | S,1.5                                                        | start → 0; end → 1                                                                                                           |
+| start/end: `composing first byte` / `composing last byte`                           | C,15 / C,16                                                  | start → 0/-1; end → 1/0                                                                                                      |
+| `str_utf_pos code point byte starts` / `ignored extra {arg}`                        | S; no extra, `'utf-16'`, `'utf-32'`, false, -1, 99           | `1:3:6:10:13:14`                                                                                                             |
+| `str_utf_pos empty` / `composing suffix` / `invalid text`                           | E / C / {}                                                   | `""` / `1:3:6:10:13:14:15` / error contains `string expected`                                                                |
+
+## Audit projection and guard evidence
+
+The first post-implementation Phase 5 audit exited **1**, **8 failures**:
+the two demanded conversions and five silent-inventory probes returned real
+native results instead of the historical silent values, and source discovery
+found **33** constant candidates instead of **38** (exactly the five removed
+placeholders). This is the guard working, not an excuse to change the JSON
+expectations. The live projection now promotes only dispatch observations
+matching the independently measured native fixture **and zero warnings**.
+The historical artifact, pins, source-site checklist, and unrelated blocker
+ownership are preserved.
+
+| Full case under `plugin API-demand audit Phase 5b promotions` | D observed actual                                                   | Expected                                   | Exit / restoration |
+| ------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------ | ------------------ |
+| `vim.str_byteindex`                                           | `silent; 0;0;0; warnings=0`                                         | `real; 13;12;13; warnings=0`               | 1 / 0              |
+| `vim.str_utfindex`                                            | `silent; 0;0;0;0; warnings=0`                                       | `real; 6,7;5,6;6;5; warnings=0`            | 1 / 0              |
+| `vim.str_utf_start`                                           | `silent; 0; warnings=0`                                             | `real; -1; warnings=0`                     | 1 / 0              |
+| `vim.str_utf_end`                                             | `silent; 0; warnings=0`                                             | `real; 2; warnings=0`                      | 1 / 0              |
+| `vim.str_utf_pos`                                             | `real; 0; warnings=0` (wrong non-placeholder result still rejected) | `real; [1,3,6,10,13,14]; warnings=0`       | 1 / 0              |
+| `removes exactly the two UTF core blockers`                   | `[]` removed                                                        | `['utf-byteindex','utf-utfindex']` removed | 1 / 0              |
+
+K: each of the seven affected existing category/inventory cases (two under
+`plugin API-demand audit category mini.surround`, all five under
+`plugin API-demand audit silent placeholder inventory`) observes **absent**,
+result `""`, warnings **0**, instead of **real** and the five native strings
+above. The five promotion cases remain real because K mutates each assertion's
+fresh sandbox, not the projection observations. K exits **1**.
+
+G: `plugin API-demand audit source-derived silent candidates` observed **33**
+candidates including `src/lua/stdlib.ts#vim.iconv`, expected **32** without it;
+exit **1**. Its old negative-control target was `str_utfindex`; it legitimately
+left the silent category, so the control now targets untouched `iconv`.
+B: `plugin API-demand audit exact blocker name sets` observed `set-text-bytes: []`,
+expected `set-text-bytes: ['vim.api.nvim_buf_set_text']`; exit **1**. Its old
+control target was the retired `utf-byteindex` blocker. This changes only the
+test sabotage, not the implementation or ownership of set-text.
+
+The restored full audit command exited **0**, **156 passed**, zero skipped:
+surround **61 names / 128 sites**, splitjoin **33 names / 58 sites**, zero
+uncovered/unresolved accesses or fixture-hash mismatches. Surround's core list
+shrunk from seven to exactly five: `surround-highlight`, `echospace`,
+`getchar-context`, `input-context-and-form`, `set-text-bytes`. Both plugins
+remain **BLOCKED**, not GO. No Phase 6/7 behavior suite was created or run.
+
+## Final QA observations
+
+After formatting with `npx prettier --write` on every changed/new file, the
+Phase 5b QA commands ran: manifest **387 passed**, reporting exactly
+**15/15 APIs exercised; 0 missing; 0 mismatches**; str family **218 passed**
+(161 unrelated cases excluded by the requested filter). Full
+`npm run test:unit`: **126 files passed, 3138 tests passed / 6 existing skipped**,
+an increase of **442** assertions (218 contract + 218 manifest + 6 audit).
+The existing stdlib-only regression suite also passed **43/43**.
+
+All nine touched TypeScript files received explicit `lsp_diagnostics` calls:
+**no diagnostics**. Both Markdown files were also explicitly requested;
+the tool reported **no Markdown LSP configured**. The ignored local plan
+contains the native specification; no public docs were edited.
+
+The first `npm run verify` attempt stopped at lint: the new contract test's
+conditional `expect.stringContaining(...)` matcher construction triggered
+`vitest/no-conditional-expect`. It was moved into the same unconditional
+matcher helper pattern already used by the manifest test; the assertion and
+all expected values are unchanged. No rule suppression or assertion-name
+allowlist was added. The subsequent gate/build result is reported by the
+executor rather than predicted here.

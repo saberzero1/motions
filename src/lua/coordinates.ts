@@ -234,6 +234,118 @@ const error = (message: string): CoordinateResult<never> => ({
     message,
 });
 
+type StringEncoding = 'utf-8' | 'utf-16' | 'utf-32';
+
+function stringIndexArguments(
+    text: string,
+    encoding: unknown,
+    index: unknown,
+    strict: unknown,
+    toByte: boolean,
+): CoordinateResult<{
+    encoding: StringEncoding;
+    index: number;
+    strict: boolean;
+    legacy: boolean;
+}> {
+    const legacy =
+        typeof encoding === 'number' || (!toByte && encoding == null);
+    if (legacy) {
+        const useUtf16 = index != null && index !== false;
+        return value({
+            encoding: toByte && useUtf16 ? 'utf-16' : 'utf-32',
+            index: typeof encoding === 'number' ? encoding : utf8Length(text),
+            strict: true,
+            legacy,
+        });
+    }
+    if (!toByte && index == null) index = utf8Length(text);
+    if (typeof index !== 'number') return error('index: expected number');
+    // Native short-circuits zero before validating encoding/strictness.
+    if (index === 0)
+        return value({ encoding: 'utf-8', index, strict: true, legacy });
+    if (encoding !== 'utf-8' && encoding !== 'utf-16' && encoding !== 'utf-32')
+        return error('invalid encoding');
+    if (strict != null && typeof strict !== 'boolean')
+        return error('strict_indexing: expected boolean');
+    return value({ encoding, index, strict: strict !== false, legacy });
+}
+
+/** Unlike editor cursor ingress, string conversions round interior positions
+ * UP. Both directions still use the one shared code-point span codec. */
+function stringByteIndex(
+    text: string,
+    encoding: unknown,
+    index: unknown,
+    strict: unknown,
+): CoordinateResult<number> {
+    const args = stringIndexArguments(text, encoding, index, strict, true);
+    if (args.kind === 'error') return args;
+    const input = args.value;
+    const bytes = utf8Length(text);
+    if (input.encoding === 'utf-8')
+        return input.index <= bytes || !input.strict
+            ? value(Math.min(input.index, bytes))
+            : error('index out of range');
+    const spans = buildCharSpans(text, true);
+    const col = Math.trunc(input.index);
+    const length = input.encoding === 'utf-16' ? text.length : spans.length;
+    if (!Number.isFinite(col) || col < 0 || col > length)
+        return input.strict ? error('index out of range') : value(bytes);
+    if (col === 0) return value(0);
+    const span =
+        input.encoding === 'utf-16'
+            ? spans.find((entry) => entry.utf16End >= utf16Column(col))
+            : spans[charColumn(col) - 1];
+    return value(span?.byteEnd ?? bytes);
+}
+
+function stringUtfIndex(
+    text: string,
+    encoding: unknown,
+    index: unknown,
+    strict: unknown,
+): CoordinateResult<number[]> {
+    const args = stringIndexArguments(text, encoding, index, strict, false);
+    if (args.kind === 'error') return args;
+    const input = args.value;
+    const bytes = utf8Length(text);
+    if (input.encoding === 'utf-8')
+        return input.index <= bytes || !input.strict
+            ? value([Math.min(input.index, bytes)])
+            : error('index out of range');
+    const col = byteColumn(Math.trunc(input.index));
+    const spans = buildCharSpans(text, true);
+    const invalid = !Number.isFinite(col) || col < 0 || col > bytes;
+    if (invalid && input.strict) return error('index out of range');
+    const count = invalid
+        ? spans.length
+        : spans.filter((entry) => entry.byteStart < col).length;
+    const units = spans[count - 1]?.utf16End ?? 0;
+    return value(
+        input.legacy
+            ? [count, units]
+            : [input.encoding === 'utf-16' ? units : count],
+    );
+}
+
+function stringUtfBoundary(
+    text: string,
+    index: number,
+    end: boolean,
+): CoordinateResult<number> {
+    // Lua's native functions accept numeric strings/fractions; the wire reads
+    // the number and the adapter owns its one-based normalization.
+    const col = byteColumn(Math.trunc(index) - 1);
+    if (!Number.isFinite(col) || col < 0 || col >= utf8Length(text))
+        return error('index out of range');
+    const span = buildCharSpans(text, true).find(
+        (entry) => col < entry.byteEnd,
+    );
+    if (!span) return error('index out of range');
+    return value(end ? span.byteEnd - 1 - col : span.byteStart - col);
+}
+
 export function createNeovimCoordinateAdapter(
     host: CoordinateHost,
     options: CoordinateOptions = {},
@@ -342,6 +454,17 @@ export function createNeovimCoordinateAdapter(
     const eolBytes = () =>
         options.getBufferOption?.('fileformat') === 'dos' ? 2 : 1;
     return {
+        stringByteIndex,
+        stringUtfIndex,
+        stringUtfStart(text: string, index: number): CoordinateResult<number> {
+            return stringUtfBoundary(text, index, false);
+        },
+        stringUtfEnd(text: string, index: number): CoordinateResult<number> {
+            return stringUtfBoundary(text, index, true);
+        },
+        stringUtfPositions(text: string): number[] {
+            return buildCharSpans(text, true).map((span) => span.byteStart + 1);
+        },
         bufferOffset(index: number): CoordinateResult<number> {
             if (lineCount() === 0) return value(-1);
             if (!Number.isInteger(index) || index < 0 || index > lineCount())

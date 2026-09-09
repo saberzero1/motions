@@ -8,6 +8,7 @@ import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
 import { injectVimFn, type VimFnCallbacks } from '../../../src/lua/fn';
 import { AutocmdManager } from '../../../src/lua/autocmd';
+import { injectStdlib } from '../../../src/lua/stdlib';
 import { COORD_LINES } from '../../fixtures/neovim-coordinate-contract';
 import type { CmAdapter } from '../../../src/types/vim-api';
 
@@ -92,6 +93,7 @@ export function createCoordinateState(
             getOption: () => undefined,
             ...fnCallbacks,
         });
+        injectStdlib(L);
         return { L, host };
     } catch (error) {
         destroyState(L);

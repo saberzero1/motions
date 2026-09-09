@@ -1,6 +1,12 @@
 import { lua, lauxlib, to_jsstring, to_luastring } from '../lib/fengari';
 import type { lua_State } from '../lib/fengari';
 import { evalLua } from './engine';
+import { createNeovimCoordinateAdapter } from './coordinates';
+import {
+    readCoordinateArgument,
+    pushCoordinateResult,
+    pushCoordinateTuple,
+} from './coordinate-wire';
 
 type LuaTableEntry = {
     key: string | number;
@@ -1052,31 +1058,6 @@ if not vim.version.parse then
     })
 end
 
-if not vim.str_byteindex then
-    function vim.str_byteindex(s, ...)
-        return 0
-    end
-end
-if not vim.str_utfindex then
-    function vim.str_utfindex(s, ...)
-        return 0
-    end
-end
-if not vim.str_utf_start then
-    function vim.str_utf_start(s, index)
-        return 0
-    end
-end
-if not vim.str_utf_end then
-    function vim.str_utf_end(s, index)
-        return 0
-    end
-end
-if not vim.str_utf_pos then
-    function vim.str_utf_pos(s, encoding)
-        return {}
-    end
-end
 if not vim.iconv then
     function vim.iconv(str, from, to)
         return str
@@ -1158,4 +1139,73 @@ export function injectStdlib(L: lua_State): void {
     lua.lua_setfield(L, jsonIndex, to_luastring('decode'));
 
     lua.lua_pop(L, 2);
+    injectStringCoordinates(L);
+}
+
+function injectStringCoordinates(L: lua_State): void {
+    const coordinates = createNeovimCoordinateAdapter({});
+    lua.lua_getglobal(L, to_luastring('vim'));
+    const vimIndex = lua.lua_gettop(L);
+    lua.lua_pushjsfunction(L, (L: lua_State) => {
+        const result = coordinates.stringByteIndex(
+            to_jsstring(lauxlib.luaL_checkstring(L, 1)),
+            readCoordinateArgument(L, 2),
+            readCoordinateArgument(L, 3),
+            readCoordinateArgument(L, 4),
+        );
+        if (result.kind === 'error')
+            return lauxlib.luaL_error(L, to_luastring(result.message));
+        pushStringIndex(L, result.value);
+        return 1;
+    });
+    lua.lua_setfield(L, vimIndex, to_luastring('str_byteindex'));
+    lua.lua_pushjsfunction(L, (L: lua_State) => {
+        const result = coordinates.stringUtfIndex(
+            to_jsstring(lauxlib.luaL_checkstring(L, 1)),
+            readCoordinateArgument(L, 2),
+            readCoordinateArgument(L, 3),
+            readCoordinateArgument(L, 4),
+        );
+        if (result.kind === 'error')
+            return lauxlib.luaL_error(L, to_luastring(result.message));
+        for (const index of result.value) pushStringIndex(L, index);
+        return result.value.length;
+    });
+    lua.lua_setfield(L, vimIndex, to_luastring('str_utfindex'));
+    lua.lua_pushjsfunction(L, (L: lua_State) =>
+        pushCoordinateResult(
+            L,
+            coordinates.stringUtfStart(
+                to_jsstring(lauxlib.luaL_checkstring(L, 1)),
+                lauxlib.luaL_checknumber(L, 2),
+            ),
+        ),
+    );
+    lua.lua_setfield(L, vimIndex, to_luastring('str_utf_start'));
+    lua.lua_pushjsfunction(L, (L: lua_State) =>
+        pushCoordinateResult(
+            L,
+            coordinates.stringUtfEnd(
+                to_jsstring(lauxlib.luaL_checkstring(L, 1)),
+                lauxlib.luaL_checknumber(L, 2),
+            ),
+        ),
+    );
+    lua.lua_setfield(L, vimIndex, to_luastring('str_utf_end'));
+    lua.lua_pushjsfunction(L, (L: lua_State) => {
+        pushCoordinateTuple(
+            L,
+            coordinates.stringUtfPositions(
+                to_jsstring(lauxlib.luaL_checkstring(L, 1)),
+            ),
+        );
+        return 1;
+    });
+    lua.lua_setfield(L, vimIndex, to_luastring('str_utf_pos'));
+    lua.lua_pop(L, 1);
+}
+
+function pushStringIndex(L: lua_State, index: number): void {
+    if (Number.isInteger(index)) lua.lua_pushinteger(L, index);
+    else lua.lua_pushnumber(L, index);
 }

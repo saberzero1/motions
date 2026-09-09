@@ -6,6 +6,7 @@ import {
     DEFERRED_COORDINATE_APIS,
 } from '../../fixtures/neovim-coordinate-api-manifest';
 import { COORD_LINE } from '../../fixtures/neovim-coordinate-contract';
+import { observeStringCoordinate } from './string-coordinate-harness';
 import {
     createCoordinateState,
     runLuaError,
@@ -24,6 +25,11 @@ const REQUIRED = [
     'vim.fn.charcol',
     'vim.fn.virtcol',
     'vim.fn.virtcol2col',
+    'vim.str_byteindex',
+    'vim.str_utfindex',
+    'vim.str_utf_start',
+    'vim.str_utf_end',
+    'vim.str_utf_pos',
 ];
 
 function containing(message: string) {
@@ -34,12 +40,17 @@ function assertCoordinateManifestCoverage() {
     const names = COORDINATE_API_MANIFEST.map((entry) => entry.name);
     const api = readFileSync('src/lua/api.ts', 'utf8');
     const fn = readFileSync('src/lua/fn.ts', 'utf8');
+    const stdlib = readFileSync('src/lua/stdlib.ts', 'utf8');
     return {
         missing: REQUIRED.filter((name) => !names.includes(name)),
         extra: names.filter((name) => !REQUIRED.includes(name)),
         duplicate: names.filter((name, index) => names.indexOf(name) !== index),
         unregistered: REQUIRED.filter((name) => {
             const short = name.split('.').pop()!;
+            if (name.startsWith('vim.str_'))
+                return !stdlib.includes(
+                    `lua.lua_setfield(L, vimIndex, to_luastring('${short}'))`,
+                );
             return name.startsWith('vim.fn.')
                 ? !fn.includes(`registry.set('${short}',`)
                 : !api.includes(
@@ -70,7 +81,7 @@ function generateCoordinateCases() {
 }
 
 describe('coordinate manifest coverage', () => {
-    it('requires exactly ten real registrations with complete metadata', () => {
+    it('requires exactly fifteen real registrations with complete metadata', () => {
         expect(assertCoordinateManifestCoverage()).toEqual({
             missing: [],
             extra: [],
@@ -91,10 +102,23 @@ describe('coordinate manifest conformance', () => {
             REQUIRED.every((name) => exercised.has(name))
         )
             process.stdout.write(
-                'coordinate manifest: 10/10 APIs exercised; 0 missing; 0 mismatches\n',
+                'coordinate manifest: 15/15 APIs exercised; 0 missing; 0 mismatches\n',
             );
     });
     for (const row of generateCoordinateCases()) {
+        if (row.api.startsWith('vim.str_')) {
+            it(row.title, () => {
+                expect(observeStringCoordinate(row.api.slice(4), row)).toEqual({
+                    actual: row.error
+                        ? containing(String(row.expected))
+                        : row.expected,
+                    warnings: 0,
+                });
+                exercised.add(row.api);
+                completed++;
+            });
+            continue;
+        }
         it(row.title, () => {
             const state = createCoordinateState();
             state.host.cursor = { line: 3, col: 7 };
