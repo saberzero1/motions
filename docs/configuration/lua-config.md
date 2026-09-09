@@ -171,6 +171,10 @@ You can also manually trigger a reload of all configuration files (both Lua and 
 
 On desktop, you can open your active configuration files in your system's default external editor using the **Vim Motions: Open configuration in default editor** command. This will open both `init.lua` and `.obsidian.vimrc` if both are enabled and found.
 
+To manage your modules from your file manager instead, use **Vim Motions: Open configuration directory in system explorer**. It reveals the folder containing your active configuration with the configuration file itself selected, which is the same folder `require()` searches for a `lua/` directory. When both a Lua and a vimrc configuration are active in the same folder, it is revealed once.
+
+Both commands work whether your configuration lives inside the vault or outside it — an out-of-vault path found through **Global config search** is opened through the operating system directly.
+
 ## Supported APIs
 
 The registered API surface includes 69 real `vim.api.nvim_*` implementations and 92 real `vim.fn.*` implementations with all async callbacks (89 without them). API real/stub/total counts are 69/88/157; fn counts are 92/39/131, or 89/39/128 without the runner. `api-status-counts.test.ts` guards these registries against `NEOVIM_API_STATUS.md` from source. Real handlers can still have limitations; callable presence does not establish plugin compatibility.

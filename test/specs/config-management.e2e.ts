@@ -89,6 +89,17 @@ async function commandExists(commandId: string): Promise<boolean> {
     }, commandId)) as boolean;
 }
 
+async function commandName(commandId: string): Promise<string | null> {
+    return (await browser.executeObsidian(({ app }, id: string) => {
+        const cmds = (
+            app as unknown as {
+                commands: { commands: Record<string, { name?: string }> };
+            }
+        ).commands.commands;
+        return cmds[`vim-motions:${id}`]?.name ?? null;
+    }, commandId)) as string | null;
+}
+
 describe('Config management commands (#168)', function () {
     describe('reload-configuration command', function () {
         before(async function () {
@@ -335,6 +346,68 @@ describe('Config management commands (#168)', function () {
                 }
             })) as string | null;
             expect(error).toBeNull();
+        });
+    });
+
+    describe('open-configuration-directory command (#182)', function () {
+        before(async function () {
+            this.timeout(30000);
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+            await browser.pause(2000);
+        });
+
+        it('should be registered as a command', async function () {
+            const exists = await commandExists('open-configuration-directory');
+            expect(exists).toBe(true);
+        });
+
+        it('should appear in the palette as the name requested in #182', async function () {
+            const name = await commandName('open-configuration-directory');
+            expect(name).toBe(
+                'Vim Motions: Open configuration directory in system explorer',
+            );
+        });
+
+        it('should be distinct from the open-configuration command', async function () {
+            const directoryName = await commandName(
+                'open-configuration-directory',
+            );
+            const fileName = await commandName('open-configuration');
+            expect(fileName).toBe(
+                'Vim Motions: Open configuration in default editor',
+            );
+            // Without this, a missing command yields null, and null !== fileName
+            // would satisfy the inequality below while proving nothing.
+            expect(directoryName).not.toBeNull();
+            expect(directoryName).not.toBe(fileName);
+        });
+
+        it('should execute without throwing when a config file is present', async function () {
+            await obsidianPage.write('.obsidian.vimrc', 'nmap L $\n');
+            await browser.pause(300);
+
+            const result = (await browser.executeObsidian(({ app }) => {
+                try {
+                    const executed = (
+                        app as unknown as {
+                            commands: {
+                                executeCommandById(id: string): boolean;
+                            };
+                        }
+                    ).commands.executeCommandById(
+                        'vim-motions:open-configuration-directory',
+                    );
+                    return { executed, error: null as string | null };
+                } catch (e) {
+                    return { executed: false, error: String(e) };
+                }
+            })) as { executed: boolean; error: string | null };
+
+            expect(result.error).toBeNull();
+            // executeCommandById returns false for an unknown id rather than
+            // throwing, so the error check alone cannot detect a missing command.
+            expect(result.executed).toBe(true);
         });
     });
 });

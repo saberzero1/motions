@@ -241,3 +241,26 @@ export async function openExternalPath(filePath: string): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Reveal an *absolute* filesystem path in the OS file manager, opening its
+ * containing folder with the item selected.
+ *
+ * The in-vault counterpart is `App.showInFolder()`, which is vault-relative
+ * for the same reason `openWithDefaultApp()` is and cannot reach outside it.
+ *
+ * Desktop-only — returns `false` on mobile or when Electron is unavailable.
+ */
+export function revealExternalPath(filePath: string): boolean {
+    if (!Platform.isDesktop) return false;
+
+    const shell = getElectronShell();
+    if (!shell) return false;
+
+    try {
+        shell.showItemInFolder(expandTilde(filePath));
+        return true;
+    } catch {
+        return false;
+    }
+}

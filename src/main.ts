@@ -246,7 +246,11 @@ import {
     setAutocmdEventHoldDelay,
 } from './vim/autocmd-event-watcher';
 import { expandTilde } from './util/external-fs';
-import { openPathInDefaultApp } from './util/open-path';
+import {
+    openPathInDefaultApp,
+    parentDirOf,
+    revealPathInSystemExplorer,
+} from './util/open-path';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
 import { isInsideInlineNodeType } from './treesitter/js-api';
@@ -1719,6 +1723,17 @@ export default class VimMotionsPlugin extends Plugin {
                 if (checking) return true;
                 if (!ensureVimEnabled()) return false;
                 void this.openConfigInDefaultEditor();
+                return true;
+            },
+        });
+        this.addCommand({
+            id: 'open-configuration-directory',
+            name: 'Open configuration directory in system explorer',
+            checkCallback: (checking) => {
+                if (Platform.isMobile) return false;
+                if (checking) return true;
+                if (!ensureVimEnabled()) return false;
+                void this.openConfigDirectory();
                 return true;
             },
         });
@@ -4275,7 +4290,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
-    private async openConfigInDefaultEditor(): Promise<void> {
+    private async resolveActiveConfigPaths(): Promise<string[]> {
         const paths: string[] = [];
 
         if (this.vimrcEnabled) {
@@ -4298,6 +4313,12 @@ export default class VimMotionsPlugin extends Plugin {
             if (found) paths.push(path);
         }
 
+        return paths;
+    }
+
+    private async openConfigInDefaultEditor(): Promise<void> {
+        const paths = await this.resolveActiveConfigPaths();
+
         if (paths.length === 0) {
             new Notice('Vim Motions: no configuration files found.');
             return;
@@ -4306,6 +4327,25 @@ export default class VimMotionsPlugin extends Plugin {
         for (const p of paths) {
             if (!(await openPathInDefaultApp(this.app, p))) {
                 new Notice(`Vim Motions: could not open ${p}`);
+            }
+        }
+    }
+
+    private async openConfigDirectory(): Promise<void> {
+        const paths = await this.resolveActiveConfigPaths();
+
+        if (paths.length === 0) {
+            new Notice('Vim Motions: no configuration files found.');
+            return;
+        }
+
+        const revealed = new Set<string>();
+        for (const p of paths) {
+            const dir = parentDirOf(p);
+            if (revealed.has(dir)) continue;
+            revealed.add(dir);
+            if (!revealPathInSystemExplorer(this.app, p)) {
+                new Notice(`Vim Motions: could not reveal ${p}`);
             }
         }
     }

@@ -362,6 +362,8 @@ You can also manually trigger a reload of all configuration files (both vimrc an
 
 On desktop, you can open your active configuration files in your system's default external editor using the **Vim Motions: Open configuration in default editor** command. This will open both `.obsidian.vimrc` and `init.lua` if both are enabled and found.
 
+To open the folder holding those files in your system file manager instead, use **Vim Motions: Open configuration directory in system explorer**. The configuration file itself is selected inside the folder. Both commands work whether your configuration lives inside the vault or outside it.
+
 ## Known issues
 
 - `nmap L $` and similar mappings may not apply if the vimrc file encounters I/O timing issues — reload the plugin as a workaround
