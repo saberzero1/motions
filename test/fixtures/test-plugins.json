@@ -1,7 +1,7 @@
 [
     {
         "repo": "echasnovski/mini.comment",
-        "ref": "main",
+        "ref": "27a29d6b949b9497f80a0a03421e89fed71d8c37",
         "files": ["lua/mini/comment.lua"]
     },
     {
