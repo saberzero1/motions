@@ -325,27 +325,31 @@ describe('Config management commands (#168)', function () {
             expect(exists).toBe(true);
         });
 
-        it('should not throw when executed with a config file present', async function () {
+        it('should execute without throwing when a config file is present', async function () {
             await obsidianPage.write('.obsidian.vimrc', 'nmap L $\n');
             await browser.pause(300);
 
-            const error = (await browser.executeObsidian(({ app }) => {
+            const result = (await browser.executeObsidian(({ app }) => {
                 try {
-                    (
+                    const executed = (
                         app as unknown as {
                             commands: {
-                                executeCommandById(id: string): void;
+                                executeCommandById(id: string): boolean;
                             };
                         }
                     ).commands.executeCommandById(
                         'vim-motions:open-configuration',
                     );
-                    return null;
+                    return { executed, error: null as string | null };
                 } catch (e) {
-                    return String(e);
+                    return { executed: false, error: String(e) };
                 }
-            })) as string | null;
-            expect(error).toBeNull();
+            })) as { executed: boolean; error: string | null };
+
+            expect(result.error).toBeNull();
+            // executeCommandById returns false for an unknown id rather than
+            // throwing, so the error check alone cannot detect a missing command.
+            expect(result.executed).toBe(true);
         });
     });
 

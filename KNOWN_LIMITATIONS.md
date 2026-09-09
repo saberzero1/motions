@@ -440,6 +440,16 @@ A custom path can be set via **Settings → Vim Motions → Vimrc & key bindings
 
 Changing the custom path in settings triggers `reloadFeatures()` (the path is in `RELOAD_KEYS`), but a full vimrc re-parse requires reloading the plugin — the same limitation as editing the vimrc file itself.
 
+### Configuration commands are desktop only
+
+**Vim Motions: Open configuration in default editor** and **Vim Motions: Open configuration directory in system explorer** are both hidden on mobile. The two have different reasons, and only one of them is a platform limit.
+
+**Open configuration directory in system explorer** cannot work on mobile. Obsidian's `App.showInFolder()` wraps its entire body in an `isDesktopApp` check and has no mobile branch, so calling it on mobile is a silent no-op — not an error, and not something the plugin can detect from the return value, since it returns `void`. Underneath it resolves to Electron's `shell.showItemInFolder`, which does not exist on iOS or Android, and neither Obsidian nor Capacitor exposes a "reveal this file in the system file manager" API on either platform. There is nothing to fall back to, so the command is hidden rather than offered as a no-op. ([#182](https://github.com/saberzero1/motions/issues/182))
+
+**Open configuration in default editor** is desktop-only by the plugin's choice, not by platform constraint. `App.openWithDefaultApp()` _does_ have a mobile branch — it calls `CapacitorAdapter.open()` and surfaces a notice on failure. The command stays gated because the main reason to open a configuration externally is an out-of-vault file, and out-of-vault paths cannot be read on mobile at all (see **External paths** above); a mobile user would be left with a command that only ever works for vault-relative configurations that Obsidian can already open.
+
+On desktop, both commands handle vault-relative and out-of-vault configurations. Neither Obsidian API accepts an absolute path — both join their argument onto the vault base path — so absolute paths are routed through Electron's `shell.openPath` / `shell.showItemInFolder` instead.
+
 ### Config load notifications
 
 On startup, the plugin shows an Obsidian Notice when vimrc or init.lua files are loaded. The notification behavior depends on the configuration mode and file state:
