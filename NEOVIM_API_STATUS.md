@@ -2,51 +2,67 @@
 
 This document tracks the implementation status of every Neovim API function in the plugin's Lua subsystem, based on **Neovim 0.12.5** (the version used for golden test recording). Use it to identify gaps, prioritize work, and measure progress toward plugin compatibility.
 
-Every function listed here exists in Neovim 0.12. Functions not yet implemented are generally registered as stubs so a plugin that calls them does not crash outright — but see the note below on why a stub is not automatically the safer choice.
+The tables cover Neovim 0.12 and explicitly noted legacy compatibility names in the shim registry. Functions not yet implemented are generally registered as stubs so a plugin that calls them does not crash outright — but see the note below on why a stub is not automatically the safer choice.
 
 **Legend:**
 
-| Symbol | Meaning                                                                                        |
-| ------ | ---------------------------------------------------------------------------------------------- |
-| ✅     | Fully implemented                                                                              |
-| ⚠️     | Implemented with limitations (see notes)                                                       |
-| 🔲     | **Registered stub** — callable, warns once, returns a type-shaped placeholder. Does not error. |
-| ❌     | **Not registered** — calling it raises a Lua error                                             |
-| 🚫     | Not applicable (no Obsidian equivalent)                                                        |
+| Symbol | Meaning                                                                                              |
+| ------ | ---------------------------------------------------------------------------------------------------- |
+| ✅     | Fully implemented                                                                                    |
+| ⚠️     | Implemented with limitations (see notes)                                                             |
+| 🔲     | **Registered stub** — callable, warns once, returns a type-shaped placeholder. Does not error.       |
+| ❌     | **Not registered** — calling it raises a Lua error                                                   |
+| 🚫     | Not applicable (no Obsidian equivalent)                                                              |
+| 🔇     | **Silent placeholder** — callable identity/constant/no-op with no warning; not a real implementation |
 
 > [!important]
 > `🔲` and `❌` are very different failure modes. A `🔲` stub returns a plausible-looking value (`0`, `''`, `{}`, `false`, `nil`), so a plugin calling it **silently misbehaves** rather than failing loudly. For example, `vim.fn.search()` returns `0`, which is indistinguishable from "pattern not found" — a plugin relying on it silently finds nothing. When triaging a plugin that "does nothing", check the console for `is not implemented` warnings before assuming the API is missing.
+
+`🔇` is worse for diagnosis than a warn-once stub: it leaves **no console trace**. The twelve placeholders audited at the pre-work `src/lua/stdlib.ts:1055-1111` are inventoried below under String utilities. Five (`str_byteindex`, `str_utfindex`, `str_utf_start`, `str_utf_end`, `str_utf_pos`) now have real handlers; seven (`iconv`, `uri_decode`, `uri_encode`, `uri_from_bufnr`, `uri_from_fname`, `uri_to_bufnr`, `uri_to_fname`) remain silent. Callable presence is not compatibility evidence.
 
 ## How dispatch works
 
 Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. Knowing which tier a function falls into tells you what happens when a plugin calls it.
 
-**`vim.api`** (`src/lua/api.ts:3605-3663`):
+**`vim.api`** (`src/lua/api.ts`, `injectVimApi`'s `__index` dispatcher):
 
-| Tier | Membership                                       | Count | Behavior                                                  |
-| ---- | ------------------------------------------------ | ----- | --------------------------------------------------------- |
-| 1    | `SUPPORTED_NVIM_API_FUNCTIONS`                   | 63    | Real implementation                                       |
-| 2    | `KNOWN_NVIM_API_FUNCTIONS` minus tier 1          | 97    | Warn once, return placeholder per `NVIM_API_RETURN_TYPES` |
-| 3    | Anything else (e.g. `nvim_ui_*`, `nvim__redraw`) | —     | `luaL_error` listing the supported set                    |
+| Tier | Membership                              | Count | Behavior                                                                           |
+| ---- | --------------------------------------- | ----- | ---------------------------------------------------------------------------------- |
+| 1    | `SUPPORTED_NVIM_API_FUNCTIONS`          | 69    | Real implementation                                                                |
+| 2    | `KNOWN_NVIM_API_FUNCTIONS` minus tier 1 | 88    | Warn once, return placeholder per `NVIM_API_RETURN_TYPES`; includes `nvim__redraw` |
+| 3    | Anything else (e.g. `nvim_ui_*`)        | —     | `luaL_error` listing the supported set                                             |
 
 `KNOWN_NVIM_API_FUNCTIONS` holds 157 names total.
 
-**`vim.fn`** (`src/lua/fn.ts:1631-1650`):
+**`vim.fn`** (`src/lua/fn.ts`, `injectVimFn`'s `__index` dispatcher):
 
 | Tier | Membership          | Count | Behavior                                                |
 | ---- | ------------------- | ----- | ------------------------------------------------------- |
-| 1    | `registry.set(...)` | 84    | Real implementation                                     |
-| 2    | `registerStub(...)` | 46    | Warn once, return `''` / `0` / `{}` / nothing, or throw |
+| 1    | `registry.set(...)` | 92    | Real implementation                                     |
+| 2    | `registerStub(...)` | 39    | Warn once, return `''` / `0` / `{}` / nothing, or throw |
 | 3    | Anything else       | —     | `errorUnsupported` — raises a Lua error                 |
 
-130 `vim.fn` names are registered in total. `getchar`, `getcharstr`, and `input` are registered only when the async coroutine runner is available.
+131 `vim.fn` names are registered in total. `getchar`, `getcharstr`, and `input` require the async coroutine runner and corresponding callbacks. Without the runner: 89 real / 39 stubs / 128 total.
+
+The audited historical baseline was 63/94/157 and 84/46/130 (API and fn real/stub/total, full callbacks), before the coordinate work. The earlier tier-2 prose said 97, not 94; the authoritative 157 total was already correct. Six API promotions: `nvim_buf_get_offset`, `nvim_win_is_valid`, `nvim_win_get_width`, `nvim_win_get_height`, `nvim_win_get_position`, `nvim_win_get_number`. Seven fn promotions: `line2byte`, `byte2line`, `win_getid`, `winnr`, `charcol`, `virtcol`, `deletebufline`; `virtcol2col` adds one previously absent name. Phase 5b's five string helpers are outside these two registries. The historical duplicate `getwininfo` stub declaration yielded 47 declared but only 46 effective stubs; it is not present in today's source.
 
 **Adding a function** is cheap in both cases: replace the stub registration with a real handler. For `vim.api`, also add the name to `SUPPORTED_NVIM_API_FUNCTIONS`. The lookup machinery never needs to change.
 
 **Plugin demand** is based on verified call sites in the source of the plugins analyzed (mini.comment, mini.surround, mini.pairs, mini.ai, nvim-autopairs, Comment.nvim, flash.nvim, leap.nvim, nvim-surround) — not on estimates.
 
 > [!note]
-> Only **mini.comment** is proven to load and run end-to-end inside the embedded runtime (`test/specs/lua-plugin-mini-comment.e2e.ts`). **nvim-surround** is validated as an _external golden reference_ via headless Neovim (`test/specs/vim-builtin/surround-golden.e2e.ts`) — the plugin itself does not run under the shim. Every other plugin named in this document is analysis-only.
+> Only **mini.comment** has existing end-to-end embedded-runtime coverage (`test/specs/lua-plugin-mini-comment.e2e.ts`), subject to the moving-fixture risk below. **nvim-surround** is an _external golden reference_ via headless Neovim (`test/specs/vim-builtin/surround-golden.e2e.ts`), not a plugin running under the shim. Other named plugins have no passing end-to-end compatibility claim; mini.surround/mini.splitjoin have measured blocked audits.
+
+The Phase 5/5b demand audit (`test/unit/lua/plugin-api-demand.test.ts`, `test/fixtures/mini-api-demand.json`) leaves **both suites BLOCKED**; integration Phases 6/7 are cancelled and deferred, not passed:
+
+- **mini.surround:** `surround-highlight`, `echospace`, `getchar-context`, `input-context-and-form`, `set-text-bytes`.
+- **mini.splitjoin:** one load blocker (`string-expr-mapping`: string expr mappings require unavailable Vimscript evaluation), plus `local-comments`, `set-text-bytes`, `getpos-bytes`, `extmark-columns`. See the pinned audit artifact for the exact load error.
+- **flash.nvim:** terminally blocked by LuaJIT FFI (`module 'ffi' is not available`), proven by `test/specs/lua-plugin-flash-diagnostic.e2e.ts`. No shim API work unblocks it.
+- **Reproducibility risk:** `test/fixtures/test-plugins.json` fetches mini.comment at `ref: "main"`, a moving branch. Existing passing operations are not proof for an immutable pin; pinning is deferred.
+
+The coordinate contract covers only the enumerated APIs in `test/fixtures/neovim-coordinate-api-manifest.ts`, plus Phase 5b's five string helpers. It is **not** a claim that the whole shim is byte-correct. Remaining seams: `set-text-bytes` (`nvim_buf_get_text`/`nvim_buf_set_text`), `getpos-bytes` (`getpos`/`setpos`), `extmark-columns`, `nvim_buf_set_mark`, `cursor`, `getcurpos`, view save/restore, `searchpos`, and JS-backed `strlen`/`strpart`/`stridx`/`strridx`. `vim.fn.strwidth` still returns UTF-16 `s.length`, a separate quarantined display-width defect.
+
+**D4 deviation:** interior-byte `nvim_win_set_cursor` writes normalize to the containing character's first byte. Neovim preserves interior bytes; a UTF-16 host cannot represent them. This is not parity. Past-EOL clamping is native and unchanged.
 
 ---
 
@@ -143,30 +159,30 @@ Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. 
 
 ### Buffer operations
 
-| Function                                             | Status | Notes                                                  | Plugin demand                        |
-| ---------------------------------------------------- | ------ | ------------------------------------------------------ | ------------------------------------ |
-| `nvim_buf_attach(buf, send_buffer, opts)`            | 🔲     |                                                        | Low                                  |
-| `nvim_buf_call(buf, fun)`                            | ✅     | buf must be 0; invokes the function directly           | Low                                  |
-| `nvim_buf_delete(buf, opts)`                         | 🔲     |                                                        | Low                                  |
-| `nvim_buf_detach(buf)`                               | 🔲     |                                                        | Low                                  |
-| `nvim_buf_get_changedtick(buf)`                      | 🔲     |                                                        | Low                                  |
-| `nvim_buf_get_commands(buf, opts)`                   | 🔲     | Deprecated                                             | Low                                  |
-| `nvim_buf_get_lines(buf, start, end, strict)`        | ✅     | buf must be 0                                          | High (5+ plugins)                    |
-| `nvim_buf_get_mark(buf, name)`                       | ⚠️     | Returns char offsets (not byte offsets); buf must be 0 | Medium (mini.comment, nvim-surround) |
-| `nvim_buf_get_name(buf)`                             | ✅     | buf must be 0                                          | Low                                  |
-| `nvim_buf_get_offset(buf, index)`                    | 🔲     | Byte offset of line                                    | Low                                  |
-| `nvim_buf_get_text(buf, sr, sc, er, ec, opts)`       | ✅     | buf must be 0                                          | Low                                  |
-| `nvim_buf_get_var(buf, name)`                        | ✅     | buf must be 0                                          | Medium (nvim-autopairs)              |
-| `nvim_buf_is_loaded(buf)`                            | 🔲     |                                                        | Low                                  |
-| `nvim_buf_is_valid(buf)`                             | ✅     | Returns true for buf 0                                 | Medium (flash, leap)                 |
-| `nvim_buf_line_count(buf)`                           | ✅     | buf must be 0                                          | Medium (mini.comment, mini.surround) |
-| `nvim_buf_set_lines(buf, start, end, strict, lines)` | ✅     | buf must be 0                                          | High (5+ plugins)                    |
-| `nvim_buf_set_mark(buf, name, line, col, opts)`      | ✅     | buf must be 0                                          | Low                                  |
-| `nvim_buf_set_name(buf, name)`                       | 🔲     |                                                        | Low                                  |
-| `nvim_buf_set_text(buf, sr, sc, er, ec, lines)`      | ✅     | buf must be 0                                          | Medium (nvim-surround)               |
-| `nvim_buf_set_var(buf, name)`                        | ✅     | buf must be 0                                          | Medium (nvim-autopairs)              |
-| `nvim_buf_del_mark(buf, name)`                       | ✅     | buf must be 0                                          | Low                                  |
-| `nvim_buf_del_var(buf, name)`                        | 🔲     |                                                        | Low                                  |
+| Function                                             | Status | Notes                                                                               | Plugin demand                        |
+| ---------------------------------------------------- | ------ | ----------------------------------------------------------------------------------- | ------------------------------------ |
+| `nvim_buf_attach(buf, send_buffer, opts)`            | 🔲     |                                                                                     | Low                                  |
+| `nvim_buf_call(buf, fun)`                            | ✅     | buf must be 0; invokes the function directly                                        | Low                                  |
+| `nvim_buf_delete(buf, opts)`                         | 🔲     |                                                                                     | Low                                  |
+| `nvim_buf_detach(buf)`                               | 🔲     |                                                                                     | Low                                  |
+| `nvim_buf_get_changedtick(buf)`                      | 🔲     |                                                                                     | Low                                  |
+| `nvim_buf_get_commands(buf, opts)`                   | 🔲     | Deprecated                                                                          | Low                                  |
+| `nvim_buf_get_lines(buf, start, end, strict)`        | ✅     | buf must be 0                                                                       | High (5+ plugins)                    |
+| `nvim_buf_get_mark(buf, name)`                       | ⚠️     | Line 1 / UTF-8 byte col 0; unset `{0,0}`, linewise end `v:maxcol`; buf must be 0    | Medium (mini.comment, nvim-surround) |
+| `nvim_buf_get_name(buf)`                             | ✅     | buf must be 0                                                                       | Low                                  |
+| `nvim_buf_get_offset(buf, index)`                    | ✅     | Line index 0 → byte offset 0; EOL always one byte, unloaded -1, bounds error; buf 0 | Low                                  |
+| `nvim_buf_get_text(buf, sr, sc, er, ec, opts)`       | ⚠️     | buf must be 0; columns still UTF-16 (`set-text-bytes`)                              | Low                                  |
+| `nvim_buf_get_var(buf, name)`                        | ✅     | buf must be 0                                                                       | Medium (nvim-autopairs)              |
+| `nvim_buf_is_loaded(buf)`                            | 🔲     |                                                                                     | Low                                  |
+| `nvim_buf_is_valid(buf)`                             | ✅     | Returns true for buf 0                                                              | Medium (flash, leap)                 |
+| `nvim_buf_line_count(buf)`                           | ✅     | buf must be 0                                                                       | Medium (mini.comment, mini.surround) |
+| `nvim_buf_set_lines(buf, start, end, strict, lines)` | ✅     | buf must be 0                                                                       | High (5+ plugins)                    |
+| `nvim_buf_set_mark(buf, name, line, col, opts)`      | ⚠️     | buf must be 0; setter columns still UTF-16                                          | Low                                  |
+| `nvim_buf_set_name(buf, name)`                       | 🔲     |                                                                                     | Low                                  |
+| `nvim_buf_set_text(buf, sr, sc, er, ec, lines)`      | ⚠️     | buf must be 0; columns still UTF-16 (`set-text-bytes`)                              | Medium (nvim-surround)               |
+| `nvim_buf_set_var(buf, name)`                        | ✅     | buf must be 0                                                                       | Medium (nvim-autopairs)              |
+| `nvim_buf_del_mark(buf, name)`                       | ✅     | buf must be 0                                                                       | Low                                  |
+| `nvim_buf_del_var(buf, name)`                        | 🔲     |                                                                                     | Low                                  |
 
 ### Deprecated buffer functions (still must be stubbed)
 
@@ -178,13 +194,16 @@ Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. 
 
 ### Extmark operations
 
-| Function                                           | Status | Notes                                                             | Plugin demand                     |
-| -------------------------------------------------- | ------ | ----------------------------------------------------------------- | --------------------------------- |
-| `nvim_buf_set_extmark(buf, ns, line, col, opts)`   | ⚠️     | hl_group, virt_text (overlay/eol/inline), priority; buf must be 0 | High (flash, leap, nvim-surround) |
-| `nvim_buf_get_extmarks(buf, ns, start, end, opts)` | ⚠️     | limit, details supported; buf must be 0                           | Medium (flash, nvim-surround)     |
-| `nvim_buf_get_extmark_by_id(buf, ns, id, opts)`    | ✅     | buf must be 0                                                     | Medium (flash, nvim-surround)     |
-| `nvim_buf_del_extmark(buf, ns, id)`                | ✅     | buf must be 0                                                     | Medium (flash, nvim-surround)     |
-| `nvim_buf_clear_namespace(buf, ns, start, end)`    | ✅     | buf must be 0                                                     | High (flash, leap)                |
+| Function                                           | Status | Notes                                                                                      | Plugin demand                     |
+| -------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ | --------------------------------- |
+| `nvim_buf_set_extmark(buf, ns, line, col, opts)`   | ⚠️     | hl_group, virt_text (overlay/eol/inline), priority; buf must be 0                          | High (flash, leap, nvim-surround) |
+| `nvim_buf_get_extmarks(buf, ns, start, end, opts)` | ⚠️     | limit, details supported; buf must be 0                                                    | Medium (flash, nvim-surround)     |
+| `nvim_buf_get_extmark_by_id(buf, ns, id, opts)`    | ✅     | buf must be 0                                                                              | Medium (flash, nvim-surround)     |
+| `nvim_buf_del_extmark(buf, ns, id)`                | ✅     | buf must be 0                                                                              | Medium (flash, nvim-surround)     |
+| `nvim_buf_clear_namespace(buf, ns, start, end)`    | ✅     | buf must be 0                                                                              | High (flash, leap)                |
+| `nvim_set_extmark(...)`                            | 🔲     | Legacy compatibility name in the registry; use `nvim_buf_set_extmark`. Not a real handler. | Low                               |
+
+Extmark columns remain a non-byte seam (`extmark-columns`). `hl_eol` is already parsed in `nvim_buf_set_extmark`, and `src/lua/extmarks.ts` already sorts by priority. Visual precedence relative to native CM6 decorations remains limited (see `KNOWN_LIMITATIONS.md`); deferred fields include `virt_lines`, `conceal`, `line_hl_group`, and `sign_text`.
 
 ### Buffer keymap operations
 
@@ -231,30 +250,30 @@ Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. 
 
 ### Window operations
 
-| Function                           | Status | Notes                                                          | Plugin demand                     |
-| ---------------------------------- | ------ | -------------------------------------------------------------- | --------------------------------- |
-| `nvim_win_call(win, fun)`          | ✅     | win must be 0; invokes the function directly                   | Medium (flash)                    |
-| `nvim_win_close(win, force)`       | 🔲     |                                                                | Low                               |
-| `nvim_win_del_var(win, name)`      | 🔲     |                                                                | Low                               |
-| `nvim_win_get_buf(win)`            | ✅     | win must be 0; returns 0                                       | Low                               |
-| `nvim_win_get_config(win)`         | ✅     | win must be 0; reports a non-floating window (`relative = ''`) | Medium (flash, leap)              |
-| `nvim_win_get_cursor(win)`         | ✅     | win must be 0                                                  | High (flash, leap, nvim-surround) |
-| `nvim_win_get_height(win)`         | 🔲     |                                                                | Low                               |
-| `nvim_win_get_number(win)`         | 🔲     |                                                                | Low                               |
-| `nvim_win_get_position(win)`       | 🔲     |                                                                | Low                               |
-| `nvim_win_get_tabpage(win)`        | 🔲     |                                                                | Low                               |
-| `nvim_win_get_var(win, name)`      | 🔲     |                                                                | Low                               |
-| `nvim_win_get_width(win)`          | 🔲     |                                                                | Low                               |
-| `nvim_win_hide(win)`               | 🔲     |                                                                | Low                               |
-| `nvim_win_is_valid(win)`           | 🔲     |                                                                | Low                               |
-| `nvim_win_set_buf(win, buf)`       | 🔲     |                                                                | Low                               |
-| `nvim_win_set_config(win, config)` | 🔲     |                                                                | Low                               |
-| `nvim_win_set_cursor(win, pos)`    | ✅     | win must be 0                                                  | High (flash, nvim-surround)       |
-| `nvim_win_set_height(win, h)`      | 🔲     |                                                                | Low                               |
-| `nvim_win_set_hl_ns(win, ns)`      | 🔲     |                                                                | Low                               |
-| `nvim_win_set_var(win, name, val)` | 🔲     |                                                                | Low                               |
-| `nvim_win_set_width(win, w)`       | 🔲     |                                                                | Low                               |
-| `nvim_win_text_height(win, opts)`  | 🔲     |                                                                | Low                               |
+| Function                           | Status | Notes                                                                                        | Plugin demand                     |
+| ---------------------------------- | ------ | -------------------------------------------------------------------------------------------- | --------------------------------- |
+| `nvim_win_call(win, fun)`          | ✅     | win must be 0; invokes the function directly                                                 | Medium (flash)                    |
+| `nvim_win_close(win, force)`       | 🔲     |                                                                                              | Low                               |
+| `nvim_win_del_var(win, name)`      | 🔲     |                                                                                              | Low                               |
+| `nvim_win_get_buf(win)`            | ✅     | win must be 0; returns 0                                                                     | Low                               |
+| `nvim_win_get_config(win)`         | ✅     | win must be 0; reports a non-floating window (`relative = ''`)                               | Medium (flash, leap)              |
+| `nvim_win_get_cursor(win)`         | ✅     | Line 1 / UTF-8 byte col 0; no cursor `{1,0}`; win must be 0                                  | High (flash, leap, nvim-surround) |
+| `nvim_win_get_height(win)`         | ⚠️     | CM6 viewport cells, 0 without editor; win 0 only                                             | Low                               |
+| `nvim_win_get_number(win)`         | ⚠️     | Synthetic ordinal 1; win 0 only                                                              | Low                               |
+| `nvim_win_get_position(win)`       | ⚠️     | Synthetic grid origin `{0,0}`; win 0 only                                                    | Low                               |
+| `nvim_win_get_tabpage(win)`        | 🔲     |                                                                                              | Low                               |
+| `nvim_win_get_var(win, name)`      | 🔲     |                                                                                              | Low                               |
+| `nvim_win_get_width(win)`          | ⚠️     | CM6 viewport cells, 0 without editor; win 0 only                                             | Low                               |
+| `nvim_win_hide(win)`               | 🔲     |                                                                                              | Low                               |
+| `nvim_win_is_valid(win)`           | ⚠️     | True only for integer handle 0; invalid types/arity error                                    | Low                               |
+| `nvim_win_set_buf(win, buf)`       | 🔲     |                                                                                              | Low                               |
+| `nvim_win_set_config(win, config)` | 🔲     |                                                                                              | Low                               |
+| `nvim_win_set_cursor(win, pos)`    | ⚠️     | Line 1 / UTF-8 byte col 0; D4 interior-byte normalization, native past-EOL clamp; win 0 only | High (flash, nvim-surround)       |
+| `nvim_win_set_height(win, h)`      | 🔲     |                                                                                              | Low                               |
+| `nvim_win_set_hl_ns(win, ns)`      | 🔲     |                                                                                              | Low                               |
+| `nvim_win_set_var(win, name, val)` | 🔲     |                                                                                              | Low                               |
+| `nvim_win_set_width(win, w)`       | 🔲     |                                                                                              | Low                               |
+| `nvim_win_text_height(win, opts)`  | 🔲     |                                                                                              | Low                               |
 
 ### Deprecated window functions (still must be stubbed)
 
@@ -295,82 +314,84 @@ Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. 
 
 ## vim.fn (Vimscript functions)
 
-### Implemented (84 functions)
+### Implemented (92 functions)
 
-| Function                           | Status | Notes                                          | Plugin demand                      |
-| ---------------------------------- | ------ | ---------------------------------------------- | ---------------------------------- |
-| `has(feature)`                     | ✅     | Obsidian/platform features                     | Medium                             |
-| `expand(expr)`                     | ⚠️     | Only `%` with `:p`, `:t`, `:e`, `:r` modifiers | Low                                |
-| `exists(name)`                     | ✅     |                                                | Low                                |
-| `undotree()`                       | ✅     |                                                | Low                                |
-| `localtime()`                      | ✅     |                                                | Low                                |
-| `strftime(format, time?)`          | ✅     |                                                | Low                                |
-| `filereadable(path)`               | ✅     |                                                | Low                                |
-| `fnamemodify(path, modifier)`      | ✅     |                                                | Low                                |
-| `glob(pattern)`                    | ✅     |                                                | Low                                |
-| `isdirectory(path)`                | ✅     |                                                | Low                                |
-| `mode()`                           | ✅     |                                                | Medium (flash, Comment.nvim)       |
-| `line(expr)`                       | ✅     |                                                | Medium (leap, nvim-surround)       |
-| `col(expr)`                        | ✅     |                                                | Medium (nvim-surround, leap)       |
-| `getline(lnum)`                    | ✅     |                                                | Medium (leap, mini.surround)       |
-| `tolower(str)`                     | ✅     |                                                | Low                                |
-| `toupper(str)`                     | ✅     |                                                | Low                                |
-| `trim(str)`                        | ✅     |                                                | Low                                |
-| `strlen(str)`                      | ✅     |                                                | Low                                |
-| `strwidth(str)`                    | ✅     |                                                | Low                                |
-| `stridx(str, sub)`                 | ✅     |                                                | Low                                |
-| `strridx(str, sub)`                | ✅     |                                                | Low                                |
-| `strpart(str, start, len?)`        | ✅     |                                                | Low                                |
-| `substitute(str, pat, sub, flags)` | ✅     |                                                | Low                                |
-| `nr2char(nr)`                      | ✅     |                                                | Low                                |
-| `char2nr(char)`                    | ✅     |                                                | Low                                |
-| `getreg(name?)`                    | ✅     |                                                | Low                                |
-| `setreg(name, value, opts?)`       | ✅     |                                                | Low                                |
-| `getregtype(name?)`                | ✅     |                                                | Low                                |
-| `setline(lnum, text)`              | ✅     |                                                | Low                                |
-| `append(lnum, text)`               | ✅     |                                                | Low                                |
-| `indent(lnum)`                     | ✅     |                                                | Low (mini.surround, nvim-surround) |
-| `nextnonblank(lnum)`               | ✅     |                                                | Low (mini.surround)                |
-| `prevnonblank(lnum)`               | ✅     |                                                | Low                                |
-| `getpos(expr)`                     | ✅     |                                                | Medium (leap)                      |
-| `setpos(expr, list)`               | ✅     |                                                | Low                                |
-| `cursor(lnum, col)`                | ✅     |                                                | Medium (nvim-surround, leap)       |
-| `getcurpos()`                      | ✅     |                                                | Low                                |
-| `type(expr)`                       | ✅     |                                                | Low                                |
-| `len(expr)`                        | ✅     |                                                | Low                                |
-| `empty(expr)`                      | ✅     |                                                | Low                                |
-| `matchstr(str, pat)`               | ✅     |                                                | Low (leap)                         |
-| `match(str, pat)`                  | ✅     |                                                | Low                                |
-| `matchlist(str, pat)`              | ✅     |                                                | Low                                |
-| `escape(str, chars)`               | ✅     |                                                | Low                                |
-| `repeat(expr, count)`              | ✅     |                                                | Low                                |
-| `reverse(list_or_str)`             | ✅     |                                                | Low                                |
-| `range(start, end?, stride?)`      | ✅     |                                                | Low                                |
-| `sort(list, func?)`                | ✅     |                                                | Low                                |
-| `uniq(list)`                       | ✅     |                                                | Low                                |
-| `max(list)`                        | ✅     |                                                | Low                                |
-| `min(list)`                        | ✅     |                                                | Low                                |
-| `abs(expr)`                        | ✅     |                                                | Low                                |
-| `index(list, expr)`                | ✅     |                                                | Low                                |
-| `count(list, expr)`                | ✅     |                                                | Low                                |
-| `add(list, item)`                  | ✅     |                                                | Low                                |
-| `remove(list, idx)`                | ✅     |                                                | Low                                |
-| `extend(list, other)`              | ✅     |                                                | Low                                |
-| `copy(expr)`                       | ✅     |                                                | Low                                |
-| `deepcopy(expr)`                   | ✅     |                                                | Low                                |
-| `keys(dict)`                       | ✅     |                                                | Low                                |
-| `values(dict)`                     | ✅     |                                                | Low                                |
-| `items(dict)`                      | ✅     |                                                | Low                                |
-| `flatten(list, maxdepth?)`         | ✅     |                                                | Low (nvim-autopairs)               |
-| `split(str, pat?, keepempty?)`     | ✅     |                                                | Low                                |
-| `join(list, sep?)`                 | ✅     |                                                | Low                                |
-| `strchars(s, skipcc?)`             | ✅     | Composing marks counted unless `skipcc`        | High (flash)                       |
-| `charidx(s, idx, countcc?)`        | ✅     | Byte index → char index                        | High (flash, mini.pairs)           |
-| `byteidx(s, nr)`                   | ✅     | Char index → byte index                        | High (flash)                       |
-| `wincol()`                         | ✅     | CM6 geometry; measured from the window edge    | High (leap)                        |
-| `winlayout()`                      | ✅     | Single leaf, matching `nvim_list_wins()`       | High (flash)                       |
+The count includes the implemented entries in the demand-grouped tables below; those groups are not claims that every row remains a stub.
 
-### Not implemented (high demand from plugins)
+| Function                           | Status | Notes                                                                    | Plugin demand                      |
+| ---------------------------------- | ------ | ------------------------------------------------------------------------ | ---------------------------------- |
+| `has(feature)`                     | ✅     | Obsidian/platform features                                               | Medium                             |
+| `expand(expr)`                     | ⚠️     | Only `%` with `:p`, `:t`, `:e`, `:r` modifiers                           | Low                                |
+| `exists(name)`                     | ✅     |                                                                          | Low                                |
+| `undotree()`                       | ✅     |                                                                          | Low                                |
+| `localtime()`                      | ✅     |                                                                          | Low                                |
+| `strftime(format, time?)`          | ✅     |                                                                          | Low                                |
+| `filereadable(path)`               | ✅     |                                                                          | Low                                |
+| `fnamemodify(path, modifier)`      | ✅     |                                                                          | Low                                |
+| `glob(pattern)`                    | ✅     |                                                                          | Low                                |
+| `isdirectory(path)`                | ✅     |                                                                          | Low                                |
+| `mode()`                           | ✅     |                                                                          | Medium (flash, Comment.nvim)       |
+| `line(expr)`                       | ✅     |                                                                          | Medium (leap, nvim-surround)       |
+| `col(expr)`                        | ✅     | 1-based byte column: `.`, `$`, marks or `{lnum,col}`; invalid position 0 | Medium (nvim-surround, leap)       |
+| `getline(lnum)`                    | ✅     |                                                                          | Medium (leap, mini.surround)       |
+| `tolower(str)`                     | ✅     |                                                                          | Low                                |
+| `toupper(str)`                     | ✅     |                                                                          | Low                                |
+| `trim(str)`                        | ✅     |                                                                          | Low                                |
+| `strlen(str)`                      | ✅     |                                                                          | Low                                |
+| `strwidth(str)`                    | ⚠️     | UTF-16 `s.length`, not display width; quarantined defect                 | Low                                |
+| `stridx(str, sub)`                 | ✅     |                                                                          | Low                                |
+| `strridx(str, sub)`                | ✅     |                                                                          | Low                                |
+| `strpart(str, start, len?)`        | ✅     |                                                                          | Low                                |
+| `substitute(str, pat, sub, flags)` | ✅     |                                                                          | Low                                |
+| `nr2char(nr)`                      | ✅     |                                                                          | Low                                |
+| `char2nr(char)`                    | ✅     |                                                                          | Low                                |
+| `getreg(name?)`                    | ✅     |                                                                          | Low                                |
+| `setreg(name, value, opts?)`       | ✅     |                                                                          | Low                                |
+| `getregtype(name?)`                | ✅     |                                                                          | Low                                |
+| `setline(lnum, text)`              | ✅     |                                                                          | Low                                |
+| `append(lnum, text)`               | ✅     |                                                                          | Low                                |
+| `indent(lnum)`                     | ✅     |                                                                          | Low (mini.surround, nvim-surround) |
+| `nextnonblank(lnum)`               | ✅     |                                                                          | Low (mini.surround)                |
+| `prevnonblank(lnum)`               | ✅     |                                                                          | Low                                |
+| `getpos(expr)`                     | ✅     |                                                                          | Medium (leap)                      |
+| `setpos(expr, list)`               | ✅     |                                                                          | Low                                |
+| `cursor(lnum, col)`                | ✅     |                                                                          | Medium (nvim-surround, leap)       |
+| `getcurpos()`                      | ✅     |                                                                          | Low                                |
+| `type(expr)`                       | ✅     |                                                                          | Low                                |
+| `len(expr)`                        | ✅     |                                                                          | Low                                |
+| `empty(expr)`                      | ✅     |                                                                          | Low                                |
+| `matchstr(str, pat)`               | ✅     |                                                                          | Low (leap)                         |
+| `match(str, pat)`                  | ✅     |                                                                          | Low                                |
+| `matchlist(str, pat)`              | ✅     |                                                                          | Low                                |
+| `escape(str, chars)`               | ✅     |                                                                          | Low                                |
+| `repeat(expr, count)`              | ✅     |                                                                          | Low                                |
+| `reverse(list_or_str)`             | ✅     |                                                                          | Low                                |
+| `range(start, end?, stride?)`      | ✅     |                                                                          | Low                                |
+| `sort(list, func?)`                | ✅     |                                                                          | Low                                |
+| `uniq(list)`                       | ✅     |                                                                          | Low                                |
+| `max(list)`                        | ✅     |                                                                          | Low                                |
+| `min(list)`                        | ✅     |                                                                          | Low                                |
+| `abs(expr)`                        | ✅     |                                                                          | Low                                |
+| `index(list, expr)`                | ✅     |                                                                          | Low                                |
+| `count(list, expr)`                | ✅     |                                                                          | Low                                |
+| `add(list, item)`                  | ✅     |                                                                          | Low                                |
+| `remove(list, idx)`                | ✅     |                                                                          | Low                                |
+| `extend(list, other)`              | ✅     |                                                                          | Low                                |
+| `copy(expr)`                       | ✅     |                                                                          | Low                                |
+| `deepcopy(expr)`                   | ✅     |                                                                          | Low                                |
+| `keys(dict)`                       | ✅     |                                                                          | Low                                |
+| `values(dict)`                     | ✅     |                                                                          | Low                                |
+| `items(dict)`                      | ✅     |                                                                          | Low                                |
+| `flatten(list, maxdepth?)`         | ✅     |                                                                          | Low (nvim-autopairs)               |
+| `split(str, pat?, keepempty?)`     | ✅     |                                                                          | Low                                |
+| `join(list, sep?)`                 | ✅     |                                                                          | Low                                |
+| `strchars(s, skipcc?)`             | ✅     | Composing marks counted unless `skipcc`                                  | High (flash)                       |
+| `charidx(s, idx, countcc?)`        | ✅     | Byte index → char index                                                  | High (flash, mini.pairs)           |
+| `byteidx(s, nr)`                   | ✅     | Char index → byte index                                                  | High (flash)                       |
+| `wincol()`                         | ✅     | CM6 geometry; measured from the window edge                              | High (leap)                        |
+| `winlayout()`                      | ✅     | Single leaf, matching `nvim_list_wins()`                                 | High (flash)                       |
+
+### High demand from plugins
 
 | Function                                | Status | Notes                                          | Plugin demand                                        |
 | --------------------------------------- | ------ | ---------------------------------------------- | ---------------------------------------------------- |
@@ -384,57 +405,58 @@ Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. 
 | `foldclosed(lnum)`                      | ✅     | Queries CM6 fold state                         | Medium (flash)                                       |
 | `foldclosedend(lnum)`                   | ✅     |                                                | Low                                                  |
 
-### Not implemented (medium demand from plugins)
+### Medium demand from plugins
 
-| Function                             | Status | Notes                                          | Plugin demand                      |
-| ------------------------------------ | ------ | ---------------------------------------------- | ---------------------------------- |
-| `maparg(name, mode?, abbr?, dict?)`  | ⚠️     | Returns buffer-local maps only; limited fields | Medium (leap)                      |
-| `mapcheck(name, mode?, abbr?)`       | 🔲     | Check mapping conflicts                        | Low (leap)                         |
-| `hasmapto(what, mode?, abbr?)`       | 🔲     | Check if mapping exists                        | Low (leap)                         |
-| `getchar()`                          | ✅     | Async via coroutine runner                     | Low                                |
-| `strcharpart(str, start, len?)`      | ✅     | Unicode code-point aware                       | Low (mini.surround, flash)         |
-| `strdisplaywidth(str)`               | ⚠️     | Simplified; no full Unicode East Asian Width   | Low (nvim-surround)                |
-| `byte2line(byte)`                    | 🔲     | Byte offset to line number                     | Low (nvim-surround)                |
-| `line2byte(lnum)`                    | 🔲     | Line number to byte offset                     | Low (nvim-surround)                |
-| `search(pattern, flags?, stopline?)` | 🔲     | Search for pattern                             | Low (leap)                         |
-| `win_getid(winnr?, tabnr?)`          | 🔲     | Get window ID                                  | Low (leap)                         |
-| `getcmdtype()`                       | 🔲     | Current command-line type                      | Low (flash)                        |
-| `reg_recording()`                    | 🔲     | Currently recording register                   | Low (flash)                        |
-| `reg_executing()`                    | 🔲     | Currently executing register                   | Low (flash)                        |
-| `shiftwidth()`                       | ✅     | Effective shiftwidth                           | Low (mini.surround, nvim-surround) |
+| Function                             | Status | Notes                                                                           | Plugin demand                      |
+| ------------------------------------ | ------ | ------------------------------------------------------------------------------- | ---------------------------------- |
+| `maparg(name, mode?, abbr?, dict?)`  | ⚠️     | Returns buffer-local maps only; limited fields                                  | Medium (leap)                      |
+| `mapcheck(name, mode?, abbr?)`       | 🔲     | Check mapping conflicts                                                         | Low (leap)                         |
+| `hasmapto(what, mode?, abbr?)`       | 🔲     | Check if mapping exists                                                         | Low (leap)                         |
+| `getchar()`                          | ✅     | Async via coroutine runner                                                      | Low                                |
+| `strcharpart(str, start, len?)`      | ✅     | Unicode code-point aware                                                        | Low (mini.surround, flash)         |
+| `strdisplaywidth(str)`               | ⚠️     | Simplified; no full Unicode East Asian Width                                    | Low (nvim-surround)                |
+| `byte2line(byte)`                    | ✅     | 1-based bytes → line 1; invalid -1; both DOS EOL bytes belong to preceding line | Low (nvim-surround)                |
+| `line2byte(lnum)`                    | ✅     | Line 1 → byte position 1; honors fileformat; invalid -1, one-past-last allowed  | Low (nvim-surround)                |
+| `search(pattern, flags?, stopline?)` | 🔲     | Search for pattern                                                              | Low (leap)                         |
+| `win_getid(winnr?, tabnr?)`          | ⚠️     | Synthetic current handle 0; invalid ordinals also 0, invalid types/arity error  | Low (leap)                         |
+| `getcmdtype()`                       | 🔲     | Current command-line type                                                       | Low (flash)                        |
+| `reg_recording()`                    | 🔲     | Currently recording register                                                    | Low (flash)                        |
+| `reg_executing()`                    | 🔲     | Currently executing register                                                    | Low (flash)                        |
+| `shiftwidth()`                       | ✅     | Effective shiftwidth                                                            | Low (mini.surround, nvim-surround) |
 
-### Not implemented (low demand / not applicable)
+### Low demand / not applicable
 
-| Function                                  | Status | Notes                   | Plugin demand  |
-| ----------------------------------------- | ------ | ----------------------- | -------------- |
-| `getbufline(buf, lnum, end?)`             | 🔲     |                         | Low            |
-| `setbufline(buf, lnum, text)`             | 🔲     |                         | Low            |
-| `deletebufline(buf, first, last?)`        | 🔲     |                         | Low            |
-| `bufnr(expr?)`                            | 🔲     |                         | Low            |
-| `bufname(expr?)`                          | 🔲     |                         | Low            |
-| `buflisted(buf)`                          | 🔲     |                         | Low            |
-| `bufexists(buf)`                          | 🔲     |                         | Low            |
-| `winnr(expr?)`                            | 🔲     |                         | Low            |
-| `tabpagenr(expr?)`                        | 🔲     |                         | Low            |
-| `changenr()`                              | 🔲     |                         | Low            |
-| `virtcol(expr)`                           | 🔲     | Virtual column number   | Low (leap)     |
-| `charcol(expr)`                           | 🔲     |                         | Low            |
-| `screencol()`                             | 🔲     |                         | Low            |
-| `screenrow()`                             | 🔲     |                         | Low            |
-| `synID(lnum, col, trans)`                 | 🔲     |                         | Low            |
-| `synIDattr(id, what, mode?)`              | 🔲     |                         | Low            |
-| `synIDtrans(id)`                          | 🔲     |                         | Low            |
-| `complete(startcol, matches)`             | 🔲     |                         | Low            |
-| `pumvisible()`                            | 🔲     |                         | Low            |
-| `confirm(msg, choices?, default?, type?)` | 🔲     |                         | Low            |
-| `feedkeys(keys, mode?, escape_ks?)`       | 🔲     | Use `nvim_feedkeys`     | Low            |
-| `system(cmd, input?)`                     | 🚫     | No shell access         | Not applicable |
-| `systemlist(cmd, input?)`                 | 🚫     | No shell access         | Not applicable |
-| `execute(cmd)`                            | 🔲     |                         | Low            |
-| `json_encode(expr)`                       | 🔲     | Use `vim.json.encode`   | Low            |
-| `json_decode(str)`                        | 🔲     | Use `vim.json.decode`   | Low            |
-| `printf(fmt, ...)`                        | 🔲     | Use Lua `string.format` | Low            |
-| `string(expr)`                            | 🔲     |                         | Low            |
+| Function                                  | Status | Notes                                                                                                                                | Plugin demand  |
+| ----------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `getbufline(buf, lnum, end?)`             | 🔲     |                                                                                                                                      | Low            |
+| `setbufline(buf, lnum, text)`             | 🔲     |                                                                                                                                      | Low            |
+| `deletebufline(buf, first, last?)`        | ⚠️     | buf 0 only, 1-based inclusive range, last accepts `$`; 0 success / 1 failure                                                         | Low            |
+| `bufnr(expr?)`                            | 🔲     |                                                                                                                                      | Low            |
+| `bufname(expr?)`                          | 🔲     |                                                                                                                                      | Low            |
+| `buflisted(buf)`                          | 🔲     |                                                                                                                                      | Low            |
+| `bufexists(buf)`                          | 🔲     |                                                                                                                                      | Low            |
+| `winnr(expr?)`                            | ⚠️     | `''`/`$` → 1, `#` → 0; other forms error; synthetic window                                                                           | Low            |
+| `tabpagenr(expr?)`                        | 🔲     |                                                                                                                                      | Low            |
+| `changenr()`                              | 🔲     |                                                                                                                                      | Low            |
+| `virtcol(expr, list?, win?)`              | ⚠️     | Display column 1 or `[first,last]`; window 0 only, resolved tabstop/list/listchars/wrap/showbreak and measured width                 | Low (leap)     |
+| `charcol(expr)`                           | ✅     | Expression → character column 1; `{lnum,col}` already-character list echoed after validation; invalid 0                              | Low            |
+| `virtcol2col(win, lnum, col)`             | ⚠️     | Display col 1 → containing character's byte col 1; window 0, invalid -1; zero inputs clamp up, empty line 0, past EOL last character | Low            |
+| `screencol()`                             | 🔲     |                                                                                                                                      | Low            |
+| `screenrow()`                             | 🔲     |                                                                                                                                      | Low            |
+| `synID(lnum, col, trans)`                 | 🔲     |                                                                                                                                      | Low            |
+| `synIDattr(id, what, mode?)`              | 🔲     |                                                                                                                                      | Low            |
+| `synIDtrans(id)`                          | 🔲     |                                                                                                                                      | Low            |
+| `complete(startcol, matches)`             | 🔲     |                                                                                                                                      | Low            |
+| `pumvisible()`                            | 🔲     |                                                                                                                                      | Low            |
+| `confirm(msg, choices?, default?, type?)` | 🔲     |                                                                                                                                      | Low            |
+| `feedkeys(keys, mode?, escape_ks?)`       | 🔲     | Use `nvim_feedkeys`                                                                                                                  | Low            |
+| `system(cmd, input?)`                     | 🚫     | No shell access                                                                                                                      | Not applicable |
+| `systemlist(cmd, input?)`                 | 🚫     | No shell access                                                                                                                      | Not applicable |
+| `execute(cmd)`                            | 🔲     |                                                                                                                                      | Low            |
+| `json_encode(expr)`                       | 🔲     | Use `vim.json.encode`                                                                                                                | Low            |
+| `json_decode(str)`                        | 🔲     | Use `vim.json.decode`                                                                                                                | Low            |
+| `printf(fmt, ...)`                        | 🔲     | Use Lua `string.format`                                                                                                              | Low            |
+| `string(expr)`                            | 🔲     |                                                                                                                                      | Low            |
 
 ---
 
@@ -547,22 +569,22 @@ Writes always record into the shadow store, even when the fork rejects the optio
 
 ### String utilities
 
-| Function                                                  | Status | Notes                                               | Plugin demand |
-| --------------------------------------------------------- | ------ | --------------------------------------------------- | ------------- |
-| `vim.split(s, sep, opts?)`                                | ✅     | `{ plain, trimempty }`                              | Low           |
-| `vim.gsplit(s, sep, opts?)`                               | ✅     | Iterator version of split                           | Low           |
-| `vim.trim(s)`                                             | ✅     |                                                     | Low           |
-| `vim.startswith(s, prefix)`                               | ✅     |                                                     | Low           |
-| `vim.endswith(s, suffix)`                                 | ✅     |                                                     | Low           |
-| `vim.pesc(s)`                                             | ✅     | Lua pattern escape                                  | Low           |
-| `vim.stricmp(a, b)`                                       | ✅     | Case-insensitive compare                            | Low           |
-| `vim.str_byteindex(s, encoding, index, strict_indexing?)` | 🔲     | Returns 0                                           | Low           |
-| `vim.str_utfindex(s, encoding, index, strict_indexing?)`  | 🔲     | Returns 0                                           | Low           |
-| `vim.str_utf_start(s, index)`                             | 🔲     | Returns 0                                           | Low           |
-| `vim.str_utf_end(s, index)`                               | 🔲     | Returns 0                                           | Low           |
-| `vim.str_utf_pos(s, encoding?)`                           | 🔲     | Returns empty table                                 | Low           |
-| `vim.iconv(str, from, to)`                                | 🔲     | Returns str unchanged                               | Low           |
-| `vim.keycode(str)`                                        | ✅     | Translates <CR>, <Esc>, <Space>, etc. to char codes | Low           |
+| Function                                                  | Status | Notes                                                                      | Plugin demand |
+| --------------------------------------------------------- | ------ | -------------------------------------------------------------------------- | ------------- |
+| `vim.split(s, sep, opts?)`                                | ✅     | `{ plain, trimempty }`                                                     | Low           |
+| `vim.gsplit(s, sep, opts?)`                               | ✅     | Iterator version of split                                                  | Low           |
+| `vim.trim(s)`                                             | ✅     |                                                                            | Low           |
+| `vim.startswith(s, prefix)`                               | ✅     |                                                                            | Low           |
+| `vim.endswith(s, suffix)`                                 | ✅     |                                                                            | Low           |
+| `vim.pesc(s)`                                             | ✅     | Lua pattern escape                                                         | Low           |
+| `vim.stricmp(a, b)`                                       | ✅     | Case-insensitive compare                                                   | Low           |
+| `vim.str_byteindex(s, encoding, index, strict_indexing?)` | ✅     | UTF-8/16/32 index → byte offset; legacy numeric-index overload supported   | Low           |
+| `vim.str_utfindex(s, encoding, index, strict_indexing?)`  | ✅     | Byte offset → UTF index; legacy overload returns UTF-32 and UTF-16 indices | Low           |
+| `vim.str_utf_start(s, index)`                             | ✅     | Offset back to containing UTF-8 character start                            | Low           |
+| `vim.str_utf_end(s, index)`                               | ✅     | Offset forward to containing UTF-8 character's final byte                  | Low           |
+| `vim.str_utf_pos(s)`                                      | ✅     | 1-based UTF-8 start positions                                              | Low           |
+| `vim.iconv(str, from, to)`                                | 🔇     | Returns str unchanged; no encoding conversion, no warning                  | Low           |
+| `vim.keycode(str)`                                        | ✅     | Translates <CR>, <Esc>, <Space>, etc. to char codes                        | Low           |
 
 ### Other core utilities
 
@@ -617,18 +639,18 @@ Writes always record into the shadow store, even when the fork rejects the optio
 
 ### vim.uri utilities
 
-| Function                               | Status | Notes                  |
-| -------------------------------------- | ------ | ---------------------- |
-| `vim.uri_decode(str)`                  | 🔲     | Returns str unchanged  |
-| `vim.uri_encode(str)`                  | 🔲     | Returns str unchanged  |
-| `vim.uri_from_bufnr(bufnr)`            | 🔲     | Returns empty string   |
-| `vim.uri_from_fname(path)`             | 🔲     | Returns file:// + path |
-| `vim.uri_to_bufnr(uri)`                | 🔲     | Returns 0              |
-| `vim.uri_to_fname(uri)`                | 🔲     | Returns uri unchanged  |
-| `vim.ui_attach(ns, opts, callback)`    | ❌     |                        |
-| `vim.ui_detach(ns)`                    | ❌     |                        |
-| `vim.rpcnotify(channel, method, ...)`  | 🚫     | RPC only               |
-| `vim.rpcrequest(channel, method, ...)` | 🚫     | RPC only               |
+| Function                               | Status | Notes                              |
+| -------------------------------------- | ------ | ---------------------------------- |
+| `vim.uri_decode(str)`                  | 🔇     | Returns str unchanged; no warning  |
+| `vim.uri_encode(str)`                  | 🔇     | Returns str unchanged; no warning  |
+| `vim.uri_from_bufnr(bufnr)`            | 🔇     | Returns empty string; no warning   |
+| `vim.uri_from_fname(path)`             | 🔇     | Returns file:// + path; no warning |
+| `vim.uri_to_bufnr(uri)`                | 🔇     | Returns 0; no warning              |
+| `vim.uri_to_fname(uri)`                | 🔇     | Returns uri unchanged; no warning  |
+| `vim.ui_attach(ns, opts, callback)`    | ❌     |                                    |
+| `vim.ui_detach(ns)`                    | ❌     |                                    |
+| `vim.rpcnotify(channel, method, ...)`  | 🚫     | RPC only                           |
+| `vim.rpcrequest(channel, method, ...)` | 🚫     | RPC only                           |
 
 ### Sentinel values and constants
 
@@ -1033,34 +1055,34 @@ Classification comes from reading the plugin source, not from estimates:
 - **OPTIONAL** — behind an opt-in config flag.
 - **GUARD** — the plugin only probes for the value; the placeholder is the correct answer.
 
-| Function                   | Status | Reachability | Used by                       | Notes                                                            |
-| -------------------------- | ------ | ------------ | ----------------------------- | ---------------------------------------------------------------- |
-| `nvim__redraw(opts)`       | 🔲     | GUARD        | flash, leap                   | No-op is correct: CodeMirror redraws itself (see below)          |
-| `vim.fn.charidx(s, idx)`   | ✅     | REQUIRED     | flash, mini.pairs             | Byte index → character index; folds composing marks              |
-| `vim.fn.byteidx(s, idx)`   | ✅     | REQUIRED     | flash                         | Character index → byte index                                     |
-| `vim.fn.strchars(s)`       | ✅     | REQUIRED     | flash                         | Character count; `skipcc` folds composing marks                  |
-| `vim.fn.winlayout()`       | ✅     | REQUIRED     | flash                         | Single leaf, matching `nvim_list_wins()`                         |
-| `vim.fn.wincol()`          | ✅     | REQUIRED     | leap                          | Cursor screen column from CM6 geometry; the gutter counts        |
-| `vim.fn.mapset(dict)`      | 🔲     | OPTIONAL     | flash                         | Only when `remote_op.restore` is enabled                         |
-| `vim.fn.histadd(hist, s)`  | 🔲     | OPTIONAL     | flash                         | Only when `jump.history` is enabled (default off)                |
-| `vim.fn.histdel(hist, s)`  | 🔲     | OPTIONAL     | flash                         | Search-mode cleanup; search mode defaults off                    |
-| `vim.fn.getcmdline()`      | 🔲     | OPTIONAL     | flash                         | `''` is correct when not on the command line                     |
-| `vim.fn.setcmdline(s)`     | 🔲     | OPTIONAL     | flash                         | Operator-pending search only                                     |
-| `vim.fn.getcmdpos()`       | 🔲     | GUARD        | mini.pairs                    | `0` is correct when not on the command line                      |
-| `vim.fn.getcmdwintype()`   | 🔲     | GUARD        | mini.ai                       | `''` is correct outside the command-line window                  |
-| `vim.fn.wildmenumode()`    | 🔲     | GUARD        | mini.pairs                    | `0` is correct when the wildmenu is not open                     |
-| `vim.fn.complete_info()`   | 🔲     | GUARD        | nvim-autopairs                | Empty dict; no completion popup exists                           |
-| `vim.bo.iminsert`          | ✅     | REQUIRED     | flash, leap                   | Returns `0`; read on every leap invocation and flash `State.new` |
-| `vim.bo.fileformat`        | ✅     | REQUIRED     | nvim-surround                 | Returns `'unix'`                                                 |
-| `vim.o.eventignore`        | ✅     | REQUIRED     | mini.ai                       | Neovim-accurate default plus shadow store (see resolution order) |
-| `vim.o.selection`          | ✅     | REQUIRED     | mini.ai, mini.surround, flash |                                                                  |
-| `vim.o.cmdheight`          | ✅     | REQUIRED     | mini.ai, mini.surround        |                                                                  |
-| `vim.o.columns`            | ✅     | REQUIRED     | mini.ai, mini.surround, flash | flash reads it as `vim.go.columns`                               |
-| `vim.o.cpo`                | ✅     | REQUIRED     | leap                          | Core search loop saves/restores it                               |
-| `vim.wo.wrap`              | ✅     | REQUIRED     | leap                          | Real CM6 line-wrapping state                                     |
-| `vim.hl` / `vim.highlight` | 🔲     | —            | leap                          | Generic namespace stub                                           |
+| Function                   | Status | Reachability | Used by                       | Notes                                                                                    |
+| -------------------------- | ------ | ------------ | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| `nvim__redraw(opts)`       | 🔲     | GUARD        | flash, leap                   | Tier-2 warn-once stub, not absent; truthiness can select an unsupported path (see below) |
+| `vim.fn.charidx(s, idx)`   | ✅     | REQUIRED     | flash, mini.pairs             | Byte index → character index; folds composing marks                                      |
+| `vim.fn.byteidx(s, idx)`   | ✅     | REQUIRED     | flash                         | Character index → byte index                                                             |
+| `vim.fn.strchars(s)`       | ✅     | REQUIRED     | flash                         | Character count; `skipcc` folds composing marks                                          |
+| `vim.fn.winlayout()`       | ✅     | REQUIRED     | flash                         | Single leaf, matching `nvim_list_wins()`                                                 |
+| `vim.fn.wincol()`          | ✅     | REQUIRED     | leap                          | Cursor screen column from CM6 geometry; the gutter counts                                |
+| `vim.fn.mapset(dict)`      | 🔲     | OPTIONAL     | flash                         | Only when `remote_op.restore` is enabled                                                 |
+| `vim.fn.histadd(hist, s)`  | 🔲     | OPTIONAL     | flash                         | Only when `jump.history` is enabled (default off)                                        |
+| `vim.fn.histdel(hist, s)`  | 🔲     | OPTIONAL     | flash                         | Search-mode cleanup; search mode defaults off                                            |
+| `vim.fn.getcmdline()`      | 🔲     | OPTIONAL     | flash                         | `''` is correct when not on the command line                                             |
+| `vim.fn.setcmdline(s)`     | 🔲     | OPTIONAL     | flash                         | Operator-pending search only                                                             |
+| `vim.fn.getcmdpos()`       | 🔲     | GUARD        | mini.pairs                    | `0` is correct when not on the command line                                              |
+| `vim.fn.getcmdwintype()`   | 🔲     | GUARD        | mini.ai                       | `''` is correct outside the command-line window                                          |
+| `vim.fn.wildmenumode()`    | 🔲     | GUARD        | mini.pairs                    | `0` is correct when the wildmenu is not open                                             |
+| `vim.fn.complete_info()`   | 🔲     | GUARD        | nvim-autopairs                | Empty dict; no completion popup exists                                                   |
+| `vim.bo.iminsert`          | ✅     | REQUIRED     | flash, leap                   | Returns `0`; read on every leap invocation and flash `State.new`                         |
+| `vim.bo.fileformat`        | ✅     | REQUIRED     | nvim-surround                 | Returns `'unix'`                                                                         |
+| `vim.o.eventignore`        | ✅     | REQUIRED     | mini.ai                       | Neovim-accurate default plus shadow store (see resolution order)                         |
+| `vim.o.selection`          | ✅     | REQUIRED     | mini.ai, mini.surround, flash |                                                                                          |
+| `vim.o.cmdheight`          | ✅     | REQUIRED     | mini.ai, mini.surround        |                                                                                          |
+| `vim.o.columns`            | ✅     | REQUIRED     | mini.ai, mini.surround, flash | flash reads it as `vim.go.columns`                                                       |
+| `vim.o.cpo`                | ✅     | REQUIRED     | leap                          | Core search loop saves/restores it                                                       |
+| `vim.wo.wrap`              | ✅     | REQUIRED     | leap                          | Real CM6 line-wrapping state                                                             |
+| `vim.hl` / `vim.highlight` | 🔲     | —            | leap                          | Generic namespace stub                                                                   |
 
-### Why an unregistered name is worse than a stub
+### Absence policy and feature detection
 
 Tier 3 raises on **property read**, not on call. Both plugins that use `nvim__redraw` guard it:
 
@@ -1069,14 +1091,13 @@ Tier 3 raises on **property read**, not on call. Both plugins that use `nvim__re
 
 Neither guard protects the read — leap's argument is evaluated before `pcall` receives it — so leaving the name unregistered converted a defensive check into a crash.
 
-But a warn-once tier-2 stub is _also_ wrong here, and for a subtler reason. Stubs are truthy, so `if vim.api.nvim__redraw then` would take the branch the plugin meant for hosts that _have_ the API. flash's `else` branch draws its cursor highlight with `nvim_buf_set_extmark` — which this plugin fully supports — so a truthy stub silently loses a highlight that the fallback would have rendered correctly.
+But a warn-once tier-2 stub can also select the wrong branch. Stubs are truthy, so `if vim.api.nvim__redraw then` takes the branch intended for hosts that have the API. flash's alternative draws a cursor highlight with `nvim_buf_set_extmark`, supported only with the documented coordinate/rendering limitations here. This branch analysis is not proof that flash runs: its FFI blocker remains terminal.
 
-This motivates a **third dispatch tier**, `ABSENT_NVIM_API_FUNCTIONS`: names that read as `nil`. Not raising (which crashes the probe), not stubbing (which is truthy and misroutes the plugin) — just answering honestly. `nil` is also safe for leap, whose `pcall` then fails on "attempt to call a nil value" exactly as it would on a Neovim build without the API.
+The canonical policy is to document the actual read/call behavior, not infer support from truthiness. There is **no `ABSENT_NVIM_API_FUNCTIONS` tier in source**. That was a proposal, not an implementation: known names including `nvim__redraw` still read as warn-once stubs, unknown `vim.api`/`vim.fn` names raise on read, and deliberately absent fields in plain namespaces read as `nil`. A future nil-returning tier needs its own reviewed change and fallback tests.
 
 | Dispatch tier                  | Read result        | Use when                                                   |
 | ------------------------------ | ------------------ | ---------------------------------------------------------- |
 | `SUPPORTED_NVIM_API_FUNCTIONS` | the implementation | Implemented                                                |
-| `ABSENT_NVIM_API_FUNCTIONS`    | `nil`              | Plugins feature-detect it and the fallback path works here |
 | `KNOWN_NVIM_API_FUNCTIONS`     | warn-once stub     | Callers do not feature-detect; a placeholder is survivable |
 | unregistered                   | Lua error          | Not part of the compatibility surface                      |
 
@@ -1117,7 +1138,7 @@ Ranked by verified call sites across the nine analyzed plugins, weighted by impl
 
 Every item from the previous recommended slate is implemented. Retained for provenance.
 
-| #   | Work item                                                                                | Plugins unblocked                                                  | Status              |
+| #   | Work item                                                                                | Dependent plugins (not compatibility proof)                        | Status              |
 | --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------- |
 | 1   | `operatorfunc` via `vim.o`, `vim.go`, `nvim_get/set_option`, `nvim_get/set_option_value` | mini.ai, mini.surround, mini.comment, nvim-surround, Comment.nvim  | ✅                  |
 | 2   | `vim.o` / `vim.go` shadow store for unmapped globals                                     | mini.ai, mini.surround, flash                                      | ✅                  |
@@ -1141,16 +1162,18 @@ Closing this requires changing key processing itself, which was judged too high-
 
 ### Next candidates
 
-| Work item                                    | Plugins       | Effort | Notes                                                                              |
-| -------------------------------------------- | ------------- | ------ | ---------------------------------------------------------------------------------- |
-| `nvim_set_decoration_provider`               | flash         | Large  | Called unconditionally in flash `State.setup`; nothing renders without it          |
-| Drive **mini.surround** to a green e2e suite | mini.surround | Medium | Would make it the second proven embedded plugin after mini.comment                 |
-| Floating-window APIs (`nvim_open_win`)       | flash         | Large  | flash's prompt; enabled by default but disableable via `prompt.enabled = false`    |
-| `vim.fn.byte2line()` / `line2byte()`         | nvim-surround | Small  | Currently `0`-returning stubs                                                      |
-| Extmark `sign_text` / `conceal` / `hl_eol`   | —             | Small  | `extmarks.ts` models them but `nvim_buf_set_extmark` never populates them from Lua |
-| Extmark `priority` ordering                  | flash, leap   | Medium | Stored and reported, but not used to order decorations                             |
+| Work item                                                        | Plugins                       | Effort        | Notes                                                                                                                                                           |
+| ---------------------------------------------------------------- | ----------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Audited mini.surround / mini.splitjoin prerequisites             | mini.surround, mini.splitjoin | Separate plan | Both BLOCKED; see current blocker lists above. Phases 6/7 cancelled, not integration success.                                                                   |
+| Floating-window APIs (`nvim_open_win`)                           | —                             | Large         | Deferred. No API work unblocks flash.nvim: LuaJIT FFI is terminal (`module 'ffi' is not available`), proven by `test/specs/lua-plugin-flash-diagnostic.e2e.ts`. |
+| Extmark `sign_text` / `conceal` / `virt_lines` / `line_hl_group` | —                             | Separate plan | Not populated from Lua; column byte semantics also deferred.                                                                                                    |
+| Extmark visual precedence                                        | —                             | Separate plan | Priority sorting is already implemented; CM6 nesting still controls visible overlap.                                                                            |
 
 #### Completed since the previous revision
+
+`nvim_set_decoration_provider` is **already implemented at `src/lua/api.ts:2957-2996`** (pre-coordinate source anchor): registers `on_start`/`on_buf`/`on_win`/`on_end`, rejects `on_line`/`on_range`. This corrects the stale Next candidates row; it is not a claim that flash only uses `on_start`.
+
+The enumerated byte-offset/column APIs and synthetic current-window APIs are implemented; `hl_eol` parsing and extmark priority sorting were already implemented. None establishes third-party plugin compatibility beyond executed operations.
 
 | Work item                                                                      | Plugins                     | Status |
 | ------------------------------------------------------------------------------ | --------------------------- | ------ |
@@ -1184,7 +1207,7 @@ Retained for provenance. Struck-through items are complete.
 | ---------------------------------- | ----------------------------------------------------- |
 | ~~`nvim_buf_get_extmarks()`~~      | ~~flash, nvim-surround~~ (Now implemented ⚠️)         |
 | ~~`nvim_get_vvar()`~~              | ~~mini.comment, Comment.nvim~~ (Now implemented)      |
-| `vim.fn.getwininfo()`              | flash, leap                                           |
+| ~~`vim.fn.getwininfo()`~~          | flash, leap (Now implemented)                         |
 | ~~`vim.fn.input()`~~               | ~~nvim-surround~~ (Now implemented ⚠️)                |
 | ~~`vim.fn.foldclosed()`~~          | ~~flash~~ (Now implemented)                           |
 | ~~`vim.validate()`~~               | ~~nvim-surround, mini.*~~ (Now implemented)           |
@@ -1196,7 +1219,7 @@ Retained for provenance. Struck-through items are complete.
 | ------------------------------------------------ | -------------------------------------------------------------- |
 | ~~`vim.fn.maparg()`~~                            | ~~leap, mini.ai, mini.pairs~~ (Now implemented ⚠️)             |
 | `vim.fn.mapcheck()`                              | leap only — unused by the other eight plugins                  |
-| `vim.fn.byte2line()` / `line2byte()`             | nvim-surround                                                  |
+| ~~`vim.fn.byte2line()` / `line2byte()`~~         | nvim-surround (Now implemented)                                |
 | ~~`vim.fn.strcharpart()`~~                       | ~~mini.surround, flash~~ (Now implemented)                     |
 | ~~`vim.fn.strdisplaywidth()`~~                   | ~~nvim-surround~~ (Now implemented ⚠️)                         |
 | ~~`vim.fn.getcmdtype()`~~                        | ~~flash~~ (Not a blocker — stub returns the correct value)     |
@@ -1208,13 +1231,15 @@ Retained for provenance. Struck-through items are complete.
 
 ## Summary
 
-Counts are derived from the tables above and cross-checked against the registration sets in `src/lua/api.ts` and `src/lua/fn.ts`.
+The API/fn counts are enforced by `test/unit/lua/api-status-counts.test.ts`, which reuses the TypeScript-AST inventory from `api-inventory.ts`, checks exact handler/status membership, and groups duplicate signatures by canonical name. The public API subtotal includes public missing/N/A rows, including compatibility names, but excludes private `nvim__redraw`; it is **not** the all-registered denominator. The pre-work public implemented subtotal was 48 + 15 = 63, not the stale 46 + 14 = 60. Other namespace summaries remain descriptive inventories rather than AST-guarded registries.
+
+Public names outside the registry: `nvim_ui_attach`, `nvim_ui_detach`, `nvim_ui_pum_set_bounds`, `nvim_ui_pum_set_height`, `nvim_ui_send`, `nvim_ui_set_focus`, `nvim_ui_set_option`, `nvim_ui_try_resize`, `nvim_ui_try_resize_grid`. They remain in the public N/A denominator, not silently dropped. `system`/`systemlist` are intentional rejecting fn stubs, included in registration totals despite the N/A status.
 
 | Category                                      | ✅ Impl | ⚠️ Limited | 🔲 Stub | ❌ Missing | 🚫 N/A |
 | --------------------------------------------- | ------- | ---------- | ------- | ---------- | ------ |
-| `vim.api.nvim_*` (public)                     | 46      | 14         | 95      | 0          | 9      |
-| `vim.fn.*`                                    | 79      | 5          | 44      | 0          | 2      |
-| `vim.tbl_*` / core utils                      | 78      | 5          | 20      | 9          | 4      |
+| `vim.api.nvim_*` (public)                     | 45      | 24         | 87      | 0          | 9      |
+| `vim.fn.*`                                    | 81      | 11         | 37      | 0          | 2      |
+| `vim.tbl_*` / core utils (grouped rows)       | 84      | 5          | 7       | 9          | 4      |
 | `vim.treesitter.*` (all sub-namespaces)       | 84      | 4          | 6       | 3          | 0      |
 | `vim.fs.*`                                    | 0       | 0          | 15      | 0          | 0      |
 | `vim.version.*`                               | 11      | 0          | 0       | 0          | 0      |
@@ -1235,17 +1260,16 @@ Counts are derived from the tables above and cross-checked against the registrat
 
 ### Registration totals (authoritative, from source)
 
+The core-utility row counts the 116 grouped rows in that section, not individual overloads/methods. Its five displayed categories account for 109 rows; the remaining **7 are 🔇 silent placeholders**, listed by name above, not warn-once stubs. Five formerly silent string-coordinate helpers are now real. This grouped-row denominator is separate from the API/fn canonical-name inventories.
+
 | Registry             | Real implementations | Registered stubs | Total registered | Behavior outside the registry |
 | -------------------- | -------------------- | ---------------- | ---------------- | ----------------------------- |
-| `vim.api` (`api.ts`) | 63                   | 94               | 157              | Lua error                     |
-| `vim.fn` (`fn.ts`)   | 84                   | 46               | 130              | Lua error                     |
+| `vim.api` (`api.ts`) | 69                   | 88               | 157              | Lua error                     |
+| `vim.fn` (`fn.ts`)   | 92                   | 39               | 131              | Lua error                     |
 
 Generic namespace stubs cover 15 namespaces: `fs`, `snippet`, `hl`, `health`, `loader`, `lpeg`, `re`, `glob`, `text`, `base64`, `spell`, `secure`, `pos`, `range`, `iter`. Both `snippet` and `iter` are subsequently replaced by real implementations, leaving 13 effectively stubbed.
 
 **Based on Neovim 0.12.5** (golden test version, recorded 2026-09-01).
 
 **Total Neovim 0.12 API surface**: ~400+ functions across ~30 namespaces.
-**Real implementations**: ~295 (✅ + ⚠️).
-**Registered stubs** (callable, warn once, return a placeholder): ~190 (🔲).
-**Not applicable**: ~90 (🚫).
-**Not registered** (raise an error when called): ~28 (❌). None are called by the analyzed plugins — see "Unlisted API surface used by real plugins".
+No cross-namespace grand total is claimed: grouped methods, aliases and subsequently replaced namespace stubs use different denominators. Use the source-guarded API/fn totals above. The seven audited silent string/URI placeholders (🔇) are distinct from warn-once stubs (🔲), and the plugin audit explicitly records missing/blocked demands rather than claiming none are called.

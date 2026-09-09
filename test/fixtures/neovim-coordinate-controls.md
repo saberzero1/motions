@@ -1538,3 +1538,123 @@ matcher helper pattern already used by the manifest test; the assertion and
 all expected values are unchanged. No rule suppression or assertion-name
 allowlist was added. The subsequent gate/build result is reported by the
 executor rather than predicted here.
+
+## Phase 8 — source-derived documentation guard
+
+Date: 2026-09-09. Test file: `test/unit/lua/api-status-counts.test.ts`.
+The subject is the actual `NEOVIM_API_STATUS.md` and historical sentence in
+`CHANGELOG.md`, checked against `src/lua/api.ts` and `src/lua/fn.ts` through
+Phase 5's TypeScript-AST `collectApiInventory` / `collectFnInventory`.
+No second source inventory or production implementation was added.
+
+Full case names (aliases used in the tables below):
+
+- **A:** `API status guard registration totals match source` — one compound
+  assertion covering dispatch, both authoritative registry rows, independent
+  API/fn total prose, the implemented-fn heading and the no-runner inventory.
+- **B:** `API status guard per-name rows and summary agree` — one compound
+  assertion covering exact handler/status membership, conflicting duplicates,
+  API/fn canonical-name subtotals and separately listed public unknown names.
+- **C:** `API status guard duplicate declarations do not inflate effective stubs`
+  — one compound assertion covering declared/effective/total counts and the
+  real `getwininfo` classification in the historical duplicate fixture.
+- **D:** `API status guard historical baseline is explicit` — one compound
+  assertion covering the reconstructed pre-work source baseline and both
+  documents' explicitly historical sentences.
+
+### Red-first document evidence
+
+Before editing any count prose, the new guard ran against the original docs
+at `55b2caa`, with current source from completed Phases 1–5b:
+
+```bash
+npx vitest run test/unit/lua/api-status-counts.test.ts -t 'API status guard'
+```
+
+Observed exit **1**, **3 failed / 1 passed**, no skipped cases. These were
+feature assertion failures, not imports or setup errors:
+
+| Case / assertion field            | Observed actual                                                                                                      | Expected                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| A: dispatch                       | `[63,97,84,46]`                                                                                                      | `[69,88,92,39]`                                                                     |
+| A: authoritative API              | `[63,94,157]`                                                                                                        | `[69,88,157]`                                                                       |
+| A: authoritative fn               | `[84,46,130]`                                                                                                        | `[92,39,131]`                                                                       |
+| A: fn total / implemented heading | `130` / `84`                                                                                                         | `131` / `92`                                                                        |
+| A: no-runner figure               | `undefined`                                                                                                          | `[89,39,128]`                                                                       |
+| B: public API summary             | `[46,14,95,0,9]`                                                                                                     | Original per-name rows derived `[48,15,92,0,9]`; missing registry row also reported |
+| B: membership                     | 15 named errors: 13 promoted names still documented as stubs, plus missing `nvim_set_extmark` and `virtcol2col` rows | `[]`                                                                                |
+| B: public unknown-name inventory  | `[]`                                                                                                                 | The nine `nvim_ui_*` names now explicitly listed in the status document             |
+| D: status/changelog provenance    | `undefined` / `undefined`                                                                                            | Each `[63,94,157,84,46,130]`                                                        |
+
+The API total prose was already **157**, matching source: it was not
+"corrected". The original public table had a separate missing compatibility
+row and must not be replaced with the registry's denominator. After doc edits,
+the same command exited **0**, **4 passed**, on 2026-09-09 at 16:31:44.
+Final public API categories are `[45,24,87,0,9]` (**165** names including nine
+public N/A names, excluding private `nvim__redraw`); fn categories are
+`[81,11,37,0,2]` (**131**, including two intentionally rejecting N/A stubs).
+
+### Disposable mutation controls and immediate restoration
+
+Every control below mutates only an in-memory copy of one source/doc fixture.
+The source files and Markdown on disk are never sabotaged. Each control ran
+all four cases independently, followed immediately by the restored suite:
+
+```bash
+COORD_DOC_CONTROL=<control> npx vitest run test/unit/lua/api-status-counts.test.ts -t 'API status guard'
+env -u COORD_DOC_CONTROL npx vitest run test/unit/lua/api-status-counts.test.ts -t 'API status guard'
+```
+
+For **each of the sixteen control values** below, the first command exited
+**1**, **1 failed / 3 passed**; its restoration command exited **0**,
+**4 passed**, no skipped tests. Runs occurred at 16:36:27–16:37:25 (first
+fourteen controls) and 16:38:17–16:38:24 (last two). `<control>` is replaced
+literally by the first column; there is no hidden unexecuted parameter family.
+
+| Control                 | Case / fixture mutation                                                                                            | Observed actual                                                                                                                                              | Expected                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `total`                 | A: increment only `KNOWN_NVIM_API_FUNCTIONS` total prose                                                           | `apiTotal: 158`                                                                                                                                              | `157`                                                                                            |
+| `dispatch`              | A: restore stale API tier-2 prose to 97                                                                            | Dispatch `[69,97,92,39]`                                                                                                                                     | `[69,88,92,39]`                                                                                  |
+| `authoritative`         | A: increment only authoritative API total cell                                                                     | `[69,88,158]`                                                                                                                                                | `[69,88,157]`                                                                                    |
+| `summary`               | B: increment public implemented subtotal                                                                           | `[46,24,87,0,9]`                                                                                                                                             | `[45,24,87,0,9]`                                                                                 |
+| `historical-summary`    | B: restore old implemented/limited cells 46 and 14                                                                 | `[46,14,87,0,9]` (60 real)                                                                                                                                   | `[45,24,87,0,9]` (69 real)                                                                       |
+| `missing-handler`       | B: rename only the `nvim_buf_get_offset` handler registration to `nvim_guard_fake`; registry counts stay unchanged | Three errors: `nvim_buf_get_offset: missing handler`, `nvim_guard_fake: handler missing supported declaration`, `nvim_guard_fake: missing known declaration` | `[]`                                                                                             |
+| `missing-row`           | B: delete only documented `nvim_buf_get_offset` row                                                                | `nvim_buf_get_offset: missing documented row`; summary implemented 45                                                                                        | `[]`; per-name implemented 44                                                                    |
+| `conflict`              | B: append a conflicting stub signature for existing real `nvim_get_current_buf`                                    | `nvim_get_current_buf: documented 🔲, source real` and `nvim_get_current_buf: ✅ / 🔲`; summary `[45,24,87,0,9]`                                             | `[]`; mutated rows derive `[44,24,88,0,9]`                                                       |
+| `misclassified`         | B: classify real `getwininfo` as a documented stub                                                                 | `getwininfo: documented 🔲, source real`; fn summary `[81,11,37,0,2]`                                                                                        | `[]`; mutated rows derive `[80,11,38,0,2]`                                                       |
+| `unknown`               | B: add unregistered public N/A row `nvim_guard_unknown`                                                            | Public N/A 9; inventory still the nine UI names                                                                                                              | N/A 10; inventory includes `nvim_guard_unknown` plus the nine UI names                           |
+| `historical`            | D: restore released changelog's stale 60/97/157                                                                    | Changelog `[60,97,157,84,46,130]`                                                                                                                            | `[63,94,157,84,46,130]`                                                                          |
+| `status-historical`     | D: corrupt only status document's historical stub count                                                            | Status `[63,97,157,84,46,130]`                                                                                                                               | `[63,94,157,84,46,130]` (97 versus baseline source 94)                                           |
+| `duplicate`             | C: retain historical duplicate stub but remove real `getwininfo` handler                                           | `{declared:47,effective:47,total:130,getwininfo:'stub'}`                                                                                                     | `{declared:47,effective:46,total:130,getwininfo:'real'}`                                         |
+| `baseline`              | D: leave `nvim_buf_get_offset` promoted in reconstructed baseline                                                  | Source `[64,93,157,84,46,130]`; doc/changelog stay `[63,94,157,84,46,130]`                                                                                   | Source `[63,94,157,84,46,130]`; doc/changelog must equal derived source, not unrelated constants |
+| `duplicate-declaration` | C: remove historical duplicate declaration while retaining real handler                                            | Declared 46, effective 46, total 130, real                                                                                                                   | Declared 47, effective 46, total 130, real                                                       |
+| `duplicate-total`       | C: insert extra `guard_fake` stub in duplicate fixture                                                             | Declared 48, effective 47, total 131, real                                                                                                                   | Declared 47, effective 46, total 130, real                                                       |
+
+The old strings **97** and **46 + 14** are retained as executable mutation
+fixtures after the source advanced. The red-first rows independently observed
+the historical public real subtotal **48 + 15 = 63**. The compensated
+handler-name control proves that correct arithmetic alone cannot pass the
+guard. Historical duplicates are reconstructed in memory, not falsely claimed
+to remain in current source.
+
+### Phase 8 gate ruling and changelog review
+
+The user resolved the Phase 8:499 sequencing gap: the development-build gate is
+`npm run build:dev` (must exit 0). E2E is conditionally waived only if the staged
+diff has no `src/` path. After `git add -A`, run exactly:
+
+```bash
+git diff --cached --name-only | grep '^src/'
+```
+
+An empty match (grep exit 1) selects the docs/test-only waiver. Any match voids
+it and requires `nix develop -c npx wdio run ./wdio.conf.mts --spec
+test/specs/lua-plugin-mini-comment.e2e.ts`, with Bash timeout **900000 ms**.
+This ruling does not reopen cancelled Phases 6/7 or authorize runtime changes.
+
+Reviewed `git diff -- CHANGELOG.md`: the only new release content is under
+Unreleased, with exactly **Fixed → Tests → Documentation**, once each. The only
+released-content change is the permitted in-place historical 0.148.0 sentence
+correction (old line 250), not an appended feature or a duplicate heading.
+Final static/build/waiver command outcomes are reported by the executor after
+execution, not predicted here.

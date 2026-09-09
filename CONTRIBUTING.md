@@ -257,8 +257,10 @@ src/
     package.ts             # package table, sandboxed load(), Lua-implemented require() resolving from the module snapshot across all search roots
     module-snapshot.ts     # In-memory Lua sources for every search root so require() resolves synchronously; limits reported, not silent
     loader.ts              # .obsidian.init.lua loader; replaces iterator stub, awaits treesitter/query and Lua module snapshot preloading, normalizes returned option Errors
-    api.ts                 # vim.keymap, vim.opt, vim.o/vim.go, shared operatorfunc routes, vim.g, vim.v, vim.cmd, vim.notify, vim.api (63 real nvim_* implementations: buffer, cursor, marks, keymaps, options, option values, commands, highlights, namespaces, extmarks, autocommands, vvars, mode query, string width, key injection, UI, current-buffer/window calls, non-floating window config), vim.plugins (add/list with auto-fetch support)
-    fn.ts                  # vim.fn.* function library (84 real implementations, including getwininfo, wincol, winlayout, strchars/charidx/byteidx)
+    api.ts                 # vim.keymap, vim.opt, vim.o/vim.go, shared operatorfunc routes, vim.g, vim.v, vim.cmd, vim.notify, vim.api (69 real nvim_* implementations including byte offsets and synthetic current-window dimensions/identity), vim.plugins (add/list with auto-fetch support)
+    fn.ts                  # vim.fn.* function library (92 real implementations with async callbacks, including byte/character/display columns, offsets, deletebufline, window identity and viewport geometry)
+    coordinates.ts        # Single typed UTF-16/byte/character/display adapter and string coordinate codec
+    coordinate-wire.ts    # Lua argument/result marshalling for the coordinate adapter
     iter.ts                # Embedded Lua iterator implementation (26 methods)
     on-key.ts              # vim.on_key namespace registry, dispatch, teardown
     termcodes.ts           # Neovim key-byte encoder and fork-boundary decoder
@@ -599,6 +601,18 @@ Vimrc/Lua setting overrides are persisted in a `configOverrides` block in `data.
 4. Settings UI changes call `clearSettingOverride(key)` to remove from all override stores
 
 ## Testing
+
+### Lua coordinate and status contracts
+
+Host callbacks use UTF-16; do not change their units globally. `src/lua/coordinates.ts` owns the enumerated Neovim byte/character/display conversions, tuple bases, validation and sentinels; `coordinate-wire.ts` only marshals values. D4 normalizes interior-byte cursor writes to the containing character's first byte (a deliberate deviation, not parity); native past-EOL clamping remains. Text get/set, mark setters, legacy positions, extmark columns and JS-backed byte-string functions remain separately deferred. `vim.fn.strwidth` is quarantined, not a display-width oracle.
+
+`test/fixtures/neovim-coordinate-api-manifest.ts` drives real-handler conformance in `coordinate-manifest.test.ts`; `coordinate-types.test.ts` checks directional brands. The `neovim-coordinate-boundary` AST rule and its rule tests guard direct/optional/bracket/member-reference access with exact host-unit and named deferred-legacy exceptions. Neither brands nor syntax proves semantic conversion correctness.
+
+Test-only `api-inventory.ts` parses source via the TypeScript AST; `api-status-counts.test.ts` reuses it to enforce dispatch totals, exact documented name/status membership, grouped public subtotals and historical provenance. The current API inventory is **69 real / 88 stubs / 157 total**; fn is **92 / 39 / 131** with all async callbacks, **89 / 39 / 128** without them. Known API/fn names resolve to handlers or stubs and unknown names raise on read; deliberately absent plain-namespace fields read nil. No `ABSENT_NVIM_API_FUNCTIONS` tier is implemented, and seven silent `iconv`/`uri_*` placeholders must not be mistaken for real handlers.
+
+`test/neovim/coordinate-oracle.ts` records native results independently of the shim; literal coordinate/string fixtures are the expectation source. Every new or changed assertion requires a concrete negative control in `test/fixtures/neovim-coordinate-controls.md`: full case name, fixture/mutation, exact command, observed actual/expected values, exit status, and restored green result. Do not derive expected positions from the adapter or other defective string helpers.
+
+The pinned mini.surround and mini.splitjoin demand audit is **BLOCKED**; integration Phases 6/7 are cancelled pending a follow-up plan. Registration counts are not plugin-compatibility evidence. mini.comment's `ref: "main"` in `test/fixtures/test-plugins.json` remains a known moving-fixture reproducibility risk; repinning is separate work.
 
 ### Every test must be shown to fail
 

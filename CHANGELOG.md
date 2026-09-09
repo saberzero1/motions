@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Enumerated Neovim coordinate boundaries** — byte offsets, cursor/mark reads, character/display-column queries and five string-coordinate helpers use a single typed adapter. Synthetic current-window APIs and `deletebufline` are implemented. Interior-byte cursor writes deliberately normalize (D4); remaining text/legacy-position/extmark seams and `strwidth` are deferred, not parity claims.
+    - Plugin: `src/lua/coordinates.ts`, `src/lua/coordinate-wire.ts` (adapter/marshalling), `src/lua/api.ts`, `src/lua/fn.ts`, `src/lua/stdlib.ts` (handlers), `src/lua/loader.ts`, `src/lua/window-info.ts` (resolved options and geometry), `src/lua/obsidian-api.ts` (explicit host-unit boundary)
+
+### Tests
+
+- **Source-derived documentation guard** — `test/unit/lua/api-status-counts.test.ts` reuses `api-inventory.ts` to enforce source/handler/status membership, dispatch and authoritative totals, public per-name subtotals, full/no-runner inventories, duplicate-stub accounting and historical provenance. Negative controls record actual mismatches in `test/fixtures/neovim-coordinate-controls.md`.
+- **Coordinate and audit evidence** — manifest-generated conformance, independent native oracle, directional type checks, structural boundary rule and Phase 5/5b demand audit remain the regression gates. mini.surround and mini.splitjoin are both **BLOCKED**; Phases 6/7 were cancelled, not executed as successful integration suites.
+
+### Documentation
+
+- `NEOVIM_API_STATUS.md`: source-guarded counts and denominators, actual absence policy, corrected decoration-provider/FFI findings, seven silent placeholders and current plugin blockers.
+- `AGENTS.md`, `CONTRIBUTING.md`: coordinate ownership, module trees, inventory/oracle/test contracts and negative-control evidence.
+- `KNOWN_LIMITATIONS.md`: fixed mark-read sub-item, D4 deviation, remaining coordinate seams, quarantined `strwidth`, blocked plugin suites and mini.comment's moving-branch reproducibility risk.
+- `README.md`, `docs/configuration/lua-config.md`: current qualified API counts, coordinate forms/units/errors and current-window/string-helper references; no blanket plugin compatibility claim.
+- `test/fixtures/neovim-coordinate-controls.md`: observed documentation-guard controls and restoration evidence.
+- `CHANGELOG.md`: new work is recorded only under Unreleased; the 0.148.0 stale count sentence is corrected in place as historical provenance.
+
 ## [0.149.0] - 2026-09-08
 
 ### Added
@@ -247,7 +266,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `KNOWN_LIMITATIONS.md`: new "Module snapshot and `require()`" section — the reload boundary, refresh points, the four resource limits and their reporting
 - `README.md`: Lua bullet notes synchronous `require()` resolution
 - `docs/configuration/lua-config.md`: new "require() resolves synchronously" section with the lazy-require example, the async-fallback boundary, and a callout for files added after load; new "Where modules are searched" section covering both roots, their precedence, and the desktop-only out-of-vault case
-- `NEOVIM_API_STATUS.md`: corrected registration totals (60/97/157 for `vim.api`, 84/46/130 for `vim.fn`), reclassified the "Unlisted API surface" table with verified plugin reachability (REQUIRED/OPTIONAL/GUARD), documented why an unregistered name is worse than a stub, corrected the stale `vim.o.eventignore`/`selection`/`cmdheight`/`columns`/`cpo` rows that contradicted the documented resolution order, and refreshed the "Next candidates" matrix
+- `NEOVIM_API_STATUS.md`: corrected registration totals (audited historical baseline: 63/94/157 and 84/46/130 for `vim.api` and `vim.fn`, respectively; real/stub/total with async callbacks), reclassified the "Unlisted API surface" table with verified plugin reachability (REQUIRED/OPTIONAL/GUARD), documented why an unregistered name is worse than a stub, corrected the stale `vim.o.eventignore`/`selection`/`cmdheight`/`columns`/`cpo` rows that contradicted the documented resolution order, and refreshed the "Next candidates" matrix
 - `AGENTS.md`: `vim.bo` option set, new `vim.wo` scope, `vim.fn` count
 - `CONTRIBUTING.md`: `fn.ts` description and count
 - `README.md`: `vim.fn` count
