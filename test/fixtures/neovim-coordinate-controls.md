@@ -1097,3 +1097,182 @@ Measured public control/restoration elapsed times: U **11.437s / 12.209s**;
 M **12.175s / 12.344s**; P0 **10.371s / 12.235s**. U and P0 each produced
 2 failing cases; M produced 1 passing and 1 failing case. These were feature
 and precondition failures, not import errors, missing fixtures, or timeouts.
+
+# Phase 4 deletebufline negative controls
+
+Executed 2026-09-09 on top of `31955c3`. Only Phase 4 is implemented here.
+**L** is the literal `é→𝄞界\tZ` (U+0009 tab); **F** is `[L,'',L]`;
+**TEXT** is `L + '\n\n' + L`. All expectations are literals from Phase 4,
+not calculated with a coordinate codec or a Lua string function.
+
+Native Neovim **0.12.5** was measured before implementation, with
+`vim.api.nvim_get_current_buf()` as the buffer argument: deleting line 2 gave
+`0,[L,L]`; line 3 gave `0,[L,'']`; 1 through `'$'` gave `0,['']`; 2 through 99
+gave `0,[L]`. First 0/-1/4, range 3..2, and range 1..0 all gave `1,F`.
+Native `deletebufline(0,...)` returns 1: unlike the nvim API, this Vim function
+does not interpret numeric 0 as current. This phase deliberately keeps the
+plan's established **shim buffer-0-only model**, not native buffer identities.
+No existing buffer validator or its call sites changed.
+
+`deletebufline` is not added to the ten-entry encoding-coordinate manifest:
+it takes whole-line bounds and returns a status, with no byte/UTF-16/character/
+display conversion. The generated encoding conformance set remains unchanged;
+these mutation/state tests exercise the real registered deletion handler instead.
+The fn host splice uses host-native editor positions, as the plan requires;
+there is no new byte/column conversion or parallel coordinate helper.
+
+## Phase 4 commands and mutations
+
+Commands ran from the repository root. Every WDIO invocation used the Bash
+tool's **900000 ms** timeout and **one** enumerated spec. None was aborted.
+Excluded pre-existing unit groups are Vitest `-t` filtering, not skipped
+Phase 4 cases. Each parameter row executes independently with one composite
+assertion, so an early failed field cannot hide another case.
+
+```bash
+# R: red-first against the unmodified number stub at 31955c3 (24 failures, exit 1)
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'coordinate contract deletebufline' --reporter=verbose
+# U: restored-stub S and reversed-status V controls (each 24 failures, exit 1)
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'coordinate contract deletebufline' --reporter=dot
+# I: mutate on the failure branch (18 failures, exit 1)
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'invalid range or buffer|unloaded buffer leaves' --reporter=dot
+# U+: after EACH production mutation was restored with apply_patch (24 passed, exit 0)
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'coordinate contract deletebufline'
+# E: real host suffix red-first H, restored-stub S, reversed-status V;
+# also each production restoration E+ (npm build exit 0 in all runs)
+npm run build:dev && nix develop --command bash -c 'time npx wdio run ./wdio.conf.mts --spec test/specs/lua-coordinate-contract.e2e.ts --mochaOpts.grep "coordinate contract deletebufline"'
+# P: precondition sabotage, then restoration P+ (test setup only)
+nix develop --command bash -c 'time npx wdio run ./wdio.conf.mts --spec test/specs/lua-coordinate-contract.e2e.ts --mochaOpts.grep "coordinate contract deletebufline"'
+```
+
+- **R:** before the real registration exists, the original stub reports success
+  while changing nothing. All 24 cases failed for feature assertions.
+- **S:** after implementing and exercising the fix, temporarily rename the real
+  registration to `deletebufline-control` and put `deletebufline` back into
+  `numberReturnFns`. This routes the public name to the **actual original stub**
+  (including its warning and `lua_pushnumber(0)`), not a mock. U and E exited 1.
+  `apply_patch` restored the canonical registration and removed the stub entry;
+  U+ passed 24 cases and E+ passed both public cases, exit 0.
+- **H:** real handler installed, original fn host suffix splice still present.
+  E observed an extra separator and failed the final-line case; delete-all
+  passed. `apply_patch` moved the suffix start to the preceding host line's EOL;
+  E+ passed both public cases, exit 0. The unrelated API splice is unchanged.
+- **V:** change failure's pushed integer 1 to 0 and success's 0 to 1. No deletion
+  logic changes; the branches are mutually exclusive. U and E exited 1.
+  `apply_patch` restored both literals; U+ passed 24 and E+ passed 2, exit 0.
+- **I:** insert `callbacks.setLines?.(1, 2, [])` on the production failure branch,
+  leaving its return 1 intact. I exited 1 for all 18 selected cases.
+  `apply_patch` removed that call; U+ passed all 24, exit 0.
+- **P:** in each new public case only, insert
+  `await setupEditor(COORD_LINE, { line: 0, ch: 0 }); await ensureLivePreview();`
+  before capturing initial text/mode. P failed both cases on the actual
+  preconditions. `apply_patch` removed those calls and their temporary import;
+  P+ passed both cases, exit 0.
+
+## Phase 4 unit records
+
+File: **`test/unit/lua/coordinate-contract.test.ts`**, group
+**`coordinate contract deletebufline`**. Every case below starts from F through
+`createCoordinateState`; **U0** then sets `host.loaded=false`, and **C0** injects
+`setLines: undefined`. Each success assertion compares
+`{result,count,lines,warnings}`; each failure assertion compares
+`{result,count,lines}`. The tables spell these tuples in that field order.
+
+| Full case                               | Fixture | Mutation / command / exit | Observed actual | Expected       | Restoration |
+| --------------------------------------- | ------- | ------------------------- | --------------- | -------------- | ----------- |
+| `deletes middle empty line`             | F       | R / R / 1; S / U / 1      | `0,3,F,1`       | `0,2,[L,L],0`  | U+ / 0      |
+| `deletes final line without empty tail` | F       | R / R / 1; S / U / 1      | `0,3,F,1`       | `0,2,[L,''],0` | U+ / 0      |
+| `delete all leaves one empty line`      | F       | R / R / 1; S / U / 1      | `0,3,F,1`       | `0,1,[''],0`   | U+ / 0      |
+| `deletes inclusive range`               | F       | R / R / 1; S / U / 1      | `0,3,F,1`       | `0,1,[L],0`    | U+ / 0      |
+| `clamps oversized end`                  | F       | R / R / 1; S / U / 1      | `0,3,F,1`       | `0,1,[L],0`    | U+ / 0      |
+| `deletes middle empty line`             | F       | V / U / 1                 | `1,2,[L,L],0`   | `0,2,[L,L],0`  | U+ / 0      |
+| `deletes final line without empty tail` | F       | V / U / 1                 | `1,2,[L,''],0`  | `0,2,[L,''],0` | U+ / 0      |
+| `delete all leaves one empty line`      | F       | V / U / 1                 | `1,1,[''],0`    | `0,1,[''],0`   | U+ / 0      |
+| `deletes inclusive range`               | F       | V / U / 1                 | `1,1,[L],0`     | `0,1,[L],0`    | U+ / 0      |
+| `clamps oversized end`                  | F       | V / U / 1                 | `1,1,[L],0`     | `0,1,[L],0`    | U+ / 0      |
+
+For every invalid row below, **R/R**, **S/U**, and **V/U** each exited **1**
+with the independently observed tuple **`0,3,F`**, expected **`1,3,F`**.
+**I/I** independently exited **1** with **`1,2,[L,L]`**, expected **`1,3,F`**.
+Thus the text-preservation fields demonstrably fail even while failure status
+remains correctly 1. Each restoration used `apply_patch`, then U+ (24 passed,
+exit 0); no assertion or expected value was weakened.
+
+| Full case                                                              | Fixture | Arguments       | Return control actual → expected (R/S/V) | No-mutation control actual → expected (I) | Restoration |
+| ---------------------------------------------------------------------- | ------- | --------------- | ---------------------------------------- | ----------------------------------------- | ----------- |
+| `invalid range or buffer leaves text untouched [zero first]`           | F       | `0,0`           | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [negative first]`       | F       | `0,-1`          | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [past last first]`      | F       | `0,4`           | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [reversed range]`       | F       | `0,3,2`         | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [zero last]`            | F       | `0,1,0`         | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [fractional first]`     | F       | `0,1.5`         | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [fractional last]`      | F       | `0,1,2.5`       | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [invalid first string]` | F       | `0,'invalid'`   | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [invalid last string]`  | F       | `0,1,'invalid'` | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [nonzero buffer]`       | F       | `1,2`           | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [negative buffer]`      | F       | `-1,2`          | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [fractional buffer]`    | F       | `0.5,2`         | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [nil buffer]`           | F       | `nil,2`         | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [boolean buffer]`       | F       | `false,2`       | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [string buffer]`        | F       | `'0',2`         | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [missing first]`        | F       | `0`             | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `invalid range or buffer leaves text untouched [extra argument]`       | F       | `0,1,2,3`       | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `unloaded buffer leaves text untouched`                                | U0      | `0,2`           | `0,3,F` → `1,3,F`                        | `1,2,[L,L]` → `1,3,F`                     | U+ / 0      |
+| `callback unavailable leaves text untouched`                           | C0      | `0,2`           | `0,3,F` → `1,3,F`                        | Not run: no setter exists                 | U+ / 0      |
+
+## Phase 4 public host records
+
+File: **`test/specs/lua-coordinate-contract.e2e.ts`**, group
+**`Lua coordinate contract`**. Each of the two new cases has one composite
+assertion on **`{initial,source,result,text,count}`**, with native
+`editor.lineCount()` and exact untrimmed host text. Public mappings `gD`/`gA`
+call the real Lua handler. The register probe is read numerically: the original
+stub pushes a Lua float (`tostring(0)` is `"0.0"`), which must not become a
+spurious integer-formatting regression instead of testing deletion.
+
+| Full case                                                    | Fixture                    | Mutation / command / exit | Observed actual          | Expected               | Restoration |
+| ------------------------------------------------------------ | -------------------------- | ------------------------- | ------------------------ | ---------------------- | ----------- |
+| `coordinate contract deletebufline mutates host buffer`      | F, source                  | S / E / 1                 | `TEXT,true,0,TEXT,3`     | `TEXT,true,0,L+'\n',2` | E+ / 0      |
+| `coordinate contract deletebufline all leaves one host line` | F, source                  | S / E / 1                 | `TEXT,true,0,TEXT,3`     | `TEXT,true,0,'',1`     | E+ / 0      |
+| `coordinate contract deletebufline mutates host buffer`      | F, source                  | H / E / 1                 | `TEXT,true,0,L+'\n\n',3` | `TEXT,true,0,L+'\n',2` | E+ / 0      |
+| `coordinate contract deletebufline mutates host buffer`      | F, source                  | V / E / 1                 | `TEXT,true,1,L+'\n',2`   | `TEXT,true,0,L+'\n',2` | E+ / 0      |
+| `coordinate contract deletebufline all leaves one host line` | F, source                  | V / E / 1                 | `TEXT,true,1,'',1`       | `TEXT,true,0,'',1`     | E+ / 0      |
+| `coordinate contract deletebufline mutates host buffer`      | F → single L, live preview | P / P / 1                 | `L,false,1,L,1`          | `TEXT,true,0,L+'\n',2` | P+ / 0      |
+| `coordinate contract deletebufline all leaves one host line` | F → single L, live preview | P / P / 1                 | `L,false,0,'',1`         | `TEXT,true,0,'',1`     | P+ / 0      |
+
+Measured WDIO command times (excluding build): H **10.177s**, H+ **10.108s**;
+S **10.128s**, S+ **10.054s**; V **10.394s**, V+ **10.300s**;
+P **11.292s**, P+ **10.543s**. The initial unmodified-stub e2e red run also
+failed both cases (9.983s); its additional `"0.0"` versus `"0"` formatting
+difference was removed from the probe before S, where both statuses read **0**
+and only the unchanged buffer caused the two failures.
+
+## Phase 4 final QA and remaining gate
+
+The required Phase 4 command ran successfully:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'coordinate contract deletebufline' && printf 'COORD-DELETE UNIT PASS\n' && npm run build:dev && nix develop --command bash -c 'time npx wdio run ./wdio.conf.mts --spec test/specs/lua-coordinate-contract.e2e.ts --spec test/specs/lua-plugin-mini-comment.e2e.ts --spec test/specs/lua-vim-fn.e2e.ts' && printf 'COORD-DELETE E2E PASS\n'
+```
+
+Both markers printed; exit **0**. Unit: **24 passed** (137 other-phase cases
+filtered). E2E: **3/3 specs**, **60 passed**, **3 existing mini.comment skips**,
+no new skips. The skips were the pre-fetched plugin fetch test and the existing
+empty-line/visual-mode cases, not fixture absence. Measured WDIO time:
+**137.181s**. Full `npm run test:unit`: **2546 passed, 6 skipped**, 125 files,
+exit **0**. `npx tsc --noEmit --skipLibCheck`: exit **0**.
+
+All five review areas passed (goals, execution, code, security, context).
+The context review confirmed `main.ts`'s separate `executeLuaForTest` splice
+is test-only; normal config uses `loadInitLua`. It is outside the explicitly
+scoped production callback fix, and these new public probes do not use it.
+
+**Staging remains blocked by existing LSP errors**, not runtime QA.
+`lsp_diagnostics` is clean for `fn.ts`, `loader.ts`, and `coordinate-harness.ts`.
+The e2e file has no errors/warnings (six await-type hints); Markdown has no
+configured LSP server. `coordinate-contract.test.ts` reports **seven errors**:
+TS2732 at 4 (JSON import needs `resolveJsonModule`), downstream TS2345 at 160
+and TS7006 at 181/202/223, TS2345 at 592 (indexed first line), TS2322 at 722
+(indexed empty line). `git diff` confirms this phase only inserts its new
+84-line group: all seven sites and the relevant unit tsconfig are unchanged
+from `31955c3`. They were not repaired because Phases 1–3 are explicitly frozen.

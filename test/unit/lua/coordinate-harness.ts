@@ -6,14 +6,17 @@ import {
 } from '../../../src/lib/fengari';
 import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
-import { injectVimFn } from '../../../src/lua/fn';
+import { injectVimFn, type VimFnCallbacks } from '../../../src/lua/fn';
 import { AutocmdManager } from '../../../src/lua/autocmd';
 import { COORD_LINES } from '../../fixtures/neovim-coordinate-contract';
 import type { CmAdapter } from '../../../src/types/vim-api';
 
 type LuaState = ReturnType<typeof createSandboxedState>;
 
-export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
+export function createCoordinateState(
+    lines: readonly string[] = COORD_LINES,
+    fnCallbacks: Partial<VimFnCallbacks> = {},
+) {
     const L = createSandboxedState();
     const host = {
         lines: [...lines],
@@ -87,6 +90,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
             getObsidianVersion: () => '1.13.7',
             getGlobal: (name) => api.globals.get(name),
             getOption: () => undefined,
+            ...fnCallbacks,
         });
         return { L, host };
     } catch (error) {

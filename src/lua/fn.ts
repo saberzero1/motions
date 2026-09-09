@@ -31,7 +31,7 @@ export interface VimFnCallbacks {
     getLine: (line: number) => string | null;
     getLineCount: () => number;
     getLines: (start: number, end: number) => string[];
-    setLines: (start: number, end: number, lines: string[]) => void;
+    setLines?: (start: number, end: number, lines: string[]) => void;
     getPlatform: () => {
         isMacOS: boolean;
         isLinux: boolean;
@@ -631,6 +631,44 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     });
 
     // --- Buffer modification ---
+
+    registry.set('deletebufline', (state) => {
+        const argc = lua.lua_gettop(state);
+        const first =
+            lua.lua_type(state, 2) === lua.LUA_TNUMBER
+                ? lua.lua_tonumber(state, 2)
+                : NaN;
+        const lineCount = callbacks.getLineCount();
+        const last =
+            argc === 2
+                ? first
+                : lua.lua_type(state, 3) === lua.LUA_TSTRING &&
+                    readString(state, 3) === '$'
+                  ? lineCount
+                  : lua.lua_type(state, 3) === lua.LUA_TNUMBER
+                    ? lua.lua_tonumber(state, 3)
+                    : NaN;
+        if (
+            argc < 2 ||
+            argc > 3 ||
+            lua.lua_type(state, 1) !== lua.LUA_TNUMBER ||
+            lua.lua_tonumber(state, 1) !== 0 ||
+            !Number.isSafeInteger(first) ||
+            !Number.isSafeInteger(last) ||
+            first < 1 ||
+            first > lineCount ||
+            last < first ||
+            !callbacks.setLines
+        ) {
+            lua.lua_pushinteger(state, 1);
+            return 1;
+        }
+        // Wire lines are 1-based inclusive; the host splice is 0-based exclusive.
+        // Both host implementations preserve one empty line after deleting all.
+        callbacks.setLines(first - 1, Math.min(last, lineCount), []);
+        lua.lua_pushinteger(state, 0);
+        return 1;
+    });
 
     registry.set('setline', (state) => {
         const lnum = lua.lua_tonumber(state, 1);
@@ -1758,7 +1796,6 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     const numberReturnFns = new Set([
         'search',
         'setbufline',
-        'deletebufline',
         'bufnr',
         'tabpagenr',
         'changenr',

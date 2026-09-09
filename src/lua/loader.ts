@@ -1524,7 +1524,12 @@ export async function loadInitLua(
                 editor.replaceRange(lines.join('\n'), { line: 0, ch: 0 });
                 return;
             }
-            const from = { line: start, ch: 0 };
+            // A deleted suffix owns its preceding separator. Deleting the whole
+            // document instead starts at zero; Obsidian retains one empty line.
+            const from =
+                lines.length === 0 && start > 0 && actualEnd >= lineCount
+                    ? { line: start - 1, ch: editor.getLine(start - 1).length }
+                    : { line: start, ch: 0 };
             const to =
                 actualEnd >= lineCount
                     ? {

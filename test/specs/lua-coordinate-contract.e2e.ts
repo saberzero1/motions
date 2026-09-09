@@ -1,5 +1,8 @@
-import { expect } from '@wdio/globals';
-import { COORD_LINES } from '../fixtures/neovim-coordinate-contract';
+import { browser, expect } from '@wdio/globals';
+import {
+    COORD_LINE,
+    COORD_LINES,
+} from '../fixtures/neovim-coordinate-contract';
 import {
     loadLuaConfig,
     setupEditor,
@@ -29,6 +32,12 @@ vim.keymap.set('n', 'gE', function()
     local p = vim.api.nvim_buf_get_mark(0, '>')
     vim.fn.setreg('s', table.concat(p, ':'))
 end)
+vim.keymap.set('n', 'gD', function()
+    vim.fn.setreg('d', tostring(vim.fn.deletebufline(0, 3)))
+end)
+vim.keymap.set('n', 'gA', function()
+    vim.fn.setreg('d', tostring(vim.fn.deletebufline(0, 1, '$')))
+end)
 `;
 
 describe('Lua coordinate contract', function () {
@@ -39,6 +48,49 @@ describe('Lua coordinate contract', function () {
         // Switching source mode may rebuild the editor; establish the cursor last.
         await setupEditor(COORD_LINES.join('\n'), { line: 2, ch: 6 });
     });
+    for (const [name, keys, text, count] of [
+        [
+            'coordinate contract deletebufline mutates host buffer',
+            'gD',
+            COORD_LINE + '\n',
+            2,
+        ],
+        [
+            'coordinate contract deletebufline all leaves one host line',
+            'gA',
+            '',
+            1,
+        ],
+    ] as const) {
+        it(name, async () => {
+            const initial = await getEditorValue();
+            const source = await isSourceMode();
+            await vimRawKeys(keys);
+            const lineCount = await browser.executeObsidian(
+                ({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view)
+                        throw new Error('deletebufline: no MarkdownView');
+                    return view.editor.lineCount();
+                },
+            );
+            await expect({
+                initial,
+                source,
+                result: Number((await getRegisterContent('d'))?.text),
+                text: await getEditorValue(),
+                count: lineCount,
+            }).toEqual({
+                initial: COORD_LINES.join('\n'),
+                source: true,
+                result: 0,
+                text,
+                count,
+            });
+        });
+    }
     it('coordinate contract public byte cursor roundtrip', async () => {
         await expect([
             await getEditorValue(),

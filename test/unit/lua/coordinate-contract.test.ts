@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditorState } from '@codemirror/state';
+import { readFileSync } from 'node:fs';
 import type { CmAdapter } from '../../../src/types/vim-api';
-import oracle from '../../fixtures/neovim-coordinate-oracle.json';
 import { destroyState } from '../../../src/lua/engine';
 import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
 import {
@@ -21,6 +21,149 @@ import {
     runLuaError,
     readBuffer,
 } from './coordinate-harness';
+
+interface OracleColumns {
+    col: number;
+    charcol: number;
+    virtcol: number;
+    cells: [number, number];
+}
+
+interface CoordinateOracle {
+    version: string;
+    profiles: {
+        name: string;
+        text: string;
+        options: {
+            tabstop: number;
+            fileformat: string;
+            list: boolean;
+            listchars: string;
+            wrap: boolean;
+            showbreak: string;
+            breakindent: boolean;
+            linebreak: boolean;
+            width: number;
+            number: boolean;
+            relativenumber: boolean;
+            signcolumn: string;
+            foldcolumn: string;
+            ambiwidth: string;
+            display: string;
+            virtualedit: string;
+        };
+        boundaries: (OracleColumns & {
+            byte: number;
+            expressions: OracleColumns;
+            virtcol2col: [number, number];
+        })[];
+        occupied: (OracleColumns & {
+            cell: number;
+            byte_col: number;
+            expressions: Pick<OracleColumns, 'col' | 'charcol'>;
+        })[];
+        expressions: {
+            col_eol: number;
+            charcol_eol: number;
+            virtcol_eol: number;
+            cells_eol: [number, number];
+        };
+    }[];
+}
+
+const oracle: CoordinateOracle = JSON.parse(
+    readFileSync(
+        new URL(
+            '../../fixtures/neovim-coordinate-oracle.json',
+            import.meta.url,
+        ),
+        'utf8',
+    ),
+);
+
+describe('coordinate contract deletebufline', () => {
+    let state: ReturnType<typeof createCoordinateState>;
+    beforeEach(() => {
+        state = createCoordinateState(COORD_LINES);
+    });
+    afterEach(() => {
+        destroyState(state.L);
+        vi.restoreAllMocks();
+    });
+    it.each([
+        ['deletes middle empty line', '0,2', 2, [COORD_LINE, COORD_LINE]],
+        ['deletes final line without empty tail', '0,3', 2, [COORD_LINE, '']],
+        ['delete all leaves one empty line', "0,1,'$'", 1, ['']],
+        ['deletes inclusive range', '0,1,2', 1, [COORD_LINE]],
+        ['clamps oversized end', '0,2,99', 1, [COORD_LINE]],
+    ] as const)('%s', (_name, args, count, lines) => {
+        const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const result = runLuaNumber(
+            state.L,
+            `return vim.fn.deletebufline(${args})`,
+        );
+        expect({
+            result,
+            count: readBuffer(state).length,
+            lines: readBuffer(state),
+            warnings: warnings.mock.calls.length,
+        }).toEqual({ result: 0, count, lines, warnings: 0 });
+    });
+    it.each([
+        ['zero first', '0,0'],
+        ['negative first', '0,-1'],
+        ['past last first', '0,4'],
+        ['reversed range', '0,3,2'],
+        ['zero last', '0,1,0'],
+        ['fractional first', '0,1.5'],
+        ['fractional last', '0,1,2.5'],
+        ['invalid first string', "0,'invalid'"],
+        ['invalid last string', "0,1,'invalid'"],
+        ['nonzero buffer', '1,2'],
+        ['negative buffer', '-1,2'],
+        ['fractional buffer', '0.5,2'],
+        ['nil buffer', 'nil,2'],
+        ['boolean buffer', 'false,2'],
+        ['string buffer', "'0',2"],
+        ['missing first', '0'],
+        ['extra argument', '0,1,2,3'],
+    ])('invalid range or buffer leaves text untouched [%s]', (_name, args) => {
+        const result = runLuaNumber(
+            state.L,
+            `return vim.fn.deletebufline(${args})`,
+        );
+        expect({
+            result,
+            count: readBuffer(state).length,
+            lines: readBuffer(state),
+        }).toEqual({ result: 1, count: 3, lines: COORD_LINES });
+    });
+    it('callback unavailable leaves text untouched', () => {
+        destroyState(state.L);
+        state = createCoordinateState(COORD_LINES, { setLines: undefined });
+        const result = runLuaNumber(
+            state.L,
+            'return vim.fn.deletebufline(0,2)',
+        );
+        expect({
+            result,
+            count: readBuffer(state).length,
+            lines: readBuffer(state),
+        }).toEqual({ result: 1, count: 3, lines: COORD_LINES });
+    });
+    it('unloaded buffer leaves text untouched', () => {
+        state.host.loaded = false;
+        const result = runLuaNumber(
+            state.L,
+            'return vim.fn.deletebufline(0,2)',
+        );
+        expect({
+            result,
+            count: readBuffer(state).length,
+            lines: readBuffer(state),
+        }).toEqual({ result: 1, count: 3, lines: COORD_LINES });
+    });
+});
 
 describe('coordinate contract A2', () => {
     let state: ReturnType<typeof createCoordinateState>;
@@ -504,8 +647,11 @@ describe('coordinate contract A1', () => {
         expect(readBuffer(state)).toEqual([COORD_LINE, '', COORD_LINE]);
     });
     it('UTF-8 spans preserve astral and composing boundaries [span ranges]', () => {
+        const line = readBuffer(state)[0];
+        if (line === undefined)
+            throw new Error('Missing first coordinate line');
         expect(
-            buildCharSpans(readBuffer(state)[0], false).map((span) => [
+            buildCharSpans(line, false).map((span) => [
                 span.byteStart,
                 span.byteEnd,
                 span.utf16Start,
@@ -635,7 +781,10 @@ describe('coordinate contract A1', () => {
     ])(
         'unloaded and empty buffers are distinct [empty %s]',
         (format, expected) => {
-            state.host.lines = [COORD_LINES[1]];
+            const emptyLine = COORD_LINES[1];
+            if (emptyLine === undefined)
+                throw new Error('Missing empty coordinate line');
+            state.host.lines = [emptyLine];
             expect(
                 runLuaString(
                     state.L,
