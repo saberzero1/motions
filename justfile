@@ -5,7 +5,7 @@ bump version:
     npm run lint
     npm_package_version={{version}} node version-bump.mjs
     npm i -D
-    prettier . --check --write
+    npx prettier . --check --write
 
 tag version:
     git tag -a "{{version}}" -m "Release version {{version}}"
@@ -18,4 +18,4 @@ check:
     npm run test:unit
 
 lint:
-    prettier . --check --write
+    npx prettier . --check --write
